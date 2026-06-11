@@ -144,6 +144,11 @@ public final class CloudIslandsVelocityPlugin {
             routingController.setPublicAccess(player, islandId, false);
             return;
         }
+        if (args[0].equalsIgnoreCase("logs") || args[0].equals("로그")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.listIslandLogs(player, islandId);
+            return;
+        }
         if (args[0].equalsIgnoreCase("rank") || args[0].equals("ranking") || args[0].equals("랭킹")) {
             routingController.showLevelRanking(player);
             return;

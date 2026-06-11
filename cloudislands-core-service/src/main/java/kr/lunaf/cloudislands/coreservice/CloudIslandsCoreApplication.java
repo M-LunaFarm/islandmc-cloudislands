@@ -30,6 +30,9 @@ import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.RedisStreamEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
+import kr.lunaf.cloudislands.coreservice.islandlog.InMemoryIslandLogRepository;
+import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
+import kr.lunaf.cloudislands.coreservice.islandlog.JdbcIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue;
@@ -110,6 +113,7 @@ public final class CloudIslandsCoreApplication {
         UpgradePolicy upgradePolicy = new UpgradePolicy();
         IslandUpgradeService upgradeService = new IslandUpgradeService(upgradeRepository, upgradePolicy);
         AuditLogger audit = config.jdbcRepositories() ? new JdbcAuditLogger(dataSource) : new InMemoryAuditLogger();
+        IslandLogRepository islandLogs = config.jdbcRepositories() ? new JdbcIslandLogRepository(dataSource) : new InMemoryIslandLogRepository();
         InMemoryAuditLogger inMemoryAudit = audit instanceof InMemoryAuditLogger logger ? logger : new InMemoryAuditLogger();
         RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets, islandRepository, metadataRepository);
         CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, nodes, allocator, jobs, events);
@@ -273,10 +277,15 @@ public final class CloudIslandsCoreApplication {
             String upgradeKey = JsonFields.text(body, "upgradeKey", "size").toLowerCase();
             UpgradePurchaseResult result = upgradeService.purchase(islandId, upgradeKey);
             audit.log(actorUuid, "PLAYER", "ISLAND_UPGRADE_PURCHASE", "ISLAND", islandId.toString(), Map.of("upgradeKey", upgradeKey, "code", result.code(), "cost", result.cost().toPlainString()));
+            islandLogs.append(islandId, actorUuid, "ISLAND_UPGRADE_PURCHASE", Map.of("upgradeKey", upgradeKey, "code", result.code(), "cost", result.cost().toPlainString()));
             if (result.accepted()) {
                 events.publish("ISLAND_UPGRADE", Map.of("islandId", islandId.toString(), "upgradeKey", upgradeKey, "level", Integer.toString(result.snapshot().level())));
             }
             write(exchange, result.accepted() ? 202 : 409, upgradePurchaseJson(result));
+        });
+        route("/v1/islands/logs", exchange -> {
+            String body = readBody(exchange);
+            write(exchange, 200, islandLogsJson(islandLogs.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.integer(body, "limit", 30))));
         });
         route("/v1/islands/members", exchange -> {
             String body = readBody(exchange);
@@ -289,6 +298,7 @@ public final class CloudIslandsCoreApplication {
             IslandRole role = JsonFields.enumValue(IslandRole.class, body, "role", IslandRole.MEMBER);
             metadataRepository.upsertMember(islandId, playerUuid, role);
             audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_MEMBER_SET", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString(), "role", role.name()));
+            islandLogs.append(islandId, JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "ISLAND_MEMBER_SET", Map.of("playerUuid", playerUuid.toString(), "role", role.name()));
             events.publish("ISLAND_MEMBER_SET", Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", role.name()));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -298,6 +308,7 @@ public final class CloudIslandsCoreApplication {
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
             metadataRepository.removeMember(islandId, playerUuid);
             audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_MEMBER_REMOVE", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
+            islandLogs.append(islandId, JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "ISLAND_MEMBER_REMOVE", Map.of("playerUuid", playerUuid.toString()));
             events.publish("ISLAND_MEMBER_REMOVE", Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -308,6 +319,7 @@ public final class CloudIslandsCoreApplication {
             UUID targetUuid = JsonFields.uuid(body, "targetUuid", new UUID(0L, 0L));
             var invite = metadataRepository.createInvite(islandId, inviterUuid, targetUuid);
             audit.log(inviterUuid, "PLAYER", "ISLAND_INVITE_CREATE", "ISLAND", islandId.toString(), Map.of("targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString()));
+            islandLogs.append(islandId, inviterUuid, "ISLAND_INVITE_CREATE", Map.of("targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString()));
             events.publish("ISLAND_INVITE_CREATE", Map.of("islandId", islandId.toString(), "targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString()));
             write(exchange, 202, "{\"accepted\":true,\"inviteId\":\"" + invite.inviteId() + "\",\"expiresAt\":\"" + invite.expiresAt() + "\"}");
         });
@@ -342,6 +354,7 @@ public final class CloudIslandsCoreApplication {
             metadataRepository.banVisitor(islandId, actorUuid, playerUuid, reason);
             metadataRepository.removeMember(islandId, playerUuid);
             audit.log(actorUuid, "PLAYER", "ISLAND_VISITOR_BAN", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString(), "reason", reason));
+            islandLogs.append(islandId, actorUuid, "ISLAND_VISITOR_BAN", Map.of("playerUuid", playerUuid.toString(), "reason", reason));
             events.publish("ISLAND_VISITOR_BAN", Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -351,6 +364,7 @@ public final class CloudIslandsCoreApplication {
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
             metadataRepository.pardonVisitor(islandId, playerUuid);
             audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_VISITOR_PARDON", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
+            islandLogs.append(islandId, JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "ISLAND_VISITOR_PARDON", Map.of("playerUuid", playerUuid.toString()));
             events.publish("ISLAND_VISITOR_PARDON", Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -365,6 +379,7 @@ public final class CloudIslandsCoreApplication {
             String value = JsonFields.text(body, "value", "false");
             metadataRepository.setFlag(islandId, flag, value);
             audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_FLAG_SET", "ISLAND", islandId.toString(), Map.of("flag", flag.name(), "value", value));
+            islandLogs.append(islandId, JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "ISLAND_FLAG_SET", Map.of("flag", flag.name(), "value", value));
             events.publish("ISLAND_FLAG_SET", Map.of("islandId", islandId.toString(), "flag", flag.name(), "value", value));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -379,6 +394,7 @@ public final class CloudIslandsCoreApplication {
             boolean publicAccess = JsonFields.bool(body, "publicAccess", false);
             metadataRepository.upsertWarp(islandId, name, location(body), publicAccess, JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)));
             audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_WARP_SET", "ISLAND", islandId.toString(), Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
+            islandLogs.append(islandId, JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "ISLAND_WARP_SET", Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
             events.publish("ISLAND_WARP_SET", Map.of("islandId", islandId.toString(), "name", name));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -388,6 +404,7 @@ public final class CloudIslandsCoreApplication {
             String name = JsonFields.text(body, "name", "default").toLowerCase();
             metadataRepository.deleteWarp(islandId, name);
             audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_WARP_DELETE", "ISLAND", islandId.toString(), Map.of("name", name));
+            islandLogs.append(islandId, JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "ISLAND_WARP_DELETE", Map.of("name", name));
             events.publish("ISLAND_WARP_DELETE", Map.of("islandId", islandId.toString(), "name", name));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -397,6 +414,7 @@ public final class CloudIslandsCoreApplication {
             boolean publicAccess = JsonFields.bool(body, "publicAccess", false);
             metadataRepository.setPublicAccess(islandId, publicAccess);
             audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_ACCESS_SET", "ISLAND", islandId.toString(), Map.of("publicAccess", Boolean.toString(publicAccess)));
+            islandLogs.append(islandId, JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "ISLAND_ACCESS_SET", Map.of("publicAccess", Boolean.toString(publicAccess)));
             events.publish("ISLAND_ACCESS_SET", Map.of("islandId", islandId.toString(), "publicAccess", Boolean.toString(publicAccess)));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -406,6 +424,7 @@ public final class CloudIslandsCoreApplication {
             CreateIslandResult result = createIsland.create(playerUuid, JsonFields.text(body, "templateId", "default"));
             if (result.accepted() && result.island() != null) {
                 metadataRepository.upsertMember(result.island().islandId(), playerUuid, IslandRole.OWNER);
+                islandLogs.append(result.island().islandId(), playerUuid, "ISLAND_CREATE", Map.of("templateId", JsonFields.text(body, "templateId", "default")));
             }
             audit.log(playerUuid, "PLAYER", "ISLAND_CREATE", "ISLAND", result.island() == null ? "" : result.island().islandId().toString(), Map.of("code", result.code()));
             String ticketJson = result.ticket() == null ? "null" : RoutingOrchestrator.toJson(result.ticket());
@@ -598,6 +617,39 @@ public final class CloudIslandsCoreApplication {
                 .append('}');
         }
         return builder.append("]}").toString();
+    }
+
+    private static String islandLogsJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandLogRecord> logs) {
+        StringBuilder builder = new StringBuilder("{\"logs\":[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.api.model.IslandLogRecord log : logs) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('{')
+                .append("\"logId\":\"").append(log.logId()).append("\",")
+                .append("\"islandId\":\"").append(log.islandId()).append("\",")
+                .append("\"actorUuid\":\"").append(log.actorUuid()).append("\",")
+                .append("\"action\":\"").append(escape(log.action())).append("\",")
+                .append("\"payload\":").append(stringMapJson(log.payload())).append(',')
+                .append("\"createdAt\":\"").append(log.createdAt()).append("\"")
+                .append('}');
+        }
+        return builder.append("]}").toString();
+    }
+
+    private static String stringMapJson(Map<String, String> payload) {
+        StringBuilder builder = new StringBuilder("{");
+        boolean first = true;
+        for (Map.Entry<String, String> entry : payload.entrySet()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append("\"").append(escape(entry.getKey())).append("\":\"").append(escape(entry.getValue())).append("\"");
+        }
+        return builder.append("}").toString();
     }
 
     private static String flagsJson(kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot flags) {

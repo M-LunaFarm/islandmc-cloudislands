@@ -173,6 +173,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> listIslandLogs(UUID islandId, int limit) {
+        return post("/v1/islands/logs", "{\"islandId\":\"" + islandId + "\",\"limit\":" + limit + "}");
+    }
+
+    @Override
     public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid) {
         return post("/v1/routes/home", "{\"playerUuid\":\"" + playerUuid + "\"}").thenApply(RouteTicketJson::parse);
     }

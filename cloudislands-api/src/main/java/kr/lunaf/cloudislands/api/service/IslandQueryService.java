@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLevelSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandLogRecord;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
@@ -25,4 +26,5 @@ public interface IslandQueryService {
     CompletableFuture<IslandRuntimeSnapshot> getRuntime(UUID islandId);
     CompletableFuture<List<IslandUpgradeSnapshot>> getUpgrades(UUID islandId);
     CompletableFuture<List<IslandSnapshotRecord>> getSnapshots(UUID islandId, int limit);
+    CompletableFuture<List<IslandLogRecord>> getLogs(UUID islandId, int limit);
 }

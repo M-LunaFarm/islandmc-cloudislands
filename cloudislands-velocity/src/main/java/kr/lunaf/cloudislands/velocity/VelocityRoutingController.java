@@ -87,6 +87,10 @@ public final class VelocityRoutingController {
         coreApiClient.setIslandPublicAccess(islandId, player.getUniqueId(), publicAccess).thenRun(() -> player.sendMessage(Component.text(publicAccess ? "섬을 공개로 변경했습니다." : "섬을 비공개로 변경했습니다.")));
     }
 
+    public void listIslandLogs(Player player, UUID islandId) {
+        coreApiClient.listIslandLogs(islandId, 30).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 로그를 불러오지 못했습니다." : body)));
+    }
+
     public void showLevelRanking(Player player) {
         coreApiClient.topIslandsByLevel(10).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "랭킹을 불러오지 못했습니다." : body)));
     }

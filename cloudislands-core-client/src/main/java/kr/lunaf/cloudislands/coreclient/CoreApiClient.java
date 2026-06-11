@@ -43,6 +43,7 @@ public interface CoreApiClient {
     CompletableFuture<String> listIslandSnapshots(UUID islandId, int limit);
     CompletableFuture<Void> requestIslandSnapshot(UUID islandId, String reason);
     CompletableFuture<Void> restoreIslandSnapshot(UUID islandId, long snapshotNo);
+    CompletableFuture<String> listIslandLogs(UUID islandId, int limit);
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid);
     CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId);
     CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName);
