@@ -27,6 +27,7 @@ import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandMissionSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandRankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
@@ -176,6 +177,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         public CompletableFuture<IslandLevelSnapshot> getLevel(UUID islandId) {
             return client.islandInfo(islandId).thenApply(PaperCloudIslandsApi::level);
         }
+
+        @Override
+        public CompletableFuture<List<IslandRankSnapshot>> getTopByLevel(int limit) {
+            return client.topIslandsByLevel(limit).thenApply(PaperCloudIslandsApi::rankings);
+        }
+
+        @Override
+        public CompletableFuture<List<IslandRankSnapshot>> getTopByWorth(int limit) {
+            return client.topIslandsByWorth(limit).thenApply(PaperCloudIslandsApi::rankings);
+        }
+
         @Override
         public CompletableFuture<List<IslandUpgradeSnapshot>> getUpgrades(UUID islandId) {
             return client.listIslandUpgrades(islandId).thenApply(PaperCloudIslandsApi::upgrades);
@@ -546,6 +558,19 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             text(json, "worth", "0"),
             instant(text(json, "updatedAt", Instant.EPOCH.toString()))
         );
+    }
+
+    private static List<IslandRankSnapshot> rankings(String json) {
+        List<IslandRankSnapshot> rankings = new ArrayList<>();
+        for (String object : objects(json, "rankings")) {
+            rankings.add(new IslandRankSnapshot(
+                uuid(object, "islandId", new UUID(0L, 0L)),
+                longValue(object, "level", 0L),
+                text(object, "worth", "0"),
+                instant(text(object, "calculatedAt", Instant.EPOCH.toString()))
+            ));
+        }
+        return rankings;
     }
 
     private static List<IslandUpgradeSnapshot> upgrades(String json) {
