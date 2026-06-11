@@ -69,12 +69,13 @@ public final class SuperiorSkyblock2MigrationScanner {
             List<MigrationPermission> permissions = parsePermissions(content);
             List<MigrationUpgrade> upgrades = parseUpgrades(content);
             String biomeKey = parseBiomeKey(content);
+            String bankBalance = parseString(content, "bankBalance", parseString(content, "balance", parseString(content, "islandBank", "0.00")));
             boolean publicAccess = parseBoolean(content, "public", parseBoolean(content, "isPublic", parseBoolean(content, "publicAccess", false)));
             boolean locked = parseBoolean(content, "locked", parseBoolean(content, "isLocked", false));
             LinkedHashSet<UUID> allMembers = new LinkedHashSet<>();
             allMembers.add(ownerUuid);
             allMembers.addAll(members);
-            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), bannedVisitors, homes, warps, flags, permissions, upgrades, biomeKey, publicAccess, locked, size, level, worth));
+            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), bannedVisitors, homes, warps, flags, permissions, upgrades, biomeKey, bankBalance, publicAccess, locked, size, level, worth));
         } catch (RuntimeException | IOException exception) {
             issues.add(new MigrationIssue("ISLAND_FILE_PARSE_FAILED", file + ": " + exception.getMessage(), true));
         }

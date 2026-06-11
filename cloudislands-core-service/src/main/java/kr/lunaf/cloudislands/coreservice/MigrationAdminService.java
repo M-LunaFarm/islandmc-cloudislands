@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.coreservice;
 
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,6 +10,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
+import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.permission.IslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
@@ -31,6 +33,7 @@ public final class MigrationAdminService {
     private final PlayerProfileRepository playerProfiles;
     private final IslandPermissionRuleRepository permissionRules;
     private final IslandUpgradeRepository upgrades;
+    private final IslandBankRepository bank;
     private final SuperiorSkyblock2MigrationScanner scanner = new SuperiorSkyblock2MigrationScanner();
     private final CloudIslandsMigrationImporter importer = new CloudIslandsMigrationImporter();
     private final MigrationVerifier verifier = new MigrationVerifier();
@@ -39,12 +42,13 @@ public final class MigrationAdminService {
     private MigrationImportPlan lastPlan = new MigrationImportPlan(List.of(), List.of());
     private MigrationRollbackPlan lastRollbackPlan;
 
-    public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades) {
+    public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank) {
         this.islands = islands;
         this.metadata = metadata;
         this.playerProfiles = playerProfiles;
         this.permissionRules = permissionRules;
         this.upgrades = upgrades;
+        this.bank = bank;
     }
 
     public synchronized String scan(String path) {
@@ -94,6 +98,10 @@ public final class MigrationAdminService {
             if (!manifest.biomeKey().isBlank()) {
                 metadata.setBiome(manifest.islandId(), manifest.biomeKey(), manifest.ownerUuid());
             }
+            BigDecimal bankBalance = decimal(manifest.bankBalance());
+            if (bankBalance.signum() > 0) {
+                bank.deposit(manifest.islandId(), bankBalance);
+            }
             metadata.setPublicAccess(manifest.islandId(), manifest.publicAccess());
             metadata.setLocked(manifest.islandId(), manifest.locked());
             playerProfiles.setPrimaryIsland(manifest.ownerUuid(), manifest.islandId());
@@ -119,6 +127,7 @@ public final class MigrationAdminService {
                 .filter(_island -> permissionsMatch(manifest))
                 .filter(_island -> upgradesMatch(manifest))
                 .filter(_island -> manifest.biomeKey().isBlank() || metadata.biome(manifest.islandId()).biomeKey().equals(manifest.biomeKey()))
+                .filter(_island -> decimal(bank.balance(manifest.islandId()).balance()).compareTo(decimal(manifest.bankBalance())) == 0)
                 .filter(_island -> metadata.isPublicAccess(manifest.islandId()) == manifest.publicAccess())
                 .filter(_island -> metadata.isLocked(manifest.islandId()) == manifest.locked())
                 .ifPresent(_island -> imported.add(manifest));
@@ -158,6 +167,14 @@ public final class MigrationAdminService {
             current.put(upgrade.upgradeKey(), upgrade.level());
         }
         return manifest.upgrades().stream().allMatch(upgrade -> Integer.valueOf(upgrade.level()).equals(current.get(upgrade.upgradeKey())));
+    }
+
+    private BigDecimal decimal(String value) {
+        try {
+            return new BigDecimal(value == null || value.isBlank() ? "0.00" : value);
+        } catch (NumberFormatException exception) {
+            return BigDecimal.ZERO;
+        }
     }
 
     private String rollbackPlanJson(MigrationRollbackPlan plan) {
