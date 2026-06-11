@@ -85,7 +85,7 @@ public final class S3IslandStorage implements IslandStorage {
     @Override
     public int pruneSnapshots(UUID islandId, int keepLatest) throws IOException {
         if (keepLatest < 1) {
-            return 0;
+            throw new IllegalArgumentException("keepLatest must be positive");
         }
         String prefix = "islands/" + islandId + "/snapshots/";
         List<String> keys = listKeys(prefix);
@@ -99,14 +99,14 @@ public final class S3IslandStorage implements IslandStorage {
             return 0;
         }
         Set<String> removedSnapshots = new HashSet<>(snapshots.subList(keepLatest, snapshots.size()));
-        int deleted = 0;
+        int deletedKeys = 0;
         for (String key : keys) {
             if (removedSnapshots.contains(snapshotName(prefix, key))) {
                 requestBytes("DELETE", key, null);
-                deleted++;
+                deletedKeys++;
             }
         }
-        return deleted;
+        return deletedKeys == 0 ? 0 : removedSnapshots.size();
     }
 
     @Override
