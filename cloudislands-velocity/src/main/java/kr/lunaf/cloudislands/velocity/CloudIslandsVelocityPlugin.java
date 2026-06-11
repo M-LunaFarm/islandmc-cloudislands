@@ -375,8 +375,8 @@ public final class CloudIslandsVelocityPlugin {
         }
         if (args[0].equalsIgnoreCase("warp") || args[0].equals("워프")) {
             player.sendActionBar(Component.text("섬 워프로 이동하는 중입니다."));
-            UUID targetIslandId = optionalIslandIdArgument(args, 1);
-            String warpName = argumentAfterOptionalIsland(args, 1, "default");
+            UUID targetIslandId = routeTargetIslandId(args, 1);
+            String warpName = routeWarpName(args, 1, "default");
             routingController.routeWarp(player, targetIslandId, warpName);
             return;
         }
@@ -700,6 +700,20 @@ public final class CloudIslandsVelocityPlugin {
         } catch (NumberFormatException ignored) {
             return 0L;
         }
+    }
+
+    private UUID routeTargetIslandId(String[] args, int index) {
+        if (args.length > index && isUuid(args[index])) {
+            return parseUuidOrNil(args[index]);
+        }
+        return new UUID(0L, 0L);
+    }
+
+    private String routeWarpName(String[] args, int index, String fallback) {
+        if (args.length > index && isUuid(args[index])) {
+            return args.length > index + 1 ? args[index + 1] : fallback;
+        }
+        return args.length > index ? args[index] : fallback;
     }
 
     private boolean parseToggle(String[] args, int index, boolean fallback) {
