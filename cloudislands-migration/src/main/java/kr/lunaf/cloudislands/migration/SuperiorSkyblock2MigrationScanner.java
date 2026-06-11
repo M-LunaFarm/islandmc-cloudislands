@@ -70,6 +70,7 @@ public final class SuperiorSkyblock2MigrationScanner {
             List<MigrationPermission> permissions = parsePermissions(content);
             List<MigrationUpgrade> upgrades = parseUpgrades(content);
             List<MigrationLimit> limits = parseLimits(content);
+            List<MigrationMission> completedMissions = parseCompletedMissions(content);
             String biomeKey = parseBiomeKey(content);
             String bankBalance = parseString(content, "bankBalance", parseString(content, "balance", parseString(content, "islandBank", "0.00")));
             boolean publicAccess = parseBoolean(content, "public", parseBoolean(content, "isPublic", parseBoolean(content, "publicAccess", false)));
@@ -80,7 +81,7 @@ public final class SuperiorSkyblock2MigrationScanner {
             for (MigrationMemberRole memberRole : memberRoles) {
                 allMembers.add(memberRole.playerUuid());
             }
-            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), memberRoles, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, biomeKey, bankBalance, publicAccess, locked, size, level, worth));
+            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), memberRoles, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, biomeKey, bankBalance, publicAccess, locked, size, level, worth));
         } catch (RuntimeException | IOException exception) {
             issues.add(new MigrationIssue("ISLAND_FILE_PARSE_FAILED", file + ": " + exception.getMessage(), true));
         }
@@ -333,6 +334,17 @@ public final class SuperiorSkyblock2MigrationScanner {
         return List.copyOf(result);
     }
 
+    private List<MigrationMission> parseCompletedMissions(String content) {
+        List<MigrationMission> result = new ArrayList<>();
+        for (String missionKey : parseStringList(content, "completedMissions", "missionsCompleted", "finishedMissions")) {
+            result.add(new MigrationMission(missionKey, "MISSION"));
+        }
+        for (String missionKey : parseStringList(content, "completedChallenges", "challengesCompleted", "finishedChallenges")) {
+            result.add(new MigrationMission(missionKey, "CHALLENGE"));
+        }
+        return List.copyOf(result);
+    }
+
     private void addLimit(String content, List<MigrationLimit> limits, String limitKey, String... keys) {
         for (String key : keys) {
             if (containsAnyKey(content, key)) {
@@ -393,6 +405,75 @@ public final class SuperiorSkyblock2MigrationScanner {
             uuids.addAll(parseYamlUuidBlock(content, key));
         }
         return List.copyOf(uuids);
+    }
+
+    private List<String> parseStringList(String content, String... keys) {
+        LinkedHashSet<String> values = new LinkedHashSet<>();
+        for (String key : keys) {
+            values.addAll(parseJsonStringArray(content, key));
+            values.addAll(parseYamlStringBlock(content, key));
+        }
+        return List.copyOf(values);
+    }
+
+    private Set<String> parseJsonStringArray(String content, String key) {
+        LinkedHashSet<String> values = new LinkedHashSet<>();
+        String needle = "\"" + key + "\"";
+        int keyStart = content.indexOf(needle);
+        if (keyStart < 0) {
+            return values;
+        }
+        int arrayStart = content.indexOf('[', keyStart + needle.length());
+        int arrayEnd = arrayStart < 0 ? -1 : content.indexOf(']', arrayStart + 1);
+        if (arrayEnd <= arrayStart) {
+            return values;
+        }
+        collectStringValues(content.substring(arrayStart + 1, arrayEnd), values);
+        return values;
+    }
+
+    private Set<String> parseYamlStringBlock(String content, String key) {
+        LinkedHashSet<String> values = new LinkedHashSet<>();
+        String[] lines = content.split("\\R");
+        for (int index = 0; index < lines.length; index++) {
+            String line = lines[index];
+            String trimmed = line.trim();
+            if (!trimmed.startsWith(key + ":")) {
+                continue;
+            }
+            collectStringValues(trimmed.substring((key + ":").length()).trim(), values);
+            int parentIndent = line.indexOf(trimmed);
+            for (int child = index + 1; child < lines.length; child++) {
+                String childLine = lines[child];
+                String childTrimmed = childLine.trim();
+                if (childTrimmed.isEmpty() || childTrimmed.startsWith("#")) {
+                    continue;
+                }
+                int childIndent = childLine.indexOf(childTrimmed);
+                if (childIndent <= parentIndent) {
+                    break;
+                }
+                collectStringValues(childTrimmed, values);
+            }
+            break;
+        }
+        return values;
+    }
+
+    private void collectStringValues(String text, Set<String> values) {
+        String normalized = text.replace("[", "").replace("]", "");
+        for (String token : normalized.split(",")) {
+            String value = token.trim();
+            if (value.startsWith("-")) {
+                value = value.substring(1).trim();
+            }
+            if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) {
+                value = value.substring(1, value.length() - 1);
+            }
+            if (!value.isBlank()) {
+                values.add(value.toLowerCase());
+            }
+        }
     }
 
     private Set<UUID> parseJsonUuidArray(String content, String key) {
