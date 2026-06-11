@@ -69,6 +69,7 @@ public final class SuperiorSkyblock2MigrationScanner {
             List<MigrationFlag> flags = parseFlags(content);
             List<MigrationPermission> permissions = parsePermissions(content);
             List<MigrationUpgrade> upgrades = parseUpgrades(content);
+            List<MigrationLimit> limits = parseLimits(content);
             String biomeKey = parseBiomeKey(content);
             String bankBalance = parseString(content, "bankBalance", parseString(content, "balance", parseString(content, "islandBank", "0.00")));
             boolean publicAccess = parseBoolean(content, "public", parseBoolean(content, "isPublic", parseBoolean(content, "publicAccess", false)));
@@ -79,7 +80,7 @@ public final class SuperiorSkyblock2MigrationScanner {
             for (MigrationMemberRole memberRole : memberRoles) {
                 allMembers.add(memberRole.playerUuid());
             }
-            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), memberRoles, bannedVisitors, homes, warps, flags, permissions, upgrades, biomeKey, bankBalance, publicAccess, locked, size, level, worth));
+            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), memberRoles, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, biomeKey, bankBalance, publicAccess, locked, size, level, worth));
         } catch (RuntimeException | IOException exception) {
             issues.add(new MigrationIssue("ISLAND_FILE_PARSE_FAILED", file + ": " + exception.getMessage(), true));
         }
@@ -319,6 +320,26 @@ public final class SuperiorSkyblock2MigrationScanner {
         addUpgrade(content, result, "fly", "flyUpgrade", "flyAccess");
         addUpgrade(content, result, "bank", "bankUpgrade", "bankLimitUpgrade");
         return List.copyOf(result);
+    }
+
+    private List<MigrationLimit> parseLimits(String content) {
+        List<MigrationLimit> result = new ArrayList<>();
+        addLimit(content, result, "hoppers", "hopperLimit", "maxHoppers", "hoppersLimit");
+        addLimit(content, result, "spawners", "spawnerLimit", "maxSpawners", "spawnersLimit");
+        addLimit(content, result, "entities", "entityLimit", "maxEntities", "mobLimit");
+        addLimit(content, result, "redstone", "redstoneLimit", "maxRedstone");
+        addLimit(content, result, "members", "memberLimit", "maxMembers");
+        addLimit(content, result, "warps", "warpLimit", "maxWarps");
+        return List.copyOf(result);
+    }
+
+    private void addLimit(String content, List<MigrationLimit> limits, String limitKey, String... keys) {
+        for (String key : keys) {
+            if (containsAnyKey(content, key)) {
+                limits.add(new MigrationLimit(limitKey, Math.max(0L, parseLong(content, key, 0L))));
+                return;
+            }
+        }
     }
 
     private void addUpgrade(String content, List<MigrationUpgrade> upgrades, String upgradeKey, String... keys) {

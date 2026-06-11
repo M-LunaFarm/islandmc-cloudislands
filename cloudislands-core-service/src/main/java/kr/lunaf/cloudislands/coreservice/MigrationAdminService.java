@@ -11,6 +11,7 @@ import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
+import kr.lunaf.cloudislands.coreservice.limit.IslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.permission.IslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
@@ -34,6 +35,7 @@ public final class MigrationAdminService {
     private final IslandPermissionRuleRepository permissionRules;
     private final IslandUpgradeRepository upgrades;
     private final IslandBankRepository bank;
+    private final IslandLimitRepository limits;
     private final SuperiorSkyblock2MigrationScanner scanner = new SuperiorSkyblock2MigrationScanner();
     private final CloudIslandsMigrationImporter importer = new CloudIslandsMigrationImporter();
     private final MigrationVerifier verifier = new MigrationVerifier();
@@ -42,13 +44,14 @@ public final class MigrationAdminService {
     private MigrationImportPlan lastPlan = new MigrationImportPlan(List.of(), List.of());
     private MigrationRollbackPlan lastRollbackPlan;
 
-    public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank) {
+    public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits) {
         this.islands = islands;
         this.metadata = metadata;
         this.playerProfiles = playerProfiles;
         this.permissionRules = permissionRules;
         this.upgrades = upgrades;
         this.bank = bank;
+        this.limits = limits;
     }
 
     public synchronized String scan(String path) {
@@ -100,6 +103,9 @@ public final class MigrationAdminService {
             for (kr.lunaf.cloudislands.migration.MigrationUpgrade upgrade : manifest.upgrades()) {
                 upgrades.setLevel(manifest.islandId(), upgrade.upgradeKey(), UpgradePolicy.typeFor(upgrade.upgradeKey()), upgrade.level());
             }
+            for (kr.lunaf.cloudislands.migration.MigrationLimit limit : manifest.limits()) {
+                limits.set(manifest.islandId(), limit.limitKey(), limit.value(), manifest.ownerUuid());
+            }
             if (!manifest.biomeKey().isBlank()) {
                 metadata.setBiome(manifest.islandId(), manifest.biomeKey(), manifest.ownerUuid());
             }
@@ -132,6 +138,7 @@ public final class MigrationAdminService {
                 .filter(_island -> manifest.flags().stream().allMatch(flag -> flag.value().equals(metadata.flags(manifest.islandId()).values().get(IslandFlag.valueOf(flag.flagName())))))
                 .filter(_island -> permissionsMatch(manifest))
                 .filter(_island -> upgradesMatch(manifest))
+                .filter(_island -> limitsMatch(manifest))
                 .filter(_island -> manifest.biomeKey().isBlank() || metadata.biome(manifest.islandId()).biomeKey().equals(manifest.biomeKey()))
                 .filter(_island -> decimal(bank.balance(manifest.islandId()).balance()).compareTo(decimal(manifest.bankBalance())) == 0)
                 .filter(_island -> metadata.isPublicAccess(manifest.islandId()) == manifest.publicAccess())
@@ -181,6 +188,14 @@ public final class MigrationAdminService {
             current.put(upgrade.upgradeKey(), upgrade.level());
         }
         return manifest.upgrades().stream().allMatch(upgrade -> Integer.valueOf(upgrade.level()).equals(current.get(upgrade.upgradeKey())));
+    }
+
+    private boolean limitsMatch(MigrationManifest manifest) {
+        Map<String, Long> current = new java.util.HashMap<>();
+        for (kr.lunaf.cloudislands.api.model.IslandLimitSnapshot limit : limits.list(manifest.islandId())) {
+            current.put(limit.limitKey(), limit.value());
+        }
+        return manifest.limits().stream().allMatch(limit -> Long.valueOf(limit.value()).equals(current.get(limit.limitKey())));
     }
 
     private BigDecimal decimal(String value) {
