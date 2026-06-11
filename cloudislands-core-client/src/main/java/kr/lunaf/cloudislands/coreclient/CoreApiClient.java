@@ -28,6 +28,7 @@ public interface CoreApiClient {
     CompletableFuture<Void> removeIslandMember(UUID islandId, UUID actorUuid, UUID playerUuid);
     CompletableFuture<String> createIslandInvite(UUID islandId, UUID inviterUuid, UUID targetUuid);
     CompletableFuture<String> listPendingInvites(UUID playerUuid);
+    CompletableFuture<String> listPlayerIslands(UUID playerUuid);
     CompletableFuture<Void> acceptIslandInvite(UUID inviteId, UUID playerUuid);
     CompletableFuture<Void> declineIslandInvite(UUID inviteId, UUID playerUuid);
     CompletableFuture<Void> banIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason);

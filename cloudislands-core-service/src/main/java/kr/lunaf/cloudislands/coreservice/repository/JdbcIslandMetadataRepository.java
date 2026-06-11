@@ -48,6 +48,23 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     }
 
     @Override
+    public List<IslandMemberSnapshot> islandsForMember(UUID playerUuid) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT island_id, player_uuid, role, joined_at FROM island_members WHERE player_uuid = ? ORDER BY joined_at")) {
+            statement.setObject(1, playerUuid);
+            try (ResultSet rs = statement.executeQuery()) {
+                List<IslandMemberSnapshot> result = new ArrayList<>();
+                while (rs.next()) {
+                    result.add(new IslandMemberSnapshot((UUID) rs.getObject("island_id"), (UUID) rs.getObject("player_uuid"), IslandRole.valueOf(rs.getString("role")), rs.getTimestamp("joined_at").toInstant()));
+                }
+                return result;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read player island memberships", exception);
+        }
+    }
+
+    @Override
     public boolean isMember(UUID islandId, UUID playerUuid) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT 1 FROM island_members WHERE island_id = ? AND player_uuid = ?")) {

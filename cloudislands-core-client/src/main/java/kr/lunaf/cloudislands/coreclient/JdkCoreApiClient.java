@@ -93,6 +93,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> listPlayerIslands(UUID playerUuid) {
+        return post("/v1/players/islands", "{\"playerUuid\":\"" + playerUuid + "\"}");
+    }
+
+    @Override
     public CompletableFuture<Void> acceptIslandInvite(UUID inviteId, UUID playerUuid) {
         return post("/v1/islands/invites/accept", "{\"inviteId\":\"" + inviteId + "\",\"playerUuid\":\"" + playerUuid + "\"}").thenApply(_body -> null);
     }

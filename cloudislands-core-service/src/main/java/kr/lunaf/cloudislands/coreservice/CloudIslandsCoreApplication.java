@@ -795,6 +795,14 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             write(exchange, 200, membersJson(metadataRepository.members(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
         });
+        route("/v1/players/islands", exchange -> {
+            String body = readBody(exchange);
+            java.util.ArrayList<IslandSnapshot> islands = new java.util.ArrayList<>();
+            for (kr.lunaf.cloudislands.api.model.IslandMemberSnapshot member : metadataRepository.islandsForMember(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)))) {
+                islandRepository.findById(member.islandId()).ifPresent(islands::add);
+            }
+            write(exchange, 200, islandsJson(islands));
+        });
         route("/v1/islands/members/set", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -1142,6 +1150,19 @@ public final class CloudIslandsCoreApplication {
             + ",\"createdAt\":\"" + island.createdAt()
             + "\",\"updatedAt\":\"" + island.updatedAt()
             + "\"}";
+    }
+
+    private static String islandsJson(java.util.List<IslandSnapshot> islands) {
+        StringBuilder builder = new StringBuilder("{\"islands\":[");
+        boolean first = true;
+        for (IslandSnapshot island : islands) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append(islandJson(island));
+        }
+        return builder.append("]}").toString();
     }
 
     private static String playerProfileJson(kr.lunaf.cloudislands.api.model.PlayerIslandProfile profile) {

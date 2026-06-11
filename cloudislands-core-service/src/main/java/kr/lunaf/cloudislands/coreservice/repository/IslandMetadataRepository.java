@@ -16,6 +16,7 @@ import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 
 public interface IslandMetadataRepository {
     List<IslandMemberSnapshot> members(UUID islandId);
+    List<IslandMemberSnapshot> islandsForMember(UUID playerUuid);
     boolean isMember(UUID islandId, UUID playerUuid);
     void upsertMember(UUID islandId, UUID playerUuid, IslandRole role);
     void removeMember(UUID islandId, UUID playerUuid);

@@ -36,6 +36,19 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     }
 
     @Override
+    public List<IslandMemberSnapshot> islandsForMember(UUID playerUuid) {
+        List<IslandMemberSnapshot> result = new ArrayList<>();
+        for (Map<UUID, IslandMemberSnapshot> islandMembers : members.values()) {
+            IslandMemberSnapshot member = islandMembers.get(playerUuid);
+            if (member != null) {
+                result.add(member);
+            }
+        }
+        result.sort(java.util.Comparator.comparing(IslandMemberSnapshot::joinedAt));
+        return result;
+    }
+
+    @Override
     public boolean isMember(UUID islandId, UUID playerUuid) {
         return members.getOrDefault(islandId, Map.of()).containsKey(playerUuid);
     }
@@ -112,7 +125,7 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
 
     @Override
     public void pardonVisitor(UUID islandId, UUID playerUuid) {
-        Map<UUID, String> islandBans = bans.get(islandId);
+        Map<UUID, IslandBanSnapshot> islandBans = bans.get(islandId);
         if (islandBans != null) {
             islandBans.remove(playerUuid);
         }

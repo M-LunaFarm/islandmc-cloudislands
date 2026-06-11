@@ -222,7 +222,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandSnapshot>> getJoinedIslands(UUID playerUuid) {
-            return query.getIslandByOwner(playerUuid).thenApply(island -> island.map(value -> List.of(value)).orElseGet(List::of));
+            return client.listPlayerIslands(playerUuid).thenApply(PaperCloudIslandsApi::islands);
         }
 
         @Override
@@ -369,6 +369,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             instant(text(json, "createdAt", Instant.EPOCH.toString())),
             instant(text(json, "updatedAt", Instant.EPOCH.toString()))
         ));
+    }
+
+    private static List<IslandSnapshot> islands(String json) {
+        List<IslandSnapshot> islands = new ArrayList<>();
+        for (String object : objects(json, "islands")) {
+            island(object).ifPresent(islands::add);
+        }
+        return islands;
     }
 
     private static Optional<PlayerIslandProfile> playerProfile(String json) {
