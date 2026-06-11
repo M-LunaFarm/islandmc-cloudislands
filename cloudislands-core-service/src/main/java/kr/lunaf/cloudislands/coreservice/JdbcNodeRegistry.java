@@ -30,22 +30,23 @@ public final class JdbcNodeRegistry implements NodeRegistry {
         NodeLoad current = find(request.nodeId()).orElse(null);
         NodeState nextState = current != null && current.state() == NodeState.DRAINING ? NodeState.DRAINING : request.state();
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO server_nodes(id, pool, velocity_server_name, state, soft_player_cap, hard_player_cap, max_active_islands, players, active_islands, mspt, heap_used_mb, heap_max_mb, activation_queue, object_storage_available, supported_templates, last_heartbeat, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), now()) ON CONFLICT (id) DO UPDATE SET pool = EXCLUDED.pool, velocity_server_name = EXCLUDED.velocity_server_name, state = EXCLUDED.state, players = EXCLUDED.players, active_islands = EXCLUDED.active_islands, mspt = EXCLUDED.mspt, heap_used_mb = EXCLUDED.heap_used_mb, heap_max_mb = EXCLUDED.heap_max_mb, activation_queue = EXCLUDED.activation_queue, object_storage_available = EXCLUDED.object_storage_available, supported_templates = EXCLUDED.supported_templates, last_heartbeat = now(), updated_at = now()")) {
+             PreparedStatement statement = connection.prepareStatement("INSERT INTO server_nodes(id, pool, velocity_server_name, node_version, state, soft_player_cap, hard_player_cap, max_active_islands, players, active_islands, mspt, heap_used_mb, heap_max_mb, activation_queue, object_storage_available, supported_templates, last_heartbeat, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), now()) ON CONFLICT (id) DO UPDATE SET pool = EXCLUDED.pool, velocity_server_name = EXCLUDED.velocity_server_name, node_version = EXCLUDED.node_version, state = EXCLUDED.state, players = EXCLUDED.players, active_islands = EXCLUDED.active_islands, mspt = EXCLUDED.mspt, heap_used_mb = EXCLUDED.heap_used_mb, heap_max_mb = EXCLUDED.heap_max_mb, activation_queue = EXCLUDED.activation_queue, object_storage_available = EXCLUDED.object_storage_available, supported_templates = EXCLUDED.supported_templates, last_heartbeat = now(), updated_at = now()")) {
             statement.setString(1, request.nodeId());
             statement.setString(2, request.pool() == null || request.pool().isBlank() ? "island" : request.pool());
             statement.setString(3, request.velocityServerName());
-            statement.setString(4, nextState.name());
-            statement.setInt(5, current == null ? DEFAULT_HARD_PLAYER_CAP : Math.min(current.hardPlayerCap(), DEFAULT_HARD_PLAYER_CAP));
-            statement.setInt(6, current == null ? DEFAULT_HARD_PLAYER_CAP : current.hardPlayerCap());
-            statement.setInt(7, current == null ? DEFAULT_MAX_ACTIVE_ISLANDS : current.maxActiveIslands());
-            statement.setInt(8, request.players());
-            statement.setInt(9, request.activeIslands());
-            statement.setDouble(10, request.mspt());
-            statement.setLong(11, request.heapUsedMb());
-            statement.setLong(12, request.heapMaxMb());
-            statement.setInt(13, request.activationQueue());
-            statement.setBoolean(14, request.storageAvailable());
-            statement.setString(15, request.supportedTemplates() == null || request.supportedTemplates().isBlank() ? "*" : request.supportedTemplates());
+            statement.setString(4, request.nodeVersion() == null ? "" : request.nodeVersion());
+            statement.setString(5, nextState.name());
+            statement.setInt(6, current == null ? DEFAULT_HARD_PLAYER_CAP : Math.min(current.hardPlayerCap(), DEFAULT_HARD_PLAYER_CAP));
+            statement.setInt(7, current == null ? DEFAULT_HARD_PLAYER_CAP : current.hardPlayerCap());
+            statement.setInt(8, current == null ? DEFAULT_MAX_ACTIVE_ISLANDS : current.maxActiveIslands());
+            statement.setInt(9, request.players());
+            statement.setInt(10, request.activeIslands());
+            statement.setDouble(11, request.mspt());
+            statement.setLong(12, request.heapUsedMb());
+            statement.setLong(13, request.heapMaxMb());
+            statement.setInt(14, request.activationQueue());
+            statement.setBoolean(15, request.storageAvailable());
+            statement.setString(16, request.supportedTemplates() == null || request.supportedTemplates().isBlank() ? "*" : request.supportedTemplates());
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to record node heartbeat", exception);
@@ -134,6 +135,7 @@ public final class JdbcNodeRegistry implements NodeRegistry {
         return new NodeLoad(
             rs.getString("id"),
             rs.getString("velocity_server_name"),
+            rs.getString("node_version") == null ? "" : rs.getString("node_version"),
             NodeState.valueOf(rs.getString("state")),
             rs.getInt("players"),
             rs.getInt("hard_player_cap"),

@@ -14,24 +14,26 @@ public final class PaperHeartbeatService {
     private final String nodeId;
     private final String pool;
     private final String velocityServerName;
+    private final String nodeVersion;
     private final String supportedTemplates;
     private final BooleanSupplier storageAvailable;
     private BukkitTask task;
 
     public PaperHeartbeatService(Plugin plugin, CoreApiClient coreApiClient, String nodeId, String pool, String velocityServerName) {
-        this(plugin, coreApiClient, nodeId, pool, velocityServerName, "*", () -> true);
+        this(plugin, coreApiClient, nodeId, pool, velocityServerName, "", "*", () -> true);
     }
 
     public PaperHeartbeatService(Plugin plugin, CoreApiClient coreApiClient, String nodeId, String pool, String velocityServerName, BooleanSupplier storageAvailable) {
-        this(plugin, coreApiClient, nodeId, pool, velocityServerName, "*", storageAvailable);
+        this(plugin, coreApiClient, nodeId, pool, velocityServerName, "", "*", storageAvailable);
     }
 
-    public PaperHeartbeatService(Plugin plugin, CoreApiClient coreApiClient, String nodeId, String pool, String velocityServerName, String supportedTemplates, BooleanSupplier storageAvailable) {
+    public PaperHeartbeatService(Plugin plugin, CoreApiClient coreApiClient, String nodeId, String pool, String velocityServerName, String nodeVersion, String supportedTemplates, BooleanSupplier storageAvailable) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.nodeId = nodeId;
         this.pool = pool;
         this.velocityServerName = velocityServerName;
+        this.nodeVersion = nodeVersion == null ? "" : nodeVersion;
         this.supportedTemplates = supportedTemplates == null || supportedTemplates.isBlank() ? "*" : supportedTemplates;
         this.storageAvailable = storageAvailable;
     }
@@ -56,6 +58,7 @@ public final class PaperHeartbeatService {
             nodeId,
             pool,
             velocityServerName,
+            nodeVersion,
             NodeState.READY,
             Bukkit.getOnlinePlayers().size(),
             0,

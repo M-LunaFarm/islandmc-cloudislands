@@ -7,6 +7,7 @@ import kr.lunaf.cloudislands.api.model.NodeState;
 public record NodeLoad(
     String nodeId,
     String velocityServerName,
+    String nodeVersion,
     NodeState state,
     int players,
     int hardPlayerCap,
@@ -49,6 +50,16 @@ public record NodeLoad(
         return false;
     }
 
+    public boolean satisfiesMinVersion(String minVersion) {
+        if (minVersion == null || minVersion.isBlank()) {
+            return true;
+        }
+        if (nodeVersion == null || nodeVersion.isBlank()) {
+            return false;
+        }
+        return compareVersions(nodeVersion, minVersion) >= 0;
+    }
+
     public double score() {
         double playerRatio = ratio(players, hardPlayerCap);
         double activeIslandRatio = ratio(activeIslands, maxActiveIslands);
@@ -66,5 +77,30 @@ public record NodeLoad(
 
     private static double ratio(int value, int max) {
         return max <= 0 ? 1.0D : Math.min((double) value / max, 1.5D);
+    }
+
+    private static int compareVersions(String left, String right) {
+        String[] leftParts = left.split("[.-]");
+        String[] rightParts = right.split("[.-]");
+        int max = Math.max(leftParts.length, rightParts.length);
+        for (int i = 0; i < max; i++) {
+            int leftValue = part(leftParts, i);
+            int rightValue = part(rightParts, i);
+            if (leftValue != rightValue) {
+                return Integer.compare(leftValue, rightValue);
+            }
+        }
+        return 0;
+    }
+
+    private static int part(String[] parts, int index) {
+        if (index >= parts.length) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(parts[index].replaceAll("[^0-9].*", ""));
+        } catch (RuntimeException ignored) {
+            return 0;
+        }
     }
 }

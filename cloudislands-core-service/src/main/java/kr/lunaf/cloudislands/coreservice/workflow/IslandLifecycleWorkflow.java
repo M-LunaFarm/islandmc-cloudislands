@@ -12,20 +12,23 @@ import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
+import kr.lunaf.cloudislands.coreservice.template.IslandTemplateRepository;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 
 public final class IslandLifecycleWorkflow {
     private final IslandRuntimeRepository runtimes;
     private final IslandRepository islands;
+    private final IslandTemplateRepository templates;
     private final NodeRegistry nodes;
     private final NodeAllocator allocator;
     private final IslandJobPublisher jobs;
     private final GlobalEventPublisher events;
 
-    public IslandLifecycleWorkflow(IslandRuntimeRepository runtimes, IslandRepository islands, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events) {
+    public IslandLifecycleWorkflow(IslandRuntimeRepository runtimes, IslandRepository islands, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events) {
         this.runtimes = runtimes;
         this.islands = islands;
+        this.templates = templates;
         this.nodes = nodes;
         this.allocator = allocator;
         this.jobs = jobs;
@@ -34,7 +37,7 @@ public final class IslandLifecycleWorkflow {
 
     public Result activate(UUID islandId) {
         String templateId = islands.templateId(islandId).orElse("default");
-        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId).orElse(null);
+        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId)).orElse(null);
         if (node == null) {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
@@ -54,7 +57,7 @@ public final class IslandLifecycleWorkflow {
     public Result migrate(UUID islandId, String targetNode) {
         String templateId = islands.templateId(islandId).orElse("default");
         NodeLoad node = nodes.find(targetNode).orElse(null);
-        if (node == null || allocator.selectBestNode(java.util.List.of(node), Instant.now(), templateId).isEmpty()) {
+        if (node == null || allocator.selectBestNode(java.util.List.of(node), Instant.now(), templateId, minNodeVersion(templateId)).isEmpty()) {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
         IslandRuntimeSnapshot runtime = runtimes.markMigrating(islandId, targetNode);
@@ -72,7 +75,7 @@ public final class IslandLifecycleWorkflow {
 
     public Result restore(UUID islandId, long snapshotNo) {
         String templateId = islands.templateId(islandId).orElse("default");
-        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId).orElse(null);
+        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId)).orElse(null);
         if (node == null) {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
@@ -89,4 +92,8 @@ public final class IslandLifecycleWorkflow {
     }
 
     public record Result(boolean accepted, String code, IslandRuntimeSnapshot runtime) {}
+
+    private String minNodeVersion(String templateId) {
+        return templates.find(templateId).map(kr.lunaf.cloudislands.coreservice.template.IslandTemplateSnapshot::minNodeVersion).orElse("");
+    }
 }

@@ -6,6 +6,7 @@ public record NodeHeartbeatRequest(
     String nodeId,
     String pool,
     String velocityServerName,
+    String nodeVersion,
     NodeState state,
     int players,
     int activeIslands,

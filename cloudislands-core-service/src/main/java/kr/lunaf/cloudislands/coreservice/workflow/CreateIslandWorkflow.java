@@ -19,6 +19,7 @@ import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.template.IslandTemplateRepository;
+import kr.lunaf.cloudislands.coreservice.template.IslandTemplateSnapshot;
 import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
@@ -48,13 +49,14 @@ public final class CreateIslandWorkflow {
 
     public CreateIslandResult create(UUID ownerUuid, String templateId) {
         String normalizedTemplate = templateId == null || templateId.isBlank() ? "default" : templateId;
-        if (!templates.enabled(normalizedTemplate)) {
+        IslandTemplateSnapshot template = templates.find(normalizedTemplate).orElse(null);
+        if (template == null || !template.enabled()) {
             return new CreateIslandResult(false, "TEMPLATE_UNAVAILABLE", null, null);
         }
         if (islands.findByOwner(ownerUuid).isPresent()) {
             return new CreateIslandResult(false, "ALREADY_HAS_ISLAND", null, null);
         }
-        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), normalizedTemplate).orElse(null);
+        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), normalizedTemplate, template.minNodeVersion()).orElse(null);
         if (node == null) {
             return new CreateIslandResult(false, "NODE_UNAVAILABLE", null, null);
         }

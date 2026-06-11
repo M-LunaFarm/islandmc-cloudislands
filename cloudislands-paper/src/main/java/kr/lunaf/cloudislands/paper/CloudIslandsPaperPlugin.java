@@ -65,7 +65,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         if (supportedTemplates.isBlank()) {
             supportedTemplates = getConfig().getString("node.supported-template", "*");
         }
-        this.heartbeatService = new PaperHeartbeatService(this, client, nodeId, pool, velocityServerName, supportedTemplates, () -> storageAvailable(storage));
+        this.heartbeatService = new PaperHeartbeatService(this, client, nodeId, pool, velocityServerName, getDescription().getVersion(), supportedTemplates, () -> storageAvailable(storage));
         heartbeatService.start(getConfig().getLong("heartbeat.interval-ticks", 20L));
         if (role == AgentRole.ISLAND_NODE) {
             startIslandNodeWorker(client, nodeId, storage);

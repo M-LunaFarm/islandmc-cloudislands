@@ -36,6 +36,7 @@ public interface NodeRegistry {
         return new StringBuilder("{")
             .append("\"id\":\"").append(node.nodeId()).append("\",")
             .append("\"server\":\"").append(node.velocityServerName()).append("\",")
+            .append("\"nodeVersion\":\"").append(node.nodeVersion() == null ? "" : node.nodeVersion().replace("\"", "'")).append("\",")
             .append("\"state\":\"").append(node.state()).append("\",")
             .append("\"players\":").append(node.players()).append(',')
             .append("\"hardPlayerCap\":").append(node.hardPlayerCap()).append(',')

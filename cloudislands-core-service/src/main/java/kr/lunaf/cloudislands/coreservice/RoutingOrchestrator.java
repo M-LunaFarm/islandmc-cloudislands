@@ -25,6 +25,7 @@ import kr.lunaf.cloudislands.coreservice.job.IslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
+import kr.lunaf.cloudislands.coreservice.template.IslandTemplateRepository;
 import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
@@ -36,16 +37,18 @@ public final class RoutingOrchestrator {
     private final IslandRepository islands;
     private final IslandMetadataRepository metadata;
     private final IslandRuntimeRepository runtimes;
+    private final IslandTemplateRepository templates;
     private final IslandJobPublisher jobs;
     private final GlobalEventPublisher events;
 
-    public RoutingOrchestrator(NodeRegistry nodes, NodeAllocator allocator, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, IslandRuntimeRepository runtimes, IslandJobPublisher jobs, GlobalEventPublisher events) {
+    public RoutingOrchestrator(NodeRegistry nodes, NodeAllocator allocator, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, IslandRuntimeRepository runtimes, IslandTemplateRepository templates, IslandJobPublisher jobs, GlobalEventPublisher events) {
         this.nodes = nodes;
         this.allocator = allocator;
         this.tickets = tickets;
         this.islands = islands;
         this.metadata = metadata;
         this.runtimes = runtimes;
+        this.templates = templates;
         this.jobs = jobs;
         this.events = events;
     }
@@ -153,7 +156,8 @@ public final class RoutingOrchestrator {
             if (unavailable != null) {
                 return unavailable;
             }
-            return RoutePreparationResult.accepted(toJson(tickets.save(ticket(playerUuid, island.islandId(), action, extraPayload, routeTarget(runtime, islands.templateId(island.islandId()).orElse("default"))))));
+            String templateId = islands.templateId(island.islandId()).orElse("default");
+            return RoutePreparationResult.accepted(toJson(tickets.save(ticket(playerUuid, island.islandId(), action, extraPayload, routeTarget(runtime, templateId, templates.find(templateId).map(kr.lunaf.cloudislands.coreservice.template.IslandTemplateSnapshot::minNodeVersion).orElse(""))))));
         } catch (IllegalStateException exception) {
             return RoutePreparationResult.rejected(409, ApiResponses.error("NODE_UNAVAILABLE", "No eligible island node is available"));
         }
@@ -191,7 +195,7 @@ public final class RoutingOrchestrator {
         return RoutePreparationResult.rejected(409, ApiResponses.error("ISLAND_LOADING_FAILED", "Island is not ready for routing"));
     }
 
-    private RouteTarget routeTarget(IslandRuntimeSnapshot runtime, String templateId) {
+    private RouteTarget routeTarget(IslandRuntimeSnapshot runtime, String templateId, String minNodeVersion) {
         if (runtime.state() == IslandState.ACTIVE) {
             if (runtime.activeNode() == null || runtime.activeNode().isBlank()) {
                 throw new IllegalStateException("active node is unavailable");
@@ -200,7 +204,7 @@ public final class RoutingOrchestrator {
             String worldName = runtime.activeWorld() == null || runtime.activeWorld().isBlank() ? "ci_shard_001" : runtime.activeWorld();
             return new RouteTarget(activeNode, worldName, RouteTicketState.READY);
         }
-        NodeLoad selected = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId)
+        NodeLoad selected = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion)
             .orElseThrow(() -> new IllegalStateException("no eligible island node"));
         IslandRuntimeSnapshot activating = runtimes.markActivating(runtime.islandId(), selected.nodeId(), "ci_shard_001", 0, 0);
         jobs.publish(new IslandJob(
