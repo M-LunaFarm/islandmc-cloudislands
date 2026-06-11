@@ -2,15 +2,19 @@ package kr.lunaf.cloudislands.coreservice.event;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import kr.lunaf.cloudislands.common.event.CacheInvalidationPlan;
+import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 
 public final class InMemoryGlobalEventPublisher implements GlobalEventPublisher {
     private final List<EventRecord> events = new ArrayList<>();
 
     @Override
     public synchronized void publish(String eventType, Map<String, String> fields) {
-        events.add(new EventRecord(eventType, Map.copyOf(fields), Instant.now()));
+        events.add(new EventRecord(eventType, enrichedFields(eventType, fields), Instant.now()));
     }
 
     public synchronized String toJson() {
@@ -45,6 +49,31 @@ public final class InMemoryGlobalEventPublisher implements GlobalEventPublisher 
             builder.append("\"").append(escape(entry.getKey())).append("\":\"").append(escape(entry.getValue())).append("\"");
         }
         return builder.append('}').toString();
+    }
+
+    private Map<String, String> enrichedFields(String eventType, Map<String, String> fields) {
+        Map<String, String> enriched = new LinkedHashMap<>(fields);
+        String cacheTargets = cacheTargets(eventType);
+        if (!cacheTargets.isBlank()) {
+            enriched.put("cacheTargets", cacheTargets);
+        }
+        return Map.copyOf(enriched);
+    }
+
+    private String cacheTargets(String eventType) {
+        try {
+            Set<CacheInvalidationPlan.CacheTarget> targets = CacheInvalidationPlan.targetsFor(CloudIslandEventType.valueOf(eventType));
+            StringBuilder builder = new StringBuilder();
+            for (CacheInvalidationPlan.CacheTarget target : targets) {
+                if (builder.length() > 0) {
+                    builder.append(',');
+                }
+                builder.append(target.name());
+            }
+            return builder.toString();
+        } catch (RuntimeException ignored) {
+            return "";
+        }
     }
 
     private String escape(String value) {
