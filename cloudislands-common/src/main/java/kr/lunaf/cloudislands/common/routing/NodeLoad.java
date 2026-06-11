@@ -37,6 +37,19 @@ public record NodeLoad(
         return players < hardPlayerCap && activationQueue < maxActivationQueue;
     }
 
+    public boolean acceptsExistingRoute(Instant now, Duration heartbeatTimeout, String templateId, String minVersion) {
+        if (state != NodeState.READY && state != NodeState.SOFT_FULL) {
+            return false;
+        }
+        if (!storageAvailable) {
+            return false;
+        }
+        if (lastHeartbeat == null || lastHeartbeat.plus(heartbeatTimeout).isBefore(now)) {
+            return false;
+        }
+        return supportsTemplate(templateId) && satisfiesMinVersion(minVersion);
+    }
+
     public boolean supportsTemplate(String templateId) {
         if (supportedTemplates == null || supportedTemplates.isBlank() || supportedTemplates.equals("*")) {
             return true;

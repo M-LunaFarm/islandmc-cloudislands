@@ -28,4 +28,8 @@ public final class NodeAllocator {
             .filter(node -> node.satisfiesMinVersion(minNodeVersion))
             .min(Comparator.comparingDouble(NodeLoad::score));
     }
+
+    public boolean acceptsExistingRoute(NodeLoad node, Instant now, String templateId, String minNodeVersion) {
+        return node.acceptsExistingRoute(now, heartbeatTimeout, templateId, minNodeVersion);
+    }
 }

@@ -201,6 +201,9 @@ public final class RoutingOrchestrator {
                 throw new IllegalStateException("active node is unavailable");
             }
             NodeLoad activeNode = nodes.find(runtime.activeNode()).orElseThrow(() -> new IllegalStateException("active node is unavailable"));
+            if (!allocator.acceptsExistingRoute(activeNode, Instant.now(), templateId, minNodeVersion)) {
+                throw new IllegalStateException("active node is unavailable");
+            }
             String worldName = runtime.activeWorld() == null || runtime.activeWorld().isBlank() ? "ci_shard_001" : runtime.activeWorld();
             return new RouteTarget(activeNode, worldName, RouteTicketState.READY);
         }
