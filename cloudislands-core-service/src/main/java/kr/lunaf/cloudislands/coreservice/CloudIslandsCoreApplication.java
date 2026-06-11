@@ -90,7 +90,8 @@ public final class CloudIslandsCoreApplication {
         route("/v1/jobs/complete", exchange -> {
             String body = readBody(exchange);
             UUID jobId = JsonFields.uuid(body, "jobId", new UUID(0L, 0L));
-            jobs.findClaimed(jobId).ifPresent(jobCompletion::completed);
+            java.util.Map<String, String> payload = JsonFields.object(body, "payload");
+            jobs.findClaimed(jobId).map(job -> new kr.lunaf.cloudislands.protocol.job.IslandJob(job.jobId(), job.type(), job.islandId(), job.targetNode(), job.priority(), java.util.Map.copyOf(new java.util.HashMap<String, String>() {{ putAll(job.payload()); putAll(payload); }}), job.createdAt())).ifPresent(jobCompletion::completed);
             jobs.complete(JsonFields.text(body, "nodeId", ""), jobId);
             write(exchange, 202, ApiResponses.ok(true));
         });

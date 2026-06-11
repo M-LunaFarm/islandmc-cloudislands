@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.job;
 
 import java.util.List;
+import java.util.Map;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
 import kr.lunaf.cloudislands.paper.activation.IslandActivationJobHandler;
 import kr.lunaf.cloudislands.paper.activation.IslandDeactivationHandler;
@@ -74,7 +75,13 @@ public final class PaperIslandJobWorker {
             IslandActivationJobHandler.ActivationResult result = activationHandler.handle(job);
             if (result.success()) {
                 activeIslands.activated(result);
-                jobSource.complete(nodeId, job.jobId());
+                jobSource.complete(nodeId, job.jobId(), Map.of(
+                    "worldName", result.worldName() == null ? "" : result.worldName(),
+                    "cellX", Integer.toString(result.cellX()),
+                    "cellZ", Integer.toString(result.cellZ()),
+                    "schemaVersion", Long.toString(result.schemaVersion()),
+                    "extractedRoot", result.extractedRoot() == null ? "" : result.extractedRoot()
+                ));
             } else {
                 jobSource.fail(nodeId, job.jobId(), result.state());
             }
@@ -90,7 +97,7 @@ public final class PaperIslandJobWorker {
         }
         IslandDeactivationHandler.DeactivationResult result = deactivationHandler.deactivate(job.islandId());
         if (result.success()) {
-            jobSource.complete(nodeId, job.jobId());
+            jobSource.complete(nodeId, job.jobId(), Map.of("snapshotNo", Long.toString(result.snapshotNo())));
         } else {
             jobSource.fail(nodeId, job.jobId(), result.errorMessage());
         }
@@ -99,6 +106,7 @@ public final class PaperIslandJobWorker {
     public interface LocalJobSource {
         List<IslandJob> claim(String nodeId, List<IslandJobType> supportedTypes, int maxJobs);
         void complete(String nodeId, java.util.UUID jobId);
+        void complete(String nodeId, java.util.UUID jobId, Map<String, String> payload);
         void fail(String nodeId, java.util.UUID jobId, String errorMessage);
     }
 }

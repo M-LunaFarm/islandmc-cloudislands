@@ -1,5 +1,7 @@
 package kr.lunaf.cloudislands.coreservice.http;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 public final class JsonFields {
@@ -14,6 +16,43 @@ public final class JsonFields {
         int valueStart = start + needle.length();
         int end = json.indexOf('"', valueStart);
         return end < 0 ? fallback : json.substring(valueStart, end);
+    }
+
+    public static Map<String, String> object(String json, String field) {
+        int fieldStart = json.indexOf("\"" + field + "\":");
+        if (fieldStart < 0) {
+            return Map.of();
+        }
+        int objectStart = json.indexOf('{', fieldStart);
+        if (objectStart < 0) {
+            return Map.of();
+        }
+        int depth = 0;
+        int objectEnd = -1;
+        for (int i = objectStart; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (c == '{') depth++;
+            if (c == '}') depth--;
+            if (depth == 0) {
+                objectEnd = i;
+                break;
+            }
+        }
+        if (objectEnd < 0) {
+            return Map.of();
+        }
+        String body = json.substring(objectStart + 1, objectEnd).trim();
+        if (body.isBlank()) {
+            return Map.of();
+        }
+        Map<String, String> values = new LinkedHashMap<>();
+        for (String pair : body.split(",")) {
+            int colon = pair.indexOf(':');
+            if (colon > 0) {
+                values.put(unquote(pair.substring(0, colon)), unquote(pair.substring(colon + 1)));
+            }
+        }
+        return Map.copyOf(values);
     }
 
     public static int integer(String json, String field, int fallback) {
@@ -80,5 +119,13 @@ public final class JsonFields {
             end++;
         }
         return end == valueStart ? null : json.substring(valueStart, end);
+    }
+
+    private static String unquote(String value) {
+        String trimmed = value.trim();
+        if (trimmed.startsWith("\"") && trimmed.endsWith("\"") && trimmed.length() >= 2) {
+            trimmed = trimmed.substring(1, trimmed.length() - 1);
+        }
+        return trimmed.replace("\\\"", "\"").replace("\\\\", "\\");
     }
 }
