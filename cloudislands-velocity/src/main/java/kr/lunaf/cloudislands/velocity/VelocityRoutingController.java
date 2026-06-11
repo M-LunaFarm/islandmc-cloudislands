@@ -70,6 +70,18 @@ public final class VelocityRoutingController {
         coreApiClient.recalculateIslandLevel(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "레벨 계산을 시작하지 못했습니다." : body)));
     }
 
+    public void listUpgradeRules(Player player) {
+        coreApiClient.listUpgradeRules().thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "업그레이드 목록을 불러오지 못했습니다." : body)));
+    }
+
+    public void listUpgrades(Player player, UUID islandId) {
+        coreApiClient.listIslandUpgrades(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 업그레이드를 불러오지 못했습니다." : body)));
+    }
+
+    public void purchaseUpgrade(Player player, UUID islandId, String upgradeKey) {
+        coreApiClient.purchaseIslandUpgrade(islandId, player.getUniqueId(), upgradeKey).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "업그레이드에 실패했습니다." : body)));
+    }
+
     private void route(Player player, RouteTicket ticket, String failureMessage) {
         if (ticket == null) {
             fallback(player, failureMessage);

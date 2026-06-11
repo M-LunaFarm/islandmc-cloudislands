@@ -52,6 +52,13 @@ import kr.lunaf.cloudislands.coreservice.security.AdminEndpointGuard;
 import kr.lunaf.cloudislands.coreservice.security.IpAllowlist;
 import kr.lunaf.cloudislands.coreservice.session.InMemoryRouteSessionStore;
 import kr.lunaf.cloudislands.coreservice.ticket.InMemoryRouteTicketStore;
+import kr.lunaf.cloudislands.coreservice.upgrade.InMemoryIslandUpgradeRepository;
+import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeRepository;
+import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeService;
+import kr.lunaf.cloudislands.coreservice.upgrade.JdbcIslandUpgradeRepository;
+import kr.lunaf.cloudislands.coreservice.upgrade.UpgradePolicy;
+import kr.lunaf.cloudislands.coreservice.upgrade.UpgradePurchaseResult;
+import kr.lunaf.cloudislands.coreservice.upgrade.UpgradeRule;
 import kr.lunaf.cloudislands.coreservice.workflow.CreateIslandWorkflow;
 import kr.lunaf.cloudislands.coreservice.workflow.IslandLifecycleWorkflow;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
@@ -87,6 +94,9 @@ public final class CloudIslandsCoreApplication {
         RankingRepository rankingRepository = config.jdbcRepositories() ? new JdbcRankingRepository(dataSource) : new InMemoryRankingRepository();
         IslandLevelRepository levelRepository = config.jdbcRepositories() ? new JdbcIslandLevelRepository(dataSource) : new InMemoryIslandLevelRepository();
         RankingRecalculationService levelRecalculation = new RankingRecalculationService(rankingRepository, events);
+        IslandUpgradeRepository upgradeRepository = config.jdbcRepositories() ? new JdbcIslandUpgradeRepository(dataSource) : new InMemoryIslandUpgradeRepository();
+        UpgradePolicy upgradePolicy = new UpgradePolicy();
+        IslandUpgradeService upgradeService = new IslandUpgradeService(upgradeRepository, upgradePolicy);
         AuditLogger audit = config.jdbcRepositories() ? new JdbcAuditLogger(dataSource) : new InMemoryAuditLogger();
         InMemoryAuditLogger inMemoryAudit = audit instanceof InMemoryAuditLogger logger ? logger : new InMemoryAuditLogger();
         RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets, islandRepository, metadataRepository);
@@ -107,6 +117,7 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             write(exchange, 200, rankingsJson(rankingRepository.topByWorth(JsonFields.integer(body, "limit", 10))));
         });
+        route("/v1/upgrades/rules", exchange -> write(exchange, 200, upgradeRulesJson(upgradePolicy.list())));
         route("/v1/jobs/claim", exchange -> {
             String body = readBody(exchange);
             String nodeId = JsonFields.text(body, "nodeId", "");
@@ -222,6 +233,22 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             var snapshot = levelRecalculation.recalculate(islandId, levelRepository.blockCounts(islandId), levelRepository.blockValues(), metadataRepository.members(islandId).size());
             write(exchange, 202, levelJson(snapshot));
+        });
+        route("/v1/islands/upgrades", exchange -> {
+            String body = readBody(exchange);
+            write(exchange, 200, upgradesJson(upgradeRepository.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
+        });
+        route("/v1/islands/upgrades/purchase", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            String upgradeKey = JsonFields.text(body, "upgradeKey", "size").toLowerCase();
+            UpgradePurchaseResult result = upgradeService.purchase(islandId, upgradeKey);
+            audit.log(actorUuid, "PLAYER", "ISLAND_UPGRADE_PURCHASE", "ISLAND", islandId.toString(), Map.of("upgradeKey", upgradeKey, "code", result.code(), "cost", result.cost().toPlainString()));
+            if (result.accepted()) {
+                events.publish("ISLAND_UPGRADE", Map.of("islandId", islandId.toString(), "upgradeKey", upgradeKey, "level", Integer.toString(result.snapshot().level())));
+            }
+            write(exchange, result.accepted() ? 202 : 409, upgradePurchaseJson(result));
         });
         route("/v1/islands/members", exchange -> {
             String body = readBody(exchange);
@@ -421,6 +448,55 @@ public final class CloudIslandsCoreApplication {
             builder.append(levelJson(ranking));
         }
         return builder.append("]}").toString();
+    }
+
+    private static String upgradeRulesJson(java.util.List<UpgradeRule> rules) {
+        StringBuilder builder = new StringBuilder("{\"rules\":[");
+        boolean first = true;
+        for (UpgradeRule rule : rules) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('{')
+                .append("\"upgradeKey\":\"").append(rule.upgradeKey()).append("\",")
+                .append("\"type\":\"").append(rule.type()).append("\",")
+                .append("\"maxLevel\":").append(rule.maxLevel()).append(',')
+                .append("\"baseCost\":\"").append(rule.baseCost().toPlainString()).append("\",")
+                .append("\"multiplier\":\"").append(rule.multiplier().toPlainString()).append("\"")
+                .append('}');
+        }
+        return builder.append("]}").toString();
+    }
+
+    private static String upgradesJson(java.util.List<kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot> upgrades) {
+        StringBuilder builder = new StringBuilder("{\"upgrades\":[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot upgrade : upgrades) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append(upgradeJson(upgrade));
+        }
+        return builder.append("]}").toString();
+    }
+
+    private static String upgradePurchaseJson(UpgradePurchaseResult result) {
+        return "{\"accepted\":" + result.accepted()
+            + ",\"code\":\"" + result.code() + "\""
+            + ",\"cost\":\"" + result.cost().toPlainString() + "\""
+            + ",\"upgrade\":" + (result.snapshot() == null ? "null" : upgradeJson(result.snapshot()))
+            + "}";
+    }
+
+    private static String upgradeJson(kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot upgrade) {
+        return "{\"islandId\":\"" + upgrade.islandId()
+            + "\",\"upgradeKey\":\"" + escape(upgrade.upgradeKey())
+            + "\",\"type\":\"" + upgrade.type()
+            + "\",\"level\":" + upgrade.level()
+            + ",\"updatedAt\":\"" + upgrade.updatedAt()
+            + "\"}";
     }
 
     private static IslandLocation location(String body) {

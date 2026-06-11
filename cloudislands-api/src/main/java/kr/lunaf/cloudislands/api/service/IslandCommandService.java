@@ -19,4 +19,5 @@ public interface IslandCommandService {
     CompletableFuture<Void> setFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value);
     CompletableFuture<Void> setHome(UUID islandId, UUID actorUuid, IslandLocation location);
     CompletableFuture<Void> createWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location);
+    CompletableFuture<Void> purchaseUpgrade(UUID islandId, UUID actorUuid, String upgradeKey);
 }

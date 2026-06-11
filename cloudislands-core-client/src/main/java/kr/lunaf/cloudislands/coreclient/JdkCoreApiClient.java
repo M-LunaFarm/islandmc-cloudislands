@@ -143,6 +143,21 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> listUpgradeRules() {
+        return post("/v1/upgrades/rules", "{}");
+    }
+
+    @Override
+    public CompletableFuture<String> listIslandUpgrades(UUID islandId) {
+        return post("/v1/islands/upgrades", "{\"islandId\":\"" + islandId + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> purchaseIslandUpgrade(UUID islandId, UUID actorUuid, String upgradeKey) {
+        return post("/v1/islands/upgrades/purchase", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"upgradeKey\":\"" + escape(upgradeKey) + "\"}");
+    }
+
+    @Override
     public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid) {
         return post("/v1/routes/home", "{\"playerUuid\":\"" + playerUuid + "\"}").thenApply(RouteTicketJson::parse);
     }
