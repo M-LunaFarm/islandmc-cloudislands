@@ -345,6 +345,10 @@ public final class CloudIslandsVelocityPlugin {
             routingController.listWarps(player, islandId);
             return;
         }
+        if (args[0].equalsIgnoreCase("publicwarplist") || args[0].equalsIgnoreCase("public-warps") || args[0].equals("공개워프목록")) {
+            routingController.listPublicWarps(player);
+            return;
+        }
         if (args[0].equalsIgnoreCase("setwarp") || args[0].equals("워프설정")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             String warpName = argumentAfterOptionalIsland(args, 1, "default");

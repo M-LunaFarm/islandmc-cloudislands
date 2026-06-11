@@ -244,6 +244,10 @@ public final class VelocityRoutingController {
         sendPlayerPayloadFuture(player, coreApiClient.listIslandWarps(islandId), "섬 워프를 불러오지 못했습니다.", "섬 워프 목록을 불러왔습니다.");
     }
 
+    public void listPublicWarps(Player player) {
+        sendPlayerPayloadFuture(player, coreApiClient.listPublicWarps(27), "공개 워프를 불러오지 못했습니다.", "공개 워프 목록을 불러왔습니다.");
+    }
+
     public void setWarp(Player player, UUID islandId, String name, boolean publicAccess) {
         IslandLocation defaultLocation = new IslandLocation("ci_shard_001", 0.5D, 100.0D, 0.5D, 180.0F, 0.0F);
         sendActionResult(player, coreApiClient.setIslandWarp(islandId, player.getUniqueId(), name, defaultLocation, publicAccess), "섬 워프를 설정했습니다.", "섬 워프를 설정하지 못했습니다.");
