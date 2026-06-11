@@ -59,6 +59,17 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
         return jobs.stream().map(JobRecord::job).toList();
     }
 
+    public synchronized Map<String, Long> countsByState() {
+        Map<String, Long> counts = new HashMap<>();
+        for (JobRecord record : jobs) {
+            counts.merge(record.state().name(), 1L, Long::sum);
+        }
+        for (JobState state : JobState.values()) {
+            counts.putIfAbsent(state.name(), 0L);
+        }
+        return Map.copyOf(counts);
+    }
+
     public synchronized String toJson() {
         StringBuilder builder = new StringBuilder("{\"jobs\":[");
         boolean first = true;

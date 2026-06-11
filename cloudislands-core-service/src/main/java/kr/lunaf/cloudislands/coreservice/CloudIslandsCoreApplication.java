@@ -30,6 +30,7 @@ import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue;
+import kr.lunaf.cloudislands.coreservice.metrics.PrometheusMetricsRenderer;
 import kr.lunaf.cloudislands.coreservice.ranking.InMemoryIslandLevelRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.InMemoryRankingRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.IslandLevelRepository;
@@ -107,8 +108,10 @@ public final class CloudIslandsCoreApplication {
         CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, nodes, allocator, jobs, events);
         IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(runtimeRepository, nodes, allocator, jobs, events);
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository);
+        PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, config.heartbeatTimeout());
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
         route("/health", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));
+        route("/metrics", exchange -> write(exchange, 200, metrics.render(), "text/plain; version=0.0.4; charset=utf-8"));
         route("/v1/nodes", exchange -> write(exchange, 200, nodes.toJson()));
         route("/v1/jobs", exchange -> write(exchange, 200, jobs instanceof InMemoryIslandJobPublisher memoryJobs ? memoryJobs.toJson() : "{\"mode\":\"REDIS\"}"));
         route("/v1/events", exchange -> write(exchange, 200, events.toJson()));
@@ -641,8 +644,12 @@ public final class CloudIslandsCoreApplication {
     }
 
     private static void write(HttpExchange exchange, int status, String body) throws IOException {
+        write(exchange, status, body, "application/json; charset=utf-8");
+    }
+
+    private static void write(HttpExchange exchange, int status, String body, String contentType) throws IOException {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-        exchange.getResponseHeaders().put("Content-Type", java.util.List.of("application/json; charset=utf-8"));
+        exchange.getResponseHeaders().put("Content-Type", java.util.List.of(contentType));
         exchange.sendResponseHeaders(status, bytes.length);
         try (OutputStream response = exchange.getResponseBody()) {
             response.write(bytes);
