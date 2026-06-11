@@ -137,6 +137,7 @@ public final class JdbcNodeRegistry implements NodeRegistry {
         java.sql.Timestamp lastHeartbeat = rs.getTimestamp("last_heartbeat");
         return new NodeLoad(
             rs.getString("id"),
+            rs.getString("pool") == null ? "island" : rs.getString("pool"),
             rs.getString("velocity_server_name"),
             rs.getString("node_version") == null ? "" : rs.getString("node_version"),
             NodeState.valueOf(rs.getString("state")),

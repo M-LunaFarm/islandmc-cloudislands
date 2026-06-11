@@ -4,6 +4,7 @@ import java.time.Instant;
 
 public record IslandNodeSnapshot(
     String nodeId,
+    String pool,
     String serverName,
     String nodeVersion,
     NodeState state,

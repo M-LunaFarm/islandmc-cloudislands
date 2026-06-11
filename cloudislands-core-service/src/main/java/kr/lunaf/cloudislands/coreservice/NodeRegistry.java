@@ -35,6 +35,7 @@ public interface NodeRegistry {
     static String toJson(NodeLoad node) {
         return new StringBuilder("{")
             .append("\"id\":\"").append(node.nodeId()).append("\",")
+            .append("\"pool\":\"").append(node.pool() == null ? "island" : node.pool()).append("\",")
             .append("\"server\":\"").append(node.velocityServerName()).append("\",")
             .append("\"nodeVersion\":\"").append(node.nodeVersion() == null ? "" : node.nodeVersion().replace("\"", "'")).append("\",")
             .append("\"state\":\"").append(node.state()).append("\",")

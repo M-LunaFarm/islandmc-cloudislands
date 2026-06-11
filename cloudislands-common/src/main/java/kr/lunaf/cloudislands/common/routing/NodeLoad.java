@@ -6,6 +6,7 @@ import kr.lunaf.cloudislands.api.model.NodeState;
 
 public record NodeLoad(
     String nodeId,
+    String pool,
     String velocityServerName,
     String nodeVersion,
     NodeState state,
@@ -25,6 +26,13 @@ public record NodeLoad(
     boolean storageAvailable,
     String supportedTemplates
 ) {
+    public boolean inPool(String requestedPool) {
+        if (requestedPool == null || requestedPool.isBlank()) {
+            return true;
+        }
+        return (pool == null || pool.isBlank() ? "island" : pool).equalsIgnoreCase(requestedPool);
+    }
+
     public boolean eligible(Instant now, Duration heartbeatTimeout) {
         if (state != NodeState.READY && state != NodeState.SOFT_FULL) {
             return false;

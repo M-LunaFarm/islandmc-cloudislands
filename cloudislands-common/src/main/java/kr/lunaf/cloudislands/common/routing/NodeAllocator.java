@@ -23,7 +23,12 @@ public final class NodeAllocator {
     }
 
     public Optional<NodeLoad> selectBestNode(List<NodeLoad> nodes, Instant now, String templateId, String minNodeVersion) {
+        return selectBestNode(nodes, now, templateId, minNodeVersion, "island");
+    }
+
+    public Optional<NodeLoad> selectBestNode(List<NodeLoad> nodes, Instant now, String templateId, String minNodeVersion, String pool) {
         List<NodeLoad> eligible = nodes.stream()
+            .filter(node -> node.inPool(pool))
             .filter(node -> node.eligible(now, heartbeatTimeout))
             .filter(node -> node.supportsTemplate(templateId))
             .filter(node -> node.satisfiesMinVersion(minNodeVersion))
@@ -35,6 +40,6 @@ public final class NodeAllocator {
     }
 
     public boolean acceptsExistingRoute(NodeLoad node, Instant now, String templateId, String minNodeVersion) {
-        return node.acceptsExistingRoute(now, heartbeatTimeout, templateId, minNodeVersion);
+        return node.inPool("island") && node.acceptsExistingRoute(now, heartbeatTimeout, templateId, minNodeVersion);
     }
 }

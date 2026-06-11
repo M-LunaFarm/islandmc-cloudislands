@@ -1234,6 +1234,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
         return Optional.of(new IslandNodeSnapshot(
             text(json, "id", ""),
+            text(json, "pool", "island"),
             text(json, "server", ""),
             text(json, "nodeVersion", ""),
             enumValue(NodeState.class, text(json, "state", "DOWN"), NodeState.DOWN),
