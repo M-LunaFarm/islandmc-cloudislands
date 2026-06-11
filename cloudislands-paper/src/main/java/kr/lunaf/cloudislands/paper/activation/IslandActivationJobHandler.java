@@ -5,6 +5,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.world.IslandWorldRestorer;
 import kr.lunaf.cloudislands.paper.world.ShardWorldPreloader;
+import kr.lunaf.cloudislands.paper.world.bundle.BundleRestorePlan;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
@@ -33,28 +34,29 @@ public final class IslandActivationJobHandler {
 
     public ActivationResult handle(IslandJob job) {
         if (job.type() != IslandJobType.ACTIVATE_ISLAND && job.type() != IslandJobType.CREATE_ISLAND) {
-            return new ActivationResult(false, "UNSUPPORTED_JOB", null, null, 0, 0, 0L);
+            return new ActivationResult(false, "UNSUPPORTED_JOB", null, null, 0, 0, 0L, null);
         }
         UUID islandId = job.islandId();
         try {
             IslandBundleManifest manifest = storage.readManifest(islandId);
             ShardWorldManager.CellAssignment cell = shardWorldManager.allocateCell(islandId);
-            stageBundle(islandId, cell);
+            BundleRestorePlan restorePlan = stageBundle(islandId, cell);
             if (preloader != null) {
                 preloader.preload(cell.worldName(), cell.originX(), cell.originZ(), preloadRadius);
             }
             protectionController.registerIsland(islandId, cell.worldName(), cell.originX(), cell.originZ(), manifest.size(), cell.cellX(), cell.cellZ());
-            return new ActivationResult(true, "ACTIVE", islandId, cell.worldName(), cell.cellX(), cell.cellZ(), manifest.schemaVersion());
+            return new ActivationResult(true, "ACTIVE", islandId, cell.worldName(), cell.cellX(), cell.cellZ(), manifest.schemaVersion(), restorePlan == null ? null : restorePlan.extractedRoot().toString());
         } catch (Exception exception) {
-            return new ActivationResult(false, "ERROR_ACTIVATING", islandId, null, 0, 0, 0L);
+            return new ActivationResult(false, "ERROR_ACTIVATING", islandId, null, 0, 0, 0L, null);
         }
     }
 
-    private void stageBundle(UUID islandId, ShardWorldManager.CellAssignment cell) throws IOException {
+    private BundleRestorePlan stageBundle(UUID islandId, ShardWorldManager.CellAssignment cell) throws IOException {
         if (worldRestorer != null) {
-            worldRestorer.stage(islandId, cell.worldName(), cell.originX(), cell.originZ());
+            return worldRestorer.stage(islandId, cell.worldName(), cell.originX(), cell.originZ());
         }
+        return null;
     }
 
-    public record ActivationResult(boolean success, String state, UUID islandId, String worldName, int cellX, int cellZ, long schemaVersion) {}
+    public record ActivationResult(boolean success, String state, UUID islandId, String worldName, int cellX, int cellZ, long schemaVersion, String extractedRoot) {}
 }
