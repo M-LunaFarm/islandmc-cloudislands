@@ -56,6 +56,11 @@ public final class AdminEndpointGuard {
             case "/v1/audit" -> AdminPermission.AUDIT_READ;
             case "/v1/events" -> AdminPermission.AUDIT_READ;
             case "/v1/jobs", "/v1/jobs/claim", "/v1/jobs/complete", "/v1/jobs/fail", "/v1/jobs/recover" -> AdminPermission.JOB_MANAGE;
+            case "/v1/admin/jobs/list", "/v1/admin/jobs/retry", "/v1/admin/jobs/cancel" -> AdminPermission.JOB_MANAGE;
+            case "/v1/admin/routes/debug", "/v1/admin/routes/ticket", "/v1/admin/routes/clear" -> AdminPermission.ROUTE_MANAGE;
+            case "/v1/admin/cache/clear", "/v1/admin/reload" -> AdminPermission.CACHE_CLEAR;
+            case "/v1/admin/migrations/superiorskyblock2/scan", "/v1/admin/migrations/superiorskyblock2/dryrun", "/v1/admin/migrations/superiorskyblock2/import", "/v1/admin/migrations/superiorskyblock2/verify", "/v1/admin/migrations/superiorskyblock2/rollback" -> AdminPermission.MIGRATION_MANAGE;
+            case "/v1/admin/players/info", "/v1/admin/players/setisland", "/v1/admin/players/clearisland" -> AdminPermission.PLAYER_MANAGE;
             case "/v1/admin/nodes/drain" -> AdminPermission.NODE_DRAIN;
             case "/v1/admin/nodes/undrain" -> AdminPermission.NODE_UNDRAIN;
             case "/v1/admin/islands/activate" -> AdminPermission.ISLAND_ACTIVATE;
@@ -64,6 +69,11 @@ public final class AdminEndpointGuard {
             case "/v1/admin/islands/snapshot" -> AdminPermission.ISLAND_SNAPSHOT;
             case "/v1/admin/islands/restore" -> AdminPermission.ISLAND_RESTORE;
             case "/v1/admin/islands/quarantine" -> AdminPermission.ISLAND_QUARANTINE;
+            case "/v1/admin/islands/info", "/v1/admin/islands/where" -> AdminPermission.AUDIT_READ;
+            case "/v1/admin/islands/tp" -> AdminPermission.ISLAND_TELEPORT;
+            case "/v1/admin/islands/delete" -> AdminPermission.ISLAND_DELETE;
+            case "/v1/admin/islands/repair" -> AdminPermission.ISLAND_REPAIR;
+            case "/v1/admin/block-values" -> AdminPermission.ECONOMY_MANAGE;
             default -> path.startsWith("/v1/admin") ? AdminPermission.AUDIT_READ : null;
         };
     }
