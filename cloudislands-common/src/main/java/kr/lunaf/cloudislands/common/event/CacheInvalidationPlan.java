@@ -29,6 +29,7 @@ public final class CacheInvalidationPlan {
             case ISLAND_SNAPSHOT_REQUESTED, ISLAND_SNAPSHOT_CREATED -> EnumSet.of(CacheTarget.SUMMARY, CacheTarget.SNAPSHOTS);
             case ISLAND_TEMPLATE_CHANGED -> EnumSet.of(CacheTarget.TEMPLATES, CacheTarget.ROUTE, CacheTarget.SUMMARY);
             case CORE_CACHE_CLEARED, CORE_RELOADED -> EnumSet.of(CacheTarget.ROUTE, CacheTarget.SUMMARY);
+            case ROUTE_TICKET_CREATED, ROUTE_TICKET_CONSUMED, ROUTE_TICKET_FAILED -> EnumSet.of(CacheTarget.ROUTE, CacheTarget.ROUTE_TICKETS, CacheTarget.SUMMARY);
             case ISLAND_DELETED -> EnumSet.allOf(CacheTarget.class);
             default -> EnumSet.of(CacheTarget.SUMMARY);
         };
@@ -53,6 +54,7 @@ public final class CacheInvalidationPlan {
         LEVEL,
         GENERATOR,
         TEMPLATES,
-        ROUTE
+        ROUTE,
+        ROUTE_TICKETS
     }
 }
