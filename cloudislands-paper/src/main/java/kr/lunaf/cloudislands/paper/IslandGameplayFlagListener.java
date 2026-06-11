@@ -9,8 +9,9 @@ import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
@@ -60,8 +61,23 @@ public final class IslandGameplayFlagListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onCreatureSpawn(CreatureSpawnEvent event) {
+        if (protection.islandAt(event.getLocation().getBlock()).isPresent() && !islandFlagAllowed(event.getLocation().getBlock(), IslandFlag.MOB_SPAWN)) {
+            event.setCancelled(true);
+            return;
+        }
         IslandFlag flag = spawnFlag(event);
         if (flag != null && protection.islandAt(event.getLocation().getBlock()).isPresent() && !islandFlagAllowed(event.getLocation().getBlock(), flag)) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onPlayerDamage(EntityDamageByEntityEvent event) {
+        if (!(event.getDamager() instanceof Player) || !(event.getEntity() instanceof Player victim)) {
+            return;
+        }
+        Block block = victim.getLocation().getBlock();
+        if (protection.islandAt(block).isPresent() && !islandFlagAllowed(block, IslandFlag.PVP)) {
             event.setCancelled(true);
         }
     }
