@@ -928,7 +928,7 @@ public final class CloudIslandsCoreApplication {
             var invite = metadataRepository.createInvite(islandId, inviterUuid, targetUuid);
             audit.log(inviterUuid, "PLAYER", "ISLAND_INVITE_CREATE", "ISLAND", islandId.toString(), Map.of("targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString()));
             islandLogs.append(islandId, inviterUuid, "ISLAND_INVITE_CREATE", Map.of("targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString()));
-            events.publish("ISLAND_INVITE_CREATE", Map.of("islandId", islandId.toString(), "targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString()));
+            events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("islandId", islandId.toString(), "targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString(), "state", invite.state().name()));
             write(exchange, 202, "{\"accepted\":true,\"inviteId\":\"" + invite.inviteId() + "\",\"islandId\":\"" + invite.islandId() + "\",\"inviterUuid\":\"" + invite.inviterUuid() + "\",\"targetUuid\":\"" + invite.targetUuid() + "\",\"state\":\"" + invite.state() + "\",\"createdAt\":\"" + invite.createdAt() + "\",\"expiresAt\":\"" + invite.expiresAt() + "\"}");
         });
         route("/v1/players/invites", exchange -> {
@@ -941,7 +941,10 @@ public final class CloudIslandsCoreApplication {
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
             boolean accepted = metadataRepository.acceptInvite(inviteId, playerUuid);
             audit.log(playerUuid, "PLAYER", "ISLAND_INVITE_ACCEPT", "INVITE", inviteId.toString(), Map.of("accepted", Boolean.toString(accepted)));
-            events.publish("ISLAND_INVITE_ACCEPT", Map.of("inviteId", inviteId.toString(), "playerUuid", playerUuid.toString(), "accepted", Boolean.toString(accepted)));
+            events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "playerUuid", playerUuid.toString(), "accepted", Boolean.toString(accepted)));
+            if (accepted) {
+                events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "playerUuid", playerUuid.toString()));
+            }
             write(exchange, accepted ? 202 : 409, accepted ? ApiResponses.ok(true) : ApiResponses.error("INVITE_UNAVAILABLE", "Invite is missing, expired, or not pending"));
         });
         route("/v1/islands/invites/decline", exchange -> {
@@ -950,7 +953,7 @@ public final class CloudIslandsCoreApplication {
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
             boolean declined = metadataRepository.declineInvite(inviteId, playerUuid);
             audit.log(playerUuid, "PLAYER", "ISLAND_INVITE_DECLINE", "INVITE", inviteId.toString(), Map.of("declined", Boolean.toString(declined)));
-            events.publish("ISLAND_INVITE_DECLINE", Map.of("inviteId", inviteId.toString(), "playerUuid", playerUuid.toString(), "declined", Boolean.toString(declined)));
+            events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "playerUuid", playerUuid.toString(), "declined", Boolean.toString(declined)));
             write(exchange, declined ? 202 : 409, declined ? ApiResponses.ok(true) : ApiResponses.error("INVITE_UNAVAILABLE", "Invite is missing or not pending"));
         });
         route("/v1/islands/bans/set", exchange -> {
