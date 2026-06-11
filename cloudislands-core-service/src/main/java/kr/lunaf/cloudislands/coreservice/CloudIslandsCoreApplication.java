@@ -504,7 +504,7 @@ public final class CloudIslandsCoreApplication {
                 JsonFields.text(body, "minNodeVersion", "")
             );
             audit.log(new UUID(0L, 0L), "ADMIN", "TEMPLATE_UPSERT", "TEMPLATE", snapshot.id(), Map.of("enabled", Boolean.toString(snapshot.enabled()), "minNodeVersion", snapshot.minNodeVersion()));
-            events.publish("ISLAND_TEMPLATE_UPSERTED", Map.of("templateId", snapshot.id(), "enabled", Boolean.toString(snapshot.enabled()), "minNodeVersion", snapshot.minNodeVersion()));
+            events.publish(CloudIslandEventType.ISLAND_TEMPLATE_CHANGED.name(), Map.of("templateId", snapshot.id(), "enabled", Boolean.toString(snapshot.enabled()), "minNodeVersion", snapshot.minNodeVersion(), "operation", "UPSERT"));
             write(exchange, 202, templateJson(snapshot));
         });
         route("/v1/admin/templates/enable", exchange -> {
@@ -513,7 +513,7 @@ public final class CloudIslandsCoreApplication {
             boolean changed = templateRepository.setEnabled(templateId, true);
             audit.log(new UUID(0L, 0L), "ADMIN", "TEMPLATE_ENABLE", "TEMPLATE", templateId, Map.of("changed", Boolean.toString(changed)));
             if (changed) {
-                events.publish("ISLAND_TEMPLATE_ENABLED", Map.of("templateId", templateId));
+                events.publish(CloudIslandEventType.ISLAND_TEMPLATE_CHANGED.name(), Map.of("templateId", templateId, "enabled", Boolean.toString(true), "operation", "ENABLE"));
             }
             write(exchange, changed ? 202 : 404, changed ? templateRepository.find(templateId).map(CloudIslandsCoreApplication::templateJson).orElseGet(() -> ApiResponses.ok(true)) : ApiResponses.error("TEMPLATE_NOT_FOUND", "Island template was not found"));
         });
@@ -523,7 +523,7 @@ public final class CloudIslandsCoreApplication {
             boolean changed = templateRepository.setEnabled(templateId, false);
             audit.log(new UUID(0L, 0L), "ADMIN", "TEMPLATE_DISABLE", "TEMPLATE", templateId, Map.of("changed", Boolean.toString(changed)));
             if (changed) {
-                events.publish("ISLAND_TEMPLATE_DISABLED", Map.of("templateId", templateId));
+                events.publish(CloudIslandEventType.ISLAND_TEMPLATE_CHANGED.name(), Map.of("templateId", templateId, "enabled", Boolean.toString(false), "operation", "DISABLE"));
             }
             write(exchange, changed ? 202 : 404, changed ? templateRepository.find(templateId).map(CloudIslandsCoreApplication::templateJson).orElseGet(() -> ApiResponses.ok(true)) : ApiResponses.error("TEMPLATE_NOT_FOUND", "Island template was not found"));
         });
