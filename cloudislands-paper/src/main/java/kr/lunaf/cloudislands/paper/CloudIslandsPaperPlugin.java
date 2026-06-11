@@ -23,6 +23,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
 import kr.lunaf.cloudislands.paper.heartbeat.PaperHeartbeatService;
 import kr.lunaf.cloudislands.paper.job.CoreBackedIslandJobSource;
 import kr.lunaf.cloudislands.paper.job.PaperIslandJobWorker;
@@ -73,6 +74,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandMainMenu(), this);
         getServer().getPluginManager().registerEvents(new IslandMemberMenu(), this);
         getServer().getPluginManager().registerEvents(new IslandSettingsMenu(), this);
+        getServer().getPluginManager().registerEvents(new IslandWarpMenu(), this);
         this.generatorLevels = new GeneratorLevelCache(client);
         getServer().getPluginManager().registerEvents(new IslandGeneratorListener(agent.protection(), DefaultGeneratorRules.create(), generatorLevels), this);
         getServer().getPluginManager().registerEvents(new PaperRouteSessionListener(this, client, agent.routeTickets(), nodeId), this);

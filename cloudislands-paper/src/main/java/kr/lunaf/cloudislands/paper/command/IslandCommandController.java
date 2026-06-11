@@ -14,6 +14,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -30,7 +31,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "create-menu", "templates", "생성메뉴", "템플릿",
         "create", "생성", "delete", "삭제", "reset", "리셋",
         "sethome", "셋홈", "homes", "home-list", "홈목록", "home", "홈",
-        "warps", "warp-list", "워프", "warp", "setwarp", "워프설정",
+        "warps", "warp-menu", "warp-list", "워프", "워프관리", "워프목록", "warp", "setwarp", "워프설정",
         "delwarp", "deletewarp", "워프삭제", "warp-public", "워프공개", "warp-private", "워프비공개",
         "public", "공개", "private", "비공개", "lock", "잠금", "unlock", "잠금해제",
         "level", "레벨", "worth", "value", "가치", "rank", "ranking", "랭킹", "levelcalc", "recalculate", "레벨계산",
@@ -117,12 +118,16 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             teleportHome(player, args.length > 1 ? args[1] : "default");
             return true;
         }
-        if (subcommand.equals("warps") || subcommand.equals("warp-list") || subcommand.equals("워프")) {
+        if (subcommand.equals("warps") || subcommand.equals("warp-menu") || subcommand.equals("워프") || subcommand.equals("워프관리")) {
             if (args.length > 1) {
                 teleportWarp(player, args[1]);
             } else {
-                listWarps(player);
+                openIslandWarpMenu(player);
             }
+            return true;
+        }
+        if (subcommand.equals("warp-list") || subcommand.equals("워프목록")) {
+            listWarps(player);
             return true;
         }
         if (subcommand.equals("warp")) {
@@ -530,6 +535,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                     return null;
                 });
         });
+    }
+
+    private void openIslandWarpMenu(Player player) {
+        currentIsland(player, "섬 안에서만 워프 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandWarpMenu.open(plugin, coreApiClient, player, islandId));
     }
 
     private void teleportHome(Player player, String name) {
