@@ -59,17 +59,17 @@ public final class LocalIslandStorage implements IslandStorage {
     }
 
     @Override
-    public void writeDeleteBackup(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
+    public StoredBundle writeDeleteBackup(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
         Path islandRoot = islandRoot(islandId);
         Path backupDir = islandRoot.resolve("backups").resolve("delete-" + String.format("%06d", snapshotNo));
-        writeBundle(islandRoot, backupDir, bundle, manifest, false);
+        return writeBundle(islandRoot, backupDir, bundle, manifest, false);
     }
 
     @Override
-    public void writeDeleteBackupFromLatest(UUID islandId, long snapshotNo) throws IOException {
+    public StoredBundle writeDeleteBackupFromLatest(UUID islandId, long snapshotNo) throws IOException {
         IslandBundleManifest manifest = readManifest(islandId);
         try (InputStream input = openLatestBundle(islandId)) {
-            writeDeleteBackup(islandId, snapshotNo, input, manifest);
+            return writeDeleteBackup(islandId, snapshotNo, input, manifest);
         }
     }
 
@@ -106,10 +106,11 @@ public final class LocalIslandStorage implements IslandStorage {
         Files.writeString(islandRoot.resolve("latest"), snapshot, StandardCharsets.UTF_8);
     }
 
-    private void writeBundle(Path islandRoot, Path snapshotDir, InputStream bundle, IslandBundleManifest manifest, boolean updateLatest) throws IOException {
+    private StoredBundle writeBundle(Path islandRoot, Path snapshotDir, InputStream bundle, IslandBundleManifest manifest, boolean updateLatest) throws IOException {
         Files.createDirectories(snapshotDir);
         Path snapshotBundle = snapshotDir.resolve("bundle.tar.zst");
         Files.copy(bundle, snapshotBundle, StandardCopyOption.REPLACE_EXISTING);
+        long sizeBytes = Files.size(snapshotBundle);
         String actualChecksum;
         try (InputStream input = Files.newInputStream(snapshotBundle)) {
             actualChecksum = Sha256Checksums.of(input);
@@ -132,6 +133,7 @@ public final class LocalIslandStorage implements IslandStorage {
             Files.writeString(islandRoot.resolve("manifest.json"), IslandManifestJson.write(savedManifest), StandardCharsets.UTF_8);
             Files.writeString(islandRoot.resolve("latest"), snapshotDir.getFileName().toString(), StandardCharsets.UTF_8);
         }
+        return new StoredBundle(actualChecksum, sizeBytes);
     }
 
     @Override

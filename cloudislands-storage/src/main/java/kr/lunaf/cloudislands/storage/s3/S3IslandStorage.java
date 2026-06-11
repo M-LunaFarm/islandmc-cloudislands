@@ -81,15 +81,15 @@ public final class S3IslandStorage implements IslandStorage {
     }
 
     @Override
-    public void writeDeleteBackup(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
-        writeBundle(islandId, "backups/delete-" + String.format("%06d", snapshotNo), bundle, manifest, false, "");
+    public StoredBundle writeDeleteBackup(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
+        return writeBundle(islandId, "backups/delete-" + String.format("%06d", snapshotNo), bundle, manifest, false, "");
     }
 
     @Override
-    public void writeDeleteBackupFromLatest(UUID islandId, long snapshotNo) throws IOException {
+    public StoredBundle writeDeleteBackupFromLatest(UUID islandId, long snapshotNo) throws IOException {
         IslandBundleManifest manifest = readManifest(islandId);
         try (InputStream input = openLatestBundle(islandId)) {
-            writeDeleteBackup(islandId, snapshotNo, input, manifest);
+            return writeDeleteBackup(islandId, snapshotNo, input, manifest);
         }
     }
 
@@ -119,7 +119,7 @@ public final class S3IslandStorage implements IslandStorage {
         requestBytes("PUT", key(islandId, "latest"), snapshot.getBytes(StandardCharsets.UTF_8));
     }
 
-    private void writeBundle(UUID islandId, String prefix, InputStream bundle, IslandBundleManifest manifest, boolean updateLatest, String latestValue) throws IOException {
+    private StoredBundle writeBundle(UUID islandId, String prefix, InputStream bundle, IslandBundleManifest manifest, boolean updateLatest, String latestValue) throws IOException {
         byte[] bundleBytes = bundle.readAllBytes();
         String checksum = Sha256Checksums.of(new ByteArrayInputStream(bundleBytes));
         IslandBundleManifest savedManifest = new IslandBundleManifest(manifest.islandId(), manifest.ownerUuid(), manifest.formatVersion(), manifest.minecraftVersion(), manifest.schemaVersion(), manifest.size(), manifest.spawn(), manifest.createdAt(), manifest.savedAt(), checksum);
@@ -130,6 +130,7 @@ public final class S3IslandStorage implements IslandStorage {
             requestBytes("PUT", key(islandId, "manifest.json"), IslandManifestJson.write(savedManifest).getBytes(StandardCharsets.UTF_8));
             requestBytes("PUT", key(islandId, "latest"), latestValue.getBytes(StandardCharsets.UTF_8));
         }
+        return new StoredBundle(checksum, bundleBytes.length);
     }
 
     @Override

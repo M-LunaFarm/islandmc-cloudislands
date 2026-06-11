@@ -110,7 +110,6 @@ import kr.lunaf.cloudislands.migration.rollback.StorageRollbackTarget;
 import kr.lunaf.cloudislands.migration.rollback.jdbc.JdbcMigrationRollbackTarget;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
-import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import kr.lunaf.cloudislands.storage.LocalIslandStorage;
 import kr.lunaf.cloudislands.storage.s3.S3IslandStorage;
@@ -1335,9 +1334,8 @@ public final class CloudIslandsCoreApplication {
         }
         try {
             long snapshotNo = System.currentTimeMillis();
-            IslandBundleManifest manifest = deleteStorage.readManifest(islandId);
-            deleteStorage.writeDeleteBackupFromLatest(islandId, snapshotNo);
-            snapshotRepository.record(islandId, snapshotNo, "islands/" + islandId + "/backups/delete-" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", reason, null, manifest.checksum(), 0L);
+            IslandStorage.StoredBundle storedBundle = deleteStorage.writeDeleteBackupFromLatest(islandId, snapshotNo);
+            snapshotRepository.record(islandId, snapshotNo, "islands/" + islandId + "/backups/delete-" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", reason, null, storedBundle.checksum(), storedBundle.sizeBytes());
         } catch (IOException exception) {
             events.publish("ISLAND_DELETE_BACKUP_FAILED", Map.of("islandId", islandId.toString(), "reason", reason, "error", exception.getMessage() == null ? "" : exception.getMessage()));
         }
