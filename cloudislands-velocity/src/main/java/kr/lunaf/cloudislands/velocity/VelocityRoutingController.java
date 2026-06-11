@@ -287,6 +287,10 @@ public final class VelocityRoutingController {
         coreApiClient.cancelJob(jobId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "작업 취소를 요청하지 못했습니다." : body)));
     }
 
+    public void recoverJobs(Player player, String nodeId, long minIdleMillis, int maxJobs) {
+        coreApiClient.recoverJobs(nodeId, minIdleMillis, maxJobs).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "작업 복구를 요청하지 못했습니다." : body)));
+    }
+
     public void listNodes(Player player) {
         coreApiClient.listNodes().thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "노드 목록을 불러오지 못했습니다." : body)));
     }
@@ -301,6 +305,10 @@ public final class VelocityRoutingController {
 
     public void undrainNode(Player player, String nodeId) {
         coreApiClient.undrainNode(nodeId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "노드 undrain을 요청하지 못했습니다." : body)));
+    }
+
+    public void sweepNode(Player player, String nodeId) {
+        coreApiClient.sweepNode(nodeId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "노드 장애 스윕을 요청하지 못했습니다." : body)));
     }
 
     public void kickAllNode(Player player, String nodeId) {

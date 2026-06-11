@@ -344,6 +344,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> sweepNode(String nodeId) {
+        return post("/v1/admin/nodes/sweep", "{\"nodeId\":\"" + escape(nodeId) + "\"}");
+    }
+
+    @Override
     public CompletableFuture<String> activateIsland(UUID islandId) {
         return post("/v1/admin/islands/activate", "{\"islandId\":\"" + islandId + "\"}");
     }
@@ -484,6 +489,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<String> cancelJob(UUID jobId) {
         return post("/v1/admin/jobs/cancel", "{\"jobId\":\"" + jobId + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> recoverJobs(String nodeId, long minIdleMillis, int maxJobs) {
+        return post("/v1/jobs/recover", "{\"nodeId\":\"" + escape(nodeId) + "\",\"minIdleMillis\":" + minIdleMillis + ",\"maxJobs\":" + maxJobs + "}");
     }
 
     @Override

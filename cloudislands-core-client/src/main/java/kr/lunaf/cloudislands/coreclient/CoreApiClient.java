@@ -78,6 +78,7 @@ public interface CoreApiClient {
     CompletableFuture<String> nodeInfo(String nodeId);
     CompletableFuture<String> drainNode(String nodeId);
     CompletableFuture<String> undrainNode(String nodeId);
+    CompletableFuture<String> sweepNode(String nodeId);
     CompletableFuture<String> activateIsland(UUID islandId);
     CompletableFuture<String> deactivateIsland(UUID islandId);
     CompletableFuture<String> migrateIsland(UUID islandId, String targetNode);
@@ -105,6 +106,7 @@ public interface CoreApiClient {
     CompletableFuture<String> listJobs();
     CompletableFuture<String> retryJob(UUID jobId);
     CompletableFuture<String> cancelJob(UUID jobId);
+    CompletableFuture<String> recoverJobs(String nodeId, long minIdleMillis, int maxJobs);
     CompletableFuture<Void> completeJob(String nodeId, UUID jobId);
     CompletableFuture<Void> completeJob(String nodeId, UUID jobId, Map<String, String> payload);
     CompletableFuture<Void> failJob(String nodeId, UUID jobId, String errorMessage);

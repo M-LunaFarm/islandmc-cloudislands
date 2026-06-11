@@ -181,6 +181,10 @@ public final class CloudIslandsVelocityPlugin {
             routingController.undrainNode(player, args[2]);
             return;
         }
+        if (args.length >= 2 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("sweep")) {
+            routingController.sweepNode(player, args.length > 2 ? args[2] : "");
+            return;
+        }
         if (args.length >= 3 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("kickall")) {
             routingController.kickAllNode(player, args[2]);
             return;
@@ -199,6 +203,10 @@ public final class CloudIslandsVelocityPlugin {
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("jobs") && args[1].equalsIgnoreCase("cancel")) {
             routingController.cancelJob(player, parseUuidOrNil(args[2]));
+            return;
+        }
+        if (args.length >= 2 && args[0].equalsIgnoreCase("jobs") && args[1].equalsIgnoreCase("recover")) {
+            routingController.recoverJobs(player, args.length > 2 ? args[2] : "recovery", args.length > 3 ? parseLongOrZero(args[3]) : 60000L, args.length > 4 ? (int) parseLongOrZero(args[4]) : 16);
             return;
         }
         player.sendMessage(Component.text("사용법: /ciadmin island info <섬|플레이어>, /ciadmin island where <섬>, /ciadmin template list, /ciadmin template upsert <id> <name> [enabled] [minNodeVersion], /ciadmin node list"));
