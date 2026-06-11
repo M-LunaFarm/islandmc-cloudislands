@@ -192,11 +192,11 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args.length >= 4 && args[0].equalsIgnoreCase("player") && args[1].equalsIgnoreCase("setisland")) {
-            routingController.setPlayerIsland(player, parseUuidOrNil(args[2]), parseUuidOrNil(args[3]));
+            routingController.setPlayerIslandTarget(player, args[2], parseUuidOrNil(args[3]));
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("player") && args[1].equalsIgnoreCase("clearisland")) {
-            routingController.clearPlayerIsland(player, parseUuidOrNil(args[2]));
+            routingController.clearPlayerIslandTarget(player, args[2]);
             return;
         }
         if (args.length >= 2 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("list")) {
