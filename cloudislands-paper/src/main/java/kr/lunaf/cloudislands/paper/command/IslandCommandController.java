@@ -39,6 +39,14 @@ public final class IslandCommandController implements CommandExecutor {
             setHome(player, args.length > 1 ? args[1] : "default");
             return true;
         }
+        if (subcommand.equals("homes") || subcommand.equals("home-list") || subcommand.equals("홈목록")) {
+            listHomes(player);
+            return true;
+        }
+        if (subcommand.equals("warps") || subcommand.equals("warp-list") || subcommand.equals("워프")) {
+            listWarps(player);
+            return true;
+        }
         if (subcommand.equals("setwarp") || subcommand.equals("워프설정")) {
             if (args.length < 2) {
                 player.sendMessage("워프 이름을 입력해주세요.");
@@ -99,6 +107,28 @@ public final class IslandCommandController implements CommandExecutor {
                 .thenRun(() -> message(player, "섬 워프를 설정했습니다."))
                 .exceptionally(error -> {
                     message(player, "섬 워프를 설정하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void listHomes(Player player) {
+        currentIsland(player, "섬 안에서만 홈 목록을 볼 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.listIslandHomes(islandId)
+                .thenAccept(body -> message(player, body == null || body.isBlank() ? "섬 홈이 없습니다." : body))
+                .exceptionally(error -> {
+                    message(player, "섬 홈을 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void listWarps(Player player) {
+        currentIsland(player, "섬 안에서만 워프 목록을 볼 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.listIslandWarps(islandId)
+                .thenAccept(body -> message(player, body == null || body.isBlank() ? "섬 워프가 없습니다." : body))
+                .exceptionally(error -> {
+                    message(player, "섬 워프를 불러오지 못했습니다.");
                     return null;
                 });
         });
