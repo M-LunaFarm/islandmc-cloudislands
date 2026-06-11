@@ -23,6 +23,11 @@ public final class ProtectionController {
         regionIndex.add(new IslandRegion(islandId, worldName, originX - half, originX + half, originZ - half, originZ + half, cellX, cellZ));
     }
 
+    public void unregisterIsland(UUID islandId) {
+        regionIndex.removeIsland(islandId);
+        permissionCache.invalidate(islandId);
+    }
+
     public PermissionResult checkBlock(UUID playerUuid, String world, int blockX, int blockY, int blockZ, IslandPermission permission) {
         return regionIndex.find(world, blockX, blockZ)
             .map(region -> permissionCache.allowed(region.islandId(), playerUuid, permission, false)

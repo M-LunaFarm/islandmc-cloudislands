@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class RegionIndex {
@@ -21,9 +22,20 @@ public final class RegionIndex {
         }
     }
 
+    public void removeIsland(UUID islandId) {
+        for (List<IslandRegion> regions : regionsByChunk.values()) {
+            regions.removeIf(region -> region.islandId().equals(islandId));
+        }
+        regionsByChunk.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+    }
+
     public Optional<IslandRegion> find(String world, int blockX, int blockZ) {
         return regionsByChunk.getOrDefault(ChunkKey.fromBlock(world, blockX, blockZ), List.of()).stream()
             .filter(region -> region.contains(world, blockX, blockZ))
             .findFirst();
+    }
+
+    public int indexedChunkCount() {
+        return regionsByChunk.size();
     }
 }
