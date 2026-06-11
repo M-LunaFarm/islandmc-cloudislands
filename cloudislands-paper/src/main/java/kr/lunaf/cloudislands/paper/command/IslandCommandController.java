@@ -58,6 +58,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "warps", "warp-menu", "warp-list", "워프", "워프관리", "워프목록", "public-warps", "publicwarplist", "공개워프목록", "warp", "setwarp", "워프설정",
         "delwarp", "deletewarp", "워프삭제", "warp-public", "publicwarp", "워프공개", "warp-private", "privatewarp", "워프비공개",
         "public", "공개", "private", "비공개", "lock", "잠금", "unlock", "잠금해제",
+        "fly", "비행", "keepinventory", "keepinv", "인벤보존", "pvp", "피빕", "publicwarps", "공개워프",
         "visit", "randomvisit", "random-visit", "방문", "랜덤방문",
         "level", "레벨", "worth", "value", "가치", "rank", "ranking", "rank-list", "랭킹", "랭킹목록", "levelcalc", "recalculate", "레벨계산",
         "bank", "bank-balance", "은행", "은행잔액", "deposit", "bank-deposit", "입금", "withdraw", "bank-withdraw", "출금",
@@ -592,6 +593,22 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("settings") || subcommand.equals("setting") || subcommand.equals("설정")) {
             openIslandSettings(player);
+            return true;
+        }
+        if (subcommand.equals("fly") || subcommand.equals("비행")) {
+            setIslandFlag(player, "FLY", flagToggleValue(args, 1));
+            return true;
+        }
+        if (subcommand.equals("keepinventory") || subcommand.equals("keepinv") || subcommand.equals("인벤보존")) {
+            setIslandFlag(player, "KEEP_INVENTORY", flagToggleValue(args, 1));
+            return true;
+        }
+        if (subcommand.equals("pvp") || subcommand.equals("피빕")) {
+            setIslandFlag(player, "PVP", flagToggleValue(args, 1));
+            return true;
+        }
+        if (subcommand.equals("publicwarps") || subcommand.equals("공개워프")) {
+            setIslandFlag(player, "PUBLIC_WARPS", flagToggleValue(args, 1));
             return true;
         }
         if (subcommand.equals("flags") || subcommand.equals("flag-menu") || subcommand.equals("flag") || subcommand.equals("플래그")) {
@@ -1543,6 +1560,20 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void openIslandBanMenu(Player player) {
         currentIsland(player, "섬 안에서만 밴 목록을 확인할 수 있습니다.").ifPresent(islandId -> IslandBanMenu.open(plugin, coreApiClient, player, islandId));
+    }
+
+    private String flagToggleValue(String[] args, int index) {
+        if (args.length <= index) {
+            return "true";
+        }
+        String value = args[index].toLowerCase(Locale.ROOT);
+        if (value.equals("on") || value.equals("true") || value.equals("yes") || value.equals("켜기")) {
+            return "true";
+        }
+        if (value.equals("off") || value.equals("false") || value.equals("no") || value.equals("끄기")) {
+            return "false";
+        }
+        return args[index];
     }
 
     private void listIslandFlags(Player player) {
