@@ -74,7 +74,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "accept", "invite-accept", "초대수락", "decline", "invite-decline", "초대거절",
         "kick", "remove-member", "추방", "trust", "신뢰", "untrust", "신뢰해제",
         "promote", "승급", "demote", "강등", "transfer", "양도",
-        "ban", "밴", "unban", "pardon", "밴해제", "bans", "ban-menu", "ban-list", "밴목록",
+        "ban", "밴", "unban", "pardon", "밴해제", "kickvisitor", "방문자추방", "bans", "ban-menu", "ban-list", "밴목록",
         "settings", "setting", "설정",
         "flags", "flag-menu", "flag-list", "flag", "setflag", "flag-set", "플래그", "플래그설정", "플래그목록",
         "permissions", "permission-menu", "permission-list", "permission", "perms", "setpermission", "permission-set", "권한", "권한설정", "권한목록"
@@ -583,6 +583,14 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             pardonIslandVisitor(player, args[1]);
             return true;
         }
+        if (subcommand.equals("kickvisitor") || subcommand.equals("방문자추방")) {
+            if (args.length < 2) {
+                player.sendMessage("추방할 방문자를 입력해주세요.");
+                return true;
+            }
+            kickIslandVisitor(player, args[1]);
+            return true;
+        }
         if (subcommand.equals("bans") || subcommand.equals("ban-menu") || subcommand.equals("밴목록")) {
             openIslandBanMenu(player);
             return true;
@@ -946,9 +954,13 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private void connectWithTicket(Player player, String targetServerName) {
+        connectPlayerToServer(player, targetServerName, "섬으로 이동합니다.", "섬으로 이동하지 못했습니다.");
+    }
+
+    private void connectPlayerToServer(Player player, String targetServerName, String successMessage, String failureMessage) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             if (targetServerName == null || targetServerName.isBlank()) {
-                player.sendMessage("섬 이동 경로를 찾을 수 없습니다.");
+                player.sendMessage(failureMessage);
                 return;
             }
             try {
@@ -957,9 +969,9 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 output.writeUTF("Connect");
                 output.writeUTF(targetServerName);
                 player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
-                player.sendMessage("섬으로 이동합니다.");
+                player.sendMessage(successMessage);
             } catch (IOException exception) {
-                player.sendMessage("섬으로 이동하지 못했습니다.");
+                player.sendMessage(failureMessage);
             }
         });
     }
@@ -1543,6 +1555,32 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                         message(player, "섬 방문자 밴을 해제하지 못했습니다.");
                         return null;
                     });
+                });
+        });
+    }
+
+    private void kickIslandVisitor(Player player, String target) {
+        currentIsland(player, "섬 안에서만 방문자를 추방할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.BAN_VISITOR)) {
+                player.sendMessage("섬 방문자를 추방할 권한이 없습니다.");
+                return;
+            }
+            resolvePlayerUuid(target).thenAccept(targetUuid -> plugin.getServer().getScheduler().runTask(plugin, () -> {
+                Player targetPlayer = plugin.getServer().getPlayer(targetUuid);
+                if (targetPlayer == null) {
+                    player.sendMessage("대상 플레이어가 온라인이 아닙니다.");
+                    return;
+                }
+                UUID targetIslandId = protection.islandAt(targetPlayer.getLocation().getBlock()).orElse(null);
+                if (!islandId.equals(targetIslandId)) {
+                    player.sendMessage("해당 방문자는 이 섬에 없습니다.");
+                    return;
+                }
+                connectPlayerToServer(targetPlayer, "Lobby", "섬에서 추방되어 로비로 이동합니다.", "섬에서 추방되어 로비로 이동하지 못했습니다.");
+                player.sendMessage("방문자를 섬에서 추방했습니다.");
+            })).exceptionally(error -> {
+                message(player, "대상 플레이어를 찾지 못했습니다.");
+                return null;
             });
         });
     }
