@@ -140,33 +140,43 @@ public final class MigrationAdminService {
 
     public synchronized String verify() {
         List<MigrationManifest> imported = new ArrayList<>();
+        List<MigrationIssue> issues = new ArrayList<>();
         for (MigrationManifest manifest : lastScan.manifests()) {
-            islands.findById(manifest.islandId())
-                .filter(island -> island.ownerUuid().equals(manifest.ownerUuid()))
-                .filter(island -> island.size() == manifest.size())
-                .filter(island -> island.level() == manifest.level())
-                .filter(island -> island.worth().equals(manifest.worth()))
-                .filter(_island -> manifest.members().stream().allMatch(memberUuid -> metadata.isMember(manifest.islandId(), memberUuid)))
-                .filter(_island -> memberRolesMatch(manifest))
-                .filter(_island -> manifest.bannedVisitors().stream().allMatch(bannedUuid -> metadata.isBanned(manifest.islandId(), bannedUuid)))
-                .filter(_island -> manifest.homes().stream().allMatch(home -> metadata.home(manifest.islandId(), home.name()).isPresent()))
-                .filter(_island -> manifest.warps().stream().allMatch(warp -> metadata.warp(manifest.islandId(), warp.name()).isPresent()))
-                .filter(_island -> manifest.flags().stream().allMatch(flag -> flag.value().equals(metadata.flags(manifest.islandId()).values().get(IslandFlag.valueOf(flag.flagName())))))
-                .filter(_island -> permissionsMatch(manifest))
-                .filter(_island -> upgradesMatch(manifest))
-                .filter(_island -> limitsMatch(manifest))
-                .filter(_island -> missionsMatch(manifest))
-                .filter(_island -> blockValuesMatch(manifest))
-                .filter(_island -> blockCountsMatch(manifest))
-                .filter(_island -> manifest.biomeKey().isBlank() || metadata.biome(manifest.islandId()).biomeKey().equals(manifest.biomeKey()))
-                .filter(_island -> decimal(bank.balance(manifest.islandId()).balance()).compareTo(decimal(manifest.bankBalance())) == 0)
-                .filter(_island -> metadata.isPublicAccess(manifest.islandId()) == manifest.publicAccess())
-                .filter(_island -> metadata.isLocked(manifest.islandId()) == manifest.locked())
-                .ifPresent(_island -> imported.add(manifest));
+            IslandSnapshot island = islands.findById(manifest.islandId()).orElse(null);
+            if (island == null) {
+                issues.add(new MigrationIssue("MISSING_IMPORTED_ISLAND", "missing imported island " + manifest.islandId(), true));
+                continue;
+            }
+            boolean matched = true;
+            matched &= expect(issues, island.ownerUuid().equals(manifest.ownerUuid()), "OWNER_MISMATCH", "owner mismatch " + manifest.islandId());
+            matched &= expect(issues, island.size() == manifest.size(), "SIZE_MISMATCH", "size mismatch " + manifest.islandId());
+            matched &= expect(issues, island.level() == manifest.level(), "LEVEL_MISMATCH", "level mismatch " + manifest.islandId());
+            matched &= expect(issues, decimal(island.worth()).compareTo(decimal(manifest.worth())) == 0, "WORTH_MISMATCH", "worth mismatch " + manifest.islandId());
+            matched &= expect(issues, manifest.members().stream().allMatch(memberUuid -> metadata.isMember(manifest.islandId(), memberUuid)), "MEMBER_MISMATCH", "member mismatch " + manifest.islandId());
+            matched &= expect(issues, memberRolesMatch(manifest), "MEMBER_ROLE_MISMATCH", "member role mismatch " + manifest.islandId());
+            matched &= expect(issues, manifest.bannedVisitors().stream().allMatch(bannedUuid -> metadata.isBanned(manifest.islandId(), bannedUuid)), "BAN_MISMATCH", "ban mismatch " + manifest.islandId());
+            matched &= expect(issues, manifest.homes().stream().allMatch(home -> metadata.home(manifest.islandId(), home.name()).isPresent()), "HOME_MISMATCH", "home mismatch " + manifest.islandId());
+            matched &= expect(issues, manifest.warps().stream().allMatch(warp -> metadata.warp(manifest.islandId(), warp.name()).isPresent()), "WARP_MISMATCH", "warp mismatch " + manifest.islandId());
+            matched &= expect(issues, manifest.flags().stream().allMatch(flag -> flag.value().equals(metadata.flags(manifest.islandId()).values().get(IslandFlag.valueOf(flag.flagName())))), "FLAG_MISMATCH", "flag mismatch " + manifest.islandId());
+            matched &= expect(issues, permissionsMatch(manifest), "PERMISSION_MISMATCH", "permission mismatch " + manifest.islandId());
+            matched &= expect(issues, upgradesMatch(manifest), "UPGRADE_MISMATCH", "upgrade mismatch " + manifest.islandId());
+            matched &= expect(issues, limitsMatch(manifest), "LIMIT_MISMATCH", "limit mismatch " + manifest.islandId());
+            matched &= expect(issues, missionsMatch(manifest), "MISSION_MISMATCH", "mission mismatch " + manifest.islandId());
+            matched &= expect(issues, blockValuesMatch(manifest), "BLOCK_VALUE_MISMATCH", "block value mismatch " + manifest.islandId());
+            matched &= expect(issues, blockCountsMatch(manifest), "BLOCK_COUNT_MISMATCH", "block count mismatch " + manifest.islandId());
+            matched &= expect(issues, manifest.biomeKey().isBlank() || metadata.biome(manifest.islandId()).biomeKey().equals(manifest.biomeKey()), "BIOME_MISMATCH", "biome mismatch " + manifest.islandId());
+            matched &= expect(issues, decimal(bank.balance(manifest.islandId()).balance()).compareTo(decimal(manifest.bankBalance())) == 0, "BANK_MISMATCH", "bank mismatch " + manifest.islandId());
+            matched &= expect(issues, metadata.isPublicAccess(manifest.islandId()) == manifest.publicAccess(), "PUBLIC_ACCESS_MISMATCH", "public access mismatch " + manifest.islandId());
+            matched &= expect(issues, metadata.isLocked(manifest.islandId()) == manifest.locked(), "LOCKED_MISMATCH", "locked mismatch " + manifest.islandId());
+            if (matched) {
+                imported.add(manifest);
+            }
         }
         MigrationVerifier.VerificationResult result = verifier.verify(lastScan.manifests(), imported);
-        MigrationRunState state = result.passed() ? MigrationRunState.VERIFIED : MigrationRunState.VERIFYING;
-        return "{\"state\":\"" + state + "\",\"passed\":" + result.passed() + ",\"expected\":" + lastScan.manifests().size() + ",\"imported\":" + imported.size() + ",\"issues\":" + issuesJson(result.issues()) + "}";
+        issues.addAll(result.issues());
+        boolean passed = issues.isEmpty();
+        MigrationRunState state = passed ? MigrationRunState.VERIFIED : MigrationRunState.VERIFYING;
+        return "{\"state\":\"" + state + "\",\"passed\":" + passed + ",\"expected\":" + lastScan.manifests().size() + ",\"imported\":" + imported.size() + ",\"issues\":" + issuesJson(issues) + "}";
     }
 
     public synchronized String rollbackLastImport() {
@@ -242,6 +252,13 @@ public final class MigrationAdminService {
     private boolean blockCountsMatch(MigrationManifest manifest) {
         Map<String, Long> current = levels.blockCounts(manifest.islandId());
         return manifest.blockCounts().stream().allMatch(count -> Long.valueOf(count.count()).equals(current.get(count.materialKey())));
+    }
+
+    private boolean expect(List<MigrationIssue> issues, boolean passed, String code, String message) {
+        if (!passed) {
+            issues.add(new MigrationIssue(code, message, true));
+        }
+        return passed;
     }
 
     private BigDecimal decimal(String value) {
