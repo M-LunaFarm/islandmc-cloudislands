@@ -124,15 +124,15 @@ public final class VelocityRoutingController {
 
     public void setWarp(Player player, UUID islandId, String name, boolean publicAccess) {
         IslandLocation defaultLocation = new IslandLocation("ci_shard_001", 0.5D, 100.0D, 0.5D, 180.0F, 0.0F);
-        coreApiClient.setIslandWarp(islandId, player.getUniqueId(), name, defaultLocation, publicAccess).thenRun(() -> player.sendMessage(Component.text("섬 워프를 설정했습니다.")));
+        sendActionResult(player, coreApiClient.setIslandWarp(islandId, player.getUniqueId(), name, defaultLocation, publicAccess), "섬 워프를 설정했습니다.", "섬 워프를 설정하지 못했습니다.");
     }
 
     public void deleteWarp(Player player, UUID islandId, String name) {
-        coreApiClient.deleteIslandWarp(islandId, player.getUniqueId(), name).thenRun(() -> player.sendMessage(Component.text("섬 워프를 삭제했습니다.")));
+        sendActionResult(player, coreApiClient.deleteIslandWarp(islandId, player.getUniqueId(), name), "섬 워프를 삭제했습니다.", "섬 워프를 삭제하지 못했습니다.");
     }
 
     public void setWarpPublicAccess(Player player, UUID islandId, String name, boolean publicAccess) {
-        coreApiClient.setIslandWarpPublicAccess(islandId, player.getUniqueId(), name, publicAccess).thenRun(() -> player.sendMessage(Component.text(publicAccess ? "섬 워프를 공개했습니다." : "섬 워프를 비공개로 변경했습니다.")));
+        sendActionResult(player, coreApiClient.setIslandWarpPublicAccess(islandId, player.getUniqueId(), name, publicAccess), publicAccess ? "섬 워프를 공개했습니다." : "섬 워프를 비공개로 변경했습니다.", "섬 워프 공개 상태를 변경하지 못했습니다.");
     }
 
     public void invite(Player player, UUID islandId, UUID targetUuid) {
@@ -205,7 +205,7 @@ public final class VelocityRoutingController {
 
     public void setHome(Player player, UUID islandId, String name) {
         IslandLocation defaultHome = new IslandLocation("ci_shard_001", 0.5D, 100.0D, 0.5D, 180.0F, 0.0F);
-        coreApiClient.setIslandHome(islandId, player.getUniqueId(), name, defaultHome).thenRun(() -> player.sendMessage(Component.text("섬 홈을 설정했습니다.")));
+        sendActionResult(player, coreApiClient.setIslandHome(islandId, player.getUniqueId(), name, defaultHome), "섬 홈을 설정했습니다.", "섬 홈을 설정하지 못했습니다.");
     }
 
     public void setLocked(Player player, UUID islandId, boolean locked) {
@@ -229,11 +229,11 @@ public final class VelocityRoutingController {
     }
 
     public void depositBank(Player player, UUID islandId, String amount) {
-        coreApiClient.depositIslandBank(islandId, player.getUniqueId(), amount).thenAccept(body -> sendPlayerPayload(player, body, "입금에 실패했습니다.", "입금했습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.depositIslandBank(islandId, player.getUniqueId(), amount), "입금에 실패했습니다.", "입금했습니다.");
     }
 
     public void withdrawBank(Player player, UUID islandId, String amount) {
-        coreApiClient.withdrawIslandBank(islandId, player.getUniqueId(), amount).thenAccept(body -> sendPlayerPayload(player, body, "출금에 실패했습니다.", "출금했습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.withdrawIslandBank(islandId, player.getUniqueId(), amount), "출금에 실패했습니다.", "출금했습니다.");
     }
 
     public void showLevelRanking(Player player) {
@@ -245,7 +245,7 @@ public final class VelocityRoutingController {
     }
 
     public void recalculateLevel(Player player, UUID islandId) {
-        coreApiClient.recalculateIslandLevel(islandId, player.getUniqueId()).thenAccept(body -> sendPlayerPayload(player, body, "레벨 계산을 시작하지 못했습니다.", "레벨 계산을 시작했습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.recalculateIslandLevel(islandId, player.getUniqueId()), "레벨 계산을 시작하지 못했습니다.", "레벨 계산을 시작했습니다.");
     }
 
     public void listUpgradeRules(Player player) {
@@ -257,7 +257,7 @@ public final class VelocityRoutingController {
     }
 
     public void purchaseUpgrade(Player player, UUID islandId, String upgradeKey) {
-        coreApiClient.purchaseIslandUpgrade(islandId, player.getUniqueId(), upgradeKey).thenAccept(body -> sendPlayerPayload(player, body, "업그레이드에 실패했습니다.", "업그레이드를 처리했습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.purchaseIslandUpgrade(islandId, player.getUniqueId(), upgradeKey), "업그레이드에 실패했습니다.", "업그레이드를 처리했습니다.");
     }
 
     public void listMissions(Player player, UUID islandId) {
@@ -269,7 +269,7 @@ public final class VelocityRoutingController {
     }
 
     public void completeMission(Player player, UUID islandId, String missionKey) {
-        coreApiClient.completeIslandMission(islandId, player.getUniqueId(), missionKey).thenAccept(body -> sendPlayerPayload(player, body, "미션을 완료하지 못했습니다.", "미션을 완료했습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.completeIslandMission(islandId, player.getUniqueId(), missionKey), "미션을 완료하지 못했습니다.", "미션을 완료했습니다.");
     }
 
     public void listLimits(Player player, UUID islandId) {
@@ -277,23 +277,23 @@ public final class VelocityRoutingController {
     }
 
     public void setLimit(Player player, UUID islandId, String limitKey, long value) {
-        coreApiClient.setIslandLimit(islandId, player.getUniqueId(), limitKey, value).thenAccept(body -> sendPlayerPayload(player, body, "섬 제한을 변경하지 못했습니다.", "섬 제한을 변경했습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.setIslandLimit(islandId, player.getUniqueId(), limitKey, value), "섬 제한을 변경하지 못했습니다.", "섬 제한을 변경했습니다.");
     }
 
     public void sendIslandChat(Player player, UUID islandId, String channel, String message) {
-        coreApiClient.sendIslandChat(islandId, player.getUniqueId(), channel, message).thenAccept(body -> sendPlayerPayload(player, body, "섬 채팅을 전송하지 못했습니다.", "섬 채팅을 전송했습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.sendIslandChat(islandId, player.getUniqueId(), channel, message), "섬 채팅을 전송하지 못했습니다.", "섬 채팅을 전송했습니다.");
     }
 
     public void listSnapshots(Player player, UUID islandId) {
-        coreApiClient.listIslandSnapshots(islandId, 20).thenAccept(body -> sendPlayerPayload(player, body, "스냅샷 목록을 불러오지 못했습니다.", "스냅샷 목록을 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.listIslandSnapshots(islandId, 20), "스냅샷 목록을 불러오지 못했습니다.", "스냅샷 목록을 불러왔습니다.");
     }
 
     public void snapshot(Player player, UUID islandId, String reason) {
-        coreApiClient.requestIslandSnapshot(islandId, reason).thenRun(() -> player.sendMessage(Component.text("섬 스냅샷을 요청했습니다.")));
+        sendActionResult(player, coreApiClient.requestIslandSnapshot(islandId, reason), "섬 스냅샷을 요청했습니다.", "섬 스냅샷을 요청하지 못했습니다.");
     }
 
     public void restore(Player player, UUID islandId, long snapshotNo) {
-        coreApiClient.restoreIslandSnapshot(islandId, snapshotNo).thenRun(() -> player.sendMessage(Component.text("섬 복원을 요청했습니다.")));
+        sendActionResult(player, coreApiClient.restoreIslandSnapshot(islandId, snapshotNo), "섬 복원을 요청했습니다.", "섬 복원을 요청하지 못했습니다.");
     }
 
     public void listJobs(Player player) {
