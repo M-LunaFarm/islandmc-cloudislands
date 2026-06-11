@@ -1321,12 +1321,14 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("섬 멤버를 추방할 권한이 없습니다.");
                 return;
             }
-            coreApiClient.removeIslandMemberResult(islandId, player.getUniqueId(), playerUuid(target))
-                .thenAccept(body -> message(player, "섬 멤버를 제거했습니다."))
-                .exceptionally(error -> {
-                    message(player, "섬 멤버를 제거하지 못했습니다.");
-                    return null;
-                });
+            resolvePlayerUuid(target).thenAccept(targetUuid -> {
+                coreApiClient.removeIslandMemberResult(islandId, player.getUniqueId(), targetUuid)
+                    .thenAccept(body -> message(player, "섬 멤버를 제거했습니다."))
+                    .exceptionally(error -> {
+                        message(player, "섬 멤버를 제거하지 못했습니다.");
+                        return null;
+                    });
+            });
         });
     }
 
@@ -1336,23 +1338,27 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("섬 멤버 역할을 변경할 권한이 없습니다.");
                 return;
             }
-            coreApiClient.setIslandMemberResult(islandId, player.getUniqueId(), playerUuid(target), role)
-                .thenAccept(body -> message(player, successMessage))
-                .exceptionally(error -> {
-                    message(player, "섬 멤버 역할을 변경하지 못했습니다.");
-                    return null;
-                });
+            resolvePlayerUuid(target).thenAccept(targetUuid -> {
+                coreApiClient.setIslandMemberResult(islandId, player.getUniqueId(), targetUuid, role)
+                    .thenAccept(body -> message(player, successMessage))
+                    .exceptionally(error -> {
+                        message(player, "섬 멤버 역할을 변경하지 못했습니다.");
+                        return null;
+                    });
+            });
         });
     }
 
     private void transferIslandOwnership(Player player, String target) {
         currentIsland(player, "섬 안에서만 소유권을 양도할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.transferIslandOwnershipResult(islandId, player.getUniqueId(), playerUuid(target))
-                .thenAccept(body -> message(player, "섬 소유권을 양도했습니다."))
-                .exceptionally(error -> {
-                    message(player, "섬 소유권을 양도하지 못했습니다.");
-                    return null;
-                });
+            resolvePlayerUuid(target).thenAccept(targetUuid -> {
+                coreApiClient.transferIslandOwnershipResult(islandId, player.getUniqueId(), targetUuid)
+                    .thenAccept(body -> message(player, "섬 소유권을 양도했습니다."))
+                    .exceptionally(error -> {
+                        message(player, "섬 소유권을 양도하지 못했습니다.");
+                        return null;
+                    });
+            });
         });
     }
 
