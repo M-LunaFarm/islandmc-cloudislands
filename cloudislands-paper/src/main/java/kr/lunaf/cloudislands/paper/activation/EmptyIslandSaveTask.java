@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -16,16 +17,18 @@ public final class EmptyIslandSaveTask {
     private final ActiveIslandRegistry activeIslands;
     private final ProtectionController protection;
     private final IslandSaveService saveService;
+    private final CoreApiClient coreApiClient;
     private final Map<UUID, Long> emptySinceMillis = new HashMap<>();
     private final Set<UUID> savedWhileEmpty = new HashSet<>();
     private BukkitTask task;
     private long delayMillis;
 
-    public EmptyIslandSaveTask(Plugin plugin, ActiveIslandRegistry activeIslands, ProtectionController protection, IslandSaveService saveService) {
+    public EmptyIslandSaveTask(Plugin plugin, ActiveIslandRegistry activeIslands, ProtectionController protection, IslandSaveService saveService, CoreApiClient coreApiClient) {
         this.plugin = plugin;
         this.activeIslands = activeIslands;
         this.protection = protection;
         this.saveService = saveService;
+        this.coreApiClient = coreApiClient;
     }
 
     public void start(long delaySeconds) {
@@ -76,6 +79,11 @@ public final class EmptyIslandSaveTask {
     private void saveEmptyIsland(ActiveIslandRegistry.ActiveIsland activeIsland) {
         try {
             saveService.save(activeIsland.islandId(), activeIsland);
+            coreApiClient.deactivateIsland(activeIsland.islandId()).exceptionally(error -> {
+                plugin.getLogger().warning("Empty island deactivate request failed for " + activeIsland.islandId());
+                Bukkit.getScheduler().runTask(plugin, () -> savedWhileEmpty.remove(activeIsland.islandId()));
+                return null;
+            });
         } catch (java.io.IOException exception) {
             plugin.getLogger().warning("Empty island save failed for " + activeIsland.islandId() + ": " + exception.getMessage());
             Bukkit.getScheduler().runTask(plugin, () -> savedWhileEmpty.remove(activeIsland.islandId()));
