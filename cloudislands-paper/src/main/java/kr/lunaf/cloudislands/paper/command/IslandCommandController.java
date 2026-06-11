@@ -204,6 +204,30 @@ public final class IslandCommandController implements CommandExecutor {
             }
             return true;
         }
+        if (subcommand.equals("size") || subcommand.equals("크기")) {
+            showIslandSize(player);
+            return true;
+        }
+        if (subcommand.equals("border") || subcommand.equals("경계")) {
+            showIslandBorder(player);
+            return true;
+        }
+        if (subcommand.equals("limit") || subcommand.equals("limits") || subcommand.equals("limit-list") || subcommand.equals("제한") || subcommand.equals("제한목록")) {
+            if (args.length > 2) {
+                setIslandLimit(player, args[1], longValue(args[2], 0L));
+            } else {
+                listIslandLimits(player);
+            }
+            return true;
+        }
+        if (subcommand.equals("setlimit") || subcommand.equals("limit-set") || subcommand.equals("제한설정")) {
+            if (args.length < 3) {
+                player.sendMessage("제한 키와 값을 입력해주세요.");
+                return true;
+            }
+            setIslandLimit(player, args[1], longValue(args[2], 0L));
+            return true;
+        }
         return false;
     }
 
@@ -585,6 +609,54 @@ public final class IslandCommandController implements CommandExecutor {
         });
     }
 
+    private void showIslandSize(Player player) {
+        currentIsland(player, "섬 안에서만 크기를 확인할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.islandInfo(islandId)
+                .thenAccept(body -> message(player, "섬 크기: " + (long) decimal(body, "size")))
+                .exceptionally(error -> {
+                    message(player, "섬 크기를 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void showIslandBorder(Player player) {
+        currentIsland(player, "섬 안에서만 경계를 확인할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.islandInfo(islandId)
+                .thenAccept(body -> message(player, "섬 경계: " + (long) decimal(body, "border")))
+                .exceptionally(error -> {
+                    message(player, "섬 경계를 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void listIslandLimits(Player player) {
+        currentIsland(player, "섬 안에서만 제한을 확인할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.listIslandLimits(islandId)
+                .thenAccept(body -> message(player, limitListMessage(body)))
+                .exceptionally(error -> {
+                    message(player, "섬 제한을 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void setIslandLimit(Player player, String limitKey, long value) {
+        currentIsland(player, "섬 안에서만 제한을 변경할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.MANAGE_UPGRADES)) {
+                player.sendMessage("섬 제한을 변경할 권한이 없습니다.");
+                return;
+            }
+            coreApiClient.setIslandLimit(islandId, player.getUniqueId(), limitKey, value)
+                .thenAccept(body -> message(player, "섬 제한 변경 완료: " + text(body, "limitKey") + " = " + (long) decimal(body, "value")))
+                .exceptionally(error -> {
+                    message(player, "섬 제한을 변경하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
     private java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
         java.util.Optional<UUID> islandId = protection.islandAt(player.getLocation().getBlock());
         if (islandId.isEmpty()) {
@@ -728,6 +800,28 @@ public final class IslandCommandController implements CommandExecutor {
         return entries.isEmpty() ? "섬 로그가 없습니다." : "섬 로그: " + String.join(" | ", entries);
     }
 
+    private String limitListMessage(String body) {
+        List<String> entries = new ArrayList<>();
+        int index = 0;
+        while (body != null && index < body.length()) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String key = text(object, "limitKey");
+            if (!key.isBlank()) {
+                entries.add(key + "=" + (long) decimal(object, "value"));
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "섬 제한이 없습니다." : "섬 제한: " + String.join(", ", entries);
+    }
+
     private String joined(String[] args, int start) {
         StringBuilder builder = new StringBuilder();
         for (int i = start; i < args.length; i++) {
@@ -742,6 +836,14 @@ public final class IslandCommandController implements CommandExecutor {
     private int integer(String value, int fallback) {
         try {
             return Integer.parseInt(value);
+        } catch (RuntimeException ignored) {
+            return fallback;
+        }
+    }
+
+    private long longValue(String value, long fallback) {
+        try {
+            return Long.parseLong(value);
         } catch (RuntimeException ignored) {
             return fallback;
         }
