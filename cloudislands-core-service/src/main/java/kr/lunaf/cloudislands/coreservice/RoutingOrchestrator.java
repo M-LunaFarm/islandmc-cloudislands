@@ -102,12 +102,20 @@ public final class RoutingOrchestrator {
     }
 
     public String consumeTicketJson(String body) {
-        return tickets.consume(
+        java.util.Optional<RouteTicket> consumed = tickets.consume(
             JsonFields.uuid(body, "ticketId", new UUID(0L, 0L)),
             JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)),
             JsonFields.text(body, "nodeId", ""),
             JsonFields.text(body, "nonce", "")
-        ).map(RoutingOrchestrator::toJson).orElse("");
+        );
+        consumed.ifPresent(ticket -> events.publish("ROUTE_TICKET_CONSUMED", Map.of(
+            "ticketId", ticket.ticketId().toString(),
+            "playerUuid", ticket.playerUuid().toString(),
+            "islandId", ticket.islandId().toString(),
+            "action", ticket.action().name(),
+            "targetNode", ticket.targetNode()
+        )));
+        return consumed.map(RoutingOrchestrator::toJson).orElse("");
     }
 
     private RoutePreparationResult visitAllowed(UUID playerUuid, IslandSnapshot island) {
@@ -157,7 +165,16 @@ public final class RoutingOrchestrator {
                 return unavailable;
             }
             String templateId = islands.templateId(island.islandId()).orElse("default");
-            return RoutePreparationResult.accepted(toJson(tickets.save(ticket(playerUuid, island.islandId(), action, extraPayload, routeTarget(runtime, templateId, templates.find(templateId).map(kr.lunaf.cloudislands.coreservice.template.IslandTemplateSnapshot::minNodeVersion).orElse(""))))));
+            RouteTicket saved = tickets.save(ticket(playerUuid, island.islandId(), action, extraPayload, routeTarget(runtime, templateId, templates.find(templateId).map(kr.lunaf.cloudislands.coreservice.template.IslandTemplateSnapshot::minNodeVersion).orElse(""))));
+            events.publish("ROUTE_TICKET_CREATED", Map.of(
+                "ticketId", saved.ticketId().toString(),
+                "playerUuid", saved.playerUuid().toString(),
+                "islandId", saved.islandId().toString(),
+                "action", saved.action().name(),
+                "targetNode", saved.targetNode(),
+                "state", saved.state().name()
+            ));
+            return RoutePreparationResult.accepted(toJson(saved));
         } catch (IllegalStateException exception) {
             return RoutePreparationResult.rejected(409, ApiResponses.error("NODE_UNAVAILABLE", "No eligible island node is available"));
         }
