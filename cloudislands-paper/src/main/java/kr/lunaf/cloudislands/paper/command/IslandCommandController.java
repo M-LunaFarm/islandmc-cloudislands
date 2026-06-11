@@ -1362,12 +1362,14 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("섬 방문자를 밴할 권한이 없습니다.");
                 return;
             }
-            coreApiClient.banIslandVisitorResult(islandId, player.getUniqueId(), playerUuid(target), reason)
-                .thenAccept(body -> message(player, "섬 방문자를 밴했습니다."))
-                .exceptionally(error -> {
-                    message(player, "섬 방문자를 밴하지 못했습니다.");
-                    return null;
-                });
+            resolvePlayerUuid(target).thenAccept(targetUuid -> {
+                coreApiClient.banIslandVisitorResult(islandId, player.getUniqueId(), targetUuid, reason)
+                    .thenAccept(body -> message(player, "섬 방문자를 밴했습니다."))
+                    .exceptionally(error -> {
+                        message(player, "섬 방문자를 밴하지 못했습니다.");
+                        return null;
+                    });
+            });
         });
     }
 
@@ -1377,12 +1379,14 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("섬 방문자 밴을 해제할 권한이 없습니다.");
                 return;
             }
-            coreApiClient.pardonIslandVisitorResult(islandId, player.getUniqueId(), playerUuid(target))
-                .thenAccept(body -> message(player, "섬 방문자 밴을 해제했습니다."))
-                .exceptionally(error -> {
-                    message(player, "섬 방문자 밴을 해제하지 못했습니다.");
-                    return null;
-                });
+            resolvePlayerUuid(target).thenAccept(targetUuid -> {
+                coreApiClient.pardonIslandVisitorResult(islandId, player.getUniqueId(), targetUuid)
+                    .thenAccept(body -> message(player, "섬 방문자 밴을 해제했습니다."))
+                    .exceptionally(error -> {
+                        message(player, "섬 방문자 밴을 해제하지 못했습니다.");
+                        return null;
+                    });
+            });
         });
     }
 
@@ -1835,6 +1839,23 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return parsed;
         }
         return plugin.getServer().getOfflinePlayer(value).getUniqueId();
+    }
+
+    private CompletableFuture<UUID> resolvePlayerUuid(String value) {
+        Player online = plugin.getServer().getPlayerExact(value);
+        if (online != null) {
+            return CompletableFuture.completedFuture(online.getUniqueId());
+        }
+        UUID parsed = uuid(value);
+        if (parsed != null) {
+            return CompletableFuture.completedFuture(parsed);
+        }
+        return coreApiClient.playerInfoByName(value)
+            .thenApply(body -> {
+                UUID profileUuid = uuid(text(body, "playerUuid"));
+                return profileUuid == null ? plugin.getServer().getOfflinePlayer(value).getUniqueId() : profileUuid;
+            })
+            .exceptionally(error -> plugin.getServer().getOfflinePlayer(value).getUniqueId());
     }
 
     private IslandFlag islandFlag(String value) {
