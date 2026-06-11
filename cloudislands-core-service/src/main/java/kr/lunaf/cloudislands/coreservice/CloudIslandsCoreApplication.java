@@ -81,6 +81,8 @@ import kr.lunaf.cloudislands.coreservice.snapshot.InMemoryIslandSnapshotReposito
 import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.snapshot.JdbcIslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.ticket.InMemoryRouteTicketStore;
+import kr.lunaf.cloudislands.coreservice.ticket.JdbcRouteTicketStore;
+import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
 import kr.lunaf.cloudislands.coreservice.upgrade.InMemoryIslandUpgradeRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeService;
@@ -113,7 +115,7 @@ public final class CloudIslandsCoreApplication {
         DataSource dataSource = new DriverManagerDataSource(config.jdbcUrl(), config.databaseUsername(), config.databasePassword());
         InMemoryNodeRegistry nodes = new InMemoryNodeRegistry();
         NodeAllocator allocator = new NodeAllocator(config.heartbeatTimeout());
-        InMemoryRouteTicketStore tickets = new InMemoryRouteTicketStore(clock);
+        RouteTicketStore tickets = config.jdbcRepositories() ? new JdbcRouteTicketStore(dataSource, clock) : new InMemoryRouteTicketStore(clock);
         InMemoryRouteSessionStore sessions = new InMemoryRouteSessionStore(clock);
         IslandJobQueue jobs = config.redisJobs() ? new RedisIslandJobQueue(config.redisUri()) : new InMemoryIslandJobPublisher();
         InMemoryGlobalEventPublisher inMemoryEvents = new InMemoryGlobalEventPublisher();

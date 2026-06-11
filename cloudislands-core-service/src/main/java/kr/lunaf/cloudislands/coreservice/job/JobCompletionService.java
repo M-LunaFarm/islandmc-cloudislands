@@ -6,7 +6,7 @@ import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
-import kr.lunaf.cloudislands.coreservice.ticket.InMemoryRouteTicketStore;
+import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 
@@ -14,9 +14,9 @@ public final class JobCompletionService {
     private final IslandRuntimeRepository runtimes;
     private final GlobalEventPublisher events;
     private final IslandSnapshotRepository snapshots;
-    private final InMemoryRouteTicketStore tickets;
+    private final RouteTicketStore tickets;
 
-    public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, InMemoryRouteTicketStore tickets) {
+    public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets) {
         this.runtimes = runtimes;
         this.events = events;
         this.snapshots = snapshots;

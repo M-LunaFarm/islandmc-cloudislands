@@ -25,21 +25,21 @@ import kr.lunaf.cloudislands.coreservice.job.IslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
-import kr.lunaf.cloudislands.coreservice.ticket.InMemoryRouteTicketStore;
+import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 
 public final class RoutingOrchestrator {
     private final InMemoryNodeRegistry nodes;
     private final NodeAllocator allocator;
-    private final InMemoryRouteTicketStore tickets;
+    private final RouteTicketStore tickets;
     private final IslandRepository islands;
     private final IslandMetadataRepository metadata;
     private final IslandRuntimeRepository runtimes;
     private final IslandJobPublisher jobs;
     private final GlobalEventPublisher events;
 
-    public RoutingOrchestrator(InMemoryNodeRegistry nodes, NodeAllocator allocator, InMemoryRouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, IslandRuntimeRepository runtimes, IslandJobPublisher jobs, GlobalEventPublisher events) {
+    public RoutingOrchestrator(InMemoryNodeRegistry nodes, NodeAllocator allocator, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, IslandRuntimeRepository runtimes, IslandJobPublisher jobs, GlobalEventPublisher events) {
         this.nodes = nodes;
         this.allocator = allocator;
         this.tickets = tickets;

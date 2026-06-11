@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
 
-public final class InMemoryRouteTicketStore {
+public final class InMemoryRouteTicketStore implements RouteTicketStore {
     private final Clock clock;
     private final Map<UUID, RouteTicket> tickets = new ConcurrentHashMap<>();
 
@@ -22,6 +22,7 @@ public final class InMemoryRouteTicketStore {
         return ticket;
     }
 
+    @Override
     public int markReadyForIsland(UUID islandId, String targetNode, String targetWorld, Map<String, String> payload) {
         int updated = 0;
         for (RouteTicket ticket : tickets.values()) {
