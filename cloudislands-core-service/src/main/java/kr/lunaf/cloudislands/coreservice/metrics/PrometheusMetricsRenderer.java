@@ -5,16 +5,16 @@ import java.time.Instant;
 import java.util.Map;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
-import kr.lunaf.cloudislands.coreservice.InMemoryNodeRegistry;
+import kr.lunaf.cloudislands.coreservice.NodeRegistry;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 
 public final class PrometheusMetricsRenderer {
-    private final InMemoryNodeRegistry nodes;
+    private final NodeRegistry nodes;
     private final IslandJobQueue jobs;
     private final Duration heartbeatTimeout;
 
-    public PrometheusMetricsRenderer(InMemoryNodeRegistry nodes, IslandJobQueue jobs, Duration heartbeatTimeout) {
+    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, Duration heartbeatTimeout) {
         this.nodes = nodes;
         this.jobs = jobs;
         this.heartbeatTimeout = heartbeatTimeout;

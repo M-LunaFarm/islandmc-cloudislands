@@ -113,7 +113,7 @@ public final class CloudIslandsCoreApplication {
         this.adminGuard = new AdminEndpointGuard(config.adminToken());
         this.ipAllowlist = new IpAllowlist(config.ipAllowlist());
         DataSource dataSource = new DriverManagerDataSource(config.jdbcUrl(), config.databaseUsername(), config.databasePassword());
-        InMemoryNodeRegistry nodes = new InMemoryNodeRegistry();
+        NodeRegistry nodes = config.jdbcRepositories() ? new JdbcNodeRegistry(dataSource) : new InMemoryNodeRegistry();
         NodeAllocator allocator = new NodeAllocator(config.heartbeatTimeout());
         RouteTicketStore tickets = config.jdbcRepositories() ? new JdbcRouteTicketStore(dataSource, clock) : new InMemoryRouteTicketStore(clock);
         InMemoryRouteSessionStore sessions = new InMemoryRouteSessionStore(clock);
@@ -153,7 +153,7 @@ public final class CloudIslandsCoreApplication {
         route("/v1/nodes/info", exchange -> {
             String body = readBody(exchange);
             String nodeId = JsonFields.text(body, "nodeId", "");
-            write(exchange, nodes.find(nodeId).isPresent() ? 200 : 404, nodes.find(nodeId).map(InMemoryNodeRegistry::toJson).orElseGet(() -> ApiResponses.error("NODE_NOT_FOUND", "Node was not found")));
+            write(exchange, nodes.find(nodeId).isPresent() ? 200 : 404, nodes.find(nodeId).map(NodeRegistry::toJson).orElseGet(() -> ApiResponses.error("NODE_NOT_FOUND", "Node was not found")));
         });
         route("/v1/jobs", exchange -> write(exchange, 200, jobs instanceof InMemoryIslandJobPublisher memoryJobs ? memoryJobs.toJson() : "{\"mode\":\"REDIS\"}"));
         route("/v1/events", exchange -> write(exchange, 200, inMemoryEvents.toJson()));

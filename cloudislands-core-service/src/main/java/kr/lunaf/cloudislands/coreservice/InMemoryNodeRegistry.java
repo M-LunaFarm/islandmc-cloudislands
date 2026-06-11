@@ -10,7 +10,7 @@ import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 
-public final class InMemoryNodeRegistry {
+public final class InMemoryNodeRegistry implements NodeRegistry {
     private final Map<String, NodeLoad> nodes = new ConcurrentHashMap<>();
 
     public InMemoryNodeRegistry() {
@@ -19,6 +19,7 @@ public final class InMemoryNodeRegistry {
         upsert(new NodeLoad("island-2", "Island-2", NodeState.READY, 31, 110, 170, 600, 24.0D, 1, 20, 0.12D, 4096, 8192, 0, now));
     }
 
+    @Override
     public void heartbeat(NodeHeartbeatRequest request) {
         NodeLoad current = nodes.get(request.nodeId());
         NodeState nextState = current != null && current.state() == NodeState.DRAINING ? NodeState.DRAINING : request.state();
@@ -41,53 +42,24 @@ public final class InMemoryNodeRegistry {
         ));
     }
 
+    @Override
     public boolean drain(String nodeId) {
         return setState(nodeId, NodeState.DRAINING);
     }
 
+    @Override
     public boolean undrain(String nodeId) {
         return setState(nodeId, NodeState.READY);
     }
 
+    @Override
     public List<NodeLoad> snapshot() {
         return nodes.values().stream().sorted(Comparator.comparing(NodeLoad::nodeId)).toList();
     }
 
+    @Override
     public Optional<NodeLoad> find(String nodeId) {
         return Optional.ofNullable(nodes.get(nodeId));
-    }
-
-    public String toJson() {
-        StringBuilder builder = new StringBuilder("{\"nodes\":[");
-        boolean first = true;
-        for (NodeLoad node : snapshot()) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append(toJson(node));
-        }
-        return builder.append("]}").toString();
-    }
-
-    public static String toJson(NodeLoad node) {
-        return new StringBuilder("{")
-            .append("\"id\":\"").append(node.nodeId()).append("\",")
-            .append("\"server\":\"").append(node.velocityServerName()).append("\",")
-            .append("\"state\":\"").append(node.state()).append("\",")
-            .append("\"players\":").append(node.players()).append(',')
-            .append("\"hardPlayerCap\":").append(node.hardPlayerCap()).append(',')
-            .append("\"activeIslands\":").append(node.activeIslands()).append(',')
-            .append("\"maxActiveIslands\":").append(node.maxActiveIslands()).append(',')
-            .append("\"mspt\":").append(node.mspt()).append(',')
-            .append("\"activationQueue\":").append(node.activationQueue()).append(',')
-            .append("\"maxActivationQueue\":").append(node.maxActivationQueue()).append(',')
-            .append("\"heapUsedMb\":").append(node.heapUsedMb()).append(',')
-            .append("\"heapMaxMb\":").append(node.heapMaxMb()).append(',')
-            .append("\"lastHeartbeat\":\"").append(node.lastHeartbeat()).append("\",")
-            .append("\"score\":").append(node.score())
-            .append('}')
-            .toString();
     }
 
     private boolean setState(String nodeId, NodeState state) {

@@ -7,7 +7,7 @@ import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
-import kr.lunaf.cloudislands.coreservice.InMemoryNodeRegistry;
+import kr.lunaf.cloudislands.coreservice.NodeRegistry;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
@@ -16,12 +16,12 @@ import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 
 public final class IslandLifecycleWorkflow {
     private final IslandRuntimeRepository runtimes;
-    private final InMemoryNodeRegistry nodes;
+    private final NodeRegistry nodes;
     private final NodeAllocator allocator;
     private final IslandJobPublisher jobs;
     private final GlobalEventPublisher events;
 
-    public IslandLifecycleWorkflow(IslandRuntimeRepository runtimes, InMemoryNodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events) {
+    public IslandLifecycleWorkflow(IslandRuntimeRepository runtimes, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events) {
         this.runtimes = runtimes;
         this.nodes = nodes;
         this.allocator = allocator;

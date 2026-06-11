@@ -12,7 +12,7 @@ import kr.lunaf.cloudislands.api.model.RouteTicketState;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
-import kr.lunaf.cloudislands.coreservice.InMemoryNodeRegistry;
+import kr.lunaf.cloudislands.coreservice.NodeRegistry;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
@@ -24,13 +24,13 @@ import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 public final class CreateIslandWorkflow {
     private final IslandRepository islands;
     private final IslandMetadataRepository metadata;
-    private final InMemoryNodeRegistry nodes;
+    private final NodeRegistry nodes;
     private final NodeAllocator allocator;
     private final IslandJobPublisher jobs;
     private final GlobalEventPublisher events;
     private final RouteTicketStore tickets;
 
-    public CreateIslandWorkflow(IslandRepository islands, IslandMetadataRepository metadata, InMemoryNodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events, RouteTicketStore tickets) {
+    public CreateIslandWorkflow(IslandRepository islands, IslandMetadataRepository metadata, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events, RouteTicketStore tickets) {
         this.islands = islands;
         this.metadata = metadata;
         this.nodes = nodes;
