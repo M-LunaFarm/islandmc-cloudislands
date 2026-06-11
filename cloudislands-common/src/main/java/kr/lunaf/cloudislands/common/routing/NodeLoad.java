@@ -10,6 +10,7 @@ public record NodeLoad(
     String nodeVersion,
     NodeState state,
     int players,
+    int softPlayerCap,
     int hardPlayerCap,
     int activeIslands,
     int maxActiveIslands,

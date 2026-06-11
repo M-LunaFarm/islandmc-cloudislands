@@ -17,8 +17,8 @@ public final class InMemoryNodeRegistry implements NodeRegistry {
 
     public InMemoryNodeRegistry() {
         Instant now = Instant.now();
-        upsert(new NodeLoad("island-1", "Island-1", "", NodeState.SOFT_FULL, 92, 110, 480, 600, 42.0D, 8, 20, 0.40D, 6144, 8192, 0, now, true, "*"));
-        upsert(new NodeLoad("island-2", "Island-2", "", NodeState.READY, 31, 110, 170, 600, 24.0D, 1, 20, 0.12D, 4096, 8192, 0, now, true, "*"));
+        upsert(new NodeLoad("island-1", "Island-1", "", NodeState.SOFT_FULL, 92, 90, 110, 480, 600, 42.0D, 8, 20, 0.40D, 6144, 8192, 0, now, true, "*"));
+        upsert(new NodeLoad("island-2", "Island-2", "", NodeState.READY, 31, 90, 110, 170, 600, 24.0D, 1, 20, 0.12D, 4096, 8192, 0, now, true, "*"));
     }
 
     @Override
@@ -31,9 +31,10 @@ public final class InMemoryNodeRegistry implements NodeRegistry {
             request.nodeVersion(),
             nextState,
             request.players(),
-            current == null ? 110 : current.hardPlayerCap(),
+            request.softPlayerCap(),
+            request.hardPlayerCap(),
             request.activeIslands(),
-            current == null ? 600 : current.maxActiveIslands(),
+            request.maxActiveIslands(),
             request.mspt(),
             request.activationQueue(),
             request.maxActivationQueue(),
@@ -65,7 +66,7 @@ public final class InMemoryNodeRegistry implements NodeRegistry {
             if (node.state() == NodeState.DOWN || (node.lastHeartbeat() != null && !node.lastHeartbeat().plus(heartbeatTimeout).isBefore(now))) {
                 continue;
             }
-            upsert(new NodeLoad(node.nodeId(), node.velocityServerName(), node.nodeVersion(), NodeState.DOWN, node.players(), node.hardPlayerCap(), node.activeIslands(), node.maxActiveIslands(), node.mspt(), node.activationQueue(), node.maxActivationQueue(), node.chunkLoadPressure(), node.heapUsedMb(), node.heapMaxMb(), node.recentFailurePenalty(), node.lastHeartbeat(), node.storageAvailable(), node.supportedTemplates()));
+            upsert(new NodeLoad(node.nodeId(), node.velocityServerName(), node.nodeVersion(), NodeState.DOWN, node.players(), node.softPlayerCap(), node.hardPlayerCap(), node.activeIslands(), node.maxActiveIslands(), node.mspt(), node.activationQueue(), node.maxActivationQueue(), node.chunkLoadPressure(), node.heapUsedMb(), node.heapMaxMb(), node.recentFailurePenalty(), node.lastHeartbeat(), node.storageAvailable(), node.supportedTemplates()));
             down.add(node.nodeId());
         }
         return List.copyOf(down);
@@ -86,7 +87,7 @@ public final class InMemoryNodeRegistry implements NodeRegistry {
         if (node == null) {
             return false;
         }
-        upsert(new NodeLoad(node.nodeId(), node.velocityServerName(), node.nodeVersion(), state, node.players(), node.hardPlayerCap(), node.activeIslands(), node.maxActiveIslands(), node.mspt(), node.activationQueue(), node.maxActivationQueue(), node.chunkLoadPressure(), node.heapUsedMb(), node.heapMaxMb(), node.recentFailurePenalty(), node.lastHeartbeat(), node.storageAvailable(), node.supportedTemplates()));
+        upsert(new NodeLoad(node.nodeId(), node.velocityServerName(), node.nodeVersion(), state, node.players(), node.softPlayerCap(), node.hardPlayerCap(), node.activeIslands(), node.maxActiveIslands(), node.mspt(), node.activationQueue(), node.maxActivationQueue(), node.chunkLoadPressure(), node.heapUsedMb(), node.heapMaxMb(), node.recentFailurePenalty(), node.lastHeartbeat(), node.storageAvailable(), node.supportedTemplates()));
         return true;
     }
 

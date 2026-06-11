@@ -138,7 +138,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         if (supportedTemplates.isBlank()) {
             supportedTemplates = getConfig().getString("node.supported-template", "*");
         }
-        int maxActivationQueue = getConfig().getInt("island-node.activation.max-concurrent", 4);
+        int maxActivationQueue = Math.max(1, getConfig().getInt("island-node.activation.max-concurrent", 4));
+        int softPlayerCap = Math.max(1, getConfig().getInt("node.soft-player-cap", 90));
+        int hardPlayerCap = Math.max(softPlayerCap, getConfig().getInt("node.hard-player-cap", 110));
+        int maxActiveIslands = Math.max(1, getConfig().getInt("node.max-active-islands", 600));
         this.heartbeatService = new PaperHeartbeatService(
             this,
             client,
@@ -148,10 +151,13 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             getDescription().getVersion(),
             supportedTemplates,
             () -> storageAvailable(storage),
+            () -> softPlayerCap,
+            () -> hardPlayerCap,
             () -> activeIslands == null ? 0 : activeIslands.size(),
+            () -> maxActiveIslands,
             () -> jobWorker == null ? 0 : jobWorker.activationQueue(),
             () -> maxActivationQueue,
-            () -> activeIslands == null ? 0.0D : Math.min(1.5D, activeIslands.size() / 600.0D),
+            () -> activeIslands == null ? 0.0D : Math.min(1.5D, (double) activeIslands.size() / maxActiveIslands),
             () -> jobWorker == null ? 0 : jobWorker.recentFailurePenalty()
         );
         heartbeatService.start(getConfig().getLong("heartbeat.interval-ticks", 20L));

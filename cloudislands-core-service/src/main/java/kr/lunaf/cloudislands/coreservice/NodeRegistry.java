@@ -39,6 +39,7 @@ public interface NodeRegistry {
             .append("\"nodeVersion\":\"").append(node.nodeVersion() == null ? "" : node.nodeVersion().replace("\"", "'")).append("\",")
             .append("\"state\":\"").append(node.state()).append("\",")
             .append("\"players\":").append(node.players()).append(',')
+            .append("\"softPlayerCap\":").append(node.softPlayerCap()).append(',')
             .append("\"hardPlayerCap\":").append(node.hardPlayerCap()).append(',')
             .append("\"activeIslands\":").append(node.activeIslands()).append(',')
             .append("\"maxActiveIslands\":").append(node.maxActiveIslands()).append(',')

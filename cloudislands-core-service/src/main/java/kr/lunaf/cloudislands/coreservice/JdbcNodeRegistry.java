@@ -36,9 +36,9 @@ public final class JdbcNodeRegistry implements NodeRegistry {
             statement.setString(3, request.velocityServerName());
             statement.setString(4, request.nodeVersion() == null ? "" : request.nodeVersion());
             statement.setString(5, nextState.name());
-            statement.setInt(6, current == null ? DEFAULT_HARD_PLAYER_CAP : Math.min(current.hardPlayerCap(), DEFAULT_HARD_PLAYER_CAP));
-            statement.setInt(7, current == null ? DEFAULT_HARD_PLAYER_CAP : current.hardPlayerCap());
-            statement.setInt(8, current == null ? DEFAULT_MAX_ACTIVE_ISLANDS : current.maxActiveIslands());
+            statement.setInt(6, request.softPlayerCap());
+            statement.setInt(7, request.hardPlayerCap());
+            statement.setInt(8, request.maxActiveIslands());
             statement.setInt(9, request.players());
             statement.setInt(10, request.activeIslands());
             statement.setDouble(11, request.mspt());
@@ -141,6 +141,7 @@ public final class JdbcNodeRegistry implements NodeRegistry {
             rs.getString("node_version") == null ? "" : rs.getString("node_version"),
             NodeState.valueOf(rs.getString("state")),
             rs.getInt("players"),
+            rs.getInt("soft_player_cap"),
             rs.getInt("hard_player_cap"),
             rs.getInt("active_islands"),
             rs.getInt("max_active_islands"),
