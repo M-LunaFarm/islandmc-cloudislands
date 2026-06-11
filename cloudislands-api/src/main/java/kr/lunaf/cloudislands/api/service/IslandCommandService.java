@@ -51,6 +51,7 @@ public interface IslandCommandService {
     CompletableFuture<Void> setLimit(UUID islandId, UUID actorUuid, String limitKey, long value);
     CompletableFuture<IslandLimitSnapshot> setLimitResult(UUID islandId, UUID actorUuid, String limitKey, long value);
     CompletableFuture<Void> createWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location);
+    CompletableFuture<IslandActionResult> createWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<Void> setWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
     CompletableFuture<IslandActionResult> setWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
     CompletableFuture<Void> deleteWarp(UUID islandId, UUID actorUuid, String name);
