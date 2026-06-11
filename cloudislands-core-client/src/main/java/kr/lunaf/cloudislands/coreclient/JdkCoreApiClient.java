@@ -446,6 +446,26 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> listTemplates() {
+        return post("/v1/admin/templates/list", "{}");
+    }
+
+    @Override
+    public CompletableFuture<String> upsertTemplate(String templateId, String displayName, boolean enabled, String minNodeVersion) {
+        return post("/v1/admin/templates/upsert", "{\"templateId\":\"" + escape(templateId) + "\",\"displayName\":\"" + escape(displayName) + "\",\"enabled\":" + enabled + ",\"minNodeVersion\":\"" + escape(minNodeVersion) + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> enableTemplate(String templateId) {
+        return post("/v1/admin/templates/enable", "{\"templateId\":\"" + escape(templateId) + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> disableTemplate(String templateId) {
+        return post("/v1/admin/templates/disable", "{\"templateId\":\"" + escape(templateId) + "\"}");
+    }
+
+    @Override
     public CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs) {
         String types = supportedTypes.stream().map(Enum::name).collect(Collectors.joining(","));
         return post("/v1/jobs/claim", "{\"nodeId\":\"" + nodeId + "\",\"supportedTypes\":\"" + types + "\",\"maxJobs\":" + maxJobs + "}").thenApply(IslandJobJson::readArray);

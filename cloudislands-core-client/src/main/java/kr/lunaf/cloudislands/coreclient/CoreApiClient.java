@@ -97,6 +97,10 @@ public interface CoreApiClient {
     CompletableFuture<String> playerInfo(UUID playerUuid);
     CompletableFuture<String> setPlayerIsland(UUID playerUuid, UUID islandId);
     CompletableFuture<String> clearPlayerIsland(UUID playerUuid);
+    CompletableFuture<String> listTemplates();
+    CompletableFuture<String> upsertTemplate(String templateId, String displayName, boolean enabled, String minNodeVersion);
+    CompletableFuture<String> enableTemplate(String templateId);
+    CompletableFuture<String> disableTemplate(String templateId);
     CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs);
     CompletableFuture<String> listJobs();
     CompletableFuture<String> retryJob(UUID jobId);

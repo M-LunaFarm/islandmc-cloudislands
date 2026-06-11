@@ -83,6 +83,7 @@ import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.snapshot.JdbcIslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.template.InMemoryIslandTemplateRepository;
 import kr.lunaf.cloudislands.coreservice.template.IslandTemplateRepository;
+import kr.lunaf.cloudislands.coreservice.template.IslandTemplateSnapshot;
 import kr.lunaf.cloudislands.coreservice.template.JdbcIslandTemplateRepository;
 import kr.lunaf.cloudislands.coreservice.ticket.InMemoryRouteTicketStore;
 import kr.lunaf.cloudislands.coreservice.ticket.JdbcRouteTicketStore;
@@ -417,6 +418,40 @@ public final class CloudIslandsCoreApplication {
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
             audit.log(new UUID(0L, 0L), "ADMIN", "PLAYER_CLEAR_ISLAND", "PLAYER", playerUuid.toString(), Map.of());
             write(exchange, 202, playerProfileJson(playerProfiles.clearPrimaryIsland(playerUuid)));
+        });
+        route("/v1/admin/templates/list", exchange -> write(exchange, 200, templatesJson(templateRepository.list())));
+        route("/v1/admin/templates/upsert", exchange -> {
+            String body = readBody(exchange);
+            String templateId = JsonFields.text(body, "templateId", JsonFields.text(body, "id", "default"));
+            IslandTemplateSnapshot snapshot = templateRepository.upsert(
+                templateId,
+                JsonFields.text(body, "displayName", templateId),
+                JsonFields.bool(body, "enabled", true),
+                JsonFields.text(body, "minNodeVersion", "")
+            );
+            audit.log(new UUID(0L, 0L), "ADMIN", "TEMPLATE_UPSERT", "TEMPLATE", snapshot.id(), Map.of("enabled", Boolean.toString(snapshot.enabled()), "minNodeVersion", snapshot.minNodeVersion()));
+            events.publish("ISLAND_TEMPLATE_UPSERTED", Map.of("templateId", snapshot.id(), "enabled", Boolean.toString(snapshot.enabled()), "minNodeVersion", snapshot.minNodeVersion()));
+            write(exchange, 202, templateJson(snapshot));
+        });
+        route("/v1/admin/templates/enable", exchange -> {
+            String body = readBody(exchange);
+            String templateId = JsonFields.text(body, "templateId", JsonFields.text(body, "id", "default"));
+            boolean changed = templateRepository.setEnabled(templateId, true);
+            audit.log(new UUID(0L, 0L), "ADMIN", "TEMPLATE_ENABLE", "TEMPLATE", templateId, Map.of("changed", Boolean.toString(changed)));
+            if (changed) {
+                events.publish("ISLAND_TEMPLATE_ENABLED", Map.of("templateId", templateId));
+            }
+            write(exchange, changed ? 202 : 404, changed ? templateRepository.find(templateId).map(CloudIslandsCoreApplication::templateJson).orElseGet(() -> ApiResponses.ok(true)) : ApiResponses.error("TEMPLATE_NOT_FOUND", "Island template was not found"));
+        });
+        route("/v1/admin/templates/disable", exchange -> {
+            String body = readBody(exchange);
+            String templateId = JsonFields.text(body, "templateId", JsonFields.text(body, "id", "default"));
+            boolean changed = templateRepository.setEnabled(templateId, false);
+            audit.log(new UUID(0L, 0L), "ADMIN", "TEMPLATE_DISABLE", "TEMPLATE", templateId, Map.of("changed", Boolean.toString(changed)));
+            if (changed) {
+                events.publish("ISLAND_TEMPLATE_DISABLED", Map.of("templateId", templateId));
+            }
+            write(exchange, changed ? 202 : 404, changed ? templateRepository.find(templateId).map(CloudIslandsCoreApplication::templateJson).orElseGet(() -> ApiResponses.ok(true)) : ApiResponses.error("TEMPLATE_NOT_FOUND", "Island template was not found"));
         });
         route("/v1/nodes/heartbeat", exchange -> {
             nodes.heartbeat(heartbeat(readBody(exchange)));
@@ -982,6 +1017,27 @@ public final class CloudIslandsCoreApplication {
             + ",\"activatedAt\":" + nullable(runtime.activatedAt() == null ? null : runtime.activatedAt().toString())
             + ",\"lastHeartbeat\":" + nullable(runtime.lastHeartbeat() == null ? null : runtime.lastHeartbeat().toString())
             + "}";
+    }
+
+    private static String templatesJson(java.util.List<IslandTemplateSnapshot> templates) {
+        StringBuilder builder = new StringBuilder("{\"templates\":[");
+        boolean first = true;
+        for (IslandTemplateSnapshot template : templates) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append(templateJson(template));
+        }
+        return builder.append("]}").toString();
+    }
+
+    private static String templateJson(IslandTemplateSnapshot template) {
+        return "{\"id\":\"" + escape(template.id())
+            + "\",\"displayName\":\"" + escape(template.displayName())
+            + "\",\"enabled\":" + template.enabled()
+            + ",\"minNodeVersion\":\"" + escape(template.minNodeVersion())
+            + "\"}";
     }
 
     private static String nullable(String value) {

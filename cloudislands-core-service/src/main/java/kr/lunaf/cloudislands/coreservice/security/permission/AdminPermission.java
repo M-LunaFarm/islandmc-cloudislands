@@ -18,5 +18,6 @@ public enum AdminPermission {
     CACHE_CLEAR,
     MIGRATION_MANAGE,
     PLAYER_MANAGE,
-    ECONOMY_MANAGE
+    ECONOMY_MANAGE,
+    TEMPLATE_MANAGE
 }
