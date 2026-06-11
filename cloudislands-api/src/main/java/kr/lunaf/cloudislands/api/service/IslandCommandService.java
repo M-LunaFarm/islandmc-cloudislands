@@ -16,6 +16,8 @@ public interface IslandCommandService {
     CompletableFuture<Void> invite(UUID islandId, UUID inviterUuid, UUID targetUuid);
     CompletableFuture<Void> acceptInvite(UUID inviteId, UUID playerUuid);
     CompletableFuture<Void> declineInvite(UUID inviteId, UUID playerUuid);
+    CompletableFuture<Void> banVisitor(UUID islandId, UUID actorUuid, UUID targetUuid, String reason);
+    CompletableFuture<Void> pardonVisitor(UUID islandId, UUID actorUuid, UUID targetUuid);
     CompletableFuture<Void> kick(UUID islandId, UUID actorUuid, UUID targetUuid);
     CompletableFuture<Void> setRole(UUID islandId, UUID actorUuid, UUID targetUuid, IslandRole role);
     CompletableFuture<Void> transferOwnership(UUID islandId, UUID actorUuid, UUID targetUuid);

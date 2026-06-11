@@ -348,6 +348,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> invite(UUID islandId, UUID inviterUuid, UUID targetUuid) { return client.createIslandInvite(islandId, inviterUuid, targetUuid).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> acceptInvite(UUID inviteId, UUID playerUuid) { return client.acceptIslandInvite(inviteId, playerUuid); }
         @Override public CompletableFuture<Void> declineInvite(UUID inviteId, UUID playerUuid) { return client.declineIslandInvite(inviteId, playerUuid); }
+        @Override public CompletableFuture<Void> banVisitor(UUID islandId, UUID actorUuid, UUID targetUuid, String reason) { return client.banIslandVisitor(islandId, actorUuid, targetUuid, reason); }
+        @Override public CompletableFuture<Void> pardonVisitor(UUID islandId, UUID actorUuid, UUID targetUuid) { return client.pardonIslandVisitor(islandId, actorUuid, targetUuid); }
         @Override public CompletableFuture<Void> kick(UUID islandId, UUID actorUuid, UUID targetUuid) { return client.removeIslandMember(islandId, actorUuid, targetUuid); }
         @Override public CompletableFuture<Void> setRole(UUID islandId, UUID actorUuid, UUID targetUuid, IslandRole role) { return client.setIslandMember(islandId, actorUuid, targetUuid, role); }
         @Override public CompletableFuture<Void> transferOwnership(UUID islandId, UUID actorUuid, UUID targetUuid) { return client.transferIslandOwnership(islandId, actorUuid, targetUuid); }
