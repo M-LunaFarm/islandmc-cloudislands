@@ -450,6 +450,9 @@ public final class VelocityRoutingController {
                 return;
             }
             CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() -> waitForReadyTicket(player, ticket, failureMessage, attempt + 1));
+        }).exceptionally(error -> {
+            fallback(player, failureMessage);
+            return null;
         });
     }
 
@@ -457,6 +460,9 @@ public final class VelocityRoutingController {
         coreApiClient.publishRouteSession(ticket).thenRun(() -> {
             String targetServerName = ticket.payload().getOrDefault("targetServerName", ticket.targetNode());
             connectWithTicket(player, targetServerName);
+        }).exceptionally(error -> {
+            fallback(player, "섬 이동 정보를 준비하지 못했습니다. 로비로 이동합니다.");
+            return null;
         });
     }
 
@@ -469,6 +475,9 @@ public final class VelocityRoutingController {
             if (!success) {
                 fallback(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.");
             }
+        }).exceptionally(error -> {
+            fallback(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.");
+            return null;
         });
     }
 
