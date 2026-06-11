@@ -62,6 +62,7 @@ public final class SuperiorSkyblock2MigrationScanner {
             long level = parseLong(content, "level", 0L);
             String worth = parseString(content, "worth", "0.00");
             List<UUID> members = parseUuidList(content, "members", "islandMembers", "coopMembers", "coops");
+            List<MigrationMemberRole> memberRoles = parseMemberRoles(content, ownerUuid);
             List<UUID> bannedVisitors = parseUuidList(content, "bans", "bannedPlayers", "bannedVisitors", "visitorBans");
             List<MigrationHome> homes = parseHomes(content);
             List<MigrationWarp> warps = parseWarps(content);
@@ -75,7 +76,10 @@ public final class SuperiorSkyblock2MigrationScanner {
             LinkedHashSet<UUID> allMembers = new LinkedHashSet<>();
             allMembers.add(ownerUuid);
             allMembers.addAll(members);
-            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), bannedVisitors, homes, warps, flags, permissions, upgrades, biomeKey, bankBalance, publicAccess, locked, size, level, worth));
+            for (MigrationMemberRole memberRole : memberRoles) {
+                allMembers.add(memberRole.playerUuid());
+            }
+            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), memberRoles, bannedVisitors, homes, warps, flags, permissions, upgrades, biomeKey, bankBalance, publicAccess, locked, size, level, worth));
         } catch (RuntimeException | IOException exception) {
             issues.add(new MigrationIssue("ISLAND_FILE_PARSE_FAILED", file + ": " + exception.getMessage(), true));
         }
@@ -279,6 +283,27 @@ public final class SuperiorSkyblock2MigrationScanner {
             }
         }
         return List.copyOf(result);
+    }
+
+    private List<MigrationMemberRole> parseMemberRoles(String content, UUID ownerUuid) {
+        List<MigrationMemberRole> roles = new ArrayList<>();
+        addMemberRoles(content, roles, ownerUuid, "CO_OWNER", "coOwners", "coOwnerMembers", "coowners");
+        addMemberRoles(content, roles, ownerUuid, "MODERATOR", "moderators", "mods", "modMembers");
+        addMemberRoles(content, roles, ownerUuid, "TRUSTED", "trusted", "trustedMembers", "trustedPlayers");
+        addMemberRoles(content, roles, ownerUuid, "MEMBER", "regularMembers", "normalMembers");
+        return List.copyOf(roles);
+    }
+
+    private void addMemberRoles(String content, List<MigrationMemberRole> roles, UUID ownerUuid, String roleName, String... keys) {
+        LinkedHashSet<UUID> players = new LinkedHashSet<>();
+        for (String key : keys) {
+            players.addAll(parseUuidList(content, key));
+        }
+        for (UUID playerUuid : players) {
+            if (!playerUuid.equals(ownerUuid)) {
+                roles.add(new MigrationMemberRole(playerUuid, roleName));
+            }
+        }
     }
 
     private List<MigrationUpgrade> parseUpgrades(String content) {

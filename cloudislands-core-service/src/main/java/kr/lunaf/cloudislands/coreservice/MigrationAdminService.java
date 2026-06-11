@@ -77,6 +77,11 @@ public final class MigrationAdminService {
                     metadata.upsertMember(manifest.islandId(), memberUuid, IslandRole.MEMBER);
                 }
             }
+            for (kr.lunaf.cloudislands.migration.MigrationMemberRole memberRole : manifest.memberRoles()) {
+                if (!memberRole.playerUuid().equals(manifest.ownerUuid())) {
+                    metadata.upsertMember(manifest.islandId(), memberRole.playerUuid(), IslandRole.valueOf(memberRole.roleName()));
+                }
+            }
             for (java.util.UUID bannedUuid : manifest.bannedVisitors()) {
                 metadata.banVisitor(manifest.islandId(), manifest.ownerUuid(), bannedUuid, "Migrated from SuperiorSkyblock2");
             }
@@ -120,6 +125,7 @@ public final class MigrationAdminService {
                 .filter(island -> island.level() == manifest.level())
                 .filter(island -> island.worth().equals(manifest.worth()))
                 .filter(_island -> manifest.members().stream().allMatch(memberUuid -> metadata.isMember(manifest.islandId(), memberUuid)))
+                .filter(_island -> memberRolesMatch(manifest))
                 .filter(_island -> manifest.bannedVisitors().stream().allMatch(bannedUuid -> metadata.isBanned(manifest.islandId(), bannedUuid)))
                 .filter(_island -> manifest.homes().stream().allMatch(home -> metadata.home(manifest.islandId(), home.name()).isPresent()))
                 .filter(_island -> manifest.warps().stream().allMatch(warp -> metadata.warp(manifest.islandId(), warp.name()).isPresent()))
@@ -159,6 +165,14 @@ public final class MigrationAdminService {
             current.put(rule.role().name() + ":" + rule.permission().name(), rule.allowed());
         }
         return manifest.permissions().stream().allMatch(permission -> Boolean.valueOf(permission.allowed()).equals(current.get(permission.roleName() + ":" + permission.permissionName())));
+    }
+
+    private boolean memberRolesMatch(MigrationManifest manifest) {
+        Map<java.util.UUID, IslandRole> current = new java.util.HashMap<>();
+        for (kr.lunaf.cloudislands.api.model.IslandMemberSnapshot member : metadata.members(manifest.islandId())) {
+            current.put(member.playerUuid(), member.role());
+        }
+        return manifest.memberRoles().stream().allMatch(memberRole -> IslandRole.valueOf(memberRole.roleName()).equals(current.get(memberRole.playerUuid())));
     }
 
     private boolean upgradesMatch(MigrationManifest manifest) {
