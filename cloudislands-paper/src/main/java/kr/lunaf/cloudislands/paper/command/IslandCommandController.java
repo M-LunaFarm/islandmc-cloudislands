@@ -6,6 +6,7 @@ import java.util.List;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import org.bukkit.Location;
@@ -242,6 +243,86 @@ public final class IslandCommandController implements CommandExecutor {
                 return true;
             }
             restoreIslandSnapshot(player, longValue(args[1], 0L));
+            return true;
+        }
+        if (subcommand.equals("members") || subcommand.equals("member-list") || subcommand.equals("멤버")) {
+            listIslandMembers(player);
+            return true;
+        }
+        if (subcommand.equals("invite") || subcommand.equals("초대")) {
+            if (args.length < 2) {
+                player.sendMessage("초대할 플레이어를 입력해주세요.");
+                return true;
+            }
+            inviteIslandMember(player, args[1]);
+            return true;
+        }
+        if (subcommand.equals("invites") || subcommand.equals("invite-list") || subcommand.equals("초대목록")) {
+            listPendingInvites(player);
+            return true;
+        }
+        if (subcommand.equals("accept") || subcommand.equals("invite-accept") || subcommand.equals("초대수락")) {
+            if (args.length < 2) {
+                player.sendMessage("수락할 초대 ID를 입력해주세요.");
+                return true;
+            }
+            acceptIslandInvite(player, uuid(args[1]));
+            return true;
+        }
+        if (subcommand.equals("decline") || subcommand.equals("invite-decline") || subcommand.equals("초대거절")) {
+            if (args.length < 2) {
+                player.sendMessage("거절할 초대 ID를 입력해주세요.");
+                return true;
+            }
+            declineIslandInvite(player, uuid(args[1]));
+            return true;
+        }
+        if (subcommand.equals("kick") || subcommand.equals("remove-member") || subcommand.equals("추방")) {
+            if (args.length < 2) {
+                player.sendMessage("추방할 플레이어를 입력해주세요.");
+                return true;
+            }
+            removeIslandMember(player, args[1]);
+            return true;
+        }
+        if (subcommand.equals("trust") || subcommand.equals("신뢰")) {
+            if (args.length < 2) {
+                player.sendMessage("신뢰할 플레이어를 입력해주세요.");
+                return true;
+            }
+            setIslandMemberRole(player, args[1], IslandRole.TRUSTED, "섬 신뢰 멤버로 설정했습니다.");
+            return true;
+        }
+        if (subcommand.equals("untrust") || subcommand.equals("신뢰해제")) {
+            if (args.length < 2) {
+                player.sendMessage("신뢰 해제할 플레이어를 입력해주세요.");
+                return true;
+            }
+            removeIslandMember(player, args[1]);
+            return true;
+        }
+        if (subcommand.equals("promote") || subcommand.equals("승급")) {
+            if (args.length < 2) {
+                player.sendMessage("승급할 플레이어를 입력해주세요.");
+                return true;
+            }
+            setIslandMemberRole(player, args[1], IslandRole.MODERATOR, "섬 멤버를 승급했습니다.");
+            return true;
+        }
+        if (subcommand.equals("demote") || subcommand.equals("강등")) {
+            if (args.length < 2) {
+                player.sendMessage("강등할 플레이어를 입력해주세요.");
+                return true;
+            }
+            setIslandMemberRole(player, args[1], IslandRole.MEMBER, "섬 멤버를 강등했습니다.");
+            return true;
+        }
+        if (subcommand.equals("transfer") || subcommand.equals("양도")) {
+            if (args.length < 2) {
+                player.sendMessage("양도할 플레이어를 입력해주세요.");
+                return true;
+            }
+            transferIslandOwnership(player, args[1]);
             return true;
         }
         return false;
@@ -718,6 +799,108 @@ public final class IslandCommandController implements CommandExecutor {
         });
     }
 
+    private void listIslandMembers(Player player) {
+        currentIsland(player, "섬 안에서만 멤버를 확인할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.listIslandMembers(islandId)
+                .thenAccept(body -> message(player, memberListMessage(body)))
+                .exceptionally(error -> {
+                    message(player, "섬 멤버를 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void inviteIslandMember(Player player, String target) {
+        currentIsland(player, "섬 안에서만 플레이어를 초대할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.MANAGE_MEMBERS)) {
+                player.sendMessage("섬 멤버를 초대할 권한이 없습니다.");
+                return;
+            }
+            coreApiClient.createIslandInvite(islandId, player.getUniqueId(), playerUuid(target))
+                .thenAccept(body -> message(player, "섬 초대를 보냈습니다: " + text(body, "inviteId")))
+                .exceptionally(error -> {
+                    message(player, "섬 초대를 보내지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void listPendingInvites(Player player) {
+        coreApiClient.listPendingInvites(player.getUniqueId())
+            .thenAccept(body -> message(player, inviteListMessage(body)))
+            .exceptionally(error -> {
+                message(player, "섬 초대 목록을 불러오지 못했습니다.");
+                return null;
+            });
+    }
+
+    private void acceptIslandInvite(Player player, UUID inviteId) {
+        if (inviteId == null) {
+            player.sendMessage("올바른 초대 ID를 입력해주세요.");
+            return;
+        }
+        coreApiClient.acceptIslandInviteResult(inviteId, player.getUniqueId())
+            .thenAccept(body -> message(player, "섬 초대를 수락했습니다."))
+            .exceptionally(error -> {
+                message(player, "섬 초대를 수락하지 못했습니다.");
+                return null;
+            });
+    }
+
+    private void declineIslandInvite(Player player, UUID inviteId) {
+        if (inviteId == null) {
+            player.sendMessage("올바른 초대 ID를 입력해주세요.");
+            return;
+        }
+        coreApiClient.declineIslandInviteResult(inviteId, player.getUniqueId())
+            .thenAccept(body -> message(player, "섬 초대를 거절했습니다."))
+            .exceptionally(error -> {
+                message(player, "섬 초대를 거절하지 못했습니다.");
+                return null;
+            });
+    }
+
+    private void removeIslandMember(Player player, String target) {
+        currentIsland(player, "섬 안에서만 멤버를 추방할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.MANAGE_MEMBERS)) {
+                player.sendMessage("섬 멤버를 추방할 권한이 없습니다.");
+                return;
+            }
+            coreApiClient.removeIslandMemberResult(islandId, player.getUniqueId(), playerUuid(target))
+                .thenAccept(body -> message(player, "섬 멤버를 제거했습니다."))
+                .exceptionally(error -> {
+                    message(player, "섬 멤버를 제거하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void setIslandMemberRole(Player player, String target, IslandRole role, String successMessage) {
+        currentIsland(player, "섬 안에서만 멤버 역할을 변경할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
+                player.sendMessage("섬 멤버 역할을 변경할 권한이 없습니다.");
+                return;
+            }
+            coreApiClient.setIslandMemberResult(islandId, player.getUniqueId(), playerUuid(target), role)
+                .thenAccept(body -> message(player, successMessage))
+                .exceptionally(error -> {
+                    message(player, "섬 멤버 역할을 변경하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void transferIslandOwnership(Player player, String target) {
+        currentIsland(player, "섬 안에서만 소유권을 양도할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.transferIslandOwnershipResult(islandId, player.getUniqueId(), playerUuid(target))
+                .thenAccept(body -> message(player, "섬 소유권을 양도했습니다."))
+                .exceptionally(error -> {
+                    message(player, "섬 소유권을 양도하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
     private java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
         java.util.Optional<UUID> islandId = protection.islandAt(player.getLocation().getBlock());
         if (islandId.isEmpty()) {
@@ -906,6 +1089,52 @@ public final class IslandCommandController implements CommandExecutor {
         return entries.isEmpty() ? "섬 스냅샷이 없습니다." : "섬 스냅샷: " + String.join(", ", entries);
     }
 
+    private String memberListMessage(String body) {
+        List<String> entries = new ArrayList<>();
+        int index = 0;
+        while (body != null && index < body.length()) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String playerUuid = text(object, "playerUuid");
+            String role = text(object, "role");
+            if (!playerUuid.isBlank()) {
+                entries.add(playerUuid + (role.isBlank() ? "" : " " + role));
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "섬 멤버가 없습니다." : "섬 멤버: " + String.join(", ", entries);
+    }
+
+    private String inviteListMessage(String body) {
+        List<String> entries = new ArrayList<>();
+        int index = 0;
+        while (body != null && index < body.length()) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String inviteId = text(object, "inviteId");
+            String islandId = text(object, "islandId");
+            if (!inviteId.isBlank()) {
+                entries.add(inviteId + (islandId.isBlank() ? "" : " island=" + islandId));
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "대기 중인 섬 초대가 없습니다." : "섬 초대: " + String.join(", ", entries);
+    }
+
     private String joined(String[] args, int start) {
         StringBuilder builder = new StringBuilder();
         for (int i = start; i < args.length; i++) {
@@ -931,6 +1160,26 @@ public final class IslandCommandController implements CommandExecutor {
         } catch (RuntimeException ignored) {
             return fallback;
         }
+    }
+
+    private UUID uuid(String value) {
+        try {
+            return UUID.fromString(value);
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private UUID playerUuid(String value) {
+        Player online = plugin.getServer().getPlayerExact(value);
+        if (online != null) {
+            return online.getUniqueId();
+        }
+        UUID parsed = uuid(value);
+        if (parsed != null) {
+            return parsed;
+        }
+        return plugin.getServer().getOfflinePlayer(value).getUniqueId();
     }
 
     private Point point(String body, String requestedName, String fallbackWorldName) {
