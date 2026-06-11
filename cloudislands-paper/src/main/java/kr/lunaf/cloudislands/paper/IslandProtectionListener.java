@@ -12,9 +12,11 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockFadeEvent;
 import org.bukkit.event.block.BlockFromToEvent;
@@ -111,7 +113,8 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent event) {
-        if (event.getDamager() instanceof Player player) {
+        Player player = attackingPlayer(event.getDamager());
+        if (player != null) {
             event.setCancelled(denied(player, event.getEntity().getLocation().getBlock(), event.getEntity() instanceof Player ? IslandPermission.ATTACK_PLAYER : IslandPermission.ATTACK_MOB));
         }
     }
@@ -212,6 +215,11 @@ public final class IslandProtectionListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true)
+    public void onBurn(BlockBurnEvent event) {
+        event.setCancelled(!protection.checkSystemFlag(event.getBlock(), IslandFlag.FIRE_SPREAD).allowed());
+    }
+
+    @EventHandler(ignoreCancelled = true)
     public void onSpread(BlockSpreadEvent event) {
         event.setCancelled(!protection.checkSystemFlag(event.getBlock(), IslandFlag.FIRE_SPREAD).allowed());
     }
@@ -232,6 +240,16 @@ public final class IslandProtectionListener implements Listener {
         PermissionResult result = protection.checkBlock(player.getUniqueId(), block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), permission, player.hasPermission("cloudislands.admin.bypass"));
         protection.islandAt(block).ifPresent(islandId -> Bukkit.getPluginManager().callEvent(new IslandPermissionCheckEvent(islandId, player.getUniqueId(), player, block, permission, result)));
         return !result.allowed();
+    }
+
+    private Player attackingPlayer(org.bukkit.entity.Entity damager) {
+        if (damager instanceof Player player) {
+            return player;
+        }
+        if (damager instanceof Projectile projectile && projectile.getShooter() instanceof Player player) {
+            return player;
+        }
+        return null;
     }
 
     private IslandPermission interactionPermission(Material type) {
