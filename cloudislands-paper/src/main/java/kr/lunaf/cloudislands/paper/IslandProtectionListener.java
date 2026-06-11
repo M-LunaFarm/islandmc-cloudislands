@@ -180,12 +180,12 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onEntityExplode(EntityExplodeEvent event) {
-        event.blockList().removeIf(block -> protection.checkSystem(block, IslandPermission.BREAK).allowed());
+        event.blockList().removeIf(block -> !protection.checkSystem(block, IslandPermission.BREAK).allowed());
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onBlockExplode(BlockExplodeEvent event) {
-        event.blockList().removeIf(block -> protection.checkSystem(block, IslandPermission.BREAK).allowed());
+        event.blockList().removeIf(block -> !protection.checkSystem(block, IslandPermission.BREAK).allowed());
     }
 
     @EventHandler(ignoreCancelled = true)
