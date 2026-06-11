@@ -84,7 +84,9 @@ public final class MigrationAdminService {
             if (!islands.markDeleted(islandId, island.ownerUuid())) {
                 throw new IllegalStateException("island was not removed");
             }
-            playerProfiles.clearPrimaryIsland(island.ownerUuid());
+            playerProfiles.find(island.ownerUuid()).primaryIslandId()
+                .filter(islandId::equals)
+                .ifPresent(_current -> playerProfiles.clearPrimaryIsland(island.ownerUuid()));
         });
         return "{\"state\":\"" + MigrationRunState.ROLLED_BACK + "\",\"rolledBack\":" + result.rolledBack() + ",\"removedIslands\":" + result.removedIslands() + ",\"issues\":" + issuesJson(result.issues()) + "}";
     }
