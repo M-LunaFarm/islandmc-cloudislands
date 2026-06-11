@@ -15,7 +15,7 @@ import kr.lunaf.cloudislands.paper.admin.AdminCommandController;
 import kr.lunaf.cloudislands.paper.cache.PermissionEventPoller;
 import kr.lunaf.cloudislands.paper.cache.PermissionCacheSyncService;
 import kr.lunaf.cloudislands.paper.command.IslandCommandController;
-import kr.lunaf.cloudislands.paper.generator.DefaultGeneratorRules;
+import kr.lunaf.cloudislands.paper.generator.ConfigGeneratorRules;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
 import kr.lunaf.cloudislands.paper.generator.IslandGeneratorListener;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
@@ -115,7 +115,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandVisitMenu(), this);
         getServer().getPluginManager().registerEvents(new IslandWarpMenu(), this);
         this.generatorLevels = new GeneratorLevelCache(client);
-        getServer().getPluginManager().registerEvents(new IslandGeneratorListener(agent.protection(), DefaultGeneratorRules.create(), generatorLevels), this);
+        getServer().getPluginManager().registerEvents(new IslandGeneratorListener(agent.protection(), ConfigGeneratorRules.load(this), generatorLevels), this);
         getServer().getPluginManager().registerEvents(new PaperRouteSessionListener(this, client, agent.routeTickets(), nodeId), this);
         PluginCommand admin = getCommand("ciadmin");
         if (admin != null) {
