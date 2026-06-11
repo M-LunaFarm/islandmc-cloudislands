@@ -61,6 +61,7 @@ public interface IslandAdminService {
     CompletableFuture<List<AuditLogSnapshot>> listAuditLogs();
     CompletableFuture<List<String>> listNodes();
     CompletableFuture<List<IslandNodeSnapshot>> listNodeSnapshots();
+    CompletableFuture<java.util.Optional<IslandNodeSnapshot>> getNodeSnapshot(String nodeId);
     CompletableFuture<List<IslandTemplateSnapshot>> listTemplates();
     CompletableFuture<IslandTemplateSnapshot> upsertTemplate(String templateId, String displayName, boolean enabled, String minNodeVersion);
     CompletableFuture<IslandTemplateSnapshot> enableTemplate(String templateId);

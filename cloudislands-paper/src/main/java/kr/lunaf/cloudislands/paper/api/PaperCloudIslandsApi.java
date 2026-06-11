@@ -421,6 +421,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
+        public CompletableFuture<Optional<IslandNodeSnapshot>> getNodeSnapshot(String nodeId) {
+            return client.nodeInfo(nodeId).thenApply(PaperCloudIslandsApi::node);
+        }
+
+        @Override
         public CompletableFuture<List<IslandTemplateSnapshot>> listTemplates() {
             return client.listTemplates().thenApply(PaperCloudIslandsApi::templates);
         }
@@ -971,27 +976,34 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private static List<IslandNodeSnapshot> nodes(String json) {
         List<IslandNodeSnapshot> nodes = new ArrayList<>();
         for (String object : objects(json, "nodes")) {
-            nodes.add(new IslandNodeSnapshot(
-                text(object, "id", ""),
-                text(object, "server", ""),
-                text(object, "nodeVersion", ""),
-                enumValue(NodeState.class, text(object, "state", "DOWN"), NodeState.DOWN),
-                integer(object, "players", 0),
-                integer(object, "hardPlayerCap", 0),
-                integer(object, "activeIslands", 0),
-                integer(object, "maxActiveIslands", 0),
-                decimal(object, "mspt", 0.0D),
-                integer(object, "activationQueue", 0),
-                integer(object, "maxActivationQueue", 0),
-                longValue(object, "heapUsedMb", 0L),
-                longValue(object, "heapMaxMb", 0L),
-                bool(object, "storageAvailable", false),
-                text(object, "supportedTemplates", ""),
-                instant(text(object, "lastHeartbeat", Instant.EPOCH.toString())),
-                decimal(object, "score", 0.0D)
-            ));
+            node(object).ifPresent(nodes::add);
         }
         return nodes;
+    }
+
+    private static Optional<IslandNodeSnapshot> node(String json) {
+        if (json == null || json.isBlank() || json.contains("\"error\"")) {
+            return Optional.empty();
+        }
+        return Optional.of(new IslandNodeSnapshot(
+            text(json, "id", ""),
+            text(json, "server", ""),
+            text(json, "nodeVersion", ""),
+            enumValue(NodeState.class, text(json, "state", "DOWN"), NodeState.DOWN),
+            integer(json, "players", 0),
+            integer(json, "hardPlayerCap", 0),
+            integer(json, "activeIslands", 0),
+            integer(json, "maxActiveIslands", 0),
+            decimal(json, "mspt", 0.0D),
+            integer(json, "activationQueue", 0),
+            integer(json, "maxActivationQueue", 0),
+            longValue(json, "heapUsedMb", 0L),
+            longValue(json, "heapMaxMb", 0L),
+            bool(json, "storageAvailable", false),
+            text(json, "supportedTemplates", ""),
+            instant(text(json, "lastHeartbeat", Instant.EPOCH.toString())),
+            decimal(json, "score", 0.0D)
+        ));
     }
 
     private static List<IslandTemplateSnapshot> templates(String json) {
