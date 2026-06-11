@@ -880,7 +880,6 @@ public final class CloudIslandsCoreApplication {
             metadataRepository.upsertMember(islandId, playerUuid, role);
             audit.log(actorUuid, "PLAYER", "ISLAND_MEMBER_SET", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString(), "role", role.name()));
             islandLogs.append(islandId, actorUuid, "ISLAND_MEMBER_SET", Map.of("playerUuid", playerUuid.toString(), "role", role.name()));
-            events.publish("ISLAND_MEMBER_SET", Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", role.name()));
             events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", role.name()));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -898,8 +897,10 @@ public final class CloudIslandsCoreApplication {
             }
             audit.log(actorUuid, "PLAYER", "ISLAND_OWNERSHIP_TRANSFER", "ISLAND", islandId.toString(), Map.of("targetUuid", targetUuid.toString(), "transferred", Boolean.toString(transferred)));
             islandLogs.append(islandId, actorUuid, "ISLAND_OWNERSHIP_TRANSFER", Map.of("targetUuid", targetUuid.toString(), "transferred", Boolean.toString(transferred)));
-            events.publish("ISLAND_OWNERSHIP_TRANSFER", Map.of("islandId", islandId.toString(), "actorUuid", actorUuid.toString(), "targetUuid", targetUuid.toString(), "transferred", Boolean.toString(transferred)));
-            events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorUuid", actorUuid.toString(), "targetUuid", targetUuid.toString(), "transferred", Boolean.toString(transferred)));
+            if (transferred) {
+                events.publish(CloudIslandEventType.ISLAND_OWNERSHIP_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorUuid", actorUuid.toString(), "targetUuid", targetUuid.toString()));
+                events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorUuid", actorUuid.toString(), "targetUuid", targetUuid.toString()));
+            }
             write(exchange, transferred ? 202 : 409, transferred ? ApiResponses.ok(true) : ApiResponses.error("OWNERSHIP_TRANSFER_DENIED", "Only the current owner can transfer to a player without an island"));
         });
         route("/v1/islands/members/remove", exchange -> {
@@ -913,7 +914,6 @@ public final class CloudIslandsCoreApplication {
             metadataRepository.removeMember(islandId, playerUuid);
             audit.log(actorUuid, "PLAYER", "ISLAND_MEMBER_REMOVE", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
             islandLogs.append(islandId, actorUuid, "ISLAND_MEMBER_REMOVE", Map.of("playerUuid", playerUuid.toString()));
-            events.publish("ISLAND_MEMBER_REMOVE", Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
             events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
             write(exchange, 202, ApiResponses.ok(true));
         });
