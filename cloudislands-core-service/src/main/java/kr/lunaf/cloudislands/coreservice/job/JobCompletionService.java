@@ -129,7 +129,7 @@ public final class JobCompletionService {
         }
         islands.restoreDeleted(job.islandId()).ifPresent(island -> {
             islands.createOwnerMember(island.islandId(), island.ownerUuid());
-            if (playerProfiles != null) {
+            if (playerProfiles != null && playerProfiles.find(island.ownerUuid()).primaryIslandId().isEmpty()) {
                 playerProfiles.setPrimaryIsland(island.ownerUuid(), island.islandId());
             }
         });
