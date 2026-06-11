@@ -19,7 +19,7 @@ public final class IslandMainMenu implements Listener {
         inventory.setItem(10, item(Material.GRASS_BLOCK, "내 섬으로 이동", "좌클릭: /섬 홈", "우클릭: /섬 홈관리"));
         inventory.setItem(11, item(Material.OAK_SAPLING, "섬 생성", "/섬 생성"));
         inventory.setItem(12, item(Material.ENDER_PEARL, "섬 워프", "/섬 워프"));
-        inventory.setItem(13, item(Material.COMPASS, "섬 방문", "명령어: /섬 방문 <플레이어|섬이름>", "우클릭: /섬 랜덤방문"));
+        inventory.setItem(13, item(Material.COMPASS, "섬 방문", "좌클릭: 공개 섬 목록", "우클릭: /섬 랜덤방문"));
         inventory.setItem(14, item(Material.NAME_TAG, "멤버 관리", "/섬 멤버"));
         inventory.setItem(15, item(Material.COMPARATOR, "섬 설정", "/섬 설정"));
         inventory.setItem(16, item(Material.GOLD_BLOCK, "섬 랭킹", "/섬 랭킹"));
@@ -55,7 +55,7 @@ public final class IslandMainMenu implements Listener {
             if (event.isRightClick()) {
                 player.performCommand("섬 랜덤방문");
             } else {
-                player.sendMessage("사용법: /섬 방문 <플레이어|섬이름>");
+                player.performCommand("섬 방문");
             }
         } else if (name.equals("멤버 관리")) {
             player.performCommand("섬 멤버관리");
