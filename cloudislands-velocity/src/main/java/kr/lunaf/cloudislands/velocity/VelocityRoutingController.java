@@ -269,12 +269,28 @@ public final class VelocityRoutingController {
         coreApiClient.listNodes().thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "노드 목록을 불러오지 못했습니다." : body)));
     }
 
+    public void nodeInfo(Player player, String nodeId) {
+        coreApiClient.nodeInfo(nodeId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "노드 정보를 불러오지 못했습니다." : body)));
+    }
+
     public void drainNode(Player player, String nodeId) {
         coreApiClient.drainNode(nodeId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "노드 drain을 요청하지 못했습니다." : body)));
     }
 
     public void undrainNode(Player player, String nodeId) {
         coreApiClient.undrainNode(nodeId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "노드 undrain을 요청하지 못했습니다." : body)));
+    }
+
+    public void kickAllNode(Player player, String nodeId) {
+        int moved = moveNodePlayersToFallback(nodeId);
+        player.sendMessage(Component.text("노드 플레이어 " + moved + "명을 로비로 이동시켰습니다."));
+    }
+
+    public void shutdownSafeNode(Player player, String nodeId) {
+        coreApiClient.drainNode(nodeId).thenAccept(body -> {
+            int moved = moveNodePlayersToFallback(nodeId);
+            player.sendMessage(Component.text("노드를 drain 처리하고 플레이어 " + moved + "명을 로비로 이동시켰습니다."));
+        });
     }
 
     public void activateIsland(Player player, UUID islandId) {
@@ -371,6 +387,45 @@ public final class VelocityRoutingController {
     private void fallback(Player player, String message) {
         player.sendMessage(Component.text(message));
         proxy.getServer(fallbackServer).ifPresent(server -> player.createConnectionRequest(server).connectWithIndication());
+    }
+
+    private int moveNodePlayersToFallback(String nodeId) {
+        RegisteredServer target = findServer(nodeId);
+        RegisteredServer fallback = findServer(fallbackServer);
+        if (target == null || fallback == null) {
+            return 0;
+        }
+        java.util.List<Player> players = java.util.List.copyOf(target.getPlayersConnected());
+        for (Player connected : players) {
+            connected.sendMessage(Component.text("섬 서버 점검으로 로비로 이동합니다."));
+            connected.createConnectionRequest(fallback).connectWithIndication();
+        }
+        return players.size();
+    }
+
+    private RegisteredServer findServer(String name) {
+        return proxy.getServer(name).or(() -> proxy.getServer(nodeIdToServerName(name))).orElse(null);
+    }
+
+    private String nodeIdToServerName(String nodeId) {
+        if (nodeId == null || nodeId.isBlank()) {
+            return "";
+        }
+        String[] parts = nodeId.split("-");
+        StringBuilder builder = new StringBuilder();
+        for (String part : parts) {
+            if (part.isBlank()) {
+                continue;
+            }
+            if (builder.length() > 0) {
+                builder.append('-');
+            }
+            builder.append(Character.toUpperCase(part.charAt(0)));
+            if (part.length() > 1) {
+                builder.append(part.substring(1));
+            }
+        }
+        return builder.toString();
     }
 
     private String messageForCreateFailure(String code) {

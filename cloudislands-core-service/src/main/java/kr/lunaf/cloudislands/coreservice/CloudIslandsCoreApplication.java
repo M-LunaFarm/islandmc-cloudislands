@@ -148,6 +148,11 @@ public final class CloudIslandsCoreApplication {
         route("/health", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));
         route("/metrics", exchange -> write(exchange, 200, metrics.render(), "text/plain; version=0.0.4; charset=utf-8"));
         route("/v1/nodes", exchange -> write(exchange, 200, nodes.toJson()));
+        route("/v1/nodes/info", exchange -> {
+            String body = readBody(exchange);
+            String nodeId = JsonFields.text(body, "nodeId", "");
+            write(exchange, nodes.find(nodeId).isPresent() ? 200 : 404, nodes.find(nodeId).map(InMemoryNodeRegistry::toJson).orElseGet(() -> ApiResponses.error("NODE_NOT_FOUND", "Node was not found")));
+        });
         route("/v1/jobs", exchange -> write(exchange, 200, jobs instanceof InMemoryIslandJobPublisher memoryJobs ? memoryJobs.toJson() : "{\"mode\":\"REDIS\"}"));
         route("/v1/events", exchange -> write(exchange, 200, inMemoryEvents.toJson()));
         route("/v1/audit", exchange -> write(exchange, 200, inMemoryAudit.toJson()));

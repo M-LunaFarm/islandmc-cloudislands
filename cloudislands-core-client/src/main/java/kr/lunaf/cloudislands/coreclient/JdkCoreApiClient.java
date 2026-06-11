@@ -327,6 +327,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> nodeInfo(String nodeId) {
+        return post("/v1/nodes/info", "{\"nodeId\":\"" + escape(nodeId) + "\"}");
+    }
+
+    @Override
     public CompletableFuture<String> drainNode(String nodeId) {
         return post("/v1/admin/nodes/drain", "{\"nodeId\":\"" + escape(nodeId) + "\"}");
     }

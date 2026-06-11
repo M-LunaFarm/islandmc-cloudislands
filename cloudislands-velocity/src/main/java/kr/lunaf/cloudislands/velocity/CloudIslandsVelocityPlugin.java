@@ -149,12 +149,24 @@ public final class CloudIslandsVelocityPlugin {
             routingController.listNodes(player);
             return;
         }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("info")) {
+            routingController.nodeInfo(player, args[2]);
+            return;
+        }
         if (args.length >= 3 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("drain")) {
             routingController.drainNode(player, args[2]);
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("undrain")) {
             routingController.undrainNode(player, args[2]);
+            return;
+        }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("kickall")) {
+            routingController.kickAllNode(player, args[2]);
+            return;
+        }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("shutdown-safe")) {
+            routingController.shutdownSafeNode(player, args[2]);
             return;
         }
         if (args.length >= 2 && args[0].equalsIgnoreCase("jobs") && args[1].equalsIgnoreCase("list")) {

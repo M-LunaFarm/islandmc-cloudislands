@@ -75,6 +75,7 @@ public interface CoreApiClient {
     CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId);
     CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce);
     CompletableFuture<String> listNodes();
+    CompletableFuture<String> nodeInfo(String nodeId);
     CompletableFuture<String> drainNode(String nodeId);
     CompletableFuture<String> undrainNode(String nodeId);
     CompletableFuture<String> activateIsland(UUID islandId);

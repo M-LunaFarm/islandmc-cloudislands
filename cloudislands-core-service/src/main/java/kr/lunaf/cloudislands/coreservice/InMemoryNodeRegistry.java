@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
@@ -52,6 +53,10 @@ public final class InMemoryNodeRegistry {
         return nodes.values().stream().sorted(Comparator.comparing(NodeLoad::nodeId)).toList();
     }
 
+    public Optional<NodeLoad> find(String nodeId) {
+        return Optional.ofNullable(nodes.get(nodeId));
+    }
+
     public String toJson() {
         StringBuilder builder = new StringBuilder("{\"nodes\":[");
         boolean first = true;
@@ -60,19 +65,29 @@ public final class InMemoryNodeRegistry {
                 builder.append(',');
             }
             first = false;
-            builder.append('{')
-                .append("\"id\":\"").append(node.nodeId()).append("\",")
-                .append("\"server\":\"").append(node.velocityServerName()).append("\",")
-                .append("\"state\":\"").append(node.state()).append("\",")
-                .append("\"players\":").append(node.players()).append(',')
-                .append("\"activeIslands\":").append(node.activeIslands()).append(',')
-                .append("\"mspt\":").append(node.mspt()).append(',')
-                .append("\"activationQueue\":").append(node.activationQueue()).append(',')
-                .append("\"lastHeartbeat\":\"").append(node.lastHeartbeat()).append("\",")
-                .append("\"score\":").append(node.score())
-                .append('}');
+            builder.append(toJson(node));
         }
         return builder.append("]}").toString();
+    }
+
+    public static String toJson(NodeLoad node) {
+        return new StringBuilder("{")
+            .append("\"id\":\"").append(node.nodeId()).append("\",")
+            .append("\"server\":\"").append(node.velocityServerName()).append("\",")
+            .append("\"state\":\"").append(node.state()).append("\",")
+            .append("\"players\":").append(node.players()).append(',')
+            .append("\"hardPlayerCap\":").append(node.hardPlayerCap()).append(',')
+            .append("\"activeIslands\":").append(node.activeIslands()).append(',')
+            .append("\"maxActiveIslands\":").append(node.maxActiveIslands()).append(',')
+            .append("\"mspt\":").append(node.mspt()).append(',')
+            .append("\"activationQueue\":").append(node.activationQueue()).append(',')
+            .append("\"maxActivationQueue\":").append(node.maxActivationQueue()).append(',')
+            .append("\"heapUsedMb\":").append(node.heapUsedMb()).append(',')
+            .append("\"heapMaxMb\":").append(node.heapMaxMb()).append(',')
+            .append("\"lastHeartbeat\":\"").append(node.lastHeartbeat()).append("\",")
+            .append("\"score\":").append(node.score())
+            .append('}')
+            .toString();
     }
 
     private boolean setState(String nodeId, NodeState state) {
