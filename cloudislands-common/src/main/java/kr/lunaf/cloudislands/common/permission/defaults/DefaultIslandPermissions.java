@@ -1,0 +1,78 @@
+package kr.lunaf.cloudislands.common.permission.defaults;
+
+import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.api.model.IslandRole;
+import kr.lunaf.cloudislands.common.permission.CachedPermissionSet;
+
+public final class DefaultIslandPermissions {
+    private DefaultIslandPermissions() {}
+
+    public static CachedPermissionSet create() {
+        CachedPermissionSet set = new CachedPermissionSet();
+        allowMember(set, IslandRole.MEMBER);
+        allowMember(set, IslandRole.MODERATOR);
+        allowMember(set, IslandRole.CO_OWNER);
+        allowTrusted(set);
+        allowVisitor(set);
+        allowManagement(set, IslandRole.MODERATOR);
+        allowManagement(set, IslandRole.CO_OWNER);
+        return set;
+    }
+
+    private static void allowMember(CachedPermissionSet set, IslandRole role) {
+        for (IslandPermission permission : new IslandPermission[] {
+            IslandPermission.BUILD,
+            IslandPermission.BREAK,
+            IslandPermission.INTERACT,
+            IslandPermission.OPEN_CONTAINER,
+            IslandPermission.USE_DOOR,
+            IslandPermission.USE_BUTTON,
+            IslandPermission.USE_REDSTONE,
+            IslandPermission.PLACE_LIQUID,
+            IslandPermission.BREAK_LIQUID,
+            IslandPermission.ATTACK_MOB,
+            IslandPermission.PICKUP_ITEM,
+            IslandPermission.DROP_ITEM,
+            IslandPermission.SET_HOME,
+            IslandPermission.DEPOSIT_BANK
+        }) {
+            set.put(role, permission, true);
+        }
+    }
+
+    private static void allowTrusted(CachedPermissionSet set) {
+        for (IslandPermission permission : new IslandPermission[] {
+            IslandPermission.BUILD,
+            IslandPermission.BREAK,
+            IslandPermission.INTERACT,
+            IslandPermission.USE_DOOR,
+            IslandPermission.USE_BUTTON,
+            IslandPermission.PICKUP_ITEM,
+            IslandPermission.DROP_ITEM
+        }) {
+            set.put(IslandRole.TRUSTED, permission, true);
+        }
+    }
+
+    private static void allowVisitor(CachedPermissionSet set) {
+        set.put(IslandRole.VISITOR, IslandPermission.USE_DOOR, true);
+        set.put(IslandRole.VISITOR, IslandPermission.USE_BUTTON, true);
+    }
+
+    private static void allowManagement(CachedPermissionSet set, IslandRole role) {
+        for (IslandPermission permission : new IslandPermission[] {
+            IslandPermission.MANAGE_MEMBERS,
+            IslandPermission.MANAGE_ROLES,
+            IslandPermission.MANAGE_FLAGS,
+            IslandPermission.MANAGE_WARPS,
+            IslandPermission.MANAGE_UPGRADES,
+            IslandPermission.START_LEVEL_CALC,
+            IslandPermission.BAN_VISITOR,
+            IslandPermission.KICK_VISITOR,
+            IslandPermission.SET_BIOME,
+            IslandPermission.WITHDRAW_BANK
+        }) {
+            set.put(role, permission, true);
+        }
+    }
+}
