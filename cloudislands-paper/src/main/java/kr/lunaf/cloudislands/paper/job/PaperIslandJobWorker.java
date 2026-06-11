@@ -16,6 +16,8 @@ public final class PaperIslandJobWorker {
     private final ActiveIslandRegistry activeIslands;
     private final String nodeId;
     private BukkitTask task;
+    private int consecutiveFailures;
+    private long nextPollAtMillis;
 
     public PaperIslandJobWorker(Plugin plugin, LocalJobSource jobSource, IslandActivationJobHandler activationHandler, ActiveIslandRegistry activeIslands, String nodeId) {
         this.plugin = plugin;
@@ -38,18 +40,35 @@ public final class PaperIslandJobWorker {
     }
 
     private void poll() {
-        for (IslandJob job : jobSource.claim(nodeId, List.of(IslandJobType.CREATE_ISLAND, IslandJobType.ACTIVATE_ISLAND), 4)) {
-            try {
-                IslandActivationJobHandler.ActivationResult result = activationHandler.handle(job);
-                if (result.success()) {
-                    activeIslands.activated(result);
-                    jobSource.complete(nodeId, job.jobId());
-                } else {
-                    jobSource.fail(nodeId, job.jobId(), result.state());
-                }
-            } catch (RuntimeException exception) {
-                jobSource.fail(nodeId, job.jobId(), exception.getMessage());
+        long now = System.currentTimeMillis();
+        if (now < nextPollAtMillis) {
+            return;
+        }
+        try {
+            List<IslandJob> claimed = jobSource.claim(nodeId, List.of(IslandJobType.CREATE_ISLAND, IslandJobType.ACTIVATE_ISLAND), 4);
+            consecutiveFailures = 0;
+            for (IslandJob job : claimed) {
+                handle(job);
             }
+        } catch (RuntimeException exception) {
+            consecutiveFailures++;
+            long backoffMillis = Math.min(30_000L, 1_000L * (1L << Math.min(consecutiveFailures, 5)));
+            nextPollAtMillis = now + backoffMillis;
+            plugin.getLogger().warning("CloudIslands job poll failed; backing off for " + backoffMillis + "ms: " + exception.getMessage());
+        }
+    }
+
+    private void handle(IslandJob job) {
+        try {
+            IslandActivationJobHandler.ActivationResult result = activationHandler.handle(job);
+            if (result.success()) {
+                activeIslands.activated(result);
+                jobSource.complete(nodeId, job.jobId());
+            } else {
+                jobSource.fail(nodeId, job.jobId(), result.state());
+            }
+        } catch (RuntimeException exception) {
+            jobSource.fail(nodeId, job.jobId(), exception.getMessage());
         }
     }
 
