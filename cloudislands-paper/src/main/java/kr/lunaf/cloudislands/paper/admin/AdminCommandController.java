@@ -21,7 +21,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public final class AdminCommandController implements CommandExecutor, TabCompleter {
-    private static final List<String> ROOT_COMMANDS = List.of("status", "cache", "node", "island", "player", "jobs", "route", "events", "audit", "block-values", "template", "migrate-superiorskyblock2", "reload");
+    private static final List<String> ROOT_COMMANDS = List.of("status", "cache", "node", "island", "player", "jobs", "route", "events", "audit", "block-values", "upgrade-rules", "template", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
@@ -85,6 +85,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args[0].equalsIgnoreCase("block-values")) {
             return handleBlockValues(sender, args);
+        }
+        if (args[0].equalsIgnoreCase("upgrade-rules")) {
+            run(sender, "Upgrade rules", coreApiClient.listUpgradeRules());
+            return true;
         }
         if (args[0].equalsIgnoreCase("template")) {
             return handleTemplate(sender, args);
@@ -488,7 +492,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private void usage(CommandSender sender, String label) {
-        sender.sendMessage("사용법: /" + label + " status, cache clear, node list, island tp <uuid>, player info <uuid>, jobs list, route debug <uuid>, events, audit, block-values list, template list, migrate-superiorskyblock2 scan, reload");
+        sender.sendMessage("사용법: /" + label + " status, cache clear, node list, island tp <uuid>, player info <uuid>, jobs list, route debug <uuid>, events, audit, block-values list, upgrade-rules, template list, migrate-superiorskyblock2 scan, reload");
     }
 
     private UUID uuid(CommandSender sender, String value) {
