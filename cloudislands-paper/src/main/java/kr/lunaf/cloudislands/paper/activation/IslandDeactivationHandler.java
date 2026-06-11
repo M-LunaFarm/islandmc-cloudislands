@@ -31,11 +31,11 @@ public final class IslandDeactivationHandler {
             protectionController.unregisterIsland(islandId);
             activeIslands.deactivated(islandId);
             shardWorldManager.release(islandId);
-            return new DeactivationResult(true, islandId, saveResult == null ? 0L : saveResult.snapshotNo(), null);
+            return new DeactivationResult(true, islandId, saveResult == null ? 0L : saveResult.snapshotNo(), saveResult == null ? "" : saveResult.checksum(), saveResult == null ? 0L : saveResult.sizeBytes(), null);
         } catch (IOException exception) {
-            return new DeactivationResult(false, islandId, 0L, exception.getMessage());
+            return new DeactivationResult(false, islandId, 0L, "", 0L, exception.getMessage());
         }
     }
 
-    public record DeactivationResult(boolean success, UUID islandId, long snapshotNo, String errorMessage) {}
+    public record DeactivationResult(boolean success, UUID islandId, long snapshotNo, String checksum, long sizeBytes, String errorMessage) {}
 }

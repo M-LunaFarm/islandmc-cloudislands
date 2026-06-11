@@ -9,6 +9,7 @@ import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.paper.world.export.IslandBundleExporter;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
+import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
 
 public final class IslandSaveService {
     private static final int RETAINED_SNAPSHOTS = 50;
@@ -32,6 +33,11 @@ public final class IslandSaveService {
     public SaveResult save(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland) throws IOException {
         IslandBundleExporter.ExportedIslandBundle exported = exporter.export(islandId, activeIsland, exportRoot.resolve(islandId.toString()));
         IslandBundleManifest previous = storage.readManifest(islandId);
+        long sizeBytes = Files.size(exported.bundleFile());
+        String checksum;
+        try (InputStream input = Files.newInputStream(exported.bundleFile())) {
+            checksum = Sha256Checksums.of(input);
+        }
         IslandBundleManifest manifest = new IslandBundleManifest(
             islandId,
             previous.ownerUuid(),
@@ -42,14 +48,14 @@ public final class IslandSaveService {
             new IslandLocation(activeIsland.worldName(), 0.5D, 100.0D, 0.5D, 180.0F, 0.0F),
             previous.createdAt(),
             java.time.Instant.now(),
-            previous.checksum()
+            checksum
         );
         try (InputStream input = Files.newInputStream(exported.bundleFile())) {
             storage.writeSnapshot(islandId, exported.snapshotNo(), input, manifest);
         }
         storage.pruneSnapshots(islandId, retainedSnapshots);
-        return new SaveResult(islandId, exported.snapshotNo(), exported.bundleFile());
+        return new SaveResult(islandId, exported.snapshotNo(), exported.bundleFile(), checksum, sizeBytes);
     }
 
-    public record SaveResult(UUID islandId, long snapshotNo, Path bundleFile) {}
+    public record SaveResult(UUID islandId, long snapshotNo, Path bundleFile, String checksum, long sizeBytes) {}
 }
