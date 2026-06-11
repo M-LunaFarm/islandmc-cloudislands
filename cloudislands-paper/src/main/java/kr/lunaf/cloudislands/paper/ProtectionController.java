@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper;
 
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
@@ -43,6 +44,14 @@ public final class ProtectionController {
     public PermissionResult checkSystem(Block block, IslandPermission permission) {
         return regionIndex.find(block.getWorld().getName(), block.getX(), block.getZ())
             .map(region -> PermissionResult.deny("SYSTEM_PROTECTED", IslandRole.VISITOR))
+            .orElseGet(() -> PermissionResult.allow(IslandRole.OWNER));
+    }
+
+    public PermissionResult checkSystemFlag(Block block, IslandFlag flag) {
+        return regionIndex.find(block.getWorld().getName(), block.getX(), block.getZ())
+            .map(region -> permissionCache.flagAllowed(region.islandId(), flag)
+                ? PermissionResult.allow(IslandRole.OWNER)
+                : PermissionResult.deny(flag.name() + "_DISABLED", IslandRole.VISITOR))
             .orElseGet(() -> PermissionResult.allow(IslandRole.OWNER));
     }
 }

@@ -2,14 +2,18 @@ package kr.lunaf.cloudislands.paper;
 
 import java.util.Optional;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockFadeEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockMultiPlaceEvent;
@@ -180,40 +184,65 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onEntityExplode(EntityExplodeEvent event) {
-        event.blockList().removeIf(block -> !protection.checkSystem(block, IslandPermission.BREAK).allowed());
+        IslandFlag flag = explosionFlag(event.getEntityType());
+        event.blockList().removeIf(block -> !protection.checkSystemFlag(block, flag).allowed());
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onBlockExplode(BlockExplodeEvent event) {
-        event.blockList().removeIf(block -> !protection.checkSystem(block, IslandPermission.BREAK).allowed());
+        event.blockList().removeIf(block -> !protection.checkSystemFlag(block, IslandFlag.EXPLOSION).allowed());
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onFluid(BlockFromToEvent event) {
-        event.setCancelled(!protection.checkSystem(event.getToBlock(), IslandPermission.PLACE_LIQUID).allowed());
+        event.setCancelled(!protection.checkSystemFlag(event.getToBlock(), liquidFlag(event.getBlock().getType())).allowed());
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onFluidLevel(FluidLevelChangeEvent event) {
-        event.setCancelled(!protection.checkSystem(event.getBlock(), IslandPermission.PLACE_LIQUID).allowed());
+        event.setCancelled(!protection.checkSystemFlag(event.getBlock(), liquidFlag(event.getBlock().getType())).allowed());
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onIgnite(BlockIgniteEvent event) {
-        event.setCancelled(!protection.checkSystem(event.getBlock(), IslandPermission.BUILD).allowed());
+        event.setCancelled(!protection.checkSystemFlag(event.getBlock(), IslandFlag.FIRE_SPREAD).allowed());
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onSpread(BlockSpreadEvent event) {
-        event.setCancelled(!protection.checkSystem(event.getBlock(), IslandPermission.BUILD).allowed());
+        event.setCancelled(!protection.checkSystemFlag(event.getBlock(), IslandFlag.FIRE_SPREAD).allowed());
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onLeavesDecay(LeavesDecayEvent event) {
-        event.setCancelled(!protection.checkSystem(event.getBlock(), IslandPermission.BREAK).allowed());
+        event.setCancelled(!protection.checkSystemFlag(event.getBlock(), IslandFlag.LEAF_DECAY).allowed());
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onFade(BlockFadeEvent event) {
+        if (event.getBlock().getType().name().contains("ICE")) {
+            event.setCancelled(!protection.checkSystemFlag(event.getBlock(), IslandFlag.ICE_MELT).allowed());
+        }
     }
 
     private boolean denied(Player player, Block block, IslandPermission permission) {
         return !protection.checkBlock(player.getUniqueId(), block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), permission).allowed();
+    }
+
+    private IslandFlag explosionFlag(EntityType type) {
+        if (type == EntityType.CREEPER) {
+            return IslandFlag.CREEPER_DAMAGE;
+        }
+        if (type == EntityType.PRIMED_TNT || type == EntityType.MINECART_TNT) {
+            return IslandFlag.TNT_DAMAGE;
+        }
+        if (type == EntityType.WITHER || type == EntityType.WITHER_SKULL) {
+            return IslandFlag.WITHER_DAMAGE;
+        }
+        return IslandFlag.EXPLOSION;
+    }
+
+    private IslandFlag liquidFlag(Material type) {
+        return type == Material.LAVA ? IslandFlag.LAVA_FLOW : IslandFlag.WATER_FLOW;
     }
 }

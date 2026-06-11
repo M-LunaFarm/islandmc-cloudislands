@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.cache;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
@@ -11,6 +12,7 @@ import org.bukkit.plugin.Plugin;
 public final class PermissionCacheSyncService {
     private static final Pattern MEMBER = Pattern.compile("\\{[^}]*\"playerUuid\":\"([^\"]+)\"[^}]*\"role\":\"([^\"]+)\"[^}]*}");
     private static final Pattern RULE = Pattern.compile("\\{[^}]*\"role\":\"([^\"]+)\"[^}]*\"permission\":\"([^\"]+)\"[^}]*\"allowed\":(true|false)[^}]*}");
+    private static final Pattern FLAG = Pattern.compile("\"([A-Z_]+)\":\"([^\"]*)\"");
 
     private final Plugin plugin;
     private final CoreApiClient client;
@@ -27,6 +29,7 @@ public final class PermissionCacheSyncService {
             cache.invalidate(islandId);
             loadMembers(islandId, client.listIslandMembers(islandId).join());
             loadRules(islandId, client.listIslandPermissions(islandId).join());
+            loadFlags(islandId, client.listIslandFlags(islandId).join());
         } catch (RuntimeException exception) {
             plugin.getLogger().warning("Failed to sync island permission cache for " + islandId + ": " + exception.getMessage());
         }
@@ -47,6 +50,16 @@ public final class PermissionCacheSyncService {
         while (matcher.find()) {
             try {
                 cache.putRule(islandId, IslandRole.valueOf(matcher.group(1)), IslandPermission.valueOf(matcher.group(2)), Boolean.parseBoolean(matcher.group(3)));
+            } catch (RuntimeException ignored) {
+            }
+        }
+    }
+
+    private void loadFlags(UUID islandId, String json) {
+        Matcher matcher = FLAG.matcher(json == null ? "" : json);
+        while (matcher.find()) {
+            try {
+                cache.putFlag(islandId, IslandFlag.valueOf(matcher.group(1)), matcher.group(2));
             } catch (RuntimeException ignored) {
             }
         }
