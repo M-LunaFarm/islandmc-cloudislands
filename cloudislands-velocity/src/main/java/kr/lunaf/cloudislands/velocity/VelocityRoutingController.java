@@ -47,8 +47,10 @@ public final class VelocityRoutingController {
             fallback(player, failureMessage);
             return;
         }
-        String targetServerName = ticket.payload().getOrDefault("targetServerName", ticket.targetNode());
-        connectWithTicket(player, targetServerName);
+        coreApiClient.publishRouteSession(ticket).thenRun(() -> {
+            String targetServerName = ticket.payload().getOrDefault("targetServerName", ticket.targetNode());
+            connectWithTicket(player, targetServerName);
+        });
     }
 
     private void connectWithTicket(Player player, String targetServerName) {

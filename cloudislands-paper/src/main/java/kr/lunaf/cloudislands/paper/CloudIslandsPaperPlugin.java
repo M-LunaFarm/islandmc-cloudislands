@@ -5,6 +5,7 @@ import java.time.Duration;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JdkCoreApiClient;
 import kr.lunaf.cloudislands.paper.admin.AdminCommandController;
+import kr.lunaf.cloudislands.paper.session.PaperRouteSessionListener;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -19,6 +20,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         CoreApiClient client = new JdkCoreApiClient(URI.create(getConfig().getString("core-api.base-url", "https://core-api.internal:8443")), System.getenv().getOrDefault("CI_CORE_TOKEN", ""), Duration.ofSeconds(3));
         this.agent = new CloudIslandsPaperAgent(this, role, client, nodeId);
         getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection()), this);
+        getServer().getPluginManager().registerEvents(new PaperRouteSessionListener(client, agent.routeTickets(), nodeId), this);
         PluginCommand admin = getCommand("ciadmin");
         if (admin != null) {
             admin.setExecutor(new AdminCommandController(agent));

@@ -15,6 +15,7 @@ import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
+import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
 public final class JdkCoreApiClient implements CoreApiClient {
     private final URI baseUri;
@@ -41,6 +42,17 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId) {
         return post("/v1/routes/visit", "{\"playerUuid\":\"" + visitorUuid + "\",\"islandId\":\"" + targetIslandId + "\"}").thenApply(RouteTicketJson::parse);
+    }
+
+    @Override
+    public CompletableFuture<Void> publishRouteSession(RouteTicket ticket) {
+        String targetServerName = ticket.payload().getOrDefault("targetServerName", ticket.targetNode());
+        return post("/v1/routes/session", "{\"playerUuid\":\"" + ticket.playerUuid() + "\",\"ticketId\":\"" + ticket.ticketId() + "\",\"targetNode\":\"" + ticket.targetNode() + "\",\"targetServerName\":\"" + targetServerName + "\",\"nonce\":\"" + ticket.nonce() + "\",\"expiresAt\":\"" + ticket.expiresAt() + "\"}").thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId) {
+        return post("/v1/routes/session/consume", "{\"playerUuid\":\"" + playerUuid + "\",\"nodeId\":\"" + nodeId + "\"}").thenApply(body -> body.isBlank() ? Optional.empty() : Optional.of(RouteSessionJson.parse(body)));
     }
 
     @Override
@@ -73,6 +85,27 @@ public final class JdkCoreApiClient implements CoreApiClient {
         int valueStart = start + needle.length();
         int end = json.indexOf('"', valueStart);
         return end < 0 ? fallback : json.substring(valueStart, end);
+    }
+
+    private static UUID uuid(String json, String field, UUID fallback) {
+        try {
+            return UUID.fromString(text(json, field, fallback.toString()));
+        } catch (IllegalArgumentException ignored) {
+            return fallback;
+        }
+    }
+
+    private static final class RouteSessionJson {
+        static PlayerRouteSession parse(String json) {
+            return new PlayerRouteSession(
+                uuid(json, "playerUuid", new UUID(0L, 0L)),
+                uuid(json, "ticketId", new UUID(0L, 0L)),
+                text(json, "targetNode", ""),
+                text(json, "targetServerName", ""),
+                text(json, "nonce", ""),
+                Instant.parse(text(json, "expiresAt", Instant.now().toString()))
+            );
+        }
     }
 
     private static final class RouteTicketJson {
@@ -118,14 +151,6 @@ public final class JdkCoreApiClient implements CoreApiClient {
             String serverName = text(json, "targetServerName", targetNode);
             Instant expiresAt = Instant.parse(text(json, "expiresAt", Instant.now().plusSeconds(30).toString()));
             return new RouteTicket(ticketId, playerUuid, action, islandId, targetNode, targetWorld, state, expiresAt, nonce, Map.of("targetServerName", serverName));
-        }
-
-        private static UUID uuid(String json, String field, UUID fallback) {
-            try {
-                return UUID.fromString(text(json, field, fallback.toString()));
-            } catch (IllegalArgumentException ignored) {
-                return fallback;
-            }
         }
 
         private static <E extends Enum<E>> E enumValue(Class<E> type, String value, E fallback) {
