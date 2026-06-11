@@ -316,8 +316,8 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("sethome") || args[0].equals("셋홈")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            String name = args.length > 2 ? args[2] : "default";
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            String name = argumentAfterOptionalIsland(args, 1, "default");
             routingController.setHome(player, islandId, name);
             return;
         }
@@ -346,39 +346,39 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("setwarp") || args[0].equals("워프설정")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            String warpName = args.length > 2 ? args[2] : "default";
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            String warpName = argumentAfterOptionalIsland(args, 1, "default");
             routingController.setWarp(player, islandId, warpName, false);
             return;
         }
         if (args[0].equalsIgnoreCase("deletewarp") || args[0].equals("워프삭제")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            String warpName = args.length > 2 ? args[2] : "default";
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            String warpName = argumentAfterOptionalIsland(args, 1, "default");
             routingController.deleteWarp(player, islandId, warpName);
             return;
         }
         if (args[0].equalsIgnoreCase("publicwarp") || args[0].equals("워프공개")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            String warpName = args.length > 2 ? args[2] : "default";
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            String warpName = argumentAfterOptionalIsland(args, 1, "default");
             routingController.setWarpPublicAccess(player, islandId, warpName, true);
             return;
         }
         if (args[0].equalsIgnoreCase("privatewarp") || args[0].equals("워프비공개")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            String warpName = args.length > 2 ? args[2] : "default";
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            String warpName = argumentAfterOptionalIsland(args, 1, "default");
             routingController.setWarpPublicAccess(player, islandId, warpName, false);
             return;
         }
         if (args[0].equalsIgnoreCase("warp") || args[0].equals("워프")) {
             player.sendActionBar(Component.text("섬 워프로 이동하는 중입니다."));
-            UUID targetIslandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            String warpName = args.length > 2 ? args[2] : "default";
+            UUID targetIslandId = optionalIslandIdArgument(args, 1);
+            String warpName = argumentAfterOptionalIsland(args, 1, "default");
             routingController.routeWarp(player, targetIslandId, warpName);
             return;
         }
         if (args[0].equalsIgnoreCase("invite") || args[0].equals("초대")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            UUID targetUuid = args.length > 2 ? parsePlayerUuidOrNil(args[2]) : new UUID(0L, 0L);
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            UUID targetUuid = parsePlayerUuidOrNil(argumentAfterOptionalIsland(args, 1, ""));
             routingController.invite(player, islandId, targetUuid);
             return;
         }
@@ -402,57 +402,58 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("kick") || args[0].equals("추방")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            UUID targetUuid = args.length > 2 ? parsePlayerUuidOrNil(args[2]) : new UUID(0L, 0L);
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            UUID targetUuid = parsePlayerUuidOrNil(argumentAfterOptionalIsland(args, 1, ""));
             routingController.kickMember(player, islandId, targetUuid);
             return;
         }
         if (args[0].equalsIgnoreCase("promote") || args[0].equals("승급")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            UUID targetUuid = args.length > 2 ? parsePlayerUuidOrNil(args[2]) : new UUID(0L, 0L);
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            UUID targetUuid = parsePlayerUuidOrNil(argumentAfterOptionalIsland(args, 1, ""));
             routingController.setRole(player, islandId, targetUuid, IslandRole.MODERATOR);
             return;
         }
         if (args[0].equalsIgnoreCase("demote") || args[0].equals("강등")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            UUID targetUuid = args.length > 2 ? parsePlayerUuidOrNil(args[2]) : new UUID(0L, 0L);
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            UUID targetUuid = parsePlayerUuidOrNil(argumentAfterOptionalIsland(args, 1, ""));
             routingController.setRole(player, islandId, targetUuid, IslandRole.MEMBER);
             return;
         }
         if (args[0].equalsIgnoreCase("transfer") || args[0].equals("양도")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            UUID targetUuid = args.length > 2 ? parsePlayerUuidOrNil(args[2]) : new UUID(0L, 0L);
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            UUID targetUuid = parsePlayerUuidOrNil(argumentAfterOptionalIsland(args, 1, ""));
             routingController.transferOwnership(player, islandId, targetUuid);
             return;
         }
         if (args[0].equalsIgnoreCase("trust") || args[0].equals("신뢰")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            UUID targetUuid = args.length > 2 ? parsePlayerUuidOrNil(args[2]) : new UUID(0L, 0L);
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            UUID targetUuid = parsePlayerUuidOrNil(argumentAfterOptionalIsland(args, 1, ""));
             routingController.setRole(player, islandId, targetUuid, IslandRole.TRUSTED);
             return;
         }
         if (args[0].equalsIgnoreCase("untrust") || args[0].equals("신뢰해제")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            UUID targetUuid = args.length > 2 ? parsePlayerUuidOrNil(args[2]) : new UUID(0L, 0L);
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            UUID targetUuid = parsePlayerUuidOrNil(argumentAfterOptionalIsland(args, 1, ""));
             routingController.kickMember(player, islandId, targetUuid);
             return;
         }
         if (args[0].equalsIgnoreCase("ban") || args[0].equals("밴")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            UUID targetUuid = args.length > 2 ? parsePlayerUuidOrNil(args[2]) : new UUID(0L, 0L);
-            String reason = args.length > 3 ? args[3] : "island ban";
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            UUID targetUuid = parsePlayerUuidOrNil(argumentAfterOptionalIsland(args, 1, ""));
+            int reasonIndex = indexAfterOptionalIslandValue(args, 1);
+            String reason = args.length > reasonIndex ? joinArgs(args, reasonIndex) : "island ban";
             routingController.banVisitor(player, islandId, targetUuid, reason);
             return;
         }
         if (args[0].equalsIgnoreCase("unban") || args[0].equals("밴해제")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            UUID targetUuid = args.length > 2 ? parsePlayerUuidOrNil(args[2]) : new UUID(0L, 0L);
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            UUID targetUuid = parsePlayerUuidOrNil(argumentAfterOptionalIsland(args, 1, ""));
             routingController.pardonVisitor(player, islandId, targetUuid);
             return;
         }
         if (args[0].equalsIgnoreCase("kickvisitor") || args[0].equals("방문자추방")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            UUID targetUuid = parsePlayerUuidOrNil(argumentAfterOptionalIsland(args, 1, ""));
             routingController.kickVisitor(player, islandId, targetUuid);
             return;
         }
@@ -526,14 +527,14 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("deposit") || args[0].equals("입금")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            String amount = args.length > 2 ? args[2] : "0";
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            String amount = argumentAfterOptionalIsland(args, 1, "0");
             routingController.depositBank(player, islandId, amount);
             return;
         }
         if (args[0].equalsIgnoreCase("withdraw") || args[0].equals("출금")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            String amount = args.length > 2 ? args[2] : "0";
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            String amount = argumentAfterOptionalIsland(args, 1, "0");
             routingController.withdrawBank(player, islandId, amount);
             return;
         }
@@ -560,8 +561,8 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("buyupgrade") || args[0].equals("업그레이드구매")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            String upgradeKey = args.length > 2 ? args[2] : "size";
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            String upgradeKey = argumentAfterOptionalIsland(args, 1, "size");
             routingController.purchaseUpgrade(player, islandId, upgradeKey);
             return;
         }
@@ -580,13 +581,13 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("chat") || args[0].equals("채팅")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            routingController.sendIslandChat(player, islandId, "ISLAND", joinArgs(args, 2));
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            routingController.sendIslandChat(player, islandId, "ISLAND", joinArgs(args, hasOptionalIslandIdArgument(args, 1) ? 2 : 1));
             return;
         }
         if (args[0].equalsIgnoreCase("teamchat") || args[0].equals("팀채팅")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            routingController.sendIslandChat(player, islandId, "TEAM", joinArgs(args, 2));
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            routingController.sendIslandChat(player, islandId, "TEAM", joinArgs(args, hasOptionalIslandIdArgument(args, 1) ? 2 : 1));
             return;
         }
         if (args[0].equalsIgnoreCase("limits") || args[0].equals("제한")) {
@@ -660,6 +661,34 @@ public final class CloudIslandsVelocityPlugin {
             return UUID.fromString(value);
         } catch (IllegalArgumentException ignored) {
             return new UUID(0L, 0L);
+        }
+    }
+
+    private boolean hasOptionalIslandIdArgument(String[] args, int index) {
+        return args.length > index + 1 && isUuid(args[index]);
+    }
+
+    private UUID optionalIslandIdArgument(String[] args, int index) {
+        return hasOptionalIslandIdArgument(args, index) ? parseUuidOrNil(args[index]) : new UUID(0L, 0L);
+    }
+
+    private String argumentAfterOptionalIsland(String[] args, int index, String fallback) {
+        if (hasOptionalIslandIdArgument(args, index)) {
+            return args.length > index + 1 ? args[index + 1] : fallback;
+        }
+        return args.length > index ? args[index] : fallback;
+    }
+
+    private int indexAfterOptionalIslandValue(String[] args, int index) {
+        return hasOptionalIslandIdArgument(args, index) ? index + 2 : index + 1;
+    }
+
+    private boolean isUuid(String value) {
+        try {
+            UUID.fromString(value);
+            return true;
+        } catch (IllegalArgumentException ignored) {
+            return false;
         }
     }
 
