@@ -55,11 +55,11 @@ public final class PermissionEventPoller {
             Matcher matcher = EVENT.matcher(json == null ? "" : json);
             while (matcher.find()) {
                 String type = matcher.group(1);
-                String key = type + "@" + matcher.group(3);
+                Map<String, String> fields = fields(matcher.group(2));
+                String key = eventKey(type, fields, matcher.group(3));
                 if (!seen.add(key)) {
                     continue;
                 }
-                Map<String, String> fields = fields(matcher.group(2));
                 if (handlesNodeOperation(type, fields)) {
                     continue;
                 }
@@ -88,6 +88,24 @@ public final class PermissionEventPoller {
         } catch (RuntimeException exception) {
             plugin.getLogger().warning("Failed to poll permission cache events: " + exception.getMessage());
         }
+    }
+
+    private String eventKey(String type, Map<String, String> fields, String occurredAt) {
+        String identity = firstPresent(fields, "islandId", "ticketId", "jobId", "inviteId", "nodeId", "playerUuid");
+        if (identity.isBlank()) {
+            identity = fields.toString();
+        }
+        return type + "@" + occurredAt + "@" + identity;
+    }
+
+    private String firstPresent(Map<String, String> fields, String... keys) {
+        for (String key : keys) {
+            String value = fields.getOrDefault(key, "");
+            if (!value.isBlank()) {
+                return value;
+            }
+        }
+        return "";
     }
 
     private boolean handlesNodeOperation(String type, Map<String, String> fields) {
