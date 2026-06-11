@@ -110,6 +110,24 @@ public final class VelocityRoutingController {
         routeFuture(player, coreApiClient.createVisitTicket(player.getUniqueId(), targetIslandId), "현재 섬 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.");
     }
 
+    public void routeVisitOwner(Player player, UUID ownerUuid) {
+        if (ownerUuid.equals(new UUID(0L, 0L))) {
+            player.sendMessage(Component.text("방문할 플레이어를 찾을 수 없습니다."));
+            return;
+        }
+        coreApiClient.islandInfoByOwner(ownerUuid).thenAccept(body -> {
+            UUID islandId = parseUuid(jsonValue(body, "islandId"));
+            if (islandId.equals(new UUID(0L, 0L))) {
+                player.sendMessage(Component.text("방문할 섬을 찾을 수 없습니다."));
+                return;
+            }
+            routeVisit(player, islandId);
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("방문할 섬을 불러오지 못했습니다."));
+            return null;
+        });
+    }
+
     public void routeRandomVisit(Player player) {
         routeFuture(player, coreApiClient.createRandomVisitTicket(player.getUniqueId()), "방문 가능한 공개 섬을 찾지 못했습니다.");
     }
@@ -486,6 +504,14 @@ public final class VelocityRoutingController {
             case "RATE_LIMITED" -> "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.";
             default -> fallback;
         };
+    }
+
+    private UUID parseUuid(String value) {
+        try {
+            return UUID.fromString(value);
+        } catch (RuntimeException ignored) {
+            return new UUID(0L, 0L);
+        }
     }
 
     private String jsonValue(String json, String key) {

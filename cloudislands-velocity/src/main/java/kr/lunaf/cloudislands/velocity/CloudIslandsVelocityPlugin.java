@@ -278,8 +278,17 @@ public final class CloudIslandsVelocityPlugin {
         }
         if (args[0].equalsIgnoreCase("visit") || args[0].equals("방문")) {
             player.sendActionBar(Component.text("방문할 섬을 불러오는 중입니다."));
-            UUID targetIslandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            routingController.routeVisit(player, targetIslandId);
+            if (args.length < 2) {
+                player.sendMessage(Component.text("방문할 섬 또는 플레이어를 입력해주세요."));
+                return;
+            }
+            UUID targetIslandId = parseUuidOrNil(args[1]);
+            if (!targetIslandId.equals(new UUID(0L, 0L))) {
+                routingController.routeVisit(player, targetIslandId);
+                return;
+            }
+            UUID ownerUuid = proxy.getPlayer(args[1]).map(Player::getUniqueId).orElse(new UUID(0L, 0L));
+            routingController.routeVisitOwner(player, ownerUuid);
             return;
         }
         if (args[0].equalsIgnoreCase("randomvisit") || args[0].equals("랜덤방문")) {
