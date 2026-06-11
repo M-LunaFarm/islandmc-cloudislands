@@ -9,6 +9,7 @@ import kr.lunaf.cloudislands.api.model.IslandJobSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandTemplateSnapshot;
 import kr.lunaf.cloudislands.api.model.MigrationRunSnapshot;
+import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 
 public interface IslandAdminService {
@@ -29,6 +30,9 @@ public interface IslandAdminService {
     CompletableFuture<Void> recoverJobs(String nodeId, long minIdleMillis, int maxJobs);
     CompletableFuture<Void> clearCache();
     CompletableFuture<Void> reload();
+    CompletableFuture<java.util.Optional<PlayerIslandProfile>> getPlayerProfile(UUID playerUuid);
+    CompletableFuture<java.util.Optional<PlayerIslandProfile>> setPlayerPrimaryIsland(UUID playerUuid, UUID islandId);
+    CompletableFuture<java.util.Optional<PlayerIslandProfile>> clearPlayerPrimaryIsland(UUID playerUuid);
     CompletableFuture<List<GlobalEventSnapshot>> listEvents();
     CompletableFuture<List<AuditLogSnapshot>> listAuditLogs();
     CompletableFuture<List<String>> listNodes();

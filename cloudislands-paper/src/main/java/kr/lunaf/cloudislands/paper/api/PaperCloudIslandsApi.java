@@ -348,6 +348,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> recoverJobs(String nodeId, long minIdleMillis, int maxJobs) { return client.recoverJobs(nodeId, minIdleMillis, maxJobs).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> clearCache() { return client.clearCache().thenApply(_body -> null); }
         @Override public CompletableFuture<Void> reload() { return client.reload().thenApply(_body -> null); }
+        @Override public CompletableFuture<Optional<PlayerIslandProfile>> getPlayerProfile(UUID playerUuid) { return client.playerInfo(playerUuid).thenApply(PaperCloudIslandsApi::playerProfile); }
+        @Override public CompletableFuture<Optional<PlayerIslandProfile>> setPlayerPrimaryIsland(UUID playerUuid, UUID islandId) { return client.setPlayerIsland(playerUuid, islandId).thenApply(PaperCloudIslandsApi::playerProfile); }
+        @Override public CompletableFuture<Optional<PlayerIslandProfile>> clearPlayerPrimaryIsland(UUID playerUuid) { return client.clearPlayerIsland(playerUuid).thenApply(PaperCloudIslandsApi::playerProfile); }
         @Override public CompletableFuture<List<GlobalEventSnapshot>> listEvents() { return client.listEvents().thenApply(PaperCloudIslandsApi::events); }
         @Override public CompletableFuture<List<AuditLogSnapshot>> listAuditLogs() { return client.listAuditLogs().thenApply(PaperCloudIslandsApi::auditLogs); }
 
