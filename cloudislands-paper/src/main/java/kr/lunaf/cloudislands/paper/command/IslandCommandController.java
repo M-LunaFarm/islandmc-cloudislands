@@ -16,6 +16,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandPermissionMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandUpgradeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -38,7 +39,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "public", "공개", "private", "비공개", "lock", "잠금", "unlock", "잠금해제",
         "level", "레벨", "worth", "value", "가치", "rank", "ranking", "랭킹", "levelcalc", "recalculate", "레벨계산",
         "bank", "은행", "deposit", "bank-deposit", "입금", "withdraw", "bank-withdraw", "출금",
-        "upgrade", "upgrades", "업그레이드", "mission", "missions", "미션", "challenge", "challenges", "챌린지",
+        "upgrade", "upgrades", "upgrade-menu", "upgrade-list", "업그레이드", "업그레이드목록", "mission", "missions", "미션", "challenge", "challenges", "챌린지",
         "chat", "islandchat", "채팅", "teamchat", "team-chat", "팀채팅", "log", "logs", "로그",
         "biome", "바이옴", "size", "크기", "border", "경계",
         "limit", "limits", "limit-list", "제한", "제한목록", "setlimit", "limit-set", "제한설정",
@@ -230,8 +231,16 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             if (args.length > 1) {
                 purchaseIslandUpgrade(player, args[1]);
             } else {
-                listIslandUpgrades(player);
+                openIslandUpgradeMenu(player);
             }
+            return true;
+        }
+        if (subcommand.equals("upgrade-menu")) {
+            openIslandUpgradeMenu(player);
+            return true;
+        }
+        if (subcommand.equals("upgrade-list") || subcommand.equals("업그레이드목록")) {
+            listIslandUpgrades(player);
             return true;
         }
         if (subcommand.equals("mission") || subcommand.equals("missions") || subcommand.equals("미션")) {
@@ -787,6 +796,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                     return null;
                 });
         });
+    }
+
+    private void openIslandUpgradeMenu(Player player) {
+        currentIsland(player, "섬 안에서만 업그레이드 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandUpgradeMenu.open(plugin, coreApiClient, player, islandId));
     }
 
     private void purchaseIslandUpgrade(Player player, String upgradeKey) {
