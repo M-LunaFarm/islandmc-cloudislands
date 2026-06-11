@@ -92,19 +92,19 @@ public final class VelocityRoutingController {
     }
 
     public void routeHome(Player player, String homeName) {
-        coreApiClient.createHomeTicket(player.getUniqueId(), homeName).thenAccept(ticket -> route(player, ticket, "현재 섬 서비스 일부 기능이 점검 중입니다."));
+        routeFuture(player, coreApiClient.createHomeTicket(player.getUniqueId(), homeName), "현재 섬 서비스 일부 기능이 점검 중입니다.");
     }
 
     public void routeVisit(Player player, UUID targetIslandId) {
-        coreApiClient.createVisitTicket(player.getUniqueId(), targetIslandId).thenAccept(ticket -> route(player, ticket, "현재 섬 서버가 혼잡합니다. 잠시 후 다시 시도해주세요."));
+        routeFuture(player, coreApiClient.createVisitTicket(player.getUniqueId(), targetIslandId), "현재 섬 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.");
     }
 
     public void routeRandomVisit(Player player) {
-        coreApiClient.createRandomVisitTicket(player.getUniqueId()).thenAccept(ticket -> route(player, ticket, "방문 가능한 공개 섬을 찾지 못했습니다."));
+        routeFuture(player, coreApiClient.createRandomVisitTicket(player.getUniqueId()), "방문 가능한 공개 섬을 찾지 못했습니다.");
     }
 
     public void routeWarp(Player player, UUID targetIslandId, String warpName) {
-        coreApiClient.createWarpTicket(player.getUniqueId(), targetIslandId, warpName).thenAccept(ticket -> route(player, ticket, "해당 워프로 이동할 수 없습니다."));
+        routeFuture(player, coreApiClient.createWarpTicket(player.getUniqueId(), targetIslandId, warpName), "해당 워프로 이동할 수 없습니다.");
     }
 
     public void listWarps(Player player, UUID islandId) {
@@ -360,7 +360,7 @@ public final class VelocityRoutingController {
     }
 
     public void adminTeleportIsland(Player player, UUID islandId) {
-        coreApiClient.adminIslandTeleport(player.getUniqueId(), islandId).thenAccept(ticket -> route(player, ticket, "섬으로 이동하지 못했습니다."));
+        routeFuture(player, coreApiClient.adminIslandTeleport(player.getUniqueId(), islandId), "섬으로 이동하지 못했습니다.");
     }
 
     public void adminDeleteIsland(Player player, UUID islandId) {
@@ -482,6 +482,13 @@ public final class VelocityRoutingController {
             return;
         }
         publishAndConnect(player, ticket);
+    }
+
+    private void routeFuture(Player player, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {
+        ticketFuture.thenAccept(ticket -> route(player, ticket, failureMessage)).exceptionally(error -> {
+            fallback(player, failureMessage);
+            return null;
+        });
     }
 
     private void waitForReadyTicket(Player player, RouteTicket ticket, String failureMessage, BossBar bossBar, int attempt) {
