@@ -185,12 +185,12 @@ public final class IslandProtectionListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onEntityExplode(EntityExplodeEvent event) {
         IslandFlag flag = explosionFlag(event.getEntityType());
-        event.blockList().removeIf(block -> !protection.checkSystemFlag(block, flag).allowed());
+        event.blockList().removeIf(block -> !explosionAllowed(block, flag));
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onBlockExplode(BlockExplodeEvent event) {
-        event.blockList().removeIf(block -> !protection.checkSystemFlag(block, IslandFlag.EXPLOSION).allowed());
+        event.blockList().removeIf(block -> !explosionAllowed(block, IslandFlag.EXPLOSION));
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -269,6 +269,11 @@ public final class IslandProtectionListener implements Listener {
             return IslandFlag.WITHER_DAMAGE;
         }
         return IslandFlag.EXPLOSION;
+    }
+
+    private boolean explosionAllowed(Block block, IslandFlag detailFlag) {
+        return protection.checkSystemFlag(block, IslandFlag.EXPLOSION).allowed()
+            && protection.checkSystemFlag(block, detailFlag).allowed();
     }
 
     private IslandFlag liquidFlag(Material type) {
