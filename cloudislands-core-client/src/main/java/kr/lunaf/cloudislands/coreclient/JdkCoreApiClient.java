@@ -231,6 +231,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> sendIslandChat(UUID islandId, UUID actorUuid, String channel, String message) {
+        return post("/v1/islands/chat", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"channel\":\"" + escape(channel) + "\",\"message\":\"" + escape(message) + "\"}");
+    }
+
+    @Override
     public CompletableFuture<String> listIslandSnapshots(UUID islandId, int limit) {
         return post("/v1/islands/snapshots", "{\"islandId\":\"" + islandId + "\",\"limit\":" + limit + "}");
     }

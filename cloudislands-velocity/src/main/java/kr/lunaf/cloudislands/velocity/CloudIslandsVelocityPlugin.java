@@ -322,6 +322,16 @@ public final class CloudIslandsVelocityPlugin {
             routingController.listChallenges(player, islandId);
             return;
         }
+        if (args[0].equalsIgnoreCase("chat") || args[0].equals("채팅")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.sendIslandChat(player, islandId, "ISLAND", joinArgs(args, 2));
+            return;
+        }
+        if (args[0].equalsIgnoreCase("teamchat") || args[0].equals("팀채팅")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.sendIslandChat(player, islandId, "TEAM", joinArgs(args, 2));
+            return;
+        }
         if (args[0].equalsIgnoreCase("snapshots") || args[0].equals("스냅샷목록")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.listSnapshots(player, islandId);
@@ -367,6 +377,20 @@ public final class CloudIslandsVelocityPlugin {
         } catch (NumberFormatException ignored) {
             return 0L;
         }
+    }
+
+    private String joinArgs(String[] args, int start) {
+        if (args.length <= start) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder();
+        for (int index = start; index < args.length; index++) {
+            if (index > start) {
+                builder.append(' ');
+            }
+            builder.append(args[index]);
+        }
+        return builder.toString();
     }
 
     private IslandRole parseRole(String value) {

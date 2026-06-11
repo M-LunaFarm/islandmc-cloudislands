@@ -229,6 +229,10 @@ public final class VelocityRoutingController {
         coreApiClient.completeIslandMission(islandId, player.getUniqueId(), missionKey).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "미션을 완료하지 못했습니다." : body)));
     }
 
+    public void sendIslandChat(Player player, UUID islandId, String channel, String message) {
+        coreApiClient.sendIslandChat(islandId, player.getUniqueId(), channel, message).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 채팅을 전송하지 못했습니다." : body)));
+    }
+
     public void listSnapshots(Player player, UUID islandId) {
         coreApiClient.listIslandSnapshots(islandId, 20).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "스냅샷 목록을 불러오지 못했습니다." : body)));
     }

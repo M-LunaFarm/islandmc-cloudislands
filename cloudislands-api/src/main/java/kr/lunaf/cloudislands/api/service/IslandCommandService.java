@@ -27,6 +27,7 @@ public interface IslandCommandService {
     CompletableFuture<Void> createWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<Void> purchaseUpgrade(UUID islandId, UUID actorUuid, String upgradeKey);
     CompletableFuture<Void> completeMission(UUID islandId, UUID actorUuid, String missionKey);
+    CompletableFuture<Void> sendChat(UUID islandId, UUID actorUuid, String channel, String message);
     CompletableFuture<Void> depositBank(UUID islandId, UUID actorUuid, BigDecimal amount);
     CompletableFuture<Void> withdrawBank(UUID islandId, UUID actorUuid, BigDecimal amount);
 }
