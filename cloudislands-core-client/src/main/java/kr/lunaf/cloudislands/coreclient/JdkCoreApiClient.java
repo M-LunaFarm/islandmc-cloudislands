@@ -30,11 +30,13 @@ import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 public final class JdkCoreApiClient implements CoreApiClient {
     private final URI baseUri;
     private final String authToken;
+    private final String adminToken;
     private final HttpClient httpClient;
 
     public JdkCoreApiClient(URI baseUri, String authToken, Duration timeout) {
         this.baseUri = baseUri;
         this.authToken = authToken;
+        this.adminToken = System.getenv().getOrDefault("CI_ADMIN_TOKEN", "");
         this.httpClient = HttpClient.newBuilder().connectTimeout(timeout).build();
     }
 
@@ -493,14 +495,28 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     private CompletableFuture<String> post(String path, String body) {
-        HttpRequest request = HttpRequest.newBuilder(baseUri.resolve(path))
+        HttpRequest.Builder builder = HttpRequest.newBuilder(baseUri.resolve(path))
             .timeout(Duration.ofSeconds(5))
             .header("Authorization", "Bearer " + authToken)
             .header("Content-Type", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofString(body))
-            .build();
+            .POST(HttpRequest.BodyPublishers.ofString(body));
+        if (!adminToken.isBlank() && adminProtected(path)) {
+            builder.header("X-CloudIslands-Admin-Token", adminToken);
+        }
+        HttpRequest request = builder.build();
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
             .thenApply(response -> response.statusCode() >= 200 && response.statusCode() < 300 ? response.body() : "");
+    }
+
+    private boolean adminProtected(String path) {
+        return path.startsWith("/v1/admin")
+            || path.equals("/v1/audit")
+            || path.equals("/v1/events")
+            || path.equals("/v1/jobs")
+            || path.equals("/v1/jobs/claim")
+            || path.equals("/v1/jobs/complete")
+            || path.equals("/v1/jobs/fail")
+            || path.equals("/v1/jobs/recover");
     }
 
     private static String text(String json, String field, String fallback) {

@@ -26,7 +26,7 @@ public final class AdminEndpointGuard {
 
     private boolean tokenAllowed(HttpExchange exchange) {
         if (adminToken.isBlank()) {
-            return true;
+            return false;
         }
         String header = exchange.getRequestHeaders().getFirst("X-CloudIslands-Admin-Token");
         return adminToken.equals(header);
@@ -54,7 +54,8 @@ public final class AdminEndpointGuard {
     private AdminPermission permissionFor(String path) {
         return switch (path) {
             case "/v1/audit" -> AdminPermission.AUDIT_READ;
-            case "/v1/jobs/claim", "/v1/jobs/complete", "/v1/jobs/fail" -> AdminPermission.JOB_MANAGE;
+            case "/v1/events" -> AdminPermission.AUDIT_READ;
+            case "/v1/jobs", "/v1/jobs/claim", "/v1/jobs/complete", "/v1/jobs/fail", "/v1/jobs/recover" -> AdminPermission.JOB_MANAGE;
             case "/v1/admin/nodes/drain" -> AdminPermission.NODE_DRAIN;
             case "/v1/admin/nodes/undrain" -> AdminPermission.NODE_UNDRAIN;
             case "/v1/admin/islands/activate" -> AdminPermission.ISLAND_ACTIVATE;
