@@ -8,6 +8,7 @@ import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandJobSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandTemplateSnapshot;
+import kr.lunaf.cloudislands.api.model.RouteTicket;
 
 public interface IslandAdminService {
     CompletableFuture<Void> drainNode(String nodeId);
@@ -18,6 +19,9 @@ public interface IslandAdminService {
     CompletableFuture<Void> restoreIsland(UUID islandId, long snapshotNo);
     CompletableFuture<Void> quarantineIsland(UUID islandId, String reason);
     CompletableFuture<Void> repairIsland(UUID islandId, String reason);
+    CompletableFuture<RouteTicket> createAdminTeleportTicket(UUID playerUuid, UUID islandId);
+    CompletableFuture<java.util.Optional<RouteTicket>> getRouteTicket(UUID ticketId);
+    CompletableFuture<Void> clearRoute(UUID playerUuid, UUID ticketId);
     CompletableFuture<List<IslandJobSnapshot>> listJobs();
     CompletableFuture<Void> retryJob(UUID jobId);
     CompletableFuture<Void> cancelJob(UUID jobId);

@@ -42,6 +42,7 @@ import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
+import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RoutePlan;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
@@ -336,6 +337,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> restoreIsland(UUID islandId, long snapshotNo) { return client.restoreIslandSnapshot(islandId, snapshotNo); }
         @Override public CompletableFuture<Void> quarantineIsland(UUID islandId, String reason) { return client.quarantineIsland(islandId, reason).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> repairIsland(UUID islandId, String reason) { return client.repairIsland(islandId, reason).thenApply(_body -> null); }
+        @Override public CompletableFuture<RouteTicket> createAdminTeleportTicket(UUID playerUuid, UUID islandId) { return client.adminIslandTeleport(playerUuid, islandId); }
+        @Override public CompletableFuture<Optional<RouteTicket>> getRouteTicket(UUID ticketId) { return client.routeTicket(ticketId).thenApply(PaperCloudIslandsApi::routeTicket); }
+        @Override public CompletableFuture<Void> clearRoute(UUID playerUuid, UUID ticketId) { return client.clearRoute(playerUuid, ticketId).thenApply(_body -> null); }
         @Override public CompletableFuture<List<IslandJobSnapshot>> listJobs() { return client.listJobs().thenApply(PaperCloudIslandsApi::jobs); }
         @Override public CompletableFuture<Void> retryJob(UUID jobId) { return client.retryJob(jobId).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> cancelJob(UUID jobId) { return client.cancelJob(jobId).thenApply(_body -> null); }
@@ -781,6 +785,45 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return audit;
     }
 
+    private static Optional<RouteTicket> routeTicket(String json) {
+        if (json == null || json.isBlank() || json.contains("\"error\"")) {
+            return Optional.empty();
+        }
+        java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
+        payload.put("targetServerName", text(json, "targetServerName", text(json, "targetNode", "")));
+        putPayloadIfPresent(payload, json, "homeName");
+        putPayloadIfPresent(payload, json, "warpName");
+        putPayloadIfPresent(payload, json, "localX");
+        putPayloadIfPresent(payload, json, "localY");
+        putPayloadIfPresent(payload, json, "localZ");
+        putPayloadIfPresent(payload, json, "yaw");
+        putPayloadIfPresent(payload, json, "pitch");
+        return Optional.of(new RouteTicket(
+            uuid(json, "ticketId", new UUID(0L, 0L)),
+            uuid(json, "playerUuid", new UUID(0L, 0L)),
+            enumValue(RouteAction.class, text(json, "action", "HOME"), RouteAction.HOME),
+            uuid(json, "islandId", new UUID(0L, 0L)),
+            text(json, "targetNode", ""),
+            text(json, "targetWorld", ""),
+            enumValue(RouteTicketState.class, text(json, "state", "READY"), RouteTicketState.READY),
+            instant(text(json, "expiresAt", Instant.EPOCH.toString())),
+            text(json, "nonce", ""),
+            Map.copyOf(payload)
+        ));
+    }
+
+    private static void putPayloadIfPresent(Map<String, String> payload, String json, String field) {
+        String value = text(json, field, null);
+        if (value != null) {
+            payload.put(field, value);
+            return;
+        }
+        String scalar = scalar(json, field);
+        if (scalar != null) {
+            payload.put(field, scalar);
+        }
+    }
+
     private static List<IslandJobSnapshot> jobs(String json) {
         List<IslandJobSnapshot> jobs = new ArrayList<>();
         for (String object : objects(json, "jobs")) {
@@ -948,6 +991,20 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             end++;
         }
         return json.substring(valueStart, end).replace("\"", "").trim();
+    }
+
+    private static String scalar(String json, String field) {
+        String needle = "\"" + field + "\":";
+        int start = json.indexOf(needle);
+        if (start < 0) {
+            return null;
+        }
+        int valueStart = start + needle.length();
+        int end = valueStart;
+        while (end < json.length() && "0123456789.-".indexOf(json.charAt(end)) >= 0) {
+            end++;
+        }
+        return end == valueStart ? null : json.substring(valueStart, end);
     }
 
     private static Instant instant(String value) {
