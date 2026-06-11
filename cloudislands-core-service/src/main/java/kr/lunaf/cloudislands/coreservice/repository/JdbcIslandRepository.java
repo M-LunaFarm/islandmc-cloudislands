@@ -84,6 +84,40 @@ public final class JdbcIslandRepository implements IslandRepository {
     }
 
     @Override
+    public boolean transferOwnership(UUID islandId, UUID currentOwnerUuid, UUID newOwnerUuid) {
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            lockPlayerProfile(connection, currentOwnerUuid);
+            lockPlayerProfile(connection, newOwnerUuid);
+            if (findByOwnerInTransaction(connection, newOwnerUuid).isPresent()) {
+                connection.rollback();
+                return false;
+            }
+            try (PreparedStatement island = connection.prepareStatement("UPDATE islands SET owner_uuid = ?, updated_at = now() WHERE id = ? AND owner_uuid = ? AND deleted_at IS NULL");
+                 PreparedStatement oldOwner = connection.prepareStatement("UPDATE island_members SET role = 'CO_OWNER' WHERE island_id = ? AND player_uuid = ? AND role = 'OWNER'");
+                 PreparedStatement newOwner = connection.prepareStatement("INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, 'OWNER') ON CONFLICT (island_id, player_uuid) DO UPDATE SET role = 'OWNER'")) {
+                island.setObject(1, newOwnerUuid);
+                island.setObject(2, islandId);
+                island.setObject(3, currentOwnerUuid);
+                if (island.executeUpdate() == 0) {
+                    connection.rollback();
+                    return false;
+                }
+                oldOwner.setObject(1, islandId);
+                oldOwner.setObject(2, currentOwnerUuid);
+                oldOwner.executeUpdate();
+                newOwner.setObject(1, islandId);
+                newOwner.setObject(2, newOwnerUuid);
+                newOwner.executeUpdate();
+            }
+            connection.commit();
+            return true;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to transfer island ownership", exception);
+        }
+    }
+
+    @Override
     public void createOwnerMember(UUID islandId, UUID ownerUuid) {
         try (Connection connection = dataSource.getConnection()) {
             createOwnerMember(connection, islandId, ownerUuid);

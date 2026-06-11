@@ -115,6 +115,12 @@ public final class CloudIslandsVelocityPlugin {
             routingController.setRole(player, islandId, targetUuid, IslandRole.MEMBER);
             return;
         }
+        if (args[0].equalsIgnoreCase("transfer") || args[0].equals("양도")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
+            routingController.transferOwnership(player, islandId, targetUuid);
+            return;
+        }
         if (args[0].equalsIgnoreCase("trust") || args[0].equals("신뢰")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);

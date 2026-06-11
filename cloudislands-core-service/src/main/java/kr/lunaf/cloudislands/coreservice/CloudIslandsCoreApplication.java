@@ -374,6 +374,21 @@ public final class CloudIslandsCoreApplication {
             events.publish("ISLAND_MEMBER_SET", Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", role.name()));
             write(exchange, 202, ApiResponses.ok(true));
         });
+        route("/v1/islands/transfer", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            UUID targetUuid = JsonFields.uuid(body, "targetUuid", new UUID(0L, 0L));
+            boolean transferred = islandRepository.transferOwnership(islandId, actorUuid, targetUuid);
+            if (transferred) {
+                metadataRepository.upsertMember(islandId, actorUuid, IslandRole.CO_OWNER);
+                metadataRepository.upsertMember(islandId, targetUuid, IslandRole.OWNER);
+            }
+            audit.log(actorUuid, "PLAYER", "ISLAND_OWNERSHIP_TRANSFER", "ISLAND", islandId.toString(), Map.of("targetUuid", targetUuid.toString(), "transferred", Boolean.toString(transferred)));
+            islandLogs.append(islandId, actorUuid, "ISLAND_OWNERSHIP_TRANSFER", Map.of("targetUuid", targetUuid.toString(), "transferred", Boolean.toString(transferred)));
+            events.publish("ISLAND_OWNERSHIP_TRANSFER", Map.of("islandId", islandId.toString(), "actorUuid", actorUuid.toString(), "targetUuid", targetUuid.toString(), "transferred", Boolean.toString(transferred)));
+            write(exchange, transferred ? 202 : 409, transferred ? ApiResponses.ok(true) : ApiResponses.error("OWNERSHIP_TRANSFER_DENIED", "Only the current owner can transfer to a player without an island"));
+        });
         route("/v1/islands/members/remove", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));

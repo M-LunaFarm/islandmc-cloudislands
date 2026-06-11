@@ -45,6 +45,19 @@ public final class InMemoryIslandRepository implements IslandRepository {
     }
 
     @Override
+    public boolean transferOwnership(UUID islandId, UUID currentOwnerUuid, UUID newOwnerUuid) {
+        IslandSnapshot island = byIslandId.get(islandId);
+        if (island == null || !island.ownerUuid().equals(currentOwnerUuid) || byOwner.containsKey(newOwnerUuid)) {
+            return false;
+        }
+        IslandSnapshot transferred = new IslandSnapshot(island.islandId(), newOwnerUuid, island.name(), island.state(), island.size(), island.level(), island.worth(), island.publicAccess(), island.createdAt(), Instant.now());
+        byIslandId.put(islandId, transferred);
+        byOwner.remove(currentOwnerUuid, islandId);
+        byOwner.put(newOwnerUuid, islandId);
+        return true;
+    }
+
+    @Override
     public void createOwnerMember(UUID islandId, UUID ownerUuid) {
     }
 

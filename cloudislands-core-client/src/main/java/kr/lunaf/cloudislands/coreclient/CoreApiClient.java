@@ -22,6 +22,7 @@ public interface CoreApiClient {
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
     CompletableFuture<String> listIslandMembers(UUID islandId);
     CompletableFuture<Void> setIslandMember(UUID islandId, UUID actorUuid, UUID playerUuid, IslandRole role);
+    CompletableFuture<Void> transferIslandOwnership(UUID islandId, UUID actorUuid, UUID targetUuid);
     CompletableFuture<Void> removeIslandMember(UUID islandId, UUID actorUuid, UUID playerUuid);
     CompletableFuture<String> createIslandInvite(UUID islandId, UUID inviterUuid, UUID targetUuid);
     CompletableFuture<String> listPendingInvites(UUID playerUuid);

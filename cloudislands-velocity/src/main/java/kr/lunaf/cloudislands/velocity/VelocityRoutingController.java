@@ -86,6 +86,10 @@ public final class VelocityRoutingController {
         coreApiClient.setIslandMember(islandId, player.getUniqueId(), targetUuid, role).thenRun(() -> player.sendMessage(Component.text("섬 멤버 역할을 변경했습니다.")));
     }
 
+    public void transferOwnership(Player player, UUID islandId, UUID targetUuid) {
+        coreApiClient.transferIslandOwnership(islandId, player.getUniqueId(), targetUuid).thenRun(() -> player.sendMessage(Component.text("섬 소유권을 양도했습니다.")));
+    }
+
     public void kickMember(Player player, UUID islandId, UUID targetUuid) {
         coreApiClient.removeIslandMember(islandId, player.getUniqueId(), targetUuid).thenRun(() -> player.sendMessage(Component.text("섬 멤버를 추방했습니다.")));
     }
