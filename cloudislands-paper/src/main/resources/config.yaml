@@ -33,6 +33,7 @@ island-node:
 
 protection:
   cache-permissions: true
+  cache-event-poll-ticks: 100
   deny-message-cooldown-ms: 1000
 
 heartbeat:

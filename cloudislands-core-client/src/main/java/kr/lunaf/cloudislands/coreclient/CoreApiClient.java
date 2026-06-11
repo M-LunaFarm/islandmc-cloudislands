@@ -90,6 +90,7 @@ public interface CoreApiClient {
     CompletableFuture<String> debugRoutes(UUID playerUuid);
     CompletableFuture<String> routeTicket(UUID ticketId);
     CompletableFuture<String> clearRoute(UUID playerUuid, UUID ticketId);
+    CompletableFuture<String> listEvents();
     CompletableFuture<String> clearCache();
     CompletableFuture<String> reload();
     CompletableFuture<String> migrateSuperiorSkyblock2(String action, String path);

@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.paper.activation.IslandDeactivationHandler;
 import kr.lunaf.cloudislands.paper.activation.IslandSaveService;
 import kr.lunaf.cloudislands.paper.activation.ShardWorldManager;
 import kr.lunaf.cloudislands.paper.admin.AdminCommandController;
+import kr.lunaf.cloudislands.paper.cache.PermissionEventPoller;
 import kr.lunaf.cloudislands.paper.cache.PermissionCacheSyncService;
 import kr.lunaf.cloudislands.paper.generator.DefaultGeneratorRules;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
@@ -37,6 +38,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private CloudIslandsPaperAgent agent;
     private PaperHeartbeatService heartbeatService;
     private PaperIslandJobWorker jobWorker;
+    private PermissionEventPoller permissionEventPoller;
     private ActiveIslandRegistry activeIslands;
 
     @Override
@@ -71,6 +73,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         if (jobWorker != null) {
             jobWorker.stop();
         }
+        if (permissionEventPoller != null) {
+            permissionEventPoller.stop();
+        }
         if (heartbeatService != null) {
             heartbeatService.stop();
         }
@@ -97,6 +102,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         IslandDeactivationHandler deactivationHandler = new IslandDeactivationHandler(activeIslands, shardWorldManager, agent.protection(), saveService);
         PermissionCacheSyncService permissionSync = new PermissionCacheSyncService(this, client, agent.permissionCache());
         this.jobWorker = new PaperIslandJobWorker(this, new CoreBackedIslandJobSource(client), activationHandler, deactivationHandler, activeIslands, permissionSync, nodeId);
+        this.permissionEventPoller = new PermissionEventPoller(this, client, permissionSync);
+        permissionEventPoller.start(getConfig().getLong("protection.cache-event-poll-ticks", 100L));
         jobWorker.start(getConfig().getLong("island-node.activation.worker-interval-ticks", 20L));
     }
 }

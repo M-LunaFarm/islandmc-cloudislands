@@ -404,6 +404,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> listEvents() {
+        return post("/v1/events", "{}");
+    }
+
+    @Override
     public CompletableFuture<String> clearCache() {
         return post("/v1/admin/cache/clear", "{}");
     }
