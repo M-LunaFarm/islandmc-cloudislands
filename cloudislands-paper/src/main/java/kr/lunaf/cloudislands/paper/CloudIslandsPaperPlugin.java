@@ -13,6 +13,7 @@ import kr.lunaf.cloudislands.paper.admin.AdminCommandController;
 import kr.lunaf.cloudislands.paper.heartbeat.PaperHeartbeatService;
 import kr.lunaf.cloudislands.paper.job.CoreBackedIslandJobSource;
 import kr.lunaf.cloudislands.paper.job.PaperIslandJobWorker;
+import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
 import kr.lunaf.cloudislands.paper.session.PaperRouteSessionListener;
 import kr.lunaf.cloudislands.paper.storage.PaperStorageFactory;
 import kr.lunaf.cloudislands.paper.world.IslandWorldRestorer;
@@ -40,7 +41,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         AgentRole role = AgentRole.valueOf(getConfig().getString("node.role", "ISLAND_NODE"));
         CoreApiClient client = new JdkCoreApiClient(URI.create(getConfig().getString("core-api.base-url", "https://core-api.internal:8443")), System.getenv().getOrDefault("CI_CORE_TOKEN", ""), Duration.ofSeconds(3));
         this.agent = new CloudIslandsPaperAgent(this, role, client, nodeId);
-        getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection()), this);
+        getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection(), new BlockDeltaReporter(this, client)), this);
         getServer().getPluginManager().registerEvents(new PaperRouteSessionListener(client, agent.routeTickets(), nodeId), this);
         PluginCommand admin = getCommand("ciadmin");
         if (admin != null) {

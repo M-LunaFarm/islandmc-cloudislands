@@ -1,0 +1,80 @@
+package kr.lunaf.cloudislands.coreservice.ranking;
+
+import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.UUID;
+import javax.sql.DataSource;
+
+public final class JdbcIslandLevelRepository implements IslandLevelRepository {
+    private final DataSource dataSource;
+
+    public JdbcIslandLevelRepository(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
+    @Override
+    public void addBlockDelta(UUID islandId, String materialKey, long delta) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_block_counts(island_id, material_key, amount, dirty) VALUES (?, ?, GREATEST(0, ?), true) ON CONFLICT (island_id, material_key) DO UPDATE SET amount = GREATEST(0, island_block_counts.amount + ?), dirty = true, updated_at = now()")) {
+            statement.setObject(1, islandId);
+            statement.setString(2, materialKey);
+            statement.setLong(3, delta);
+            statement.setLong(4, delta);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to update island block count", exception);
+        }
+    }
+
+    @Override
+    public Map<String, Long> blockCounts(UUID islandId) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT material_key, amount FROM island_block_counts WHERE island_id = ?")) {
+            statement.setObject(1, islandId);
+            try (ResultSet rs = statement.executeQuery()) {
+                Map<String, Long> result = new LinkedHashMap<>();
+                while (rs.next()) {
+                    result.put(rs.getString("material_key"), rs.getLong("amount"));
+                }
+                return result;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read island block counts", exception);
+        }
+    }
+
+    @Override
+    public Map<String, RankingRecalculationService.BlockValue> blockValues() {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT material_key, worth, level_points, island_limit FROM block_values")) {
+            try (ResultSet rs = statement.executeQuery()) {
+                Map<String, RankingRecalculationService.BlockValue> result = new LinkedHashMap<>();
+                while (rs.next()) {
+                    result.put(rs.getString("material_key"), new RankingRecalculationService.BlockValue(rs.getBigDecimal("worth"), rs.getLong("level_points"), rs.getLong("island_limit")));
+                }
+                return result;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read block values", exception);
+        }
+    }
+
+    @Override
+    public void putBlockValue(String materialKey, RankingRecalculationService.BlockValue value) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("INSERT INTO block_values(material_key, worth, level_points, island_limit) VALUES (?, ?, ?, ?) ON CONFLICT (material_key) DO UPDATE SET worth = EXCLUDED.worth, level_points = EXCLUDED.level_points, island_limit = EXCLUDED.island_limit")) {
+            statement.setString(1, materialKey);
+            statement.setBigDecimal(2, value.worth());
+            statement.setLong(3, value.levelPoints());
+            statement.setLong(4, value.limit());
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to save block value", exception);
+        }
+    }
+}

@@ -5,6 +5,7 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigDecimal;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -29,6 +30,13 @@ import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue;
+import kr.lunaf.cloudislands.coreservice.ranking.InMemoryIslandLevelRepository;
+import kr.lunaf.cloudislands.coreservice.ranking.InMemoryRankingRepository;
+import kr.lunaf.cloudislands.coreservice.ranking.IslandLevelRepository;
+import kr.lunaf.cloudislands.coreservice.ranking.JdbcIslandLevelRepository;
+import kr.lunaf.cloudislands.coreservice.ranking.JdbcRankingRepository;
+import kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService;
+import kr.lunaf.cloudislands.coreservice.ranking.RankingRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRuntimeRepository;
@@ -76,6 +84,9 @@ public final class CloudIslandsCoreApplication {
         IslandRepository islandRepository = config.jdbcRepositories() ? new JdbcIslandRepository(dataSource) : new InMemoryIslandRepository();
         IslandMetadataRepository metadataRepository = config.jdbcRepositories() ? new JdbcIslandMetadataRepository(dataSource) : new InMemoryIslandMetadataRepository();
         IslandRuntimeRepository runtimeRepository = config.jdbcRepositories() ? new JdbcIslandRuntimeRepository(dataSource) : new InMemoryIslandRuntimeRepository();
+        RankingRepository rankingRepository = config.jdbcRepositories() ? new JdbcRankingRepository(dataSource) : new InMemoryRankingRepository();
+        IslandLevelRepository levelRepository = config.jdbcRepositories() ? new JdbcIslandLevelRepository(dataSource) : new InMemoryIslandLevelRepository();
+        RankingRecalculationService levelRecalculation = new RankingRecalculationService(rankingRepository, events);
         AuditLogger audit = config.jdbcRepositories() ? new JdbcAuditLogger(dataSource) : new InMemoryAuditLogger();
         InMemoryAuditLogger inMemoryAudit = audit instanceof InMemoryAuditLogger logger ? logger : new InMemoryAuditLogger();
         RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets, islandRepository, metadataRepository);
@@ -88,6 +99,14 @@ public final class CloudIslandsCoreApplication {
         route("/v1/jobs", exchange -> write(exchange, 200, jobs instanceof InMemoryIslandJobPublisher memoryJobs ? memoryJobs.toJson() : "{\"mode\":\"REDIS\"}"));
         route("/v1/events", exchange -> write(exchange, 200, events.toJson()));
         route("/v1/audit", exchange -> write(exchange, 200, inMemoryAudit.toJson()));
+        route("/v1/rankings/level", exchange -> {
+            String body = readBody(exchange);
+            write(exchange, 200, rankingsJson(rankingRepository.topByLevel(JsonFields.integer(body, "limit", 10))));
+        });
+        route("/v1/rankings/worth", exchange -> {
+            String body = readBody(exchange);
+            write(exchange, 200, rankingsJson(rankingRepository.topByWorth(JsonFields.integer(body, "limit", 10))));
+        });
         route("/v1/jobs/claim", exchange -> {
             String body = readBody(exchange);
             String nodeId = JsonFields.text(body, "nodeId", "");
@@ -177,6 +196,32 @@ public final class CloudIslandsCoreApplication {
         route("/v1/admin/islands/quarantine", exchange -> {
             String body = readBody(exchange);
             lifecycle(exchange, lifecycle.quarantine(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "reason", "admin")));
+        });
+        route("/v1/admin/block-values", exchange -> {
+            String body = readBody(exchange);
+            String materialKey = JsonFields.text(body, "materialKey", "minecraft:stone");
+            BigDecimal worth = new BigDecimal(JsonFields.text(body, "worth", Double.toString(JsonFields.decimal(body, "worth", 0.0D))));
+            long levelPoints = JsonFields.longValue(body, "levelPoints", 0L);
+            long limit = JsonFields.longValue(body, "limit", 0L);
+            levelRepository.putBlockValue(materialKey, new RankingRecalculationService.BlockValue(worth, levelPoints, limit));
+            audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "ADMIN", "BLOCK_VALUE_SET", "MATERIAL", materialKey, Map.of("worth", worth.toPlainString(), "levelPoints", Long.toString(levelPoints)));
+            write(exchange, 202, ApiResponses.ok(true));
+        });
+        route("/v1/islands/blocks/delta", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            String materialKey = JsonFields.text(body, "materialKey", "minecraft:air");
+            long delta = JsonFields.longValue(body, "delta", 0L);
+            levelRepository.addBlockDelta(islandId, materialKey, delta);
+            rankingRepository.markDirty(islandId);
+            events.publish("ISLAND_BLOCK_DELTA", Map.of("islandId", islandId.toString(), "materialKey", materialKey, "delta", Long.toString(delta)));
+            write(exchange, 202, ApiResponses.ok(true));
+        });
+        route("/v1/islands/level/recalculate", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            var snapshot = levelRecalculation.recalculate(islandId, levelRepository.blockCounts(islandId), levelRepository.blockValues(), metadataRepository.members(islandId).size());
+            write(exchange, 202, levelJson(snapshot));
         });
         route("/v1/islands/members", exchange -> {
             String body = readBody(exchange);
@@ -359,6 +404,23 @@ public final class CloudIslandsCoreApplication {
 
     private static String sessionJson(PlayerRouteSession session) {
         return "{\"playerUuid\":\"" + session.playerUuid() + "\",\"ticketId\":\"" + session.ticketId() + "\",\"targetNode\":\"" + session.targetNode() + "\",\"targetServerName\":\"" + session.targetServerName() + "\",\"nonce\":\"" + session.nonce() + "\",\"expiresAt\":\"" + session.expiresAt() + "\"}";
+    }
+
+    private static String levelJson(kr.lunaf.cloudislands.coreservice.ranking.IslandRankSnapshot snapshot) {
+        return "{\"islandId\":\"" + snapshot.islandId() + "\",\"level\":" + snapshot.level() + ",\"worth\":\"" + snapshot.worth().toPlainString() + "\",\"calculatedAt\":\"" + snapshot.updatedAt() + "\"}";
+    }
+
+    private static String rankingsJson(java.util.List<kr.lunaf.cloudislands.coreservice.ranking.IslandRankSnapshot> rankings) {
+        StringBuilder builder = new StringBuilder("{\"rankings\":[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.coreservice.ranking.IslandRankSnapshot ranking : rankings) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append(levelJson(ranking));
+        }
+        return builder.append("]}").toString();
     }
 
     private static IslandLocation location(String body) {

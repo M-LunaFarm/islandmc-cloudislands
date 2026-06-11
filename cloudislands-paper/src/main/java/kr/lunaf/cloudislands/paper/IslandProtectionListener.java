@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper;
 
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -28,19 +29,29 @@ import org.bukkit.event.vehicle.VehicleDestroyEvent;
 
 public final class IslandProtectionListener implements Listener {
     private final ProtectionController protection;
+    private final BlockDeltaReporter blockDeltas;
 
-    public IslandProtectionListener(ProtectionController protection) {
+    public IslandProtectionListener(ProtectionController protection, BlockDeltaReporter blockDeltas) {
         this.protection = protection;
+        this.blockDeltas = blockDeltas;
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
-        event.setCancelled(denied(event.getPlayer(), event.getBlock(), IslandPermission.BREAK));
+        boolean blocked = denied(event.getPlayer(), event.getBlock(), IslandPermission.BREAK);
+        event.setCancelled(blocked);
+        if (!blocked) {
+            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.broken(islandId, event.getBlock()));
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
-        event.setCancelled(denied(event.getPlayer(), event.getBlock(), IslandPermission.BUILD));
+        boolean blocked = denied(event.getPlayer(), event.getBlock(), IslandPermission.BUILD);
+        event.setCancelled(blocked);
+        if (!blocked) {
+            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.placed(islandId, event.getBlock()));
+        }
     }
 
     @EventHandler(ignoreCancelled = true)

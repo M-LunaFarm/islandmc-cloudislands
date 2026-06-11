@@ -32,6 +32,11 @@ public interface CoreApiClient {
     CompletableFuture<Void> setIslandWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
     CompletableFuture<Void> deleteIslandWarp(UUID islandId, UUID actorUuid, String name);
     CompletableFuture<Void> setIslandPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess);
+    CompletableFuture<Void> recordBlockDelta(UUID islandId, String materialKey, long delta);
+    CompletableFuture<String> recalculateIslandLevel(UUID islandId);
+    CompletableFuture<String> topIslandsByLevel(int limit);
+    CompletableFuture<String> topIslandsByWorth(int limit);
+    CompletableFuture<Void> setBlockValue(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit);
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid);
     CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId);
     CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName);

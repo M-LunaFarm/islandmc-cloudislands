@@ -118,6 +118,31 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<Void> recordBlockDelta(UUID islandId, String materialKey, long delta) {
+        return post("/v1/islands/blocks/delta", "{\"islandId\":\"" + islandId + "\",\"materialKey\":\"" + escape(materialKey) + "\",\"delta\":" + delta + "}").thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> recalculateIslandLevel(UUID islandId) {
+        return post("/v1/islands/level/recalculate", "{\"islandId\":\"" + islandId + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> topIslandsByLevel(int limit) {
+        return post("/v1/rankings/level", "{\"limit\":" + limit + "}");
+    }
+
+    @Override
+    public CompletableFuture<String> topIslandsByWorth(int limit) {
+        return post("/v1/rankings/worth", "{\"limit\":" + limit + "}");
+    }
+
+    @Override
+    public CompletableFuture<Void> setBlockValue(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) {
+        return post("/v1/admin/block-values", "{\"actorUuid\":\"" + actorUuid + "\",\"materialKey\":\"" + escape(materialKey) + "\",\"worth\":\"" + escape(worth) + "\",\"levelPoints\":" + levelPoints + ",\"limit\":" + limit + "}").thenApply(_body -> null);
+    }
+
+    @Override
     public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid) {
         return post("/v1/routes/home", "{\"playerUuid\":\"" + playerUuid + "\"}").thenApply(RouteTicketJson::parse);
     }

@@ -28,6 +28,10 @@ public final class ProtectionController {
         permissionCache.invalidate(islandId);
     }
 
+    public java.util.Optional<UUID> islandAt(Block block) {
+        return regionIndex.find(block.getWorld().getName(), block.getX(), block.getZ()).map(IslandRegion::islandId);
+    }
+
     public PermissionResult checkBlock(UUID playerUuid, String world, int blockX, int blockY, int blockZ, IslandPermission permission) {
         return regionIndex.find(world, blockX, blockZ)
             .map(region -> permissionCache.allowed(region.islandId(), playerUuid, permission, false)
