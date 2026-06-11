@@ -854,7 +854,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void connectWithTicket(Player player, String targetServerName) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             if (targetServerName == null || targetServerName.isBlank()) {
-                player.sendMessage("섬 서버를 찾을 수 없습니다.");
+                player.sendMessage("섬 이동 경로를 찾을 수 없습니다.");
                 return;
             }
             try {
@@ -863,9 +863,9 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 output.writeUTF("Connect");
                 output.writeUTF(targetServerName);
                 player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
-                player.sendMessage("섬 서버로 이동합니다.");
+                player.sendMessage("섬으로 이동합니다.");
             } catch (IOException exception) {
-                player.sendMessage("섬 서버로 이동하지 못했습니다.");
+                player.sendMessage("섬으로 이동하지 못했습니다.");
             }
         });
     }

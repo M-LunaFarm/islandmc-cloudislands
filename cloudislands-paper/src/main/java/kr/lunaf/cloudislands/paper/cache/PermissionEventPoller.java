@@ -131,8 +131,8 @@ public final class PermissionEventPoller {
 
     private void kickPlayers(String reason) {
         String message = reason == null || reason.isBlank()
-            ? "섬 서버 점검으로 로비로 이동합니다."
-            : "섬 서버 점검으로 로비로 이동합니다. 사유: " + reason;
+            ? "섬 점검으로 로비로 이동합니다."
+            : "섬 점검으로 로비로 이동합니다. 사유: " + reason;
         for (org.bukkit.entity.Player player : Bukkit.getOnlinePlayers()) {
             player.kickPlayer(message);
         }

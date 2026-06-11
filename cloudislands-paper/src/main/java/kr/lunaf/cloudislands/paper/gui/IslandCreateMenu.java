@@ -80,7 +80,7 @@ public final class IslandCreateMenu implements Listener {
             List<String> lore = new ArrayList<>();
             lore.add("templateId=" + template.id());
             if (!template.minNodeVersion().isBlank()) {
-                lore.add("필요 노드 버전: " + template.minNodeVersion());
+                lore.add("필요 플랫폼 버전: " + template.minNodeVersion());
             }
             lore.add("클릭하면 이 템플릿으로 섬을 생성합니다.");
             meta.setLore(lore);
