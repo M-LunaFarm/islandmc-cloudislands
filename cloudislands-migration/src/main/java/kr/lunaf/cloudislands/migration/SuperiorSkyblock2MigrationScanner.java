@@ -64,12 +64,13 @@ public final class SuperiorSkyblock2MigrationScanner {
             List<UUID> members = parseUuidList(content, "members", "islandMembers", "coopMembers", "coops");
             List<UUID> bannedVisitors = parseUuidList(content, "bans", "bannedPlayers", "bannedVisitors", "visitorBans");
             List<MigrationHome> homes = parseHomes(content);
+            List<MigrationWarp> warps = parseWarps(content);
             boolean publicAccess = parseBoolean(content, "public", parseBoolean(content, "isPublic", parseBoolean(content, "publicAccess", false)));
             boolean locked = parseBoolean(content, "locked", parseBoolean(content, "isLocked", false));
             LinkedHashSet<UUID> allMembers = new LinkedHashSet<>();
             allMembers.add(ownerUuid);
             allMembers.addAll(members);
-            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), bannedVisitors, homes, publicAccess, locked, size, level, worth));
+            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), bannedVisitors, homes, warps, publicAccess, locked, size, level, worth));
         } catch (RuntimeException | IOException exception) {
             issues.add(new MigrationIssue("ISLAND_FILE_PARSE_FAILED", file + ": " + exception.getMessage(), true));
         }
@@ -194,6 +195,21 @@ public final class SuperiorSkyblock2MigrationScanner {
         float yaw = parseFloat(content, "homeYaw", parseFloat(content, "spawnYaw", parseFloat(content, "yaw", 180.0F)));
         float pitch = parseFloat(content, "homePitch", parseFloat(content, "spawnPitch", parseFloat(content, "pitch", 0.0F)));
         return List.of(new MigrationHome(name.isBlank() ? "default" : name, world, x, y, z, yaw, pitch));
+    }
+
+    private List<MigrationWarp> parseWarps(String content) {
+        if (!containsAnyKey(content, "warpX", "warpY", "warpZ", "warpWorld")) {
+            return List.of();
+        }
+        String name = parseString(content, "warpName", "default");
+        String world = parseString(content, "warpWorld", parseString(content, "world", ""));
+        double x = parseDouble(content, "warpX", 0.5D);
+        double y = parseDouble(content, "warpY", 100.0D);
+        double z = parseDouble(content, "warpZ", 0.5D);
+        float yaw = parseFloat(content, "warpYaw", parseFloat(content, "yaw", 180.0F));
+        float pitch = parseFloat(content, "warpPitch", parseFloat(content, "pitch", 0.0F));
+        boolean publicAccess = parseBoolean(content, "warpPublic", parseBoolean(content, "publicWarp", true));
+        return List.of(new MigrationWarp(name.isBlank() ? "default" : name, world, x, y, z, yaw, pitch, publicAccess));
     }
 
     private boolean containsAnyKey(String content, String... keys) {

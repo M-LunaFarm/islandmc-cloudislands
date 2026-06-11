@@ -68,6 +68,9 @@ public final class MigrationAdminService {
             for (kr.lunaf.cloudislands.migration.MigrationHome home : manifest.homes()) {
                 metadata.upsertHome(manifest.islandId(), home.name(), new IslandLocation(home.worldName(), home.x(), home.y(), home.z(), home.yaw(), home.pitch()), manifest.ownerUuid());
             }
+            for (kr.lunaf.cloudislands.migration.MigrationWarp warp : manifest.warps()) {
+                metadata.upsertWarp(manifest.islandId(), warp.name(), new IslandLocation(warp.worldName(), warp.x(), warp.y(), warp.z(), warp.yaw(), warp.pitch()), warp.publicAccess(), manifest.ownerUuid());
+            }
             metadata.setPublicAccess(manifest.islandId(), manifest.publicAccess());
             metadata.setLocked(manifest.islandId(), manifest.locked());
             playerProfiles.setPrimaryIsland(manifest.ownerUuid(), manifest.islandId());
@@ -85,6 +88,7 @@ public final class MigrationAdminService {
                 .filter(_island -> manifest.members().stream().allMatch(memberUuid -> metadata.isMember(manifest.islandId(), memberUuid)))
                 .filter(_island -> manifest.bannedVisitors().stream().allMatch(bannedUuid -> metadata.isBanned(manifest.islandId(), bannedUuid)))
                 .filter(_island -> manifest.homes().stream().allMatch(home -> metadata.home(manifest.islandId(), home.name()).isPresent()))
+                .filter(_island -> manifest.warps().stream().allMatch(warp -> metadata.warp(manifest.islandId(), warp.name()).isPresent()))
                 .filter(_island -> metadata.isPublicAccess(manifest.islandId()) == manifest.publicAccess())
                 .filter(_island -> metadata.isLocked(manifest.islandId()) == manifest.locked())
                 .ifPresent(_island -> imported.add(manifest));
