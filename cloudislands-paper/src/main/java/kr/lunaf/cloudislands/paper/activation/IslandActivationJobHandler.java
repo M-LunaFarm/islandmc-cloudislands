@@ -49,7 +49,7 @@ public final class IslandActivationJobHandler {
         try {
             IslandBundleManifest manifest = storage.readManifest(islandId);
             ShardWorldManager.CellAssignment cell = shardWorldManager.allocateCell(islandId);
-            BundleRestorePlan restorePlan = stageBundle(islandId, cell);
+            BundleRestorePlan restorePlan = stageBundle(islandId, cell, longValue(job.payload().get("snapshotNo")));
             if (restorePlan != null && cellTransfer != null) {
                 CellPlacementPlan placement = new ShardCellTransferPlanner(manifest.size()).placement(restorePlan);
                 cellTransfer.place(placement);
@@ -64,9 +64,9 @@ public final class IslandActivationJobHandler {
         }
     }
 
-    private BundleRestorePlan stageBundle(UUID islandId, ShardWorldManager.CellAssignment cell) throws IOException {
+    private BundleRestorePlan stageBundle(UUID islandId, ShardWorldManager.CellAssignment cell, long snapshotNo) throws IOException {
         if (worldRestorer != null) {
-            return worldRestorer.stage(islandId, cell.worldName(), cell.originX(), cell.originZ(), longValue(job.payload().get("snapshotNo")));
+            return worldRestorer.stage(islandId, cell.worldName(), cell.originX(), cell.originZ(), snapshotNo);
         }
         return null;
     }
