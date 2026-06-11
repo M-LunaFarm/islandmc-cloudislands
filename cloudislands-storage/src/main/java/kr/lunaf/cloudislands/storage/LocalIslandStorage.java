@@ -6,6 +6,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
 import kr.lunaf.cloudislands.storage.manifest.IslandManifestJson;
@@ -64,6 +66,41 @@ public final class LocalIslandStorage implements IslandStorage {
         Files.writeString(snapshotDir.resolve("checksums.sha256"), actualChecksum + "  bundle.tar.zst\n", StandardCharsets.UTF_8);
         Files.writeString(islandRoot.resolve("manifest.json"), IslandManifestJson.write(savedManifest), StandardCharsets.UTF_8);
         Files.writeString(islandRoot.resolve("latest"), snapshotDir.getFileName().toString(), StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public int pruneSnapshots(UUID islandId, int keepLatest) throws IOException {
+        if (keepLatest < 1) {
+            throw new IllegalArgumentException("keepLatest must be positive");
+        }
+        Path snapshotsRoot = islandRoot(islandId).resolve("snapshots");
+        if (!Files.exists(snapshotsRoot)) {
+            return 0;
+        }
+        List<Path> snapshots;
+        try (var stream = Files.list(snapshotsRoot)) {
+            snapshots = stream
+                .filter(Files::isDirectory)
+                .sorted(Comparator.comparing((Path path) -> path.getFileName().toString()).reversed())
+                .toList();
+        }
+        int deleted = 0;
+        for (int index = keepLatest; index < snapshots.size(); index++) {
+            deleteRecursively(snapshots.get(index));
+            deleted++;
+        }
+        return deleted;
+    }
+
+    private void deleteRecursively(Path path) throws IOException {
+        if (!Files.exists(path)) {
+            return;
+        }
+        try (var stream = Files.walk(path)) {
+            for (Path entry : stream.sorted(Comparator.reverseOrder()).toList()) {
+                Files.deleteIfExists(entry);
+            }
+        }
     }
 
     private Path islandRoot(UUID islandId) {

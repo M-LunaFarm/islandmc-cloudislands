@@ -11,6 +11,8 @@ import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 
 public final class IslandSaveService {
+    private static final int RETAINED_SNAPSHOTS = 50;
+
     private final IslandStorage storage;
     private final IslandBundleExporter exporter;
     private final Path exportRoot;
@@ -39,6 +41,7 @@ public final class IslandSaveService {
         try (InputStream input = Files.newInputStream(exported.bundleFile())) {
             storage.writeSnapshot(islandId, exported.snapshotNo(), input, manifest);
         }
+        storage.pruneSnapshots(islandId, RETAINED_SNAPSHOTS);
         return new SaveResult(islandId, exported.snapshotNo(), exported.bundleFile());
     }
 

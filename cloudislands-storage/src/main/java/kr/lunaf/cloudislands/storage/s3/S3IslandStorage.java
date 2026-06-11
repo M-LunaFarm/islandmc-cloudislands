@@ -61,6 +61,11 @@ public final class S3IslandStorage implements IslandStorage {
         requestBytes("PUT", key(islandId, "latest"), snapshot.getBytes(StandardCharsets.UTF_8));
     }
 
+    @Override
+    public int pruneSnapshots(UUID islandId, int keepLatest) {
+        return 0;
+    }
+
     private String key(UUID islandId, String suffix) {
         return "islands/" + islandId + "/" + suffix;
     }
