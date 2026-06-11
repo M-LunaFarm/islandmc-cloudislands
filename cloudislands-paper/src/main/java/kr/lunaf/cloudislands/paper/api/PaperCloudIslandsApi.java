@@ -467,7 +467,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
     private static List<IslandJobType> jobTypes(List<String> supportedTypes) {
         if (supportedTypes == null || supportedTypes.isEmpty()) {
-            return List.of(IslandJobType.CREATE_ISLAND, IslandJobType.ACTIVATE_ISLAND, IslandJobType.DEACTIVATE_ISLAND, IslandJobType.SNAPSHOT_ISLAND, IslandJobType.DELETE_ISLAND, IslandJobType.MIGRATE_ISLAND, IslandJobType.RESTORE_ISLAND, IslandJobType.RESET_ISLAND);
+            return List.of(IslandJobType.CREATE_ISLAND, IslandJobType.ACTIVATE_ISLAND, IslandJobType.SAVE_ISLAND, IslandJobType.DEACTIVATE_ISLAND, IslandJobType.SNAPSHOT_ISLAND, IslandJobType.DELETE_ISLAND, IslandJobType.MIGRATE_ISLAND, IslandJobType.RESTORE_ISLAND, IslandJobType.RESET_ISLAND);
         }
         List<IslandJobType> types = new ArrayList<>();
         for (String supportedType : supportedTypes) {

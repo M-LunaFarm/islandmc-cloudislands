@@ -1565,6 +1565,7 @@ public final class CloudIslandsCoreApplication {
             return java.util.List.of(
                 kr.lunaf.cloudislands.protocol.job.IslandJobType.CREATE_ISLAND,
                 kr.lunaf.cloudislands.protocol.job.IslandJobType.ACTIVATE_ISLAND,
+                kr.lunaf.cloudislands.protocol.job.IslandJobType.SAVE_ISLAND,
                 kr.lunaf.cloudislands.protocol.job.IslandJobType.DEACTIVATE_ISLAND,
                 kr.lunaf.cloudislands.protocol.job.IslandJobType.SNAPSHOT_ISLAND,
                 kr.lunaf.cloudislands.protocol.job.IslandJobType.DELETE_ISLAND,

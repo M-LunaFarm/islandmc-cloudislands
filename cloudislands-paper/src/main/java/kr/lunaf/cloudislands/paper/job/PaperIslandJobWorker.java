@@ -66,7 +66,7 @@ public final class PaperIslandJobWorker {
             return;
         }
         try {
-            List<IslandJob> claimed = jobSource.claim(nodeId, List.of(IslandJobType.CREATE_ISLAND, IslandJobType.ACTIVATE_ISLAND, IslandJobType.DEACTIVATE_ISLAND, IslandJobType.SNAPSHOT_ISLAND, IslandJobType.DELETE_ISLAND, IslandJobType.MIGRATE_ISLAND, IslandJobType.RESTORE_ISLAND, IslandJobType.RESET_ISLAND), 4);
+            List<IslandJob> claimed = jobSource.claim(nodeId, List.of(IslandJobType.CREATE_ISLAND, IslandJobType.ACTIVATE_ISLAND, IslandJobType.SAVE_ISLAND, IslandJobType.DEACTIVATE_ISLAND, IslandJobType.SNAPSHOT_ISLAND, IslandJobType.DELETE_ISLAND, IslandJobType.MIGRATE_ISLAND, IslandJobType.RESTORE_ISLAND, IslandJobType.RESET_ISLAND), 4);
             consecutiveFailures = 0;
             for (IslandJob job : claimed) {
                 handle(job);
@@ -81,7 +81,11 @@ public final class PaperIslandJobWorker {
 
     private void handle(IslandJob job) {
         try {
-            if (job.type() == IslandJobType.DEACTIVATE_ISLAND || job.type() == IslandJobType.SNAPSHOT_ISLAND || job.type() == IslandJobType.DELETE_ISLAND) {
+            if (job.type() == IslandJobType.SAVE_ISLAND || job.type() == IslandJobType.SNAPSHOT_ISLAND) {
+                handleSave(job);
+                return;
+            }
+            if (job.type() == IslandJobType.DEACTIVATE_ISLAND || job.type() == IslandJobType.DELETE_ISLAND) {
                 handleDeactivation(job);
                 return;
             }
@@ -142,6 +146,24 @@ public final class PaperIslandJobWorker {
             if (job.type() == IslandJobType.DELETE_ISLAND) {
                 Bukkit.getPluginManager().callEvent(new IslandDeleteEvent(result.islandId(), job.jobId(), nodeId, result.snapshotNo()));
             }
+            jobSource.complete(nodeId, job.jobId(), Map.of(
+                "snapshotNo", Long.toString(result.snapshotNo()),
+                "reason", job.payload().getOrDefault("reason", job.type().name()),
+                "checksum", result.checksum(),
+                "sizeBytes", Long.toString(result.sizeBytes())
+            ));
+        } else {
+            jobSource.fail(nodeId, job.jobId(), result.errorMessage());
+        }
+    }
+
+    private void handleSave(IslandJob job) {
+        if (deactivationHandler == null) {
+            jobSource.fail(nodeId, job.jobId(), "SAVE_UNAVAILABLE");
+            return;
+        }
+        IslandDeactivationHandler.DeactivationResult result = deactivationHandler.saveOnly(job.islandId());
+        if (result.success()) {
             jobSource.complete(nodeId, job.jobId(), Map.of(
                 "snapshotNo", Long.toString(result.snapshotNo()),
                 "reason", job.payload().getOrDefault("reason", job.type().name()),

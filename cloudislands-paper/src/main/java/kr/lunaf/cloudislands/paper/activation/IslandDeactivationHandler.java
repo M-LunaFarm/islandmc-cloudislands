@@ -41,5 +41,18 @@ public final class IslandDeactivationHandler {
         }
     }
 
+    public DeactivationResult saveOnly(UUID islandId) {
+        try {
+            IslandSaveService.SaveResult saveResult = null;
+            ActiveIslandRegistry.ActiveIsland active = activeIslands.find(islandId).orElse(null);
+            if (active != null && saveService != null) {
+                saveResult = saveService.save(islandId, active);
+            }
+            return new DeactivationResult(true, islandId, saveResult == null ? 0L : saveResult.snapshotNo(), saveResult == null ? "" : saveResult.checksum(), saveResult == null ? 0L : saveResult.sizeBytes(), null);
+        } catch (IOException exception) {
+            return new DeactivationResult(false, islandId, 0L, "", 0L, exception.getMessage());
+        }
+    }
+
     public record DeactivationResult(boolean success, UUID islandId, long snapshotNo, String checksum, long sizeBytes, String errorMessage) {}
 }
