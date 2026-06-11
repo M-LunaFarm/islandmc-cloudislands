@@ -23,6 +23,10 @@ public final class ExternalTarIslandBundleExporter implements IslandBundleExport
         Files.createDirectories(targetDirectory);
         long snapshotNo = Instant.now().toEpochMilli();
         Path bundle = targetDirectory.resolve(String.format("%d-bundle.tar.zst", snapshotNo));
+        while (Files.exists(bundle)) {
+            snapshotNo++;
+            bundle = targetDirectory.resolve(String.format("%d-bundle.tar.zst", snapshotNo));
+        }
         Path staging = targetDirectory.resolve("cell-stage");
         deleteDirectory(staging);
         Files.createDirectories(staging);
