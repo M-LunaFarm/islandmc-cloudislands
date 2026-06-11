@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.AuditLogSnapshot;
 import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandActionResult;
 import kr.lunaf.cloudislands.api.model.IslandJobSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandTemplateSnapshot;
@@ -14,7 +15,9 @@ import kr.lunaf.cloudislands.api.model.RouteTicket;
 
 public interface IslandAdminService {
     CompletableFuture<Void> drainNode(String nodeId);
+    CompletableFuture<IslandActionResult> drainNodeResult(String nodeId);
     CompletableFuture<Void> undrainNode(String nodeId);
+    CompletableFuture<IslandActionResult> undrainNodeResult(String nodeId);
     CompletableFuture<Void> sweepNode(String nodeId);
     CompletableFuture<Void> migrateIsland(UUID islandId, String targetNode);
     CompletableFuture<Void> snapshotIsland(UUID islandId, String reason);
@@ -35,6 +38,7 @@ public interface IslandAdminService {
     CompletableFuture<java.util.Optional<PlayerIslandProfile>> setPlayerPrimaryIsland(UUID playerUuid, UUID islandId);
     CompletableFuture<java.util.Optional<PlayerIslandProfile>> clearPlayerPrimaryIsland(UUID playerUuid);
     CompletableFuture<Void> setBlockValue(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit);
+    CompletableFuture<IslandActionResult> setBlockValueResult(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit);
     CompletableFuture<List<GlobalEventSnapshot>> listEvents();
     CompletableFuture<List<AuditLogSnapshot>> listAuditLogs();
     CompletableFuture<List<String>> listNodes();

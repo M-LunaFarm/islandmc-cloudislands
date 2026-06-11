@@ -348,8 +348,10 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             this.client = client;
         }
 
-        @Override public CompletableFuture<Void> drainNode(String nodeId) { return client.drainNode(nodeId).thenApply(_body -> null); }
-        @Override public CompletableFuture<Void> undrainNode(String nodeId) { return client.undrainNode(nodeId).thenApply(_body -> null); }
+        @Override public CompletableFuture<Void> drainNode(String nodeId) { return drainNodeResult(nodeId).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> drainNodeResult(String nodeId) { return client.drainNodeResult(nodeId).thenApply(body -> action(body, "NODE_DRAINED")); }
+        @Override public CompletableFuture<Void> undrainNode(String nodeId) { return undrainNodeResult(nodeId).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> undrainNodeResult(String nodeId) { return client.undrainNodeResult(nodeId).thenApply(body -> action(body, "NODE_UNDRAINED")); }
         @Override public CompletableFuture<Void> sweepNode(String nodeId) { return client.sweepNode(nodeId).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> migrateIsland(UUID islandId, String targetNode) { return client.migrateIsland(islandId, targetNode).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> snapshotIsland(UUID islandId, String reason) { return client.requestIslandSnapshot(islandId, reason); }
@@ -369,7 +371,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Optional<PlayerIslandProfile>> getPlayerProfile(UUID playerUuid) { return client.playerInfo(playerUuid).thenApply(PaperCloudIslandsApi::playerProfile); }
         @Override public CompletableFuture<Optional<PlayerIslandProfile>> setPlayerPrimaryIsland(UUID playerUuid, UUID islandId) { return client.setPlayerIsland(playerUuid, islandId).thenApply(PaperCloudIslandsApi::playerProfile); }
         @Override public CompletableFuture<Optional<PlayerIslandProfile>> clearPlayerPrimaryIsland(UUID playerUuid) { return client.clearPlayerIsland(playerUuid).thenApply(PaperCloudIslandsApi::playerProfile); }
-        @Override public CompletableFuture<Void> setBlockValue(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) { return client.setBlockValue(actorUuid, materialKey, worth, levelPoints, limit); }
+        @Override public CompletableFuture<Void> setBlockValue(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) { return setBlockValueResult(actorUuid, materialKey, worth, levelPoints, limit).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> setBlockValueResult(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) { return client.setBlockValueResult(actorUuid, materialKey, worth, levelPoints, limit).thenApply(body -> action(body, "BLOCK_VALUE_SET")); }
         @Override public CompletableFuture<List<GlobalEventSnapshot>> listEvents() { return client.listEvents().thenApply(PaperCloudIslandsApi::events); }
         @Override public CompletableFuture<List<AuditLogSnapshot>> listAuditLogs() { return client.listAuditLogs().thenApply(PaperCloudIslandsApi::auditLogs); }
 

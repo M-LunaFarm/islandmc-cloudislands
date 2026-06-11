@@ -284,7 +284,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<Void> setBlockValue(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) {
-        return post("/v1/admin/block-values", "{\"actorUuid\":\"" + actorUuid + "\",\"materialKey\":\"" + escape(materialKey) + "\",\"worth\":\"" + escape(worth) + "\",\"levelPoints\":" + levelPoints + ",\"limit\":" + limit + "}").thenApply(_body -> null);
+        return setBlockValueResult(actorUuid, materialKey, worth, levelPoints, limit).thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> setBlockValueResult(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) {
+        return postWithResultBody("/v1/admin/block-values", "{\"actorUuid\":\"" + actorUuid + "\",\"materialKey\":\"" + escape(materialKey) + "\",\"worth\":\"" + escape(worth) + "\",\"levelPoints\":" + levelPoints + ",\"limit\":" + limit + "}");
     }
 
     @Override
@@ -425,12 +430,22 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> drainNode(String nodeId) {
-        return post("/v1/admin/nodes/drain", "{\"nodeId\":\"" + escape(nodeId) + "\"}");
+        return drainNodeResult(nodeId);
+    }
+
+    @Override
+    public CompletableFuture<String> drainNodeResult(String nodeId) {
+        return postWithResultBody("/v1/admin/nodes/drain", "{\"nodeId\":\"" + escape(nodeId) + "\"}");
     }
 
     @Override
     public CompletableFuture<String> undrainNode(String nodeId) {
-        return post("/v1/admin/nodes/undrain", "{\"nodeId\":\"" + escape(nodeId) + "\"}");
+        return undrainNodeResult(nodeId);
+    }
+
+    @Override
+    public CompletableFuture<String> undrainNodeResult(String nodeId) {
+        return postWithResultBody("/v1/admin/nodes/undrain", "{\"nodeId\":\"" + escape(nodeId) + "\"}");
     }
 
     @Override

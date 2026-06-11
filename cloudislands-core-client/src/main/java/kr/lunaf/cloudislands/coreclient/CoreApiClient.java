@@ -67,6 +67,7 @@ public interface CoreApiClient {
     CompletableFuture<String> topIslandsByLevel(int limit);
     CompletableFuture<String> topIslandsByWorth(int limit);
     CompletableFuture<Void> setBlockValue(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit);
+    CompletableFuture<String> setBlockValueResult(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit);
     CompletableFuture<String> listBlockValues();
     CompletableFuture<String> listUpgradeRules();
     CompletableFuture<String> listIslandUpgrades(UUID islandId);
@@ -95,7 +96,9 @@ public interface CoreApiClient {
     CompletableFuture<String> listNodes();
     CompletableFuture<String> nodeInfo(String nodeId);
     CompletableFuture<String> drainNode(String nodeId);
+    CompletableFuture<String> drainNodeResult(String nodeId);
     CompletableFuture<String> undrainNode(String nodeId);
+    CompletableFuture<String> undrainNodeResult(String nodeId);
     CompletableFuture<String> sweepNode(String nodeId);
     CompletableFuture<String> activateIsland(UUID islandId);
     CompletableFuture<String> deactivateIsland(UUID islandId);
