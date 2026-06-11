@@ -21,6 +21,8 @@ public final class CloudIslandsCoreApplication {
         server.createContext("/v1/nodes", exchange -> write(exchange, 200, nodes.toJson()));
         server.createContext("/v1/routes/home", exchange -> write(exchange, 202, routing.prepareHomeRouteJson()));
         server.createContext("/v1/routes/visit", exchange -> write(exchange, 202, routing.prepareVisitRouteJson()));
+        server.createContext("/v1/routes/consume", exchange -> write(exchange, 200, ""));
+        server.createContext("/v1/nodes/heartbeat", exchange -> write(exchange, 202, "{\"accepted\":true}"));
     }
 
     public void start() {

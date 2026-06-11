@@ -4,6 +4,7 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import net.kyori.adventure.text.Component;
 
@@ -19,23 +20,20 @@ public final class VelocityRoutingController {
     }
 
     public void routeHome(Player player) {
-        coreApiClient.createHomeTicket(player.getUniqueId()).thenAccept(ticket -> {
-            if (ticket == null) {
-                fallback(player, "현재 섬 서비스 일부 기능이 점검 중입니다.");
-                return;
-            }
-            connectWithTicket(player, ticket.targetNode());
-        });
+        coreApiClient.createHomeTicket(player.getUniqueId()).thenAccept(ticket -> route(player, ticket, "현재 섬 서비스 일부 기능이 점검 중입니다."));
     }
 
     public void routeVisit(Player player, UUID targetIslandId) {
-        coreApiClient.createVisitTicket(player.getUniqueId(), targetIslandId).thenAccept(ticket -> {
-            if (ticket == null) {
-                fallback(player, "현재 섬 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.");
-                return;
-            }
-            connectWithTicket(player, ticket.targetNode());
-        });
+        coreApiClient.createVisitTicket(player.getUniqueId(), targetIslandId).thenAccept(ticket -> route(player, ticket, "현재 섬 서버가 혼잡합니다. 잠시 후 다시 시도해주세요."));
+    }
+
+    private void route(Player player, RouteTicket ticket, String failureMessage) {
+        if (ticket == null) {
+            fallback(player, failureMessage);
+            return;
+        }
+        String targetServerName = ticket.payload().getOrDefault("targetServerName", ticket.targetNode());
+        connectWithTicket(player, targetServerName);
     }
 
     private void connectWithTicket(Player player, String targetServerName) {
