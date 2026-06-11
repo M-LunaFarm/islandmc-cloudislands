@@ -9,6 +9,7 @@ import kr.lunaf.cloudislands.paper.cache.PermissionCacheSyncService;
 import kr.lunaf.cloudislands.paper.event.IslandActivateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandCreateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandDeactivateEvent;
+import kr.lunaf.cloudislands.paper.event.IslandDeleteEvent;
 import kr.lunaf.cloudislands.paper.event.IslandPreActivateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandPreCreateEvent;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
@@ -65,7 +66,7 @@ public final class PaperIslandJobWorker {
             return;
         }
         try {
-            List<IslandJob> claimed = jobSource.claim(nodeId, List.of(IslandJobType.CREATE_ISLAND, IslandJobType.ACTIVATE_ISLAND, IslandJobType.DEACTIVATE_ISLAND, IslandJobType.SNAPSHOT_ISLAND, IslandJobType.RESTORE_ISLAND, IslandJobType.RESET_ISLAND), 4);
+            List<IslandJob> claimed = jobSource.claim(nodeId, List.of(IslandJobType.CREATE_ISLAND, IslandJobType.ACTIVATE_ISLAND, IslandJobType.DEACTIVATE_ISLAND, IslandJobType.SNAPSHOT_ISLAND, IslandJobType.DELETE_ISLAND, IslandJobType.RESTORE_ISLAND, IslandJobType.RESET_ISLAND), 4);
             consecutiveFailures = 0;
             for (IslandJob job : claimed) {
                 handle(job);
@@ -80,7 +81,7 @@ public final class PaperIslandJobWorker {
 
     private void handle(IslandJob job) {
         try {
-            if (job.type() == IslandJobType.DEACTIVATE_ISLAND || job.type() == IslandJobType.SNAPSHOT_ISLAND) {
+            if (job.type() == IslandJobType.DEACTIVATE_ISLAND || job.type() == IslandJobType.SNAPSHOT_ISLAND || job.type() == IslandJobType.DELETE_ISLAND) {
                 handleDeactivation(job);
                 return;
             }
@@ -132,6 +133,9 @@ public final class PaperIslandJobWorker {
         IslandDeactivationHandler.DeactivationResult result = deactivationHandler.deactivate(job.islandId());
         if (result.success()) {
             Bukkit.getPluginManager().callEvent(new IslandDeactivateEvent(result.islandId(), nodeId, result.snapshotNo()));
+            if (job.type() == IslandJobType.DELETE_ISLAND) {
+                Bukkit.getPluginManager().callEvent(new IslandDeleteEvent(result.islandId(), job.jobId(), nodeId, result.snapshotNo()));
+            }
             jobSource.complete(nodeId, job.jobId(), Map.of("snapshotNo", Long.toString(result.snapshotNo())));
         } else {
             jobSource.fail(nodeId, job.jobId(), result.errorMessage());
