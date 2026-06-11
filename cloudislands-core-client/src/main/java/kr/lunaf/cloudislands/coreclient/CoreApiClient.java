@@ -79,7 +79,9 @@ public interface CoreApiClient {
     CompletableFuture<String> sendIslandChat(UUID islandId, UUID actorUuid, String channel, String message);
     CompletableFuture<String> listIslandSnapshots(UUID islandId, int limit);
     CompletableFuture<Void> requestIslandSnapshot(UUID islandId, String reason);
+    CompletableFuture<String> requestIslandSnapshotResult(UUID islandId, String reason);
     CompletableFuture<Void> restoreIslandSnapshot(UUID islandId, long snapshotNo);
+    CompletableFuture<String> restoreIslandSnapshotResult(UUID islandId, long snapshotNo);
     CompletableFuture<String> listIslandLogs(UUID islandId, int limit);
     CompletableFuture<String> islandBank(UUID islandId);
     CompletableFuture<String> depositIslandBank(UUID islandId, UUID actorUuid, String amount);
@@ -103,11 +105,14 @@ public interface CoreApiClient {
     CompletableFuture<String> activateIsland(UUID islandId);
     CompletableFuture<String> deactivateIsland(UUID islandId);
     CompletableFuture<String> migrateIsland(UUID islandId, String targetNode);
+    CompletableFuture<String> migrateIslandResult(UUID islandId, String targetNode);
     CompletableFuture<String> quarantineIsland(UUID islandId, String reason);
+    CompletableFuture<String> quarantineIslandResult(UUID islandId, String reason);
     CompletableFuture<String> adminIslandInfo(UUID lookupUuid);
     CompletableFuture<String> adminIslandWhere(UUID islandId);
     CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId);
     CompletableFuture<String> adminDeleteIsland(UUID islandId);
+    CompletableFuture<String> adminDeleteIslandResult(UUID islandId);
     CompletableFuture<String> repairIsland(UUID islandId, String reason);
     CompletableFuture<String> debugRoutes(UUID playerUuid);
     CompletableFuture<String> routeTicket(UUID ticketId);

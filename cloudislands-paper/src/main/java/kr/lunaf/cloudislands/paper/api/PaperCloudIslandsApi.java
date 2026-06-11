@@ -353,12 +353,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> undrainNode(String nodeId) { return undrainNodeResult(nodeId).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> undrainNodeResult(String nodeId) { return client.undrainNodeResult(nodeId).thenApply(body -> action(body, "NODE_UNDRAINED")); }
         @Override public CompletableFuture<Void> sweepNode(String nodeId) { return client.sweepNode(nodeId).thenApply(_body -> null); }
-        @Override public CompletableFuture<Void> migrateIsland(UUID islandId, String targetNode) { return client.migrateIsland(islandId, targetNode).thenApply(_body -> null); }
-        @Override public CompletableFuture<Void> snapshotIsland(UUID islandId, String reason) { return client.requestIslandSnapshot(islandId, reason); }
-        @Override public CompletableFuture<Void> restoreIsland(UUID islandId, long snapshotNo) { return client.restoreIslandSnapshot(islandId, snapshotNo); }
-        @Override public CompletableFuture<Void> quarantineIsland(UUID islandId, String reason) { return client.quarantineIsland(islandId, reason).thenApply(_body -> null); }
+        @Override public CompletableFuture<Void> migrateIsland(UUID islandId, String targetNode) { return migrateIslandResult(islandId, targetNode).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> migrateIslandResult(UUID islandId, String targetNode) { return client.migrateIslandResult(islandId, targetNode).thenApply(body -> actionCode(body, "MIGRATED")); }
+        @Override public CompletableFuture<Void> snapshotIsland(UUID islandId, String reason) { return snapshotIslandResult(islandId, reason).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> snapshotIslandResult(UUID islandId, String reason) { return client.requestIslandSnapshotResult(islandId, reason).thenApply(body -> actionCode(body, "SNAPSHOT_REQUESTED")); }
+        @Override public CompletableFuture<Void> restoreIsland(UUID islandId, long snapshotNo) { return restoreIslandResult(islandId, snapshotNo).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> restoreIslandResult(UUID islandId, long snapshotNo) { return client.restoreIslandSnapshotResult(islandId, snapshotNo).thenApply(body -> actionCode(body, "RESTORE_REQUESTED")); }
+        @Override public CompletableFuture<Void> quarantineIsland(UUID islandId, String reason) { return quarantineIslandResult(islandId, reason).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> quarantineIslandResult(UUID islandId, String reason) { return client.quarantineIslandResult(islandId, reason).thenApply(body -> actionCode(body, "QUARANTINED")); }
         @Override public CompletableFuture<Void> repairIsland(UUID islandId, String reason) { return client.repairIsland(islandId, reason).thenApply(_body -> null); }
-        @Override public CompletableFuture<Void> deleteIsland(UUID islandId) { return client.adminDeleteIsland(islandId).thenApply(_body -> null); }
+        @Override public CompletableFuture<Void> deleteIsland(UUID islandId) { return adminDeleteIslandResult(islandId).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> adminDeleteIslandResult(UUID islandId) { return client.adminDeleteIslandResult(islandId).thenApply(body -> action(body, "ISLAND_DELETED")); }
         @Override public CompletableFuture<RouteTicket> createAdminTeleportTicket(UUID playerUuid, UUID islandId) { return client.adminIslandTeleport(playerUuid, islandId); }
         @Override public CompletableFuture<Optional<RouteTicket>> getRouteTicket(UUID ticketId) { return client.routeTicket(ticketId).thenApply(PaperCloudIslandsApi::routeTicket); }
         @Override public CompletableFuture<Void> clearRoute(UUID playerUuid, UUID ticketId) { return client.clearRoute(playerUuid, ticketId).thenApply(_body -> null); }
@@ -604,6 +609,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private static IslandActionResult action(String json, String successCode) {
         boolean accepted = json.contains("\"accepted\":true");
         return new IslandActionResult(accepted, accepted ? successCode : text(json, "code", "FAILED"));
+    }
+
+    private static IslandActionResult actionCode(String json, String fallbackCode) {
+        boolean accepted = json.contains("\"accepted\":true");
+        return new IslandActionResult(accepted, text(json, "code", accepted ? fallbackCode : "FAILED"));
     }
 
     private static List<IslandHomeSnapshot> homes(String json) {

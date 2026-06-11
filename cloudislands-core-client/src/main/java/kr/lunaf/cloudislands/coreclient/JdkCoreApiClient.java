@@ -344,12 +344,22 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<Void> requestIslandSnapshot(UUID islandId, String reason) {
-        return post("/v1/admin/islands/snapshot", "{\"islandId\":\"" + islandId + "\",\"reason\":\"" + escape(reason) + "\"}").thenApply(_body -> null);
+        return requestIslandSnapshotResult(islandId, reason).thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> requestIslandSnapshotResult(UUID islandId, String reason) {
+        return postWithResultBody("/v1/admin/islands/snapshot", "{\"islandId\":\"" + islandId + "\",\"reason\":\"" + escape(reason) + "\"}");
     }
 
     @Override
     public CompletableFuture<Void> restoreIslandSnapshot(UUID islandId, long snapshotNo) {
-        return post("/v1/admin/islands/restore", "{\"islandId\":\"" + islandId + "\",\"snapshotNo\":" + snapshotNo + "}").thenApply(_body -> null);
+        return restoreIslandSnapshotResult(islandId, snapshotNo).thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> restoreIslandSnapshotResult(UUID islandId, long snapshotNo) {
+        return postWithResultBody("/v1/admin/islands/restore", "{\"islandId\":\"" + islandId + "\",\"snapshotNo\":" + snapshotNo + "}");
     }
 
     @Override
@@ -465,12 +475,22 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> migrateIsland(UUID islandId, String targetNode) {
-        return post("/v1/admin/islands/migrate", "{\"islandId\":\"" + islandId + "\",\"targetNode\":\"" + escape(targetNode) + "\"}");
+        return migrateIslandResult(islandId, targetNode);
+    }
+
+    @Override
+    public CompletableFuture<String> migrateIslandResult(UUID islandId, String targetNode) {
+        return postWithResultBody("/v1/admin/islands/migrate", "{\"islandId\":\"" + islandId + "\",\"targetNode\":\"" + escape(targetNode) + "\"}");
     }
 
     @Override
     public CompletableFuture<String> quarantineIsland(UUID islandId, String reason) {
-        return post("/v1/admin/islands/quarantine", "{\"islandId\":\"" + islandId + "\",\"reason\":\"" + escape(reason) + "\"}");
+        return quarantineIslandResult(islandId, reason);
+    }
+
+    @Override
+    public CompletableFuture<String> quarantineIslandResult(UUID islandId, String reason) {
+        return postWithResultBody("/v1/admin/islands/quarantine", "{\"islandId\":\"" + islandId + "\",\"reason\":\"" + escape(reason) + "\"}");
     }
 
     @Override
@@ -490,7 +510,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> adminDeleteIsland(UUID islandId) {
-        return post("/v1/admin/islands/delete", "{\"islandId\":\"" + islandId + "\"}");
+        return adminDeleteIslandResult(islandId);
+    }
+
+    @Override
+    public CompletableFuture<String> adminDeleteIslandResult(UUID islandId) {
+        return postWithResultBody("/v1/admin/islands/delete", "{\"islandId\":\"" + islandId + "\"}");
     }
 
     @Override

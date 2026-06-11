@@ -20,11 +20,16 @@ public interface IslandAdminService {
     CompletableFuture<IslandActionResult> undrainNodeResult(String nodeId);
     CompletableFuture<Void> sweepNode(String nodeId);
     CompletableFuture<Void> migrateIsland(UUID islandId, String targetNode);
+    CompletableFuture<IslandActionResult> migrateIslandResult(UUID islandId, String targetNode);
     CompletableFuture<Void> snapshotIsland(UUID islandId, String reason);
+    CompletableFuture<IslandActionResult> snapshotIslandResult(UUID islandId, String reason);
     CompletableFuture<Void> restoreIsland(UUID islandId, long snapshotNo);
+    CompletableFuture<IslandActionResult> restoreIslandResult(UUID islandId, long snapshotNo);
     CompletableFuture<Void> quarantineIsland(UUID islandId, String reason);
+    CompletableFuture<IslandActionResult> quarantineIslandResult(UUID islandId, String reason);
     CompletableFuture<Void> repairIsland(UUID islandId, String reason);
     CompletableFuture<Void> deleteIsland(UUID islandId);
+    CompletableFuture<IslandActionResult> adminDeleteIslandResult(UUID islandId);
     CompletableFuture<RouteTicket> createAdminTeleportTicket(UUID playerUuid, UUID islandId);
     CompletableFuture<java.util.Optional<RouteTicket>> getRouteTicket(UUID ticketId);
     CompletableFuture<Void> clearRoute(UUID playerUuid, UUID ticketId);
