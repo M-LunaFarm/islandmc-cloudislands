@@ -99,6 +99,11 @@ public final class LocalIslandStorage implements IslandStorage {
         return deleted;
     }
 
+    @Override
+    public void deleteIsland(UUID islandId) throws IOException {
+        deleteRecursively(islandRoot(islandId));
+    }
+
     private void deleteRecursively(Path path) throws IOException {
         if (!Files.exists(path)) {
             return;

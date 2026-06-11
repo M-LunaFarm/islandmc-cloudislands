@@ -11,4 +11,5 @@ public interface IslandStorage {
     InputStream openSnapshotBundle(UUID islandId, long snapshotNo) throws IOException;
     void writeSnapshot(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException;
     int pruneSnapshots(UUID islandId, int keepLatest) throws IOException;
+    void deleteIsland(UUID islandId) throws IOException;
 }

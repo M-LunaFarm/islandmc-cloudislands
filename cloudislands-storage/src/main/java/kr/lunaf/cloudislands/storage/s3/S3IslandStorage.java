@@ -81,6 +81,11 @@ public final class S3IslandStorage implements IslandStorage {
         return 0;
     }
 
+    @Override
+    public void deleteIsland(UUID islandId) throws IOException {
+        requestBytes("DELETE", "islands/" + islandId + "/", null);
+    }
+
     private String key(UUID islandId, String suffix) {
         return "islands/" + islandId + "/" + suffix;
     }
