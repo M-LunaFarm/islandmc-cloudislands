@@ -132,6 +132,26 @@ public final class IslandCommandController implements CommandExecutor {
             recalculateIslandLevel(player);
             return true;
         }
+        if (subcommand.equals("bank") || subcommand.equals("은행")) {
+            showIslandBank(player);
+            return true;
+        }
+        if (subcommand.equals("deposit") || subcommand.equals("bank-deposit") || subcommand.equals("입금")) {
+            if (args.length < 2) {
+                player.sendMessage("입금할 금액을 입력해주세요.");
+                return true;
+            }
+            depositIslandBank(player, args[1]);
+            return true;
+        }
+        if (subcommand.equals("withdraw") || subcommand.equals("bank-withdraw") || subcommand.equals("출금")) {
+            if (args.length < 2) {
+                player.sendMessage("출금할 금액을 입력해주세요.");
+                return true;
+            }
+            withdrawIslandBank(player, args[1]);
+            return true;
+        }
         return false;
     }
 
@@ -350,6 +370,53 @@ public final class IslandCommandController implements CommandExecutor {
         });
     }
 
+    private void showIslandBank(Player player) {
+        currentIsland(player, "섬 안에서만 은행을 확인할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.islandBank(islandId)
+                .thenAccept(body -> message(player, "섬 은행 잔액: " + bankBalance(body)))
+                .exceptionally(error -> {
+                    message(player, "섬 은행을 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void depositIslandBank(Player player, String amount) {
+        currentIsland(player, "섬 안에서만 은행에 입금할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.DEPOSIT_BANK)) {
+                player.sendMessage("섬 은행에 입금할 권한이 없습니다.");
+                return;
+            }
+            coreApiClient.depositIslandBank(islandId, player.getUniqueId(), amount)
+                .thenAccept(body -> message(player, "섬 은행에 입금했습니다. 잔액: " + bankBalance(body)))
+                .exceptionally(error -> {
+                    message(player, "섬 은행에 입금하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void withdrawIslandBank(Player player, String amount) {
+        currentIsland(player, "섬 안에서만 은행에서 출금할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.WITHDRAW_BANK)) {
+                player.sendMessage("섬 은행에서 출금할 권한이 없습니다.");
+                return;
+            }
+            coreApiClient.withdrawIslandBank(islandId, player.getUniqueId(), amount)
+                .thenAccept(body -> {
+                    if (body.contains("\"accepted\":false")) {
+                        message(player, "섬 은행에서 출금하지 못했습니다. 잔액: " + bankBalance(body));
+                        return;
+                    }
+                    message(player, "섬 은행에서 출금했습니다. 잔액: " + bankBalance(body));
+                })
+                .exceptionally(error -> {
+                    message(player, "섬 은행에서 출금하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
     private java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
         java.util.Optional<UUID> islandId = protection.islandAt(player.getLocation().getBlock());
         if (islandId.isEmpty()) {
@@ -417,6 +484,11 @@ public final class IslandCommandController implements CommandExecutor {
             index = objectEnd + 1;
         }
         return entries.isEmpty() ? label + ": 기록이 없습니다." : label + ": " + String.join(" | ", entries);
+    }
+
+    private String bankBalance(String body) {
+        String balance = text(body, "balance");
+        return balance.isBlank() ? "0" : balance;
     }
 
     private Point point(String body, String requestedName, String fallbackWorldName) {
