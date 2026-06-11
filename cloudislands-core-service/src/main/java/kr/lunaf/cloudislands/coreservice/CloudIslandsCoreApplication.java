@@ -1208,6 +1208,7 @@ public final class CloudIslandsCoreApplication {
         java.util.Optional<kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot> runtime = runtimeRepository.find(islandId);
         String targetNode = runtime.map(kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot::activeNode).orElse("");
         if (targetNode != null && !targetNode.isBlank()) {
+            runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETE_REQUESTED);
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DELETE_ISLAND, islandId, targetNode, 50, Map.of("reason", reason), java.time.Instant.now()));
             events.publish("ISLAND_DELETE_REQUESTED", Map.of("islandId", islandId.toString(), "targetNode", targetNode, "reason", reason));
         } else {
