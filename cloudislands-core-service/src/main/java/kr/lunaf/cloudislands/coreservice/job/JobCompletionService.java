@@ -6,6 +6,7 @@ import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
+import kr.lunaf.cloudislands.coreservice.ticket.InMemoryRouteTicketStore;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 
@@ -13,17 +14,21 @@ public final class JobCompletionService {
     private final IslandRuntimeRepository runtimes;
     private final GlobalEventPublisher events;
     private final IslandSnapshotRepository snapshots;
+    private final InMemoryRouteTicketStore tickets;
 
-    public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots) {
+    public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, InMemoryRouteTicketStore tickets) {
         this.runtimes = runtimes;
         this.events = events;
         this.snapshots = snapshots;
+        this.tickets = tickets;
     }
 
     public void completed(IslandJob job) {
         if (job.type() == IslandJobType.CREATE_ISLAND || job.type() == IslandJobType.ACTIVATE_ISLAND) {
-            runtimes.markActive(job.islandId(), job.targetNode(), job.payload().getOrDefault("worldName", "ci_shard_001"), integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), longValue(job.payload().get("fencingToken")));
-            events.publish(CloudIslandEventType.ISLAND_ACTIVATED.name(), Map.of("islandId", job.islandId().toString(), "nodeId", job.targetNode() == null ? "" : job.targetNode()));
+            String worldName = job.payload().getOrDefault("worldName", "ci_shard_001");
+            runtimes.markActive(job.islandId(), job.targetNode(), worldName, integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), longValue(job.payload().get("fencingToken")));
+            int readyTickets = tickets.markReadyForIsland(job.islandId(), job.targetNode(), worldName, Map.of());
+            events.publish(CloudIslandEventType.ISLAND_ACTIVATED.name(), Map.of("islandId", job.islandId().toString(), "nodeId", job.targetNode() == null ? "" : job.targetNode(), "readyTickets", Integer.toString(readyTickets)));
             return;
         }
         if (job.type() == IslandJobType.DEACTIVATE_ISLAND || job.type() == IslandJobType.SAVE_ISLAND || job.type() == IslandJobType.SNAPSHOT_ISLAND) {

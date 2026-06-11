@@ -142,7 +142,7 @@ public final class CloudIslandsCoreApplication {
         CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, metadataRepository, nodes, allocator, jobs, events, tickets);
         IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(runtimeRepository, nodes, allocator, jobs, events);
         MigrationAdminService migrationAdmin = new MigrationAdminService(islandRepository, metadataRepository);
-        kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository);
+        kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets);
         PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, config.heartbeatTimeout());
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
         route("/health", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));

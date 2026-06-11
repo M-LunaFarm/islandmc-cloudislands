@@ -53,7 +53,7 @@ public final class CreateIslandWorkflow {
         metadata.upsertMember(islandId, ownerUuid, IslandRole.OWNER);
         jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.CREATE_ISLAND, islandId, node.nodeId(), 0, Map.of("templateId", templateId), Instant.now()));
         events.publish(CloudIslandEventType.ISLAND_CREATED.name(), Map.of("islandId", islandId.toString(), "ownerUuid", ownerUuid.toString(), "targetNode", node.nodeId()));
-        RouteTicket ticket = tickets.save(new RouteTicket(UUID.randomUUID(), ownerUuid, RouteAction.HOME, islandId, node.nodeId(), "ci_shard_001", RouteTicketState.READY, Instant.now().plusSeconds(30), UUID.randomUUID().toString(), Map.of(
+        RouteTicket ticket = tickets.save(new RouteTicket(UUID.randomUUID(), ownerUuid, RouteAction.HOME, islandId, node.nodeId(), "ci_shard_001", RouteTicketState.PREPARING, Instant.now().plusSeconds(120), UUID.randomUUID().toString(), Map.of(
             "targetServerName", node.velocityServerName(),
             "localX", "0.5",
             "localY", "100.0",

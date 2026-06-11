@@ -20,7 +20,19 @@ public final class RouteTicketConsumer {
     }
 
     public void consumeAndTeleport(UUID ticketId, UUID playerUuid, String nonce) {
-        coreApiClient.consumeTicket(ticketId, playerUuid, nodeId, nonce).thenAccept(ticket -> ticket.ifPresent(routeTicket -> Bukkit.getScheduler().runTask(plugin, () -> teleport(playerUuid, routeTicket.targetWorld(), routeTicket.payload()))));
+        consumeAndTeleport(ticketId, playerUuid, nonce, 0);
+    }
+
+    private void consumeAndTeleport(UUID ticketId, UUID playerUuid, String nonce, int attempt) {
+        coreApiClient.consumeTicket(ticketId, playerUuid, nodeId, nonce).thenAccept(ticket -> {
+            if (ticket.isPresent()) {
+                Bukkit.getScheduler().runTask(plugin, () -> teleport(playerUuid, ticket.get().targetWorld(), ticket.get().payload()));
+                return;
+            }
+            if (attempt < 20) {
+                Bukkit.getScheduler().runTaskLater(plugin, () -> consumeAndTeleport(ticketId, playerUuid, nonce, attempt + 1), 20L);
+            }
+        });
     }
 
     private void teleport(UUID playerUuid, String worldName, java.util.Map<String, String> payload) {

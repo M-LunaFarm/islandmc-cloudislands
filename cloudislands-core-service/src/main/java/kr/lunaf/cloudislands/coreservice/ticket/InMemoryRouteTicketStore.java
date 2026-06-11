@@ -22,6 +22,32 @@ public final class InMemoryRouteTicketStore {
         return ticket;
     }
 
+    public int markReadyForIsland(UUID islandId, String targetNode, String targetWorld, Map<String, String> payload) {
+        int updated = 0;
+        for (RouteTicket ticket : tickets.values()) {
+            if (ticket.state() != RouteTicketState.PREPARING || !ticket.islandId().equals(islandId) || !ticket.targetNode().equals(targetNode)) {
+                continue;
+            }
+            java.util.LinkedHashMap<String, String> mergedPayload = new java.util.LinkedHashMap<>(ticket.payload());
+            mergedPayload.putAll(payload);
+            RouteTicket ready = new RouteTicket(
+                ticket.ticketId(),
+                ticket.playerUuid(),
+                ticket.action(),
+                ticket.islandId(),
+                ticket.targetNode(),
+                targetWorld == null || targetWorld.isBlank() ? ticket.targetWorld() : targetWorld,
+                RouteTicketState.READY,
+                ticket.expiresAt(),
+                ticket.nonce(),
+                Map.copyOf(mergedPayload)
+            );
+            tickets.put(ticket.ticketId(), ready);
+            updated++;
+        }
+        return updated;
+    }
+
     public Optional<RouteTicket> consume(UUID ticketId, UUID playerUuid, String nodeId, String nonce) {
         RouteTicket ticket = tickets.get(ticketId);
         if (ticket == null || ticket.state() != RouteTicketState.READY) {

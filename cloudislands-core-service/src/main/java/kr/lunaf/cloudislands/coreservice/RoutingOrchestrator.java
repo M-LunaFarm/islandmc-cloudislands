@@ -170,8 +170,8 @@ public final class RoutingOrchestrator {
             islandId,
             target.node().nodeId(),
             target.worldName(),
-            RouteTicketState.READY,
-            Instant.now().plusSeconds(30),
+            target.state(),
+            Instant.now().plusSeconds(target.state() == RouteTicketState.PREPARING ? 120 : 30),
             UUID.randomUUID().toString(),
             Map.copyOf(payload)
         );
@@ -198,7 +198,7 @@ public final class RoutingOrchestrator {
             }
             NodeLoad activeNode = nodes.find(runtime.activeNode()).orElseThrow(() -> new IllegalStateException("active node is unavailable"));
             String worldName = runtime.activeWorld() == null || runtime.activeWorld().isBlank() ? "ci_shard_001" : runtime.activeWorld();
-            return new RouteTarget(activeNode, worldName);
+            return new RouteTarget(activeNode, worldName, RouteTicketState.READY);
         }
         NodeLoad selected = allocator.selectBestNode(nodes.snapshot(), Instant.now())
             .orElseThrow(() -> new IllegalStateException("no eligible island node"));
@@ -218,7 +218,7 @@ public final class RoutingOrchestrator {
             Instant.now()
         ));
         events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", runtime.islandId().toString(), "state", activating.state().name(), "targetNode", selected.nodeId()));
-        return new RouteTarget(selected, activating.activeWorld() == null ? "ci_shard_001" : activating.activeWorld());
+        return new RouteTarget(selected, activating.activeWorld() == null ? "ci_shard_001" : activating.activeWorld(), RouteTicketState.PREPARING);
     }
 
     private Map<String, String> homePayload(UUID islandId, String homeName) {
@@ -253,7 +253,7 @@ public final class RoutingOrchestrator {
         return name == null || name.isBlank() ? "default" : name.toLowerCase();
     }
 
-    private record RouteTarget(NodeLoad node, String worldName) {}
+    private record RouteTarget(NodeLoad node, String worldName, RouteTicketState state) {}
 
     public static String toJson(RouteTicket ticket) {
         StringBuilder builder = new StringBuilder("{")
