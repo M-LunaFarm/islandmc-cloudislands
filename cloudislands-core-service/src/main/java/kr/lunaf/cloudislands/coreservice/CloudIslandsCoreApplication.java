@@ -145,7 +145,7 @@ public final class CloudIslandsCoreApplication {
         RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets, islandRepository, metadataRepository, runtimeRepository, jobs, events);
         CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, metadataRepository, playerProfiles, nodes, allocator, jobs, events, tickets);
         IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(runtimeRepository, islandRepository, nodes, allocator, jobs, events);
-        MigrationAdminService migrationAdmin = new MigrationAdminService(islandRepository, metadataRepository);
+        MigrationAdminService migrationAdmin = new MigrationAdminService(islandRepository, metadataRepository, playerProfiles);
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets);
         PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, config.heartbeatTimeout());
         this.nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, events, config.heartbeatTimeout());
@@ -662,6 +662,8 @@ public final class CloudIslandsCoreApplication {
             if (transferred) {
                 metadataRepository.upsertMember(islandId, actorUuid, IslandRole.CO_OWNER);
                 metadataRepository.upsertMember(islandId, targetUuid, IslandRole.OWNER);
+                playerProfiles.clearPrimaryIsland(actorUuid);
+                playerProfiles.setPrimaryIsland(targetUuid, islandId);
             }
             audit.log(actorUuid, "PLAYER", "ISLAND_OWNERSHIP_TRANSFER", "ISLAND", islandId.toString(), Map.of("targetUuid", targetUuid.toString(), "transferred", Boolean.toString(transferred)));
             islandLogs.append(islandId, actorUuid, "ISLAND_OWNERSHIP_TRANSFER", Map.of("targetUuid", targetUuid.toString(), "transferred", Boolean.toString(transferred)));

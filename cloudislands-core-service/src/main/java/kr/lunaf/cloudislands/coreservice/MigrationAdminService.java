@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRole;
+import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.migration.MigrationIssue;
@@ -20,6 +21,7 @@ import kr.lunaf.cloudislands.migration.verify.MigrationVerifier;
 public final class MigrationAdminService {
     private final IslandRepository islands;
     private final IslandMetadataRepository metadata;
+    private final PlayerProfileRepository playerProfiles;
     private final SuperiorSkyblock2MigrationScanner scanner = new SuperiorSkyblock2MigrationScanner();
     private final CloudIslandsMigrationImporter importer = new CloudIslandsMigrationImporter();
     private final MigrationVerifier verifier = new MigrationVerifier();
@@ -28,9 +30,10 @@ public final class MigrationAdminService {
     private MigrationImportPlan lastPlan = new MigrationImportPlan(List.of(), List.of());
     private MigrationRollbackPlan lastRollbackPlan;
 
-    public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata) {
+    public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles) {
         this.islands = islands;
         this.metadata = metadata;
+        this.playerProfiles = playerProfiles;
     }
 
     public synchronized String scan(String path) {
@@ -53,6 +56,7 @@ public final class MigrationAdminService {
         CloudIslandsMigrationImporter.ImportResult result = importer.importPlan(lastPlan, manifest -> {
             islands.createOwnedIsland(manifest.islandId(), manifest.ownerUuid(), "superiorskyblock2", "Migrated Island");
             metadata.upsertMember(manifest.islandId(), manifest.ownerUuid(), IslandRole.OWNER);
+            playerProfiles.setPrimaryIsland(manifest.ownerUuid(), manifest.islandId());
         });
         lastRollbackPlan = result.rollbackPlan();
         MigrationRunState state = result.imported() ? MigrationRunState.IMPORTED : MigrationRunState.DRY_RUN_FAILED;
@@ -80,6 +84,7 @@ public final class MigrationAdminService {
             if (!islands.markDeleted(islandId, island.ownerUuid())) {
                 throw new IllegalStateException("island was not removed");
             }
+            playerProfiles.clearPrimaryIsland(island.ownerUuid());
         });
         return "{\"state\":\"" + MigrationRunState.ROLLED_BACK + "\",\"rolledBack\":" + result.rolledBack() + ",\"removedIslands\":" + result.removedIslands() + ",\"issues\":" + issuesJson(result.issues()) + "}";
     }
