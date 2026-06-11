@@ -16,11 +16,17 @@ public final class IslandSaveService {
     private final IslandStorage storage;
     private final IslandBundleExporter exporter;
     private final Path exportRoot;
+    private final int retainedSnapshots;
 
     public IslandSaveService(IslandStorage storage, IslandBundleExporter exporter, Path exportRoot) {
+        this(storage, exporter, exportRoot, RETAINED_SNAPSHOTS);
+    }
+
+    public IslandSaveService(IslandStorage storage, IslandBundleExporter exporter, Path exportRoot, int retainedSnapshots) {
         this.storage = storage;
         this.exporter = exporter;
         this.exportRoot = exportRoot;
+        this.retainedSnapshots = Math.max(1, retainedSnapshots);
     }
 
     public SaveResult save(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland) throws IOException {
@@ -41,7 +47,7 @@ public final class IslandSaveService {
         try (InputStream input = Files.newInputStream(exported.bundleFile())) {
             storage.writeSnapshot(islandId, exported.snapshotNo(), input, manifest);
         }
-        storage.pruneSnapshots(islandId, RETAINED_SNAPSHOTS);
+        storage.pruneSnapshots(islandId, retainedSnapshots);
         return new SaveResult(islandId, exported.snapshotNo(), exported.bundleFile());
     }
 
