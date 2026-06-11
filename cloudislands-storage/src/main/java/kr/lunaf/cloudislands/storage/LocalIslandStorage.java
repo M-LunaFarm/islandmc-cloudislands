@@ -60,6 +60,18 @@ public final class LocalIslandStorage implements IslandStorage {
         writeBundle(islandRoot, backupDir, bundle, manifest, false);
     }
 
+    @Override
+    public void promoteSnapshot(UUID islandId, long snapshotNo) throws IOException {
+        Path islandRoot = islandRoot(islandId);
+        String snapshot = String.format("%06d", snapshotNo);
+        Path snapshotManifest = islandRoot.resolve("snapshots").resolve(snapshot).resolve("manifest.json");
+        if (!Files.exists(snapshotManifest)) {
+            throw new IOException("missing snapshot manifest: " + islandId + " #" + snapshotNo);
+        }
+        Files.writeString(islandRoot.resolve("manifest.json"), Files.readString(snapshotManifest, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
+        Files.writeString(islandRoot.resolve("latest"), snapshot, StandardCharsets.UTF_8);
+    }
+
     private void writeBundle(Path islandRoot, Path snapshotDir, InputStream bundle, IslandBundleManifest manifest, boolean updateLatest) throws IOException {
         Files.createDirectories(snapshotDir);
         Path snapshotBundle = snapshotDir.resolve("bundle.tar.zst");

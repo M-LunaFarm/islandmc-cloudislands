@@ -60,6 +60,10 @@ public final class JobCompletionService {
             return;
         }
         if (job.type() == IslandJobType.RESTORE_ISLAND) {
+            long preRestoreSnapshotNo = longValue(job.payload().get("preRestoreSnapshotNo"));
+            if (preRestoreSnapshotNo > 0L) {
+                snapshots.record(job.islandId(), preRestoreSnapshotNo, "islands/" + job.islandId() + "/snapshots/" + String.format("%06d", preRestoreSnapshotNo) + "/bundle.tar.zst", "BEFORE_RESTORE", null, job.payload().getOrDefault("preRestoreChecksum", ""), longValue(job.payload().get("preRestoreSizeBytes")));
+            }
             runtimes.markActive(job.islandId(), job.targetNode(), job.payload().getOrDefault("worldName", "ci_shard_001"), integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), longValue(job.payload().get("fencingToken")));
             events.publish(CloudIslandEventType.ISLAND_RESTORED.name(), Map.of("islandId", job.islandId().toString(), "state", "RESTORED", "snapshotNo", job.payload().getOrDefault("snapshotNo", "")));
             return;

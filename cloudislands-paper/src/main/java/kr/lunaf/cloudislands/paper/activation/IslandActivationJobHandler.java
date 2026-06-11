@@ -22,6 +22,8 @@ public final class IslandActivationJobHandler {
     private final ShardWorldPreloader preloader;
     private final int preloadRadius;
     private final FileBackedCellTransfer cellTransfer;
+    private final ActiveIslandRegistry activeIslands;
+    private final IslandSaveService saveService;
 
     public IslandActivationJobHandler(IslandStorage storage, ShardWorldManager shardWorldManager, ProtectionController protectionController) {
         this(storage, shardWorldManager, protectionController, null, null, 0, null);
@@ -32,6 +34,10 @@ public final class IslandActivationJobHandler {
     }
 
     public IslandActivationJobHandler(IslandStorage storage, ShardWorldManager shardWorldManager, ProtectionController protectionController, IslandWorldRestorer worldRestorer, ShardWorldPreloader preloader, int preloadRadius, FileBackedCellTransfer cellTransfer) {
+        this(storage, shardWorldManager, protectionController, worldRestorer, preloader, preloadRadius, cellTransfer, null, null);
+    }
+
+    public IslandActivationJobHandler(IslandStorage storage, ShardWorldManager shardWorldManager, ProtectionController protectionController, IslandWorldRestorer worldRestorer, ShardWorldPreloader preloader, int preloadRadius, FileBackedCellTransfer cellTransfer, ActiveIslandRegistry activeIslands, IslandSaveService saveService) {
         this.storage = storage;
         this.shardWorldManager = shardWorldManager;
         this.protectionController = protectionController;
@@ -39,29 +45,44 @@ public final class IslandActivationJobHandler {
         this.preloader = preloader;
         this.preloadRadius = preloadRadius;
         this.cellTransfer = cellTransfer;
+        this.activeIslands = activeIslands;
+        this.saveService = saveService;
     }
 
     public ActivationResult handle(IslandJob job) {
         if (job.type() != IslandJobType.ACTIVATE_ISLAND && job.type() != IslandJobType.CREATE_ISLAND && job.type() != IslandJobType.RESTORE_ISLAND && job.type() != IslandJobType.RESET_ISLAND) {
-            return new ActivationResult(false, "UNSUPPORTED_JOB", null, null, 0, 0, 0, 0, 0, 0L, 0L, null);
+            return new ActivationResult(false, "UNSUPPORTED_JOB", null, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L);
         }
         UUID islandId = job.islandId();
         try {
             IslandBundleManifest manifest = storage.readManifest(islandId);
+            IslandSaveService.SaveResult preRestoreSnapshot = snapshotBeforeRestore(job);
             ShardWorldManager.CellAssignment cell = shardWorldManager.allocateCell(islandId);
-            BundleRestorePlan restorePlan = stageBundle(islandId, cell, longValue(job.payload().get("snapshotNo")));
+            long snapshotNo = longValue(job.payload().get("snapshotNo"));
+            BundleRestorePlan restorePlan = stageBundle(islandId, cell, snapshotNo);
             if (restorePlan != null && cellTransfer != null) {
                 CellPlacementPlan placement = new ShardCellTransferPlanner(manifest.size()).placement(restorePlan);
                 cellTransfer.place(placement);
+            }
+            if (job.type() == IslandJobType.RESTORE_ISLAND && snapshotNo > 0L) {
+                storage.promoteSnapshot(islandId, snapshotNo);
             }
             if (preloader != null) {
                 preloader.preload(cell.worldName(), cell.originX(), cell.originZ(), preloadRadius);
             }
             protectionController.registerIsland(islandId, cell.worldName(), cell.originX(), cell.originZ(), manifest.size(), cell.cellX(), cell.cellZ());
-            return new ActivationResult(true, "ACTIVE", islandId, cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), manifest.size(), manifest.schemaVersion(), longValue(job.payload().get("fencingToken")), restorePlan == null ? null : restorePlan.extractedRoot().toString());
+            return new ActivationResult(true, "ACTIVE", islandId, cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), manifest.size(), manifest.schemaVersion(), longValue(job.payload().get("fencingToken")), restorePlan == null ? null : restorePlan.extractedRoot().toString(), preRestoreSnapshot == null ? 0L : preRestoreSnapshot.snapshotNo(), preRestoreSnapshot == null ? "" : preRestoreSnapshot.checksum(), preRestoreSnapshot == null ? 0L : preRestoreSnapshot.sizeBytes());
         } catch (Exception exception) {
-            return new ActivationResult(false, "ERROR_ACTIVATING", islandId, null, 0, 0, 0, 0, 0, 0L, 0L, null);
+            return new ActivationResult(false, "ERROR_ACTIVATING", islandId, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L);
         }
+    }
+
+    private IslandSaveService.SaveResult snapshotBeforeRestore(IslandJob job) throws IOException {
+        if (job.type() != IslandJobType.RESTORE_ISLAND || activeIslands == null || saveService == null) {
+            return null;
+        }
+        ActiveIslandRegistry.ActiveIsland activeIsland = activeIslands.find(job.islandId()).orElse(null);
+        return activeIsland == null ? null : saveService.snapshotBeforeRestore(job.islandId(), activeIsland);
     }
 
     private BundleRestorePlan stageBundle(UUID islandId, ShardWorldManager.CellAssignment cell, long snapshotNo) throws IOException {
@@ -79,5 +100,5 @@ public final class IslandActivationJobHandler {
         }
     }
 
-    public record ActivationResult(boolean success, String state, UUID islandId, String worldName, int cellX, int cellZ, int originX, int originZ, int islandSize, long schemaVersion, long fencingToken, String extractedRoot) {}
+    public record ActivationResult(boolean success, String state, UUID islandId, String worldName, int cellX, int cellZ, int originX, int originZ, int islandSize, long schemaVersion, long fencingToken, String extractedRoot, long preRestoreSnapshotNo, String preRestoreChecksum, long preRestoreSizeBytes) {}
 }

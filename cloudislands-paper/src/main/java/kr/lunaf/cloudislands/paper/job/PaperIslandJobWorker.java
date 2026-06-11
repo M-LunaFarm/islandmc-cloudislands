@@ -109,14 +109,19 @@ public final class PaperIslandJobWorker {
                 if (permissionSync != null) {
                     permissionSync.sync(job.islandId());
                 }
-                jobSource.complete(nodeId, job.jobId(), Map.of(
-                    "worldName", result.worldName() == null ? "" : result.worldName(),
-                    "cellX", Integer.toString(result.cellX()),
-                    "cellZ", Integer.toString(result.cellZ()),
-                    "schemaVersion", Long.toString(result.schemaVersion()),
-                    "fencingToken", Long.toString(result.fencingToken()),
-                    "extractedRoot", result.extractedRoot() == null ? "" : result.extractedRoot()
-                ));
+                java.util.Map<String, String> payload = new java.util.HashMap<>();
+                payload.put("worldName", result.worldName() == null ? "" : result.worldName());
+                payload.put("cellX", Integer.toString(result.cellX()));
+                payload.put("cellZ", Integer.toString(result.cellZ()));
+                payload.put("schemaVersion", Long.toString(result.schemaVersion()));
+                payload.put("fencingToken", Long.toString(result.fencingToken()));
+                payload.put("extractedRoot", result.extractedRoot() == null ? "" : result.extractedRoot());
+                if (result.preRestoreSnapshotNo() > 0L) {
+                    payload.put("preRestoreSnapshotNo", Long.toString(result.preRestoreSnapshotNo()));
+                    payload.put("preRestoreChecksum", result.preRestoreChecksum());
+                    payload.put("preRestoreSizeBytes", Long.toString(result.preRestoreSizeBytes()));
+                }
+                jobSource.complete(nodeId, job.jobId(), payload);
             } else {
                 jobSource.fail(nodeId, job.jobId(), result.state());
             }

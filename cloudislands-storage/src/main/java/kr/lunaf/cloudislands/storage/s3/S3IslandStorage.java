@@ -80,6 +80,14 @@ public final class S3IslandStorage implements IslandStorage {
         writeBundle(islandId, "backups/delete-" + String.format("%06d", snapshotNo), bundle, manifest, false, "");
     }
 
+    @Override
+    public void promoteSnapshot(UUID islandId, long snapshotNo) throws IOException {
+        String snapshot = String.format("%06d", snapshotNo);
+        byte[] manifest = requestBytes("GET", key(islandId, "snapshots/" + snapshot + "/manifest.json"), null);
+        requestBytes("PUT", key(islandId, "manifest.json"), manifest);
+        requestBytes("PUT", key(islandId, "latest"), snapshot.getBytes(StandardCharsets.UTF_8));
+    }
+
     private void writeBundle(UUID islandId, String prefix, InputStream bundle, IslandBundleManifest manifest, boolean updateLatest, String latestValue) throws IOException {
         byte[] bundleBytes = bundle.readAllBytes();
         String checksum = Sha256Checksums.of(new ByteArrayInputStream(bundleBytes));
