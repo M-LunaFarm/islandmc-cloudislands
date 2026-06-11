@@ -1,5 +1,7 @@
 package kr.lunaf.cloudislands.paper;
 
+import java.util.Optional;
+import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
 import org.bukkit.block.Block;
@@ -28,6 +30,7 @@ import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerLeashEntityEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerShearEntityEvent;
 import org.bukkit.event.player.PlayerUnleashEntityEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
@@ -115,6 +118,24 @@ public final class IslandProtectionListener implements Listener {
     public void onPickup(EntityPickupItemEvent event) {
         if (event.getEntity() instanceof Player player) {
             event.setCancelled(denied(player, event.getItem().getLocation().getBlock(), IslandPermission.PICKUP_ITEM));
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onMove(PlayerMoveEvent event) {
+        if (event.getTo() == null || !event.getFrom().getWorld().equals(event.getTo().getWorld())) {
+            return;
+        }
+        if (event.getFrom().getBlockX() == event.getTo().getBlockX() && event.getFrom().getBlockZ() == event.getTo().getBlockZ()) {
+            return;
+        }
+        Optional<UUID> fromIsland = protection.islandAt(event.getFrom().getBlock());
+        if (fromIsland.isEmpty()) {
+            return;
+        }
+        Optional<UUID> toIsland = protection.islandAt(event.getTo().getBlock());
+        if (toIsland.isEmpty() || !toIsland.get().equals(fromIsland.get())) {
+            event.setCancelled(true);
         }
     }
 
