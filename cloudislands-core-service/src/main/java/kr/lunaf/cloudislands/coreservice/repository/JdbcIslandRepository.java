@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.coreservice.repository;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -81,6 +82,22 @@ public final class JdbcIslandRepository implements IslandRepository {
             return new IslandSnapshot(islandId, ownerUuid, name, IslandState.CREATING, 300, 0L, "0.00", false, Instant.now(), Instant.now());
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to create island", exception);
+        }
+    }
+
+    @Override
+    public void updateStats(UUID islandId, int size, long level, String worth) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("UPDATE islands SET size = ?, level = ?, worth = ?, updated_at = now() WHERE id = ? AND deleted_at IS NULL")) {
+            statement.setInt(1, Math.max(1, size));
+            statement.setLong(2, Math.max(0L, level));
+            statement.setBigDecimal(3, new BigDecimal(worth == null || worth.isBlank() ? "0.00" : worth));
+            statement.setObject(4, islandId);
+            if (statement.executeUpdate() == 0) {
+                throw new IllegalStateException("island not found");
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to update island stats", exception);
         }
     }
 

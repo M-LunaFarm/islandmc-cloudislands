@@ -41,6 +41,15 @@ public final class InMemoryIslandRepository implements IslandRepository {
     }
 
     @Override
+    public void updateStats(UUID islandId, int size, long level, String worth) {
+        IslandSnapshot island = byIslandId.get(islandId);
+        if (island == null) {
+            throw new IllegalStateException("island not found");
+        }
+        byIslandId.put(islandId, new IslandSnapshot(island.islandId(), island.ownerUuid(), island.name(), island.state(), size, level, worth, island.publicAccess(), island.createdAt(), Instant.now()));
+    }
+
+    @Override
     public boolean markDeleted(UUID islandId, UUID requesterUuid) {
         IslandSnapshot island = byIslandId.get(islandId);
         if (island == null || !island.ownerUuid().equals(requesterUuid)) {

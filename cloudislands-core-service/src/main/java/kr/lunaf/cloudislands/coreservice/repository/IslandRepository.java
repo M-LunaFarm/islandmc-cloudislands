@@ -9,6 +9,7 @@ public interface IslandRepository {
     Optional<IslandSnapshot> findByOwner(UUID ownerUuid);
     Optional<String> templateId(UUID islandId);
     IslandSnapshot createOwnedIsland(UUID islandId, UUID ownerUuid, String templateId, String name);
+    void updateStats(UUID islandId, int size, long level, String worth);
     boolean markDeleted(UUID islandId, UUID requesterUuid);
     boolean transferOwnership(UUID islandId, UUID currentOwnerUuid, UUID newOwnerUuid);
     void createOwnerMember(UUID islandId, UUID ownerUuid);

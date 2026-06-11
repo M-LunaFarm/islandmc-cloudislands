@@ -57,6 +57,7 @@ public final class MigrationAdminService {
         }
         CloudIslandsMigrationImporter.ImportResult result = importer.importPlan(lastPlan, manifest -> {
             islands.createOwnedIsland(manifest.islandId(), manifest.ownerUuid(), "superiorskyblock2", "Migrated Island");
+            islands.updateStats(manifest.islandId(), manifest.size(), manifest.level(), manifest.worth());
             metadata.upsertMember(manifest.islandId(), manifest.ownerUuid(), IslandRole.OWNER);
             for (java.util.UUID memberUuid : manifest.members()) {
                 if (!memberUuid.equals(manifest.ownerUuid())) {
@@ -89,6 +90,9 @@ public final class MigrationAdminService {
         for (MigrationManifest manifest : lastScan.manifests()) {
             islands.findById(manifest.islandId())
                 .filter(island -> island.ownerUuid().equals(manifest.ownerUuid()))
+                .filter(island -> island.size() == manifest.size())
+                .filter(island -> island.level() == manifest.level())
+                .filter(island -> island.worth().equals(manifest.worth()))
                 .filter(_island -> manifest.members().stream().allMatch(memberUuid -> metadata.isMember(manifest.islandId(), memberUuid)))
                 .filter(_island -> manifest.bannedVisitors().stream().allMatch(bannedUuid -> metadata.isBanned(manifest.islandId(), bannedUuid)))
                 .filter(_island -> manifest.homes().stream().allMatch(home -> metadata.home(manifest.islandId(), home.name()).isPresent()))
