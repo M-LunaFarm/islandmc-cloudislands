@@ -34,9 +34,13 @@ public final class ProtectionController {
     }
 
     public PermissionResult checkBlock(UUID playerUuid, String world, int blockX, int blockY, int blockZ, IslandPermission permission) {
+        return checkBlock(playerUuid, world, blockX, blockY, blockZ, permission, false);
+    }
+
+    public PermissionResult checkBlock(UUID playerUuid, String world, int blockX, int blockY, int blockZ, IslandPermission permission, boolean adminBypass) {
         return regionIndex.find(world, blockX, blockZ)
             .map(region -> {
-                if (permissionCache.allowed(region.islandId(), playerUuid, permission, false)) {
+                if (permissionCache.allowed(region.islandId(), playerUuid, permission, adminBypass)) {
                     return PermissionResult.allow(IslandRole.MEMBER);
                 }
                 IslandFlag visitorFlag = visitorFlag(permission);

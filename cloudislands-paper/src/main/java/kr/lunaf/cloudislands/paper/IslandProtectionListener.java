@@ -226,7 +226,7 @@ public final class IslandProtectionListener implements Listener {
     }
 
     private boolean denied(Player player, Block block, IslandPermission permission) {
-        return !protection.checkBlock(player.getUniqueId(), block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), permission).allowed();
+        return !protection.checkBlock(player.getUniqueId(), block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), permission, player.hasPermission("cloudislands.admin.bypass")).allowed();
     }
 
     private IslandPermission interactionPermission(Material type) {
