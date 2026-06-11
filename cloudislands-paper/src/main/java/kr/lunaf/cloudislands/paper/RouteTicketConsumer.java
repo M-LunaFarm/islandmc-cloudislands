@@ -2,7 +2,9 @@ package kr.lunaf.cloudislands.paper;
 
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
+import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.event.IslandVisitEvent;
 import kr.lunaf.cloudislands.paper.event.RouteTicketConsumedEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -58,6 +60,9 @@ public final class RouteTicketConsumer {
         if (player.teleport(new Location(world, decimal(payload, "localX", 0.5D), decimal(payload, "localY", 100.0D), decimal(payload, "localZ", 0.5D), (float) decimal(payload, "yaw", 180.0D), (float) decimal(payload, "pitch", 0.0D)))) {
             player.sendActionBar(Component.text(arrivalMessage(ticket.action())));
             Bukkit.getPluginManager().callEvent(new RouteTicketConsumedEvent(ticket.islandId(), ticket.ticketId(), playerUuid, player, ticket.action(), worldName));
+            if (ticket.action() == RouteAction.VISIT) {
+                Bukkit.getPluginManager().callEvent(new IslandVisitEvent(ticket.islandId(), playerUuid, player, worldName));
+            }
         }
     }
 
