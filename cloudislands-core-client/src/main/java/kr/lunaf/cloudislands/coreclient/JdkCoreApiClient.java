@@ -483,7 +483,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<Void> publishHeartbeat(NodeHeartbeatRequest request) {
-        return post("/v1/nodes/heartbeat", "{\"nodeId\":\"" + request.nodeId() + "\",\"pool\":\"" + request.pool() + "\",\"velocityServerName\":\"" + request.velocityServerName() + "\",\"state\":\"" + request.state() + "\",\"players\":" + request.players() + ",\"activeIslands\":" + request.activeIslands() + ",\"mspt\":" + request.mspt() + ",\"activationQueue\":" + request.activationQueue() + ",\"heapUsedMb\":" + request.heapUsedMb() + ",\"heapMaxMb\":" + request.heapMaxMb() + "}").thenApply(_body -> null);
+        return post("/v1/nodes/heartbeat", "{\"nodeId\":\"" + request.nodeId() + "\",\"pool\":\"" + request.pool() + "\",\"velocityServerName\":\"" + request.velocityServerName() + "\",\"state\":\"" + request.state() + "\",\"players\":" + request.players() + ",\"activeIslands\":" + request.activeIslands() + ",\"mspt\":" + request.mspt() + ",\"activationQueue\":" + request.activationQueue() + ",\"heapUsedMb\":" + request.heapUsedMb() + ",\"heapMaxMb\":" + request.heapMaxMb() + ",\"storageAvailable\":" + request.storageAvailable() + "}").thenApply(_body -> null);
     }
 
     private String mapJson(Map<String, String> payload) {

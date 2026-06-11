@@ -46,6 +46,7 @@ public interface NodeRegistry {
             .append("\"maxActivationQueue\":").append(node.maxActivationQueue()).append(',')
             .append("\"heapUsedMb\":").append(node.heapUsedMb()).append(',')
             .append("\"heapMaxMb\":").append(node.heapMaxMb()).append(',')
+            .append("\"storageAvailable\":").append(node.storageAvailable()).append(',')
             .append("\"lastHeartbeat\":\"").append(node.lastHeartbeat()).append("\",")
             .append("\"score\":").append(node.score())
             .append('}')

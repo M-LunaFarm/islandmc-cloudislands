@@ -12,5 +12,6 @@ public record NodeHeartbeatRequest(
     double mspt,
     int activationQueue,
     long heapUsedMb,
-    long heapMaxMb
+    long heapMaxMb,
+    boolean storageAvailable
 ) {}

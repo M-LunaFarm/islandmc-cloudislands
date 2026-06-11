@@ -49,7 +49,8 @@ public final class PaperHeartbeatService {
             currentMspt(),
             0,
             heapUsed,
-            heapMax
+            heapMax,
+            true
         );
         coreApiClient.publishHeartbeat(heartbeat);
     }

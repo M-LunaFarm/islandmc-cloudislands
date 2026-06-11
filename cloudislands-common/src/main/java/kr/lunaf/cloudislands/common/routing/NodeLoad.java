@@ -19,10 +19,14 @@ public record NodeLoad(
     long heapUsedMb,
     long heapMaxMb,
     int recentFailurePenalty,
-    Instant lastHeartbeat
+    Instant lastHeartbeat,
+    boolean storageAvailable
 ) {
     public boolean eligible(Instant now, Duration heartbeatTimeout) {
         if (state != NodeState.READY && state != NodeState.SOFT_FULL) {
+            return false;
+        }
+        if (!storageAvailable) {
             return false;
         }
         if (lastHeartbeat == null || lastHeartbeat.plus(heartbeatTimeout).isBefore(now)) {
