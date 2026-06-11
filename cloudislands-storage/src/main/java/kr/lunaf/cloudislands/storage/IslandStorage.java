@@ -7,5 +7,6 @@ import java.util.UUID;
 public interface IslandStorage {
     IslandBundleManifest readManifest(UUID islandId) throws IOException;
     InputStream openLatestBundle(UUID islandId) throws IOException;
+    InputStream openSnapshotBundle(UUID islandId, long snapshotNo) throws IOException;
     void writeSnapshot(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException;
 }

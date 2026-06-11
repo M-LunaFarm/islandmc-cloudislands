@@ -61,6 +61,17 @@ public final class IslandLifecycleWorkflow {
         return new Result(true, "SNAPSHOT_QUEUED", runtime);
     }
 
+    public Result restore(UUID islandId, long snapshotNo) {
+        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now()).orElse(null);
+        if (node == null) {
+            return new Result(false, "NODE_UNAVAILABLE", null);
+        }
+        IslandRuntimeSnapshot runtime = runtimes.markActivating(islandId, node.nodeId(), "ci_shard_001", 0, 0);
+        jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, node.nodeId(), 30, Map.of("snapshotNo", Long.toString(snapshotNo), "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
+        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", "RESTORING", "snapshotNo", Long.toString(snapshotNo)));
+        return new Result(true, "RESTORE_QUEUED", runtime);
+    }
+
     public Result quarantine(UUID islandId, String reason) {
         IslandRuntimeSnapshot runtime = runtimes.markQuarantined(islandId, reason);
         events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", runtime.state().name(), "reason", reason));

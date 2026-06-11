@@ -43,6 +43,12 @@ public final class S3IslandStorage implements IslandStorage {
     }
 
     @Override
+    public InputStream openSnapshotBundle(UUID islandId, long snapshotNo) throws IOException {
+        byte[] bytes = requestBytes("GET", key(islandId, "snapshots/" + String.format("%06d", snapshotNo) + "/bundle.tar.zst"), null);
+        return new ByteArrayInputStream(bytes);
+    }
+
+    @Override
     public void writeSnapshot(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
         String snapshot = String.format("%06d", snapshotNo);
         byte[] bundleBytes = bundle.readAllBytes();

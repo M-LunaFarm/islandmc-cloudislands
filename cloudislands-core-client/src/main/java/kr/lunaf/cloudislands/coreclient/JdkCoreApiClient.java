@@ -158,6 +158,21 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> listIslandSnapshots(UUID islandId, int limit) {
+        return post("/v1/islands/snapshots", "{\"islandId\":\"" + islandId + "\",\"limit\":" + limit + "}");
+    }
+
+    @Override
+    public CompletableFuture<Void> requestIslandSnapshot(UUID islandId, String reason) {
+        return post("/v1/admin/islands/snapshot", "{\"islandId\":\"" + islandId + "\",\"reason\":\"" + escape(reason) + "\"}").thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<Void> restoreIslandSnapshot(UUID islandId, long snapshotNo) {
+        return post("/v1/admin/islands/restore", "{\"islandId\":\"" + islandId + "\",\"snapshotNo\":" + snapshotNo + "}").thenApply(_body -> null);
+    }
+
+    @Override
     public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid) {
         return post("/v1/routes/home", "{\"playerUuid\":\"" + playerUuid + "\"}").thenApply(RouteTicketJson::parse);
     }

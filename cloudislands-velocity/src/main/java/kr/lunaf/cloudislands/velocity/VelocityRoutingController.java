@@ -82,6 +82,18 @@ public final class VelocityRoutingController {
         coreApiClient.purchaseIslandUpgrade(islandId, player.getUniqueId(), upgradeKey).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "업그레이드에 실패했습니다." : body)));
     }
 
+    public void listSnapshots(Player player, UUID islandId) {
+        coreApiClient.listIslandSnapshots(islandId, 20).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "스냅샷 목록을 불러오지 못했습니다." : body)));
+    }
+
+    public void snapshot(Player player, UUID islandId, String reason) {
+        coreApiClient.requestIslandSnapshot(islandId, reason).thenRun(() -> player.sendMessage(Component.text("섬 스냅샷을 요청했습니다.")));
+    }
+
+    public void restore(Player player, UUID islandId, long snapshotNo) {
+        coreApiClient.restoreIslandSnapshot(islandId, snapshotNo).thenRun(() -> player.sendMessage(Component.text("섬 복원을 요청했습니다.")));
+    }
+
     private void route(Player player, RouteTicket ticket, String failureMessage) {
         if (ticket == null) {
             fallback(player, failureMessage);

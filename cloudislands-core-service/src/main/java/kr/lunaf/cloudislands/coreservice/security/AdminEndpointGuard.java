@@ -61,6 +61,7 @@ public final class AdminEndpointGuard {
             case "/v1/admin/islands/deactivate" -> AdminPermission.ISLAND_DEACTIVATE;
             case "/v1/admin/islands/migrate" -> AdminPermission.ISLAND_MIGRATE;
             case "/v1/admin/islands/snapshot" -> AdminPermission.ISLAND_SNAPSHOT;
+            case "/v1/admin/islands/restore" -> AdminPermission.ISLAND_RESTORE;
             case "/v1/admin/islands/quarantine" -> AdminPermission.ISLAND_QUARANTINE;
             default -> path.startsWith("/v1/admin") ? AdminPermission.AUDIT_READ : null;
         };

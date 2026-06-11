@@ -33,6 +33,11 @@ public final class LocalIslandStorage implements IslandStorage {
     }
 
     @Override
+    public InputStream openSnapshotBundle(UUID islandId, long snapshotNo) throws IOException {
+        return Files.newInputStream(islandRoot(islandId).resolve("snapshots").resolve(String.format("%06d", snapshotNo)).resolve("bundle.tar.zst"));
+    }
+
+    @Override
     public void writeSnapshot(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
         Path islandRoot = islandRoot(islandId);
         Path snapshotDir = islandRoot.resolve("snapshots").resolve(String.format("%06d", snapshotNo));

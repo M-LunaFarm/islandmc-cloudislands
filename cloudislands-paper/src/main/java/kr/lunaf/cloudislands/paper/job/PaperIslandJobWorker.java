@@ -53,7 +53,7 @@ public final class PaperIslandJobWorker {
             return;
         }
         try {
-            List<IslandJob> claimed = jobSource.claim(nodeId, List.of(IslandJobType.CREATE_ISLAND, IslandJobType.ACTIVATE_ISLAND, IslandJobType.DEACTIVATE_ISLAND, IslandJobType.SNAPSHOT_ISLAND), 4);
+            List<IslandJob> claimed = jobSource.claim(nodeId, List.of(IslandJobType.CREATE_ISLAND, IslandJobType.ACTIVATE_ISLAND, IslandJobType.DEACTIVATE_ISLAND, IslandJobType.SNAPSHOT_ISLAND, IslandJobType.RESTORE_ISLAND), 4);
             consecutiveFailures = 0;
             for (IslandJob job : claimed) {
                 handle(job);

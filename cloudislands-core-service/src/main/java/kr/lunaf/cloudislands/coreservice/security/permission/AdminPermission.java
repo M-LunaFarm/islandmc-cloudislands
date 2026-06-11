@@ -7,6 +7,7 @@ public enum AdminPermission {
     ISLAND_DEACTIVATE,
     ISLAND_MIGRATE,
     ISLAND_SNAPSHOT,
+    ISLAND_RESTORE,
     ISLAND_QUARANTINE,
     AUDIT_READ,
     JOB_MANAGE,

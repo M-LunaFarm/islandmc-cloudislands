@@ -51,6 +51,9 @@ import kr.lunaf.cloudislands.coreservice.security.FixedWindowRateLimiter;
 import kr.lunaf.cloudislands.coreservice.security.AdminEndpointGuard;
 import kr.lunaf.cloudislands.coreservice.security.IpAllowlist;
 import kr.lunaf.cloudislands.coreservice.session.InMemoryRouteSessionStore;
+import kr.lunaf.cloudislands.coreservice.snapshot.InMemoryIslandSnapshotRepository;
+import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
+import kr.lunaf.cloudislands.coreservice.snapshot.JdbcIslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.ticket.InMemoryRouteTicketStore;
 import kr.lunaf.cloudislands.coreservice.upgrade.InMemoryIslandUpgradeRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeRepository;
@@ -91,6 +94,7 @@ public final class CloudIslandsCoreApplication {
         IslandRepository islandRepository = config.jdbcRepositories() ? new JdbcIslandRepository(dataSource) : new InMemoryIslandRepository();
         IslandMetadataRepository metadataRepository = config.jdbcRepositories() ? new JdbcIslandMetadataRepository(dataSource) : new InMemoryIslandMetadataRepository();
         IslandRuntimeRepository runtimeRepository = config.jdbcRepositories() ? new JdbcIslandRuntimeRepository(dataSource) : new InMemoryIslandRuntimeRepository();
+        IslandSnapshotRepository snapshotRepository = config.jdbcRepositories() ? new JdbcIslandSnapshotRepository(dataSource) : new InMemoryIslandSnapshotRepository();
         RankingRepository rankingRepository = config.jdbcRepositories() ? new JdbcRankingRepository(dataSource) : new InMemoryRankingRepository();
         IslandLevelRepository levelRepository = config.jdbcRepositories() ? new JdbcIslandLevelRepository(dataSource) : new InMemoryIslandLevelRepository();
         RankingRecalculationService levelRecalculation = new RankingRecalculationService(rankingRepository, events);
@@ -102,7 +106,7 @@ public final class CloudIslandsCoreApplication {
         RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets, islandRepository, metadataRepository);
         CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, nodes, allocator, jobs, events);
         IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(runtimeRepository, nodes, allocator, jobs, events);
-        kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events);
+        kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository);
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
         route("/health", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));
         route("/v1/nodes", exchange -> write(exchange, 200, nodes.toJson()));
@@ -121,7 +125,7 @@ public final class CloudIslandsCoreApplication {
         route("/v1/jobs/claim", exchange -> {
             String body = readBody(exchange);
             String nodeId = JsonFields.text(body, "nodeId", "");
-            java.util.List<kr.lunaf.cloudislands.protocol.job.IslandJob> claimed = jobs.claim(nodeId, java.util.List.of(kr.lunaf.cloudislands.protocol.job.IslandJobType.CREATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.ACTIVATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.DEACTIVATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.SNAPSHOT_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.MIGRATE_ISLAND), JsonFields.integer(body, "maxJobs", 4));
+            java.util.List<kr.lunaf.cloudislands.protocol.job.IslandJob> claimed = jobs.claim(nodeId, java.util.List.of(kr.lunaf.cloudislands.protocol.job.IslandJobType.CREATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.ACTIVATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.DEACTIVATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.SNAPSHOT_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.MIGRATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.RESTORE_ISLAND), JsonFields.integer(body, "maxJobs", 4));
             write(exchange, 200, kr.lunaf.cloudislands.protocol.job.json.IslandJobJson.writeArray(claimed));
         });
         route("/v1/jobs/complete", exchange -> {
@@ -204,9 +208,23 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             lifecycle(exchange, lifecycle.snapshot(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "reason", "MANUAL")));
         });
+        route("/v1/admin/islands/restore", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            long snapshotNo = JsonFields.longValue(body, "snapshotNo", 0L);
+            if (snapshotNo <= 0L || snapshotRepository.find(islandId, snapshotNo).isEmpty()) {
+                write(exchange, 404, ApiResponses.error("SNAPSHOT_NOT_FOUND", "Snapshot was not found"));
+            } else {
+                lifecycle(exchange, lifecycle.restore(islandId, snapshotNo));
+            }
+        });
         route("/v1/admin/islands/quarantine", exchange -> {
             String body = readBody(exchange);
             lifecycle(exchange, lifecycle.quarantine(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "reason", "admin")));
+        });
+        route("/v1/islands/snapshots", exchange -> {
+            String body = readBody(exchange);
+            write(exchange, 200, snapshotsJson(snapshotRepository.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.integer(body, "limit", 20))));
         });
         route("/v1/admin/block-values", exchange -> {
             String body = readBody(exchange);
@@ -478,6 +496,29 @@ public final class CloudIslandsCoreApplication {
             }
             first = false;
             builder.append(upgradeJson(upgrade));
+        }
+        return builder.append("]}").toString();
+    }
+
+    private static String snapshotsJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandSnapshotRecord> snapshots) {
+        StringBuilder builder = new StringBuilder("{\"snapshots\":[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.api.model.IslandSnapshotRecord snapshot : snapshots) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('{')
+                .append("\"snapshotId\":\"").append(snapshot.snapshotId()).append("\",")
+                .append("\"islandId\":\"").append(snapshot.islandId()).append("\",")
+                .append("\"snapshotNo\":").append(snapshot.snapshotNo()).append(',')
+                .append("\"storagePath\":\"").append(escape(snapshot.storagePath())).append("\",")
+                .append("\"reason\":\"").append(escape(snapshot.reason())).append("\",")
+                .append("\"createdBy\":\"").append(snapshot.createdBy()).append("\",")
+                .append("\"checksum\":\"").append(escape(snapshot.checksum())).append("\",")
+                .append("\"sizeBytes\":").append(snapshot.sizeBytes()).append(',')
+                .append("\"createdAt\":\"").append(snapshot.createdAt()).append("\"")
+                .append('}');
         }
         return builder.append("]}").toString();
     }
