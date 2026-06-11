@@ -47,7 +47,7 @@ public record NodeLoad(
         if (lastHeartbeat == null || lastHeartbeat.plus(heartbeatTimeout).isBefore(now)) {
             return false;
         }
-        return supportsTemplate(templateId) && satisfiesMinVersion(minVersion);
+        return players < hardPlayerCap && supportsTemplate(templateId) && satisfiesMinVersion(minVersion);
     }
 
     public boolean supportsTemplate(String templateId) {
