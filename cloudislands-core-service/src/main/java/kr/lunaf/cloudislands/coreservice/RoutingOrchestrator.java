@@ -176,6 +176,12 @@ public final class RoutingOrchestrator {
             ));
             return RoutePreparationResult.accepted(toJson(saved));
         } catch (IllegalStateException exception) {
+            events.publish("ROUTE_TICKET_FAILED", Map.of(
+                "playerUuid", playerUuid.toString(),
+                "islandId", island.islandId().toString(),
+                "action", action.name(),
+                "reason", "NODE_UNAVAILABLE"
+            ));
             return RoutePreparationResult.rejected(409, ApiResponses.error("NODE_UNAVAILABLE", "No eligible island node is available"));
         }
     }

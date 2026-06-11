@@ -6,6 +6,7 @@ import java.util.Map;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
 import kr.lunaf.cloudislands.coreservice.NodeRegistry;
+import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.JdbcIslandJobQueue;
@@ -13,11 +14,13 @@ import kr.lunaf.cloudislands.coreservice.job.JdbcIslandJobQueue;
 public final class PrometheusMetricsRenderer {
     private final NodeRegistry nodes;
     private final IslandJobQueue jobs;
+    private final InMemoryGlobalEventPublisher events;
     private final Duration heartbeatTimeout;
 
-    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, Duration heartbeatTimeout) {
+    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout) {
         this.nodes = nodes;
         this.jobs = jobs;
+        this.events = events;
         this.heartbeatTimeout = heartbeatTimeout;
     }
 
@@ -63,6 +66,15 @@ public final class PrometheusMetricsRenderer {
         } else {
             out.append("cloudislands_jobs_total{state=\"backend_external\",backend=\"redis\"} 1\n");
         }
+        help(out, "cloudislands_route_ticket_created_total", "Route tickets created by Core API");
+        type(out, "cloudislands_route_ticket_created_total", "counter");
+        out.append("cloudislands_route_ticket_created_total ").append(events.countByType("ROUTE_TICKET_CREATED")).append('\n');
+        help(out, "cloudislands_route_ticket_consumed_total", "Route tickets consumed by Paper nodes");
+        type(out, "cloudislands_route_ticket_consumed_total", "counter");
+        out.append("cloudislands_route_ticket_consumed_total ").append(events.countByType("ROUTE_TICKET_CONSUMED")).append('\n');
+        help(out, "cloudislands_route_ticket_failed_total", "Route ticket failures recorded by Core API");
+        type(out, "cloudislands_route_ticket_failed_total", "counter");
+        out.append("cloudislands_route_ticket_failed_total ").append(events.countByType("ROUTE_TICKET_FAILED")).append('\n');
         return out.toString();
     }
 

@@ -30,6 +30,10 @@ public final class InMemoryGlobalEventPublisher implements GlobalEventPublisher 
         return builder.append("]}").toString();
     }
 
+    public synchronized long countByType(String type) {
+        return events.stream().filter(event -> event.type().equals(type)).count();
+    }
+
     private String fieldsJson(Map<String, String> fields) {
         StringBuilder builder = new StringBuilder("{");
         boolean first = true;
