@@ -13,6 +13,7 @@ import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandTemplateSnapshot;
 import kr.lunaf.cloudislands.api.model.JobRecoveryResult;
 import kr.lunaf.cloudislands.api.model.MigrationRunSnapshot;
+import kr.lunaf.cloudislands.api.model.NodeSweepResult;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 import kr.lunaf.cloudislands.api.model.RouteClearResult;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
@@ -23,6 +24,7 @@ public interface IslandAdminService {
     CompletableFuture<Void> undrainNode(String nodeId);
     CompletableFuture<IslandActionResult> undrainNodeResult(String nodeId);
     CompletableFuture<Void> sweepNode(String nodeId);
+    CompletableFuture<NodeSweepResult> sweepNodeResult(String nodeId);
     CompletableFuture<Void> migrateIsland(UUID islandId, String targetNode);
     CompletableFuture<IslandActionResult> migrateIslandResult(UUID islandId, String targetNode);
     CompletableFuture<Void> snapshotIsland(UUID islandId, String reason);

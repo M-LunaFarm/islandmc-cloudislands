@@ -460,7 +460,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> sweepNode(String nodeId) {
-        return post("/v1/admin/nodes/sweep", "{\"nodeId\":\"" + escape(nodeId) + "\"}");
+        return sweepNodeResult(nodeId);
+    }
+
+    @Override
+    public CompletableFuture<String> sweepNodeResult(String nodeId) {
+        return postWithResultBody("/v1/admin/nodes/sweep", "{\"nodeId\":\"" + escape(nodeId) + "\"}");
     }
 
     @Override

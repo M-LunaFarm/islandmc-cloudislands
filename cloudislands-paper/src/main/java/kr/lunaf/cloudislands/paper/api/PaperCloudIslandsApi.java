@@ -49,6 +49,7 @@ import kr.lunaf.cloudislands.api.model.JobRecoveryResult;
 import kr.lunaf.cloudislands.api.model.MigrationIssueSnapshot;
 import kr.lunaf.cloudislands.api.model.MigrationRunSnapshot;
 import kr.lunaf.cloudislands.api.model.NodeState;
+import kr.lunaf.cloudislands.api.model.NodeSweepResult;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 import kr.lunaf.cloudislands.api.model.RouteAction;
@@ -365,7 +366,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<IslandActionResult> drainNodeResult(String nodeId) { return client.drainNodeResult(nodeId).thenApply(body -> action(body, "NODE_DRAINED")); }
         @Override public CompletableFuture<Void> undrainNode(String nodeId) { return undrainNodeResult(nodeId).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> undrainNodeResult(String nodeId) { return client.undrainNodeResult(nodeId).thenApply(body -> action(body, "NODE_UNDRAINED")); }
-        @Override public CompletableFuture<Void> sweepNode(String nodeId) { return client.sweepNode(nodeId).thenApply(_body -> null); }
+        @Override public CompletableFuture<Void> sweepNode(String nodeId) { return sweepNodeResult(nodeId).thenApply(_result -> null); }
+        @Override public CompletableFuture<NodeSweepResult> sweepNodeResult(String nodeId) { return client.sweepNodeResult(nodeId).thenApply(PaperCloudIslandsApi::nodeSweep); }
         @Override public CompletableFuture<Void> migrateIsland(UUID islandId, String targetNode) { return migrateIslandResult(islandId, targetNode).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> migrateIslandResult(UUID islandId, String targetNode) { return client.migrateIslandResult(islandId, targetNode).thenApply(body -> actionCode(body, "MIGRATED")); }
         @Override public CompletableFuture<Void> snapshotIsland(UUID islandId, String reason) { return snapshotIslandResult(islandId, reason).thenApply(_result -> null); }
@@ -915,6 +917,37 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             index = end + 1;
         }
         return ids;
+    }
+
+    private static NodeSweepResult nodeSweep(String json) {
+        return new NodeSweepResult(stringArray(json, "nodes"), integer(json, "recoveryRequired", 0));
+    }
+
+    private static List<String> stringArray(String json, String field) {
+        List<String> values = new ArrayList<>();
+        String needle = "\"" + field + "\":[";
+        int start = json.indexOf(needle);
+        if (start < 0) {
+            return values;
+        }
+        int index = start + needle.length();
+        int end = json.indexOf(']', index);
+        if (end < 0) {
+            return values;
+        }
+        while (index < end) {
+            int quote = json.indexOf('"', index);
+            if (quote < 0 || quote >= end) {
+                break;
+            }
+            int close = json.indexOf('"', quote + 1);
+            if (close < 0 || close > end) {
+                break;
+            }
+            values.add(json.substring(quote + 1, close));
+            index = close + 1;
+        }
+        return values;
     }
 
     private static List<IslandNodeSnapshot> nodes(String json) {
