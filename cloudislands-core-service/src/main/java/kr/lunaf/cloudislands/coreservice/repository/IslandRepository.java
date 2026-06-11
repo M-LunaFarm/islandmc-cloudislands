@@ -7,6 +7,7 @@ import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 public interface IslandRepository {
     Optional<IslandSnapshot> findById(UUID islandId);
     Optional<IslandSnapshot> findByOwner(UUID ownerUuid);
+    Optional<IslandSnapshot> findByName(String name);
     Optional<String> templateId(UUID islandId);
     IslandSnapshot createOwnedIsland(UUID islandId, UUID ownerUuid, String templateId, String name);
     void updateStats(UUID islandId, int size, long level, String worth);

@@ -25,6 +25,16 @@ public final class InMemoryIslandRepository implements IslandRepository {
     }
 
     @Override
+    public Optional<IslandSnapshot> findByName(String name) {
+        if (name == null || name.isBlank()) {
+            return Optional.empty();
+        }
+        return byIslandId.values().stream()
+            .filter(island -> island.name().equalsIgnoreCase(name))
+            .findFirst();
+    }
+
+    @Override
     public Optional<String> templateId(UUID islandId) {
         return Optional.ofNullable(templates.get(islandId));
     }

@@ -244,7 +244,10 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID ownerUuid = JsonFields.uuid(body, "ownerUuid", new UUID(0L, 0L));
-            java.util.Optional<IslandSnapshot> island = islandId.equals(new UUID(0L, 0L)) ? islandRepository.findByOwner(ownerUuid) : islandRepository.findById(islandId);
+            String name = JsonFields.text(body, "name", "");
+            java.util.Optional<IslandSnapshot> island = islandId.equals(new UUID(0L, 0L))
+                ? ownerUuid.equals(new UUID(0L, 0L)) ? islandRepository.findByName(name) : islandRepository.findByOwner(ownerUuid)
+                : islandRepository.findById(islandId);
             write(exchange, island.isPresent() ? 200 : 404, island.map(CloudIslandsCoreApplication::islandJson).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
         });
         routePrefix("/v1/islands/", exchange -> {

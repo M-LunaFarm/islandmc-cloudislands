@@ -287,8 +287,9 @@ public final class CloudIslandsVelocityPlugin {
                 routingController.routeVisit(player, targetIslandId);
                 return;
             }
-            UUID ownerUuid = proxy.getPlayer(args[1]).map(Player::getUniqueId).orElse(new UUID(0L, 0L));
-            routingController.routeVisitOwner(player, ownerUuid);
+            proxy.getPlayer(args[1])
+                .map(Player::getUniqueId)
+                .ifPresentOrElse(ownerUuid -> routingController.routeVisitOwner(player, ownerUuid), () -> routingController.routeVisitName(player, args[1]));
             return;
         }
         if (args[0].equalsIgnoreCase("randomvisit") || args[0].equals("랜덤방문")) {
