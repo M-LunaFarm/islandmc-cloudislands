@@ -6,6 +6,9 @@ import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.world.IslandWorldRestorer;
 import kr.lunaf.cloudislands.paper.world.ShardWorldPreloader;
 import kr.lunaf.cloudislands.paper.world.bundle.BundleRestorePlan;
+import kr.lunaf.cloudislands.paper.world.cell.CellPlacementPlan;
+import kr.lunaf.cloudislands.paper.world.cell.FileBackedCellTransfer;
+import kr.lunaf.cloudislands.paper.world.cell.ShardCellTransferPlanner;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
@@ -18,18 +21,24 @@ public final class IslandActivationJobHandler {
     private final IslandWorldRestorer worldRestorer;
     private final ShardWorldPreloader preloader;
     private final int preloadRadius;
+    private final FileBackedCellTransfer cellTransfer;
 
     public IslandActivationJobHandler(IslandStorage storage, ShardWorldManager shardWorldManager, ProtectionController protectionController) {
-        this(storage, shardWorldManager, protectionController, null, null, 0);
+        this(storage, shardWorldManager, protectionController, null, null, 0, null);
     }
 
     public IslandActivationJobHandler(IslandStorage storage, ShardWorldManager shardWorldManager, ProtectionController protectionController, IslandWorldRestorer worldRestorer, ShardWorldPreloader preloader, int preloadRadius) {
+        this(storage, shardWorldManager, protectionController, worldRestorer, preloader, preloadRadius, null);
+    }
+
+    public IslandActivationJobHandler(IslandStorage storage, ShardWorldManager shardWorldManager, ProtectionController protectionController, IslandWorldRestorer worldRestorer, ShardWorldPreloader preloader, int preloadRadius, FileBackedCellTransfer cellTransfer) {
         this.storage = storage;
         this.shardWorldManager = shardWorldManager;
         this.protectionController = protectionController;
         this.worldRestorer = worldRestorer;
         this.preloader = preloader;
         this.preloadRadius = preloadRadius;
+        this.cellTransfer = cellTransfer;
     }
 
     public ActivationResult handle(IslandJob job) {
@@ -41,6 +50,10 @@ public final class IslandActivationJobHandler {
             IslandBundleManifest manifest = storage.readManifest(islandId);
             ShardWorldManager.CellAssignment cell = shardWorldManager.allocateCell(islandId);
             BundleRestorePlan restorePlan = stageBundle(islandId, cell);
+            if (restorePlan != null && cellTransfer != null) {
+                CellPlacementPlan placement = new ShardCellTransferPlanner(manifest.size()).placement(restorePlan);
+                cellTransfer.place(placement);
+            }
             if (preloader != null) {
                 preloader.preload(cell.worldName(), cell.originX(), cell.originZ(), preloadRadius);
             }

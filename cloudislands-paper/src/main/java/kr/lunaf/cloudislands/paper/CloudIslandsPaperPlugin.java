@@ -6,6 +6,8 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JdkCoreApiClient;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
 import kr.lunaf.cloudislands.paper.activation.IslandActivationJobHandler;
+import kr.lunaf.cloudislands.paper.activation.IslandDeactivationHandler;
+import kr.lunaf.cloudislands.paper.activation.IslandSaveService;
 import kr.lunaf.cloudislands.paper.activation.ShardWorldManager;
 import kr.lunaf.cloudislands.paper.admin.AdminCommandController;
 import kr.lunaf.cloudislands.paper.heartbeat.PaperHeartbeatService;
@@ -17,6 +19,8 @@ import kr.lunaf.cloudislands.paper.world.IslandWorldRestorer;
 import kr.lunaf.cloudislands.paper.world.bundle.BundleRestorePlanner;
 import kr.lunaf.cloudislands.paper.world.bundle.ExternalTarBundleExtractor;
 import kr.lunaf.cloudislands.paper.world.ShardWorldPreloader;
+import kr.lunaf.cloudislands.paper.world.cell.FileBackedCellTransfer;
+import kr.lunaf.cloudislands.paper.world.export.ExternalTarIslandBundleExporter;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -76,8 +80,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             getConfig().getInt("island-node.cell-size", 1024)
         );
         this.activeIslands = new ActiveIslandRegistry();
-        IslandActivationJobHandler activationHandler = new IslandActivationJobHandler(storage, shardWorldManager, agent.protection(), new IslandWorldRestorer(storage, getDataFolder().toPath().resolve("staging"), new BundleRestorePlanner(new ExternalTarBundleExtractor())), new ShardWorldPreloader(this), getConfig().getInt("island-node.activation.preload-radius", 4));
-        this.jobWorker = new PaperIslandJobWorker(this, new CoreBackedIslandJobSource(client), activationHandler, activeIslands, nodeId);
+        IslandActivationJobHandler activationHandler = new IslandActivationJobHandler(storage, shardWorldManager, agent.protection(), new IslandWorldRestorer(storage, getDataFolder().toPath().resolve("staging"), new BundleRestorePlanner(new ExternalTarBundleExtractor())), new ShardWorldPreloader(this), getConfig().getInt("island-node.activation.preload-radius", 4), new FileBackedCellTransfer(getServer().getWorldContainer().toPath()));
+        IslandSaveService saveService = new IslandSaveService(storage, new ExternalTarIslandBundleExporter(getServer().getWorldContainer().toPath()), getDataFolder().toPath().resolve("exports"));
+        IslandDeactivationHandler deactivationHandler = new IslandDeactivationHandler(activeIslands, shardWorldManager, agent.protection(), saveService);
+        this.jobWorker = new PaperIslandJobWorker(this, new CoreBackedIslandJobSource(client), activationHandler, deactivationHandler, activeIslands, nodeId);
         jobWorker.start(getConfig().getLong("island-node.activation.worker-interval-ticks", 20L));
     }
 }
