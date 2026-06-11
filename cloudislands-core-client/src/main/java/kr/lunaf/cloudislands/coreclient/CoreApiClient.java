@@ -20,6 +20,8 @@ public interface CoreApiClient {
     CompletableFuture<String> listIslandMembers(UUID islandId);
     CompletableFuture<Void> setIslandMember(UUID islandId, UUID actorUuid, UUID playerUuid, IslandRole role);
     CompletableFuture<Void> removeIslandMember(UUID islandId, UUID actorUuid, UUID playerUuid);
+    CompletableFuture<Void> banIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason);
+    CompletableFuture<Void> pardonIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid);
     CompletableFuture<String> listIslandFlags(UUID islandId);
     CompletableFuture<Void> setIslandFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value);
     CompletableFuture<String> listIslandWarps(UUID islandId);
@@ -28,6 +30,7 @@ public interface CoreApiClient {
     CompletableFuture<Void> setIslandPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess);
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid);
     CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId);
+    CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName);
     CompletableFuture<Void> publishRouteSession(RouteTicket ticket);
     CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId);
     CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce);

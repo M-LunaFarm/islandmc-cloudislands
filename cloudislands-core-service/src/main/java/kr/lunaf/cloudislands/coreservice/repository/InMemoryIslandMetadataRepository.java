@@ -16,6 +16,7 @@ import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 
 public final class InMemoryIslandMetadataRepository implements IslandMetadataRepository {
     private final Map<UUID, Map<UUID, IslandMemberSnapshot>> members = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<UUID, String>> bans = new ConcurrentHashMap<>();
     private final Map<UUID, Map<IslandFlag, String>> flags = new ConcurrentHashMap<>();
     private final Map<UUID, Map<String, IslandWarpSnapshot>> warps = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> publicAccess = new ConcurrentHashMap<>();
@@ -23,6 +24,11 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     @Override
     public List<IslandMemberSnapshot> members(UUID islandId) {
         return new ArrayList<>(members.getOrDefault(islandId, Map.of()).values());
+    }
+
+    @Override
+    public boolean isMember(UUID islandId, UUID playerUuid) {
+        return members.getOrDefault(islandId, Map.of()).containsKey(playerUuid);
     }
 
     @Override
@@ -36,6 +42,24 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
         Map<UUID, IslandMemberSnapshot> islandMembers = members.get(islandId);
         if (islandMembers != null) {
             islandMembers.remove(playerUuid);
+        }
+    }
+
+    @Override
+    public boolean isBanned(UUID islandId, UUID playerUuid) {
+        return bans.getOrDefault(islandId, Map.of()).containsKey(playerUuid);
+    }
+
+    @Override
+    public void banVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason) {
+        bans.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>()).put(playerUuid, reason == null ? "" : reason);
+    }
+
+    @Override
+    public void pardonVisitor(UUID islandId, UUID playerUuid) {
+        Map<UUID, String> islandBans = bans.get(islandId);
+        if (islandBans != null) {
+            islandBans.remove(playerUuid);
         }
     }
 

@@ -78,7 +78,7 @@ public final class CloudIslandsCoreApplication {
         IslandRuntimeRepository runtimeRepository = config.jdbcRepositories() ? new JdbcIslandRuntimeRepository(dataSource) : new InMemoryIslandRuntimeRepository();
         AuditLogger audit = config.jdbcRepositories() ? new JdbcAuditLogger(dataSource) : new InMemoryAuditLogger();
         InMemoryAuditLogger inMemoryAudit = audit instanceof InMemoryAuditLogger logger ? logger : new InMemoryAuditLogger();
-        RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets);
+        RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets, islandRepository, metadataRepository);
         CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, nodes, allocator, jobs, events);
         IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(runtimeRepository, nodes, allocator, jobs, events);
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events);
@@ -125,11 +125,15 @@ public final class CloudIslandsCoreApplication {
         });
         route("/v1/routes/home", exchange -> {
             String body = readBody(exchange);
-            write(exchange, 202, routing.prepareHomeRouteJson(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L))));
+            routeResult(exchange, routing.prepareHomeRoute(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L))));
         });
         route("/v1/routes/visit", exchange -> {
             String body = readBody(exchange);
-            write(exchange, 202, routing.prepareVisitRouteJson(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), JsonFields.uuid(body, "islandId", new UUID(0L, 0L))));
+            routeResult(exchange, routing.prepareVisitRoute(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), JsonFields.uuid(body, "islandId", new UUID(0L, 0L))));
+        });
+        route("/v1/routes/warp", exchange -> {
+            String body = readBody(exchange);
+            routeResult(exchange, routing.prepareWarpRoute(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "warpName", "default")));
         });
         route("/v1/routes/session", exchange -> {
             String body = readBody(exchange);
@@ -195,6 +199,27 @@ public final class CloudIslandsCoreApplication {
             metadataRepository.removeMember(islandId, playerUuid);
             audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_MEMBER_REMOVE", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
             events.publish("ISLAND_MEMBER_REMOVE", Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
+            write(exchange, 202, ApiResponses.ok(true));
+        });
+        route("/v1/islands/bans/set", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            String reason = JsonFields.text(body, "reason", "island ban");
+            metadataRepository.banVisitor(islandId, actorUuid, playerUuid, reason);
+            metadataRepository.removeMember(islandId, playerUuid);
+            audit.log(actorUuid, "PLAYER", "ISLAND_VISITOR_BAN", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString(), "reason", reason));
+            events.publish("ISLAND_VISITOR_BAN", Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
+            write(exchange, 202, ApiResponses.ok(true));
+        });
+        route("/v1/islands/bans/remove", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            metadataRepository.pardonVisitor(islandId, playerUuid);
+            audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_VISITOR_PARDON", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
+            events.publish("ISLAND_VISITOR_PARDON", Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
             write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/islands/flags", exchange -> {
@@ -294,6 +319,10 @@ public final class CloudIslandsCoreApplication {
 
     private static void lifecycle(HttpExchange exchange, IslandLifecycleWorkflow.Result result) throws IOException {
         write(exchange, result.accepted() ? 202 : 409, "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\"}");
+    }
+
+    private static void routeResult(HttpExchange exchange, RoutePreparationResult result) throws IOException {
+        write(exchange, result.status(), result.body());
     }
 
     private static String sessionJson(PlayerRouteSession session) {

@@ -42,6 +42,10 @@ public final class VelocityRoutingController {
         coreApiClient.createVisitTicket(player.getUniqueId(), targetIslandId).thenAccept(ticket -> route(player, ticket, "현재 섬 서버가 혼잡합니다. 잠시 후 다시 시도해주세요."));
     }
 
+    public void routeWarp(Player player, UUID targetIslandId, String warpName) {
+        coreApiClient.createWarpTicket(player.getUniqueId(), targetIslandId, warpName).thenAccept(ticket -> route(player, ticket, "해당 워프로 이동할 수 없습니다."));
+    }
+
     private void route(Player player, RouteTicket ticket, String failureMessage) {
         if (ticket == null) {
             fallback(player, failureMessage);

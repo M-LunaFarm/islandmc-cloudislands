@@ -42,6 +42,20 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     }
 
     @Override
+    public boolean isMember(UUID islandId, UUID playerUuid) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT 1 FROM island_members WHERE island_id = ? AND player_uuid = ?")) {
+            statement.setObject(1, islandId);
+            statement.setObject(2, playerUuid);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to check island membership", exception);
+        }
+    }
+
+    @Override
     public void upsertMember(UUID islandId, UUID playerUuid, IslandRole role) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, ?) ON CONFLICT (island_id, player_uuid) DO UPDATE SET role = EXCLUDED.role")) {
@@ -63,6 +77,46 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to remove island member", exception);
+        }
+    }
+
+    @Override
+    public boolean isBanned(UUID islandId, UUID playerUuid) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT 1 FROM island_bans WHERE island_id = ? AND banned_uuid = ? AND (expires_at IS NULL OR expires_at > now())")) {
+            statement.setObject(1, islandId);
+            statement.setObject(2, playerUuid);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to check island ban", exception);
+        }
+    }
+
+    @Override
+    public void banVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_bans(island_id, banned_uuid, actor_uuid, reason) VALUES (?, ?, ?, ?) ON CONFLICT (island_id, banned_uuid) DO UPDATE SET actor_uuid = EXCLUDED.actor_uuid, reason = EXCLUDED.reason, created_at = now(), expires_at = NULL")) {
+            statement.setObject(1, islandId);
+            statement.setObject(2, playerUuid);
+            statement.setObject(3, actorUuid);
+            statement.setString(4, reason);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to ban island visitor", exception);
+        }
+    }
+
+    @Override
+    public void pardonVisitor(UUID islandId, UUID playerUuid) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("DELETE FROM island_bans WHERE island_id = ? AND banned_uuid = ?")) {
+            statement.setObject(1, islandId);
+            statement.setObject(2, playerUuid);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to pardon island visitor", exception);
         }
     }
 

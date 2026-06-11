@@ -13,6 +13,11 @@ public final class InMemoryIslandRepository implements IslandRepository {
     private final Map<UUID, UUID> byOwner = new ConcurrentHashMap<>();
 
     @Override
+    public Optional<IslandSnapshot> findById(UUID islandId) {
+        return Optional.ofNullable(byIslandId.get(islandId));
+    }
+
+    @Override
     public Optional<IslandSnapshot> findByOwner(UUID ownerUuid) {
         UUID islandId = byOwner.get(ownerUuid);
         return islandId == null ? Optional.empty() : Optional.ofNullable(byIslandId.get(islandId));

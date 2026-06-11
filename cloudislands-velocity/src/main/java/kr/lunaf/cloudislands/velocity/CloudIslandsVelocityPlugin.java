@@ -58,13 +58,20 @@ public final class CloudIslandsVelocityPlugin {
             routingController.routeVisit(player, targetIslandId);
             return;
         }
+        if (args[0].equalsIgnoreCase("warp") || args[0].equals("워프")) {
+            player.sendActionBar(Component.text("섬 워프로 이동하는 중입니다."));
+            UUID targetIslandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            String warpName = args.length > 2 ? args[2] : "default";
+            routingController.routeWarp(player, targetIslandId, warpName);
+            return;
+        }
         if (args[0].equalsIgnoreCase("create") || args[0].equals("생성")) {
             String templateId = args.length > 1 ? args[1] : "default";
             player.sendActionBar(Component.text("섬 생성 요청을 접수했습니다."));
             routingController.createIsland(player, templateId);
             return;
         }
-        player.sendMessage(Component.text("사용법: /섬 홈, /섬 생성, /섬 방문 <섬>"));
+        player.sendMessage(Component.text("사용법: /섬 홈, /섬 생성, /섬 방문 <섬>, /섬 워프 <섬> <이름>"));
     }
 
     private UUID parseUuidOrNil(String value) {

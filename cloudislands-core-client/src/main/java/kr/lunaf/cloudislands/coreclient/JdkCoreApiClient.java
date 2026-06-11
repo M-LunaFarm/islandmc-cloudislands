@@ -58,6 +58,16 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<Void> banIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason) {
+        return post("/v1/islands/bans/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"reason\":\"" + escape(reason) + "\"}").thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<Void> pardonIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid) {
+        return post("/v1/islands/bans/remove", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\"}").thenApply(_body -> null);
+    }
+
+    @Override
     public CompletableFuture<String> listIslandFlags(UUID islandId) {
         return post("/v1/islands/flags", "{\"islandId\":\"" + islandId + "\"}");
     }
@@ -95,6 +105,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId) {
         return post("/v1/routes/visit", "{\"playerUuid\":\"" + visitorUuid + "\",\"islandId\":\"" + targetIslandId + "\"}").thenApply(RouteTicketJson::parse);
+    }
+
+    @Override
+    public CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName) {
+        return post("/v1/routes/warp", "{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\",\"warpName\":\"" + escape(warpName) + "\"}").thenApply(RouteTicketJson::parse);
     }
 
     @Override

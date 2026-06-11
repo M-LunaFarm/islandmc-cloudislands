@@ -11,8 +11,12 @@ import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 
 public interface IslandMetadataRepository {
     List<IslandMemberSnapshot> members(UUID islandId);
+    boolean isMember(UUID islandId, UUID playerUuid);
     void upsertMember(UUID islandId, UUID playerUuid, IslandRole role);
     void removeMember(UUID islandId, UUID playerUuid);
+    boolean isBanned(UUID islandId, UUID playerUuid);
+    void banVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason);
+    void pardonVisitor(UUID islandId, UUID playerUuid);
     IslandFlagsSnapshot flags(UUID islandId);
     void setFlag(UUID islandId, IslandFlag flag, String value);
     List<IslandWarpSnapshot> warps(UUID islandId);

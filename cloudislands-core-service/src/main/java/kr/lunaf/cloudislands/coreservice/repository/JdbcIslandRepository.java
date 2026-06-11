@@ -19,6 +19,19 @@ public final class JdbcIslandRepository implements IslandRepository {
     }
 
     @Override
+    public Optional<IslandSnapshot> findById(UUID islandId) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT id, owner_uuid, name, state, size, level, worth, public_access, created_at, updated_at FROM islands WHERE id = ? AND deleted_at IS NULL")) {
+            statement.setObject(1, islandId);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? Optional.of(map(rs)) : Optional.empty();
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to find island", exception);
+        }
+    }
+
+    @Override
     public Optional<IslandSnapshot> findByOwner(UUID ownerUuid) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT id, owner_uuid, name, state, size, level, worth, public_access, created_at, updated_at FROM islands WHERE owner_uuid = ? AND deleted_at IS NULL")) {
