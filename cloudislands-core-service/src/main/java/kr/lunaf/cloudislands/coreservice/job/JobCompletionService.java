@@ -25,6 +25,9 @@ public final class JobCompletionService {
 
     public void completed(IslandJob job) {
         if (job.type() == IslandJobType.CREATE_ISLAND || job.type() == IslandJobType.ACTIVATE_ISLAND || job.type() == IslandJobType.RESET_ISLAND) {
+            if (job.type() == IslandJobType.RESET_ISLAND) {
+                recordPreMutationSnapshot(job);
+            }
             String worldName = job.payload().getOrDefault("worldName", "ci_shard_001");
             runtimes.markActive(job.islandId(), job.targetNode(), worldName, integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), longValue(job.payload().get("fencingToken")));
             int readyTickets = tickets.markReadyForIsland(job.islandId(), job.targetNode(), worldName, Map.of());
@@ -60,10 +63,7 @@ public final class JobCompletionService {
             return;
         }
         if (job.type() == IslandJobType.RESTORE_ISLAND) {
-            long preRestoreSnapshotNo = longValue(job.payload().get("preRestoreSnapshotNo"));
-            if (preRestoreSnapshotNo > 0L) {
-                snapshots.record(job.islandId(), preRestoreSnapshotNo, "islands/" + job.islandId() + "/snapshots/" + String.format("%06d", preRestoreSnapshotNo) + "/bundle.tar.zst", "BEFORE_RESTORE", null, job.payload().getOrDefault("preRestoreChecksum", ""), longValue(job.payload().get("preRestoreSizeBytes")));
-            }
+            recordPreMutationSnapshot(job);
             runtimes.markActive(job.islandId(), job.targetNode(), job.payload().getOrDefault("worldName", "ci_shard_001"), integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), longValue(job.payload().get("fencingToken")));
             events.publish(CloudIslandEventType.ISLAND_RESTORED.name(), Map.of("islandId", job.islandId().toString(), "state", "RESTORED", "snapshotNo", job.payload().getOrDefault("snapshotNo", "")));
             return;
@@ -92,6 +92,14 @@ public final class JobCompletionService {
         } catch (RuntimeException ignored) {
             return 0;
         }
+    }
+
+    private void recordPreMutationSnapshot(IslandJob job) {
+        long snapshotNo = longValue(job.payload().get("preMutationSnapshotNo"));
+        if (snapshotNo <= 0L) {
+            return;
+        }
+        snapshots.record(job.islandId(), snapshotNo, "islands/" + job.islandId() + "/snapshots/" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", job.payload().getOrDefault("preMutationReason", "BEFORE_MUTATION"), null, job.payload().getOrDefault("preMutationChecksum", ""), longValue(job.payload().get("preMutationSizeBytes")));
     }
 
     private long longValue(String value) {

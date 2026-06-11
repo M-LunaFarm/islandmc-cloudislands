@@ -116,10 +116,11 @@ public final class PaperIslandJobWorker {
                 payload.put("schemaVersion", Long.toString(result.schemaVersion()));
                 payload.put("fencingToken", Long.toString(result.fencingToken()));
                 payload.put("extractedRoot", result.extractedRoot() == null ? "" : result.extractedRoot());
-                if (result.preRestoreSnapshotNo() > 0L) {
-                    payload.put("preRestoreSnapshotNo", Long.toString(result.preRestoreSnapshotNo()));
-                    payload.put("preRestoreChecksum", result.preRestoreChecksum());
-                    payload.put("preRestoreSizeBytes", Long.toString(result.preRestoreSizeBytes()));
+                if (result.preMutationSnapshotNo() > 0L) {
+                    payload.put("preMutationSnapshotNo", Long.toString(result.preMutationSnapshotNo()));
+                    payload.put("preMutationChecksum", result.preMutationChecksum());
+                    payload.put("preMutationSizeBytes", Long.toString(result.preMutationSizeBytes()));
+                    payload.put("preMutationReason", result.preMutationReason());
                 }
                 jobSource.complete(nodeId, job.jobId(), payload);
             } else {
