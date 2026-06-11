@@ -45,9 +45,13 @@ public final class IslandDeactivationHandler {
         try {
             IslandSaveService.SaveResult saveResult = null;
             ActiveIslandRegistry.ActiveIsland active = activeIslands.find(islandId).orElse(null);
-            if (active != null && saveService != null) {
-                saveResult = saveService.save(islandId, active);
+            if (active == null) {
+                return new DeactivationResult(false, islandId, 0L, "", 0L, "ISLAND_NOT_ACTIVE");
             }
+            if (saveService == null) {
+                return new DeactivationResult(false, islandId, 0L, "", 0L, "SAVE_UNAVAILABLE");
+            }
+            saveResult = saveService.save(islandId, active);
             return new DeactivationResult(true, islandId, saveResult == null ? 0L : saveResult.snapshotNo(), saveResult == null ? "" : saveResult.checksum(), saveResult == null ? 0L : saveResult.sizeBytes(), null);
         } catch (IOException exception) {
             return new DeactivationResult(false, islandId, 0L, "", 0L, exception.getMessage());

@@ -58,8 +58,8 @@ public final class JobCompletionService {
             if (snapshotNo > 0L) {
                 snapshots.record(job.islandId(), snapshotNo, "islands/" + job.islandId() + "/snapshots/" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", job.payload().getOrDefault("reason", job.type().name()), null, job.payload().getOrDefault("checksum", ""), longValue(job.payload().get("sizeBytes")));
                 snapshots.prune(job.islandId(), 50);
+                events.publish(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name(), Map.of("islandId", job.islandId().toString(), "snapshotNo", Long.toString(snapshotNo), "reason", job.payload().getOrDefault("reason", "")));
             }
-            events.publish(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name(), Map.of("islandId", job.islandId().toString(), "snapshotNo", Long.toString(snapshotNo), "reason", job.payload().getOrDefault("reason", "")));
             return;
         }
         if (job.type() == IslandJobType.DELETE_ISLAND) {

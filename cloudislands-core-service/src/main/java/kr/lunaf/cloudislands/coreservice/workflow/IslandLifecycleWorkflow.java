@@ -74,6 +74,9 @@ public final class IslandLifecycleWorkflow {
 
     public Result snapshot(UUID islandId, String reason) {
         IslandRuntimeSnapshot runtime = runtimes.find(islandId).orElseGet(() -> runtimes.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.INACTIVE_READY));
+        if (runtime.activeNode() == null || runtime.activeNode().isBlank()) {
+            return new Result(false, "ISLAND_NOT_ACTIVE", runtime);
+        }
         jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.SNAPSHOT_ISLAND, islandId, runtime.activeNode(), 20, Map.of("reason", reason), Instant.now()));
         events.publish(CloudIslandEventType.ISLAND_SNAPSHOT_REQUESTED.name(), Map.of("islandId", islandId.toString(), "reason", reason));
         return new Result(true, "SNAPSHOT_QUEUED", runtime);
