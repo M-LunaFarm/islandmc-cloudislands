@@ -115,12 +115,29 @@ public final class IslandCommandController implements CommandExecutor {
             setIslandLocked(player, false);
             return true;
         }
+        if (subcommand.equals("level") || subcommand.equals("레벨")) {
+            showIslandLevel(player);
+            return true;
+        }
+        if (subcommand.equals("worth") || subcommand.equals("value") || subcommand.equals("가치")) {
+            showIslandWorth(player);
+            return true;
+        }
+        if (subcommand.equals("rank") || subcommand.equals("ranking") || subcommand.equals("랭킹")) {
+            boolean worthRanking = args.length > 1 && (args[1].equalsIgnoreCase("worth") || args[1].equals("가치"));
+            listIslandRanking(player, worthRanking);
+            return true;
+        }
+        if (subcommand.equals("levelcalc") || subcommand.equals("recalculate") || subcommand.equals("레벨계산")) {
+            recalculateIslandLevel(player);
+            return true;
+        }
         return false;
     }
 
     private void setHome(Player player, String name) {
         currentIsland(player, "섬 안에서만 홈을 설정할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.INTERACT)) {
+            if (!allowed(player, IslandPermission.SET_HOME)) {
                 player.sendMessage("섬 홈을 설정할 권한이 없습니다.");
                 return;
             }
@@ -172,7 +189,7 @@ public final class IslandCommandController implements CommandExecutor {
 
     private void teleportHome(Player player, String name) {
         currentIsland(player, "섬 안에서만 홈으로 이동할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.SET_HOME)) {
+            if (!allowed(player, IslandPermission.INTERACT)) {
                 player.sendMessage("섬 홈으로 이동할 권한이 없습니다.");
                 return;
             }
@@ -272,6 +289,67 @@ public final class IslandCommandController implements CommandExecutor {
         });
     }
 
+    private void showIslandLevel(Player player) {
+        currentIsland(player, "섬 안에서만 레벨을 확인할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.islandInfo(islandId)
+                .thenAccept(body -> message(player, "섬 레벨: " + (long) decimal(body, "level")))
+                .exceptionally(error -> {
+                    message(player, "섬 레벨을 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void showIslandWorth(Player player) {
+        currentIsland(player, "섬 안에서만 가치를 확인할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.islandInfo(islandId)
+                .thenAccept(body -> {
+                    String worth = text(body, "worth");
+                    message(player, "섬 가치: " + (worth.isBlank() ? "0" : worth));
+                })
+                .exceptionally(error -> {
+                    message(player, "섬 가치를 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void listIslandRanking(Player player, boolean worthRanking) {
+        if (worthRanking) {
+            coreApiClient.topIslandsByWorth(10)
+                .thenAccept(body -> message(player, rankingMessage(body, "섬 가치 랭킹", "worth")))
+                .exceptionally(error -> {
+                    message(player, "섬 가치 랭킹을 불러오지 못했습니다.");
+                    return null;
+                });
+            return;
+        }
+        coreApiClient.topIslandsByLevel(10)
+            .thenAccept(body -> message(player, rankingMessage(body, "섬 레벨 랭킹", "level")))
+            .exceptionally(error -> {
+                message(player, "섬 레벨 랭킹을 불러오지 못했습니다.");
+                return null;
+            });
+    }
+
+    private void recalculateIslandLevel(Player player) {
+        currentIsland(player, "섬 안에서만 레벨을 계산할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.START_LEVEL_CALC)) {
+                player.sendMessage("섬 레벨을 계산할 권한이 없습니다.");
+                return;
+            }
+            coreApiClient.recalculateIslandLevel(islandId, player.getUniqueId())
+                .thenAccept(body -> {
+                    String worth = text(body, "worth");
+                    message(player, "섬 레벨 계산 완료: 레벨 " + (long) decimal(body, "level") + " / 가치 " + (worth.isBlank() ? "0" : worth));
+                })
+                .exceptionally(error -> {
+                    message(player, "섬 레벨을 계산하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
     private java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
         java.util.Optional<UUID> islandId = protection.islandAt(player.getLocation().getBlock());
         if (islandId.isEmpty()) {
@@ -313,6 +391,32 @@ public final class IslandCommandController implements CommandExecutor {
     private String pointListMessage(String body, String label, String emptyMessage) {
         List<String> names = names(body);
         return names.isEmpty() ? emptyMessage : label + ": " + String.join(", ", names);
+    }
+
+    private String rankingMessage(String body, String label, String valueKey) {
+        if (body == null || body.isBlank()) {
+            return label + ": 기록이 없습니다.";
+        }
+        List<String> entries = new ArrayList<>();
+        int index = 0;
+        while (index < body.length() && entries.size() < 10) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String islandId = text(object, "islandId");
+            if (!islandId.isBlank()) {
+                String value = valueKey.equals("worth") ? text(object, valueKey) : Long.toString((long) decimal(object, valueKey));
+                entries.add((entries.size() + 1) + ". " + islandId + " (" + value + ")");
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? label + ": 기록이 없습니다." : label + ": " + String.join(" | ", entries);
     }
 
     private Point point(String body, String requestedName, String fallbackWorldName) {
