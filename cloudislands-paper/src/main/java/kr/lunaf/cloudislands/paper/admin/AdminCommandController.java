@@ -335,14 +335,19 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
 
     private boolean handleRoute(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage("사용법: /ciadmin route debug <playerUuid> | ticket <ticketUuid> | clear <playerUuid> <ticketUuid>");
+            sender.sendMessage("사용법: /ciadmin route debug <playerUuid|playerName> | ticket <ticketUuid> | clear <playerUuid|playerName> <ticketUuid>");
             return true;
         }
         if (args[1].equalsIgnoreCase("debug")) {
-            UUID playerUuid = uuid(sender, args[2]);
-            if (playerUuid != null) {
+            resolvePlayerUuid(sender, args[2]).thenAccept(playerUuid -> {
+                if (playerUuid == null) {
+                    return;
+                }
                 run(sender, "Route debug", coreApiClient.debugRoutes(playerUuid));
-            }
+            }).exceptionally(error -> {
+                sender.sendMessage("플레이어를 찾지 못했습니다: " + args[2]);
+                return null;
+            });
             return true;
         }
         if (args[1].equalsIgnoreCase("ticket")) {
@@ -354,17 +359,24 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args[1].equalsIgnoreCase("clear")) {
             if (args.length < 4) {
-                sender.sendMessage("플레이어 UUID와 티켓 UUID를 입력해주세요.");
+                sender.sendMessage("플레이어 이름 또는 UUID와 티켓 UUID를 입력해주세요.");
                 return true;
             }
-            UUID playerUuid = uuid(sender, args[2]);
             UUID ticketId = uuid(sender, args[3]);
-            if (playerUuid != null && ticketId != null) {
-                run(sender, "Route clear", coreApiClient.clearRoute(playerUuid, ticketId));
+            if (ticketId != null) {
+                resolvePlayerUuid(sender, args[2]).thenAccept(playerUuid -> {
+                    if (playerUuid == null) {
+                        return;
+                    }
+                    run(sender, "Route clear", coreApiClient.clearRoute(playerUuid, ticketId));
+                }).exceptionally(error -> {
+                    sender.sendMessage("플레이어를 찾지 못했습니다: " + args[2]);
+                    return null;
+                });
             }
             return true;
         }
-        sender.sendMessage("사용법: /ciadmin route debug <playerUuid> | ticket <ticketUuid> | clear <playerUuid> <ticketUuid>");
+        sender.sendMessage("사용법: /ciadmin route debug <playerUuid|playerName> | ticket <ticketUuid> | clear <playerUuid|playerName> <ticketUuid>");
         return true;
     }
 
