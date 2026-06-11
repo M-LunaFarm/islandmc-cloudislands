@@ -91,6 +91,16 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
         return retryAttemptsTotal.get();
     }
 
+    public double latencySeconds() {
+        long start = System.nanoTime();
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            redis.command("PING");
+            return (System.nanoTime() - start) / 1_000_000_000.0D;
+        } catch (IOException ignored) {
+            return -1.0D;
+        }
+    }
+
     private void ensureGroup() {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             redis.command("XGROUP", "CREATE", RedisKeys.jobsStream(), GROUP, "0", "MKSTREAM");
