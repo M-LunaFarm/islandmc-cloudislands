@@ -241,6 +241,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
+        public CompletableFuture<List<IslandSnapshot>> getPublicIslands(int limit) {
+            return client.listPublicIslands(limit).thenApply(PaperCloudIslandsApi::islands);
+        }
+
+        @Override
         public CompletableFuture<List<IslandUpgradeSnapshot>> getUpgrades(UUID islandId) {
             return client.listIslandUpgrades(islandId).thenApply(PaperCloudIslandsApi::upgrades);
         }

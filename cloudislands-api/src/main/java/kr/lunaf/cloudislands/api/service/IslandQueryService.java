@@ -46,6 +46,7 @@ public interface IslandQueryService {
     CompletableFuture<IslandLevelSnapshot> getLevel(UUID islandId);
     CompletableFuture<List<IslandRankSnapshot>> getTopByLevel(int limit);
     CompletableFuture<List<IslandRankSnapshot>> getTopByWorth(int limit);
+    CompletableFuture<List<IslandSnapshot>> getPublicIslands(int limit);
     CompletableFuture<IslandRuntimeSnapshot> getRuntime(UUID islandId);
     CompletableFuture<List<BlockValueSnapshot>> getBlockValues();
     CompletableFuture<List<UpgradeRuleSnapshot>> getUpgradeRules();
