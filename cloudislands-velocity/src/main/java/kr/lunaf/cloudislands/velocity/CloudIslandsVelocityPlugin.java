@@ -148,7 +148,7 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args.length >= 2 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("debug")) {
-            routingController.debugRoutes(player, args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L));
+            routingController.debugRoutesTarget(player, args.length > 2 ? args[2] : "");
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("ticket")) {
@@ -156,9 +156,8 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args.length >= 2 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("clear")) {
-            UUID playerUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
             UUID ticketId = args.length > 3 ? parseUuidOrNil(args[3]) : new UUID(0L, 0L);
-            routingController.clearRoute(player, playerUuid, ticketId);
+            routingController.clearRouteTarget(player, args.length > 2 ? args[2] : "", ticketId);
             return;
         }
         if (args.length >= 2 && args[0].equalsIgnoreCase("cache") && args[1].equalsIgnoreCase("clear")) {
