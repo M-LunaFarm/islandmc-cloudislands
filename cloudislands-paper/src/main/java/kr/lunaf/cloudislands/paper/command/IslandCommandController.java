@@ -228,6 +228,22 @@ public final class IslandCommandController implements CommandExecutor {
             setIslandLimit(player, args[1], longValue(args[2], 0L));
             return true;
         }
+        if (subcommand.equals("snapshot") || subcommand.equals("snapshots") || subcommand.equals("스냅샷")) {
+            listIslandSnapshots(player, args.length > 1 ? integer(args[1], 10) : 10);
+            return true;
+        }
+        if (subcommand.equals("snapshot-create") || subcommand.equals("snapshot-request") || subcommand.equals("스냅샷생성")) {
+            requestIslandSnapshot(player, args.length > 1 ? joined(args, 1) : "manual");
+            return true;
+        }
+        if (subcommand.equals("snapshot-restore") || subcommand.equals("rollback") || subcommand.equals("스냅샷복원") || subcommand.equals("롤백")) {
+            if (args.length < 2) {
+                player.sendMessage("복원할 스냅샷 번호를 입력해주세요.");
+                return true;
+            }
+            restoreIslandSnapshot(player, longValue(args[1], 0L));
+            return true;
+        }
         return false;
     }
 
@@ -657,6 +673,51 @@ public final class IslandCommandController implements CommandExecutor {
         });
     }
 
+    private void listIslandSnapshots(Player player, int limit) {
+        currentIsland(player, "섬 안에서만 스냅샷을 확인할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.listIslandSnapshots(islandId, Math.max(1, Math.min(limit, 20)))
+                .thenAccept(body -> message(player, snapshotListMessage(body)))
+                .exceptionally(error -> {
+                    message(player, "섬 스냅샷을 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void requestIslandSnapshot(Player player, String reason) {
+        currentIsland(player, "섬 안에서만 스냅샷을 생성할 수 있습니다.").ifPresent(islandId -> {
+            if (!player.isOp()) {
+                player.sendMessage("섬 스냅샷을 생성할 관리자 권한이 없습니다.");
+                return;
+            }
+            coreApiClient.requestIslandSnapshot(islandId, reason)
+                .thenRun(() -> message(player, "섬 스냅샷 생성을 요청했습니다."))
+                .exceptionally(error -> {
+                    message(player, "섬 스냅샷 생성을 요청하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void restoreIslandSnapshot(Player player, long snapshotNo) {
+        currentIsland(player, "섬 안에서만 스냅샷을 복원할 수 있습니다.").ifPresent(islandId -> {
+            if (!player.isOp()) {
+                player.sendMessage("섬 스냅샷을 복원할 관리자 권한이 없습니다.");
+                return;
+            }
+            if (snapshotNo <= 0L) {
+                player.sendMessage("올바른 스냅샷 번호를 입력해주세요.");
+                return;
+            }
+            coreApiClient.restoreIslandSnapshot(islandId, snapshotNo)
+                .thenRun(() -> message(player, "섬 스냅샷 복원을 요청했습니다."))
+                .exceptionally(error -> {
+                    message(player, "섬 스냅샷 복원을 요청하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
     private java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
         java.util.Optional<UUID> islandId = protection.islandAt(player.getLocation().getBlock());
         if (islandId.isEmpty()) {
@@ -820,6 +881,29 @@ public final class IslandCommandController implements CommandExecutor {
             index = objectEnd + 1;
         }
         return entries.isEmpty() ? "섬 제한이 없습니다." : "섬 제한: " + String.join(", ", entries);
+    }
+
+    private String snapshotListMessage(String body) {
+        List<String> entries = new ArrayList<>();
+        int index = 0;
+        while (body != null && index < body.length()) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            long snapshotNo = (long) decimal(object, "snapshotNo");
+            if (snapshotNo > 0L) {
+                String reason = text(object, "reason");
+                entries.add("#" + snapshotNo + (reason.isBlank() ? "" : " " + reason));
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "섬 스냅샷이 없습니다." : "섬 스냅샷: " + String.join(", ", entries);
     }
 
     private String joined(String[] args, int start) {
