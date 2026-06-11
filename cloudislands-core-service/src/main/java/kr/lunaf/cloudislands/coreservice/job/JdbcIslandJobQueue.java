@@ -172,6 +172,16 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
         }
     }
 
+    public long retryAttemptsTotal() {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT COALESCE(sum(retry_count), 0) AS total FROM island_jobs");
+             ResultSet rs = statement.executeQuery()) {
+            return rs.next() ? rs.getLong("total") : 0L;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to count jdbc island job retries", exception);
+        }
+    }
+
     public String toJson() {
         StringBuilder builder = new StringBuilder("{\"jobs\":[");
         try (Connection connection = dataSource.getConnection();

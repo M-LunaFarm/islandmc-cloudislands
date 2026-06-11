@@ -94,6 +94,18 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
         return Map.copyOf(counts);
     }
 
+    public synchronized long retryAttemptsTotal() {
+        long total = 0L;
+        for (JobRecord record : jobs) {
+            if (record.errorMessage() != null) {
+                total += record.attempts();
+            } else {
+                total += Math.max(0, record.attempts() - 1);
+            }
+        }
+        return total;
+    }
+
     public synchronized String toJson() {
         StringBuilder builder = new StringBuilder("{\"jobs\":[");
         boolean first = true;

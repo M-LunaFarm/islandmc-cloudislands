@@ -55,17 +55,34 @@ public final class PrometheusMetricsRenderer {
         }
         help(out, "cloudislands_jobs_total", "Island jobs by in-memory state or backend mode");
         type(out, "cloudislands_jobs_total", "gauge");
+        Map<String, Long> jobCounts;
+        String jobBackend;
+        long jobRetries;
         if (jobs instanceof InMemoryIslandJobPublisher memoryJobs) {
-            for (Map.Entry<String, Long> entry : memoryJobs.countsByState().entrySet()) {
-                out.append("cloudislands_jobs_total{state=\"").append(entry.getKey()).append("\",backend=\"memory\"} ").append(entry.getValue()).append('\n');
-            }
+            jobCounts = memoryJobs.countsByState();
+            jobBackend = "memory";
+            jobRetries = memoryJobs.retryAttemptsTotal();
         } else if (jobs instanceof JdbcIslandJobQueue jdbcJobs) {
-            for (Map.Entry<String, Long> entry : jdbcJobs.countsByState().entrySet()) {
-                out.append("cloudislands_jobs_total{state=\"").append(entry.getKey()).append("\",backend=\"jdbc\"} ").append(entry.getValue()).append('\n');
-            }
+            jobCounts = jdbcJobs.countsByState();
+            jobBackend = "jdbc";
+            jobRetries = jdbcJobs.retryAttemptsTotal();
         } else {
-            out.append("cloudislands_jobs_total{state=\"backend_external\",backend=\"redis\"} 1\n");
+            jobCounts = Map.of("PENDING", 0L, "CLAIMED", 0L, "COMPLETED", 0L, "FAILED", 0L, "CANCELED", 0L);
+            jobBackend = "redis";
+            jobRetries = 0L;
         }
+        for (Map.Entry<String, Long> entry : jobCounts.entrySet()) {
+            out.append("cloudislands_jobs_total{state=\"").append(entry.getKey()).append("\",backend=\"").append(jobBackend).append("\"} ").append(entry.getValue()).append('\n');
+        }
+        help(out, "cloudislands_jobs_pending", "Island jobs waiting for a node claim");
+        type(out, "cloudislands_jobs_pending", "gauge");
+        out.append("cloudislands_jobs_pending{backend=\"").append(jobBackend).append("\"} ").append(jobCounts.getOrDefault("PENDING", 0L)).append('\n');
+        help(out, "cloudislands_jobs_failed_total", "Island jobs that reached failed state");
+        type(out, "cloudislands_jobs_failed_total", "gauge");
+        out.append("cloudislands_jobs_failed_total{backend=\"").append(jobBackend).append("\"} ").append(jobCounts.getOrDefault("FAILED", 0L)).append('\n');
+        help(out, "cloudislands_jobs_retry_total", "Island job retry attempts recorded by the queue");
+        type(out, "cloudislands_jobs_retry_total", "counter");
+        out.append("cloudislands_jobs_retry_total{backend=\"").append(jobBackend).append("\"} ").append(jobRetries).append('\n');
         help(out, "cloudislands_route_ticket_created_total", "Route tickets created by Core API");
         type(out, "cloudislands_route_ticket_created_total", "counter");
         out.append("cloudislands_route_ticket_created_total ").append(events.countByType(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CREATED.name())).append('\n');
