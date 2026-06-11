@@ -18,6 +18,7 @@ import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
 import kr.lunaf.cloudislands.coreservice.audit.InMemoryAuditLogger;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
+import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
@@ -162,19 +163,19 @@ public final class CloudIslandsCoreApplication {
         server.createContext(path, exchange -> {
             String key = exchange.getRemoteAddress() == null ? "unknown" : exchange.getRemoteAddress().getAddress().getHostAddress();
             if (!rateLimiter.allow(key)) {
-                write(exchange, 429, "{\"error\":\"rate_limited\"}");
+                write(exchange, 429, ApiResponses.error("RATE_LIMITED", "Too many requests"));
                 return;
             }
             if (!path.equals("/health") && !tokenGuard.allowed(exchange)) {
-                write(exchange, 401, "{\"error\":\"unauthorized\"}");
+                write(exchange, 401, ApiResponses.error("UNAUTHORIZED", "Missing or invalid API token"));
                 return;
             }
             if (!ipAllowlist.allowed(exchange)) {
-                write(exchange, 403, "{\"error\":\"ip_not_allowed\"}");
+                write(exchange, 403, ApiResponses.error("IP_NOT_ALLOWED", "Remote address is not allowed"));
                 return;
             }
             if (!adminGuard.allowed(path, exchange)) {
-                write(exchange, 403, "{\"error\":\"admin_token_required\"}");
+                write(exchange, 403, ApiResponses.error("ADMIN_PERMISSION_DENIED", "Admin permission is required"));
                 return;
             }
             handler.handle(exchange);
