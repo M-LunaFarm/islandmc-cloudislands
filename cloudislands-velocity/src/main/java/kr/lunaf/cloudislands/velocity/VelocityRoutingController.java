@@ -13,6 +13,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 
 public final class VelocityRoutingController {
@@ -475,28 +476,37 @@ public final class VelocityRoutingController {
         }
         if (ticket.state().name().equals("PREPARING")) {
             player.sendActionBar(Component.text("섬을 준비하는 중입니다."));
-            waitForReadyTicket(player, ticket, failureMessage, 0);
+            BossBar bossBar = BossBar.bossBar(Component.text("섬 로딩 중"), 0.2F, BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
+            player.showBossBar(bossBar);
+            waitForReadyTicket(player, ticket, failureMessage, bossBar, 0);
             return;
         }
         publishAndConnect(player, ticket);
     }
 
-    private void waitForReadyTicket(Player player, RouteTicket ticket, String failureMessage, int attempt) {
+    private void waitForReadyTicket(Player player, RouteTicket ticket, String failureMessage, BossBar bossBar, int attempt) {
         int progress = Math.min(95, 20 + attempt);
+        bossBar.progress(progress / 100.0F);
+        bossBar.name(Component.text("섬 로딩 중 " + progress + "%"));
         player.sendActionBar(Component.text("섬을 준비하는 중입니다... " + progress + "%"));
         coreApiClient.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
             Optional<RouteTicket> ready = status.filter(value -> value.state().name().equals("READY"));
             if (ready.isPresent()) {
+                bossBar.progress(1.0F);
+                bossBar.name(Component.text("잠시 후 섬으로 이동합니다."));
                 player.sendActionBar(Component.text("잠시 후 섬으로 이동합니다."));
+                player.hideBossBar(bossBar);
                 publishAndConnect(player, ready.get());
                 return;
             }
             if (attempt >= 60) {
+                player.hideBossBar(bossBar);
                 fallback(player, failureMessage);
                 return;
             }
-            CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() -> waitForReadyTicket(player, ticket, failureMessage, attempt + 1));
+            CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() -> waitForReadyTicket(player, ticket, failureMessage, bossBar, attempt + 1));
         }).exceptionally(error -> {
+            player.hideBossBar(bossBar);
             fallback(player, failureMessage);
             return null;
         });
