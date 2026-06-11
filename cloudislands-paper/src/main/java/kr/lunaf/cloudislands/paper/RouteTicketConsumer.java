@@ -34,7 +34,16 @@ public final class RouteTicketConsumer {
             }
             if (attempt < 20) {
                 Bukkit.getScheduler().runTaskLater(plugin, () -> consumeAndTeleport(ticketId, playerUuid, nonce, attempt + 1), 20L);
+            } else {
+                Bukkit.getScheduler().runTask(plugin, () -> notifyRouteFailed(playerUuid));
             }
+        }).exceptionally(error -> {
+            if (attempt < 20) {
+                Bukkit.getScheduler().runTaskLater(plugin, () -> consumeAndTeleport(ticketId, playerUuid, nonce, attempt + 1), 20L);
+            } else {
+                Bukkit.getScheduler().runTask(plugin, () -> notifyRouteFailed(playerUuid));
+            }
+            return null;
         });
     }
 
@@ -59,6 +68,13 @@ public final class RouteTicketConsumer {
             case ADMIN_TELEPORT -> "관리자 이동이 완료되었습니다.";
             default -> "내 섬에 도착했습니다.";
         };
+    }
+
+    private void notifyRouteFailed(UUID playerUuid) {
+        Player player = Bukkit.getPlayer(playerUuid);
+        if (player != null) {
+            player.sendActionBar(Component.text("섬 이동 정보를 확인하지 못했습니다."));
+        }
     }
 
     private double decimal(java.util.Map<String, String> payload, String key, double fallback) {
