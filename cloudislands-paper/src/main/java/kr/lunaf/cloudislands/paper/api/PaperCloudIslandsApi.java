@@ -46,6 +46,7 @@ import kr.lunaf.cloudislands.api.service.IslandRoutingService;
 import kr.lunaf.cloudislands.api.service.IslandRuntimeService;
 import kr.lunaf.cloudislands.api.service.PlayerIslandService;
 import kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot;
+import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 
@@ -173,10 +174,25 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         public CompletableFuture<IslandLevelSnapshot> getLevel(UUID islandId) {
             return client.islandInfo(islandId).thenApply(PaperCloudIslandsApi::level);
         }
-        @Override public CompletableFuture<List<IslandUpgradeSnapshot>> getUpgrades(UUID islandId) { return unsupported("upgrade typed parsing is not registered yet"); }
-        @Override public CompletableFuture<List<IslandMissionSnapshot>> getMissions(UUID islandId, String kind) { return unsupported("mission typed parsing is not registered yet"); }
-        @Override public CompletableFuture<List<IslandSnapshotRecord>> getSnapshots(UUID islandId, int limit) { return unsupported("snapshot typed parsing is not registered yet"); }
-        @Override public CompletableFuture<List<IslandLogRecord>> getLogs(UUID islandId, int limit) { return unsupported("log typed parsing is not registered yet"); }
+        @Override
+        public CompletableFuture<List<IslandUpgradeSnapshot>> getUpgrades(UUID islandId) {
+            return client.listIslandUpgrades(islandId).thenApply(PaperCloudIslandsApi::upgrades);
+        }
+
+        @Override
+        public CompletableFuture<List<IslandMissionSnapshot>> getMissions(UUID islandId, String kind) {
+            return client.listIslandMissions(islandId, kind).thenApply(PaperCloudIslandsApi::missions);
+        }
+
+        @Override
+        public CompletableFuture<List<IslandSnapshotRecord>> getSnapshots(UUID islandId, int limit) {
+            return client.listIslandSnapshots(islandId, limit).thenApply(PaperCloudIslandsApi::snapshots);
+        }
+
+        @Override
+        public CompletableFuture<List<IslandLogRecord>> getLogs(UUID islandId, int limit) {
+            return client.listIslandLogs(islandId, limit).thenApply(PaperCloudIslandsApi::logs);
+        }
         @Override
         public CompletableFuture<IslandBankSnapshot> getBank(UUID islandId) {
             return client.islandBank(islandId).thenApply(PaperCloudIslandsApi::bank);
@@ -494,6 +510,71 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         );
     }
 
+    private static List<IslandUpgradeSnapshot> upgrades(String json) {
+        List<IslandUpgradeSnapshot> upgrades = new ArrayList<>();
+        for (String object : objects(json, "upgrades")) {
+            upgrades.add(new IslandUpgradeSnapshot(
+                uuid(object, "islandId", new UUID(0L, 0L)),
+                text(object, "upgradeKey", ""),
+                enumValue(UpgradeType.class, text(object, "type", "ISLAND_SIZE"), UpgradeType.ISLAND_SIZE),
+                integer(object, "level", 0),
+                instant(text(object, "updatedAt", Instant.EPOCH.toString()))
+            ));
+        }
+        return upgrades;
+    }
+
+    private static List<IslandMissionSnapshot> missions(String json) {
+        List<IslandMissionSnapshot> missions = new ArrayList<>();
+        for (String object : objects(json, "missions")) {
+            missions.add(new IslandMissionSnapshot(
+                uuid(object, "islandId", new UUID(0L, 0L)),
+                text(object, "missionKey", ""),
+                text(object, "kind", "MISSION"),
+                text(object, "title", ""),
+                longValue(object, "progress", 0L),
+                longValue(object, "goal", 0L),
+                bool(object, "completed", false),
+                text(object, "reward", ""),
+                instant(text(object, "updatedAt", Instant.EPOCH.toString()))
+            ));
+        }
+        return missions;
+    }
+
+    private static List<IslandSnapshotRecord> snapshots(String json) {
+        List<IslandSnapshotRecord> snapshots = new ArrayList<>();
+        for (String object : objects(json, "snapshots")) {
+            snapshots.add(new IslandSnapshotRecord(
+                uuid(object, "snapshotId", new UUID(0L, 0L)),
+                uuid(object, "islandId", new UUID(0L, 0L)),
+                longValue(object, "snapshotNo", 0L),
+                text(object, "storagePath", ""),
+                text(object, "reason", ""),
+                uuid(object, "createdBy", new UUID(0L, 0L)),
+                text(object, "checksum", ""),
+                longValue(object, "sizeBytes", 0L),
+                instant(text(object, "createdAt", Instant.EPOCH.toString()))
+            ));
+        }
+        return snapshots;
+    }
+
+    private static List<IslandLogRecord> logs(String json) {
+        List<IslandLogRecord> logs = new ArrayList<>();
+        for (String object : objects(json, "logs")) {
+            logs.add(new IslandLogRecord(
+                uuid(object, "logId", new UUID(0L, 0L)),
+                uuid(object, "islandId", new UUID(0L, 0L)),
+                uuid(object, "actorUuid", new UUID(0L, 0L)),
+                text(object, "action", ""),
+                stringMap(object, "payload"),
+                instant(text(object, "createdAt", Instant.EPOCH.toString()))
+            ));
+        }
+        return logs;
+    }
+
     private static IslandLocation location(String json) {
         return new IslandLocation(
             text(json, "worldName", ""),
@@ -550,6 +631,40 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             index++;
         }
         return values;
+    }
+
+    private static Map<String, String> stringMap(String json, String field) {
+        String needle = "\"" + field + "\":{";
+        int start = json.indexOf(needle);
+        if (start < 0) {
+            return Map.of();
+        }
+        int index = start + needle.length();
+        int depth = 1;
+        while (index < json.length() && depth > 0) {
+            char ch = json.charAt(index);
+            if (ch == '{') {
+                depth++;
+            } else if (ch == '}') {
+                depth--;
+            }
+            index++;
+        }
+        if (depth != 0) {
+            return Map.of();
+        }
+        String object = json.substring(start + needle.length(), index - 1);
+        java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>();
+        for (String entry : object.split(",")) {
+            int separator = entry.indexOf(':');
+            if (separator <= 0) {
+                continue;
+            }
+            String key = entry.substring(0, separator).trim().replace("\"", "");
+            String value = entry.substring(separator + 1).trim().replace("\"", "");
+            values.put(key, value);
+        }
+        return Map.copyOf(values);
     }
 
     private static String text(String json, String field, String fallback) {
