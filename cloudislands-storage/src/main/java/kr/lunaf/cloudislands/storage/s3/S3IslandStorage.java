@@ -111,7 +111,9 @@ public final class S3IslandStorage implements IslandStorage {
 
     @Override
     public void deleteIsland(UUID islandId) throws IOException {
-        requestBytes("DELETE", "islands/" + islandId + "/", null);
+        for (String key : listKeys("islands/" + islandId + "/")) {
+            requestBytes("DELETE", key, null);
+        }
     }
 
     private String key(UUID islandId, String suffix) {
