@@ -63,12 +63,13 @@ public final class SuperiorSkyblock2MigrationScanner {
             String worth = parseString(content, "worth", "0.00");
             List<UUID> members = parseUuidList(content, "members", "islandMembers", "coopMembers", "coops");
             List<UUID> bannedVisitors = parseUuidList(content, "bans", "bannedPlayers", "bannedVisitors", "visitorBans");
+            List<MigrationHome> homes = parseHomes(content);
             boolean publicAccess = parseBoolean(content, "public", parseBoolean(content, "isPublic", parseBoolean(content, "publicAccess", false)));
             boolean locked = parseBoolean(content, "locked", parseBoolean(content, "isLocked", false));
             LinkedHashSet<UUID> allMembers = new LinkedHashSet<>();
             allMembers.add(ownerUuid);
             allMembers.addAll(members);
-            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), bannedVisitors, publicAccess, locked, size, level, worth));
+            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), bannedVisitors, homes, publicAccess, locked, size, level, worth));
         } catch (RuntimeException | IOException exception) {
             issues.add(new MigrationIssue("ISLAND_FILE_PARSE_FAILED", file + ": " + exception.getMessage(), true));
         }
@@ -163,6 +164,45 @@ public final class SuperiorSkyblock2MigrationScanner {
             case "false", "no", "off", "0", "private", "closed" -> false;
             default -> fallback;
         };
+    }
+
+    private double parseDouble(String content, String key, double fallback) {
+        try {
+            return Double.parseDouble(parseString(content, key, Double.toString(fallback)));
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
+    }
+
+    private float parseFloat(String content, String key, float fallback) {
+        try {
+            return Float.parseFloat(parseString(content, key, Float.toString(fallback)));
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
+    }
+
+    private List<MigrationHome> parseHomes(String content) {
+        if (!containsAnyKey(content, "homeX", "homeY", "homeZ", "homeWorld", "spawnX", "spawnY", "spawnZ", "spawnWorld")) {
+            return List.of();
+        }
+        String name = parseString(content, "homeName", parseString(content, "spawnName", "default"));
+        String world = parseString(content, "homeWorld", parseString(content, "spawnWorld", parseString(content, "world", "")));
+        double x = parseDouble(content, "homeX", parseDouble(content, "spawnX", parseDouble(content, "x", 0.5D)));
+        double y = parseDouble(content, "homeY", parseDouble(content, "spawnY", parseDouble(content, "y", 100.0D)));
+        double z = parseDouble(content, "homeZ", parseDouble(content, "spawnZ", parseDouble(content, "z", 0.5D)));
+        float yaw = parseFloat(content, "homeYaw", parseFloat(content, "spawnYaw", parseFloat(content, "yaw", 180.0F)));
+        float pitch = parseFloat(content, "homePitch", parseFloat(content, "spawnPitch", parseFloat(content, "pitch", 0.0F)));
+        return List.of(new MigrationHome(name.isBlank() ? "default" : name, world, x, y, z, yaw, pitch));
+    }
+
+    private boolean containsAnyKey(String content, String... keys) {
+        for (String key : keys) {
+            if (content.contains("\"" + key + "\"") || content.contains(key + ":")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private List<UUID> parseUuidList(String content, String... keys) {

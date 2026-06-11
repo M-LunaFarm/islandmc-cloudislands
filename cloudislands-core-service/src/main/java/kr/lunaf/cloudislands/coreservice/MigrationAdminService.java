@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
@@ -64,6 +65,9 @@ public final class MigrationAdminService {
             for (java.util.UUID bannedUuid : manifest.bannedVisitors()) {
                 metadata.banVisitor(manifest.islandId(), manifest.ownerUuid(), bannedUuid, "Migrated from SuperiorSkyblock2");
             }
+            for (kr.lunaf.cloudislands.migration.MigrationHome home : manifest.homes()) {
+                metadata.upsertHome(manifest.islandId(), home.name(), new IslandLocation(home.worldName(), home.x(), home.y(), home.z(), home.yaw(), home.pitch()), manifest.ownerUuid());
+            }
             metadata.setPublicAccess(manifest.islandId(), manifest.publicAccess());
             metadata.setLocked(manifest.islandId(), manifest.locked());
             playerProfiles.setPrimaryIsland(manifest.ownerUuid(), manifest.islandId());
@@ -80,6 +84,7 @@ public final class MigrationAdminService {
                 .filter(island -> island.ownerUuid().equals(manifest.ownerUuid()))
                 .filter(_island -> manifest.members().stream().allMatch(memberUuid -> metadata.isMember(manifest.islandId(), memberUuid)))
                 .filter(_island -> manifest.bannedVisitors().stream().allMatch(bannedUuid -> metadata.isBanned(manifest.islandId(), bannedUuid)))
+                .filter(_island -> manifest.homes().stream().allMatch(home -> metadata.home(manifest.islandId(), home.name()).isPresent()))
                 .filter(_island -> metadata.isPublicAccess(manifest.islandId()) == manifest.publicAccess())
                 .filter(_island -> metadata.isLocked(manifest.islandId()) == manifest.locked())
                 .ifPresent(_island -> imported.add(manifest));
