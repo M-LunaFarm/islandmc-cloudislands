@@ -110,6 +110,7 @@ import kr.lunaf.cloudislands.migration.rollback.StorageRollbackTarget;
 import kr.lunaf.cloudislands.migration.rollback.jdbc.JdbcMigrationRollbackTarget;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
+import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import kr.lunaf.cloudislands.storage.LocalIslandStorage;
 import kr.lunaf.cloudislands.storage.s3.S3IslandStorage;
@@ -125,6 +126,7 @@ public final class CloudIslandsCoreApplication {
     private final IslandRuntimeRepository runtimeRepository;
     private final IslandJobQueue jobs;
     private final GlobalEventPublisher events;
+    private final IslandSnapshotRepository snapshotRepository;
 
     public CloudIslandsCoreApplication(int port) throws IOException {
         this(CoreServiceConfig.fromEnvironment().withPort(port));
@@ -156,6 +158,7 @@ public final class CloudIslandsCoreApplication {
         this.jobs = jobs;
         this.events = events;
         IslandSnapshotRepository snapshotRepository = config.jdbcRepositories() ? new JdbcIslandSnapshotRepository(dataSource) : new InMemoryIslandSnapshotRepository();
+        this.snapshotRepository = snapshotRepository;
         RankingRepository rankingRepository = config.jdbcRepositories() ? new JdbcRankingRepository(dataSource) : new InMemoryRankingRepository();
         IslandLevelRepository levelRepository = config.jdbcRepositories() ? new JdbcIslandLevelRepository(dataSource) : new InMemoryIslandLevelRepository();
         kr.lunaf.cloudislands.coreservice.ranking.ConfigBlockValues.load(config.blockValuesFile()).forEach(levelRepository::putBlockValue);
@@ -1330,7 +1333,10 @@ public final class CloudIslandsCoreApplication {
             return;
         }
         try {
-            deleteStorage.writeDeleteBackupFromLatest(islandId, System.currentTimeMillis());
+            long snapshotNo = System.currentTimeMillis();
+            IslandBundleManifest manifest = deleteStorage.readManifest(islandId);
+            deleteStorage.writeDeleteBackupFromLatest(islandId, snapshotNo);
+            snapshotRepository.record(islandId, snapshotNo, "islands/" + islandId + "/backups/delete-" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", reason, null, manifest.checksum(), 0L);
         } catch (IOException exception) {
             events.publish("ISLAND_DELETE_BACKUP_FAILED", Map.of("islandId", islandId.toString(), "reason", reason, "error", exception.getMessage() == null ? "" : exception.getMessage()));
         }
