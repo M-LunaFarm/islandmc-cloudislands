@@ -8,6 +8,7 @@ public record CoreServiceConfig(
     int port,
     String repositoryMode,
     String jobQueueMode,
+    String eventBusMode,
     String jdbcUrl,
     String databaseUsername,
     String databasePassword,
@@ -26,6 +27,7 @@ public record CoreServiceConfig(
             integer("CI_PORT", 8443),
             env("CI_REPOSITORY_MODE", "MEMORY"),
             env("CI_JOB_QUEUE_MODE", "MEMORY"),
+            env("CI_EVENT_BUS_MODE", "MEMORY"),
             env("CI_JDBC_URL", "jdbc:postgresql://postgres.internal:5432/cloudislands"),
             env("CI_DB_USERNAME", "cloudislands"),
             env("CI_DB_PASSWORD", ""),
@@ -48,8 +50,12 @@ public record CoreServiceConfig(
         return "REDIS".equalsIgnoreCase(jobQueueMode);
     }
 
+    public boolean redisEvents() {
+        return "REDIS".equalsIgnoreCase(eventBusMode);
+    }
+
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, jdbcUrl, databaseUsername, databasePassword, redisUri, storageEndpoint, storageBucket, coreToken, adminToken, ipAllowlist, heartbeatTimeout, leaseDuration);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, redisUri, storageEndpoint, storageBucket, coreToken, adminToken, ipAllowlist, heartbeatTimeout, leaseDuration);
     }
 
     private static String env(String key, String fallback) {

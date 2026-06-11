@@ -24,7 +24,10 @@ import kr.lunaf.cloudislands.coreservice.audit.InMemoryAuditLogger;
 import kr.lunaf.cloudislands.coreservice.audit.JdbcAuditLogger;
 import kr.lunaf.cloudislands.coreservice.config.CoreServiceConfig;
 import kr.lunaf.cloudislands.coreservice.db.DriverManagerDataSource;
+import kr.lunaf.cloudislands.coreservice.event.CompositeGlobalEventPublisher;
+import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
+import kr.lunaf.cloudislands.coreservice.event.RedisStreamEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
@@ -47,6 +50,7 @@ import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandRuntimeRepository;
+import kr.lunaf.cloudislands.coreservice.redis.RedisStreamWriterAdapter;
 import kr.lunaf.cloudislands.coreservice.security.ApiTokenGuard;
 import kr.lunaf.cloudislands.coreservice.security.FixedWindowRateLimiter;
 import kr.lunaf.cloudislands.coreservice.security.AdminEndpointGuard;
@@ -91,7 +95,10 @@ public final class CloudIslandsCoreApplication {
         InMemoryRouteTicketStore tickets = new InMemoryRouteTicketStore(clock);
         InMemoryRouteSessionStore sessions = new InMemoryRouteSessionStore(clock);
         IslandJobQueue jobs = config.redisJobs() ? new RedisIslandJobQueue(config.redisUri()) : new InMemoryIslandJobPublisher();
-        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        InMemoryGlobalEventPublisher inMemoryEvents = new InMemoryGlobalEventPublisher();
+        GlobalEventPublisher events = config.redisEvents()
+            ? new CompositeGlobalEventPublisher(java.util.List.of(inMemoryEvents, new RedisStreamEventPublisher(new RedisStreamWriterAdapter(config.redisUri()))))
+            : inMemoryEvents;
         IslandRepository islandRepository = config.jdbcRepositories() ? new JdbcIslandRepository(dataSource) : new InMemoryIslandRepository();
         IslandMetadataRepository metadataRepository = config.jdbcRepositories() ? new JdbcIslandMetadataRepository(dataSource) : new InMemoryIslandMetadataRepository();
         IslandRuntimeRepository runtimeRepository = config.jdbcRepositories() ? new JdbcIslandRuntimeRepository(dataSource) : new InMemoryIslandRuntimeRepository();
@@ -114,7 +121,7 @@ public final class CloudIslandsCoreApplication {
         route("/metrics", exchange -> write(exchange, 200, metrics.render(), "text/plain; version=0.0.4; charset=utf-8"));
         route("/v1/nodes", exchange -> write(exchange, 200, nodes.toJson()));
         route("/v1/jobs", exchange -> write(exchange, 200, jobs instanceof InMemoryIslandJobPublisher memoryJobs ? memoryJobs.toJson() : "{\"mode\":\"REDIS\"}"));
-        route("/v1/events", exchange -> write(exchange, 200, events.toJson()));
+        route("/v1/events", exchange -> write(exchange, 200, inMemoryEvents.toJson()));
         route("/v1/audit", exchange -> write(exchange, 200, inMemoryAudit.toJson()));
         route("/v1/rankings/level", exchange -> {
             String body = readBody(exchange);
