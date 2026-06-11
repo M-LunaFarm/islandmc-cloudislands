@@ -1,7 +1,10 @@
 package kr.lunaf.cloudislands.api.service;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.ClaimedIslandJobSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandActionResult;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 
@@ -13,6 +16,12 @@ public interface IslandRuntimeService {
     CompletableFuture<IslandActionResult> heartbeatResult(String nodeId, NodeHeartbeat heartbeat);
     CompletableFuture<Void> recordBlockDelta(UUID islandId, String materialKey, long delta);
     CompletableFuture<IslandActionResult> recordBlockDeltaResult(UUID islandId, String materialKey, long delta);
+    CompletableFuture<List<ClaimedIslandJobSnapshot>> claimJobs(String nodeId, List<String> supportedTypes, int maxJobs);
+    CompletableFuture<Void> completeJob(String nodeId, UUID jobId);
+    CompletableFuture<Void> completeJob(String nodeId, UUID jobId, Map<String, String> payload);
+    CompletableFuture<IslandActionResult> completeJobResult(String nodeId, UUID jobId, Map<String, String> payload);
+    CompletableFuture<Void> failJob(String nodeId, UUID jobId, String errorMessage);
+    CompletableFuture<IslandActionResult> failJobResult(String nodeId, UUID jobId, String errorMessage);
 
     record NodeHeartbeat(int players, int activeIslands, double mspt, int activationQueue, long heapUsedMb, long heapMaxMb) {}
 }

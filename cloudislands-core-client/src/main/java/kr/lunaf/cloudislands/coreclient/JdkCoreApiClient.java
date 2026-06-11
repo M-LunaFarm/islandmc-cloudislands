@@ -688,17 +688,27 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<Void> completeJob(String nodeId, UUID jobId) {
-        return post("/v1/jobs/complete", "{\"nodeId\":\"" + nodeId + "\",\"jobId\":\"" + jobId + "\"}").thenApply(_body -> null);
+        return completeJob(nodeId, jobId, Map.of());
     }
 
     @Override
     public CompletableFuture<Void> completeJob(String nodeId, UUID jobId, Map<String, String> payload) {
-        return post("/v1/jobs/complete", "{\"nodeId\":\"" + nodeId + "\",\"jobId\":\"" + jobId + "\",\"payload\":" + mapJson(payload) + "}").thenApply(_body -> null);
+        return completeJobResult(nodeId, jobId, payload).thenApply(_body -> null);
     }
 
-    
+    @Override
+    public CompletableFuture<String> completeJobResult(String nodeId, UUID jobId, Map<String, String> payload) {
+        return postWithResultBody("/v1/jobs/complete", "{\"nodeId\":\"" + nodeId + "\",\"jobId\":\"" + jobId + "\",\"payload\":" + mapJson(payload) + "}");
+    }
+
+    @Override
     public CompletableFuture<Void> failJob(String nodeId, UUID jobId, String errorMessage) {
-        return post("/v1/jobs/fail", "{\"nodeId\":\"" + nodeId + "\",\"jobId\":\"" + jobId + "\",\"error\":\"" + escape(errorMessage) + "\"}").thenApply(_body -> null);
+        return failJobResult(nodeId, jobId, errorMessage).thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> failJobResult(String nodeId, UUID jobId, String errorMessage) {
+        return postWithResultBody("/v1/jobs/fail", "{\"nodeId\":\"" + nodeId + "\",\"jobId\":\"" + jobId + "\",\"error\":\"" + escape(errorMessage) + "\"}");
     }
 
     @Override

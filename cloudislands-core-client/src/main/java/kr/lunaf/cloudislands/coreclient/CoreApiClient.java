@@ -147,7 +147,9 @@ public interface CoreApiClient {
     CompletableFuture<String> recoverJobsResult(String nodeId, long minIdleMillis, int maxJobs);
     CompletableFuture<Void> completeJob(String nodeId, UUID jobId);
     CompletableFuture<Void> completeJob(String nodeId, UUID jobId, Map<String, String> payload);
+    CompletableFuture<String> completeJobResult(String nodeId, UUID jobId, Map<String, String> payload);
     CompletableFuture<Void> failJob(String nodeId, UUID jobId, String errorMessage);
+    CompletableFuture<String> failJobResult(String nodeId, UUID jobId, String errorMessage);
     CompletableFuture<Void> publishHeartbeat(NodeHeartbeatRequest request);
     CompletableFuture<String> publishHeartbeatResult(NodeHeartbeatRequest request);
 }

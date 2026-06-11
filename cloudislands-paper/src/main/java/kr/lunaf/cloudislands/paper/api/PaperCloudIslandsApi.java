@@ -12,6 +12,7 @@ import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.model.AuditLogSnapshot;
 import kr.lunaf.cloudislands.api.model.BlockValueSnapshot;
+import kr.lunaf.cloudislands.api.model.ClaimedIslandJobSnapshot;
 import kr.lunaf.cloudislands.api.model.CoreMaintenanceResult;
 import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
@@ -71,6 +72,8 @@ import kr.lunaf.cloudislands.api.upgrade.UpgradeRuleSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
+import kr.lunaf.cloudislands.protocol.job.IslandJob;
+import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
@@ -380,6 +383,63 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         public CompletableFuture<IslandActionResult> recordBlockDeltaResult(UUID islandId, String materialKey, long delta) {
             return client.recordBlockDeltaResult(islandId, materialKey, delta).thenApply(body -> action(body, "BLOCK_DELTA_RECORDED"));
         }
+
+        @Override
+        public CompletableFuture<List<ClaimedIslandJobSnapshot>> claimJobs(String nodeId, List<String> supportedTypes, int maxJobs) {
+            return client.claimJobs(nodeId, jobTypes(supportedTypes), maxJobs).thenApply(jobs -> jobs.stream().map(PaperCloudIslandsApi::claimedJob).toList());
+        }
+
+        @Override
+        public CompletableFuture<Void> completeJob(String nodeId, UUID jobId) {
+            return completeJob(nodeId, jobId, Map.of());
+        }
+
+        @Override
+        public CompletableFuture<Void> completeJob(String nodeId, UUID jobId, Map<String, String> payload) {
+            return completeJobResult(nodeId, jobId, payload).thenApply(_result -> null);
+        }
+
+        @Override
+        public CompletableFuture<IslandActionResult> completeJobResult(String nodeId, UUID jobId, Map<String, String> payload) {
+            return client.completeJobResult(nodeId, jobId, payload).thenApply(body -> action(body, "JOB_COMPLETED"));
+        }
+
+        @Override
+        public CompletableFuture<Void> failJob(String nodeId, UUID jobId, String errorMessage) {
+            return failJobResult(nodeId, jobId, errorMessage).thenApply(_result -> null);
+        }
+
+        @Override
+        public CompletableFuture<IslandActionResult> failJobResult(String nodeId, UUID jobId, String errorMessage) {
+            return client.failJobResult(nodeId, jobId, errorMessage).thenApply(body -> action(body, "JOB_FAILED"));
+        }
+    }
+
+    private static List<IslandJobType> jobTypes(List<String> supportedTypes) {
+        if (supportedTypes == null || supportedTypes.isEmpty()) {
+            return List.of(IslandJobType.CREATE_ISLAND, IslandJobType.ACTIVATE_ISLAND, IslandJobType.DEACTIVATE_ISLAND, IslandJobType.SNAPSHOT_ISLAND, IslandJobType.MIGRATE_ISLAND, IslandJobType.RESTORE_ISLAND);
+        }
+        List<IslandJobType> types = new ArrayList<>();
+        for (String supportedType : supportedTypes) {
+            try {
+                types.add(IslandJobType.valueOf(supportedType.trim().toUpperCase()));
+            } catch (IllegalArgumentException ignored) {
+                // Ignore unknown worker capabilities from external API callers.
+            }
+        }
+        return types;
+    }
+
+    private static ClaimedIslandJobSnapshot claimedJob(IslandJob job) {
+        return new ClaimedIslandJobSnapshot(
+            job.jobId(),
+            job.type().name(),
+            job.islandId(),
+            job.targetNode(),
+            job.priority(),
+            job.payload(),
+            job.createdAt()
+        );
     }
 
     private static final class AdminService implements IslandAdminService {
