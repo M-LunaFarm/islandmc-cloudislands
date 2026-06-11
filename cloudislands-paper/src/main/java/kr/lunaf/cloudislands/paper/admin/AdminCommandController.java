@@ -19,7 +19,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private static final List<String> ROOT_COMMANDS = List.of("status", "cache", "node", "island", "jobs", "route", "template", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
-    private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "activate", "deactivate", "migrate", "quarantine", "repair", "delete");
+    private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
     private static final List<String> JOB_COMMANDS = List.of("list", "retry", "cancel", "recover");
     private static final List<String> ROUTE_COMMANDS = List.of("debug", "ticket", "clear");
     private static final List<String> TEMPLATE_COMMANDS = List.of("list", "upsert", "enable", "disable");
@@ -147,7 +147,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
 
     private boolean handleIsland(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage("사용법: /ciadmin island info|where|activate|deactivate|migrate|quarantine|repair|delete <islandUuid> [값]");
+            sender.sendMessage("사용법: /ciadmin island info|where|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete <islandUuid> [값]");
             return true;
         }
         UUID islandId = uuid(sender, args[2]);
@@ -178,6 +178,29 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "Island migrate", coreApiClient.migrateIsland(islandId, args[3]));
             return true;
         }
+        if (args[1].equalsIgnoreCase("save") || args[1].equalsIgnoreCase("snapshot")) {
+            String reason = args.length > 3 ? joined(args, 3) : "ADMIN_MANUAL";
+            run(sender, "Island snapshot", coreApiClient.requestIslandSnapshotResult(islandId, reason));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("snapshots")) {
+            int limit = args.length > 3 ? (int) number(args[3], 20L) : 20;
+            run(sender, "Island snapshots", coreApiClient.listIslandSnapshots(islandId, Math.max(1, Math.min(limit, 50))));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("restore") || args[1].equalsIgnoreCase("rollback")) {
+            if (args.length < 4) {
+                sender.sendMessage("스냅샷 번호를 입력해주세요.");
+                return true;
+            }
+            long snapshotNo = number(args[3], 0L);
+            if (snapshotNo <= 0L) {
+                sender.sendMessage("스냅샷 번호가 올바르지 않습니다: " + args[3]);
+                return true;
+            }
+            run(sender, "Island restore", coreApiClient.restoreIslandSnapshotResult(islandId, snapshotNo));
+            return true;
+        }
         if (args[1].equalsIgnoreCase("quarantine")) {
             run(sender, "Island quarantine", coreApiClient.quarantineIsland(islandId, args.length > 3 ? joined(args, 3) : "admin"));
             return true;
@@ -190,7 +213,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "Island delete", coreApiClient.adminDeleteIsland(islandId));
             return true;
         }
-        sender.sendMessage("사용법: /ciadmin island info|where|activate|deactivate|migrate|quarantine|repair|delete <islandUuid> [값]");
+        sender.sendMessage("사용법: /ciadmin island info|where|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete <islandUuid> [값]");
         return true;
     }
 
