@@ -12,6 +12,7 @@ import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.model.AuditLogSnapshot;
 import kr.lunaf.cloudislands.api.model.BlockValueSnapshot;
+import kr.lunaf.cloudislands.api.model.CoreMaintenanceResult;
 import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
@@ -50,6 +51,7 @@ import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 import kr.lunaf.cloudislands.api.model.RouteAction;
+import kr.lunaf.cloudislands.api.model.RouteClearResult;
 import kr.lunaf.cloudislands.api.model.RoutePlan;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
@@ -361,18 +363,22 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<IslandActionResult> restoreIslandResult(UUID islandId, long snapshotNo) { return client.restoreIslandSnapshotResult(islandId, snapshotNo).thenApply(body -> actionCode(body, "RESTORE_REQUESTED")); }
         @Override public CompletableFuture<Void> quarantineIsland(UUID islandId, String reason) { return quarantineIslandResult(islandId, reason).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> quarantineIslandResult(UUID islandId, String reason) { return client.quarantineIslandResult(islandId, reason).thenApply(body -> actionCode(body, "QUARANTINED")); }
-        @Override public CompletableFuture<Void> repairIsland(UUID islandId, String reason) { return client.repairIsland(islandId, reason).thenApply(_body -> null); }
+        @Override public CompletableFuture<Void> repairIsland(UUID islandId, String reason) { return repairIslandResult(islandId, reason).thenApply(_result -> null); }
+        @Override public CompletableFuture<Optional<IslandRuntimeSnapshot>> repairIslandResult(UUID islandId, String reason) { return client.repairIslandResult(islandId, reason).thenApply(PaperCloudIslandsApi::runtimeOptional); }
         @Override public CompletableFuture<Void> deleteIsland(UUID islandId) { return adminDeleteIslandResult(islandId).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> adminDeleteIslandResult(UUID islandId) { return client.adminDeleteIslandResult(islandId).thenApply(body -> action(body, "ISLAND_DELETED")); }
         @Override public CompletableFuture<RouteTicket> createAdminTeleportTicket(UUID playerUuid, UUID islandId) { return client.adminIslandTeleport(playerUuid, islandId); }
         @Override public CompletableFuture<Optional<RouteTicket>> getRouteTicket(UUID ticketId) { return client.routeTicket(ticketId).thenApply(PaperCloudIslandsApi::routeTicket); }
-        @Override public CompletableFuture<Void> clearRoute(UUID playerUuid, UUID ticketId) { return client.clearRoute(playerUuid, ticketId).thenApply(_body -> null); }
+        @Override public CompletableFuture<Void> clearRoute(UUID playerUuid, UUID ticketId) { return clearRouteResult(playerUuid, ticketId).thenApply(_result -> null); }
+        @Override public CompletableFuture<RouteClearResult> clearRouteResult(UUID playerUuid, UUID ticketId) { return client.clearRouteResult(playerUuid, ticketId).thenApply(PaperCloudIslandsApi::routeClear); }
         @Override public CompletableFuture<List<IslandJobSnapshot>> listJobs() { return client.listJobs().thenApply(PaperCloudIslandsApi::jobs); }
         @Override public CompletableFuture<Void> retryJob(UUID jobId) { return client.retryJob(jobId).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> cancelJob(UUID jobId) { return client.cancelJob(jobId).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> recoverJobs(String nodeId, long minIdleMillis, int maxJobs) { return client.recoverJobs(nodeId, minIdleMillis, maxJobs).thenApply(_body -> null); }
-        @Override public CompletableFuture<Void> clearCache() { return client.clearCache().thenApply(_body -> null); }
-        @Override public CompletableFuture<Void> reload() { return client.reload().thenApply(_body -> null); }
+        @Override public CompletableFuture<Void> clearCache() { return clearCacheResult().thenApply(_result -> null); }
+        @Override public CompletableFuture<CoreMaintenanceResult> clearCacheResult() { return client.clearCacheResult().thenApply(body -> maintenance(body, false)); }
+        @Override public CompletableFuture<Void> reload() { return reloadResult().thenApply(_result -> null); }
+        @Override public CompletableFuture<CoreMaintenanceResult> reloadResult() { return client.reloadResult().thenApply(body -> maintenance(body, bool(body, "reloaded", false))); }
         @Override public CompletableFuture<Optional<PlayerIslandProfile>> getPlayerProfile(UUID playerUuid) { return client.playerInfo(playerUuid).thenApply(PaperCloudIslandsApi::playerProfile); }
         @Override public CompletableFuture<Optional<PlayerIslandProfile>> setPlayerPrimaryIsland(UUID playerUuid, UUID islandId) { return client.setPlayerIsland(playerUuid, islandId).thenApply(PaperCloudIslandsApi::playerProfile); }
         @Override public CompletableFuture<Optional<PlayerIslandProfile>> clearPlayerPrimaryIsland(UUID playerUuid) { return client.clearPlayerIsland(playerUuid).thenApply(PaperCloudIslandsApi::playerProfile); }
@@ -547,6 +553,13 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             nullableInstant(json, "activatedAt"),
             nullableInstant(json, "lastHeartbeat")
         );
+    }
+
+    private static Optional<IslandRuntimeSnapshot> runtimeOptional(String json) {
+        if (json == null || json.isBlank() || json.contains("\"error\"")) {
+            return Optional.empty();
+        }
+        return Optional.of(runtime(json));
     }
 
     private static RoutePlan plan(RouteTicket ticket) {
@@ -1015,6 +1028,21 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             text(json, "nonce", ""),
             Map.copyOf(payload)
         ));
+    }
+
+    private static RouteClearResult routeClear(String json) {
+        return new RouteClearResult(
+            bool(json, "clearedSession", false),
+            bool(json, "clearedTicket", false)
+        );
+    }
+
+    private static CoreMaintenanceResult maintenance(String json, boolean reloaded) {
+        return new CoreMaintenanceResult(
+            reloaded,
+            integer(json, "clearedSessions", 0),
+            integer(json, "clearedTickets", 0)
+        );
     }
 
     private static void putPayloadIfPresent(Map<String, String> payload, String json, String field) {

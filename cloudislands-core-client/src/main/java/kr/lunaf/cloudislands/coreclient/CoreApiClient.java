@@ -114,13 +114,17 @@ public interface CoreApiClient {
     CompletableFuture<String> adminDeleteIsland(UUID islandId);
     CompletableFuture<String> adminDeleteIslandResult(UUID islandId);
     CompletableFuture<String> repairIsland(UUID islandId, String reason);
+    CompletableFuture<String> repairIslandResult(UUID islandId, String reason);
     CompletableFuture<String> debugRoutes(UUID playerUuid);
     CompletableFuture<String> routeTicket(UUID ticketId);
     CompletableFuture<String> clearRoute(UUID playerUuid, UUID ticketId);
+    CompletableFuture<String> clearRouteResult(UUID playerUuid, UUID ticketId);
     CompletableFuture<String> listEvents();
     CompletableFuture<String> listAuditLogs();
     CompletableFuture<String> clearCache();
+    CompletableFuture<String> clearCacheResult();
     CompletableFuture<String> reload();
+    CompletableFuture<String> reloadResult();
     CompletableFuture<String> migrateSuperiorSkyblock2(String action, String path);
     CompletableFuture<String> playerInfo(UUID playerUuid);
     CompletableFuture<String> setPlayerIsland(UUID playerUuid, UUID islandId);

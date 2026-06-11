@@ -520,7 +520,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> repairIsland(UUID islandId, String reason) {
-        return post("/v1/admin/islands/repair", "{\"islandId\":\"" + islandId + "\",\"reason\":\"" + escape(reason) + "\"}");
+        return repairIslandResult(islandId, reason);
+    }
+
+    @Override
+    public CompletableFuture<String> repairIslandResult(UUID islandId, String reason) {
+        return postWithResultBody("/v1/admin/islands/repair", "{\"islandId\":\"" + islandId + "\",\"reason\":\"" + escape(reason) + "\"}");
     }
 
     @Override
@@ -535,7 +540,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> clearRoute(UUID playerUuid, UUID ticketId) {
-        return post("/v1/admin/routes/clear", "{\"playerUuid\":\"" + playerUuid + "\",\"ticketId\":\"" + ticketId + "\"}");
+        return clearRouteResult(playerUuid, ticketId);
+    }
+
+    @Override
+    public CompletableFuture<String> clearRouteResult(UUID playerUuid, UUID ticketId) {
+        return postWithResultBody("/v1/admin/routes/clear", "{\"playerUuid\":\"" + playerUuid + "\",\"ticketId\":\"" + ticketId + "\"}");
     }
 
     @Override
@@ -550,12 +560,22 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> clearCache() {
-        return post("/v1/admin/cache/clear", "{}");
+        return clearCacheResult();
+    }
+
+    @Override
+    public CompletableFuture<String> clearCacheResult() {
+        return postWithResultBody("/v1/admin/cache/clear", "{}");
     }
 
     @Override
     public CompletableFuture<String> reload() {
-        return post("/v1/admin/reload", "{}");
+        return reloadResult();
+    }
+
+    @Override
+    public CompletableFuture<String> reloadResult() {
+        return postWithResultBody("/v1/admin/reload", "{}");
     }
 
     @Override

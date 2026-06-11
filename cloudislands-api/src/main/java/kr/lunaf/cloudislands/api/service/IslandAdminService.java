@@ -4,13 +4,16 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.AuditLogSnapshot;
+import kr.lunaf.cloudislands.api.model.CoreMaintenanceResult;
 import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandActionResult;
 import kr.lunaf.cloudislands.api.model.IslandJobSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandTemplateSnapshot;
 import kr.lunaf.cloudislands.api.model.MigrationRunSnapshot;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
+import kr.lunaf.cloudislands.api.model.RouteClearResult;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 
 public interface IslandAdminService {
@@ -28,17 +31,21 @@ public interface IslandAdminService {
     CompletableFuture<Void> quarantineIsland(UUID islandId, String reason);
     CompletableFuture<IslandActionResult> quarantineIslandResult(UUID islandId, String reason);
     CompletableFuture<Void> repairIsland(UUID islandId, String reason);
+    CompletableFuture<java.util.Optional<IslandRuntimeSnapshot>> repairIslandResult(UUID islandId, String reason);
     CompletableFuture<Void> deleteIsland(UUID islandId);
     CompletableFuture<IslandActionResult> adminDeleteIslandResult(UUID islandId);
     CompletableFuture<RouteTicket> createAdminTeleportTicket(UUID playerUuid, UUID islandId);
     CompletableFuture<java.util.Optional<RouteTicket>> getRouteTicket(UUID ticketId);
     CompletableFuture<Void> clearRoute(UUID playerUuid, UUID ticketId);
+    CompletableFuture<RouteClearResult> clearRouteResult(UUID playerUuid, UUID ticketId);
     CompletableFuture<List<IslandJobSnapshot>> listJobs();
     CompletableFuture<Void> retryJob(UUID jobId);
     CompletableFuture<Void> cancelJob(UUID jobId);
     CompletableFuture<Void> recoverJobs(String nodeId, long minIdleMillis, int maxJobs);
     CompletableFuture<Void> clearCache();
+    CompletableFuture<CoreMaintenanceResult> clearCacheResult();
     CompletableFuture<Void> reload();
+    CompletableFuture<CoreMaintenanceResult> reloadResult();
     CompletableFuture<java.util.Optional<PlayerIslandProfile>> getPlayerProfile(UUID playerUuid);
     CompletableFuture<java.util.Optional<PlayerIslandProfile>> setPlayerPrimaryIsland(UUID playerUuid, UUID islandId);
     CompletableFuture<java.util.Optional<PlayerIslandProfile>> clearPlayerPrimaryIsland(UUID playerUuid);
