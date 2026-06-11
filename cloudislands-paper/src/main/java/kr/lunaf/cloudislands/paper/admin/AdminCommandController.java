@@ -191,7 +191,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
 
     private boolean handleIsland(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage("사용법: /ciadmin island info <islandUuid|islandName> 또는 island where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete <islandUuid> [값]");
+            sender.sendMessage("사용법: /ciadmin island info|where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete <islandUuid|islandName> [값]");
             return true;
         }
         if (args[1].equalsIgnoreCase("info")) {
@@ -203,8 +203,19 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             }
             return true;
         }
-        UUID islandId = uuid(sender, args[2]);
+        UUID islandId = uuidOrNull(args[2]);
         if (islandId == null) {
+            resolveIslandUuid(sender, args[2]).thenAccept(resolvedIslandId -> {
+                if (resolvedIslandId == null) {
+                    return;
+                }
+                String[] resolvedArgs = args.clone();
+                resolvedArgs[2] = resolvedIslandId.toString();
+                agent.plugin().getServer().getScheduler().runTask(agent.plugin(), () -> handleIsland(sender, resolvedArgs));
+            }).exceptionally(error -> {
+                sender.sendMessage("섬을 찾지 못했습니다: " + args[2]);
+                return null;
+            });
             return true;
         }
         if (args[1].equalsIgnoreCase("where")) {
@@ -270,7 +281,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "Island delete", coreApiClient.adminDeleteIsland(islandId));
             return true;
         }
-        sender.sendMessage("사용법: /ciadmin island info <islandUuid|islandName> 또는 island where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete <islandUuid> [값]");
+        sender.sendMessage("사용법: /ciadmin island info|where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete <islandUuid|islandName> [값]");
         return true;
     }
 
@@ -537,6 +548,20 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         } catch (IllegalArgumentException exception) {
             return null;
         }
+    }
+
+    private CompletableFuture<UUID> resolveIslandUuid(CommandSender sender, String value) {
+        UUID parsed = uuidOrNull(value);
+        if (parsed != null) {
+            return CompletableFuture.completedFuture(parsed);
+        }
+        return coreApiClient.islandInfoByName(value).thenApply(body -> {
+            UUID islandId = uuidValue(body, "islandId");
+            if (islandId == null) {
+                sender.sendMessage("섬을 찾지 못했습니다: " + value);
+            }
+            return islandId;
+        });
     }
 
     private CompletableFuture<UUID> resolvePlayerUuid(CommandSender sender, String value) {
