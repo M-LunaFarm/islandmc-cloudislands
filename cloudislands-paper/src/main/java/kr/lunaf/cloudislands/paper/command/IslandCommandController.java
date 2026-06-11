@@ -40,6 +40,18 @@ public final class IslandCommandController implements CommandExecutor {
             return true;
         }
         String subcommand = args[0].toLowerCase();
+        if (subcommand.equals("create") || subcommand.equals("생성")) {
+            createIsland(player, args.length > 1 ? args[1] : "default");
+            return true;
+        }
+        if (subcommand.equals("delete") || subcommand.equals("삭제")) {
+            deleteIsland(player);
+            return true;
+        }
+        if (subcommand.equals("reset") || subcommand.equals("리셋")) {
+            resetIsland(player, args.length > 1 ? joined(args, 1) : "player-reset");
+            return true;
+        }
         if (subcommand.equals("sethome") || subcommand.equals("셋홈")) {
             setHome(player, args.length > 1 ? args[1] : "default");
             return true;
@@ -362,6 +374,49 @@ public final class IslandCommandController implements CommandExecutor {
             return true;
         }
         return false;
+    }
+
+    private void createIsland(Player player, String templateId) {
+        coreApiClient.createIsland(player.getUniqueId(), templateId)
+            .thenAccept(result -> {
+                if (!result.accepted()) {
+                    message(player, "섬 생성을 시작하지 못했습니다: " + result.code());
+                    return;
+                }
+                message(player, "섬 생성을 시작했습니다: " + result.code());
+            })
+            .exceptionally(error -> {
+                message(player, "섬 생성을 시작하지 못했습니다.");
+                return null;
+            });
+    }
+
+    private void deleteIsland(Player player) {
+        currentIsland(player, "섬 안에서만 섬을 삭제할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.deleteIsland(player.getUniqueId(), islandId)
+                .thenAccept(result -> {
+                    if (!result.accepted()) {
+                        message(player, "섬을 삭제하지 못했습니다: " + result.code());
+                        return;
+                    }
+                    message(player, "섬 삭제를 요청했습니다.");
+                })
+                .exceptionally(error -> {
+                    message(player, "섬을 삭제하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void resetIsland(Player player, String reason) {
+        currentIsland(player, "섬 안에서만 섬을 리셋할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.resetIsland(islandId, player.getUniqueId(), reason)
+                .thenAccept(body -> message(player, "섬 리셋을 요청했습니다."))
+                .exceptionally(error -> {
+                    message(player, "섬을 리셋하지 못했습니다.");
+                    return null;
+                });
+        });
     }
 
     private void setHome(Player player, String name) {
