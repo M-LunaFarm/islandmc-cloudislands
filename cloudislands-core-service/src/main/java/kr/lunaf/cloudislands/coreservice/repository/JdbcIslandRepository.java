@@ -215,7 +215,7 @@ public final class JdbcIslandRepository implements IslandRepository {
     }
 
     private void createOwnerMember(Connection connection, UUID islandId, UUID ownerUuid) throws SQLException {
-        try (PreparedStatement member = connection.prepareStatement("INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, 'OWNER')")) {
+        try (PreparedStatement member = connection.prepareStatement("INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, 'OWNER') ON CONFLICT (island_id, player_uuid) DO UPDATE SET role = 'OWNER'")) {
             member.setObject(1, islandId);
             member.setObject(2, ownerUuid);
             member.executeUpdate();
