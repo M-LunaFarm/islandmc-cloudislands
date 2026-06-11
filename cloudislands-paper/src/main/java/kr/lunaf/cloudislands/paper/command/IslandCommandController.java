@@ -470,18 +470,18 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("accept") || subcommand.equals("invite-accept") || subcommand.equals("초대수락")) {
             if (args.length < 2) {
-                player.sendMessage("수락할 초대 ID를 입력해주세요.");
+                player.sendMessage("수락할 초대 ID, 섬 ID, 또는 초대한 플레이어를 입력해주세요.");
                 return true;
             }
-            acceptIslandInvite(player, uuid(args[1]));
+            acceptIslandInviteTarget(player, args[1]);
             return true;
         }
         if (subcommand.equals("decline") || subcommand.equals("invite-decline") || subcommand.equals("초대거절")) {
             if (args.length < 2) {
-                player.sendMessage("거절할 초대 ID를 입력해주세요.");
+                player.sendMessage("거절할 초대 ID, 섬 ID, 또는 초대한 플레이어를 입력해주세요.");
                 return true;
             }
-            declineIslandInvite(player, uuid(args[1]));
+            declineIslandInviteTarget(player, args[1]);
             return true;
         }
         if (subcommand.equals("kick") || subcommand.equals("remove-member") || subcommand.equals("추방")) {
@@ -1325,11 +1325,24 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return;
         }
         coreApiClient.acceptIslandInviteResult(inviteId, player.getUniqueId())
-            .thenAccept(body -> message(player, "섬 초대를 수락했습니다."))
+            .thenAccept(body -> message(player, body.contains("\"error\"") || body.contains("\"accepted\":false") ? "섬 초대를 수락하지 못했습니다." : "섬 초대를 수락했습니다."))
             .exceptionally(error -> {
                 message(player, "섬 초대를 수락하지 못했습니다.");
                 return null;
             });
+    }
+
+    private void acceptIslandInviteTarget(Player player, String target) {
+        resolveInviteTarget(player, target).thenAccept(inviteId -> {
+            if (inviteId == null) {
+                message(player, "대상 초대를 찾지 못했습니다.");
+                return;
+            }
+            acceptIslandInvite(player, inviteId);
+        }).exceptionally(error -> {
+            message(player, "대상 초대를 찾지 못했습니다.");
+            return null;
+        });
     }
 
     private void declineIslandInvite(Player player, UUID inviteId) {
@@ -1338,11 +1351,64 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return;
         }
         coreApiClient.declineIslandInviteResult(inviteId, player.getUniqueId())
-            .thenAccept(body -> message(player, "섬 초대를 거절했습니다."))
+            .thenAccept(body -> message(player, body.contains("\"error\"") || body.contains("\"accepted\":false") ? "섬 초대를 거절하지 못했습니다." : "섬 초대를 거절했습니다."))
             .exceptionally(error -> {
                 message(player, "섬 초대를 거절하지 못했습니다.");
                 return null;
             });
+    }
+
+    private void declineIslandInviteTarget(Player player, String target) {
+        resolveInviteTarget(player, target).thenAccept(inviteId -> {
+            if (inviteId == null) {
+                message(player, "대상 초대를 찾지 못했습니다.");
+                return;
+            }
+            declineIslandInvite(player, inviteId);
+        }).exceptionally(error -> {
+            message(player, "대상 초대를 찾지 못했습니다.");
+            return null;
+        });
+    }
+
+    private CompletableFuture<UUID> resolveInviteTarget(Player player, String target) {
+        UUID parsed = uuid(target);
+        if (parsed != null) {
+            return coreApiClient.listPendingInvites(player.getUniqueId()).thenApply(body -> {
+                UUID inviteId = findInviteId(body, parsed);
+                return inviteId == null ? parsed : inviteId;
+            });
+        }
+        Player online = plugin.getServer().getPlayerExact(target);
+        if (online != null) {
+            return coreApiClient.listPendingInvites(player.getUniqueId()).thenApply(body -> findInviteId(body, online.getUniqueId()));
+        }
+        return coreApiClient.playerInfoByName(target)
+            .thenCompose(body -> coreApiClient.listPendingInvites(player.getUniqueId()).thenApply(invites -> findInviteId(invites, uuid(text(body, "playerUuid")))));
+    }
+
+    private UUID findInviteId(String body, UUID targetUuid) {
+        if (body == null || targetUuid == null) {
+            return null;
+        }
+        int index = 0;
+        while (index < body.length()) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            UUID inviteId = uuid(text(object, "inviteId"));
+            if (targetUuid.equals(inviteId) || targetUuid.equals(uuid(text(object, "islandId"))) || targetUuid.equals(uuid(text(object, "inviterUuid")))) {
+                return inviteId;
+            }
+            index = objectEnd + 1;
+        }
+        return null;
     }
 
     private void removeIslandMember(Player player, String target) {
