@@ -46,7 +46,7 @@ public final class IslandMainMenu implements Listener {
         if (name.equals("내 섬으로 이동")) {
             player.performCommand("섬 홈");
         } else if (name.equals("섬 생성")) {
-            player.performCommand("섬 생성");
+            player.performCommand("섬 생성메뉴");
         } else if (name.equals("섬 워프")) {
             player.performCommand("섬 워프");
         } else if (name.equals("섬 방문")) {

@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
 import org.bukkit.Location;
@@ -25,6 +26,7 @@ import org.jetbrains.annotations.NotNull;
 public final class IslandCommandController implements CommandExecutor, TabCompleter {
     private static final List<String> SUBCOMMANDS = List.of(
         "menu", "메뉴",
+        "create-menu", "templates", "생성메뉴", "템플릿",
         "create", "생성", "delete", "삭제", "reset", "리셋",
         "sethome", "셋홈", "homes", "home-list", "홈목록", "home", "홈",
         "warps", "warp-list", "워프", "warp", "setwarp", "워프설정",
@@ -84,6 +86,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         String subcommand = args[0].toLowerCase();
         if (subcommand.equals("menu") || subcommand.equals("메뉴")) {
             IslandMainMenu.open(player);
+            return true;
+        }
+        if (subcommand.equals("create-menu") || subcommand.equals("templates") || subcommand.equals("생성메뉴") || subcommand.equals("템플릿")) {
+            IslandCreateMenu.open(plugin, coreApiClient, player);
             return true;
         }
         if (subcommand.equals("create") || subcommand.equals("생성")) {
