@@ -30,6 +30,14 @@ public interface IslandCommandService {
     CompletableFuture<IslandInviteActionResult> acceptInviteResult(UUID inviteId, UUID playerUuid);
     CompletableFuture<Void> declineInvite(UUID inviteId, UUID playerUuid);
     CompletableFuture<IslandInviteActionResult> declineInviteResult(UUID inviteId, UUID playerUuid);
+    CompletableFuture<Void> acceptInviteFromIsland(UUID playerUuid, UUID islandId);
+    CompletableFuture<IslandInviteActionResult> acceptInviteFromIslandResult(UUID playerUuid, UUID islandId);
+    CompletableFuture<Void> declineInviteFromIsland(UUID playerUuid, UUID islandId);
+    CompletableFuture<IslandInviteActionResult> declineInviteFromIslandResult(UUID playerUuid, UUID islandId);
+    CompletableFuture<Void> acceptInviteFromPlayer(UUID playerUuid, UUID inviterUuid);
+    CompletableFuture<IslandInviteActionResult> acceptInviteFromPlayerResult(UUID playerUuid, UUID inviterUuid);
+    CompletableFuture<Void> declineInviteFromPlayer(UUID playerUuid, UUID inviterUuid);
+    CompletableFuture<IslandInviteActionResult> declineInviteFromPlayerResult(UUID playerUuid, UUID inviterUuid);
     CompletableFuture<Void> banVisitor(UUID islandId, UUID actorUuid, UUID targetUuid, String reason);
     CompletableFuture<IslandActionResult> banVisitorResult(UUID islandId, UUID actorUuid, UUID targetUuid, String reason);
     CompletableFuture<Void> pardonVisitor(UUID islandId, UUID actorUuid, UUID targetUuid);
