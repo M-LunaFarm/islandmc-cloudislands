@@ -337,6 +337,26 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> activateIsland(UUID islandId) {
+        return post("/v1/admin/islands/activate", "{\"islandId\":\"" + islandId + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> deactivateIsland(UUID islandId) {
+        return post("/v1/admin/islands/deactivate", "{\"islandId\":\"" + islandId + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> migrateIsland(UUID islandId, String targetNode) {
+        return post("/v1/admin/islands/migrate", "{\"islandId\":\"" + islandId + "\",\"targetNode\":\"" + escape(targetNode) + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> quarantineIsland(UUID islandId, String reason) {
+        return post("/v1/admin/islands/quarantine", "{\"islandId\":\"" + islandId + "\",\"reason\":\"" + escape(reason) + "\"}");
+    }
+
+    @Override
     public CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs) {
         String types = supportedTypes.stream().map(Enum::name).collect(Collectors.joining(","));
         return post("/v1/jobs/claim", "{\"nodeId\":\"" + nodeId + "\",\"supportedTypes\":\"" + types + "\",\"maxJobs\":" + maxJobs + "}").thenApply(IslandJobJson::readArray);

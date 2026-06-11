@@ -277,6 +277,22 @@ public final class VelocityRoutingController {
         coreApiClient.undrainNode(nodeId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "노드 undrain을 요청하지 못했습니다." : body)));
     }
 
+    public void activateIsland(Player player, UUID islandId) {
+        coreApiClient.activateIsland(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 활성화를 요청하지 못했습니다." : body)));
+    }
+
+    public void deactivateIsland(Player player, UUID islandId) {
+        coreApiClient.deactivateIsland(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 비활성화를 요청하지 못했습니다." : body)));
+    }
+
+    public void migrateIsland(Player player, UUID islandId, String targetNode) {
+        coreApiClient.migrateIsland(islandId, targetNode).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 마이그레이션을 요청하지 못했습니다." : body)));
+    }
+
+    public void quarantineIsland(Player player, UUID islandId, String reason) {
+        coreApiClient.quarantineIsland(islandId, reason).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 격리를 요청하지 못했습니다." : body)));
+    }
+
     private void route(Player player, RouteTicket ticket, String failureMessage) {
         if (ticket == null) {
             fallback(player, failureMessage);
