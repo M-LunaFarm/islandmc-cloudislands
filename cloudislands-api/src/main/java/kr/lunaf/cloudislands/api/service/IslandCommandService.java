@@ -34,6 +34,10 @@ public interface IslandCommandService {
     CompletableFuture<IslandActionResult> pardonVisitorResult(UUID islandId, UUID actorUuid, UUID targetUuid);
     CompletableFuture<Void> kick(UUID islandId, UUID actorUuid, UUID targetUuid);
     CompletableFuture<IslandActionResult> kickResult(UUID islandId, UUID actorUuid, UUID targetUuid);
+    CompletableFuture<Void> trustPlayer(UUID islandId, UUID actorUuid, UUID targetUuid);
+    CompletableFuture<IslandActionResult> trustPlayerResult(UUID islandId, UUID actorUuid, UUID targetUuid);
+    CompletableFuture<Void> untrustPlayer(UUID islandId, UUID actorUuid, UUID targetUuid);
+    CompletableFuture<IslandActionResult> untrustPlayerResult(UUID islandId, UUID actorUuid, UUID targetUuid);
     CompletableFuture<Void> setRole(UUID islandId, UUID actorUuid, UUID targetUuid, IslandRole role);
     CompletableFuture<IslandActionResult> setRoleResult(UUID islandId, UUID actorUuid, UUID targetUuid, IslandRole role);
     CompletableFuture<Void> transferOwnership(UUID islandId, UUID actorUuid, UUID targetUuid);
