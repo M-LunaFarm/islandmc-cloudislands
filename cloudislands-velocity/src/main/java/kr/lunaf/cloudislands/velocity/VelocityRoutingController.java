@@ -38,6 +38,9 @@ public final class VelocityRoutingController {
             if (result.ticket() != null) {
                 route(player, result.ticket(), "섬으로 이동하지 못했습니다.");
             }
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("현재 섬 서비스 일부 기능이 점검 중입니다."));
+            return null;
         });
     }
 
@@ -48,11 +51,19 @@ public final class VelocityRoutingController {
                 return;
             }
             player.sendMessage(Component.text("섬을 삭제할 수 없습니다."));
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("섬 삭제를 처리하지 못했습니다."));
+            return null;
         });
     }
 
     public void resetIsland(Player player, UUID islandId, String reason) {
-        coreApiClient.resetIsland(islandId, player.getUniqueId(), reason).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 리셋을 요청했습니다." : body)));
+        coreApiClient.resetIsland(islandId, player.getUniqueId(), reason)
+            .thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 리셋을 요청했습니다." : body)))
+            .exceptionally(error -> {
+                player.sendMessage(Component.text("섬 리셋을 요청하지 못했습니다."));
+                return null;
+            });
     }
 
     public void showMyIsland(Player player) {
