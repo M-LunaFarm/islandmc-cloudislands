@@ -50,6 +50,10 @@ public interface IslandCommandService {
     CompletableFuture<IslandActionResult> setPermissionResult(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed);
     CompletableFuture<Void> setLocked(UUID islandId, UUID actorUuid, boolean locked);
     CompletableFuture<IslandActionResult> setLockedResult(UUID islandId, UUID actorUuid, boolean locked);
+    CompletableFuture<Void> lockIsland(UUID islandId, UUID actorUuid);
+    CompletableFuture<IslandActionResult> lockIslandResult(UUID islandId, UUID actorUuid);
+    CompletableFuture<Void> unlockIsland(UUID islandId, UUID actorUuid);
+    CompletableFuture<IslandActionResult> unlockIslandResult(UUID islandId, UUID actorUuid);
     CompletableFuture<Void> setHome(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<IslandActionResult> setHomeResult(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<Void> setBiome(UUID islandId, UUID actorUuid, String biomeKey);
@@ -66,6 +70,10 @@ public interface IslandCommandService {
     CompletableFuture<IslandActionResult> setWarpPublicAccessResult(UUID islandId, UUID actorUuid, String name, boolean publicAccess);
     CompletableFuture<Void> setPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess);
     CompletableFuture<IslandActionResult> setPublicAccessResult(UUID islandId, UUID actorUuid, boolean publicAccess);
+    CompletableFuture<Void> publishIsland(UUID islandId, UUID actorUuid);
+    CompletableFuture<IslandActionResult> publishIslandResult(UUID islandId, UUID actorUuid);
+    CompletableFuture<Void> privatizeIsland(UUID islandId, UUID actorUuid);
+    CompletableFuture<IslandActionResult> privatizeIslandResult(UUID islandId, UUID actorUuid);
     CompletableFuture<IslandLevelSnapshot> recalculateLevel(UUID islandId, UUID actorUuid);
     CompletableFuture<Void> purchaseUpgrade(UUID islandId, UUID actorUuid, String upgradeKey);
     CompletableFuture<UpgradePurchaseSnapshot> purchaseUpgradeResult(UUID islandId, UUID actorUuid, String upgradeKey);
