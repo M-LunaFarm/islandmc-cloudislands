@@ -51,6 +51,16 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> islandInfo(UUID islandId) {
+        return post("/v1/islands/info", "{\"islandId\":\"" + islandId + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> islandInfoByOwner(UUID ownerUuid) {
+        return post("/v1/islands/info", "{\"ownerUuid\":\"" + ownerUuid + "\"}");
+    }
+
+    @Override
     public CompletableFuture<String> listIslandMembers(UUID islandId) {
         return post("/v1/islands/members", "{\"islandId\":\"" + islandId + "\"}");
     }

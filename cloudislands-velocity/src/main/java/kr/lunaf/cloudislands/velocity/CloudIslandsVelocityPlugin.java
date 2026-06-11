@@ -54,6 +54,35 @@ public final class CloudIslandsVelocityPlugin {
             routingController.routeHome(player, args.length > 1 ? args[1] : "default");
             return;
         }
+        if (args[0].equalsIgnoreCase("info") || args[0].equals("정보")) {
+            routingController.showMyIsland(player);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("settings") || args[0].equals("설정")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.showIslandSettings(player, islandId);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("level") || args[0].equals("레벨")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.showIslandLevel(player, islandId);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("worth") || args[0].equals("value") || args[0].equals("가치")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.showIslandWorth(player, islandId);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("size") || args[0].equals("크기")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.showIslandSize(player, islandId);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("border") || args[0].equals("경계")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.showIslandBorder(player, islandId);
+            return;
+        }
         if (args[0].equalsIgnoreCase("homes") || args[0].equals("홈목록")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.listHomes(player, islandId);

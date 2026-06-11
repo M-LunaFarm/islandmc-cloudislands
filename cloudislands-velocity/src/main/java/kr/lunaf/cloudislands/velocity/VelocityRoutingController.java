@@ -47,6 +47,30 @@ public final class VelocityRoutingController {
         });
     }
 
+    public void showMyIsland(Player player) {
+        coreApiClient.islandInfoByOwner(player.getUniqueId()).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 정보를 불러오지 못했습니다." : body)));
+    }
+
+    public void showIslandSettings(Player player, UUID islandId) {
+        coreApiClient.islandInfo(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 설정을 불러오지 못했습니다." : body)));
+    }
+
+    public void showIslandLevel(Player player, UUID islandId) {
+        coreApiClient.islandInfo(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 레벨을 불러오지 못했습니다." : body)));
+    }
+
+    public void showIslandWorth(Player player, UUID islandId) {
+        coreApiClient.islandInfo(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 가치를 불러오지 못했습니다." : body)));
+    }
+
+    public void showIslandSize(Player player, UUID islandId) {
+        coreApiClient.islandInfo(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 크기를 불러오지 못했습니다." : body)));
+    }
+
+    public void showIslandBorder(Player player, UUID islandId) {
+        coreApiClient.islandInfo(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 경계를 불러오지 못했습니다." : body)));
+    }
+
     public void routeHome(Player player) {
         routeHome(player, "default");
     }

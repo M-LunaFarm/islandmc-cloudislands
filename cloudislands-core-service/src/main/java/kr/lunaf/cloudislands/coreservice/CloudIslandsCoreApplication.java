@@ -18,6 +18,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
+import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
@@ -146,6 +147,13 @@ public final class CloudIslandsCoreApplication {
             write(exchange, 200, rankingsJson(rankingRepository.topByWorth(JsonFields.integer(body, "limit", 10))));
         });
         route("/v1/upgrades/rules", exchange -> write(exchange, 200, upgradeRulesJson(upgradePolicy.list())));
+        route("/v1/islands/info", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID ownerUuid = JsonFields.uuid(body, "ownerUuid", new UUID(0L, 0L));
+            java.util.Optional<IslandSnapshot> island = islandId.equals(new UUID(0L, 0L)) ? islandRepository.findByOwner(ownerUuid) : islandRepository.findById(islandId);
+            write(exchange, island.isPresent() ? 200 : 404, island.map(CloudIslandsCoreApplication::islandJson).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
+        });
         route("/v1/islands/permissions", exchange -> {
             String body = readBody(exchange);
             write(exchange, 200, permissionsJson(permissionRules.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
@@ -595,6 +603,21 @@ public final class CloudIslandsCoreApplication {
 
     private static String deleteResultJson(DeleteIslandResult result) {
         return "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\",\"islandId\":\"" + result.islandId() + "\"}";
+    }
+
+    private static String islandJson(IslandSnapshot island) {
+        return "{\"islandId\":\"" + island.islandId()
+            + "\",\"ownerUuid\":\"" + island.ownerUuid()
+            + "\",\"name\":\"" + escape(island.name())
+            + "\",\"state\":\"" + island.state()
+            + "\",\"size\":" + island.size()
+            + ",\"border\":" + island.size()
+            + ",\"level\":" + island.level()
+            + ",\"worth\":\"" + escape(island.worth())
+            + "\",\"publicAccess\":" + island.publicAccess()
+            + ",\"createdAt\":\"" + island.createdAt()
+            + "\",\"updatedAt\":\"" + island.updatedAt()
+            + "\"}";
     }
 
     private static BigDecimal amount(String body) {
