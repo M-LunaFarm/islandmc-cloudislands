@@ -8,13 +8,21 @@ import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.Plugin;
+import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
@@ -32,12 +40,86 @@ public final class CloudIslandsVelocityPlugin {
     private final VelocityRoutingController routingController;
 
     @Inject
-    public CloudIslandsVelocityPlugin(ProxyServer proxy, Logger logger) {
+    public CloudIslandsVelocityPlugin(ProxyServer proxy, Logger logger, @DataDirectory Path dataDirectory) {
         this.proxy = proxy;
         this.logger = logger;
-        CoreApiClient client = new JdkCoreApiClient(URI.create(System.getProperty("cloudislands.core", "https://core-api.internal:8443")), System.getenv().getOrDefault("CI_CORE_TOKEN", ""), Duration.ofSeconds(3));
-        this.routingController = new VelocityRoutingController(proxy, client, System.getProperty("cloudislands.fallback", "Lobby"), Integer.getInteger("cloudislands.routeWaitSeconds", 20));
+        VelocityConfig config = loadConfig(dataDirectory, logger);
+        String coreUrl = System.getProperty("cloudislands.core", config.coreBaseUrl());
+        String coreToken = System.getenv().getOrDefault("CI_CORE_TOKEN", config.coreToken());
+        long timeoutMs = Long.getLong("cloudislands.timeoutMs", config.timeoutMs());
+        String fallbackServer = System.getProperty("cloudislands.fallback", config.fallbackServer());
+        int routeWaitSeconds = Integer.getInteger("cloudislands.routeWaitSeconds", config.routeWaitSeconds());
+        CoreApiClient client = new JdkCoreApiClient(URI.create(coreUrl), coreToken, Duration.ofMillis(Math.max(1L, timeoutMs)));
+        this.routingController = new VelocityRoutingController(proxy, client, fallbackServer, routeWaitSeconds);
     }
+
+    private static VelocityConfig loadConfig(Path dataDirectory, Logger logger) {
+        Map<String, String> values = new HashMap<>();
+        Path configPath = dataDirectory.resolve("config.yaml");
+        try {
+            if (Files.notExists(configPath)) {
+                Files.createDirectories(dataDirectory);
+                try (InputStream defaults = CloudIslandsVelocityPlugin.class.getClassLoader().getResourceAsStream("config.yaml")) {
+                    if (defaults != null) {
+                        Files.copy(defaults, configPath, StandardCopyOption.REPLACE_EXISTING);
+                    }
+                }
+            }
+            if (Files.exists(configPath)) {
+                String section = "";
+                for (String rawLine : Files.readAllLines(configPath)) {
+                    String line = rawLine.strip();
+                    if (line.isBlank() || line.startsWith("#") || line.startsWith("-")) {
+                        continue;
+                    }
+                    if (!rawLine.startsWith(" ") && line.endsWith(":")) {
+                        section = line.substring(0, line.length() - 1).strip();
+                        continue;
+                    }
+                    int colon = line.indexOf(':');
+                    if (colon <= 0) {
+                        continue;
+                    }
+                    String key = line.substring(0, colon).strip();
+                    String value = unquote(line.substring(colon + 1).strip());
+                    values.put(section.isBlank() ? key : section + "." + key, resolveEnv(value));
+                }
+            }
+        } catch (IOException exception) {
+            logger.warn("Failed to load CloudIslands Velocity config, using defaults", exception);
+        }
+        return new VelocityConfig(
+            values.getOrDefault("core-api.base-url", "https://core-api.internal:8443"),
+            values.getOrDefault("core-api.auth-token", ""),
+            integer(values.get("core-api.timeout-ms"), 3000),
+            values.getOrDefault("routing.fallback-on-failure", values.getOrDefault("routing.default-lobby", "Lobby")),
+            integer(values.get("routing.wait-for-activation-timeout-seconds"), 20)
+        );
+    }
+
+    private static String unquote(String value) {
+        if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) {
+            return value.substring(1, value.length() - 1);
+        }
+        return value;
+    }
+
+    private static String resolveEnv(String value) {
+        if (value.startsWith("${") && value.endsWith("}")) {
+            return System.getenv().getOrDefault(value.substring(2, value.length() - 1), "");
+        }
+        return value;
+    }
+
+    private static int integer(String value, int fallback) {
+        try {
+            return value == null || value.isBlank() ? fallback : Integer.parseInt(value);
+        } catch (NumberFormatException exception) {
+            return fallback;
+        }
+    }
+
+    private record VelocityConfig(String coreBaseUrl, String coreToken, int timeoutMs, String fallbackServer, int routeWaitSeconds) {}
 
     @Subscribe
     public void onProxyInitialize(ProxyInitializeEvent event) {
