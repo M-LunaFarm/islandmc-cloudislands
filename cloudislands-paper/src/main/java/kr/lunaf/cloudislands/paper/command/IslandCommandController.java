@@ -325,6 +325,26 @@ public final class IslandCommandController implements CommandExecutor {
             transferIslandOwnership(player, args[1]);
             return true;
         }
+        if (subcommand.equals("ban") || subcommand.equals("밴")) {
+            if (args.length < 2) {
+                player.sendMessage("밴할 플레이어를 입력해주세요.");
+                return true;
+            }
+            banIslandVisitor(player, args[1], args.length > 2 ? joined(args, 2) : "");
+            return true;
+        }
+        if (subcommand.equals("unban") || subcommand.equals("pardon") || subcommand.equals("밴해제")) {
+            if (args.length < 2) {
+                player.sendMessage("밴 해제할 플레이어를 입력해주세요.");
+                return true;
+            }
+            pardonIslandVisitor(player, args[1]);
+            return true;
+        }
+        if (subcommand.equals("bans") || subcommand.equals("ban-list") || subcommand.equals("밴목록")) {
+            listIslandBans(player);
+            return true;
+        }
         return false;
     }
 
@@ -901,6 +921,47 @@ public final class IslandCommandController implements CommandExecutor {
         });
     }
 
+    private void banIslandVisitor(Player player, String target, String reason) {
+        currentIsland(player, "섬 안에서만 방문자를 밴할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.BAN_VISITOR)) {
+                player.sendMessage("섬 방문자를 밴할 권한이 없습니다.");
+                return;
+            }
+            coreApiClient.banIslandVisitorResult(islandId, player.getUniqueId(), playerUuid(target), reason)
+                .thenAccept(body -> message(player, "섬 방문자를 밴했습니다."))
+                .exceptionally(error -> {
+                    message(player, "섬 방문자를 밴하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void pardonIslandVisitor(Player player, String target) {
+        currentIsland(player, "섬 안에서만 방문자 밴을 해제할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.BAN_VISITOR)) {
+                player.sendMessage("섬 방문자 밴을 해제할 권한이 없습니다.");
+                return;
+            }
+            coreApiClient.pardonIslandVisitorResult(islandId, player.getUniqueId(), playerUuid(target))
+                .thenAccept(body -> message(player, "섬 방문자 밴을 해제했습니다."))
+                .exceptionally(error -> {
+                    message(player, "섬 방문자 밴을 해제하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void listIslandBans(Player player) {
+        currentIsland(player, "섬 안에서만 밴 목록을 확인할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.listIslandBans(islandId)
+                .thenAccept(body -> message(player, banListMessage(body)))
+                .exceptionally(error -> {
+                    message(player, "섬 밴 목록을 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
     private java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
         java.util.Optional<UUID> islandId = protection.islandAt(player.getLocation().getBlock());
         if (islandId.isEmpty()) {
@@ -1133,6 +1194,29 @@ public final class IslandCommandController implements CommandExecutor {
             index = objectEnd + 1;
         }
         return entries.isEmpty() ? "대기 중인 섬 초대가 없습니다." : "섬 초대: " + String.join(", ", entries);
+    }
+
+    private String banListMessage(String body) {
+        List<String> entries = new ArrayList<>();
+        int index = 0;
+        while (body != null && index < body.length()) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String bannedUuid = text(object, "bannedUuid");
+            String reason = text(object, "reason");
+            if (!bannedUuid.isBlank()) {
+                entries.add(bannedUuid + (reason.isBlank() ? "" : " " + reason));
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "섬 밴 목록이 비어 있습니다." : "섬 밴 목록: " + String.join(", ", entries);
     }
 
     private String joined(String[] args, int start) {
