@@ -175,7 +175,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         );
         this.activeIslands = new ActiveIslandRegistry();
         IslandActivationJobHandler activationHandler = new IslandActivationJobHandler(storage, shardWorldManager, agent.protection(), new IslandWorldRestorer(storage, getDataFolder().toPath().resolve("staging"), new BundleRestorePlanner(new ExternalTarBundleExtractor())), new ShardWorldPreloader(this), getConfig().getInt("island-node.activation.preload-radius", 4), new FileBackedCellTransfer(getServer().getWorldContainer().toPath()));
-        IslandSaveService saveService = new IslandSaveService(storage, new ExternalTarIslandBundleExporter(getServer().getWorldContainer().toPath()), getDataFolder().toPath().resolve("exports"), getConfig().getInt("snapshots.keep-manual", 50));
+        IslandSaveService saveService = new IslandSaveService(storage, new ExternalTarIslandBundleExporter(getServer().getWorldContainer().toPath()), getDataFolder().toPath().resolve("exports"), retainedSnapshots());
         IslandDeactivationHandler deactivationHandler = new IslandDeactivationHandler(activeIslands, shardWorldManager, agent.protection(), saveService);
         PermissionCacheSyncService permissionSync = new PermissionCacheSyncService(this, client, agent.permissionCache());
         this.jobWorker = new PaperIslandJobWorker(this, new CoreBackedIslandJobSource(client), activationHandler, deactivationHandler, activeIslands, permissionSync, nodeId);
@@ -194,5 +194,13 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             getLogger().warning("Island storage health check failed: " + exception.getMessage());
             return false;
         }
+    }
+
+    private int retainedSnapshots() {
+        int hourly = getConfig().getInt("snapshots.keep-hourly", 24);
+        int daily = getConfig().getInt("snapshots.keep-daily", 7);
+        int weekly = getConfig().getInt("snapshots.keep-weekly", 4);
+        int manual = getConfig().getInt("snapshots.keep-manual", 50);
+        return Math.max(1, hourly + daily + weekly + manual);
     }
 }

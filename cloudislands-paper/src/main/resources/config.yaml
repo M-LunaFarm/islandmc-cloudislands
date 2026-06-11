@@ -39,3 +39,11 @@ protection:
 heartbeat:
   interval-ticks: 20
   timeout-seconds: 5
+
+snapshots:
+  keep-hourly: 24
+  keep-daily: 7
+  keep-weekly: 4
+  keep-manual: 50
+  compress: true
+  checksum: "SHA-256"
