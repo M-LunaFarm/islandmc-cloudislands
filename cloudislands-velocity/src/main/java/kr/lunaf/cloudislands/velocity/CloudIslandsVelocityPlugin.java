@@ -36,7 +36,7 @@ public final class CloudIslandsVelocityPlugin {
         this.proxy = proxy;
         this.logger = logger;
         CoreApiClient client = new JdkCoreApiClient(URI.create(System.getProperty("cloudislands.core", "https://core-api.internal:8443")), System.getenv().getOrDefault("CI_CORE_TOKEN", ""), Duration.ofSeconds(3));
-        this.routingController = new VelocityRoutingController(proxy, client, "Lobby");
+        this.routingController = new VelocityRoutingController(proxy, client, System.getProperty("cloudislands.fallback", "Lobby"), Integer.getInteger("cloudislands.routeWaitSeconds", 20));
     }
 
     @Subscribe

@@ -21,11 +21,17 @@ public final class VelocityRoutingController {
     private final ProxyServer proxy;
     private final CoreApiClient coreApiClient;
     private final String fallbackServer;
+    private final int routeWaitSeconds;
 
     public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer) {
+        this(proxy, coreApiClient, fallbackServer, 20);
+    }
+
+    public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer, int routeWaitSeconds) {
         this.proxy = proxy;
         this.coreApiClient = coreApiClient;
         this.fallbackServer = fallbackServer;
+        this.routeWaitSeconds = Math.max(1, routeWaitSeconds);
     }
 
     public void createIsland(Player player, String templateId) {
@@ -1048,7 +1054,7 @@ public final class VelocityRoutingController {
                 publishAndConnect(player, ready.get());
                 return;
             }
-            if (attempt >= 60) {
+            if (attempt >= routeWaitSeconds) {
                 player.hideBossBar(bossBar);
                 fallback(player, failureMessage);
                 return;
