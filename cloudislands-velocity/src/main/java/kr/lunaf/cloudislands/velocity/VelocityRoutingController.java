@@ -5,6 +5,7 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
+import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import net.kyori.adventure.text.Component;
@@ -60,6 +61,30 @@ public final class VelocityRoutingController {
 
     public void declineInvite(Player player, UUID inviteId) {
         coreApiClient.declineIslandInvite(inviteId, player.getUniqueId()).thenRun(() -> player.sendMessage(Component.text("섬 초대를 거절했습니다.")));
+    }
+
+    public void listMembers(Player player, UUID islandId) {
+        coreApiClient.listIslandMembers(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "멤버 목록을 불러오지 못했습니다." : body)));
+    }
+
+    public void setRole(Player player, UUID islandId, UUID targetUuid, IslandRole role) {
+        coreApiClient.setIslandMember(islandId, player.getUniqueId(), targetUuid, role).thenRun(() -> player.sendMessage(Component.text("섬 멤버 역할을 변경했습니다.")));
+    }
+
+    public void kickMember(Player player, UUID islandId, UUID targetUuid) {
+        coreApiClient.removeIslandMember(islandId, player.getUniqueId(), targetUuid).thenRun(() -> player.sendMessage(Component.text("섬 멤버를 추방했습니다.")));
+    }
+
+    public void banVisitor(Player player, UUID islandId, UUID targetUuid, String reason) {
+        coreApiClient.banIslandVisitor(islandId, player.getUniqueId(), targetUuid, reason).thenRun(() -> player.sendMessage(Component.text("방문자를 밴했습니다.")));
+    }
+
+    public void pardonVisitor(Player player, UUID islandId, UUID targetUuid) {
+        coreApiClient.pardonIslandVisitor(islandId, player.getUniqueId(), targetUuid).thenRun(() -> player.sendMessage(Component.text("방문자 밴을 해제했습니다.")));
+    }
+
+    public void setPublicAccess(Player player, UUID islandId, boolean publicAccess) {
+        coreApiClient.setIslandPublicAccess(islandId, player.getUniqueId(), publicAccess).thenRun(() -> player.sendMessage(Component.text(publicAccess ? "섬을 공개로 변경했습니다." : "섬을 비공개로 변경했습니다.")));
     }
 
     public void showLevelRanking(Player player) {

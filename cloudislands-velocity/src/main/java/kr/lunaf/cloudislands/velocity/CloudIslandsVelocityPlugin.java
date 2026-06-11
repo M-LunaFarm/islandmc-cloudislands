@@ -12,6 +12,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JdkCoreApiClient;
 import net.kyori.adventure.text.Component;
@@ -85,6 +86,64 @@ public final class CloudIslandsVelocityPlugin {
             routingController.declineInvite(player, inviteId);
             return;
         }
+        if (args[0].equalsIgnoreCase("members") || args[0].equals("멤버")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.listMembers(player, islandId);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("kick") || args[0].equals("추방")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
+            routingController.kickMember(player, islandId, targetUuid);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("promote") || args[0].equals("승급")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
+            routingController.setRole(player, islandId, targetUuid, IslandRole.MODERATOR);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("demote") || args[0].equals("강등")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
+            routingController.setRole(player, islandId, targetUuid, IslandRole.MEMBER);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("trust") || args[0].equals("신뢰")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
+            routingController.setRole(player, islandId, targetUuid, IslandRole.TRUSTED);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("untrust") || args[0].equals("신뢰해제")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
+            routingController.kickMember(player, islandId, targetUuid);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("ban") || args[0].equals("밴")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
+            String reason = args.length > 3 ? args[3] : "island ban";
+            routingController.banVisitor(player, islandId, targetUuid, reason);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("unban") || args[0].equals("밴해제")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
+            routingController.pardonVisitor(player, islandId, targetUuid);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("public") || args[0].equals("공개")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.setPublicAccess(player, islandId, true);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("private") || args[0].equals("비공개")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.setPublicAccess(player, islandId, false);
+            return;
+        }
         if (args[0].equalsIgnoreCase("rank") || args[0].equals("ranking") || args[0].equals("랭킹")) {
             routingController.showLevelRanking(player);
             return;
@@ -132,7 +191,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.createIsland(player, templateId);
             return;
         }
-        player.sendMessage(Component.text("사용법: /섬 홈, /섬 생성, /섬 방문 <섬>, /섬 워프 <섬> <이름>, /섬 초대 <섬> <플레이어>, /섬 수락 <초대>, /섬 랭킹, /섬 업그레이드, /섬 스냅샷목록 <섬>"));
+        player.sendMessage(Component.text("사용법: /섬 홈, /섬 생성, /섬 방문 <섬>, /섬 멤버 <섬>, /섬 공개 <섬>, /섬 밴 <섬> <플레이어>, /섬 랭킹"));
     }
 
     private UUID parseUuidOrNil(String value) {
