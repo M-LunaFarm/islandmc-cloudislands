@@ -13,6 +13,7 @@ import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
+import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
 import kr.lunaf.cloudislands.coreservice.ticket.InMemoryRouteTicketStore;
@@ -27,12 +28,14 @@ public final class CloudIslandsCoreApplication {
         NodeAllocator allocator = new NodeAllocator(Duration.ofSeconds(5));
         InMemoryRouteTicketStore tickets = new InMemoryRouteTicketStore(java.time.Clock.systemUTC());
         InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
         RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets);
-        CreateIslandWorkflow createIsland = new CreateIslandWorkflow(new InMemoryIslandRepository(), nodes, allocator, jobs);
+        CreateIslandWorkflow createIsland = new CreateIslandWorkflow(new InMemoryIslandRepository(), nodes, allocator, jobs, events);
         this.server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
         server.createContext("/health", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));
         server.createContext("/v1/nodes", exchange -> write(exchange, 200, nodes.toJson()));
         server.createContext("/v1/jobs", exchange -> write(exchange, 200, jobs.toJson()));
+        server.createContext("/v1/events", exchange -> write(exchange, 200, events.toJson()));
         server.createContext("/v1/routes/home", exchange -> {
             String body = readBody(exchange);
             write(exchange, 202, routing.prepareHomeRouteJson(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L))));

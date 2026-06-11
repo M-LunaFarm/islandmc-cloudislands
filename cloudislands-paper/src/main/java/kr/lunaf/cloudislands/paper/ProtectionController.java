@@ -5,17 +5,22 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
 import kr.lunaf.cloudislands.common.protection.RegionIndex;
+import kr.lunaf.cloudislands.paper.cache.LocalIslandPermissionCache;
 
 public final class ProtectionController {
     private final RegionIndex regionIndex;
+    private final LocalIslandPermissionCache permissionCache;
 
-    public ProtectionController(RegionIndex regionIndex) {
+    public ProtectionController(RegionIndex regionIndex, LocalIslandPermissionCache permissionCache) {
         this.regionIndex = regionIndex;
+        this.permissionCache = permissionCache;
     }
 
     public PermissionResult checkBlock(UUID playerUuid, String world, int blockX, int blockY, int blockZ, IslandPermission permission) {
         return regionIndex.find(world, blockX, blockZ)
-            .map(region -> PermissionResult.deny("CACHE_MISS", IslandRole.VISITOR))
+            .map(region -> permissionCache.allowed(region.islandId(), playerUuid, permission, false)
+                ? PermissionResult.allow(IslandRole.MEMBER)
+                : PermissionResult.deny("DEFAULT_DENY", IslandRole.VISITOR))
             .orElseGet(() -> PermissionResult.deny("OUTSIDE_ISLAND", IslandRole.VISITOR));
     }
 }
