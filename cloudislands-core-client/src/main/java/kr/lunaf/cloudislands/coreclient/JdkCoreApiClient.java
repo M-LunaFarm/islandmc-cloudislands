@@ -99,12 +99,22 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<Void> acceptIslandInvite(UUID inviteId, UUID playerUuid) {
-        return post("/v1/islands/invites/accept", "{\"inviteId\":\"" + inviteId + "\",\"playerUuid\":\"" + playerUuid + "\"}").thenApply(_body -> null);
+        return acceptIslandInviteResult(inviteId, playerUuid).thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> acceptIslandInviteResult(UUID inviteId, UUID playerUuid) {
+        return postWithResultBody("/v1/islands/invites/accept", "{\"inviteId\":\"" + inviteId + "\",\"playerUuid\":\"" + playerUuid + "\"}");
     }
 
     @Override
     public CompletableFuture<Void> declineIslandInvite(UUID inviteId, UUID playerUuid) {
-        return post("/v1/islands/invites/decline", "{\"inviteId\":\"" + inviteId + "\",\"playerUuid\":\"" + playerUuid + "\"}").thenApply(_body -> null);
+        return declineIslandInviteResult(inviteId, playerUuid).thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> declineIslandInviteResult(UUID inviteId, UUID playerUuid) {
+        return postWithResultBody("/v1/islands/invites/decline", "{\"inviteId\":\"" + inviteId + "\",\"playerUuid\":\"" + playerUuid + "\"}");
     }
 
     @Override

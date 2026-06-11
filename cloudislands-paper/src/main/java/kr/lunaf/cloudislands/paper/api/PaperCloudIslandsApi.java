@@ -23,6 +23,7 @@ import kr.lunaf.cloudislands.api.model.IslandChatResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandInviteActionResult;
 import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandJobSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLevelSnapshot;
@@ -438,8 +439,10 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId) { return client.deleteIsland(requesterUuid, islandId); }
         @Override public CompletableFuture<Void> invite(UUID islandId, UUID inviterUuid, UUID targetUuid) { return inviteResult(islandId, inviterUuid, targetUuid).thenApply(_invite -> null); }
         @Override public CompletableFuture<IslandInviteSnapshot> inviteResult(UUID islandId, UUID inviterUuid, UUID targetUuid) { return client.createIslandInvite(islandId, inviterUuid, targetUuid).thenApply(PaperCloudIslandsApi::invite); }
-        @Override public CompletableFuture<Void> acceptInvite(UUID inviteId, UUID playerUuid) { return client.acceptIslandInvite(inviteId, playerUuid); }
-        @Override public CompletableFuture<Void> declineInvite(UUID inviteId, UUID playerUuid) { return client.declineIslandInvite(inviteId, playerUuid); }
+        @Override public CompletableFuture<Void> acceptInvite(UUID inviteId, UUID playerUuid) { return acceptInviteResult(inviteId, playerUuid).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandInviteActionResult> acceptInviteResult(UUID inviteId, UUID playerUuid) { return client.acceptIslandInviteResult(inviteId, playerUuid).thenApply(body -> inviteAction(body, "ACCEPTED")); }
+        @Override public CompletableFuture<Void> declineInvite(UUID inviteId, UUID playerUuid) { return declineInviteResult(inviteId, playerUuid).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandInviteActionResult> declineInviteResult(UUID inviteId, UUID playerUuid) { return client.declineIslandInviteResult(inviteId, playerUuid).thenApply(body -> inviteAction(body, "DECLINED")); }
         @Override public CompletableFuture<Void> banVisitor(UUID islandId, UUID actorUuid, UUID targetUuid, String reason) { return client.banIslandVisitor(islandId, actorUuid, targetUuid, reason); }
         @Override public CompletableFuture<Void> pardonVisitor(UUID islandId, UUID actorUuid, UUID targetUuid) { return client.pardonIslandVisitor(islandId, actorUuid, targetUuid); }
         @Override public CompletableFuture<Void> kick(UUID islandId, UUID actorUuid, UUID targetUuid) { return client.removeIslandMember(islandId, actorUuid, targetUuid); }
@@ -572,6 +575,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 instant(text(json, "createdAt", Instant.EPOCH.toString())),
                 instant(text(json, "expiresAt", Instant.EPOCH.toString()))
         );
+    }
+
+    private static IslandInviteActionResult inviteAction(String json, String successCode) {
+        boolean applied = json.contains("\"accepted\":true");
+        return new IslandInviteActionResult(applied, applied ? successCode : text(json, "code", "FAILED"));
     }
 
     private static List<IslandHomeSnapshot> homes(String json) {

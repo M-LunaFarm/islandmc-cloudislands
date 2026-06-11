@@ -8,6 +8,7 @@ import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandChatResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
+import kr.lunaf.cloudislands.api.model.IslandInviteActionResult;
 import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLevelSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
@@ -22,7 +23,9 @@ public interface IslandCommandService {
     CompletableFuture<Void> invite(UUID islandId, UUID inviterUuid, UUID targetUuid);
     CompletableFuture<IslandInviteSnapshot> inviteResult(UUID islandId, UUID inviterUuid, UUID targetUuid);
     CompletableFuture<Void> acceptInvite(UUID inviteId, UUID playerUuid);
+    CompletableFuture<IslandInviteActionResult> acceptInviteResult(UUID inviteId, UUID playerUuid);
     CompletableFuture<Void> declineInvite(UUID inviteId, UUID playerUuid);
+    CompletableFuture<IslandInviteActionResult> declineInviteResult(UUID inviteId, UUID playerUuid);
     CompletableFuture<Void> banVisitor(UUID islandId, UUID actorUuid, UUID targetUuid, String reason);
     CompletableFuture<Void> pardonVisitor(UUID islandId, UUID actorUuid, UUID targetUuid);
     CompletableFuture<Void> kick(UUID islandId, UUID actorUuid, UUID targetUuid);

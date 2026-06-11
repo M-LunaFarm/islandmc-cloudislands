@@ -30,7 +30,9 @@ public interface CoreApiClient {
     CompletableFuture<String> listPendingInvites(UUID playerUuid);
     CompletableFuture<String> listPlayerIslands(UUID playerUuid);
     CompletableFuture<Void> acceptIslandInvite(UUID inviteId, UUID playerUuid);
+    CompletableFuture<String> acceptIslandInviteResult(UUID inviteId, UUID playerUuid);
     CompletableFuture<Void> declineIslandInvite(UUID inviteId, UUID playerUuid);
+    CompletableFuture<String> declineIslandInviteResult(UUID inviteId, UUID playerUuid);
     CompletableFuture<Void> banIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason);
     CompletableFuture<String> listIslandBans(UUID islandId);
     CompletableFuture<Void> pardonIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid);
