@@ -72,14 +72,25 @@ public final class S3IslandStorage implements IslandStorage {
     @Override
     public void writeSnapshot(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
         String snapshot = String.format("%06d", snapshotNo);
+        writeBundle(islandId, "snapshots/" + snapshot, bundle, manifest, true, snapshot);
+    }
+
+    @Override
+    public void writeDeleteBackup(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
+        writeBundle(islandId, "backups/delete-" + String.format("%06d", snapshotNo), bundle, manifest, false, "");
+    }
+
+    private void writeBundle(UUID islandId, String prefix, InputStream bundle, IslandBundleManifest manifest, boolean updateLatest, String latestValue) throws IOException {
         byte[] bundleBytes = bundle.readAllBytes();
         String checksum = Sha256Checksums.of(new ByteArrayInputStream(bundleBytes));
         IslandBundleManifest savedManifest = new IslandBundleManifest(manifest.islandId(), manifest.ownerUuid(), manifest.formatVersion(), manifest.minecraftVersion(), manifest.schemaVersion(), manifest.size(), manifest.spawn(), manifest.createdAt(), manifest.savedAt(), checksum);
-        requestBytes("PUT", key(islandId, "snapshots/" + snapshot + "/bundle.tar.zst"), bundleBytes);
-        requestBytes("PUT", key(islandId, "snapshots/" + snapshot + "/manifest.json"), IslandManifestJson.write(savedManifest).getBytes(StandardCharsets.UTF_8));
-        requestBytes("PUT", key(islandId, "snapshots/" + snapshot + "/checksums.sha256"), (checksum + "  bundle.tar.zst\n").getBytes(StandardCharsets.UTF_8));
-        requestBytes("PUT", key(islandId, "manifest.json"), IslandManifestJson.write(savedManifest).getBytes(StandardCharsets.UTF_8));
-        requestBytes("PUT", key(islandId, "latest"), snapshot.getBytes(StandardCharsets.UTF_8));
+        requestBytes("PUT", key(islandId, prefix + "/bundle.tar.zst"), bundleBytes);
+        requestBytes("PUT", key(islandId, prefix + "/manifest.json"), IslandManifestJson.write(savedManifest).getBytes(StandardCharsets.UTF_8));
+        requestBytes("PUT", key(islandId, prefix + "/checksums.sha256"), (checksum + "  bundle.tar.zst\n").getBytes(StandardCharsets.UTF_8));
+        if (updateLatest) {
+            requestBytes("PUT", key(islandId, "manifest.json"), IslandManifestJson.write(savedManifest).getBytes(StandardCharsets.UTF_8));
+            requestBytes("PUT", key(islandId, "latest"), latestValue.getBytes(StandardCharsets.UTF_8));
+        }
     }
 
     @Override

@@ -50,6 +50,17 @@ public final class LocalIslandStorage implements IslandStorage {
     public void writeSnapshot(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
         Path islandRoot = islandRoot(islandId);
         Path snapshotDir = islandRoot.resolve("snapshots").resolve(String.format("%06d", snapshotNo));
+        writeBundle(islandRoot, snapshotDir, bundle, manifest, true);
+    }
+
+    @Override
+    public void writeDeleteBackup(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
+        Path islandRoot = islandRoot(islandId);
+        Path backupDir = islandRoot.resolve("backups").resolve("delete-" + String.format("%06d", snapshotNo));
+        writeBundle(islandRoot, backupDir, bundle, manifest, false);
+    }
+
+    private void writeBundle(Path islandRoot, Path snapshotDir, InputStream bundle, IslandBundleManifest manifest, boolean updateLatest) throws IOException {
         Files.createDirectories(snapshotDir);
         Path snapshotBundle = snapshotDir.resolve("bundle.tar.zst");
         Files.copy(bundle, snapshotBundle, StandardCopyOption.REPLACE_EXISTING);
@@ -71,8 +82,10 @@ public final class LocalIslandStorage implements IslandStorage {
         );
         Files.writeString(snapshotDir.resolve("manifest.json"), IslandManifestJson.write(savedManifest), StandardCharsets.UTF_8);
         Files.writeString(snapshotDir.resolve("checksums.sha256"), actualChecksum + "  bundle.tar.zst\n", StandardCharsets.UTF_8);
-        Files.writeString(islandRoot.resolve("manifest.json"), IslandManifestJson.write(savedManifest), StandardCharsets.UTF_8);
-        Files.writeString(islandRoot.resolve("latest"), snapshotDir.getFileName().toString(), StandardCharsets.UTF_8);
+        if (updateLatest) {
+            Files.writeString(islandRoot.resolve("manifest.json"), IslandManifestJson.write(savedManifest), StandardCharsets.UTF_8);
+            Files.writeString(islandRoot.resolve("latest"), snapshotDir.getFileName().toString(), StandardCharsets.UTF_8);
+        }
     }
 
     @Override

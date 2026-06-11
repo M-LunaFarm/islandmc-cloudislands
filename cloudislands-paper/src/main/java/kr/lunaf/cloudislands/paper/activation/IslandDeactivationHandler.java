@@ -22,11 +22,15 @@ public final class IslandDeactivationHandler {
     }
 
     public DeactivationResult deactivate(UUID islandId) {
+        return deactivate(islandId, false);
+    }
+
+    public DeactivationResult deactivate(UUID islandId, boolean deleteBackup) {
         try {
             IslandSaveService.SaveResult saveResult = null;
             ActiveIslandRegistry.ActiveIsland active = activeIslands.find(islandId).orElse(null);
             if (active != null && saveService != null) {
-                saveResult = saveService.save(islandId, active);
+                saveResult = deleteBackup ? saveService.backupBeforeDelete(islandId, active) : saveService.save(islandId, active);
             }
             protectionController.unregisterIsland(islandId);
             activeIslands.deactivated(islandId);

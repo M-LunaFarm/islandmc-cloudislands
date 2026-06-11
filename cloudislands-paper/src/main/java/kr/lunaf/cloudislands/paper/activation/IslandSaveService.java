@@ -31,6 +31,14 @@ public final class IslandSaveService {
     }
 
     public SaveResult save(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland) throws IOException {
+        return save(islandId, activeIsland, false);
+    }
+
+    public SaveResult backupBeforeDelete(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland) throws IOException {
+        return save(islandId, activeIsland, true);
+    }
+
+    private SaveResult save(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland, boolean deleteBackup) throws IOException {
         IslandBundleExporter.ExportedIslandBundle exported = exporter.export(islandId, activeIsland, exportRoot.resolve(islandId.toString()));
         IslandBundleManifest previous = storage.readManifest(islandId);
         long sizeBytes = Files.size(exported.bundleFile());
@@ -51,9 +59,15 @@ public final class IslandSaveService {
             checksum
         );
         try (InputStream input = Files.newInputStream(exported.bundleFile())) {
-            storage.writeSnapshot(islandId, exported.snapshotNo(), input, manifest);
+            if (deleteBackup) {
+                storage.writeDeleteBackup(islandId, exported.snapshotNo(), input, manifest);
+            } else {
+                storage.writeSnapshot(islandId, exported.snapshotNo(), input, manifest);
+            }
         }
-        storage.pruneSnapshots(islandId, retainedSnapshots);
+        if (!deleteBackup) {
+            storage.pruneSnapshots(islandId, retainedSnapshots);
+        }
         return new SaveResult(islandId, exported.snapshotNo(), exported.bundleFile(), checksum, sizeBytes);
     }
 

@@ -130,7 +130,7 @@ public final class PaperIslandJobWorker {
             jobSource.fail(nodeId, job.jobId(), "DEACTIVATION_UNAVAILABLE");
             return;
         }
-        IslandDeactivationHandler.DeactivationResult result = deactivationHandler.deactivate(job.islandId());
+        IslandDeactivationHandler.DeactivationResult result = deactivationHandler.deactivate(job.islandId(), job.type() == IslandJobType.DELETE_ISLAND);
         if (result.success()) {
             Bukkit.getPluginManager().callEvent(new IslandDeactivateEvent(result.islandId(), nodeId, result.snapshotNo()));
             if (job.type() == IslandJobType.DELETE_ISLAND) {
