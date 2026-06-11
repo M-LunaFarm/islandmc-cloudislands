@@ -43,6 +43,7 @@ import kr.lunaf.cloudislands.api.model.IslandRankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeJobType;
+import kr.lunaf.cloudislands.api.model.IslandSizeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.api.model.IslandState;
@@ -179,6 +180,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<IslandBoundarySnapshot> getBoundary(UUID islandId) {
             return client.islandInfo(islandId).thenApply(PaperCloudIslandsApi::boundary);
+        }
+
+        @Override
+        public CompletableFuture<IslandSizeSnapshot> getSize(UUID islandId) {
+            return client.islandInfo(islandId).thenApply(PaperCloudIslandsApi::size);
         }
 
         @Override
@@ -681,6 +687,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         UUID islandId = uuid(json, "islandId", new UUID(0L, 0L));
         int size = integer(json, "size", 0);
         return new IslandBoundarySnapshot(islandId, size, integer(json, "border", size));
+    }
+
+    private static IslandSizeSnapshot size(String json) {
+        UUID islandId = uuid(json, "islandId", new UUID(0L, 0L));
+        int size = integer(json, "size", 0);
+        return new IslandSizeSnapshot(islandId, size, integer(json, "border", size));
     }
 
     private static Optional<PlayerIslandProfile> playerProfile(String json) {
