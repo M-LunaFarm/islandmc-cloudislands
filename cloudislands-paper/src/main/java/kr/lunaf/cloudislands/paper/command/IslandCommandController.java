@@ -152,6 +152,30 @@ public final class IslandCommandController implements CommandExecutor {
             withdrawIslandBank(player, args[1]);
             return true;
         }
+        if (subcommand.equals("upgrade") || subcommand.equals("upgrades") || subcommand.equals("업그레이드")) {
+            if (args.length > 1) {
+                purchaseIslandUpgrade(player, args[1]);
+            } else {
+                listIslandUpgrades(player);
+            }
+            return true;
+        }
+        if (subcommand.equals("mission") || subcommand.equals("missions") || subcommand.equals("미션")) {
+            if (args.length > 1) {
+                completeIslandMission(player, args[1]);
+            } else {
+                listIslandMissions(player, "MISSION", "섬 미션");
+            }
+            return true;
+        }
+        if (subcommand.equals("challenge") || subcommand.equals("challenges") || subcommand.equals("챌린지")) {
+            if (args.length > 1) {
+                completeIslandChallenge(player, args[1]);
+            } else {
+                listIslandMissions(player, "CHALLENGE", "섬 챌린지");
+            }
+            return true;
+        }
         return false;
     }
 
@@ -417,6 +441,74 @@ public final class IslandCommandController implements CommandExecutor {
         });
     }
 
+    private void listIslandUpgrades(Player player) {
+        currentIsland(player, "섬 안에서만 업그레이드를 확인할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.listIslandUpgrades(islandId)
+                .thenAccept(body -> message(player, upgradeListMessage(body)))
+                .exceptionally(error -> {
+                    message(player, "섬 업그레이드를 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void purchaseIslandUpgrade(Player player, String upgradeKey) {
+        currentIsland(player, "섬 안에서만 업그레이드를 구매할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.MANAGE_UPGRADES)) {
+                player.sendMessage("섬 업그레이드를 구매할 권한이 없습니다.");
+                return;
+            }
+            coreApiClient.purchaseIslandUpgrade(islandId, player.getUniqueId(), upgradeKey)
+                .thenAccept(body -> {
+                    String key = text(body, "upgradeKey");
+                    String cost = text(body, "cost");
+                    if (body.contains("\"accepted\":false")) {
+                        message(player, "섬 업그레이드를 구매하지 못했습니다: " + text(body, "code"));
+                        return;
+                    }
+                    message(player, "섬 업그레이드 구매 완료: " + (key.isBlank() ? upgradeKey : key) + " Lv." + (long) decimal(body, "level") + " / 비용 " + (cost.isBlank() ? "0" : cost));
+                })
+                .exceptionally(error -> {
+                    message(player, "섬 업그레이드를 구매하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void listIslandMissions(Player player, String kind, String label) {
+        currentIsland(player, "섬 안에서만 " + label + "을 확인할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.listIslandMissions(islandId, kind)
+                .thenAccept(body -> message(player, missionListMessage(body, label)))
+                .exceptionally(error -> {
+                    message(player, label + "을 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void completeIslandMission(Player player, String missionKey) {
+        completeIslandTask(player, missionKey, "섬 미션");
+    }
+
+    private void completeIslandChallenge(Player player, String missionKey) {
+        completeIslandTask(player, missionKey, "섬 챌린지");
+    }
+
+    private void completeIslandTask(Player player, String missionKey, String label) {
+        currentIsland(player, "섬 안에서만 " + label + "을 완료할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.completeIslandMission(islandId, player.getUniqueId(), missionKey)
+                .thenAccept(body -> {
+                    String title = text(body, "title");
+                    String reward = text(body, "reward");
+                    message(player, label + " 완료: " + (title.isBlank() ? missionKey : title) + (reward.isBlank() ? "" : " / 보상 " + reward));
+                })
+                .exceptionally(error -> {
+                    message(player, label + "을 완료하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
     private java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
         java.util.Optional<UUID> islandId = protection.islandAt(player.getLocation().getBlock());
         if (islandId.isEmpty()) {
@@ -489,6 +581,52 @@ public final class IslandCommandController implements CommandExecutor {
     private String bankBalance(String body) {
         String balance = text(body, "balance");
         return balance.isBlank() ? "0" : balance;
+    }
+
+    private String upgradeListMessage(String body) {
+        List<String> entries = new ArrayList<>();
+        int index = 0;
+        while (body != null && index < body.length()) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String key = text(object, "upgradeKey");
+            if (!key.isBlank()) {
+                entries.add(key + " Lv." + (long) decimal(object, "level"));
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "섬 업그레이드가 없습니다." : "섬 업그레이드: " + String.join(", ", entries);
+    }
+
+    private String missionListMessage(String body, String label) {
+        List<String> entries = new ArrayList<>();
+        int index = 0;
+        while (body != null && index < body.length()) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String key = text(object, "missionKey");
+            if (!key.isBlank()) {
+                String title = text(object, "title");
+                String state = bool(object, "completed") ? "완료" : ((long) decimal(object, "progress") + "/" + (long) decimal(object, "goal"));
+                entries.add(key + "(" + (title.isBlank() ? key : title) + ", " + state + ")");
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? label + "이 없습니다." : label + ": " + String.join(", ", entries);
     }
 
     private Point point(String body, String requestedName, String fallbackWorldName) {
