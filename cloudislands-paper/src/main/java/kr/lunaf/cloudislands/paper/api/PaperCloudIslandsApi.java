@@ -57,6 +57,7 @@ import kr.lunaf.cloudislands.api.service.IslandRoutingService;
 import kr.lunaf.cloudislands.api.service.IslandRuntimeService;
 import kr.lunaf.cloudislands.api.service.PlayerIslandService;
 import kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot;
+import kr.lunaf.cloudislands.api.upgrade.UpgradePurchaseSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeRuleSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
@@ -451,8 +452,10 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> deleteWarp(UUID islandId, UUID actorUuid, String name) { return client.deleteIslandWarp(islandId, actorUuid, name); }
         @Override public CompletableFuture<Void> setPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess) { return client.setIslandPublicAccess(islandId, actorUuid, publicAccess); }
         @Override public CompletableFuture<IslandLevelSnapshot> recalculateLevel(UUID islandId, UUID actorUuid) { return client.recalculateIslandLevel(islandId, actorUuid).thenApply(PaperCloudIslandsApi::level); }
-        @Override public CompletableFuture<Void> purchaseUpgrade(UUID islandId, UUID actorUuid, String upgradeKey) { return client.purchaseIslandUpgrade(islandId, actorUuid, upgradeKey).thenApply(_body -> null); }
-        @Override public CompletableFuture<Void> completeMission(UUID islandId, UUID actorUuid, String missionKey) { return client.completeIslandMission(islandId, actorUuid, missionKey).thenApply(_body -> null); }
+        @Override public CompletableFuture<Void> purchaseUpgrade(UUID islandId, UUID actorUuid, String upgradeKey) { return purchaseUpgradeResult(islandId, actorUuid, upgradeKey).thenApply(_result -> null); }
+        @Override public CompletableFuture<UpgradePurchaseSnapshot> purchaseUpgradeResult(UUID islandId, UUID actorUuid, String upgradeKey) { return client.purchaseIslandUpgrade(islandId, actorUuid, upgradeKey).thenApply(PaperCloudIslandsApi::upgradePurchase); }
+        @Override public CompletableFuture<Void> completeMission(UUID islandId, UUID actorUuid, String missionKey) { return completeMissionResult(islandId, actorUuid, missionKey).thenApply(_result -> null); }
+        @Override public CompletableFuture<Optional<IslandMissionSnapshot>> completeMissionResult(UUID islandId, UUID actorUuid, String missionKey) { return client.completeIslandMission(islandId, actorUuid, missionKey).thenApply(PaperCloudIslandsApi::mission); }
         @Override public CompletableFuture<Void> sendChat(UUID islandId, UUID actorUuid, String channel, String message) { return client.sendIslandChat(islandId, actorUuid, channel, message).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> depositBank(UUID islandId, UUID actorUuid, BigDecimal amount) { return client.depositIslandBank(islandId, actorUuid, amount.toPlainString()).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> withdrawBank(UUID islandId, UUID actorUuid, BigDecimal amount) { return client.withdrawIslandBank(islandId, actorUuid, amount.toPlainString()).thenApply(_body -> null); }
@@ -670,15 +673,28 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private static List<IslandUpgradeSnapshot> upgrades(String json) {
         List<IslandUpgradeSnapshot> upgrades = new ArrayList<>();
         for (String object : objects(json, "upgrades")) {
-            upgrades.add(new IslandUpgradeSnapshot(
-                uuid(object, "islandId", new UUID(0L, 0L)),
-                text(object, "upgradeKey", ""),
-                enumValue(UpgradeType.class, text(object, "type", "ISLAND_SIZE"), UpgradeType.ISLAND_SIZE),
-                integer(object, "level", 0),
-                instant(text(object, "updatedAt", Instant.EPOCH.toString()))
-            ));
+            upgrades.add(upgrade(object));
         }
         return upgrades;
+    }
+
+    private static UpgradePurchaseSnapshot upgradePurchase(String json) {
+        return new UpgradePurchaseSnapshot(
+            bool(json, "accepted", false),
+            text(json, "code", ""),
+            text(json, "cost", "0"),
+            json == null || json.contains("\"upgrade\":null") ? null : upgrade(json)
+        );
+    }
+
+    private static IslandUpgradeSnapshot upgrade(String json) {
+        return new IslandUpgradeSnapshot(
+            uuid(json, "islandId", new UUID(0L, 0L)),
+            text(json, "upgradeKey", ""),
+            enumValue(UpgradeType.class, text(json, "type", "ISLAND_SIZE"), UpgradeType.ISLAND_SIZE),
+            integer(json, "level", 0),
+            instant(text(json, "updatedAt", Instant.EPOCH.toString()))
+        );
     }
 
     private static List<UpgradeRuleSnapshot> upgradeRules(String json) {
@@ -711,19 +727,26 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private static List<IslandMissionSnapshot> missions(String json) {
         List<IslandMissionSnapshot> missions = new ArrayList<>();
         for (String object : objects(json, "missions")) {
-            missions.add(new IslandMissionSnapshot(
-                uuid(object, "islandId", new UUID(0L, 0L)),
-                text(object, "missionKey", ""),
-                text(object, "kind", "MISSION"),
-                text(object, "title", ""),
-                longValue(object, "progress", 0L),
-                longValue(object, "goal", 0L),
-                bool(object, "completed", false),
-                text(object, "reward", ""),
-                instant(text(object, "updatedAt", Instant.EPOCH.toString()))
-            ));
+            mission(object).ifPresent(missions::add);
         }
         return missions;
+    }
+
+    private static Optional<IslandMissionSnapshot> mission(String json) {
+        if (json == null || json.isBlank() || json.contains("\"error\"")) {
+            return Optional.empty();
+        }
+        return Optional.of(new IslandMissionSnapshot(
+            uuid(json, "islandId", new UUID(0L, 0L)),
+            text(json, "missionKey", ""),
+            text(json, "kind", "MISSION"),
+            text(json, "title", ""),
+            longValue(json, "progress", 0L),
+            longValue(json, "goal", 0L),
+            bool(json, "completed", false),
+            text(json, "reward", ""),
+            instant(text(json, "updatedAt", Instant.EPOCH.toString()))
+        ));
     }
 
     private static List<IslandSnapshotRecord> snapshots(String json) {

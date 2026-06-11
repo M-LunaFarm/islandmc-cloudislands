@@ -8,8 +8,10 @@ import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLevelSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
+import kr.lunaf.cloudislands.api.model.IslandMissionSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
+import kr.lunaf.cloudislands.api.upgrade.UpgradePurchaseSnapshot;
 
 public interface IslandCommandService {
     CompletableFuture<CreateIslandResult> createIsland(UUID ownerUuid, String templateId);
@@ -33,7 +35,9 @@ public interface IslandCommandService {
     CompletableFuture<Void> setPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess);
     CompletableFuture<IslandLevelSnapshot> recalculateLevel(UUID islandId, UUID actorUuid);
     CompletableFuture<Void> purchaseUpgrade(UUID islandId, UUID actorUuid, String upgradeKey);
+    CompletableFuture<UpgradePurchaseSnapshot> purchaseUpgradeResult(UUID islandId, UUID actorUuid, String upgradeKey);
     CompletableFuture<Void> completeMission(UUID islandId, UUID actorUuid, String missionKey);
+    CompletableFuture<java.util.Optional<IslandMissionSnapshot>> completeMissionResult(UUID islandId, UUID actorUuid, String missionKey);
     CompletableFuture<Void> sendChat(UUID islandId, UUID actorUuid, String channel, String message);
     CompletableFuture<Void> depositBank(UUID islandId, UUID actorUuid, BigDecimal amount);
     CompletableFuture<Void> withdrawBank(UUID islandId, UUID actorUuid, BigDecimal amount);

@@ -229,7 +229,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> purchaseIslandUpgrade(UUID islandId, UUID actorUuid, String upgradeKey) {
-        return post("/v1/islands/upgrades/purchase", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"upgradeKey\":\"" + escape(upgradeKey) + "\"}");
+        return postWithResultBody("/v1/islands/upgrades/purchase", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"upgradeKey\":\"" + escape(upgradeKey) + "\"}");
     }
 
     @Override
@@ -239,7 +239,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> completeIslandMission(UUID islandId, UUID actorUuid, String missionKey) {
-        return post("/v1/islands/missions/complete", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"missionKey\":\"" + escape(missionKey) + "\"}");
+        return postWithResultBody("/v1/islands/missions/complete", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"missionKey\":\"" + escape(missionKey) + "\"}");
     }
 
     @Override
@@ -561,6 +561,20 @@ public final class JdkCoreApiClient implements CoreApiClient {
         HttpRequest request = builder.build();
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
             .thenApply(response -> response.statusCode() >= 200 && response.statusCode() < 300 ? response.body() : "");
+    }
+
+    private CompletableFuture<String> postWithResultBody(String path, String body) {
+        HttpRequest.Builder builder = HttpRequest.newBuilder(baseUri.resolve(path))
+            .timeout(Duration.ofSeconds(5))
+            .header("Authorization", "Bearer " + authToken)
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(body));
+        if (!adminToken.isBlank() && adminProtected(path)) {
+            builder.header("X-CloudIslands-Admin-Token", adminToken);
+        }
+        HttpRequest request = builder.build();
+        return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+            .thenApply(response -> response.statusCode() >= 200 && response.statusCode() < 500 ? response.body() : "");
     }
 
     private boolean adminProtected(String path) {
