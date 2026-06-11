@@ -104,7 +104,7 @@ public final class IslandCommandController implements CommandExecutor {
 
     private void setHome(Player player, String name) {
         currentIsland(player, "섬 안에서만 홈을 설정할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.SET_HOME)) {
+            if (!allowed(player, IslandPermission.INTERACT)) {
                 player.sendMessage("섬 홈을 설정할 권한이 없습니다.");
                 return;
             }
