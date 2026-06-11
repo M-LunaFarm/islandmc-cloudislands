@@ -37,6 +37,7 @@ public final class IslandSettingsMenu implements Listener {
             inventory.setItem(14, item(Material.REDSTONE_TORCH, "플래그 설정", "/섬 플래그"));
             inventory.setItem(15, item(Material.ENDER_PEARL, "워프 관리", "/섬 워프"));
             inventory.setItem(16, item(Material.BARRIER, "방문자 밴", "/섬 밴목록"));
+            inventory.setItem(26, item(Material.TNT, "위험 작업", "/섬 위험작업"));
             player.openInventory(inventory);
         });
     }
@@ -70,6 +71,8 @@ public final class IslandSettingsMenu implements Listener {
             player.performCommand("섬 워프");
         } else if (name.equals("방문자 밴")) {
             player.performCommand("섬 밴목록");
+        } else if (name.equals("위험 작업")) {
+            player.performCommand("섬 위험작업");
         }
     }
 

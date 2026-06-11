@@ -1,0 +1,65 @@
+package kr.lunaf.cloudislands.paper.gui;
+
+import java.util.List;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+
+public final class IslandDangerMenu implements Listener {
+    private static final String TITLE = "섬 위험 작업";
+
+    public static void open(Player player) {
+        Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
+        inventory.setItem(11, item(Material.TNT, "섬 리셋 확인", "월드를 초기화하고 복구 작업을 요청합니다.", "우클릭해야 실행됩니다."));
+        inventory.setItem(15, item(Material.LAVA_BUCKET, "섬 삭제 확인", "섬 삭제 작업을 요청합니다.", "우클릭해야 실행됩니다."));
+        inventory.setItem(22, item(Material.OAK_DOOR, "돌아가기", "/섬 설정"));
+        player.openInventory(inventory);
+    }
+
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (!TITLE.equals(event.getView().getTitle())) {
+            return;
+        }
+        event.setCancelled(true);
+        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
+            return;
+        }
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null || !meta.hasDisplayName()) {
+            return;
+        }
+        String name = meta.getDisplayName();
+        player.closeInventory();
+        if (name.equals("돌아가기")) {
+            player.performCommand("섬 설정");
+            return;
+        }
+        if (!event.isRightClick()) {
+            player.sendMessage("위험 작업은 우클릭해야 실행됩니다.");
+            return;
+        }
+        if (name.equals("섬 리셋 확인")) {
+            player.performCommand("섬 리셋 confirm");
+        } else if (name.equals("섬 삭제 확인")) {
+            player.performCommand("섬 삭제 confirm");
+        }
+    }
+
+    private static ItemStack item(Material material, String name, String... lore) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            meta.setLore(List.of(lore));
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+}

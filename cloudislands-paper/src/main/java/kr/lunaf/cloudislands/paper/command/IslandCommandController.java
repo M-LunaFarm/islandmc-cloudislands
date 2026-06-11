@@ -21,6 +21,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandBiomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandChatMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandDangerMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandHomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandInfoMenu;
@@ -52,7 +53,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private static final List<String> SUBCOMMANDS = List.of(
         "menu", "메뉴",
         "create-menu", "templates", "생성메뉴", "템플릿",
-        "info", "정보", "list", "my", "my-islands", "목록", "내섬", "create", "생성", "delete", "삭제", "reset", "리셋",
+        "info", "정보", "list", "my", "my-islands", "목록", "내섬", "create", "생성", "delete", "삭제", "reset", "리셋", "danger", "위험작업",
         "sethome", "셋홈", "homes", "home-menu", "home-list", "홈관리", "홈목록", "home", "홈",
         "warps", "warp-menu", "warp-list", "워프", "워프관리", "워프목록", "warp", "setwarp", "워프설정",
         "delwarp", "deletewarp", "워프삭제", "warp-public", "워프공개", "warp-private", "워프비공개",
@@ -134,11 +135,23 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return true;
         }
         if (subcommand.equals("delete") || subcommand.equals("삭제")) {
-            deleteIsland(player);
+            if (args.length > 1 && args[1].equalsIgnoreCase("confirm")) {
+                deleteIsland(player);
+            } else {
+                IslandDangerMenu.open(player);
+            }
             return true;
         }
         if (subcommand.equals("reset") || subcommand.equals("리셋")) {
-            resetIsland(player, args.length > 1 ? joined(args, 1) : "player-reset");
+            if (args.length > 1 && args[1].equalsIgnoreCase("confirm")) {
+                resetIsland(player, args.length > 2 ? joined(args, 2) : "player-reset");
+            } else {
+                IslandDangerMenu.open(player);
+            }
+            return true;
+        }
+        if (subcommand.equals("danger") || subcommand.equals("위험작업")) {
+            IslandDangerMenu.open(player);
             return true;
         }
         if (subcommand.equals("sethome") || subcommand.equals("셋홈")) {
