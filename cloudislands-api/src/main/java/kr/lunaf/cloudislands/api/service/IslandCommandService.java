@@ -28,6 +28,8 @@ public interface IslandCommandService {
     CompletableFuture<Void> setBiome(UUID islandId, UUID actorUuid, String biomeKey);
     CompletableFuture<Void> setLimit(UUID islandId, UUID actorUuid, String limitKey, long value);
     CompletableFuture<Void> createWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location);
+    CompletableFuture<Void> deleteWarp(UUID islandId, UUID actorUuid, String name);
+    CompletableFuture<Void> setPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess);
     CompletableFuture<Void> purchaseUpgrade(UUID islandId, UUID actorUuid, String upgradeKey);
     CompletableFuture<Void> completeMission(UUID islandId, UUID actorUuid, String missionKey);
     CompletableFuture<Void> sendChat(UUID islandId, UUID actorUuid, String channel, String message);

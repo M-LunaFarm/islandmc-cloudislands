@@ -360,6 +360,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> setBiome(UUID islandId, UUID actorUuid, String biomeKey) { return client.setIslandBiome(islandId, actorUuid, biomeKey); }
         @Override public CompletableFuture<Void> setLimit(UUID islandId, UUID actorUuid, String limitKey, long value) { return client.setIslandLimit(islandId, actorUuid, limitKey, value).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> createWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return client.setIslandWarp(islandId, actorUuid, name, location, false); }
+        @Override public CompletableFuture<Void> deleteWarp(UUID islandId, UUID actorUuid, String name) { return client.deleteIslandWarp(islandId, actorUuid, name); }
+        @Override public CompletableFuture<Void> setPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess) { return client.setIslandPublicAccess(islandId, actorUuid, publicAccess); }
         @Override public CompletableFuture<Void> purchaseUpgrade(UUID islandId, UUID actorUuid, String upgradeKey) { return client.purchaseIslandUpgrade(islandId, actorUuid, upgradeKey).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> completeMission(UUID islandId, UUID actorUuid, String missionKey) { return client.completeIslandMission(islandId, actorUuid, missionKey).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> sendChat(UUID islandId, UUID actorUuid, String channel, String message) { return client.sendIslandChat(islandId, actorUuid, channel, message).thenApply(_body -> null); }
