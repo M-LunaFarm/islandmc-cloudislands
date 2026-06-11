@@ -16,7 +16,7 @@ public final class IslandMainMenu implements Listener {
 
     public static void open(Player player) {
         Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
-        inventory.setItem(10, item(Material.GRASS_BLOCK, "내 섬으로 이동", "/섬 홈"));
+        inventory.setItem(10, item(Material.GRASS_BLOCK, "내 섬으로 이동", "좌클릭: /섬 홈", "우클릭: /섬 홈관리"));
         inventory.setItem(11, item(Material.OAK_SAPLING, "섬 생성", "/섬 생성"));
         inventory.setItem(12, item(Material.ENDER_PEARL, "섬 워프", "/섬 워프"));
         inventory.setItem(13, item(Material.COMPASS, "섬 방문", "명령어: /섬 방문 <플레이어|섬이름>", "우클릭: /섬 랜덤방문"));
@@ -45,7 +45,7 @@ public final class IslandMainMenu implements Listener {
         String name = meta.getDisplayName();
         player.closeInventory();
         if (name.equals("내 섬으로 이동")) {
-            player.performCommand("섬 홈");
+            player.performCommand(event.isRightClick() ? "섬 홈관리" : "섬 홈");
         } else if (name.equals("섬 생성")) {
             player.performCommand("섬 생성메뉴");
         } else if (name.equals("섬 워프")) {

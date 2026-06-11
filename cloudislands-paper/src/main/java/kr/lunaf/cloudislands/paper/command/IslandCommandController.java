@@ -13,6 +13,7 @@ import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.gui.IslandBankMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandHomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandLimitMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
@@ -38,7 +39,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "menu", "메뉴",
         "create-menu", "templates", "생성메뉴", "템플릿",
         "create", "생성", "delete", "삭제", "reset", "리셋",
-        "sethome", "셋홈", "homes", "home-list", "홈목록", "home", "홈",
+        "sethome", "셋홈", "homes", "home-menu", "home-list", "홈관리", "홈목록", "home", "홈",
         "warps", "warp-menu", "warp-list", "워프", "워프관리", "워프목록", "warp", "setwarp", "워프설정",
         "delwarp", "deletewarp", "워프삭제", "warp-public", "워프공개", "warp-private", "워프비공개",
         "public", "공개", "private", "비공개", "lock", "잠금", "unlock", "잠금해제",
@@ -121,7 +122,11 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             setHome(player, args.length > 1 ? args[1] : "default");
             return true;
         }
-        if (subcommand.equals("homes") || subcommand.equals("home-list") || subcommand.equals("홈목록")) {
+        if (subcommand.equals("homes") || subcommand.equals("home-menu") || subcommand.equals("홈관리")) {
+            openIslandHomeMenu(player);
+            return true;
+        }
+        if (subcommand.equals("home-list") || subcommand.equals("홈목록")) {
             listHomes(player);
             return true;
         }
@@ -617,6 +622,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                     return null;
                 });
         });
+    }
+
+    private void openIslandHomeMenu(Player player) {
+        currentIsland(player, "섬 안에서만 홈 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandHomeMenu.open(plugin, coreApiClient, player, islandId));
     }
 
     private void openIslandWarpMenu(Player player) {

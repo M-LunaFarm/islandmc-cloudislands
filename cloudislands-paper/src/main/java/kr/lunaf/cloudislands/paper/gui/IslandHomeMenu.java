@@ -1,0 +1,150 @@
+package kr.lunaf.cloudislands.paper.gui;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.plugin.Plugin;
+
+public final class IslandHomeMenu implements Listener {
+    private static final String TITLE = "섬 홈 관리";
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
+        client.listIslandHomes(islandId)
+            .thenAccept(body -> openSync(plugin, player, homes(body)))
+            .exceptionally(error -> {
+                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("섬 홈을 불러오지 못했습니다."));
+                return null;
+            });
+    }
+
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (!TITLE.equals(event.getView().getTitle())) {
+            return;
+        }
+        event.setCancelled(true);
+        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
+            return;
+        }
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null || !meta.hasDisplayName()) {
+            return;
+        }
+        String displayName = meta.getDisplayName();
+        player.closeInventory();
+        if (displayName.equals("현재 위치를 홈으로 설정")) {
+            player.sendMessage("사용법: /섬 셋홈 <이름>");
+            return;
+        }
+        String homeName = loreValue(meta, "homeName=");
+        if (!homeName.isBlank()) {
+            player.performCommand("섬 home " + homeName);
+        }
+    }
+
+    private static void openSync(Plugin plugin, Player player, List<Home> homes) {
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
+            inventory.setItem(45, item(Material.RED_BED, "현재 위치를 홈으로 설정", "사용법: /섬 셋홈 <이름>"));
+            int slot = 0;
+            for (Home home : homes.stream().limit(45).toList()) {
+                inventory.setItem(slot++, homeItem(home));
+            }
+            if (homes.isEmpty()) {
+                inventory.setItem(22, item(Material.BARRIER, "홈 없음", "현재 등록된 섬 홈이 없습니다."));
+            }
+            player.openInventory(inventory);
+        });
+    }
+
+    private static ItemStack homeItem(Home home) {
+        return item(Material.GREEN_BED, home.name(), "homeName=" + home.name(), "위치: " + (long) home.x() + ", " + (long) home.y() + ", " + (long) home.z(), home.createdAt().isBlank() ? "생성 정보 없음" : "createdAt=" + home.createdAt(), "클릭하면 이 홈으로 이동합니다.");
+    }
+
+    private static ItemStack item(Material material, String name, String... lore) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            meta.setLore(List.of(lore));
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private static List<Home> homes(String body) {
+        List<Home> homes = new ArrayList<>();
+        int index = 0;
+        while (body != null && index < body.length()) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String name = text(object, "name");
+            if (!name.isBlank()) {
+                homes.add(new Home(name, decimal(object, "localX"), decimal(object, "localY"), decimal(object, "localZ"), text(object, "createdAt")));
+            }
+            index = objectEnd + 1;
+        }
+        return homes;
+    }
+
+    private static String loreValue(ItemMeta meta, String prefix) {
+        if (meta.getLore() == null) {
+            return "";
+        }
+        for (String line : meta.getLore()) {
+            if (line.startsWith(prefix)) {
+                return line.substring(prefix.length());
+            }
+        }
+        return "";
+    }
+
+    private static String text(String body, String key) {
+        String needle = "\"" + key + "\":\"";
+        int start = body.indexOf(needle);
+        if (start < 0) {
+            return "";
+        }
+        start += needle.length();
+        int end = body.indexOf('"', start);
+        return end < start ? "" : body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
+    }
+
+    private static double decimal(String body, String key) {
+        String needle = "\"" + key + "\":";
+        int start = body.indexOf(needle);
+        if (start < 0) {
+            return 0.0D;
+        }
+        start += needle.length();
+        int end = start;
+        while (end < body.length() && "-0123456789.".indexOf(body.charAt(end)) >= 0) {
+            end++;
+        }
+        try {
+            return Double.parseDouble(body.substring(start, end));
+        } catch (NumberFormatException exception) {
+            return 0.0D;
+        }
+    }
+
+    private record Home(String name, double x, double y, double z, String createdAt) {
+    }
+}
