@@ -13,6 +13,8 @@ import kr.lunaf.cloudislands.coreservice.permission.IslandPermissionRuleReposito
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
+import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeRepository;
+import kr.lunaf.cloudislands.coreservice.upgrade.UpgradePolicy;
 import kr.lunaf.cloudislands.migration.MigrationIssue;
 import kr.lunaf.cloudislands.migration.MigrationManifest;
 import kr.lunaf.cloudislands.migration.SuperiorSkyblock2MigrationScanner;
@@ -28,6 +30,7 @@ public final class MigrationAdminService {
     private final IslandMetadataRepository metadata;
     private final PlayerProfileRepository playerProfiles;
     private final IslandPermissionRuleRepository permissionRules;
+    private final IslandUpgradeRepository upgrades;
     private final SuperiorSkyblock2MigrationScanner scanner = new SuperiorSkyblock2MigrationScanner();
     private final CloudIslandsMigrationImporter importer = new CloudIslandsMigrationImporter();
     private final MigrationVerifier verifier = new MigrationVerifier();
@@ -36,11 +39,12 @@ public final class MigrationAdminService {
     private MigrationImportPlan lastPlan = new MigrationImportPlan(List.of(), List.of());
     private MigrationRollbackPlan lastRollbackPlan;
 
-    public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules) {
+    public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades) {
         this.islands = islands;
         this.metadata = metadata;
         this.playerProfiles = playerProfiles;
         this.permissionRules = permissionRules;
+        this.upgrades = upgrades;
     }
 
     public synchronized String scan(String path) {
@@ -84,6 +88,9 @@ public final class MigrationAdminService {
             for (kr.lunaf.cloudislands.migration.MigrationPermission permission : manifest.permissions()) {
                 permissionRules.put(manifest.islandId(), IslandRole.valueOf(permission.roleName()), IslandPermission.valueOf(permission.permissionName()), permission.allowed());
             }
+            for (kr.lunaf.cloudislands.migration.MigrationUpgrade upgrade : manifest.upgrades()) {
+                upgrades.setLevel(manifest.islandId(), upgrade.upgradeKey(), UpgradePolicy.typeFor(upgrade.upgradeKey()), upgrade.level());
+            }
             metadata.setPublicAccess(manifest.islandId(), manifest.publicAccess());
             metadata.setLocked(manifest.islandId(), manifest.locked());
             playerProfiles.setPrimaryIsland(manifest.ownerUuid(), manifest.islandId());
@@ -107,6 +114,7 @@ public final class MigrationAdminService {
                 .filter(_island -> manifest.warps().stream().allMatch(warp -> metadata.warp(manifest.islandId(), warp.name()).isPresent()))
                 .filter(_island -> manifest.flags().stream().allMatch(flag -> flag.value().equals(metadata.flags(manifest.islandId()).values().get(IslandFlag.valueOf(flag.flagName())))))
                 .filter(_island -> permissionsMatch(manifest))
+                .filter(_island -> upgradesMatch(manifest))
                 .filter(_island -> metadata.isPublicAccess(manifest.islandId()) == manifest.publicAccess())
                 .filter(_island -> metadata.isLocked(manifest.islandId()) == manifest.locked())
                 .ifPresent(_island -> imported.add(manifest));
@@ -138,6 +146,14 @@ public final class MigrationAdminService {
             current.put(rule.role().name() + ":" + rule.permission().name(), rule.allowed());
         }
         return manifest.permissions().stream().allMatch(permission -> Boolean.valueOf(permission.allowed()).equals(current.get(permission.roleName() + ":" + permission.permissionName())));
+    }
+
+    private boolean upgradesMatch(MigrationManifest manifest) {
+        Map<String, Integer> current = new java.util.HashMap<>();
+        for (kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot upgrade : upgrades.list(manifest.islandId())) {
+            current.put(upgrade.upgradeKey(), upgrade.level());
+        }
+        return manifest.upgrades().stream().allMatch(upgrade -> Integer.valueOf(upgrade.level()).equals(current.get(upgrade.upgradeKey())));
     }
 
     private String rollbackPlanJson(MigrationRollbackPlan plan) {

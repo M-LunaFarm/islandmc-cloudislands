@@ -67,12 +67,13 @@ public final class SuperiorSkyblock2MigrationScanner {
             List<MigrationWarp> warps = parseWarps(content);
             List<MigrationFlag> flags = parseFlags(content);
             List<MigrationPermission> permissions = parsePermissions(content);
+            List<MigrationUpgrade> upgrades = parseUpgrades(content);
             boolean publicAccess = parseBoolean(content, "public", parseBoolean(content, "isPublic", parseBoolean(content, "publicAccess", false)));
             boolean locked = parseBoolean(content, "locked", parseBoolean(content, "isLocked", false));
             LinkedHashSet<UUID> allMembers = new LinkedHashSet<>();
             allMembers.add(ownerUuid);
             allMembers.addAll(members);
-            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), bannedVisitors, homes, warps, flags, permissions, publicAccess, locked, size, level, worth));
+            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), bannedVisitors, homes, warps, flags, permissions, upgrades, publicAccess, locked, size, level, worth));
         } catch (RuntimeException | IOException exception) {
             issues.add(new MigrationIssue("ISLAND_FILE_PARSE_FAILED", file + ": " + exception.getMessage(), true));
         }
@@ -276,6 +277,30 @@ public final class SuperiorSkyblock2MigrationScanner {
             }
         }
         return List.copyOf(result);
+    }
+
+    private List<MigrationUpgrade> parseUpgrades(String content) {
+        List<MigrationUpgrade> result = new ArrayList<>();
+        addUpgrade(content, result, "size", "sizeUpgrade", "islandSizeUpgrade");
+        addUpgrade(content, result, "members", "membersUpgrade", "memberUpgrade");
+        addUpgrade(content, result, "warps", "warpsUpgrade", "warpUpgrade");
+        addUpgrade(content, result, "hoppers", "hoppersUpgrade", "hopperUpgrade");
+        addUpgrade(content, result, "spawners", "spawnersUpgrade", "spawnerUpgrade");
+        addUpgrade(content, result, "generator", "generatorUpgrade", "oreGeneratorLevel");
+        addUpgrade(content, result, "mob", "mobUpgrade", "mobLimitUpgrade");
+        addUpgrade(content, result, "crop", "cropUpgrade", "cropGrowthUpgrade");
+        addUpgrade(content, result, "fly", "flyUpgrade", "flyAccess");
+        addUpgrade(content, result, "bank", "bankUpgrade", "bankLimitUpgrade");
+        return List.copyOf(result);
+    }
+
+    private void addUpgrade(String content, List<MigrationUpgrade> upgrades, String upgradeKey, String... keys) {
+        for (String key : keys) {
+            if (containsAnyKey(content, key)) {
+                upgrades.add(new MigrationUpgrade(upgradeKey, Math.max(0, parseInt(content, key, 0))));
+                return;
+            }
+        }
     }
 
     private String toCamel(String enumName) {
