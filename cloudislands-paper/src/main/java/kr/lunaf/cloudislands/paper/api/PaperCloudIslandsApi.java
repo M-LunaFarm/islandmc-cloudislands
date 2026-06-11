@@ -272,6 +272,16 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         public CompletableFuture<Optional<PlayerIslandProfile>> getProfile(UUID playerUuid) {
             return client.playerInfo(playerUuid).thenApply(PaperCloudIslandsApi::playerProfile);
         }
+
+        @Override
+        public CompletableFuture<Optional<PlayerIslandProfile>> setPrimaryIsland(UUID playerUuid, UUID islandId) {
+            return client.setPlayerIsland(playerUuid, islandId).thenApply(PaperCloudIslandsApi::playerProfile);
+        }
+
+        @Override
+        public CompletableFuture<Optional<PlayerIslandProfile>> clearPrimaryIsland(UUID playerUuid) {
+            return client.clearPlayerIsland(playerUuid).thenApply(PaperCloudIslandsApi::playerProfile);
+        }
     }
 
     private static final class RoutingService implements IslandRoutingService {

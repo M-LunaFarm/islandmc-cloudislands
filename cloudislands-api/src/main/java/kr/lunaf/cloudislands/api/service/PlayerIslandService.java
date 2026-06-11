@@ -9,6 +9,8 @@ import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 
 public interface PlayerIslandService {
     CompletableFuture<Optional<PlayerIslandProfile>> getProfile(UUID playerUuid);
+    CompletableFuture<Optional<PlayerIslandProfile>> setPrimaryIsland(UUID playerUuid, UUID islandId);
+    CompletableFuture<Optional<PlayerIslandProfile>> clearPrimaryIsland(UUID playerUuid);
     CompletableFuture<Optional<UUID>> getOwnedIslandId(UUID playerUuid);
     CompletableFuture<List<IslandSnapshot>> getJoinedIslands(UUID playerUuid);
     CompletableFuture<Boolean> hasIsland(UUID playerUuid);
