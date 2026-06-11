@@ -6,6 +6,7 @@ import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
 import kr.lunaf.cloudislands.common.protection.RegionIndex;
 import kr.lunaf.cloudislands.paper.cache.LocalIslandPermissionCache;
+import org.bukkit.block.Block;
 
 public final class ProtectionController {
     private final RegionIndex regionIndex;
@@ -22,5 +23,11 @@ public final class ProtectionController {
                 ? PermissionResult.allow(IslandRole.MEMBER)
                 : PermissionResult.deny("DEFAULT_DENY", IslandRole.VISITOR))
             .orElseGet(() -> PermissionResult.deny("OUTSIDE_ISLAND", IslandRole.VISITOR));
+    }
+
+    public PermissionResult checkSystem(Block block, IslandPermission permission) {
+        return regionIndex.find(block.getWorld().getName(), block.getX(), block.getZ())
+            .map(region -> PermissionResult.deny("SYSTEM_PROTECTED", IslandRole.VISITOR))
+            .orElseGet(() -> PermissionResult.allow(IslandRole.OWNER));
     }
 }
