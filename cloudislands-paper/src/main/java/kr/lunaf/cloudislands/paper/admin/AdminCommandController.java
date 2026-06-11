@@ -191,15 +191,20 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
 
     private boolean handleIsland(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage("사용법: /ciadmin island info|where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete <islandUuid> [값]");
+            sender.sendMessage("사용법: /ciadmin island info <islandUuid|islandName> 또는 island where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete <islandUuid> [값]");
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("info")) {
+            UUID lookupId = uuidOrNull(args[2]);
+            if (lookupId != null) {
+                run(sender, "Island info", coreApiClient.adminIslandInfo(lookupId));
+            } else {
+                run(sender, "Island info", coreApiClient.islandInfoByName(args[2]));
+            }
             return true;
         }
         UUID islandId = uuid(sender, args[2]);
         if (islandId == null) {
-            return true;
-        }
-        if (args[1].equalsIgnoreCase("info")) {
-            run(sender, "Island info", coreApiClient.adminIslandInfo(islandId));
             return true;
         }
         if (args[1].equalsIgnoreCase("where")) {
@@ -265,7 +270,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "Island delete", coreApiClient.adminDeleteIsland(islandId));
             return true;
         }
-        sender.sendMessage("사용법: /ciadmin island info|where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete <islandUuid> [값]");
+        sender.sendMessage("사용법: /ciadmin island info <islandUuid|islandName> 또는 island where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete <islandUuid> [값]");
         return true;
     }
 
@@ -522,6 +527,14 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return UUID.fromString(value);
         } catch (IllegalArgumentException exception) {
             sender.sendMessage("UUID 형식이 올바르지 않습니다: " + value);
+            return null;
+        }
+    }
+
+    private UUID uuidOrNull(String value) {
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException exception) {
             return null;
         }
     }
