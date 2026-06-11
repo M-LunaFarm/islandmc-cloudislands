@@ -169,7 +169,10 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return client.listIslandLimits(islandId).thenApply(PaperCloudIslandsApi::limits);
         }
 
-        @Override public CompletableFuture<IslandLevelSnapshot> getLevel(UUID islandId) { return unsupported("level typed parsing is not registered yet"); }
+        @Override
+        public CompletableFuture<IslandLevelSnapshot> getLevel(UUID islandId) {
+            return client.islandInfo(islandId).thenApply(PaperCloudIslandsApi::level);
+        }
         @Override public CompletableFuture<List<IslandUpgradeSnapshot>> getUpgrades(UUID islandId) { return unsupported("upgrade typed parsing is not registered yet"); }
         @Override public CompletableFuture<List<IslandMissionSnapshot>> getMissions(UUID islandId, String kind) { return unsupported("mission typed parsing is not registered yet"); }
         @Override public CompletableFuture<List<IslandSnapshotRecord>> getSnapshots(UUID islandId, int limit) { return unsupported("snapshot typed parsing is not registered yet"); }
@@ -477,6 +480,15 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return new IslandBankSnapshot(
             uuid(json, "islandId", new UUID(0L, 0L)),
             text(json, "balance", "0"),
+            instant(text(json, "updatedAt", Instant.EPOCH.toString()))
+        );
+    }
+
+    private static IslandLevelSnapshot level(String json) {
+        return new IslandLevelSnapshot(
+            uuid(json, "islandId", new UUID(0L, 0L)),
+            longValue(json, "level", 0L),
+            text(json, "worth", "0"),
             instant(text(json, "updatedAt", Instant.EPOCH.toString()))
         );
     }
