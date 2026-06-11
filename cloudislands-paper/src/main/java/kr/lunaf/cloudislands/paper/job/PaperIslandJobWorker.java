@@ -7,6 +7,7 @@ import kr.lunaf.cloudislands.paper.activation.IslandActivationJobHandler;
 import kr.lunaf.cloudislands.paper.activation.IslandDeactivationHandler;
 import kr.lunaf.cloudislands.paper.cache.PermissionCacheSyncService;
 import kr.lunaf.cloudislands.paper.event.IslandActivateEvent;
+import kr.lunaf.cloudislands.paper.event.IslandDeactivateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandPreActivateEvent;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
@@ -117,6 +118,7 @@ public final class PaperIslandJobWorker {
         }
         IslandDeactivationHandler.DeactivationResult result = deactivationHandler.deactivate(job.islandId());
         if (result.success()) {
+            Bukkit.getPluginManager().callEvent(new IslandDeactivateEvent(result.islandId(), nodeId, result.snapshotNo()));
             jobSource.complete(nodeId, job.jobId(), Map.of("snapshotNo", Long.toString(result.snapshotNo())));
         } else {
             jobSource.fail(nodeId, job.jobId(), result.errorMessage());
