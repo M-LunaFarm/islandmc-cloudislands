@@ -174,6 +174,9 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
             String missionKey = JsonFields.text(body, "missionKey", "");
+            if (!requireMember(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
             java.util.Optional<kr.lunaf.cloudislands.api.model.IslandMissionSnapshot> completed = missionRepository.complete(islandId, actorUuid, missionKey);
             completed.ifPresent(snapshot -> {
                 audit.log(actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE", "ISLAND", islandId.toString(), Map.of("missionKey", snapshot.missionKey(), "kind", snapshot.kind()));
