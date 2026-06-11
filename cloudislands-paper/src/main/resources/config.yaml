@@ -2,6 +2,7 @@ node:
   id: "island-1"
   role: "ISLAND_NODE"
   pool: "island"
+  velocity-server-name: "Island-1"
 
 core-api:
   base-url: "https://core-api.internal:8443"
@@ -14,6 +15,7 @@ storage:
   type: "S3"
   endpoint: "http://minio.internal:9000"
   bucket: "cloudislands"
+  local-path: "islands-storage"
   access-key: "${S3_ACCESS_KEY}"
   secret-key: "${S3_SECRET_KEY}"
 
@@ -24,6 +26,7 @@ island-node:
   default-island-size: 300
   activation:
     max-concurrent: 4
+    worker-interval-ticks: 20
     preload-radius: 4
     save-on-empty-after-seconds: 300
     periodic-save-seconds: 600
