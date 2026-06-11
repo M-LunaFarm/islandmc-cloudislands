@@ -25,6 +25,10 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
         ensureGroup();
     }
 
+    public String recoverPending(String nodeId, long minIdleMillis, int maxJobs) {
+        return new RedisPendingJobRecovery(redisUri, minIdleMillis).claimStale(nodeId, maxJobs);
+    }
+
     @Override
     public void publish(IslandJob job) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {

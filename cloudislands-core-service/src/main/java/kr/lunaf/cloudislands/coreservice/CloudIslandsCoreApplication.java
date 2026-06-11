@@ -102,6 +102,19 @@ public final class CloudIslandsCoreApplication {
             jobs.fail(JsonFields.text(body, "nodeId", ""), jobId, error);
             write(exchange, 202, ApiResponses.ok(true));
         });
+        route("/v1/jobs/recover", exchange -> {
+            String body = readBody(exchange);
+            if (jobs instanceof kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue redisJobs) {
+                String recovered = redisJobs.recoverPending(
+                    JsonFields.text(body, "nodeId", "recovery"),
+                    JsonFields.longValue(body, "minIdleMillis", 60000L),
+                    JsonFields.integer(body, "maxJobs", 16)
+                );
+                write(exchange, 202, "{\"recovered\":\"" + recovered.replace("\"", "'") + "\"}");
+            } else {
+                write(exchange, 409, ApiResponses.error("RECOVERY_UNAVAILABLE", "Redis job recovery is only available when CI_JOB_QUEUE_MODE=REDIS"));
+            }
+        });
         route("/v1/routes/home", exchange -> {
             String body = readBody(exchange);
             write(exchange, 202, routing.prepareHomeRouteJson(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L))));
