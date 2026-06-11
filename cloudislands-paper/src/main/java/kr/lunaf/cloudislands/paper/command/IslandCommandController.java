@@ -19,6 +19,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandMissionMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandPermissionMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandRankingMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandSnapshotMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandUpgradeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
 import org.bukkit.Location;
@@ -48,7 +49,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "chat", "islandchat", "채팅", "teamchat", "team-chat", "팀채팅", "log", "logs", "로그",
         "biome", "바이옴", "size", "크기", "border", "경계",
         "limit", "limits", "limit-list", "제한", "제한목록", "setlimit", "limit-set", "제한설정",
-        "snapshot", "snapshots", "스냅샷", "snapshot-create", "snapshot-request", "스냅샷생성",
+        "snapshot", "snapshots", "snapshot-menu", "snapshot-list", "스냅샷", "스냅샷목록", "snapshot-create", "snapshot-request", "스냅샷생성",
         "snapshot-restore", "rollback", "스냅샷복원", "롤백",
         "members", "member-menu", "member-list", "멤버", "멤버관리", "멤버목록", "invite", "초대", "invites", "invite-list", "초대목록",
         "accept", "invite-accept", "초대수락", "decline", "invite-decline", "초대거절",
@@ -345,7 +346,11 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             setIslandLimit(player, args[1], longValue(args[2], 0L));
             return true;
         }
-        if (subcommand.equals("snapshot") || subcommand.equals("snapshots") || subcommand.equals("스냅샷")) {
+        if (subcommand.equals("snapshot") || subcommand.equals("snapshots") || subcommand.equals("snapshot-menu") || subcommand.equals("스냅샷")) {
+            openIslandSnapshotMenu(player);
+            return true;
+        }
+        if (subcommand.equals("snapshot-list") || subcommand.equals("스냅샷목록")) {
             listIslandSnapshots(player, args.length > 1 ? integer(args[1], 10) : 10);
             return true;
         }
@@ -1006,6 +1011,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                     return null;
                 });
         });
+    }
+
+    private void openIslandSnapshotMenu(Player player) {
+        currentIsland(player, "섬 안에서만 스냅샷 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandSnapshotMenu.open(plugin, coreApiClient, player, islandId));
     }
 
     private void requestIslandSnapshot(Player player, String reason) {
