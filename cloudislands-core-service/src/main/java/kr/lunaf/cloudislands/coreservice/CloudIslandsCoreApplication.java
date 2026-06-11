@@ -1320,19 +1320,19 @@ public final class CloudIslandsCoreApplication {
             events.publish(CloudIslandEventType.ISLAND_DELETE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "targetNode", targetNode, "reason", reason));
             return false;
         }
-        deleteInactiveStorage(islandId, reason);
+        backupInactiveStorageBeforeDelete(islandId, reason);
         runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETED);
         return true;
     }
 
-    private void deleteInactiveStorage(UUID islandId, String reason) {
+    private void backupInactiveStorageBeforeDelete(UUID islandId, String reason) {
         if (deleteStorage == null) {
             return;
         }
         try {
-            deleteStorage.deleteIsland(islandId);
+            deleteStorage.writeDeleteBackupFromLatest(islandId, System.currentTimeMillis());
         } catch (IOException exception) {
-            events.publish("ISLAND_STORAGE_DELETE_FAILED", Map.of("islandId", islandId.toString(), "reason", reason, "error", exception.getMessage() == null ? "" : exception.getMessage()));
+            events.publish("ISLAND_DELETE_BACKUP_FAILED", Map.of("islandId", islandId.toString(), "reason", reason, "error", exception.getMessage() == null ? "" : exception.getMessage()));
         }
     }
 

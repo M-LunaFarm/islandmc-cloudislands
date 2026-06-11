@@ -61,6 +61,14 @@ public final class LocalIslandStorage implements IslandStorage {
     }
 
     @Override
+    public void writeDeleteBackupFromLatest(UUID islandId, long snapshotNo) throws IOException {
+        IslandBundleManifest manifest = readManifest(islandId);
+        try (InputStream input = openLatestBundle(islandId)) {
+            writeDeleteBackup(islandId, snapshotNo, input, manifest);
+        }
+    }
+
+    @Override
     public void promoteSnapshot(UUID islandId, long snapshotNo) throws IOException {
         Path islandRoot = islandRoot(islandId);
         String snapshot = String.format("%06d", snapshotNo);

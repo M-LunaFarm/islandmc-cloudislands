@@ -81,6 +81,14 @@ public final class S3IslandStorage implements IslandStorage {
     }
 
     @Override
+    public void writeDeleteBackupFromLatest(UUID islandId, long snapshotNo) throws IOException {
+        IslandBundleManifest manifest = readManifest(islandId);
+        try (InputStream input = openLatestBundle(islandId)) {
+            writeDeleteBackup(islandId, snapshotNo, input, manifest);
+        }
+    }
+
+    @Override
     public void promoteSnapshot(UUID islandId, long snapshotNo) throws IOException {
         String snapshot = String.format("%06d", snapshotNo);
         byte[] manifest = requestBytes("GET", key(islandId, "snapshots/" + snapshot + "/manifest.json"), null);
