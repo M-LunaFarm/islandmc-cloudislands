@@ -7,16 +7,18 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
+import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public final class AdminCommandController implements CommandExecutor, TabCompleter {
     private static final List<String> ROOT_COMMANDS = List.of("status", "cache", "node", "island", "jobs", "route", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
-    private static final List<String> NODE_COMMANDS = List.of("list", "info", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
+    private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "activate", "deactivate", "migrate", "quarantine", "repair", "delete");
     private static final List<String> JOB_COMMANDS = List.of("list", "retry", "cancel", "recover");
     private static final List<String> ROUTE_COMMANDS = List.of("debug", "ticket", "clear");
@@ -95,6 +97,14 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private boolean handleNode(CommandSender sender, String[] args) {
+        if (args.length > 1 && args[1].equalsIgnoreCase("menu")) {
+            if (sender instanceof Player player) {
+                AdminNodeMenu.open(player, nodeId);
+            } else {
+                sender.sendMessage("플레이어만 노드 관리 메뉴를 열 수 있습니다.");
+            }
+            return true;
+        }
         if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
             run(sender, "Node list", coreApiClient.listNodes());
             return true;

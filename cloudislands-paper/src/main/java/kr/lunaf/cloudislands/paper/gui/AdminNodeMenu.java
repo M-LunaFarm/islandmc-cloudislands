@@ -1,0 +1,68 @@
+package kr.lunaf.cloudislands.paper.gui;
+
+import java.util.List;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+
+public final class AdminNodeMenu implements Listener {
+    private static final String TITLE = "섬 노드 관리";
+
+    public static void open(Player player, String nodeId) {
+        Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
+        inventory.setItem(10, item(Material.COMPASS, "노드 목록", "/ciadmin node list"));
+        inventory.setItem(11, item(Material.ENDER_EYE, "현재 노드 정보", "/ciadmin node info " + nodeId));
+        inventory.setItem(13, item(Material.REDSTONE_TORCH, "현재 노드 Drain", "/ciadmin node drain " + nodeId));
+        inventory.setItem(14, item(Material.LEVER, "현재 노드 Undrain", "/ciadmin node undrain " + nodeId));
+        inventory.setItem(15, item(Material.HOPPER, "장애 스윕", "/ciadmin node sweep " + nodeId));
+        inventory.setItem(16, item(Material.BOOK, "관리 명령 도움말", "/ciadmin node list", "/ciadmin island where <uuid>"));
+        player.openInventory(inventory);
+    }
+
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (!TITLE.equals(event.getView().getTitle())) {
+            return;
+        }
+        event.setCancelled(true);
+        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
+            return;
+        }
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null || !meta.hasDisplayName()) {
+            return;
+        }
+        String name = meta.getDisplayName();
+        player.closeInventory();
+        if (name.equals("노드 목록")) {
+            player.performCommand("ciadmin node list");
+        } else if (name.equals("현재 노드 정보")) {
+            player.performCommand("ciadmin node info");
+        } else if (name.equals("현재 노드 Drain")) {
+            player.performCommand("ciadmin node drain");
+        } else if (name.equals("현재 노드 Undrain")) {
+            player.performCommand("ciadmin node undrain");
+        } else if (name.equals("장애 스윕")) {
+            player.performCommand("ciadmin node sweep");
+        } else if (name.equals("관리 명령 도움말")) {
+            player.sendMessage("사용법: /ciadmin node list, /ciadmin node info [node], /ciadmin island where <uuid>");
+        }
+    }
+
+    private static ItemStack item(Material material, String name, String... lore) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            meta.setLore(List.of(lore));
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+}
