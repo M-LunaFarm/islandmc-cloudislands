@@ -9,6 +9,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import net.kyori.adventure.text.Component;
 
 public final class RouteTicketConsumer {
     private final Plugin plugin;
@@ -46,8 +47,18 @@ public final class RouteTicketConsumer {
         }
         java.util.Map<String, String> payload = ticket.payload();
         if (player.teleport(new Location(world, decimal(payload, "localX", 0.5D), decimal(payload, "localY", 100.0D), decimal(payload, "localZ", 0.5D), (float) decimal(payload, "yaw", 180.0D), (float) decimal(payload, "pitch", 0.0D)))) {
+            player.sendActionBar(Component.text(arrivalMessage(ticket.action())));
             Bukkit.getPluginManager().callEvent(new RouteTicketConsumedEvent(ticket.islandId(), ticket.ticketId(), playerUuid, player, ticket.action(), worldName));
         }
+    }
+
+    private String arrivalMessage(kr.lunaf.cloudislands.api.model.RouteAction action) {
+        return switch (action) {
+            case VISIT -> "방문한 섬에 도착했습니다.";
+            case WARP -> "섬 워프에 도착했습니다.";
+            case ADMIN_TELEPORT -> "관리자 이동이 완료되었습니다.";
+            default -> "내 섬에 도착했습니다.";
+        };
     }
 
     private double decimal(java.util.Map<String, String> payload, String key, double fallback) {
