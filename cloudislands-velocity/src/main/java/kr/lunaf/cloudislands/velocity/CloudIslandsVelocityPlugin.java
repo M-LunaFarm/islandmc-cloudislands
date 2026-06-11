@@ -364,6 +364,12 @@ public final class CloudIslandsVelocityPlugin {
             routingController.pardonVisitor(player, islandId, targetUuid);
             return;
         }
+        if (args[0].equalsIgnoreCase("kickvisitor") || args[0].equals("방문자추방")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
+            routingController.kickVisitor(player, islandId, targetUuid);
+            return;
+        }
         if (args[0].equalsIgnoreCase("banlist") || args[0].equals("밴목록")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.listBans(player, islandId);

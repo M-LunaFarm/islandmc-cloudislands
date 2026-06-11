@@ -156,6 +156,14 @@ public final class VelocityRoutingController {
         coreApiClient.pardonIslandVisitor(islandId, player.getUniqueId(), targetUuid).thenRun(() -> player.sendMessage(Component.text("방문자 밴을 해제했습니다.")));
     }
 
+    public void kickVisitor(Player player, UUID islandId, UUID targetUuid) {
+        proxy.getPlayer(targetUuid).ifPresentOrElse(target -> {
+            target.sendMessage(Component.text("섬에서 추방되어 로비로 이동합니다."));
+            fallback(target, "섬에서 추방되어 로비로 이동합니다.");
+            player.sendMessage(Component.text("방문자를 섬에서 추방했습니다."));
+        }, () -> player.sendMessage(Component.text("대상 플레이어가 온라인이 아닙니다.")));
+    }
+
     public void setPublicAccess(Player player, UUID islandId, boolean publicAccess) {
         coreApiClient.setIslandPublicAccess(islandId, player.getUniqueId(), publicAccess).thenRun(() -> player.sendMessage(Component.text(publicAccess ? "섬을 공개로 변경했습니다." : "섬을 비공개로 변경했습니다.")));
     }
