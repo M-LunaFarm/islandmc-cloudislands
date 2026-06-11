@@ -297,6 +297,30 @@ public final class CloudIslandsCoreApplication {
             write(exchange, session == null ? 404 : 200, session == null ? "" : sessionJson(session));
         });
         route("/v1/routes/consume", exchange -> write(exchange, 200, routing.consumeTicketJson(readBody(exchange))));
+        route("/v1/admin/routes/debug", exchange -> {
+            String body = readBody(exchange);
+            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            if (playerUuid.equals(new UUID(0L, 0L))) {
+                write(exchange, 200, "{\"sessions\":" + sessions.toJson() + ",\"tickets\":" + tickets.toJson() + "}");
+            } else {
+                PlayerRouteSession session = sessions.findAny(playerUuid).orElse(null);
+                write(exchange, session == null ? 404 : 200, session == null ? ApiResponses.error("ROUTE_SESSION_NOT_FOUND", "Route session was not found") : sessionJson(session));
+            }
+        });
+        route("/v1/admin/routes/ticket", exchange -> {
+            String body = readBody(exchange);
+            UUID ticketId = JsonFields.uuid(body, "ticketId", new UUID(0L, 0L));
+            RouteTicket ticket = tickets.find(ticketId).orElse(null);
+            write(exchange, ticket == null ? 404 : 200, ticket == null ? ApiResponses.error("ROUTE_TICKET_NOT_FOUND", "Route ticket was not found") : RoutingOrchestrator.toJson(ticket));
+        });
+        route("/v1/admin/routes/clear", exchange -> {
+            String body = readBody(exchange);
+            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            UUID ticketId = JsonFields.uuid(body, "ticketId", new UUID(0L, 0L));
+            boolean clearedSession = !playerUuid.equals(new UUID(0L, 0L)) && sessions.clear(playerUuid);
+            boolean clearedTicket = !ticketId.equals(new UUID(0L, 0L)) && tickets.clear(ticketId);
+            write(exchange, 202, "{\"clearedSession\":" + clearedSession + ",\"clearedTicket\":" + clearedTicket + "}");
+        });
         route("/v1/nodes/heartbeat", exchange -> {
             nodes.heartbeat(heartbeat(readBody(exchange)));
             write(exchange, 202, ApiResponses.ok(true));

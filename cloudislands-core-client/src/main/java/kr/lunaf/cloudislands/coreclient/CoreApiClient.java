@@ -81,6 +81,9 @@ public interface CoreApiClient {
     CompletableFuture<String> deactivateIsland(UUID islandId);
     CompletableFuture<String> migrateIsland(UUID islandId, String targetNode);
     CompletableFuture<String> quarantineIsland(UUID islandId, String reason);
+    CompletableFuture<String> debugRoutes(UUID playerUuid);
+    CompletableFuture<String> routeTicket(UUID ticketId);
+    CompletableFuture<String> clearRoute(UUID playerUuid, UUID ticketId);
     CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs);
     CompletableFuture<String> listJobs();
     CompletableFuture<String> retryJob(UUID jobId);

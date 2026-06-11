@@ -293,6 +293,18 @@ public final class VelocityRoutingController {
         coreApiClient.quarantineIsland(islandId, reason).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 격리를 요청하지 못했습니다." : body)));
     }
 
+    public void debugRoutes(Player player, UUID playerUuid) {
+        coreApiClient.debugRoutes(playerUuid).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "라우트 정보를 불러오지 못했습니다." : body)));
+    }
+
+    public void routeTicket(Player player, UUID ticketId) {
+        coreApiClient.routeTicket(ticketId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "티켓 정보를 불러오지 못했습니다." : body)));
+    }
+
+    public void clearRoute(Player player, UUID playerUuid, UUID ticketId) {
+        coreApiClient.clearRoute(playerUuid, ticketId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "라우트 정리를 요청하지 못했습니다." : body)));
+    }
+
     private void route(Player player, RouteTicket ticket, String failureMessage) {
         if (ticket == null) {
             fallback(player, failureMessage);

@@ -35,4 +35,32 @@ public final class InMemoryRouteTicketStore {
         tickets.put(ticketId, consumed);
         return Optional.of(consumed);
     }
+
+    public Optional<RouteTicket> find(UUID ticketId) {
+        return Optional.ofNullable(tickets.get(ticketId));
+    }
+
+    public boolean clear(UUID ticketId) {
+        return tickets.remove(ticketId) != null;
+    }
+
+    public String toJson() {
+        StringBuilder builder = new StringBuilder("{\"tickets\":[");
+        boolean first = true;
+        for (RouteTicket ticket : tickets.values()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append("{\"ticketId\":\"").append(ticket.ticketId())
+                .append("\",\"playerUuid\":\"").append(ticket.playerUuid())
+                .append("\",\"action\":\"").append(ticket.action())
+                .append("\",\"islandId\":\"").append(ticket.islandId())
+                .append("\",\"targetNode\":\"").append(ticket.targetNode())
+                .append("\",\"state\":\"").append(ticket.state())
+                .append("\",\"expiresAt\":\"").append(ticket.expiresAt())
+                .append("\"}");
+        }
+        return builder.append("]}").toString();
+    }
 }

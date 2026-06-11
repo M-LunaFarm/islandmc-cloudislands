@@ -45,4 +45,34 @@ public final class InMemoryRouteSessionStore implements RouteSessionStore {
         session.ifPresent(value -> byPlayer.remove(playerUuid, value));
         return session;
     }
+
+    public Optional<PlayerRouteSession> findAny(UUID playerUuid) {
+        PlayerRouteSession session = byPlayer.get(playerUuid);
+        if (session == null || session.expiresAt().isBefore(clock.instant())) {
+            return Optional.empty();
+        }
+        return Optional.of(session);
+    }
+
+    public boolean clear(UUID playerUuid) {
+        return byPlayer.remove(playerUuid) != null;
+    }
+
+    public String toJson() {
+        StringBuilder builder = new StringBuilder("{\"sessions\":[");
+        boolean first = true;
+        for (PlayerRouteSession session : byPlayer.values()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append("{\"playerUuid\":\"").append(session.playerUuid())
+                .append("\",\"ticketId\":\"").append(session.ticketId())
+                .append("\",\"targetNode\":\"").append(session.targetNode())
+                .append("\",\"targetServerName\":\"").append(session.targetServerName())
+                .append("\",\"expiresAt\":\"").append(session.expiresAt())
+                .append("\"}");
+        }
+        return builder.append("]}").toString();
+    }
 }
