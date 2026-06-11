@@ -1,10 +1,15 @@
 package kr.lunaf.cloudislands.paper.admin;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
@@ -19,7 +24,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private static final List<String> ROOT_COMMANDS = List.of("status", "cache", "node", "island", "player", "jobs", "route", "template", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
-    private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
+    private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
     private static final List<String> PLAYER_COMMANDS = List.of("info", "setisland", "clearisland");
     private static final List<String> JOB_COMMANDS = List.of("list", "retry", "cancel", "recover");
     private static final List<String> ROUTE_COMMANDS = List.of("debug", "ticket", "clear");
@@ -161,7 +166,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
 
     private boolean handleIsland(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage("사용법: /ciadmin island info|where|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete <islandUuid> [값]");
+            sender.sendMessage("사용법: /ciadmin island info|where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete <islandUuid> [값]");
             return true;
         }
         UUID islandId = uuid(sender, args[2]);
@@ -174,6 +179,14 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args[1].equalsIgnoreCase("where")) {
             run(sender, "Island where", coreApiClient.adminIslandWhere(islandId));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("tp")) {
+            if (sender instanceof Player player) {
+                routeAdminTeleport(player, islandId);
+            } else {
+                sender.sendMessage("플레이어만 섬으로 이동할 수 있습니다.");
+            }
             return true;
         }
         if (args[1].equalsIgnoreCase("activate")) {
@@ -227,7 +240,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "Island delete", coreApiClient.adminDeleteIsland(islandId));
             return true;
         }
-        sender.sendMessage("사용법: /ciadmin island info|where|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete <islandUuid> [값]");
+        sender.sendMessage("사용법: /ciadmin island info|where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete <islandUuid> [값]");
         return true;
     }
 
@@ -371,6 +384,64 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         return true;
     }
 
+    private void routeAdminTeleport(Player player, UUID islandId) {
+        coreApiClient.adminIslandTeleport(player.getUniqueId(), islandId)
+            .thenAccept(ticket -> routeTicket(player, ticket, "관리자 섬 이동에 실패했습니다.", 0))
+            .exceptionally(error -> {
+                message(player, "관리자 섬 이동에 실패했습니다.");
+                return null;
+            });
+    }
+
+    private void routeTicket(Player player, RouteTicket ticket, String failureMessage, int attempt) {
+        if (ticket.state().name().equals("READY")) {
+            publishAndConnect(player, ticket, failureMessage);
+            return;
+        }
+        if (attempt >= 45) {
+            message(player, failureMessage);
+            return;
+        }
+        CompletableFuture.runAsync(() -> coreApiClient.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
+            if (status.isPresent()) {
+                routeTicket(player, status.get(), failureMessage, attempt + 1);
+            } else {
+                message(player, failureMessage);
+            }
+        }).exceptionally(error -> {
+            message(player, failureMessage);
+            return null;
+        }), CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS));
+    }
+
+    private void publishAndConnect(Player player, RouteTicket ticket, String failureMessage) {
+        coreApiClient.publishRouteSession(ticket)
+            .thenRun(() -> connectWithTicket(player, ticket.payload().getOrDefault("targetServerName", ticket.targetNode())))
+            .exceptionally(error -> {
+                message(player, failureMessage);
+                return null;
+            });
+    }
+
+    private void connectWithTicket(Player player, String targetServerName) {
+        agent.plugin().getServer().getScheduler().runTask(agent.plugin(), () -> {
+            if (targetServerName == null || targetServerName.isBlank()) {
+                player.sendMessage("섬 이동 경로를 찾을 수 없습니다.");
+                return;
+            }
+            try {
+                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                DataOutputStream output = new DataOutputStream(bytes);
+                output.writeUTF("Connect");
+                output.writeUTF(targetServerName);
+                player.sendPluginMessage(agent.plugin(), "BungeeCord", bytes.toByteArray());
+                player.sendMessage("섬으로 이동합니다.");
+            } catch (IOException exception) {
+                player.sendMessage("섬 이동 요청을 만들 수 없습니다.");
+            }
+        });
+    }
+
     private void run(CommandSender sender, String action, CompletableFuture<String> future) {
         future.thenAccept(body -> message(sender, action + " 완료" + (body == null || body.isBlank() ? "" : ": " + body)))
             .exceptionally(error -> {
@@ -384,7 +455,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private void usage(CommandSender sender, String label) {
-        sender.sendMessage("사용법: /" + label + " status, cache clear, node list, island info <uuid>, player info <uuid>, jobs list, route debug <uuid>, template list, migrate-superiorskyblock2 scan, reload");
+        sender.sendMessage("사용법: /" + label + " status, cache clear, node list, island tp <uuid>, player info <uuid>, jobs list, route debug <uuid>, template list, migrate-superiorskyblock2 scan, reload");
     }
 
     private UUID uuid(CommandSender sender, String value) {
