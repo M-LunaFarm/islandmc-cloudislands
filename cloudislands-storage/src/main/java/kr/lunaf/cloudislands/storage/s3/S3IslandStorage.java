@@ -153,7 +153,7 @@ public final class S3IslandStorage implements IslandStorage {
         int deletedKeys = 0;
         for (String key : keys) {
             if (removedSnapshots.contains(snapshotName(prefix, key))) {
-                requestBytes("DELETE", key, null);
+                deleteKey(key);
                 deletedKeys++;
             }
         }
@@ -163,17 +163,17 @@ public final class S3IslandStorage implements IslandStorage {
     @Override
     public void deleteIsland(UUID islandId) throws IOException {
         for (String key : listKeys("islands/" + islandId + "/")) {
-            requestBytes("DELETE", key, null);
+            deleteKey(key);
         }
     }
 
     @Override
     public void deleteLiveState(UUID islandId) throws IOException {
         for (String key : listKeys("islands/" + islandId + "/snapshots/")) {
-            requestBytes("DELETE", key, null);
+            deleteKey(key);
         }
-        requestBytes("DELETE", key(islandId, "manifest.json"), null);
-        requestBytes("DELETE", key(islandId, "latest"), null);
+        deleteKey(key(islandId, "manifest.json"));
+        deleteKey(key(islandId, "latest"));
     }
 
     private String key(UUID islandId, String suffix) {
@@ -244,6 +244,22 @@ public final class S3IslandStorage implements IslandStorage {
 
     private String request(String method, String key, byte[] body) throws IOException {
         return new String(requestBytes(method, key, body), StandardCharsets.UTF_8);
+    }
+
+    private void deleteKey(String key) throws IOException {
+        try {
+            HttpRequest request = HttpRequest.newBuilder(endpoint.resolve("/" + bucket + "/" + key))
+                .header("Authorization", "Bearer " + bearerToken)
+                .method("DELETE", HttpRequest.BodyPublishers.noBody())
+                .build();
+            HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            if ((response.statusCode() < 200 || response.statusCode() >= 300) && response.statusCode() != 404) {
+                throw new IOException("storage delete failed with status " + response.statusCode());
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IOException("storage delete interrupted", exception);
+        }
     }
 
     private byte[] requestBytes(String method, String key, byte[] body) throws IOException {
