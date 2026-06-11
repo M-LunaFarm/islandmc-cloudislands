@@ -1173,6 +1173,7 @@ public final class CloudIslandsCoreApplication {
             java.util.List<IslandSnapshot> islands = metadataRepository.publicIslandIds(limit).stream()
                 .map(islandRepository::findById)
                 .flatMap(java.util.Optional::stream)
+                .sorted(java.util.Comparator.comparingLong(IslandSnapshot::level).reversed().thenComparing(IslandSnapshot::name))
                 .toList();
             write(exchange, 200, islandsJson(islands));
         });
