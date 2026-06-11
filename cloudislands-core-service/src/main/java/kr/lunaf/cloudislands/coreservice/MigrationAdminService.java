@@ -3,10 +3,13 @@ package kr.lunaf.cloudislands.coreservice;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
+import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
+import kr.lunaf.cloudislands.coreservice.permission.IslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
@@ -24,6 +27,7 @@ public final class MigrationAdminService {
     private final IslandRepository islands;
     private final IslandMetadataRepository metadata;
     private final PlayerProfileRepository playerProfiles;
+    private final IslandPermissionRuleRepository permissionRules;
     private final SuperiorSkyblock2MigrationScanner scanner = new SuperiorSkyblock2MigrationScanner();
     private final CloudIslandsMigrationImporter importer = new CloudIslandsMigrationImporter();
     private final MigrationVerifier verifier = new MigrationVerifier();
@@ -32,10 +36,11 @@ public final class MigrationAdminService {
     private MigrationImportPlan lastPlan = new MigrationImportPlan(List.of(), List.of());
     private MigrationRollbackPlan lastRollbackPlan;
 
-    public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles) {
+    public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules) {
         this.islands = islands;
         this.metadata = metadata;
         this.playerProfiles = playerProfiles;
+        this.permissionRules = permissionRules;
     }
 
     public synchronized String scan(String path) {
@@ -76,6 +81,9 @@ public final class MigrationAdminService {
             for (kr.lunaf.cloudislands.migration.MigrationFlag flag : manifest.flags()) {
                 metadata.setFlag(manifest.islandId(), IslandFlag.valueOf(flag.flagName()), flag.value());
             }
+            for (kr.lunaf.cloudislands.migration.MigrationPermission permission : manifest.permissions()) {
+                permissionRules.put(manifest.islandId(), IslandRole.valueOf(permission.roleName()), IslandPermission.valueOf(permission.permissionName()), permission.allowed());
+            }
             metadata.setPublicAccess(manifest.islandId(), manifest.publicAccess());
             metadata.setLocked(manifest.islandId(), manifest.locked());
             playerProfiles.setPrimaryIsland(manifest.ownerUuid(), manifest.islandId());
@@ -98,6 +106,7 @@ public final class MigrationAdminService {
                 .filter(_island -> manifest.homes().stream().allMatch(home -> metadata.home(manifest.islandId(), home.name()).isPresent()))
                 .filter(_island -> manifest.warps().stream().allMatch(warp -> metadata.warp(manifest.islandId(), warp.name()).isPresent()))
                 .filter(_island -> manifest.flags().stream().allMatch(flag -> flag.value().equals(metadata.flags(manifest.islandId()).values().get(IslandFlag.valueOf(flag.flagName())))))
+                .filter(_island -> permissionsMatch(manifest))
                 .filter(_island -> metadata.isPublicAccess(manifest.islandId()) == manifest.publicAccess())
                 .filter(_island -> metadata.isLocked(manifest.islandId()) == manifest.locked())
                 .ifPresent(_island -> imported.add(manifest));
@@ -121,6 +130,14 @@ public final class MigrationAdminService {
                 .ifPresent(_current -> playerProfiles.clearPrimaryIsland(island.ownerUuid()));
         });
         return "{\"state\":\"" + MigrationRunState.ROLLED_BACK + "\",\"rolledBack\":" + result.rolledBack() + ",\"removedIslands\":" + result.removedIslands() + ",\"issues\":" + issuesJson(result.issues()) + "}";
+    }
+
+    private boolean permissionsMatch(MigrationManifest manifest) {
+        Map<String, Boolean> current = new java.util.HashMap<>();
+        for (kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot rule : permissionRules.list(manifest.islandId())) {
+            current.put(rule.role().name() + ":" + rule.permission().name(), rule.allowed());
+        }
+        return manifest.permissions().stream().allMatch(permission -> Boolean.valueOf(permission.allowed()).equals(current.get(permission.roleName() + ":" + permission.permissionName())));
     }
 
     private String rollbackPlanJson(MigrationRollbackPlan plan) {

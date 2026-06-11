@@ -66,12 +66,13 @@ public final class SuperiorSkyblock2MigrationScanner {
             List<MigrationHome> homes = parseHomes(content);
             List<MigrationWarp> warps = parseWarps(content);
             List<MigrationFlag> flags = parseFlags(content);
+            List<MigrationPermission> permissions = parsePermissions(content);
             boolean publicAccess = parseBoolean(content, "public", parseBoolean(content, "isPublic", parseBoolean(content, "publicAccess", false)));
             boolean locked = parseBoolean(content, "locked", parseBoolean(content, "isLocked", false));
             LinkedHashSet<UUID> allMembers = new LinkedHashSet<>();
             allMembers.add(ownerUuid);
             allMembers.addAll(members);
-            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), bannedVisitors, homes, warps, flags, publicAccess, locked, size, level, worth));
+            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), bannedVisitors, homes, warps, flags, permissions, publicAccess, locked, size, level, worth));
         } catch (RuntimeException | IOException exception) {
             issues.add(new MigrationIssue("ISLAND_FILE_PARSE_FAILED", file + ": " + exception.getMessage(), true));
         }
@@ -249,6 +250,47 @@ public final class SuperiorSkyblock2MigrationScanner {
         if (!value.isBlank()) {
             flags.add(new MigrationFlag(flagName, value));
         }
+    }
+
+    private List<MigrationPermission> parsePermissions(String content) {
+        String[] roles = {"OWNER", "CO_OWNER", "MODERATOR", "MEMBER", "TRUSTED", "VISITOR"};
+        String[] permissions = {
+            "BUILD", "BREAK", "INTERACT", "OPEN_CONTAINER", "USE_DOOR", "USE_BUTTON", "USE_PRESSURE_PLATE", "USE_REDSTONE",
+            "PLACE_LIQUID", "BREAK_LIQUID", "ATTACK_PLAYER", "ATTACK_MOB", "PICKUP_ITEM", "DROP_ITEM", "USE_SPAWNER",
+            "USE_ANVIL", "USE_ENCHANT_TABLE", "USE_BREWING_STAND", "MANAGE_MEMBERS", "MANAGE_ROLES", "MANAGE_FLAGS",
+            "MANAGE_WARPS", "MANAGE_UPGRADES", "START_LEVEL_CALC", "BAN_VISITOR", "KICK_VISITOR", "SET_HOME",
+            "SET_BIOME", "WITHDRAW_BANK", "DEPOSIT_BANK"
+        };
+        List<MigrationPermission> result = new ArrayList<>();
+        for (String role : roles) {
+            for (String permission : permissions) {
+                String camelKey = toCamel(role) + toPascal(permission);
+                String dottedKey = role.toLowerCase() + "." + permission.toLowerCase();
+                String snakeKey = role.toLowerCase() + "_" + permission.toLowerCase();
+                String upperKey = role + "_" + permission;
+                if (!containsAnyKey(content, camelKey, dottedKey, snakeKey, upperKey)) {
+                    continue;
+                }
+                boolean allowed = parseBoolean(content, camelKey, parseBoolean(content, dottedKey, parseBoolean(content, snakeKey, parseBoolean(content, upperKey, false))));
+                result.add(new MigrationPermission(role, permission, allowed));
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    private String toCamel(String enumName) {
+        String pascal = toPascal(enumName);
+        return pascal.isEmpty() ? pascal : Character.toLowerCase(pascal.charAt(0)) + pascal.substring(1);
+    }
+
+    private String toPascal(String enumName) {
+        StringBuilder builder = new StringBuilder();
+        for (String part : enumName.toLowerCase().split("_")) {
+            if (!part.isEmpty()) {
+                builder.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
+            }
+        }
+        return builder.toString();
     }
 
     private boolean containsAnyKey(String content, String... keys) {
