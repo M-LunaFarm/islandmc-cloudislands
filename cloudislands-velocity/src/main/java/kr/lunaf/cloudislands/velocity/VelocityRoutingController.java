@@ -115,6 +115,10 @@ public final class VelocityRoutingController {
         coreApiClient.deleteIslandWarp(islandId, player.getUniqueId(), name).thenRun(() -> player.sendMessage(Component.text("섬 워프를 삭제했습니다.")));
     }
 
+    public void setWarpPublicAccess(Player player, UUID islandId, String name, boolean publicAccess) {
+        coreApiClient.setIslandWarpPublicAccess(islandId, player.getUniqueId(), name, publicAccess).thenRun(() -> player.sendMessage(Component.text(publicAccess ? "섬 워프를 공개했습니다." : "섬 워프를 비공개로 변경했습니다.")));
+    }
+
     public void invite(Player player, UUID islandId, UUID targetUuid) {
         coreApiClient.createIslandInvite(islandId, player.getUniqueId(), targetUuid).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "초대를 생성하지 못했습니다." : "섬 초대를 보냈습니다.")));
     }

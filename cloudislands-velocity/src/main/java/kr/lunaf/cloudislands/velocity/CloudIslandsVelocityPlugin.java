@@ -298,13 +298,13 @@ public final class CloudIslandsVelocityPlugin {
         if (args[0].equalsIgnoreCase("publicwarp") || args[0].equals("워프공개")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             String warpName = args.length > 2 ? args[2] : "default";
-            routingController.setWarp(player, islandId, warpName, true);
+            routingController.setWarpPublicAccess(player, islandId, warpName, true);
             return;
         }
         if (args[0].equalsIgnoreCase("privatewarp") || args[0].equals("워프비공개")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             String warpName = args.length > 2 ? args[2] : "default";
-            routingController.setWarp(player, islandId, warpName, false);
+            routingController.setWarpPublicAccess(player, islandId, warpName, false);
             return;
         }
         if (args[0].equalsIgnoreCase("warp") || args[0].equals("워프")) {
