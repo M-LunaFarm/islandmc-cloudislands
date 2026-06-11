@@ -15,14 +15,19 @@ import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
+import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
+import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
+import kr.lunaf.cloudislands.coreservice.job.IslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.ticket.InMemoryRouteTicketStore;
+import kr.lunaf.cloudislands.protocol.job.IslandJob;
+import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 
 public final class RoutingOrchestrator {
     private final InMemoryNodeRegistry nodes;
@@ -31,14 +36,18 @@ public final class RoutingOrchestrator {
     private final IslandRepository islands;
     private final IslandMetadataRepository metadata;
     private final IslandRuntimeRepository runtimes;
+    private final IslandJobPublisher jobs;
+    private final GlobalEventPublisher events;
 
-    public RoutingOrchestrator(InMemoryNodeRegistry nodes, NodeAllocator allocator, InMemoryRouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, IslandRuntimeRepository runtimes) {
+    public RoutingOrchestrator(InMemoryNodeRegistry nodes, NodeAllocator allocator, InMemoryRouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, IslandRuntimeRepository runtimes, IslandJobPublisher jobs, GlobalEventPublisher events) {
         this.nodes = nodes;
         this.allocator = allocator;
         this.tickets = tickets;
         this.islands = islands;
         this.metadata = metadata;
         this.runtimes = runtimes;
+        this.jobs = jobs;
+        this.events = events;
     }
 
     public RoutePreparationResult prepareHomeRoute(UUID playerUuid) {
@@ -193,7 +202,23 @@ public final class RoutingOrchestrator {
         }
         NodeLoad selected = allocator.selectBestNode(nodes.snapshot(), Instant.now())
             .orElseThrow(() -> new IllegalStateException("no eligible island node"));
-        return new RouteTarget(selected, "ci_shard_001");
+        IslandRuntimeSnapshot activating = runtimes.markActivating(runtime.islandId(), selected.nodeId(), "ci_shard_001", 0, 0);
+        jobs.publish(new IslandJob(
+            UUID.randomUUID(),
+            IslandJobType.ACTIVATE_ISLAND,
+            runtime.islandId(),
+            selected.nodeId(),
+            0,
+            Map.of(
+                "fencingToken", Long.toString(activating.fencingToken()),
+                "worldName", activating.activeWorld() == null ? "ci_shard_001" : activating.activeWorld(),
+                "cellX", activating.cellX() == null ? "0" : Integer.toString(activating.cellX()),
+                "cellZ", activating.cellZ() == null ? "0" : Integer.toString(activating.cellZ())
+            ),
+            Instant.now()
+        ));
+        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", runtime.islandId().toString(), "state", activating.state().name(), "targetNode", selected.nodeId()));
+        return new RouteTarget(selected, activating.activeWorld() == null ? "ci_shard_001" : activating.activeWorld());
     }
 
     private Map<String, String> homePayload(UUID islandId, String homeName) {
