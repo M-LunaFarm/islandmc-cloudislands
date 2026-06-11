@@ -105,6 +105,10 @@ public interface CoreApiClient {
     CompletableFuture<String> undrainNodeResult(String nodeId);
     CompletableFuture<String> sweepNode(String nodeId);
     CompletableFuture<String> sweepNodeResult(String nodeId);
+    CompletableFuture<String> kickAllNode(String nodeId, String reason);
+    CompletableFuture<String> kickAllNodeResult(String nodeId, String reason);
+    CompletableFuture<String> shutdownNodeSafely(String nodeId, String reason);
+    CompletableFuture<String> shutdownNodeSafelyResult(String nodeId, String reason);
     CompletableFuture<String> activateIsland(UUID islandId);
     CompletableFuture<String> activateIslandResult(UUID islandId);
     CompletableFuture<String> deactivateIsland(UUID islandId);

@@ -479,6 +479,26 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> kickAllNode(String nodeId, String reason) {
+        return kickAllNodeResult(nodeId, reason);
+    }
+
+    @Override
+    public CompletableFuture<String> kickAllNodeResult(String nodeId, String reason) {
+        return postWithResultBody("/v1/admin/nodes/kickall", "{\"nodeId\":\"" + escape(nodeId) + "\",\"reason\":\"" + escape(reason) + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> shutdownNodeSafely(String nodeId, String reason) {
+        return shutdownNodeSafelyResult(nodeId, reason);
+    }
+
+    @Override
+    public CompletableFuture<String> shutdownNodeSafelyResult(String nodeId, String reason) {
+        return postWithResultBody("/v1/admin/nodes/shutdown-safe", "{\"nodeId\":\"" + escape(nodeId) + "\",\"reason\":\"" + escape(reason) + "\"}");
+    }
+
+    @Override
     public CompletableFuture<String> activateIsland(UUID islandId) {
         return activateIslandResult(islandId);
     }

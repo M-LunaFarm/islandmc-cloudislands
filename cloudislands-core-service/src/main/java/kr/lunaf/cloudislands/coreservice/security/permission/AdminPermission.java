@@ -3,6 +3,8 @@ package kr.lunaf.cloudislands.coreservice.security.permission;
 public enum AdminPermission {
     NODE_DRAIN,
     NODE_UNDRAIN,
+    NODE_KICK,
+    NODE_SHUTDOWN,
     ISLAND_ACTIVATE,
     ISLAND_DEACTIVATE,
     ISLAND_MIGRATE,

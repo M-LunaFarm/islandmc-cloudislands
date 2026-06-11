@@ -543,6 +543,28 @@ public final class CloudIslandsCoreApplication {
             audit.log(new UUID(0L, 0L), "ADMIN", "NODE_UNDRAIN", "NODE", nodeId, Map.of());
             write(exchange, changed ? 202 : 404, ApiResponses.ok(changed));
         });
+        route("/v1/admin/nodes/kickall", exchange -> {
+            String body = readBody(exchange);
+            String nodeId = JsonFields.text(body, "nodeId", "");
+            String reason = JsonFields.text(body, "reason", "admin-request");
+            boolean found = nodes.find(nodeId).isPresent();
+            if (found) {
+                events.publish("NODE_KICKALL", Map.of("nodeId", nodeId, "reason", reason));
+            }
+            audit.log(new UUID(0L, 0L), "ADMIN", "NODE_KICKALL", "NODE", nodeId, Map.of("reason", reason));
+            write(exchange, found ? 202 : 404, found ? ApiResponses.ok(true) : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
+        });
+        route("/v1/admin/nodes/shutdown-safe", exchange -> {
+            String body = readBody(exchange);
+            String nodeId = JsonFields.text(body, "nodeId", "");
+            String reason = JsonFields.text(body, "reason", "admin-request");
+            boolean changed = nodes.drain(nodeId);
+            if (changed) {
+                events.publish("NODE_SHUTDOWN_SAFE", Map.of("nodeId", nodeId, "reason", reason));
+            }
+            audit.log(new UUID(0L, 0L), "ADMIN", "NODE_SHUTDOWN_SAFE", "NODE", nodeId, Map.of("reason", reason));
+            write(exchange, changed ? 202 : 404, changed ? ApiResponses.ok(true) : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
+        });
         routePrefix("/v1/admin/nodes/", exchange -> {
             String method = exchange.getRequestMethod();
             String path = exchange.getRequestURI().getPath();
@@ -563,6 +585,26 @@ public final class CloudIslandsCoreApplication {
                 boolean changed = nodes.undrain(nodeId);
                 audit.log(new UUID(0L, 0L), "ADMIN", "NODE_UNDRAIN", "NODE", nodeId, Map.of());
                 write(exchange, changed ? 202 : 404, ApiResponses.ok(changed));
+                return;
+            }
+            if (tail.endsWith("/kickall")) {
+                String nodeId = tail.substring(0, tail.length() - "/kickall".length());
+                boolean found = nodes.find(nodeId).isPresent();
+                if (found) {
+                    events.publish("NODE_KICKALL", Map.of("nodeId", nodeId, "reason", "admin-request"));
+                }
+                audit.log(new UUID(0L, 0L), "ADMIN", "NODE_KICKALL", "NODE", nodeId, Map.of("reason", "admin-request"));
+                write(exchange, found ? 202 : 404, found ? ApiResponses.ok(true) : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
+                return;
+            }
+            if (tail.endsWith("/shutdown-safe")) {
+                String nodeId = tail.substring(0, tail.length() - "/shutdown-safe".length());
+                boolean changed = nodes.drain(nodeId);
+                if (changed) {
+                    events.publish("NODE_SHUTDOWN_SAFE", Map.of("nodeId", nodeId, "reason", "admin-request"));
+                }
+                audit.log(new UUID(0L, 0L), "ADMIN", "NODE_SHUTDOWN_SAFE", "NODE", nodeId, Map.of("reason", "admin-request"));
+                write(exchange, changed ? 202 : 404, changed ? ApiResponses.ok(true) : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
                 return;
             }
             write(exchange, 404, ApiResponses.error("ROUTE_NOT_FOUND", "Route was not found"));

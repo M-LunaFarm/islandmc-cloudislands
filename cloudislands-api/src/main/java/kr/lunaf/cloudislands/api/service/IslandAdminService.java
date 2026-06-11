@@ -28,6 +28,10 @@ public interface IslandAdminService {
     CompletableFuture<IslandActionResult> undrainNodeResult(String nodeId);
     CompletableFuture<Void> sweepNode(String nodeId);
     CompletableFuture<NodeSweepResult> sweepNodeResult(String nodeId);
+    CompletableFuture<Void> kickAllNode(String nodeId, String reason);
+    CompletableFuture<IslandActionResult> kickAllNodeResult(String nodeId, String reason);
+    CompletableFuture<Void> shutdownNodeSafely(String nodeId, String reason);
+    CompletableFuture<IslandActionResult> shutdownNodeSafelyResult(String nodeId, String reason);
     CompletableFuture<Void> migrateIsland(UUID islandId, String targetNode);
     CompletableFuture<IslandActionResult> migrateIslandResult(UUID islandId, String targetNode);
     CompletableFuture<Void> snapshotIsland(UUID islandId, String reason);

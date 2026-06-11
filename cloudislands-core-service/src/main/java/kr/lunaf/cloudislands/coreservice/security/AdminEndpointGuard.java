@@ -70,6 +70,12 @@ public final class AdminEndpointGuard {
             if (path.endsWith("/undrain")) {
                 return AdminPermission.NODE_UNDRAIN;
             }
+            if (path.endsWith("/kickall")) {
+                return AdminPermission.NODE_KICK;
+            }
+            if (path.endsWith("/shutdown-safe")) {
+                return AdminPermission.NODE_SHUTDOWN;
+            }
         }
         return switch (path) {
             case "/v1/audit" -> AdminPermission.AUDIT_READ;
@@ -83,6 +89,8 @@ public final class AdminEndpointGuard {
             case "/v1/admin/templates/list", "/v1/admin/templates/upsert", "/v1/admin/templates/enable", "/v1/admin/templates/disable" -> AdminPermission.TEMPLATE_MANAGE;
             case "/v1/admin/nodes/drain", "/v1/admin/nodes/sweep" -> AdminPermission.NODE_DRAIN;
             case "/v1/admin/nodes/undrain" -> AdminPermission.NODE_UNDRAIN;
+            case "/v1/admin/nodes/kickall" -> AdminPermission.NODE_KICK;
+            case "/v1/admin/nodes/shutdown-safe" -> AdminPermission.NODE_SHUTDOWN;
             case "/v1/admin/islands/activate" -> AdminPermission.ISLAND_ACTIVATE;
             case "/v1/admin/islands/deactivate" -> AdminPermission.ISLAND_DEACTIVATE;
             case "/v1/admin/islands/migrate" -> AdminPermission.ISLAND_MIGRATE;

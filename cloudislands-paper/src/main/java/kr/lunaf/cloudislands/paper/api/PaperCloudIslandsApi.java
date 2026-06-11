@@ -476,6 +476,10 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<IslandActionResult> undrainNodeResult(String nodeId) { return client.undrainNodeResult(nodeId).thenApply(body -> action(body, "NODE_UNDRAINED")); }
         @Override public CompletableFuture<Void> sweepNode(String nodeId) { return sweepNodeResult(nodeId).thenApply(_result -> null); }
         @Override public CompletableFuture<NodeSweepResult> sweepNodeResult(String nodeId) { return client.sweepNodeResult(nodeId).thenApply(PaperCloudIslandsApi::nodeSweep); }
+        @Override public CompletableFuture<Void> kickAllNode(String nodeId, String reason) { return kickAllNodeResult(nodeId, reason).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> kickAllNodeResult(String nodeId, String reason) { return client.kickAllNodeResult(nodeId, reason).thenApply(body -> action(body, "NODE_KICKALL_REQUESTED")); }
+        @Override public CompletableFuture<Void> shutdownNodeSafely(String nodeId, String reason) { return shutdownNodeSafelyResult(nodeId, reason).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> shutdownNodeSafelyResult(String nodeId, String reason) { return client.shutdownNodeSafelyResult(nodeId, reason).thenApply(body -> action(body, "NODE_SHUTDOWN_SAFE_REQUESTED")); }
         @Override public CompletableFuture<Void> migrateIsland(UUID islandId, String targetNode) { return migrateIslandResult(islandId, targetNode).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> migrateIslandResult(UUID islandId, String targetNode) { return client.migrateIslandResult(islandId, targetNode).thenApply(body -> actionCode(body, "MIGRATED")); }
         @Override public CompletableFuture<Void> snapshotIsland(UUID islandId, String reason) { return snapshotIslandResult(islandId, reason).thenApply(_result -> null); }
