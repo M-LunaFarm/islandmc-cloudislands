@@ -9,6 +9,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
@@ -73,7 +74,7 @@ public final class RoutingOrchestrator {
 
     public RoutePreparationResult prepareWarpRoute(UUID playerUuid, UUID islandId, String warpName) {
         return islands.findById(islandId)
-            .map(island -> visitAllowed(playerUuid, island, RouteAction.WARP, Map.of("warpName", warpName)))
+            .map(island -> warpAllowed(playerUuid, island, warpName))
             .orElseGet(() -> RoutePreparationResult.rejected(404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
     }
 
@@ -107,6 +108,24 @@ public final class RoutingOrchestrator {
             return RoutePreparationResult.rejected(403, ApiResponses.error("ISLAND_PRIVATE", "Island is private"));
         }
         return prepareTicket(playerUuid, island, action, extraPayload);
+    }
+
+    private RoutePreparationResult warpAllowed(UUID playerUuid, IslandSnapshot island, String warpName) {
+        IslandWarpSnapshot warp = metadata.warp(island.islandId(), normalizeName(warpName)).orElse(null);
+        if (warp == null) {
+            return RoutePreparationResult.rejected(404, ApiResponses.error("WARP_NOT_FOUND", "Island warp was not found"));
+        }
+        if (metadata.isBanned(island.islandId(), playerUuid)) {
+            return RoutePreparationResult.rejected(403, ApiResponses.error("VISITOR_BANNED", "Visitor is banned from this island"));
+        }
+        boolean member = metadata.isMember(island.islandId(), playerUuid);
+        if (metadata.isLocked(island.islandId()) && !member) {
+            return RoutePreparationResult.rejected(423, ApiResponses.error("ISLAND_LOCKED", "Island is locked"));
+        }
+        if (!warp.publicAccess() && !member) {
+            return RoutePreparationResult.rejected(403, ApiResponses.error("WARP_PRIVATE", "Island warp is private"));
+        }
+        return prepareTicket(playerUuid, island, RouteAction.WARP, warpPayload(warp));
     }
 
     private RoutePreparationResult prepareTicket(UUID playerUuid, IslandSnapshot island, RouteAction action) {
@@ -155,6 +174,22 @@ public final class RoutingOrchestrator {
             payload.put("pitch", Float.toString(location.pitch()));
         }
         return Map.copyOf(payload);
+    }
+
+    private Map<String, String> warpPayload(IslandWarpSnapshot warp) {
+        java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
+        payload.put("warpName", warp.name());
+        IslandLocation location = warp.location();
+        payload.put("localX", Double.toString(location.localX()));
+        payload.put("localY", Double.toString(location.localY()));
+        payload.put("localZ", Double.toString(location.localZ()));
+        payload.put("yaw", Float.toString(location.yaw()));
+        payload.put("pitch", Float.toString(location.pitch()));
+        return Map.copyOf(payload);
+    }
+
+    private String normalizeName(String name) {
+        return name == null || name.isBlank() ? "default" : name.toLowerCase();
     }
 
     public static String toJson(RouteTicket ticket) {

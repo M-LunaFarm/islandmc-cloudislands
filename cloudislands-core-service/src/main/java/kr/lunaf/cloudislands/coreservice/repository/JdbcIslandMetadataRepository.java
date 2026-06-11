@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import javax.sql.DataSource;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
@@ -377,6 +378,24 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
             }
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to read island warps", exception);
+        }
+    }
+
+    @Override
+    public Optional<IslandWarpSnapshot> warp(UUID islandId, String name) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT island_id, name, local_x, local_y, local_z, yaw, pitch, public_access, created_by, created_at FROM island_warps WHERE island_id = ? AND name = ?")) {
+            statement.setObject(1, islandId);
+            statement.setString(2, name.toLowerCase());
+            try (ResultSet rs = statement.executeQuery()) {
+                if (!rs.next()) {
+                    return Optional.empty();
+                }
+                IslandLocation location = new IslandLocation("", rs.getDouble("local_x"), rs.getDouble("local_y"), rs.getDouble("local_z"), rs.getFloat("yaw"), rs.getFloat("pitch"));
+                return Optional.of(new IslandWarpSnapshot((UUID) rs.getObject("island_id"), rs.getString("name"), location, rs.getBoolean("public_access"), (UUID) rs.getObject("created_by"), rs.getTimestamp("created_at").toInstant()));
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read island warp", exception);
         }
     }
 

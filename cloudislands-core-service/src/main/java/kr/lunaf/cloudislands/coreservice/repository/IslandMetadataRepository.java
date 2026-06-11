@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreservice.repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
@@ -36,6 +37,7 @@ public interface IslandMetadataRepository {
     java.util.Optional<IslandHomeSnapshot> home(UUID islandId, String name);
     void upsertHome(UUID islandId, String name, IslandLocation location, UUID createdBy);
     List<IslandWarpSnapshot> warps(UUID islandId);
+    Optional<IslandWarpSnapshot> warp(UUID islandId, String name);
     void upsertWarp(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy);
     void deleteWarp(UUID islandId, String name);
     void setPublicAccess(UUID islandId, boolean publicAccess);

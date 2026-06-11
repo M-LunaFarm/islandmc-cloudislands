@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
@@ -167,6 +168,11 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     @Override
     public List<IslandWarpSnapshot> warps(UUID islandId) {
         return new ArrayList<>(warps.getOrDefault(islandId, Map.of()).values());
+    }
+
+    @Override
+    public Optional<IslandWarpSnapshot> warp(UUID islandId, String name) {
+        return Optional.ofNullable(warps.getOrDefault(islandId, Map.of()).get(name.toLowerCase()));
     }
 
     @Override
