@@ -50,6 +50,10 @@ public final class VelocityRoutingController {
         });
     }
 
+    public void resetIsland(Player player, UUID islandId, String reason) {
+        coreApiClient.resetIsland(islandId, player.getUniqueId(), reason).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 리셋을 요청했습니다." : body)));
+    }
+
     public void showMyIsland(Player player) {
         coreApiClient.islandInfoByOwner(player.getUniqueId()).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 정보를 불러오지 못했습니다." : body)));
     }

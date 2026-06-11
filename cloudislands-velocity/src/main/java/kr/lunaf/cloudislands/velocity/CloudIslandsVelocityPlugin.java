@@ -579,6 +579,12 @@ public final class CloudIslandsVelocityPlugin {
             routingController.createIsland(player, templateId);
             return;
         }
+        if (args[0].equalsIgnoreCase("reset") || args[0].equals("리셋")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            String reason = args.length > 2 ? joinArgs(args, 2) : "PLAYER_RESET";
+            routingController.resetIsland(player, islandId, reason);
+            return;
+        }
         if (args[0].equalsIgnoreCase("delete") || args[0].equals("삭제")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.deleteIsland(player, islandId);
