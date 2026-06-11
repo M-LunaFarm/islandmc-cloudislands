@@ -74,6 +74,9 @@ public interface CoreApiClient {
     CompletableFuture<Void> publishRouteSession(RouteTicket ticket);
     CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId);
     CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce);
+    CompletableFuture<String> listNodes();
+    CompletableFuture<String> drainNode(String nodeId);
+    CompletableFuture<String> undrainNode(String nodeId);
     CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs);
     CompletableFuture<String> listJobs();
     CompletableFuture<String> retryJob(UUID jobId);

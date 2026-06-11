@@ -56,6 +56,18 @@ public final class CloudIslandsVelocityPlugin {
     }
 
     private void dispatchAdmin(Player player, String[] args) {
+        if (args.length >= 2 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("list")) {
+            routingController.listNodes(player);
+            return;
+        }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("drain")) {
+            routingController.drainNode(player, args[2]);
+            return;
+        }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("undrain")) {
+            routingController.undrainNode(player, args[2]);
+            return;
+        }
         if (args.length >= 2 && args[0].equalsIgnoreCase("jobs") && args[1].equalsIgnoreCase("list")) {
             routingController.listJobs(player);
             return;
@@ -68,7 +80,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.cancelJob(player, parseUuidOrNil(args[2]));
             return;
         }
-        player.sendMessage(Component.text("사용법: /ciadmin jobs list, /ciadmin jobs retry <jobId>, /ciadmin jobs cancel <jobId>"));
+        player.sendMessage(Component.text("사용법: /ciadmin node list, /ciadmin node drain <node>, /ciadmin node undrain <node>, /ciadmin jobs list"));
     }
 
     private void dispatch(Player player, String[] args) {

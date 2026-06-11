@@ -265,6 +265,18 @@ public final class VelocityRoutingController {
         coreApiClient.cancelJob(jobId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "작업 취소를 요청하지 못했습니다." : body)));
     }
 
+    public void listNodes(Player player) {
+        coreApiClient.listNodes().thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "노드 목록을 불러오지 못했습니다." : body)));
+    }
+
+    public void drainNode(Player player, String nodeId) {
+        coreApiClient.drainNode(nodeId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "노드 drain을 요청하지 못했습니다." : body)));
+    }
+
+    public void undrainNode(Player player, String nodeId) {
+        coreApiClient.undrainNode(nodeId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "노드 undrain을 요청하지 못했습니다." : body)));
+    }
+
     private void route(Player player, RouteTicket ticket, String failureMessage) {
         if (ticket == null) {
             fallback(player, failureMessage);
