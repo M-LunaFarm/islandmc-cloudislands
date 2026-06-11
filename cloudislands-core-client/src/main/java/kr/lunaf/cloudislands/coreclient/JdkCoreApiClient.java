@@ -27,6 +27,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<kr.lunaf.cloudislands.api.model.CreateIslandResult> createIsland(UUID playerUuid, String templateId) {
+        return post("/v1/islands", "{\"playerUuid\":\"" + playerUuid + "\",\"templateId\":\"" + templateId + "\"}").thenApply(body -> new kr.lunaf.cloudislands.api.model.CreateIslandResult(body.contains("\"accepted\":true"), body.contains("ALREADY_HAS_ISLAND") ? "ALREADY_HAS_ISLAND" : "CREATING", null, null));
+    }
+
+    
     public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid) {
         return post("/v1/routes/home", "{\"playerUuid\":\"" + playerUuid + "\"}").thenApply(RouteTicketJson::parse);
     }
