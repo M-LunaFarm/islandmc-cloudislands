@@ -62,10 +62,11 @@ public final class SuperiorSkyblock2MigrationScanner {
             long level = parseLong(content, "level", 0L);
             String worth = parseString(content, "worth", "0.00");
             List<UUID> members = parseUuidList(content, "members", "islandMembers", "coopMembers", "coops");
+            List<UUID> bannedVisitors = parseUuidList(content, "bans", "bannedPlayers", "bannedVisitors", "visitorBans");
             LinkedHashSet<UUID> allMembers = new LinkedHashSet<>();
             allMembers.add(ownerUuid);
             allMembers.addAll(members);
-            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), size, level, worth));
+            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), bannedVisitors, size, level, worth));
         } catch (RuntimeException | IOException exception) {
             issues.add(new MigrationIssue("ISLAND_FILE_PARSE_FAILED", file + ": " + exception.getMessage(), true));
         }

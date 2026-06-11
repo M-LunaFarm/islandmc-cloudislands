@@ -61,6 +61,9 @@ public final class MigrationAdminService {
                     metadata.upsertMember(manifest.islandId(), memberUuid, IslandRole.MEMBER);
                 }
             }
+            for (java.util.UUID bannedUuid : manifest.bannedVisitors()) {
+                metadata.banVisitor(manifest.islandId(), manifest.ownerUuid(), bannedUuid, "Migrated from SuperiorSkyblock2");
+            }
             playerProfiles.setPrimaryIsland(manifest.ownerUuid(), manifest.islandId());
         });
         lastRollbackPlan = result.rollbackPlan();
@@ -74,6 +77,7 @@ public final class MigrationAdminService {
             islands.findById(manifest.islandId())
                 .filter(island -> island.ownerUuid().equals(manifest.ownerUuid()))
                 .filter(_island -> manifest.members().stream().allMatch(memberUuid -> metadata.isMember(manifest.islandId(), memberUuid)))
+                .filter(_island -> manifest.bannedVisitors().stream().allMatch(bannedUuid -> metadata.isBanned(manifest.islandId(), bannedUuid)))
                 .ifPresent(_island -> imported.add(manifest));
         }
         MigrationVerifier.VerificationResult result = verifier.verify(lastScan.manifests(), imported);
