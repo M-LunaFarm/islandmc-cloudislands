@@ -28,6 +28,7 @@ public interface CoreApiClient {
     CompletableFuture<Void> acceptIslandInvite(UUID inviteId, UUID playerUuid);
     CompletableFuture<Void> declineIslandInvite(UUID inviteId, UUID playerUuid);
     CompletableFuture<Void> banIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason);
+    CompletableFuture<String> listIslandBans(UUID islandId);
     CompletableFuture<Void> pardonIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid);
     CompletableFuture<String> listIslandFlags(UUID islandId);
     CompletableFuture<Void> setIslandFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value);
@@ -37,6 +38,7 @@ public interface CoreApiClient {
     CompletableFuture<Void> setIslandWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
     CompletableFuture<Void> deleteIslandWarp(UUID islandId, UUID actorUuid, String name);
     CompletableFuture<Void> setIslandPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess);
+    CompletableFuture<Void> setIslandLocked(UUID islandId, UUID actorUuid, boolean locked);
     CompletableFuture<Void> recordBlockDelta(UUID islandId, String materialKey, long delta);
     CompletableFuture<String> recalculateIslandLevel(UUID islandId);
     CompletableFuture<String> topIslandsByLevel(int limit);

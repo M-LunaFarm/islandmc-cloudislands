@@ -94,12 +94,20 @@ public final class VelocityRoutingController {
         coreApiClient.banIslandVisitor(islandId, player.getUniqueId(), targetUuid, reason).thenRun(() -> player.sendMessage(Component.text("방문자를 밴했습니다.")));
     }
 
+    public void listBans(Player player, UUID islandId) {
+        coreApiClient.listIslandBans(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "밴 목록을 불러오지 못했습니다." : body)));
+    }
+
     public void pardonVisitor(Player player, UUID islandId, UUID targetUuid) {
         coreApiClient.pardonIslandVisitor(islandId, player.getUniqueId(), targetUuid).thenRun(() -> player.sendMessage(Component.text("방문자 밴을 해제했습니다.")));
     }
 
     public void setPublicAccess(Player player, UUID islandId, boolean publicAccess) {
         coreApiClient.setIslandPublicAccess(islandId, player.getUniqueId(), publicAccess).thenRun(() -> player.sendMessage(Component.text(publicAccess ? "섬을 공개로 변경했습니다." : "섬을 비공개로 변경했습니다.")));
+    }
+
+    public void setLocked(Player player, UUID islandId, boolean locked) {
+        coreApiClient.setIslandLocked(islandId, player.getUniqueId(), locked).thenRun(() -> player.sendMessage(Component.text(locked ? "섬을 잠금 상태로 변경했습니다." : "섬 잠금을 해제했습니다.")));
     }
 
     public void listPermissions(Player player, UUID islandId) {

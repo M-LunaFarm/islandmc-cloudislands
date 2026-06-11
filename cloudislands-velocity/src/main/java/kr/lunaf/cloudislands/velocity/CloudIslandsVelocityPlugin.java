@@ -140,6 +140,11 @@ public final class CloudIslandsVelocityPlugin {
             routingController.pardonVisitor(player, islandId, targetUuid);
             return;
         }
+        if (args[0].equalsIgnoreCase("banlist") || args[0].equals("밴목록")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.listBans(player, islandId);
+            return;
+        }
         if (args[0].equalsIgnoreCase("public") || args[0].equals("공개")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.setPublicAccess(player, islandId, true);
@@ -148,6 +153,16 @@ public final class CloudIslandsVelocityPlugin {
         if (args[0].equalsIgnoreCase("private") || args[0].equals("비공개")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.setPublicAccess(player, islandId, false);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("lock") || args[0].equals("잠금")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.setLocked(player, islandId, true);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("unlock") || args[0].equals("잠금해제")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.setLocked(player, islandId, false);
             return;
         }
         if (args[0].equalsIgnoreCase("permissions") || args[0].equals("권한")) {

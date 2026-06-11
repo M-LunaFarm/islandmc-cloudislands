@@ -91,6 +91,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> listIslandBans(UUID islandId) {
+        return post("/v1/islands/bans", "{\"islandId\":\"" + islandId + "\"}");
+    }
+
+    @Override
     public CompletableFuture<Void> pardonIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid) {
         return post("/v1/islands/bans/remove", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\"}").thenApply(_body -> null);
     }
@@ -133,6 +138,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<Void> setIslandPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess) {
         return post("/v1/islands/access", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"publicAccess\":" + publicAccess + "}").thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<Void> setIslandLocked(UUID islandId, UUID actorUuid, boolean locked) {
+        return post("/v1/islands/lock", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"locked\":" + locked + "}").thenApply(_body -> null);
     }
 
     @Override

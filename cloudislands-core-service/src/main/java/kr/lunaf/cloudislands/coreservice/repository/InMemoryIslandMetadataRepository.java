@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
+import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
@@ -18,10 +19,11 @@ import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 public final class InMemoryIslandMetadataRepository implements IslandMetadataRepository {
     private final Map<UUID, Map<UUID, IslandMemberSnapshot>> members = new ConcurrentHashMap<>();
     private final Map<UUID, IslandInviteSnapshot> invites = new ConcurrentHashMap<>();
-    private final Map<UUID, Map<UUID, String>> bans = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<UUID, IslandBanSnapshot>> bans = new ConcurrentHashMap<>();
     private final Map<UUID, Map<IslandFlag, String>> flags = new ConcurrentHashMap<>();
     private final Map<UUID, Map<String, IslandWarpSnapshot>> warps = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> publicAccess = new ConcurrentHashMap<>();
+    private final Map<UUID, Boolean> locked = new ConcurrentHashMap<>();
 
     @Override
     public List<IslandMemberSnapshot> members(UUID islandId) {
@@ -93,8 +95,14 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     }
 
     @Override
+    public List<IslandBanSnapshot> bans(UUID islandId) {
+        return new ArrayList<>(bans.getOrDefault(islandId, Map.of()).values());
+    }
+
+    @Override
     public void banVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason) {
-        bans.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>()).put(playerUuid, reason == null ? "" : reason);
+        bans.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>())
+            .put(playerUuid, new IslandBanSnapshot(islandId, playerUuid, actorUuid, reason == null ? "" : reason, Instant.now(), null));
     }
 
     @Override
@@ -103,6 +111,16 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
         if (islandBans != null) {
             islandBans.remove(playerUuid);
         }
+    }
+
+    @Override
+    public boolean isLocked(UUID islandId) {
+        return locked.getOrDefault(islandId, false);
+    }
+
+    @Override
+    public void setLocked(UUID islandId, boolean locked) {
+        this.locked.put(islandId, locked);
     }
 
     @Override

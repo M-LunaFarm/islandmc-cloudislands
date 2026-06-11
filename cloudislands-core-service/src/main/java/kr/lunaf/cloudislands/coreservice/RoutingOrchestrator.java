@@ -54,7 +54,7 @@ public final class RoutingOrchestrator {
                 continue;
             }
             IslandSnapshot island = islands.findById(islandId).orElse(null);
-            if (island == null || metadata.isBanned(islandId, playerUuid)) {
+            if (island == null || metadata.isBanned(islandId, playerUuid) || metadata.isLocked(islandId)) {
                 continue;
             }
             RoutePreparationResult result = prepareTicket(playerUuid, island, RouteAction.VISIT);
@@ -87,6 +87,9 @@ public final class RoutingOrchestrator {
     private RoutePreparationResult visitAllowed(UUID playerUuid, IslandSnapshot island, RouteAction action, Map<String, String> extraPayload) {
         if (metadata.isBanned(island.islandId(), playerUuid)) {
             return RoutePreparationResult.rejected(403, ApiResponses.error("VISITOR_BANNED", "Visitor is banned from this island"));
+        }
+        if (metadata.isLocked(island.islandId()) && !metadata.isMember(island.islandId(), playerUuid)) {
+            return RoutePreparationResult.rejected(423, ApiResponses.error("ISLAND_LOCKED", "Island is locked"));
         }
         if (!island.publicAccess() && !metadata.isMember(island.islandId(), playerUuid)) {
             return RoutePreparationResult.rejected(403, ApiResponses.error("ISLAND_PRIVATE", "Island is private"));

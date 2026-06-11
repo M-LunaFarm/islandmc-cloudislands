@@ -430,6 +430,10 @@ public final class CloudIslandsCoreApplication {
             events.publish("ISLAND_VISITOR_BAN", Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
             write(exchange, 202, ApiResponses.ok(true));
         });
+        route("/v1/islands/bans", exchange -> {
+            String body = readBody(exchange);
+            write(exchange, 200, bansJson(metadataRepository.bans(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
+        });
         route("/v1/islands/bans/remove", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -438,6 +442,17 @@ public final class CloudIslandsCoreApplication {
             audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_VISITOR_PARDON", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
             islandLogs.append(islandId, JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "ISLAND_VISITOR_PARDON", Map.of("playerUuid", playerUuid.toString()));
             events.publish("ISLAND_VISITOR_PARDON", Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
+            write(exchange, 202, ApiResponses.ok(true));
+        });
+        route("/v1/islands/lock", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            boolean locked = JsonFields.bool(body, "locked", false);
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            metadataRepository.setLocked(islandId, locked);
+            audit.log(actorUuid, "PLAYER", "ISLAND_LOCK_SET", "ISLAND", islandId.toString(), Map.of("locked", Boolean.toString(locked)));
+            islandLogs.append(islandId, actorUuid, "ISLAND_LOCK_SET", Map.of("locked", Boolean.toString(locked)));
+            events.publish("ISLAND_LOCK_SET", Map.of("islandId", islandId.toString(), "locked", Boolean.toString(locked)));
             write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/islands/flags", exchange -> {
@@ -722,6 +737,26 @@ public final class CloudIslandsCoreApplication {
                 .append("\"action\":\"").append(escape(log.action())).append("\",")
                 .append("\"payload\":").append(stringMapJson(log.payload())).append(',')
                 .append("\"createdAt\":\"").append(log.createdAt()).append("\"")
+                .append('}');
+        }
+        return builder.append("]}").toString();
+    }
+
+    private static String bansJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandBanSnapshot> bans) {
+        StringBuilder builder = new StringBuilder("{\"bans\":[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.api.model.IslandBanSnapshot ban : bans) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('{')
+                .append("\"islandId\":\"").append(ban.islandId()).append("\",")
+                .append("\"bannedUuid\":\"").append(ban.bannedUuid()).append("\",")
+                .append("\"actorUuid\":\"").append(ban.actorUuid()).append("\",")
+                .append("\"reason\":\"").append(escape(ban.reason())).append("\",")
+                .append("\"createdAt\":\"").append(ban.createdAt()).append("\",")
+                .append("\"expiresAt\":").append(ban.expiresAt() == null ? "null" : "\"" + ban.expiresAt() + "\"")
                 .append('}');
         }
         return builder.append("]}").toString();

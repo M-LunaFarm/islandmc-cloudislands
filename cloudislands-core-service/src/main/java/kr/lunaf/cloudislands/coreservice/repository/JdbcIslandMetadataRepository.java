@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.UUID;
 import javax.sql.DataSource;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
+import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
@@ -176,6 +177,30 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     }
 
     @Override
+    public List<IslandBanSnapshot> bans(UUID islandId) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT island_id, banned_uuid, actor_uuid, reason, created_at, expires_at FROM island_bans WHERE island_id = ? AND (expires_at IS NULL OR expires_at > now()) ORDER BY created_at DESC")) {
+            statement.setObject(1, islandId);
+            try (ResultSet rs = statement.executeQuery()) {
+                List<IslandBanSnapshot> result = new ArrayList<>();
+                while (rs.next()) {
+                    result.add(new IslandBanSnapshot(
+                        (UUID) rs.getObject("island_id"),
+                        (UUID) rs.getObject("banned_uuid"),
+                        (UUID) rs.getObject("actor_uuid"),
+                        rs.getString("reason"),
+                        rs.getTimestamp("created_at").toInstant(),
+                        rs.getTimestamp("expires_at") == null ? null : rs.getTimestamp("expires_at").toInstant()
+                    ));
+                }
+                return result;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read island bans", exception);
+        }
+    }
+
+    @Override
     public void banVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("INSERT INTO island_bans(island_id, banned_uuid, actor_uuid, reason) VALUES (?, ?, ?, ?) ON CONFLICT (island_id, banned_uuid) DO UPDATE SET actor_uuid = EXCLUDED.actor_uuid, reason = EXCLUDED.reason, created_at = now(), expires_at = NULL")) {
@@ -198,6 +223,31 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to pardon island visitor", exception);
+        }
+    }
+
+    @Override
+    public boolean isLocked(UUID islandId) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT locked FROM islands WHERE id = ? AND deleted_at IS NULL")) {
+            statement.setObject(1, islandId);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() && rs.getBoolean("locked");
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read island lock state", exception);
+        }
+    }
+
+    @Override
+    public void setLocked(UUID islandId, boolean locked) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("UPDATE islands SET locked = ?, updated_at = now() WHERE id = ?")) {
+            statement.setBoolean(1, locked);
+            statement.setObject(2, islandId);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to update island lock state", exception);
         }
     }
 
