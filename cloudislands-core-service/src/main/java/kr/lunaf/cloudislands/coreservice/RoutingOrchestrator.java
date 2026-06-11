@@ -1,6 +1,9 @@
 package kr.lunaf.cloudislands.coreservice;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
@@ -40,6 +43,26 @@ public final class RoutingOrchestrator {
         return islands.findById(islandId)
             .map(island -> visitAllowed(playerUuid, island))
             .orElseGet(() -> RoutePreparationResult.rejected(404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
+    }
+
+    public RoutePreparationResult prepareRandomVisitRoute(UUID playerUuid) {
+        List<UUID> candidates = new ArrayList<>(metadata.publicIslandIds(64));
+        Collections.shuffle(candidates);
+        UUID ownedIsland = islands.findByOwner(playerUuid).map(IslandSnapshot::islandId).orElse(null);
+        for (UUID islandId : candidates) {
+            if (islandId.equals(ownedIsland)) {
+                continue;
+            }
+            IslandSnapshot island = islands.findById(islandId).orElse(null);
+            if (island == null || metadata.isBanned(islandId, playerUuid)) {
+                continue;
+            }
+            RoutePreparationResult result = prepareTicket(playerUuid, island, RouteAction.VISIT);
+            if (result.status() == 202) {
+                return result;
+            }
+        }
+        return RoutePreparationResult.rejected(404, ApiResponses.error("PUBLIC_ISLAND_NOT_FOUND", "No public island is available"));
     }
 
     public RoutePreparationResult prepareWarpRoute(UUID playerUuid, UUID islandId, String warpName) {

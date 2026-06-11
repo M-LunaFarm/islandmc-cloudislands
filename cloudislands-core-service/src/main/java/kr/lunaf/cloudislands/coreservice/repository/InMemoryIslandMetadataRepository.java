@@ -139,4 +139,13 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     public void setPublicAccess(UUID islandId, boolean publicAccess) {
         this.publicAccess.put(islandId, publicAccess);
     }
+
+    @Override
+    public List<UUID> publicIslandIds(int limit) {
+        return publicAccess.entrySet().stream()
+            .filter(Map.Entry::getValue)
+            .map(Map.Entry::getKey)
+            .limit(Math.max(0, limit))
+            .toList();
+    }
 }

@@ -179,6 +179,10 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             routeResult(exchange, routing.prepareVisitRoute(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), JsonFields.uuid(body, "islandId", new UUID(0L, 0L))));
         });
+        route("/v1/routes/random", exchange -> {
+            String body = readBody(exchange);
+            routeResult(exchange, routing.prepareRandomVisitRoute(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L))));
+        });
         route("/v1/routes/warp", exchange -> {
             String body = readBody(exchange);
             routeResult(exchange, routing.prepareWarpRoute(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "warpName", "default")));

@@ -292,6 +292,23 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
         }
     }
 
+    @Override
+    public List<UUID> publicIslandIds(int limit) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT id FROM islands WHERE public_access = true AND deleted_at IS NULL ORDER BY random() LIMIT ?")) {
+            statement.setInt(1, Math.max(0, limit));
+            try (ResultSet rs = statement.executeQuery()) {
+                List<UUID> result = new ArrayList<>();
+                while (rs.next()) {
+                    result.add((UUID) rs.getObject("id"));
+                }
+                return result;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read public islands", exception);
+        }
+    }
+
     private IslandInviteSnapshot lockInvite(Connection connection, UUID inviteId) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement("SELECT id, island_id, inviter_uuid, target_uuid, state, created_at, expires_at FROM island_invites WHERE id = ? FOR UPDATE")) {
             statement.setObject(1, inviteId);

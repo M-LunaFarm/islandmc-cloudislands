@@ -59,6 +59,11 @@ public final class CloudIslandsVelocityPlugin {
             routingController.routeVisit(player, targetIslandId);
             return;
         }
+        if (args[0].equalsIgnoreCase("randomvisit") || args[0].equals("랜덤방문")) {
+            player.sendActionBar(Component.text("방문 가능한 공개 섬을 찾는 중입니다."));
+            routingController.routeRandomVisit(player);
+            return;
+        }
         if (args[0].equalsIgnoreCase("warp") || args[0].equals("워프")) {
             player.sendActionBar(Component.text("섬 워프로 이동하는 중입니다."));
             UUID targetIslandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
