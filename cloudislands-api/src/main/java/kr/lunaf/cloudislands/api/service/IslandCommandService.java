@@ -33,6 +33,7 @@ public interface IslandCommandService {
     CompletableFuture<Void> setBiome(UUID islandId, UUID actorUuid, String biomeKey);
     CompletableFuture<Void> setLimit(UUID islandId, UUID actorUuid, String limitKey, long value);
     CompletableFuture<Void> createWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location);
+    CompletableFuture<Void> setWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
     CompletableFuture<Void> deleteWarp(UUID islandId, UUID actorUuid, String name);
     CompletableFuture<Void> setPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess);
     CompletableFuture<IslandLevelSnapshot> recalculateLevel(UUID islandId, UUID actorUuid);

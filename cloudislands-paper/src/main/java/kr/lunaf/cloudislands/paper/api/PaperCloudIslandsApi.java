@@ -450,7 +450,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> setHome(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return client.setIslandHome(islandId, actorUuid, name, location); }
         @Override public CompletableFuture<Void> setBiome(UUID islandId, UUID actorUuid, String biomeKey) { return client.setIslandBiome(islandId, actorUuid, biomeKey); }
         @Override public CompletableFuture<Void> setLimit(UUID islandId, UUID actorUuid, String limitKey, long value) { return client.setIslandLimit(islandId, actorUuid, limitKey, value).thenApply(_body -> null); }
-        @Override public CompletableFuture<Void> createWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return client.setIslandWarp(islandId, actorUuid, name, location, false); }
+        @Override public CompletableFuture<Void> createWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return setWarp(islandId, actorUuid, name, location, false); }
+        @Override public CompletableFuture<Void> setWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) { return client.setIslandWarp(islandId, actorUuid, name, location, publicAccess); }
         @Override public CompletableFuture<Void> deleteWarp(UUID islandId, UUID actorUuid, String name) { return client.deleteIslandWarp(islandId, actorUuid, name); }
         @Override public CompletableFuture<Void> setPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess) { return client.setIslandPublicAccess(islandId, actorUuid, publicAccess); }
         @Override public CompletableFuture<IslandLevelSnapshot> recalculateLevel(UUID islandId, UUID actorUuid) { return client.recalculateIslandLevel(islandId, actorUuid).thenApply(PaperCloudIslandsApi::level); }
