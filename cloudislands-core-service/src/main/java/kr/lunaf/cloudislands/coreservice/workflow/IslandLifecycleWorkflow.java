@@ -50,7 +50,7 @@ public final class IslandLifecycleWorkflow {
     public Result deactivate(UUID islandId) {
         IslandRuntimeSnapshot runtime = runtimes.markSaving(islandId);
         jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DEACTIVATE_ISLAND, islandId, runtime.activeNode(), 0, Map.of(), Instant.now()));
-        events.publish(CloudIslandEventType.ISLAND_DEACTIVATED.name(), Map.of("islandId", islandId.toString(), "state", runtime.state().name()));
+        events.publish(CloudIslandEventType.ISLAND_DEACTIVATE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "state", runtime.state().name()));
         return new Result(true, "SAVING", runtime);
     }
 

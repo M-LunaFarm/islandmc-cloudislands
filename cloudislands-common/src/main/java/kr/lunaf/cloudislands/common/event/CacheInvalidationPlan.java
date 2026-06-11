@@ -12,7 +12,7 @@ public final class CacheInvalidationPlan {
             case ISLAND_FLAG_CHANGED -> EnumSet.of(CacheTarget.FLAGS, CacheTarget.PERMISSIONS);
             case ISLAND_PERMISSION_CHANGED -> EnumSet.of(CacheTarget.PERMISSIONS);
             case ISLAND_WARP_CHANGED -> EnumSet.of(CacheTarget.WARPS);
-            case ISLAND_RUNTIME_CHANGED, ISLAND_ACTIVATED, ISLAND_DEACTIVATED, ISLAND_MIGRATE_REQUESTED, ISLAND_MIGRATED, ISLAND_DELETE_REQUESTED -> EnumSet.of(CacheTarget.RUNTIME, CacheTarget.ROUTE, CacheTarget.SUMMARY);
+            case ISLAND_RUNTIME_CHANGED, ISLAND_ACTIVATED, ISLAND_DEACTIVATE_REQUESTED, ISLAND_DEACTIVATED, ISLAND_MIGRATE_REQUESTED, ISLAND_MIGRATED, ISLAND_DELETE_REQUESTED -> EnumSet.of(CacheTarget.RUNTIME, CacheTarget.ROUTE, CacheTarget.SUMMARY);
             case ISLAND_LEVEL_UPDATED -> EnumSet.of(CacheTarget.LEVEL, CacheTarget.SUMMARY);
             case ISLAND_UPGRADE -> EnumSet.of(CacheTarget.SUMMARY, CacheTarget.LEVEL, CacheTarget.GENERATOR);
             case ISLAND_SNAPSHOT_REQUESTED, ISLAND_SNAPSHOT_CREATED -> EnumSet.of(CacheTarget.SUMMARY, CacheTarget.SNAPSHOTS);
