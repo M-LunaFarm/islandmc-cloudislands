@@ -45,6 +45,7 @@ import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.api.model.IslandTemplateSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
+import kr.lunaf.cloudislands.api.model.JobRecoveryResult;
 import kr.lunaf.cloudislands.api.model.MigrationIssueSnapshot;
 import kr.lunaf.cloudislands.api.model.MigrationRunSnapshot;
 import kr.lunaf.cloudislands.api.model.NodeState;
@@ -372,9 +373,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> clearRoute(UUID playerUuid, UUID ticketId) { return clearRouteResult(playerUuid, ticketId).thenApply(_result -> null); }
         @Override public CompletableFuture<RouteClearResult> clearRouteResult(UUID playerUuid, UUID ticketId) { return client.clearRouteResult(playerUuid, ticketId).thenApply(PaperCloudIslandsApi::routeClear); }
         @Override public CompletableFuture<List<IslandJobSnapshot>> listJobs() { return client.listJobs().thenApply(PaperCloudIslandsApi::jobs); }
-        @Override public CompletableFuture<Void> retryJob(UUID jobId) { return client.retryJob(jobId).thenApply(_body -> null); }
-        @Override public CompletableFuture<Void> cancelJob(UUID jobId) { return client.cancelJob(jobId).thenApply(_body -> null); }
-        @Override public CompletableFuture<Void> recoverJobs(String nodeId, long minIdleMillis, int maxJobs) { return client.recoverJobs(nodeId, minIdleMillis, maxJobs).thenApply(_body -> null); }
+        @Override public CompletableFuture<Void> retryJob(UUID jobId) { return retryJobResult(jobId).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> retryJobResult(UUID jobId) { return client.retryJobResult(jobId).thenApply(body -> action(body, "JOB_RETRIED")); }
+        @Override public CompletableFuture<Void> cancelJob(UUID jobId) { return cancelJobResult(jobId).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> cancelJobResult(UUID jobId) { return client.cancelJobResult(jobId).thenApply(body -> action(body, "JOB_CANCELED")); }
+        @Override public CompletableFuture<Void> recoverJobs(String nodeId, long minIdleMillis, int maxJobs) { return recoverJobsResult(nodeId, minIdleMillis, maxJobs).thenApply(_result -> null); }
+        @Override public CompletableFuture<JobRecoveryResult> recoverJobsResult(String nodeId, long minIdleMillis, int maxJobs) { return client.recoverJobsResult(nodeId, minIdleMillis, maxJobs).thenApply(PaperCloudIslandsApi::jobRecovery); }
         @Override public CompletableFuture<Void> clearCache() { return clearCacheResult().thenApply(_result -> null); }
         @Override public CompletableFuture<CoreMaintenanceResult> clearCacheResult() { return client.clearCacheResult().thenApply(body -> maintenance(body, false)); }
         @Override public CompletableFuture<Void> reload() { return reloadResult().thenApply(_result -> null); }
@@ -1043,6 +1047,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             integer(json, "clearedSessions", 0),
             integer(json, "clearedTickets", 0)
         );
+    }
+
+    private static JobRecoveryResult jobRecovery(String json) {
+        boolean accepted = json != null && !json.isBlank() && !json.contains("\"error\"");
+        return new JobRecoveryResult(accepted, accepted ? text(json, "recovered", scalar(json, "recovered")) : "", accepted ? "RECOVERED" : text(json, "code", "FAILED"));
     }
 
     private static void putPayloadIfPresent(Map<String, String> payload, String json, String field) {

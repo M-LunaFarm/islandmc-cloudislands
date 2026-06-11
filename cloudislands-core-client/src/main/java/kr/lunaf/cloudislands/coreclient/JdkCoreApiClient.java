@@ -638,17 +638,32 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> retryJob(UUID jobId) {
-        return post("/v1/admin/jobs/retry", "{\"jobId\":\"" + jobId + "\"}");
+        return retryJobResult(jobId);
+    }
+
+    @Override
+    public CompletableFuture<String> retryJobResult(UUID jobId) {
+        return postWithResultBody("/v1/admin/jobs/retry", "{\"jobId\":\"" + jobId + "\"}");
     }
 
     @Override
     public CompletableFuture<String> cancelJob(UUID jobId) {
-        return post("/v1/admin/jobs/cancel", "{\"jobId\":\"" + jobId + "\"}");
+        return cancelJobResult(jobId);
+    }
+
+    @Override
+    public CompletableFuture<String> cancelJobResult(UUID jobId) {
+        return postWithResultBody("/v1/admin/jobs/cancel", "{\"jobId\":\"" + jobId + "\"}");
     }
 
     @Override
     public CompletableFuture<String> recoverJobs(String nodeId, long minIdleMillis, int maxJobs) {
-        return post("/v1/jobs/recover", "{\"nodeId\":\"" + escape(nodeId) + "\",\"minIdleMillis\":" + minIdleMillis + ",\"maxJobs\":" + maxJobs + "}");
+        return recoverJobsResult(nodeId, minIdleMillis, maxJobs);
+    }
+
+    @Override
+    public CompletableFuture<String> recoverJobsResult(String nodeId, long minIdleMillis, int maxJobs) {
+        return postWithResultBody("/v1/jobs/recover", "{\"nodeId\":\"" + escape(nodeId) + "\",\"minIdleMillis\":" + minIdleMillis + ",\"maxJobs\":" + maxJobs + "}");
     }
 
     @Override
