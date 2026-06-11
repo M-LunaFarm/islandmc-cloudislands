@@ -99,6 +99,22 @@ public final class IslandCommandController implements CommandExecutor {
             setWarpPublicAccess(player, args[1], false);
             return true;
         }
+        if (subcommand.equals("public") || subcommand.equals("공개")) {
+            setIslandPublicAccess(player, true);
+            return true;
+        }
+        if (subcommand.equals("private") || subcommand.equals("비공개")) {
+            setIslandPublicAccess(player, false);
+            return true;
+        }
+        if (subcommand.equals("lock") || subcommand.equals("잠금")) {
+            setIslandLocked(player, true);
+            return true;
+        }
+        if (subcommand.equals("unlock") || subcommand.equals("잠금해제")) {
+            setIslandLocked(player, false);
+            return true;
+        }
         return false;
     }
 
@@ -221,6 +237,36 @@ public final class IslandCommandController implements CommandExecutor {
                 .thenRun(() -> message(player, publicAccess ? "섬 워프를 공개했습니다." : "섬 워프를 비공개로 변경했습니다."))
                 .exceptionally(error -> {
                     message(player, "섬 워프 공개 상태를 변경하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void setIslandPublicAccess(Player player, boolean publicAccess) {
+        currentIsland(player, "섬 안에서만 공개 상태를 변경할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.MANAGE_FLAGS)) {
+                player.sendMessage("섬 공개 상태를 변경할 권한이 없습니다.");
+                return;
+            }
+            coreApiClient.setIslandPublicAccess(islandId, player.getUniqueId(), publicAccess)
+                .thenRun(() -> message(player, publicAccess ? "섬을 공개했습니다." : "섬을 비공개로 변경했습니다."))
+                .exceptionally(error -> {
+                    message(player, "섬 공개 상태를 변경하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void setIslandLocked(Player player, boolean locked) {
+        currentIsland(player, "섬 안에서만 잠금 상태를 변경할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.MANAGE_FLAGS)) {
+                player.sendMessage("섬 잠금 상태를 변경할 권한이 없습니다.");
+                return;
+            }
+            coreApiClient.setIslandLocked(islandId, player.getUniqueId(), locked)
+                .thenRun(() -> message(player, locked ? "섬을 잠갔습니다." : "섬 잠금을 해제했습니다."))
+                .exceptionally(error -> {
+                    message(player, "섬 잠금 상태를 변경하지 못했습니다.");
                     return null;
                 });
         });
