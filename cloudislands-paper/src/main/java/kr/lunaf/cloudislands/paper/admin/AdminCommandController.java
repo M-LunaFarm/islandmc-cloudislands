@@ -16,10 +16,11 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public final class AdminCommandController implements CommandExecutor, TabCompleter {
-    private static final List<String> ROOT_COMMANDS = List.of("status", "cache", "node", "island", "jobs", "route", "template", "reload");
+    private static final List<String> ROOT_COMMANDS = List.of("status", "cache", "node", "island", "player", "jobs", "route", "template", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
+    private static final List<String> PLAYER_COMMANDS = List.of("info", "setisland", "clearisland");
     private static final List<String> JOB_COMMANDS = List.of("list", "retry", "cancel", "recover");
     private static final List<String> ROUTE_COMMANDS = List.of("debug", "ticket", "clear");
     private static final List<String> TEMPLATE_COMMANDS = List.of("list", "upsert", "enable", "disable");
@@ -58,6 +59,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (args[0].equalsIgnoreCase("island")) {
             return handleIsland(sender, args);
         }
+        if (args[0].equalsIgnoreCase("player")) {
+            return handlePlayer(sender, args);
+        }
         if (args[0].equalsIgnoreCase("jobs")) {
             return handleJobs(sender, args);
         }
@@ -87,6 +91,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("island")) {
             return matches(ISLAND_COMMANDS, args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("player")) {
+            return matches(PLAYER_COMMANDS, args[1]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("jobs")) {
             return matches(JOB_COMMANDS, args[1]);
@@ -217,6 +224,38 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         return true;
     }
 
+    private boolean handlePlayer(CommandSender sender, String[] args) {
+        if (args.length < 3) {
+            sender.sendMessage("사용법: /ciadmin player info|setisland|clearisland <playerUuid> [islandUuid]");
+            return true;
+        }
+        UUID playerUuid = uuid(sender, args[2]);
+        if (playerUuid == null) {
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("info")) {
+            run(sender, "Player info", coreApiClient.playerInfo(playerUuid));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("setisland")) {
+            if (args.length < 4) {
+                sender.sendMessage("섬 UUID를 입력해주세요.");
+                return true;
+            }
+            UUID islandId = uuid(sender, args[3]);
+            if (islandId != null) {
+                run(sender, "Player setisland", coreApiClient.setPlayerIsland(playerUuid, islandId));
+            }
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("clearisland")) {
+            run(sender, "Player clearisland", coreApiClient.clearPlayerIsland(playerUuid));
+            return true;
+        }
+        sender.sendMessage("사용법: /ciadmin player info|setisland|clearisland <playerUuid> [islandUuid]");
+        return true;
+    }
+
     private boolean handleJobs(CommandSender sender, String[] args) {
         if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
             run(sender, "Jobs list", coreApiClient.listJobs());
@@ -327,7 +366,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private void usage(CommandSender sender, String label) {
-        sender.sendMessage("사용법: /" + label + " status, cache clear, node list, island info <uuid>, jobs list, route debug <uuid>, template list, reload");
+        sender.sendMessage("사용법: /" + label + " status, cache clear, node list, island info <uuid>, player info <uuid>, jobs list, route debug <uuid>, template list, reload");
     }
 
     private UUID uuid(CommandSender sender, String value) {
