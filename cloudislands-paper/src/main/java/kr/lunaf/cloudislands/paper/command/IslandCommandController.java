@@ -47,6 +47,30 @@ public final class IslandCommandController implements CommandExecutor {
             setWarp(player, args[1]);
             return true;
         }
+        if (subcommand.equals("delwarp") || subcommand.equals("deletewarp") || subcommand.equals("워프삭제")) {
+            if (args.length < 2) {
+                player.sendMessage("워프 이름을 입력해주세요.");
+                return true;
+            }
+            deleteWarp(player, args[1]);
+            return true;
+        }
+        if (subcommand.equals("warp-public") || subcommand.equals("워프공개")) {
+            if (args.length < 2) {
+                player.sendMessage("워프 이름을 입력해주세요.");
+                return true;
+            }
+            setWarpPublicAccess(player, args[1], true);
+            return true;
+        }
+        if (subcommand.equals("warp-private") || subcommand.equals("워프비공개")) {
+            if (args.length < 2) {
+                player.sendMessage("워프 이름을 입력해주세요.");
+                return true;
+            }
+            setWarpPublicAccess(player, args[1], false);
+            return true;
+        }
         return false;
     }
 
@@ -75,6 +99,36 @@ public final class IslandCommandController implements CommandExecutor {
                 .thenRun(() -> message(player, "섬 워프를 설정했습니다."))
                 .exceptionally(error -> {
                     message(player, "섬 워프를 설정하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void deleteWarp(Player player, String name) {
+        currentIsland(player, "섬 안에서만 워프를 삭제할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.MANAGE_WARPS)) {
+                player.sendMessage("섬 워프를 삭제할 권한이 없습니다.");
+                return;
+            }
+            coreApiClient.deleteIslandWarp(islandId, player.getUniqueId(), name)
+                .thenRun(() -> message(player, "섬 워프를 삭제했습니다."))
+                .exceptionally(error -> {
+                    message(player, "섬 워프를 삭제하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void setWarpPublicAccess(Player player, String name, boolean publicAccess) {
+        currentIsland(player, "섬 안에서만 워프 공개 상태를 변경할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.MANAGE_WARPS)) {
+                player.sendMessage("섬 워프 공개 상태를 변경할 권한이 없습니다.");
+                return;
+            }
+            coreApiClient.setIslandWarpPublicAccess(islandId, player.getUniqueId(), name, publicAccess)
+                .thenRun(() -> message(player, publicAccess ? "섬 워프를 공개했습니다." : "섬 워프를 비공개로 변경했습니다."))
+                .exceptionally(error -> {
+                    message(player, "섬 워프 공개 상태를 변경하지 못했습니다.");
                     return null;
                 });
         });
