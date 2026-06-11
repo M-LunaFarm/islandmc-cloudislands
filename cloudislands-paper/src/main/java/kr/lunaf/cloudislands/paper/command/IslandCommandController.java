@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper.command;
 
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
+import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import org.bukkit.Location;
@@ -51,6 +52,10 @@ public final class IslandCommandController implements CommandExecutor {
 
     private void setHome(Player player, String name) {
         currentIsland(player, "섬 안에서만 홈을 설정할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.SET_HOME)) {
+                player.sendMessage("섬 홈을 설정할 권한이 없습니다.");
+                return;
+            }
             coreApiClient.setIslandHome(islandId, player.getUniqueId(), name, location(player.getLocation()))
                 .thenRun(() -> message(player, "섬 홈을 설정했습니다."))
                 .exceptionally(error -> {
@@ -62,6 +67,10 @@ public final class IslandCommandController implements CommandExecutor {
 
     private void setWarp(Player player, String name) {
         currentIsland(player, "섬 안에서만 워프를 설정할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.MANAGE_WARPS)) {
+                player.sendMessage("섬 워프를 설정할 권한이 없습니다.");
+                return;
+            }
             coreApiClient.setIslandWarp(islandId, player.getUniqueId(), name, location(player.getLocation()), false)
                 .thenRun(() -> message(player, "섬 워프를 설정했습니다."))
                 .exceptionally(error -> {
@@ -77,6 +86,19 @@ public final class IslandCommandController implements CommandExecutor {
             player.sendMessage(missingMessage);
         }
         return islandId;
+    }
+
+    private boolean allowed(Player player, IslandPermission permission) {
+        Location location = player.getLocation();
+        return protection.checkBlock(
+            player.getUniqueId(),
+            location.getWorld().getName(),
+            location.getBlockX(),
+            location.getBlockY(),
+            location.getBlockZ(),
+            permission,
+            player.isOp()
+        ).allowed();
     }
 
     private IslandLocation location(Location location) {
