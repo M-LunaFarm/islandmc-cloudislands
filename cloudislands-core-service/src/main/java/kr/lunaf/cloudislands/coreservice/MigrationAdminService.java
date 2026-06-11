@@ -56,6 +56,11 @@ public final class MigrationAdminService {
         CloudIslandsMigrationImporter.ImportResult result = importer.importPlan(lastPlan, manifest -> {
             islands.createOwnedIsland(manifest.islandId(), manifest.ownerUuid(), "superiorskyblock2", "Migrated Island");
             metadata.upsertMember(manifest.islandId(), manifest.ownerUuid(), IslandRole.OWNER);
+            for (java.util.UUID memberUuid : manifest.members()) {
+                if (!memberUuid.equals(manifest.ownerUuid())) {
+                    metadata.upsertMember(manifest.islandId(), memberUuid, IslandRole.MEMBER);
+                }
+            }
             playerProfiles.setPrimaryIsland(manifest.ownerUuid(), manifest.islandId());
         });
         lastRollbackPlan = result.rollbackPlan();
@@ -68,6 +73,7 @@ public final class MigrationAdminService {
         for (MigrationManifest manifest : lastScan.manifests()) {
             islands.findById(manifest.islandId())
                 .filter(island -> island.ownerUuid().equals(manifest.ownerUuid()))
+                .filter(_island -> manifest.members().stream().allMatch(memberUuid -> metadata.isMember(manifest.islandId(), memberUuid)))
                 .ifPresent(_island -> imported.add(manifest));
         }
         MigrationVerifier.VerificationResult result = verifier.verify(lastScan.manifests(), imported);

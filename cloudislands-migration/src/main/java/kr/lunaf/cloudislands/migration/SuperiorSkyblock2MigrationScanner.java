@@ -5,11 +5,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public final class SuperiorSkyblock2MigrationScanner {
+    private static final Pattern UUID_PATTERN = Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+
     public ScanResult scan(Path superiorSkyblockDataPath) {
         List<MigrationManifest> manifests = new ArrayList<>();
         List<MigrationIssue> issues = new ArrayList<>();
@@ -55,7 +61,11 @@ public final class SuperiorSkyblock2MigrationScanner {
             int size = parseInt(content, "size", 300);
             long level = parseLong(content, "level", 0L);
             String worth = parseString(content, "worth", "0.00");
-            manifests.add(new MigrationManifest(islandId, ownerUuid, List.of(ownerUuid), size, level, worth));
+            List<UUID> members = parseUuidList(content, "members", "islandMembers", "coopMembers", "coops");
+            LinkedHashSet<UUID> allMembers = new LinkedHashSet<>();
+            allMembers.add(ownerUuid);
+            allMembers.addAll(members);
+            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), size, level, worth));
         } catch (RuntimeException | IOException exception) {
             issues.add(new MigrationIssue("ISLAND_FILE_PARSE_FAILED", file + ": " + exception.getMessage(), true));
         }
@@ -120,6 +130,67 @@ public final class SuperiorSkyblock2MigrationScanner {
             return Long.parseLong(parseString(content, key, Long.toString(fallback)));
         } catch (NumberFormatException ignored) {
             return fallback;
+        }
+    }
+
+    private List<UUID> parseUuidList(String content, String... keys) {
+        LinkedHashSet<UUID> uuids = new LinkedHashSet<>();
+        for (String key : keys) {
+            uuids.addAll(parseJsonUuidArray(content, key));
+            uuids.addAll(parseYamlUuidBlock(content, key));
+        }
+        return List.copyOf(uuids);
+    }
+
+    private Set<UUID> parseJsonUuidArray(String content, String key) {
+        LinkedHashSet<UUID> uuids = new LinkedHashSet<>();
+        String needle = "\"" + key + "\"";
+        int keyStart = content.indexOf(needle);
+        if (keyStart < 0) {
+            return uuids;
+        }
+        int arrayStart = content.indexOf('[', keyStart + needle.length());
+        int arrayEnd = arrayStart < 0 ? -1 : content.indexOf(']', arrayStart + 1);
+        if (arrayEnd <= arrayStart) {
+            return uuids;
+        }
+        collectUuids(content.substring(arrayStart + 1, arrayEnd), uuids);
+        return uuids;
+    }
+
+    private Set<UUID> parseYamlUuidBlock(String content, String key) {
+        LinkedHashSet<UUID> uuids = new LinkedHashSet<>();
+        String[] lines = content.split("\\R");
+        for (int index = 0; index < lines.length; index++) {
+            String line = lines[index];
+            String trimmed = line.trim();
+            if (!trimmed.startsWith(key + ":")) {
+                continue;
+            }
+            String inline = trimmed.substring((key + ":").length()).trim();
+            collectUuids(inline, uuids);
+            int parentIndent = line.indexOf(trimmed);
+            for (int child = index + 1; child < lines.length; child++) {
+                String childLine = lines[child];
+                String childTrimmed = childLine.trim();
+                if (childTrimmed.isEmpty() || childTrimmed.startsWith("#")) {
+                    continue;
+                }
+                int childIndent = childLine.indexOf(childTrimmed);
+                if (childIndent <= parentIndent) {
+                    break;
+                }
+                collectUuids(childTrimmed, uuids);
+            }
+            break;
+        }
+        return uuids;
+    }
+
+    private void collectUuids(String text, Set<UUID> uuids) {
+        Matcher matcher = UUID_PATTERN.matcher(text);
+        while (matcher.find()) {
+            uuids.add(UUID.fromString(matcher.group()));
         }
     }
 
