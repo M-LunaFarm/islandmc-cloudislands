@@ -8,23 +8,34 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
-import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import javax.sql.DataSource;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
+import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.audit.InMemoryAuditLogger;
+import kr.lunaf.cloudislands.coreservice.audit.JdbcAuditLogger;
+import kr.lunaf.cloudislands.coreservice.config.CoreServiceConfig;
+import kr.lunaf.cloudislands.coreservice.db.DriverManagerDataSource;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
+import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
+import kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRuntimeRepository;
+import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
+import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
+import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandRepository;
+import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.security.ApiTokenGuard;
 import kr.lunaf.cloudislands.coreservice.security.FixedWindowRateLimiter;
+import kr.lunaf.cloudislands.coreservice.security.AdminEndpointGuard;
+import kr.lunaf.cloudislands.coreservice.security.IpAllowlist;
 import kr.lunaf.cloudislands.coreservice.session.InMemoryRouteSessionStore;
 import kr.lunaf.cloudislands.coreservice.ticket.InMemoryRouteTicketStore;
 import kr.lunaf.cloudislands.coreservice.workflow.CreateIslandWorkflow;
@@ -36,29 +47,39 @@ public final class CloudIslandsCoreApplication {
     private final HttpServer server;
     private final ApiTokenGuard tokenGuard;
     private final FixedWindowRateLimiter rateLimiter;
-    private final kr.lunaf.cloudislands.coreservice.security.AdminEndpointGuard adminGuard;
-    private final kr.lunaf.cloudislands.coreservice.security.IpAllowlist ipAllowlist;
+    private final AdminEndpointGuard adminGuard;
+    private final IpAllowlist ipAllowlist;
 
     public CloudIslandsCoreApplication(int port) throws IOException {
+        this(CoreServiceConfig.fromEnvironment().withPort(port));
+    }
+
+    public CloudIslandsCoreApplication(CoreServiceConfig config) throws IOException {
         Clock clock = Clock.systemUTC();
-        this.tokenGuard = new ApiTokenGuard(System.getenv().getOrDefault("CI_CORE_TOKEN", ""));
+        this.tokenGuard = new ApiTokenGuard(config.coreToken());
         this.rateLimiter = new FixedWindowRateLimiter(clock, 240, 60_000L);
-        this.adminGuard = new kr.lunaf.cloudislands.coreservice.security.AdminEndpointGuard(System.getenv().getOrDefault("CI_ADMIN_TOKEN", ""));
-        this.ipAllowlist = new kr.lunaf.cloudislands.coreservice.security.IpAllowlist(System.getenv().getOrDefault("CI_IP_ALLOWLIST", ""));
+        this.adminGuard = new AdminEndpointGuard(config.adminToken());
+        this.ipAllowlist = new IpAllowlist(config.ipAllowlist());
+        DataSource dataSource = new DriverManagerDataSource(config.jdbcUrl(), config.databaseUsername(), config.databasePassword());
         InMemoryNodeRegistry nodes = new InMemoryNodeRegistry();
-        NodeAllocator allocator = new NodeAllocator(Duration.ofSeconds(5));
+        NodeAllocator allocator = new NodeAllocator(config.heartbeatTimeout());
         InMemoryRouteTicketStore tickets = new InMemoryRouteTicketStore(clock);
         InMemoryRouteSessionStore sessions = new InMemoryRouteSessionStore(clock);
-        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        IslandJobQueue jobs = config.redisJobs() ? new RedisIslandJobQueue(config.redisUri()) : new InMemoryIslandJobPublisher();
         InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
-        InMemoryAuditLogger audit = new InMemoryAuditLogger();
+        IslandRepository islandRepository = config.jdbcRepositories() ? new JdbcIslandRepository(dataSource) : new InMemoryIslandRepository();
+        IslandRuntimeRepository runtimeRepository = config.jdbcRepositories() ? new JdbcIslandRuntimeRepository(dataSource) : new InMemoryIslandRuntimeRepository();
+        AuditLogger audit = config.jdbcRepositories() ? new JdbcAuditLogger(dataSource) : new InMemoryAuditLogger();
+        InMemoryAuditLogger inMemoryAudit = audit instanceof InMemoryAuditLogger logger ? logger : new InMemoryAuditLogger();
         RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets);
-        CreateIslandWorkflow createIsland = new CreateIslandWorkflow(new InMemoryIslandRepository(), nodes, allocator, jobs, events);
-        IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(new InMemoryIslandRuntimeRepository(), nodes, allocator, jobs, events);
-        this.server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
+        CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, nodes, allocator, jobs, events);
+        IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(runtimeRepository, nodes, allocator, jobs, events);
+        this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
         route("/health", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));
         route("/v1/nodes", exchange -> write(exchange, 200, nodes.toJson()));
-        route("/v1/jobs", exchange -> write(exchange, 200, jobs.toJson()));
+        route("/v1/jobs", exchange -> write(exchange, 200, jobs instanceof InMemoryIslandJobPublisher memoryJobs ? memoryJobs.toJson() : "{\"mode\":\"REDIS\"}"));
+        route("/v1/events", exchange -> write(exchange, 200, events.toJson()));
+        route("/v1/audit", exchange -> write(exchange, 200, inMemoryAudit.toJson()));
         route("/v1/jobs/claim", exchange -> {
             String body = readBody(exchange);
             String nodeId = JsonFields.text(body, "nodeId", "");
@@ -68,15 +89,13 @@ public final class CloudIslandsCoreApplication {
         route("/v1/jobs/complete", exchange -> {
             String body = readBody(exchange);
             jobs.complete(JsonFields.text(body, "nodeId", ""), JsonFields.uuid(body, "jobId", new UUID(0L, 0L)));
-            write(exchange, 202, "{\"accepted\":true}");
+            write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/jobs/fail", exchange -> {
             String body = readBody(exchange);
             jobs.fail(JsonFields.text(body, "nodeId", ""), JsonFields.uuid(body, "jobId", new UUID(0L, 0L)), JsonFields.text(body, "error", "unknown"));
-            write(exchange, 202, "{\"accepted\":true}");
+            write(exchange, 202, ApiResponses.ok(true));
         });
-        route("/v1/events", exchange -> write(exchange, 200, events.toJson()));
-        route("/v1/audit", exchange -> write(exchange, 200, audit.toJson()));
         route("/v1/routes/home", exchange -> {
             String body = readBody(exchange);
             write(exchange, 202, routing.prepareHomeRouteJson(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L))));
@@ -87,19 +106,8 @@ public final class CloudIslandsCoreApplication {
         });
         route("/v1/routes/session", exchange -> {
             String body = readBody(exchange);
-            sessions.put(new RouteTicket(
-                JsonFields.uuid(body, "ticketId", UUID.randomUUID()),
-                JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)),
-                kr.lunaf.cloudislands.api.model.RouteAction.HOME,
-                new UUID(0L, 0L),
-                JsonFields.text(body, "targetNode", ""),
-                "ci_shard_001",
-                kr.lunaf.cloudislands.api.model.RouteTicketState.READY,
-                java.time.Instant.parse(JsonFields.text(body, "expiresAt", java.time.Instant.now().plusSeconds(30).toString())),
-                JsonFields.text(body, "nonce", ""),
-                Map.of("targetServerName", JsonFields.text(body, "targetServerName", ""))
-            ));
-            write(exchange, 202, "{\"accepted\":true}");
+            sessions.put(new RouteTicket(JsonFields.uuid(body, "ticketId", UUID.randomUUID()), JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), kr.lunaf.cloudislands.api.model.RouteAction.HOME, new UUID(0L, 0L), JsonFields.text(body, "targetNode", ""), "ci_shard_001", kr.lunaf.cloudislands.api.model.RouteTicketState.READY, java.time.Instant.parse(JsonFields.text(body, "expiresAt", java.time.Instant.now().plusSeconds(30).toString())), JsonFields.text(body, "nonce", ""), Map.of("targetServerName", JsonFields.text(body, "targetServerName", ""))));
+            write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/routes/session/consume", exchange -> {
             String body = readBody(exchange);
@@ -109,21 +117,21 @@ public final class CloudIslandsCoreApplication {
         route("/v1/routes/consume", exchange -> write(exchange, 200, routing.consumeTicketJson(readBody(exchange))));
         route("/v1/nodes/heartbeat", exchange -> {
             nodes.heartbeat(heartbeat(readBody(exchange)));
-            write(exchange, 202, "{\"accepted\":true}");
+            write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/admin/nodes/drain", exchange -> {
             String body = readBody(exchange);
             String nodeId = JsonFields.text(body, "nodeId", "");
             boolean changed = nodes.drain(nodeId);
             audit.log(new UUID(0L, 0L), "ADMIN", "NODE_DRAIN", "NODE", nodeId, Map.of());
-            write(exchange, changed ? 202 : 404, "{\"accepted\":" + changed + "}");
+            write(exchange, changed ? 202 : 404, ApiResponses.ok(changed));
         });
         route("/v1/admin/nodes/undrain", exchange -> {
             String body = readBody(exchange);
             String nodeId = JsonFields.text(body, "nodeId", "");
             boolean changed = nodes.undrain(nodeId);
             audit.log(new UUID(0L, 0L), "ADMIN", "NODE_UNDRAIN", "NODE", nodeId, Map.of());
-            write(exchange, changed ? 202 : 404, "{\"accepted\":" + changed + "}");
+            write(exchange, changed ? 202 : 404, ApiResponses.ok(changed));
         });
         route("/v1/admin/islands/activate", exchange -> lifecycle(exchange, lifecycle.activate(JsonFields.uuid(readBody(exchange), "islandId", new UUID(0L, 0L)))));
         route("/v1/admin/islands/deactivate", exchange -> lifecycle(exchange, lifecycle.deactivate(JsonFields.uuid(readBody(exchange), "islandId", new UUID(0L, 0L)))));
@@ -155,8 +163,11 @@ public final class CloudIslandsCoreApplication {
     }
 
     public static void main(String[] args) throws IOException {
-        int port = args.length == 0 ? 8443 : Integer.parseInt(args[0]);
-        new CloudIslandsCoreApplication(port).start();
+        CoreServiceConfig config = CoreServiceConfig.fromEnvironment();
+        if (args.length > 0) {
+            config = config.withPort(Integer.parseInt(args[0]));
+        }
+        new CloudIslandsCoreApplication(config).start();
     }
 
     private void route(String path, HttpHandler handler) {
@@ -191,18 +202,7 @@ public final class CloudIslandsCoreApplication {
     }
 
     private static NodeHeartbeatRequest heartbeat(String body) {
-        return new NodeHeartbeatRequest(
-            JsonFields.text(body, "nodeId", "unknown"),
-            JsonFields.text(body, "pool", "island"),
-            JsonFields.text(body, "velocityServerName", JsonFields.text(body, "nodeId", "unknown")),
-            JsonFields.enumValue(NodeState.class, body, "state", NodeState.READY),
-            JsonFields.integer(body, "players", 0),
-            JsonFields.integer(body, "activeIslands", 0),
-            JsonFields.decimal(body, "mspt", 20.0D),
-            JsonFields.integer(body, "activationQueue", 0),
-            JsonFields.longValue(body, "heapUsedMb", 0L),
-            JsonFields.longValue(body, "heapMaxMb", 1L)
-        );
+        return new NodeHeartbeatRequest(JsonFields.text(body, "nodeId", "unknown"), JsonFields.text(body, "pool", "island"), JsonFields.text(body, "velocityServerName", JsonFields.text(body, "nodeId", "unknown")), JsonFields.enumValue(NodeState.class, body, "state", NodeState.READY), JsonFields.integer(body, "players", 0), JsonFields.integer(body, "activeIslands", 0), JsonFields.decimal(body, "mspt", 20.0D), JsonFields.integer(body, "activationQueue", 0), JsonFields.longValue(body, "heapUsedMb", 0L), JsonFields.longValue(body, "heapMaxMb", 1L));
     }
 
     private static String readBody(HttpExchange exchange) throws IOException {
@@ -211,7 +211,7 @@ public final class CloudIslandsCoreApplication {
 
     private static void write(HttpExchange exchange, int status, String body) throws IOException {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-        exchange.getResponseHeaders().put("Content-Type", List.of("application/json; charset=utf-8"));
+        exchange.getResponseHeaders().put("Content-Type", java.util.List.of("application/json; charset=utf-8"));
         exchange.sendResponseHeaders(status, bytes.length);
         try (OutputStream response = exchange.getResponseBody()) {
             response.write(bytes);
