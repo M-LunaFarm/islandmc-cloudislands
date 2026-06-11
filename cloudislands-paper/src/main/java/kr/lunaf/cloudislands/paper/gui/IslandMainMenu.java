@@ -23,6 +23,7 @@ public final class IslandMainMenu implements Listener {
         inventory.setItem(14, item(Material.NAME_TAG, "멤버 관리", "/섬 멤버"));
         inventory.setItem(15, item(Material.COMPARATOR, "섬 설정", "/섬 설정"));
         inventory.setItem(16, item(Material.GOLD_BLOCK, "섬 랭킹", "/섬 랭킹"));
+        inventory.setItem(19, item(Material.MAP, "섬 정보", "/섬 정보"));
         inventory.setItem(20, item(Material.EMERALD, "섬 은행", "/섬 은행"));
         inventory.setItem(21, item(Material.BOOK, "미션", "/섬 미션"));
         inventory.setItem(23, item(Material.BEACON, "업그레이드", "/섬 업그레이드"));
@@ -62,6 +63,8 @@ public final class IslandMainMenu implements Listener {
             player.performCommand("섬 설정");
         } else if (name.equals("섬 랭킹")) {
             player.performCommand("섬 랭킹");
+        } else if (name.equals("섬 정보")) {
+            player.performCommand("섬 정보");
         } else if (name.equals("섬 은행")) {
             player.performCommand("섬 은행");
         } else if (name.equals("미션")) {
