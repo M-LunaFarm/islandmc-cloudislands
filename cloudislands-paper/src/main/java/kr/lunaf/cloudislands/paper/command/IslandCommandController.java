@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.gui.IslandBankMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandBiomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
@@ -70,7 +71,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "accept", "invite-accept", "초대수락", "decline", "invite-decline", "초대거절",
         "kick", "remove-member", "추방", "trust", "신뢰", "untrust", "신뢰해제",
         "promote", "승급", "demote", "강등", "transfer", "양도",
-        "ban", "밴", "unban", "pardon", "밴해제", "bans", "ban-list", "밴목록",
+        "ban", "밴", "unban", "pardon", "밴해제", "bans", "ban-menu", "ban-list", "밴목록",
         "settings", "setting", "설정",
         "flags", "flag-menu", "flag-list", "flag", "setflag", "flag-set", "플래그", "플래그설정", "플래그목록",
         "permissions", "permission-menu", "permission-list", "permission", "perms", "setpermission", "permission-set", "권한", "권한설정", "권한목록"
@@ -529,7 +530,11 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             pardonIslandVisitor(player, args[1]);
             return true;
         }
-        if (subcommand.equals("bans") || subcommand.equals("ban-list") || subcommand.equals("밴목록")) {
+        if (subcommand.equals("bans") || subcommand.equals("ban-menu") || subcommand.equals("밴목록")) {
+            openIslandBanMenu(player);
+            return true;
+        }
+        if (subcommand.equals("ban-list")) {
             listIslandBans(player);
             return true;
         }
@@ -1390,6 +1395,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                     return null;
                 });
         });
+    }
+
+    private void openIslandBanMenu(Player player) {
+        currentIsland(player, "섬 안에서만 밴 목록을 확인할 수 있습니다.").ifPresent(islandId -> IslandBanMenu.open(plugin, coreApiClient, player, islandId));
     }
 
     private void listIslandFlags(Player player) {
