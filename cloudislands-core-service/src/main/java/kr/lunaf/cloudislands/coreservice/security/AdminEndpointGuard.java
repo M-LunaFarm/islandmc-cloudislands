@@ -52,6 +52,25 @@ public final class AdminEndpointGuard {
     }
 
     private AdminPermission permissionFor(String path) {
+        if (path.startsWith("/v1/admin/islands/")) {
+            if (path.endsWith("/activate")) {
+                return AdminPermission.ISLAND_ACTIVATE;
+            }
+            if (path.endsWith("/deactivate")) {
+                return AdminPermission.ISLAND_DEACTIVATE;
+            }
+            if (path.endsWith("/migrate")) {
+                return AdminPermission.ISLAND_MIGRATE;
+            }
+        }
+        if (path.startsWith("/v1/admin/nodes/")) {
+            if (path.endsWith("/drain")) {
+                return AdminPermission.NODE_DRAIN;
+            }
+            if (path.endsWith("/undrain")) {
+                return AdminPermission.NODE_UNDRAIN;
+            }
+        }
         return switch (path) {
             case "/v1/audit" -> AdminPermission.AUDIT_READ;
             case "/v1/events" -> AdminPermission.AUDIT_READ;

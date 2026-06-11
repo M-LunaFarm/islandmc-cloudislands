@@ -530,6 +530,30 @@ public final class CloudIslandsCoreApplication {
             audit.log(new UUID(0L, 0L), "ADMIN", "NODE_UNDRAIN", "NODE", nodeId, Map.of());
             write(exchange, changed ? 202 : 404, ApiResponses.ok(changed));
         });
+        routePrefix("/v1/admin/nodes/", exchange -> {
+            String method = exchange.getRequestMethod();
+            String path = exchange.getRequestURI().getPath();
+            String tail = path.substring("/v1/admin/nodes/".length());
+            if (!method.equalsIgnoreCase("POST")) {
+                write(exchange, 405, ApiResponses.error("METHOD_NOT_ALLOWED", "Use POST for admin node lifecycle operations"));
+                return;
+            }
+            if (tail.endsWith("/drain")) {
+                String nodeId = tail.substring(0, tail.length() - "/drain".length());
+                boolean changed = nodes.drain(nodeId);
+                audit.log(new UUID(0L, 0L), "ADMIN", "NODE_DRAIN", "NODE", nodeId, Map.of());
+                write(exchange, changed ? 202 : 404, ApiResponses.ok(changed));
+                return;
+            }
+            if (tail.endsWith("/undrain")) {
+                String nodeId = tail.substring(0, tail.length() - "/undrain".length());
+                boolean changed = nodes.undrain(nodeId);
+                audit.log(new UUID(0L, 0L), "ADMIN", "NODE_UNDRAIN", "NODE", nodeId, Map.of());
+                write(exchange, changed ? 202 : 404, ApiResponses.ok(changed));
+                return;
+            }
+            write(exchange, 404, ApiResponses.error("ROUTE_NOT_FOUND", "Route was not found"));
+        });
         route("/v1/admin/nodes/sweep", exchange -> {
             String body = readBody(exchange);
             String nodeId = JsonFields.text(body, "nodeId", "");
@@ -548,6 +572,29 @@ public final class CloudIslandsCoreApplication {
         route("/v1/admin/islands/migrate", exchange -> {
             String body = readBody(exchange);
             lifecycle(exchange, lifecycle.migrate(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "targetNode", "")));
+        });
+        routePrefix("/v1/admin/islands/", exchange -> {
+            String method = exchange.getRequestMethod();
+            String path = exchange.getRequestURI().getPath();
+            String tail = path.substring("/v1/admin/islands/".length());
+            if (!method.equalsIgnoreCase("POST")) {
+                write(exchange, 405, ApiResponses.error("METHOD_NOT_ALLOWED", "Use POST for admin island lifecycle operations"));
+                return;
+            }
+            if (tail.endsWith("/activate")) {
+                lifecycle(exchange, lifecycle.activate(uuidPath(tail.substring(0, tail.length() - "/activate".length()))));
+                return;
+            }
+            if (tail.endsWith("/deactivate")) {
+                lifecycle(exchange, lifecycle.deactivate(uuidPath(tail.substring(0, tail.length() - "/deactivate".length()))));
+                return;
+            }
+            if (tail.endsWith("/migrate")) {
+                String body = readBody(exchange);
+                lifecycle(exchange, lifecycle.migrate(uuidPath(tail.substring(0, tail.length() - "/migrate".length())), JsonFields.text(body, "targetNode", "")));
+                return;
+            }
+            write(exchange, 404, ApiResponses.error("ROUTE_NOT_FOUND", "Route was not found"));
         });
         route("/v1/admin/islands/snapshot", exchange -> {
             String body = readBody(exchange);
