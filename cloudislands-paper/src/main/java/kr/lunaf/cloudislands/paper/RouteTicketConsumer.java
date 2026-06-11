@@ -4,6 +4,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.event.IslandPreVisitEvent;
 import kr.lunaf.cloudislands.paper.event.IslandVisitEvent;
 import kr.lunaf.cloudislands.paper.event.RouteTicketConsumedEvent;
 import org.bukkit.Bukkit;
@@ -55,6 +56,14 @@ public final class RouteTicketConsumer {
         World world = worldName == null ? null : Bukkit.getWorld(worldName);
         if (player == null || world == null) {
             return;
+        }
+        if (ticket.action() == RouteAction.VISIT) {
+            IslandPreVisitEvent preVisit = new IslandPreVisitEvent(ticket.islandId(), playerUuid, player, worldName);
+            Bukkit.getPluginManager().callEvent(preVisit);
+            if (preVisit.isCancelled()) {
+                player.sendActionBar(Component.text("섬 방문이 취소되었습니다."));
+                return;
+            }
         }
         java.util.Map<String, String> payload = ticket.payload();
         if (player.teleport(new Location(world, decimal(payload, "localX", 0.5D), decimal(payload, "localY", 100.0D), decimal(payload, "localZ", 0.5D), (float) decimal(payload, "yaw", 180.0D), (float) decimal(payload, "pitch", 0.0D)))) {
