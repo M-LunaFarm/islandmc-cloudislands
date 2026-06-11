@@ -70,7 +70,7 @@ public final class CloudIslandsVelocityPlugin {
 
             @Override
             public List<String> suggest(SimpleCommand.Invocation invocation) {
-                return suggestions(IslandCommandCatalog.adminCommands(), "ciadmin", invocation.arguments());
+                return adminSuggestions(invocation.arguments());
             }
         });
         logger.info("CloudIslands Velocity router enabled with aliases {}", ALIASES);
@@ -748,6 +748,27 @@ public final class CloudIslandsVelocityPlugin {
             }
         }
         return matches;
+    }
+
+    private List<String> adminSuggestions(String[] args) {
+        List<String> matches = suggestions(IslandCommandCatalog.adminCommands(), "ciadmin", args);
+        if (args.length == 3 && args[0].equalsIgnoreCase("player")) {
+            addOnlinePlayerSuggestions(matches, args[2]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("route") && (args[1].equalsIgnoreCase("debug") || args[1].equalsIgnoreCase("clear"))) {
+            addOnlinePlayerSuggestions(matches, args[2]);
+        }
+        return matches;
+    }
+
+    private void addOnlinePlayerSuggestions(List<String> matches, String typed) {
+        String normalized = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
+        for (Player online : proxy.getAllPlayers()) {
+            String username = online.getUsername();
+            if ((normalized.isBlank() || username.toLowerCase(Locale.ROOT).startsWith(normalized)) && !matches.contains(username)) {
+                matches.add(username);
+            }
+        }
     }
 
     private String joinArgs(String[] args, int start) {
