@@ -1,7 +1,10 @@
 package kr.lunaf.cloudislands.paper.activation;
 
+import java.io.IOException;
 import java.util.UUID;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.paper.world.IslandWorldRestorer;
+import kr.lunaf.cloudislands.paper.world.ShardWorldPreloader;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
@@ -11,11 +14,21 @@ public final class IslandActivationJobHandler {
     private final IslandStorage storage;
     private final ShardWorldManager shardWorldManager;
     private final ProtectionController protectionController;
+    private final IslandWorldRestorer worldRestorer;
+    private final ShardWorldPreloader preloader;
+    private final int preloadRadius;
 
     public IslandActivationJobHandler(IslandStorage storage, ShardWorldManager shardWorldManager, ProtectionController protectionController) {
+        this(storage, shardWorldManager, protectionController, null, null, 0);
+    }
+
+    public IslandActivationJobHandler(IslandStorage storage, ShardWorldManager shardWorldManager, ProtectionController protectionController, IslandWorldRestorer worldRestorer, ShardWorldPreloader preloader, int preloadRadius) {
         this.storage = storage;
         this.shardWorldManager = shardWorldManager;
         this.protectionController = protectionController;
+        this.worldRestorer = worldRestorer;
+        this.preloader = preloader;
+        this.preloadRadius = preloadRadius;
     }
 
     public ActivationResult handle(IslandJob job) {
@@ -26,10 +39,20 @@ public final class IslandActivationJobHandler {
         try {
             IslandBundleManifest manifest = storage.readManifest(islandId);
             ShardWorldManager.CellAssignment cell = shardWorldManager.allocateCell(islandId);
+            stageBundle(islandId, cell);
+            if (preloader != null) {
+                preloader.preload(cell.worldName(), cell.originX(), cell.originZ(), preloadRadius);
+            }
             protectionController.registerIsland(islandId, cell.worldName(), cell.originX(), cell.originZ(), manifest.size(), cell.cellX(), cell.cellZ());
             return new ActivationResult(true, "ACTIVE", islandId, cell.worldName(), cell.cellX(), cell.cellZ(), manifest.schemaVersion());
         } catch (Exception exception) {
             return new ActivationResult(false, "ERROR_ACTIVATING", islandId, null, 0, 0, 0L);
+        }
+    }
+
+    private void stageBundle(UUID islandId, ShardWorldManager.CellAssignment cell) throws IOException {
+        if (worldRestorer != null) {
+            worldRestorer.stage(islandId, cell.worldName(), cell.originX(), cell.originZ());
         }
     }
 

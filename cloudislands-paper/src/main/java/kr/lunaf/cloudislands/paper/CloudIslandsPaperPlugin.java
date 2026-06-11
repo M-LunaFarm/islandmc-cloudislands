@@ -13,6 +13,8 @@ import kr.lunaf.cloudislands.paper.job.CoreBackedIslandJobSource;
 import kr.lunaf.cloudislands.paper.job.PaperIslandJobWorker;
 import kr.lunaf.cloudislands.paper.session.PaperRouteSessionListener;
 import kr.lunaf.cloudislands.paper.storage.PaperStorageFactory;
+import kr.lunaf.cloudislands.paper.world.IslandWorldRestorer;
+import kr.lunaf.cloudislands.paper.world.ShardWorldPreloader;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -72,7 +74,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             getConfig().getInt("island-node.cell-size", 1024)
         );
         this.activeIslands = new ActiveIslandRegistry();
-        IslandActivationJobHandler activationHandler = new IslandActivationJobHandler(storage, shardWorldManager, agent.protection());
+        IslandActivationJobHandler activationHandler = new IslandActivationJobHandler(storage, shardWorldManager, agent.protection(), new IslandWorldRestorer(storage, getDataFolder().toPath().resolve("staging")), new ShardWorldPreloader(this), getConfig().getInt("island-node.activation.preload-radius", 4));
         this.jobWorker = new PaperIslandJobWorker(this, new CoreBackedIslandJobSource(client), activationHandler, activeIslands, nodeId);
         jobWorker.start(getConfig().getLong("island-node.activation.worker-interval-ticks", 20L));
     }
