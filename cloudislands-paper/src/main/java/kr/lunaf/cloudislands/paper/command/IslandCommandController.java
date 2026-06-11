@@ -22,6 +22,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandHomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandInfoMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandInviteMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandLimitMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandLogMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
@@ -64,7 +65,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "limit", "limits", "limit-menu", "limit-list", "제한", "제한목록", "setlimit", "limit-set", "제한설정",
         "snapshot", "snapshots", "snapshot-menu", "snapshot-list", "스냅샷", "스냅샷목록", "snapshot-create", "snapshot-request", "스냅샷생성",
         "snapshot-restore", "rollback", "스냅샷복원", "롤백",
-        "members", "member-menu", "member-list", "멤버", "멤버관리", "멤버목록", "invite", "초대", "invites", "invite-list", "초대목록",
+        "members", "member-menu", "member-list", "멤버", "멤버관리", "멤버목록", "invite", "초대", "invites", "invite-menu", "invite-list", "초대목록",
         "accept", "invite-accept", "초대수락", "decline", "invite-decline", "초대거절",
         "kick", "remove-member", "추방", "trust", "신뢰", "untrust", "신뢰해제",
         "promote", "승급", "demote", "강등", "transfer", "양도",
@@ -435,7 +436,11 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             inviteIslandMember(player, args[1]);
             return true;
         }
-        if (subcommand.equals("invites") || subcommand.equals("invite-list") || subcommand.equals("초대목록")) {
+        if (subcommand.equals("invites") || subcommand.equals("invite-menu") || subcommand.equals("초대목록")) {
+            IslandInviteMenu.open(plugin, coreApiClient, player);
+            return true;
+        }
+        if (subcommand.equals("invite-list")) {
             listPendingInvites(player);
             return true;
         }
