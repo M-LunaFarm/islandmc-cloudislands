@@ -49,6 +49,7 @@ import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.api.model.IslandTemplateSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandWorthSnapshot;
 import kr.lunaf.cloudislands.api.model.JobRecoveryResult;
 import kr.lunaf.cloudislands.api.model.MigrationIssueSnapshot;
 import kr.lunaf.cloudislands.api.model.MigrationRunSnapshot;
@@ -185,6 +186,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<IslandSizeSnapshot> getSize(UUID islandId) {
             return client.islandInfo(islandId).thenApply(PaperCloudIslandsApi::size);
+        }
+
+        @Override
+        public CompletableFuture<IslandWorthSnapshot> getWorth(UUID islandId) {
+            return client.islandInfo(islandId).thenApply(PaperCloudIslandsApi::worth);
         }
 
         @Override
@@ -723,6 +729,10 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         UUID islandId = uuid(json, "islandId", new UUID(0L, 0L));
         int size = integer(json, "size", 0);
         return new IslandSizeSnapshot(islandId, size, integer(json, "border", size));
+    }
+
+    private static IslandWorthSnapshot worth(String json) {
+        return new IslandWorthSnapshot(uuid(json, "islandId", new UUID(0L, 0L)), text(json, "worth", "0"));
     }
 
     private static Optional<PlayerIslandProfile> playerProfile(String json) {

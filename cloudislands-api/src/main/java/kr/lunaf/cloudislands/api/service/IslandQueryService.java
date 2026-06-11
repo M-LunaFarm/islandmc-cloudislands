@@ -24,6 +24,7 @@ import kr.lunaf.cloudislands.api.model.IslandSizeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandWorthSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeRuleSnapshot;
 
@@ -41,6 +42,7 @@ public interface IslandQueryService {
     CompletableFuture<List<IslandPermissionRuleSnapshot>> getPermissionRules(UUID islandId);
     CompletableFuture<IslandBoundarySnapshot> getBoundary(UUID islandId);
     CompletableFuture<IslandSizeSnapshot> getSize(UUID islandId);
+    CompletableFuture<IslandWorthSnapshot> getWorth(UUID islandId);
     CompletableFuture<IslandLevelSnapshot> getLevel(UUID islandId);
     CompletableFuture<List<IslandRankSnapshot>> getTopByLevel(int limit);
     CompletableFuture<List<IslandRankSnapshot>> getTopByWorth(int limit);
