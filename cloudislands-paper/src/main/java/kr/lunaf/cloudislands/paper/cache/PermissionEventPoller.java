@@ -87,11 +87,12 @@ public final class PermissionEventPoller {
             return false;
         }
         String reason = fields.getOrDefault("reason", "admin-request");
-        if (type.equals("NODE_KICKALL")) {
+        String state = fields.getOrDefault("state", "");
+        if ((type.equals(CloudIslandEventType.NODE_STATE_CHANGED.name()) && state.equals("KICKALL")) || type.equals("NODE_KICKALL")) {
             Bukkit.getScheduler().runTask(plugin, () -> kickPlayers(reason));
             return true;
         }
-        if (type.equals("NODE_SHUTDOWN_SAFE")) {
+        if ((type.equals(CloudIslandEventType.NODE_STATE_CHANGED.name()) && state.equals("SHUTDOWN_SAFE")) || type.equals("NODE_SHUTDOWN_SAFE")) {
             Bukkit.getScheduler().runTask(plugin, () -> {
                 kickPlayers(reason);
                 Bukkit.shutdown();
