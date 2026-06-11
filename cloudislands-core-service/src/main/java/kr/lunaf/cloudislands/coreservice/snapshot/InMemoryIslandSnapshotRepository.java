@@ -32,4 +32,19 @@ public final class InMemoryIslandSnapshotRepository implements IslandSnapshotRep
     public Optional<IslandSnapshotRecord> find(UUID islandId, long snapshotNo) {
         return Optional.ofNullable(snapshots.getOrDefault(islandId, Map.of()).get(snapshotNo));
     }
+
+    @Override
+    public int prune(UUID islandId, int keepLatest) {
+        Map<Long, IslandSnapshotRecord> islandSnapshots = snapshots.get(islandId);
+        if (islandSnapshots == null || keepLatest < 0) {
+            return 0;
+        }
+        List<Long> retained = islandSnapshots.keySet().stream()
+            .sorted(Comparator.reverseOrder())
+            .limit(keepLatest)
+            .toList();
+        int before = islandSnapshots.size();
+        islandSnapshots.keySet().removeIf(snapshotNo -> !retained.contains(snapshotNo));
+        return before - islandSnapshots.size();
+    }
 }

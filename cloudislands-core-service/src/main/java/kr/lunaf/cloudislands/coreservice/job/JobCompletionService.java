@@ -30,6 +30,7 @@ public final class JobCompletionService {
             long snapshotNo = longValue(job.payload().get("snapshotNo"));
             if (snapshotNo > 0L) {
                 snapshots.record(job.islandId(), snapshotNo, "islands/" + job.islandId() + "/snapshots/" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", job.payload().getOrDefault("reason", job.type().name()), null, job.payload().getOrDefault("checksum", ""), longValue(job.payload().get("sizeBytes")));
+                snapshots.prune(job.islandId(), 50);
             }
             runtimes.markInactive(job.islandId());
             events.publish(CloudIslandEventType.ISLAND_DEACTIVATED.name(), Map.of("islandId", job.islandId().toString()));

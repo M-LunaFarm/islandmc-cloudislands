@@ -70,6 +70,19 @@ public final class JdbcIslandSnapshotRepository implements IslandSnapshotReposit
         }
     }
 
+    @Override
+    public int prune(UUID islandId, int keepLatest) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("DELETE FROM island_snapshots WHERE island_id = ? AND snapshot_no NOT IN (SELECT snapshot_no FROM island_snapshots WHERE island_id = ? ORDER BY snapshot_no DESC LIMIT ?)")) {
+            statement.setObject(1, islandId);
+            statement.setObject(2, islandId);
+            statement.setInt(3, Math.max(0, keepLatest));
+            return statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to prune island snapshots", exception);
+        }
+    }
+
     private IslandSnapshotRecord map(ResultSet rs) throws SQLException {
         return new IslandSnapshotRecord(
             (UUID) rs.getObject("id"),
