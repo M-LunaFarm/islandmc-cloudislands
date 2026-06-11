@@ -80,6 +80,7 @@ public final class PaperIslandJobWorker {
                     "cellX", Integer.toString(result.cellX()),
                     "cellZ", Integer.toString(result.cellZ()),
                     "schemaVersion", Long.toString(result.schemaVersion()),
+                    "fencingToken", Long.toString(result.fencingToken()),
                     "extractedRoot", result.extractedRoot() == null ? "" : result.extractedRoot()
                 ));
             } else {

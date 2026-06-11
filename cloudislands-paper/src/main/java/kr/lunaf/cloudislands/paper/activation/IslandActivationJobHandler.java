@@ -43,7 +43,7 @@ public final class IslandActivationJobHandler {
 
     public ActivationResult handle(IslandJob job) {
         if (job.type() != IslandJobType.ACTIVATE_ISLAND && job.type() != IslandJobType.CREATE_ISLAND) {
-            return new ActivationResult(false, "UNSUPPORTED_JOB", null, null, 0, 0, 0L, null);
+            return new ActivationResult(false, "UNSUPPORTED_JOB", null, null, 0, 0, 0L, 0L, null);
         }
         UUID islandId = job.islandId();
         try {
@@ -58,9 +58,9 @@ public final class IslandActivationJobHandler {
                 preloader.preload(cell.worldName(), cell.originX(), cell.originZ(), preloadRadius);
             }
             protectionController.registerIsland(islandId, cell.worldName(), cell.originX(), cell.originZ(), manifest.size(), cell.cellX(), cell.cellZ());
-            return new ActivationResult(true, "ACTIVE", islandId, cell.worldName(), cell.cellX(), cell.cellZ(), manifest.schemaVersion(), restorePlan == null ? null : restorePlan.extractedRoot().toString());
+            return new ActivationResult(true, "ACTIVE", islandId, cell.worldName(), cell.cellX(), cell.cellZ(), manifest.schemaVersion(), longValue(job.payload().get("fencingToken")), restorePlan == null ? null : restorePlan.extractedRoot().toString());
         } catch (Exception exception) {
-            return new ActivationResult(false, "ERROR_ACTIVATING", islandId, null, 0, 0, 0L, null);
+            return new ActivationResult(false, "ERROR_ACTIVATING", islandId, null, 0, 0, 0L, 0L, null);
         }
     }
 
@@ -71,5 +71,13 @@ public final class IslandActivationJobHandler {
         return null;
     }
 
-    public record ActivationResult(boolean success, String state, UUID islandId, String worldName, int cellX, int cellZ, long schemaVersion, String extractedRoot) {}
+    private long longValue(String value) {
+        try {
+            return Long.parseLong(value);
+        } catch (RuntimeException ignored) {
+            return 0L;
+        }
+    }
+
+    public record ActivationResult(boolean success, String state, UUID islandId, String worldName, int cellX, int cellZ, long schemaVersion, long fencingToken, String extractedRoot) {}
 }
