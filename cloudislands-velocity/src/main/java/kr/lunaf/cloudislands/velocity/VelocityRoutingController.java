@@ -95,7 +95,7 @@ public final class VelocityRoutingController {
     }
 
     public void setBiome(Player player, UUID islandId, String biomeKey) {
-        coreApiClient.setIslandBiome(islandId, player.getUniqueId(), biomeKey).thenRun(() -> player.sendMessage(Component.text("섬 바이옴을 변경했습니다.")));
+        sendActionResult(player, coreApiClient.setIslandBiome(islandId, player.getUniqueId(), biomeKey), "섬 바이옴을 변경했습니다.", "섬 바이옴을 변경하지 못했습니다.");
     }
 
     public void routeHome(Player player) {
@@ -144,11 +144,11 @@ public final class VelocityRoutingController {
     }
 
     public void acceptInvite(Player player, UUID inviteId) {
-        coreApiClient.acceptIslandInvite(inviteId, player.getUniqueId()).thenRun(() -> player.sendMessage(Component.text("섬 초대를 수락했습니다.")));
+        sendActionResult(player, coreApiClient.acceptIslandInvite(inviteId, player.getUniqueId()), "섬 초대를 수락했습니다.", "섬 초대를 수락하지 못했습니다.");
     }
 
     public void declineInvite(Player player, UUID inviteId) {
-        coreApiClient.declineIslandInvite(inviteId, player.getUniqueId()).thenRun(() -> player.sendMessage(Component.text("섬 초대를 거절했습니다.")));
+        sendActionResult(player, coreApiClient.declineIslandInvite(inviteId, player.getUniqueId()), "섬 초대를 거절했습니다.", "섬 초대를 거절하지 못했습니다.");
     }
 
     public void listMembers(Player player, UUID islandId) {
@@ -156,19 +156,19 @@ public final class VelocityRoutingController {
     }
 
     public void setRole(Player player, UUID islandId, UUID targetUuid, IslandRole role) {
-        coreApiClient.setIslandMember(islandId, player.getUniqueId(), targetUuid, role).thenRun(() -> player.sendMessage(Component.text("섬 멤버 역할을 변경했습니다.")));
+        sendActionResult(player, coreApiClient.setIslandMember(islandId, player.getUniqueId(), targetUuid, role), "섬 멤버 역할을 변경했습니다.", "섬 멤버 역할을 변경하지 못했습니다.");
     }
 
     public void transferOwnership(Player player, UUID islandId, UUID targetUuid) {
-        coreApiClient.transferIslandOwnership(islandId, player.getUniqueId(), targetUuid).thenRun(() -> player.sendMessage(Component.text("섬 소유권을 양도했습니다.")));
+        sendActionResult(player, coreApiClient.transferIslandOwnership(islandId, player.getUniqueId(), targetUuid), "섬 소유권을 양도했습니다.", "섬 소유권을 양도하지 못했습니다.");
     }
 
     public void kickMember(Player player, UUID islandId, UUID targetUuid) {
-        coreApiClient.removeIslandMember(islandId, player.getUniqueId(), targetUuid).thenRun(() -> player.sendMessage(Component.text("섬 멤버를 추방했습니다.")));
+        sendActionResult(player, coreApiClient.removeIslandMember(islandId, player.getUniqueId(), targetUuid), "섬 멤버를 추방했습니다.", "섬 멤버를 추방하지 못했습니다.");
     }
 
     public void banVisitor(Player player, UUID islandId, UUID targetUuid, String reason) {
-        coreApiClient.banIslandVisitor(islandId, player.getUniqueId(), targetUuid, reason).thenRun(() -> player.sendMessage(Component.text("방문자를 밴했습니다.")));
+        sendActionResult(player, coreApiClient.banIslandVisitor(islandId, player.getUniqueId(), targetUuid, reason), "방문자를 밴했습니다.", "방문자를 밴하지 못했습니다.");
     }
 
     public void listBans(Player player, UUID islandId) {
@@ -176,7 +176,7 @@ public final class VelocityRoutingController {
     }
 
     public void pardonVisitor(Player player, UUID islandId, UUID targetUuid) {
-        coreApiClient.pardonIslandVisitor(islandId, player.getUniqueId(), targetUuid).thenRun(() -> player.sendMessage(Component.text("방문자 밴을 해제했습니다.")));
+        sendActionResult(player, coreApiClient.pardonIslandVisitor(islandId, player.getUniqueId(), targetUuid), "방문자 밴을 해제했습니다.", "방문자 밴을 해제하지 못했습니다.");
     }
 
     public void kickVisitor(Player player, UUID islandId, UUID targetUuid) {
@@ -188,17 +188,15 @@ public final class VelocityRoutingController {
     }
 
     public void setPublicAccess(Player player, UUID islandId, boolean publicAccess) {
-        coreApiClient.setIslandPublicAccess(islandId, player.getUniqueId(), publicAccess).thenRun(() -> player.sendMessage(Component.text(publicAccess ? "섬을 공개로 변경했습니다." : "섬을 비공개로 변경했습니다.")));
+        sendActionResult(player, coreApiClient.setIslandPublicAccess(islandId, player.getUniqueId(), publicAccess), publicAccess ? "섬을 공개로 변경했습니다." : "섬을 비공개로 변경했습니다.", "섬 공개 상태를 변경하지 못했습니다.");
     }
 
     public void setFlyFlag(Player player, UUID islandId, boolean enabled) {
-        coreApiClient.setIslandFlag(islandId, player.getUniqueId(), kr.lunaf.cloudislands.api.model.IslandFlag.FLY, Boolean.toString(enabled))
-            .thenRun(() -> player.sendMessage(Component.text(enabled ? "섬 비행을 허용했습니다." : "섬 비행을 비활성화했습니다.")));
+        sendActionResult(player, coreApiClient.setIslandFlag(islandId, player.getUniqueId(), kr.lunaf.cloudislands.api.model.IslandFlag.FLY, Boolean.toString(enabled)), enabled ? "섬 비행을 허용했습니다." : "섬 비행을 비활성화했습니다.", "섬 비행 설정을 변경하지 못했습니다.");
     }
 
     public void setBooleanFlag(Player player, UUID islandId, kr.lunaf.cloudislands.api.model.IslandFlag flag, boolean enabled, String label) {
-        coreApiClient.setIslandFlag(islandId, player.getUniqueId(), flag, Boolean.toString(enabled))
-            .thenRun(() -> player.sendMessage(Component.text("섬 " + label + " 설정을 " + (enabled ? "켰습니다." : "껐습니다."))));
+        sendActionResult(player, coreApiClient.setIslandFlag(islandId, player.getUniqueId(), flag, Boolean.toString(enabled)), "섬 " + label + " 설정을 " + (enabled ? "켰습니다." : "껐습니다."), "섬 " + label + " 설정을 변경하지 못했습니다.");
     }
 
     public void listHomes(Player player, UUID islandId) {
@@ -211,7 +209,7 @@ public final class VelocityRoutingController {
     }
 
     public void setLocked(Player player, UUID islandId, boolean locked) {
-        coreApiClient.setIslandLocked(islandId, player.getUniqueId(), locked).thenRun(() -> player.sendMessage(Component.text(locked ? "섬을 잠금 상태로 변경했습니다." : "섬 잠금을 해제했습니다.")));
+        sendActionResult(player, coreApiClient.setIslandLocked(islandId, player.getUniqueId(), locked), locked ? "섬을 잠금 상태로 변경했습니다." : "섬 잠금을 해제했습니다.", "섬 잠금 상태를 변경하지 못했습니다.");
     }
 
     public void listPermissions(Player player, UUID islandId) {
@@ -219,7 +217,7 @@ public final class VelocityRoutingController {
     }
 
     public void setPermission(Player player, UUID islandId, IslandRole role, IslandPermission permission, boolean allowed) {
-        coreApiClient.setIslandPermission(islandId, player.getUniqueId(), role, permission, allowed).thenRun(() -> player.sendMessage(Component.text("섬 권한을 변경했습니다.")));
+        sendActionResult(player, coreApiClient.setIslandPermission(islandId, player.getUniqueId(), role, permission, allowed), "섬 권한을 변경했습니다.", "섬 권한을 변경하지 못했습니다.");
     }
 
     public void listIslandLogs(Player player, UUID islandId) {
@@ -441,6 +439,13 @@ public final class VelocityRoutingController {
     private void sendPlayerPayloadFuture(Player player, CompletableFuture<String> future, String emptyMessage, String successMessage) {
         future.thenAccept(body -> sendPlayerPayload(player, body, emptyMessage, successMessage)).exceptionally(error -> {
             player.sendMessage(Component.text(emptyMessage));
+            return null;
+        });
+    }
+
+    private void sendActionResult(Player player, CompletableFuture<Void> future, String successMessage, String failureMessage) {
+        future.thenRun(() -> player.sendMessage(Component.text(successMessage))).exceptionally(error -> {
+            player.sendMessage(Component.text(failureMessage));
             return null;
         });
     }
