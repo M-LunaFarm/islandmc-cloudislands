@@ -21,13 +21,14 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public final class AdminCommandController implements CommandExecutor, TabCompleter {
-    private static final List<String> ROOT_COMMANDS = List.of("status", "cache", "node", "island", "player", "jobs", "route", "events", "audit", "template", "migrate-superiorskyblock2", "reload");
+    private static final List<String> ROOT_COMMANDS = List.of("status", "cache", "node", "island", "player", "jobs", "route", "events", "audit", "block-values", "template", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
     private static final List<String> PLAYER_COMMANDS = List.of("info", "setisland", "clearisland");
     private static final List<String> JOB_COMMANDS = List.of("list", "retry", "cancel", "recover");
     private static final List<String> ROUTE_COMMANDS = List.of("debug", "ticket", "clear");
+    private static final List<String> BLOCK_VALUE_COMMANDS = List.of("list", "set");
     private static final List<String> TEMPLATE_COMMANDS = List.of("list", "upsert", "enable", "disable");
     private static final List<String> MIGRATION_COMMANDS = List.of("scan", "dryrun", "dry-run", "import", "verify", "rollback");
     private final CloudIslandsPaperAgent agent;
@@ -82,6 +83,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "Audit logs", coreApiClient.listAuditLogs());
             return true;
         }
+        if (args[0].equalsIgnoreCase("block-values")) {
+            return handleBlockValues(sender, args);
+        }
         if (args[0].equalsIgnoreCase("template")) {
             return handleTemplate(sender, args);
         }
@@ -117,6 +121,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("route")) {
             return matches(ROUTE_COMMANDS, args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("block-values")) {
+            return matches(BLOCK_VALUE_COMMANDS, args[1]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("template")) {
             return matches(TEMPLATE_COMMANDS, args[1]);
@@ -350,6 +357,24 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         return true;
     }
 
+    private boolean handleBlockValues(CommandSender sender, String[] args) {
+        if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
+            run(sender, "Block values", coreApiClient.listBlockValues());
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("set")) {
+            if (args.length < 6) {
+                sender.sendMessage("사용법: /ciadmin block-values set <materialKey> <worth> <levelPoints> <limit>");
+                return true;
+            }
+            UUID actorUuid = sender instanceof Player player ? player.getUniqueId() : new UUID(0L, 0L);
+            run(sender, "Block value set", coreApiClient.setBlockValueResult(actorUuid, args[2], args[3], number(args[4], 0L), number(args[5], 0L)));
+            return true;
+        }
+        sender.sendMessage("사용법: /ciadmin block-values list|set");
+        return true;
+    }
+
     private boolean handleTemplate(CommandSender sender, String[] args) {
         if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
             run(sender, "Template list", coreApiClient.listTemplates());
@@ -463,7 +488,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private void usage(CommandSender sender, String label) {
-        sender.sendMessage("사용법: /" + label + " status, cache clear, node list, island tp <uuid>, player info <uuid>, jobs list, route debug <uuid>, events, audit, template list, migrate-superiorskyblock2 scan, reload");
+        sender.sendMessage("사용법: /" + label + " status, cache clear, node list, island tp <uuid>, player info <uuid>, jobs list, route debug <uuid>, events, audit, block-values list, template list, migrate-superiorskyblock2 scan, reload");
     }
 
     private UUID uuid(CommandSender sender, String value) {
