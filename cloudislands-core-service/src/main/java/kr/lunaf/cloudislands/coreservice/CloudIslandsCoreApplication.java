@@ -845,6 +845,10 @@ public final class CloudIslandsCoreApplication {
             if (!requireMember(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
                 return;
             }
+            if (amount.signum() <= 0) {
+                write(exchange, 409, "{\"accepted\":false,\"code\":\"INVALID_AMOUNT\",\"bank\":" + bankJson(bankRepository.balance(islandId)) + "}");
+                return;
+            }
             var snapshot = bankRepository.deposit(islandId, amount);
             audit.log(actorUuid, "PLAYER", "ISLAND_BANK_DEPOSIT", "ISLAND", islandId.toString(), Map.of("amount", amount.toPlainString(), "balance", snapshot.balance()));
             islandLogs.append(islandId, actorUuid, "ISLAND_BANK_DEPOSIT", Map.of("amount", amount.toPlainString(), "balance", snapshot.balance()));

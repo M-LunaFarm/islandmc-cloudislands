@@ -997,7 +997,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     }
 
     private static IslandBankChangeSnapshot bankDeposit(String json) {
-        return new IslandBankChangeSnapshot(!hasError(json), hasError(json) ? text(json, "code", "FAILED") : "DEPOSITED", hasError(json) ? null : bank(json));
+        boolean accepted = !json.contains("\"accepted\":false") && !hasError(json);
+        return new IslandBankChangeSnapshot(accepted, accepted ? "DEPOSITED" : text(json, "code", "FAILED"), json == null || json.isBlank() || json.contains("\"bank\":null") ? null : bank(json));
     }
 
     private static IslandBankChangeSnapshot bankChange(String json) {
