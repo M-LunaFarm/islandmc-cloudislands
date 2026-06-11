@@ -15,13 +15,13 @@ public final class InMemoryIslandRepository implements IslandRepository {
 
     @Override
     public Optional<IslandSnapshot> findById(UUID islandId) {
-        return Optional.ofNullable(byIslandId.get(islandId));
+        return Optional.ofNullable(byIslandId.get(islandId)).filter(island -> island.state() != IslandState.DELETED);
     }
 
     @Override
     public Optional<IslandSnapshot> findByOwner(UUID ownerUuid) {
         UUID islandId = byOwner.get(ownerUuid);
-        return islandId == null ? Optional.empty() : Optional.ofNullable(byIslandId.get(islandId));
+        return islandId == null ? Optional.empty() : Optional.ofNullable(byIslandId.get(islandId)).filter(island -> island.state() != IslandState.DELETED);
     }
 
     @Override
@@ -30,6 +30,7 @@ public final class InMemoryIslandRepository implements IslandRepository {
             return Optional.empty();
         }
         return byIslandId.values().stream()
+            .filter(island -> island.state() != IslandState.DELETED)
             .filter(island -> island.name().equalsIgnoreCase(name))
             .findFirst();
     }
@@ -65,10 +66,21 @@ public final class InMemoryIslandRepository implements IslandRepository {
         if (island == null || !island.ownerUuid().equals(requesterUuid)) {
             return false;
         }
-        byIslandId.remove(islandId);
-        templates.remove(islandId);
+        byIslandId.put(islandId, new IslandSnapshot(island.islandId(), island.ownerUuid(), island.name(), IslandState.DELETED, island.size(), island.level(), island.worth(), island.publicAccess(), island.createdAt(), Instant.now()));
         byOwner.remove(requesterUuid, islandId);
         return true;
+    }
+
+    @Override
+    public Optional<IslandSnapshot> restoreDeleted(UUID islandId) {
+        IslandSnapshot island = byIslandId.get(islandId);
+        if (island == null || island.state() != IslandState.DELETED) {
+            return Optional.empty();
+        }
+        IslandSnapshot restored = new IslandSnapshot(island.islandId(), island.ownerUuid(), island.name(), IslandState.INACTIVE_READY, island.size(), island.level(), island.worth(), island.publicAccess(), island.createdAt(), Instant.now());
+        byIslandId.put(islandId, restored);
+        byOwner.put(island.ownerUuid(), islandId);
+        return Optional.of(restored);
     }
 
     @Override

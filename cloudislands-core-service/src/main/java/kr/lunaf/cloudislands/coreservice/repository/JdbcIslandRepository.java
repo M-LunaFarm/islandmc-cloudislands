@@ -130,6 +130,19 @@ public final class JdbcIslandRepository implements IslandRepository {
     }
 
     @Override
+    public Optional<IslandSnapshot> restoreDeleted(UUID islandId) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("UPDATE islands SET state = 'INACTIVE_READY', deleted_at = NULL, updated_at = now() WHERE id = ? AND deleted_at IS NOT NULL RETURNING id, owner_uuid, name, state, size, level, worth, public_access, created_at, updated_at")) {
+            statement.setObject(1, islandId);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? Optional.of(map(rs)) : Optional.empty();
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to restore deleted island", exception);
+        }
+    }
+
+    @Override
     public boolean transferOwnership(UUID islandId, UUID currentOwnerUuid, UUID newOwnerUuid) {
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);

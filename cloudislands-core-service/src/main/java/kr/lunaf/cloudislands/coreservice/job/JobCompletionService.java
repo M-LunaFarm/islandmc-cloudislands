@@ -6,6 +6,8 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
+import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
+import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
@@ -18,17 +20,25 @@ public final class JobCompletionService {
     private final IslandSnapshotRepository snapshots;
     private final RouteTicketStore tickets;
     private final IslandJobPublisher jobs;
+    private final IslandRepository islands;
+    private final PlayerProfileRepository playerProfiles;
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets) {
         this(runtimes, events, snapshots, tickets, null);
     }
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs) {
+        this(runtimes, events, snapshots, tickets, jobs, null, null);
+    }
+
+    public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles) {
         this.runtimes = runtimes;
         this.events = events;
         this.snapshots = snapshots;
         this.tickets = tickets;
         this.jobs = jobs;
+        this.islands = islands;
+        this.playerProfiles = playerProfiles;
     }
 
     public void completed(IslandJob job) {
@@ -73,6 +83,7 @@ public final class JobCompletionService {
         }
         if (job.type() == IslandJobType.RESTORE_ISLAND) {
             recordPreMutationSnapshot(job);
+            restoreDeletedIslandRecord(job);
             runtimes.markActive(job.islandId(), job.targetNode(), job.payload().getOrDefault("worldName", "ci_shard_001"), integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), longValue(job.payload().get("fencingToken")));
             events.publish(CloudIslandEventType.ISLAND_RESTORED.name(), Map.of("islandId", job.islandId().toString(), "state", "RESTORED", "snapshotNo", job.payload().getOrDefault("snapshotNo", "")));
             return;
@@ -110,6 +121,17 @@ public final class JobCompletionService {
             return;
         }
         snapshots.record(job.islandId(), snapshotNo, "islands/" + job.islandId() + "/snapshots/" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", job.payload().getOrDefault("preMutationReason", "BEFORE_MUTATION"), null, job.payload().getOrDefault("preMutationChecksum", ""), longValue(job.payload().get("preMutationSizeBytes")));
+    }
+
+    private void restoreDeletedIslandRecord(IslandJob job) {
+        if (islands == null) {
+            return;
+        }
+        islands.restoreDeleted(job.islandId()).ifPresent(island -> {
+            if (playerProfiles != null) {
+                playerProfiles.setPrimaryIsland(island.ownerUuid(), island.islandId());
+            }
+        });
     }
 
     private void publishMigrationActivation(IslandJob job) {
