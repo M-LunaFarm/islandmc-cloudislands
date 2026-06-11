@@ -68,6 +68,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "chat", "chat-menu", "islandchat", "채팅", "teamchat", "team-chat", "팀채팅", "log", "logs", "log-menu", "log-list", "로그", "로그목록",
         "biome", "biome-menu", "biome-info", "바이옴", "바이옴정보", "size", "크기", "border", "경계",
         "limit", "limits", "limit-menu", "limit-list", "제한", "제한목록", "setlimit", "limit-set", "제한설정",
+        "hoppers", "호퍼", "spawners", "스포너", "entities", "엔티티", "redstone", "레드스톤",
         "snapshot", "snapshots", "snapshot-menu", "snapshot-list", "스냅샷", "스냅샷목록", "snapshot-create", "snapshot-request", "스냅샷생성",
         "snapshot-restore", "rollback", "스냅샷복원", "롤백",
         "members", "member-menu", "member-list", "멤버", "멤버관리", "멤버목록", "invite", "초대", "invites", "invite-menu", "invite-list", "초대목록",
@@ -457,6 +458,22 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 return true;
             }
             setIslandLimit(player, args[1], longValue(args[2], 0L));
+            return true;
+        }
+        if (subcommand.equals("hoppers") || subcommand.equals("호퍼")) {
+            setNamedIslandLimit(player, "HOPPER", args);
+            return true;
+        }
+        if (subcommand.equals("spawners") || subcommand.equals("스포너")) {
+            setNamedIslandLimit(player, "SPAWNER", args);
+            return true;
+        }
+        if (subcommand.equals("entities") || subcommand.equals("엔티티")) {
+            setNamedIslandLimit(player, "ENTITY", args);
+            return true;
+        }
+        if (subcommand.equals("redstone") || subcommand.equals("레드스톤")) {
+            setNamedIslandLimit(player, "REDSTONE", args);
             return true;
         }
         if (subcommand.equals("snapshot") || subcommand.equals("snapshots") || subcommand.equals("snapshot-menu") || subcommand.equals("스냅샷")) {
@@ -1265,6 +1282,14 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void openIslandLimitMenu(Player player) {
         currentIsland(player, "섬 안에서만 제한 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandLimitMenu.open(plugin, coreApiClient, player, islandId));
+    }
+
+    private void setNamedIslandLimit(Player player, String limitKey, String[] args) {
+        if (args.length < 2) {
+            player.sendMessage("제한 값을 입력해주세요.");
+            return;
+        }
+        setIslandLimit(player, limitKey, longValue(args[1], 0L));
     }
 
     private void setIslandLimit(Player player, String limitKey, long value) {
