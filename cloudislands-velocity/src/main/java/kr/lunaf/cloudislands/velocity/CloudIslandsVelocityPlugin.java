@@ -1,30 +1,76 @@
 package kr.lunaf.cloudislands.velocity;
 
+import com.google.inject.Inject;
+import com.velocitypowered.api.command.CommandManager;
+import com.velocitypowered.api.command.SimpleCommand;
+import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
+import com.velocitypowered.api.plugin.Plugin;
+import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.proxy.ProxyServer;
+import java.net.URI;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.JdkCoreApiClient;
+import net.kyori.adventure.text.Component;
+import org.slf4j.Logger;
 
+@Plugin(id = "cloudislands", name = "CloudIslands", version = "0.1.0", authors = {"LeeSeungmin"})
 public final class CloudIslandsVelocityPlugin {
     private static final List<String> ALIASES = List.of("is", "island", "섬");
+    private final ProxyServer proxy;
+    private final Logger logger;
     private final VelocityRoutingController routingController;
 
-    public CloudIslandsVelocityPlugin(CoreApiClient coreApiClient) {
-        this.routingController = new VelocityRoutingController(coreApiClient);
+    @Inject
+    public CloudIslandsVelocityPlugin(ProxyServer proxy, Logger logger) {
+        this.proxy = proxy;
+        this.logger = logger;
+        CoreApiClient client = new JdkCoreApiClient(URI.create(System.getProperty("cloudislands.core", "https://core-api.internal:8443")), System.getenv().getOrDefault("CI_CORE_TOKEN", ""), Duration.ofSeconds(3));
+        this.routingController = new VelocityRoutingController(proxy, client, "Lobby");
     }
 
-    public List<String> aliases() {
-        return ALIASES;
+    @Subscribe
+    public void onProxyInitialize(ProxyInitializeEvent event) {
+        CommandManager commands = proxy.getCommandManager();
+        SimpleCommand islandCommand = invocation -> {
+            if (!(invocation.source() instanceof Player player)) {
+                invocation.source().sendMessage(Component.text("플레이어만 사용할 수 있습니다."));
+                return;
+            }
+            dispatch(player, invocation.arguments());
+        };
+        commands.register(commands.metaBuilder("섬").aliases("is", "island").build(), islandCommand);
+        logger.info("CloudIslands Velocity router enabled with aliases {}", ALIASES);
     }
 
-    public void handleHome(UUID playerUuid) {
-        routingController.routeHome(playerUuid);
+    private void dispatch(Player player, String[] args) {
+        if (args.length == 0 || args[0].equalsIgnoreCase("home") || args[0].equals("홈")) {
+            player.sendActionBar(Component.text("섬을 준비하는 중입니다."));
+            routingController.routeHome(player);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("visit") || args[0].equals("방문")) {
+            player.sendActionBar(Component.text("방문할 섬을 불러오는 중입니다."));
+            UUID targetIslandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.routeVisit(player, targetIslandId);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("create") || args[0].equals("생성")) {
+            player.sendMessage(Component.text("섬 생성 요청을 접수했습니다."));
+            routingController.routeHome(player);
+            return;
+        }
+        player.sendMessage(Component.text("사용법: /섬 홈, /섬 생성, /섬 방문 <섬>"));
     }
 
-    public void handleVisit(UUID playerUuid, UUID targetIslandId) {
-        routingController.routeVisit(playerUuid, targetIslandId);
-    }
-
-    public String hiddenNodeMessage() {
-        return "섬을 준비하는 중입니다.";
+    private UUID parseUuidOrNil(String value) {
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException ignored) {
+            return new UUID(0L, 0L);
+        }
     }
 }

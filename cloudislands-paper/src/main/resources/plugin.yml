@@ -1,5 +1,5 @@
 name: CloudIslands
-main: kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent
+main: kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin
 version: 0.1.0
 api-version: '1.21'
 author: LeeSeungmin

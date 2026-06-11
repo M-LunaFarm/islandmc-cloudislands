@@ -1,7 +1,0 @@
-{
-  "id": "cloudislands",
-  "name": "CloudIslands",
-  "version": "0.1.0",
-  "main": "kr.lunaf.cloudislands.velocity.CloudIslandsVelocityPlugin",
-  "authors": ["LeeSeungmin"]
-}
