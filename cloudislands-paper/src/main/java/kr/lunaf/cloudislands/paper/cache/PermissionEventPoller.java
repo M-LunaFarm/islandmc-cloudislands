@@ -20,13 +20,15 @@ public final class PermissionEventPoller {
     private final Plugin plugin;
     private final CoreApiClient client;
     private final PermissionCacheSyncService permissionSync;
+    private final String nodeId;
     private final Set<String> seen = ConcurrentHashMap.newKeySet();
     private BukkitTask task;
 
-    public PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync) {
+    public PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, String nodeId) {
         this.plugin = plugin;
         this.client = client;
         this.permissionSync = permissionSync;
+        this.nodeId = nodeId;
     }
 
     public void start(long intervalTicks) {
@@ -48,12 +50,18 @@ public final class PermissionEventPoller {
             while (matcher.find()) {
                 String type = matcher.group(1);
                 String key = type + "@" + matcher.group(3);
-                if (!seen.add(key) || !affectsPermissions(type)) {
+                if (!seen.add(key)) {
                     continue;
                 }
-                String islandId = fields(matcher.group(2)).get("islandId");
-                if (islandId != null && !islandId.isBlank()) {
-                    permissionSync.sync(UUID.fromString(islandId));
+                Map<String, String> fields = fields(matcher.group(2));
+                if (handlesNodeOperation(type, fields)) {
+                    continue;
+                }
+                if (affectsPermissions(type)) {
+                    String islandId = fields.get("islandId");
+                    if (islandId != null && !islandId.isBlank()) {
+                        permissionSync.sync(UUID.fromString(islandId));
+                    }
                 }
             }
             if (seen.size() > 2048) {
@@ -61,6 +69,35 @@ public final class PermissionEventPoller {
             }
         } catch (RuntimeException exception) {
             plugin.getLogger().warning("Failed to poll permission cache events: " + exception.getMessage());
+        }
+    }
+
+    private boolean handlesNodeOperation(String type, Map<String, String> fields) {
+        String targetNode = fields.getOrDefault("nodeId", "");
+        if (!targetNode.equals(nodeId)) {
+            return false;
+        }
+        String reason = fields.getOrDefault("reason", "admin-request");
+        if (type.equals("NODE_KICKALL")) {
+            Bukkit.getScheduler().runTask(plugin, () -> kickPlayers(reason));
+            return true;
+        }
+        if (type.equals("NODE_SHUTDOWN_SAFE")) {
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                kickPlayers(reason);
+                Bukkit.shutdown();
+            });
+            return true;
+        }
+        return false;
+    }
+
+    private void kickPlayers(String reason) {
+        String message = reason == null || reason.isBlank()
+            ? "섬 서버 점검으로 로비로 이동합니다."
+            : "섬 서버 점검으로 로비로 이동합니다. 사유: " + reason;
+        for (org.bukkit.entity.Player player : Bukkit.getOnlinePlayers()) {
+            player.kickPlayer(message);
         }
     }
 
