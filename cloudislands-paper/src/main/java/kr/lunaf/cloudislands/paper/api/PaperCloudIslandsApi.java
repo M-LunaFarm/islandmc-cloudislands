@@ -56,6 +56,7 @@ import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 import kr.lunaf.cloudislands.api.model.PlayerRouteSessionSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteClearResult;
+import kr.lunaf.cloudislands.api.model.RouteDebugSnapshot;
 import kr.lunaf.cloudislands.api.model.RoutePlan;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
@@ -475,6 +476,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<RouteTicket> createAdminTeleportTicket(UUID playerUuid, UUID islandId) { return client.adminIslandTeleport(playerUuid, islandId); }
         @Override public CompletableFuture<Optional<RouteTicket>> getRouteTicket(UUID ticketId) { return client.routeTicket(ticketId).thenApply(PaperCloudIslandsApi::routeTicket); }
         @Override public CompletableFuture<Optional<PlayerRouteSessionSnapshot>> getRouteSession(UUID playerUuid) { return client.debugRoutes(playerUuid).thenApply(PaperCloudIslandsApi::routeSession); }
+        @Override public CompletableFuture<RouteDebugSnapshot> getRouteDebug() { return client.debugRoutes(new UUID(0L, 0L)).thenApply(PaperCloudIslandsApi::routeDebug); }
         @Override public CompletableFuture<Void> clearRoute(UUID playerUuid, UUID ticketId) { return clearRouteResult(playerUuid, ticketId).thenApply(_result -> null); }
         @Override public CompletableFuture<RouteClearResult> clearRouteResult(UUID playerUuid, UUID ticketId) { return client.clearRouteResult(playerUuid, ticketId).thenApply(PaperCloudIslandsApi::routeClear); }
         @Override public CompletableFuture<List<IslandJobSnapshot>> listJobs() { return client.listJobs().thenApply(PaperCloudIslandsApi::jobs); }
@@ -677,6 +679,18 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             text(json, "nonce", ""),
             instant(text(json, "expiresAt", Instant.EPOCH.toString()))
         ));
+    }
+
+    private static RouteDebugSnapshot routeDebug(String json) {
+        List<PlayerRouteSessionSnapshot> sessions = new ArrayList<>();
+        for (String object : objects(json, "sessions")) {
+            routeSession(object).ifPresent(sessions::add);
+        }
+        List<RouteTicket> tickets = new ArrayList<>();
+        for (String object : objects(json, "tickets")) {
+            routeTicket(object).ifPresent(tickets::add);
+        }
+        return new RouteDebugSnapshot(List.copyOf(sessions), List.copyOf(tickets));
     }
 
     private static IslandRuntimeSnapshot runtime(String json) {
