@@ -498,6 +498,10 @@ public final class CloudIslandsCoreApplication {
         route("/v1/islands/level/recalculate", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
             var snapshot = levelRecalculation.recalculate(islandId, levelRepository.blockCounts(islandId), levelRepository.blockValues(), metadataRepository.members(islandId).size());
             write(exchange, 202, levelJson(snapshot));
         });
@@ -510,6 +514,9 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
             String upgradeKey = JsonFields.text(body, "upgradeKey", "size").toLowerCase();
+            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
             UpgradePurchaseResult result = upgradeService.purchase(islandId, upgradeKey);
             audit.log(actorUuid, "PLAYER", "ISLAND_UPGRADE_PURCHASE", "ISLAND", islandId.toString(), Map.of("upgradeKey", upgradeKey, "code", result.code(), "cost", result.cost().toPlainString()));
             islandLogs.append(islandId, actorUuid, "ISLAND_UPGRADE_PURCHASE", Map.of("upgradeKey", upgradeKey, "code", result.code(), "cost", result.cost().toPlainString()));
@@ -528,6 +535,9 @@ public final class CloudIslandsCoreApplication {
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
             String channel = JsonFields.text(body, "channel", "ISLAND").toUpperCase();
             String message = JsonFields.text(body, "message", "");
+            if (!requireMember(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
             String normalizedChannel = channel.equals("TEAM") ? "TEAM" : "ISLAND";
             islandLogs.append(islandId, actorUuid, "ISLAND_CHAT", Map.of("channel", normalizedChannel, "message", message));
             events.publish("ISLAND_CHAT", Map.of("islandId", islandId.toString(), "actorUuid", actorUuid.toString(), "channel", normalizedChannel, "message", message));
@@ -542,6 +552,9 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
             BigDecimal amount = amount(body);
+            if (!requireMember(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
             var snapshot = bankRepository.deposit(islandId, amount);
             audit.log(actorUuid, "PLAYER", "ISLAND_BANK_DEPOSIT", "ISLAND", islandId.toString(), Map.of("amount", amount.toPlainString(), "balance", snapshot.balance()));
             islandLogs.append(islandId, actorUuid, "ISLAND_BANK_DEPOSIT", Map.of("amount", amount.toPlainString(), "balance", snapshot.balance()));
@@ -553,6 +566,9 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
             BigDecimal amount = amount(body);
+            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
             var result = bankRepository.withdraw(islandId, amount);
             audit.log(actorUuid, "PLAYER", "ISLAND_BANK_WITHDRAW", "ISLAND", islandId.toString(), Map.of("amount", amount.toPlainString(), "code", result.code(), "balance", result.snapshot().balance()));
             islandLogs.append(islandId, actorUuid, "ISLAND_BANK_WITHDRAW", Map.of("amount", amount.toPlainString(), "code", result.code(), "balance", result.snapshot().balance()));
@@ -1074,6 +1090,19 @@ public final class CloudIslandsCoreApplication {
             return true;
         }
         write(exchange, 403, ApiResponses.error("ISLAND_PERMISSION_DENIED", "Island manager permission is required"));
+        return false;
+    }
+
+    private static boolean requireMember(HttpExchange exchange, IslandRepository islandRepository, IslandMetadataRepository metadataRepository, UUID islandId, UUID actorUuid) throws IOException {
+        boolean owner = islandRepository.findById(islandId)
+            .map(island -> island.ownerUuid().equals(actorUuid))
+            .orElse(false);
+        boolean member = metadataRepository.members(islandId).stream()
+            .anyMatch(record -> record.playerUuid().equals(actorUuid) && record.role() != IslandRole.VISITOR && record.role() != IslandRole.BANNED);
+        if (owner || member) {
+            return true;
+        }
+        write(exchange, 403, ApiResponses.error("ISLAND_PERMISSION_DENIED", "Island member permission is required"));
         return false;
     }
 
