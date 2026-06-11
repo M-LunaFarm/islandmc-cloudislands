@@ -147,6 +147,7 @@ public final class CloudIslandsCoreApplication {
         AuditLogger audit = config.jdbcRepositories() ? new JdbcAuditLogger(dataSource) : new InMemoryAuditLogger();
         IslandLogRepository islandLogs = config.jdbcRepositories() ? new JdbcIslandLogRepository(dataSource) : new InMemoryIslandLogRepository();
         InMemoryAuditLogger inMemoryAudit = audit instanceof InMemoryAuditLogger logger ? logger : new InMemoryAuditLogger();
+        java.util.function.Supplier<String> auditJson = audit instanceof JdbcAuditLogger jdbcAudit ? () -> jdbcAudit.toJson(100) : inMemoryAudit::toJson;
         RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets, islandRepository, metadataRepository, runtimeRepository, templateRepository, jobs, events);
         CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, metadataRepository, playerProfiles, templateRepository, nodes, allocator, jobs, events, tickets);
         IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(runtimeRepository, islandRepository, templateRepository, nodes, allocator, jobs, events);
@@ -165,7 +166,7 @@ public final class CloudIslandsCoreApplication {
         });
         route("/v1/jobs", exchange -> write(exchange, 200, jobsJson(jobs)));
         route("/v1/events", exchange -> write(exchange, 200, inMemoryEvents.toJson()));
-        route("/v1/audit", exchange -> write(exchange, 200, inMemoryAudit.toJson()));
+        route("/v1/audit", exchange -> write(exchange, 200, auditJson.get()));
         route("/v1/rankings/level", exchange -> {
             String body = readBody(exchange);
             write(exchange, 200, rankingsJson(rankingRepository.topByLevel(JsonFields.integer(body, "limit", 10))));
