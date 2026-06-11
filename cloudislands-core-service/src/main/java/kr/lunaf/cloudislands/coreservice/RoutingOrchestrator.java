@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
@@ -34,8 +36,12 @@ public final class RoutingOrchestrator {
     }
 
     public RoutePreparationResult prepareHomeRoute(UUID playerUuid) {
+        return prepareHomeRoute(playerUuid, "default");
+    }
+
+    public RoutePreparationResult prepareHomeRoute(UUID playerUuid, String homeName) {
         return islands.findByOwner(playerUuid)
-            .map(island -> prepareTicket(playerUuid, island, RouteAction.HOME))
+            .map(island -> prepareTicket(playerUuid, island, RouteAction.HOME, homePayload(island.islandId(), homeName)))
             .orElseGet(() -> RoutePreparationResult.rejected(404, ApiResponses.error("ISLAND_NOT_FOUND", "Player does not own an island")));
     }
 
@@ -127,6 +133,22 @@ public final class RoutingOrchestrator {
             UUID.randomUUID().toString(),
             Map.copyOf(payload)
         );
+    }
+
+    private Map<String, String> homePayload(UUID islandId, String homeName) {
+        java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
+        String normalized = homeName == null || homeName.isBlank() ? "default" : homeName.toLowerCase();
+        payload.put("homeName", normalized);
+        IslandHomeSnapshot home = metadata.home(islandId, normalized).orElse(null);
+        if (home != null) {
+            IslandLocation location = home.location();
+            payload.put("localX", Double.toString(location.localX()));
+            payload.put("localY", Double.toString(location.localY()));
+            payload.put("localZ", Double.toString(location.localZ()));
+            payload.put("yaw", Float.toString(location.yaw()));
+            payload.put("pitch", Float.toString(location.pitch()));
+        }
+        return Map.copyOf(payload);
     }
 
     public static String toJson(RouteTicket ticket) {

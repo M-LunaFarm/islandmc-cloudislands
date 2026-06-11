@@ -20,15 +20,23 @@ public final class RouteTicketConsumer {
     }
 
     public void consumeAndTeleport(UUID ticketId, UUID playerUuid, String nonce) {
-        coreApiClient.consumeTicket(ticketId, playerUuid, nodeId, nonce).thenAccept(ticket -> ticket.ifPresent(routeTicket -> Bukkit.getScheduler().runTask(plugin, () -> teleport(playerUuid, routeTicket.targetWorld()))));
+        coreApiClient.consumeTicket(ticketId, playerUuid, nodeId, nonce).thenAccept(ticket -> ticket.ifPresent(routeTicket -> Bukkit.getScheduler().runTask(plugin, () -> teleport(playerUuid, routeTicket.targetWorld(), routeTicket.payload()))));
     }
 
-    private void teleport(UUID playerUuid, String worldName) {
+    private void teleport(UUID playerUuid, String worldName, java.util.Map<String, String> payload) {
         Player player = Bukkit.getPlayer(playerUuid);
         World world = worldName == null ? null : Bukkit.getWorld(worldName);
         if (player == null || world == null) {
             return;
         }
-        player.teleport(new Location(world, 0.5D, 100.0D, 0.5D, 180.0F, 0.0F));
+        player.teleport(new Location(world, decimal(payload, "localX", 0.5D), decimal(payload, "localY", 100.0D), decimal(payload, "localZ", 0.5D), (float) decimal(payload, "yaw", 180.0D), (float) decimal(payload, "pitch", 0.0D)));
+    }
+
+    private double decimal(java.util.Map<String, String> payload, String key, double fallback) {
+        try {
+            return Double.parseDouble(payload.getOrDefault(key, Double.toString(fallback)));
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
     }
 }

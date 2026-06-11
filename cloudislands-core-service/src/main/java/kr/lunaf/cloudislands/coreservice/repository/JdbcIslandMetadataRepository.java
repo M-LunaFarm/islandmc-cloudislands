@@ -14,6 +14,7 @@ import javax.sql.DataSource;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
@@ -282,6 +283,56 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     }
 
     @Override
+    public List<IslandHomeSnapshot> homes(UUID islandId) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT island_id, name, world_name, local_x, local_y, local_z, yaw, pitch, created_by, created_at FROM island_homes WHERE island_id = ? ORDER BY name")) {
+            statement.setObject(1, islandId);
+            try (ResultSet rs = statement.executeQuery()) {
+                List<IslandHomeSnapshot> result = new ArrayList<>();
+                while (rs.next()) {
+                    result.add(home(rs));
+                }
+                return result;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read island homes", exception);
+        }
+    }
+
+    @Override
+    public java.util.Optional<IslandHomeSnapshot> home(UUID islandId, String name) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT island_id, name, world_name, local_x, local_y, local_z, yaw, pitch, created_by, created_at FROM island_homes WHERE island_id = ? AND name = ?")) {
+            statement.setObject(1, islandId);
+            statement.setString(2, name.toLowerCase());
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? java.util.Optional.of(home(rs)) : java.util.Optional.empty();
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read island home", exception);
+        }
+    }
+
+    @Override
+    public void upsertHome(UUID islandId, String name, IslandLocation location, UUID createdBy) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_homes(island_id, name, world_name, local_x, local_y, local_z, yaw, pitch, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (island_id, name) DO UPDATE SET world_name = EXCLUDED.world_name, local_x = EXCLUDED.local_x, local_y = EXCLUDED.local_y, local_z = EXCLUDED.local_z, yaw = EXCLUDED.yaw, pitch = EXCLUDED.pitch, created_by = EXCLUDED.created_by, created_at = now()")) {
+            statement.setObject(1, islandId);
+            statement.setString(2, name.toLowerCase());
+            statement.setString(3, location.worldName());
+            statement.setDouble(4, location.localX());
+            statement.setDouble(5, location.localY());
+            statement.setDouble(6, location.localZ());
+            statement.setFloat(7, location.yaw());
+            statement.setFloat(8, location.pitch());
+            statement.setObject(9, createdBy);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to upsert island home", exception);
+        }
+    }
+
+    @Override
     public List<IslandWarpSnapshot> warps(UUID islandId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT island_id, name, local_x, local_y, local_z, yaw, pitch, public_access, created_by, created_at FROM island_warps WHERE island_id = ? ORDER BY name")) {
@@ -378,5 +429,10 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
             rs.getTimestamp("created_at").toInstant(),
             rs.getTimestamp("expires_at").toInstant()
         );
+    }
+
+    private IslandHomeSnapshot home(ResultSet rs) throws SQLException {
+        IslandLocation location = new IslandLocation(rs.getString("world_name"), rs.getDouble("local_x"), rs.getDouble("local_y"), rs.getDouble("local_z"), rs.getFloat("yaw"), rs.getFloat("pitch"));
+        return new IslandHomeSnapshot((UUID) rs.getObject("island_id"), rs.getString("name"), location, (UUID) rs.getObject("created_by"), rs.getTimestamp("created_at").toInstant());
     }
 }

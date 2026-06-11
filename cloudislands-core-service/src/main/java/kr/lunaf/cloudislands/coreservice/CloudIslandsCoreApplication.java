@@ -200,7 +200,7 @@ public final class CloudIslandsCoreApplication {
         });
         route("/v1/routes/home", exchange -> {
             String body = readBody(exchange);
-            routeResult(exchange, routing.prepareHomeRoute(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L))));
+            routeResult(exchange, routing.prepareHomeRoute(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), JsonFields.text(body, "homeName", "default")));
         });
         route("/v1/routes/visit", exchange -> {
             String body = readBody(exchange);
@@ -488,6 +488,21 @@ public final class CloudIslandsCoreApplication {
         route("/v1/islands/warps", exchange -> {
             String body = readBody(exchange);
             write(exchange, 200, warpsJson(metadataRepository.warps(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
+        });
+        route("/v1/islands/homes", exchange -> {
+            String body = readBody(exchange);
+            write(exchange, 200, homesJson(metadataRepository.homes(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
+        });
+        route("/v1/islands/homes/set", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            String name = JsonFields.text(body, "name", "default").toLowerCase();
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            metadataRepository.upsertHome(islandId, name, location(body), actorUuid);
+            audit.log(actorUuid, "PLAYER", "ISLAND_HOME_SET", "ISLAND", islandId.toString(), Map.of("name", name));
+            islandLogs.append(islandId, actorUuid, "ISLAND_HOME_SET", Map.of("name", name));
+            events.publish("ISLAND_HOME_SET", Map.of("islandId", islandId.toString(), "name", name));
+            write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/islands/warps/set", exchange -> {
             String body = readBody(exchange);
@@ -819,6 +834,31 @@ public final class CloudIslandsCoreApplication {
             builder.append("\"").append(entry.getKey().name()).append("\":\"").append(escape(entry.getValue())).append("\"");
         }
         return builder.append("}}").toString();
+    }
+
+    private static String homesJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandHomeSnapshot> homes) {
+        StringBuilder builder = new StringBuilder("{\"homes\":[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.api.model.IslandHomeSnapshot home : homes) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            IslandLocation location = home.location();
+            builder.append('{')
+                .append("\"islandId\":\"").append(home.islandId()).append("\",")
+                .append("\"name\":\"").append(escape(home.name())).append("\",")
+                .append("\"worldName\":\"").append(escape(location.worldName())).append("\",")
+                .append("\"localX\":").append(location.localX()).append(',')
+                .append("\"localY\":").append(location.localY()).append(',')
+                .append("\"localZ\":").append(location.localZ()).append(',')
+                .append("\"yaw\":").append(location.yaw()).append(',')
+                .append("\"pitch\":").append(location.pitch()).append(',')
+                .append("\"createdBy\":\"").append(home.createdBy()).append("\",")
+                .append("\"createdAt\":\"").append(home.createdAt()).append("\"")
+                .append('}');
+        }
+        return builder.append("]}").toString();
     }
 
     private static String warpsJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandWarpSnapshot> warps) {

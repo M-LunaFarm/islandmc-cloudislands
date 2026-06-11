@@ -33,6 +33,8 @@ public interface CoreApiClient {
     CompletableFuture<Void> pardonIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid);
     CompletableFuture<String> listIslandFlags(UUID islandId);
     CompletableFuture<Void> setIslandFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value);
+    CompletableFuture<String> listIslandHomes(UUID islandId);
+    CompletableFuture<Void> setIslandHome(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<String> listIslandPermissions(UUID islandId);
     CompletableFuture<Void> setIslandPermission(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed);
     CompletableFuture<String> listIslandWarps(UUID islandId);
@@ -56,6 +58,7 @@ public interface CoreApiClient {
     CompletableFuture<String> depositIslandBank(UUID islandId, UUID actorUuid, String amount);
     CompletableFuture<String> withdrawIslandBank(UUID islandId, UUID actorUuid, String amount);
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid);
+    CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName);
     CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId);
     CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid);
     CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName);

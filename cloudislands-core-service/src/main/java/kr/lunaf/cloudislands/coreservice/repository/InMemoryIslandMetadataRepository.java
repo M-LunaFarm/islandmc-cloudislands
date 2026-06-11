@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
@@ -21,6 +22,7 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     private final Map<UUID, IslandInviteSnapshot> invites = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, IslandBanSnapshot>> bans = new ConcurrentHashMap<>();
     private final Map<UUID, Map<IslandFlag, String>> flags = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<String, IslandHomeSnapshot>> homes = new ConcurrentHashMap<>();
     private final Map<UUID, Map<String, IslandWarpSnapshot>> warps = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> publicAccess = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> locked = new ConcurrentHashMap<>();
@@ -132,6 +134,22 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     @Override
     public void setFlag(UUID islandId, IslandFlag flag, String value) {
         flags.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>()).put(flag, value);
+    }
+
+    @Override
+    public List<IslandHomeSnapshot> homes(UUID islandId) {
+        return new ArrayList<>(homes.getOrDefault(islandId, Map.of()).values());
+    }
+
+    @Override
+    public java.util.Optional<IslandHomeSnapshot> home(UUID islandId, String name) {
+        return java.util.Optional.ofNullable(homes.getOrDefault(islandId, Map.of()).get(name.toLowerCase()));
+    }
+
+    @Override
+    public void upsertHome(UUID islandId, String name, IslandLocation location, UUID createdBy) {
+        homes.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>())
+            .put(name.toLowerCase(), new IslandHomeSnapshot(islandId, name.toLowerCase(), location, createdBy, Instant.now()));
     }
 
     @Override

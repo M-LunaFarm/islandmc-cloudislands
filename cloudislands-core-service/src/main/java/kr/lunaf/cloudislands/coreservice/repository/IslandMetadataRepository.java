@@ -5,6 +5,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
@@ -28,6 +29,9 @@ public interface IslandMetadataRepository {
     void setLocked(UUID islandId, boolean locked);
     IslandFlagsSnapshot flags(UUID islandId);
     void setFlag(UUID islandId, IslandFlag flag, String value);
+    List<IslandHomeSnapshot> homes(UUID islandId);
+    java.util.Optional<IslandHomeSnapshot> home(UUID islandId, String name);
+    void upsertHome(UUID islandId, String name, IslandLocation location, UUID createdBy);
     List<IslandWarpSnapshot> warps(UUID islandId);
     void upsertWarp(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy);
     void deleteWarp(UUID islandId, String name);

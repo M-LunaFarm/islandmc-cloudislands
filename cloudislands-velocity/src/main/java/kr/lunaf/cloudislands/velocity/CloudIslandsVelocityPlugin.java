@@ -51,7 +51,18 @@ public final class CloudIslandsVelocityPlugin {
     private void dispatch(Player player, String[] args) {
         if (args.length == 0 || args[0].equalsIgnoreCase("home") || args[0].equals("홈")) {
             player.sendActionBar(Component.text("섬을 준비하는 중입니다."));
-            routingController.routeHome(player);
+            routingController.routeHome(player, args.length > 1 ? args[1] : "default");
+            return;
+        }
+        if (args[0].equalsIgnoreCase("homes") || args[0].equals("홈목록")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.listHomes(player, islandId);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("sethome") || args[0].equals("셋홈")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            String name = args.length > 2 ? args[2] : "default";
+            routingController.setHome(player, islandId, name);
             return;
         }
         if (args[0].equalsIgnoreCase("visit") || args[0].equals("방문")) {

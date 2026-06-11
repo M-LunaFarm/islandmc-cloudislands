@@ -116,6 +116,16 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> listIslandHomes(UUID islandId) {
+        return post("/v1/islands/homes", "{\"islandId\":\"" + islandId + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<Void> setIslandHome(UUID islandId, UUID actorUuid, String name, IslandLocation location) {
+        return post("/v1/islands/homes/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"" + escape(name) + "\",\"worldName\":\"" + escape(location.worldName()) + "\",\"localX\":" + location.localX() + ",\"localY\":" + location.localY() + ",\"localZ\":" + location.localZ() + ",\"yaw\":" + location.yaw() + ",\"pitch\":" + location.pitch() + "}").thenApply(_body -> null);
+    }
+
+    @Override
     public CompletableFuture<String> listIslandPermissions(UUID islandId) {
         return post("/v1/islands/permissions", "{\"islandId\":\"" + islandId + "\"}");
     }
@@ -227,7 +237,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid) {
-        return post("/v1/routes/home", "{\"playerUuid\":\"" + playerUuid + "\"}").thenApply(RouteTicketJson::parse);
+        return createHomeTicket(playerUuid, "default");
+    }
+
+    @Override
+    public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName) {
+        return post("/v1/routes/home", "{\"playerUuid\":\"" + playerUuid + "\",\"homeName\":\"" + escape(homeName) + "\"}").thenApply(RouteTicketJson::parse);
     }
 
     @Override
@@ -388,8 +403,43 @@ public final class JdkCoreApiClient implements CoreApiClient {
             String targetWorld = text(json, "targetWorld", "ci_shard_001");
             String nonce = text(json, "nonce", "");
             String serverName = text(json, "targetServerName", targetNode);
+            java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
+            payload.put("targetServerName", serverName);
+            putIfPresent(payload, json, "homeName");
+            putIfPresent(payload, json, "warpName");
+            putIfPresent(payload, json, "localX");
+            putIfPresent(payload, json, "localY");
+            putIfPresent(payload, json, "localZ");
+            putIfPresent(payload, json, "yaw");
+            putIfPresent(payload, json, "pitch");
             Instant expiresAt = Instant.parse(text(json, "expiresAt", Instant.now().plusSeconds(30).toString()));
-            return new RouteTicket(ticketId, playerUuid, action, islandId, targetNode, targetWorld, state, expiresAt, nonce, Map.of("targetServerName", serverName));
+            return new RouteTicket(ticketId, playerUuid, action, islandId, targetNode, targetWorld, state, expiresAt, nonce, Map.copyOf(payload));
+        }
+
+        private static void putIfPresent(Map<String, String> payload, String json, String field) {
+            String value = text(json, field, null);
+            if (value != null) {
+                payload.put(field, value);
+                return;
+            }
+            String scalar = scalar(json, field);
+            if (scalar != null) {
+                payload.put(field, scalar);
+            }
+        }
+
+        private static String scalar(String json, String field) {
+            String needle = "\"" + field + "\":";
+            int start = json.indexOf(needle);
+            if (start < 0) {
+                return null;
+            }
+            int valueStart = start + needle.length();
+            int end = valueStart;
+            while (end < json.length() && "0123456789.-".indexOf(json.charAt(end)) >= 0) {
+                end++;
+            }
+            return end == valueStart ? null : json.substring(valueStart, end);
         }
 
         private static <E extends Enum<E>> E enumValue(Class<E> type, String value, E fallback) {

@@ -10,6 +10,7 @@ public interface IslandRoutingService {
     CompletableFuture<RoutePlan> resolveVisit(UUID visitorUuid, UUID targetIslandId);
     CompletableFuture<RoutePlan> resolveRandomVisit(UUID visitorUuid);
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid);
+    CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName);
     CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId);
     CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid);
     CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName);

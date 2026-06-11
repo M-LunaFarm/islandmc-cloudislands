@@ -5,6 +5,7 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
+import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
@@ -47,7 +48,11 @@ public final class VelocityRoutingController {
     }
 
     public void routeHome(Player player) {
-        coreApiClient.createHomeTicket(player.getUniqueId()).thenAccept(ticket -> route(player, ticket, "현재 섬 서비스 일부 기능이 점검 중입니다."));
+        routeHome(player, "default");
+    }
+
+    public void routeHome(Player player, String homeName) {
+        coreApiClient.createHomeTicket(player.getUniqueId(), homeName).thenAccept(ticket -> route(player, ticket, "현재 섬 서비스 일부 기능이 점검 중입니다."));
     }
 
     public void routeVisit(Player player, UUID targetIslandId) {
@@ -108,6 +113,15 @@ public final class VelocityRoutingController {
 
     public void setPublicAccess(Player player, UUID islandId, boolean publicAccess) {
         coreApiClient.setIslandPublicAccess(islandId, player.getUniqueId(), publicAccess).thenRun(() -> player.sendMessage(Component.text(publicAccess ? "섬을 공개로 변경했습니다." : "섬을 비공개로 변경했습니다.")));
+    }
+
+    public void listHomes(Player player, UUID islandId) {
+        coreApiClient.listIslandHomes(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 홈을 불러오지 못했습니다." : body)));
+    }
+
+    public void setHome(Player player, UUID islandId, String name) {
+        IslandLocation defaultHome = new IslandLocation("ci_shard_001", 0.5D, 100.0D, 0.5D, 180.0F, 0.0F);
+        coreApiClient.setIslandHome(islandId, player.getUniqueId(), name, defaultHome).thenRun(() -> player.sendMessage(Component.text("섬 홈을 설정했습니다.")));
     }
 
     public void setLocked(Player player, UUID islandId, boolean locked) {
