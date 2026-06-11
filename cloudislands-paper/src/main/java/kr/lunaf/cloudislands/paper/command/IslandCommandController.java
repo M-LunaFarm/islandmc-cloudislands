@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandHomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandInfoMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandLimitMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandLogMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMissionMenu;
@@ -50,7 +51,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "upgrade", "upgrades", "upgrade-menu", "upgrade-list", "업그레이드", "업그레이드목록",
         "mission", "missions", "mission-menu", "mission-list", "미션", "미션목록",
         "challenge", "challenges", "challenge-menu", "challenge-list", "챌린지", "챌린지목록",
-        "chat", "islandchat", "채팅", "teamchat", "team-chat", "팀채팅", "log", "logs", "로그",
+        "chat", "islandchat", "채팅", "teamchat", "team-chat", "팀채팅", "log", "logs", "log-menu", "log-list", "로그", "로그목록",
         "biome", "biome-menu", "biome-info", "바이옴", "바이옴정보", "size", "크기", "border", "경계",
         "limit", "limits", "limit-menu", "limit-list", "제한", "제한목록", "setlimit", "limit-set", "제한설정",
         "snapshot", "snapshots", "snapshot-menu", "snapshot-list", "스냅샷", "스냅샷목록", "snapshot-create", "snapshot-request", "스냅샷생성",
@@ -322,7 +323,11 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             sendIslandChat(player, "TEAM", joined(args, 1), "팀 채팅");
             return true;
         }
-        if (subcommand.equals("log") || subcommand.equals("logs") || subcommand.equals("로그")) {
+        if (subcommand.equals("log") || subcommand.equals("log-menu") || subcommand.equals("로그")) {
+            openIslandLogMenu(player);
+            return true;
+        }
+        if (subcommand.equals("logs") || subcommand.equals("log-list") || subcommand.equals("로그목록")) {
             listIslandLogs(player, args.length > 1 ? integer(args[1], 10) : 10);
             return true;
         }
@@ -960,6 +965,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                     return null;
                 });
         });
+    }
+
+    private void openIslandLogMenu(Player player) {
+        currentIsland(player, "섬 안에서만 로그를 확인할 수 있습니다.").ifPresent(islandId -> IslandLogMenu.open(plugin, coreApiClient, player, islandId));
     }
 
     private void showIslandBiome(Player player) {

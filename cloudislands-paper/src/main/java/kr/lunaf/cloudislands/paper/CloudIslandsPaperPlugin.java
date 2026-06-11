@@ -26,6 +26,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandHomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandInfoMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandLimitMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandLogMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMissionMenu;
@@ -88,6 +89,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandHomeMenu(), this);
         getServer().getPluginManager().registerEvents(new IslandInfoMenu(), this);
         getServer().getPluginManager().registerEvents(new IslandLimitMenu(), this);
+        getServer().getPluginManager().registerEvents(new IslandLogMenu(), this);
         getServer().getPluginManager().registerEvents(new IslandMainMenu(), this);
         getServer().getPluginManager().registerEvents(new IslandMemberMenu(), this);
         getServer().getPluginManager().registerEvents(new IslandMissionMenu(), this);
