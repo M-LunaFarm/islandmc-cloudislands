@@ -67,31 +67,31 @@ public final class VelocityRoutingController {
     }
 
     public void showMyIsland(Player player) {
-        coreApiClient.islandInfoByOwner(player.getUniqueId()).thenAccept(body -> sendPlayerPayload(player, body, "섬 정보를 불러오지 못했습니다.", "섬 정보를 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.islandInfoByOwner(player.getUniqueId()), "섬 정보를 불러오지 못했습니다.", "섬 정보를 불러왔습니다.");
     }
 
     public void showIslandSettings(Player player, UUID islandId) {
-        coreApiClient.islandInfo(islandId).thenAccept(body -> sendPlayerPayload(player, body, "섬 설정을 불러오지 못했습니다.", "섬 설정을 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.islandInfo(islandId), "섬 설정을 불러오지 못했습니다.", "섬 설정을 불러왔습니다.");
     }
 
     public void showIslandLevel(Player player, UUID islandId) {
-        coreApiClient.islandInfo(islandId).thenAccept(body -> sendPlayerPayload(player, body, "섬 레벨을 불러오지 못했습니다.", "섬 레벨 정보를 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.islandInfo(islandId), "섬 레벨을 불러오지 못했습니다.", "섬 레벨 정보를 불러왔습니다.");
     }
 
     public void showIslandWorth(Player player, UUID islandId) {
-        coreApiClient.islandInfo(islandId).thenAccept(body -> sendPlayerPayload(player, body, "섬 가치를 불러오지 못했습니다.", "섬 가치 정보를 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.islandInfo(islandId), "섬 가치를 불러오지 못했습니다.", "섬 가치 정보를 불러왔습니다.");
     }
 
     public void showIslandSize(Player player, UUID islandId) {
-        coreApiClient.islandInfo(islandId).thenAccept(body -> sendPlayerPayload(player, body, "섬 크기를 불러오지 못했습니다.", "섬 크기 정보를 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.islandInfo(islandId), "섬 크기를 불러오지 못했습니다.", "섬 크기 정보를 불러왔습니다.");
     }
 
     public void showIslandBorder(Player player, UUID islandId) {
-        coreApiClient.islandInfo(islandId).thenAccept(body -> sendPlayerPayload(player, body, "섬 경계를 불러오지 못했습니다.", "섬 경계 정보를 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.islandInfo(islandId), "섬 경계를 불러오지 못했습니다.", "섬 경계 정보를 불러왔습니다.");
     }
 
     public void showBiome(Player player, UUID islandId) {
-        coreApiClient.islandBiome(islandId).thenAccept(body -> sendPlayerPayload(player, body, "섬 바이옴을 불러오지 못했습니다.", "섬 바이옴 정보를 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.islandBiome(islandId), "섬 바이옴을 불러오지 못했습니다.", "섬 바이옴 정보를 불러왔습니다.");
     }
 
     public void setBiome(Player player, UUID islandId, String biomeKey) {
@@ -436,6 +436,13 @@ public final class VelocityRoutingController {
 
     private void sendPlayerPayload(Player player, String body, String emptyMessage, String successMessage) {
         player.sendMessage(Component.text(playerPayloadMessage(body, emptyMessage, successMessage)));
+    }
+
+    private void sendPlayerPayloadFuture(Player player, CompletableFuture<String> future, String emptyMessage, String successMessage) {
+        future.thenAccept(body -> sendPlayerPayload(player, body, emptyMessage, successMessage)).exceptionally(error -> {
+            player.sendMessage(Component.text(emptyMessage));
+            return null;
+        });
     }
 
     private String playerPayloadMessage(String body, String emptyMessage, String successMessage) {
