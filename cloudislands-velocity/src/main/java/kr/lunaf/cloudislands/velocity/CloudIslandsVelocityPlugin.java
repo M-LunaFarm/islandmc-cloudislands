@@ -59,8 +59,9 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("create") || args[0].equals("생성")) {
-            player.sendMessage(Component.text("섬 생성 요청을 접수했습니다."));
-            routingController.routeHome(player);
+            String templateId = args.length > 1 ? args[1] : "default";
+            player.sendActionBar(Component.text("섬 생성 요청을 접수했습니다."));
+            routingController.createIsland(player, templateId);
             return;
         }
         player.sendMessage(Component.text("사용법: /섬 홈, /섬 생성, /섬 방문 <섬>"));

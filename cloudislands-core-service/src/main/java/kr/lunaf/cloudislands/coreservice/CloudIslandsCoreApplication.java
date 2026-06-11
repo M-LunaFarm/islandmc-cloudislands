@@ -33,17 +33,33 @@ public final class CloudIslandsCoreApplication {
         server.createContext("/health", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));
         server.createContext("/v1/nodes", exchange -> write(exchange, 200, nodes.toJson()));
         server.createContext("/v1/jobs", exchange -> write(exchange, 200, jobs.toJson()));
-        server.createContext("/v1/routes/home", exchange -> write(exchange, 202, routing.prepareHomeRouteJson(playerUuid(exchange))));
-        server.createContext("/v1/routes/visit", exchange -> write(exchange, 202, routing.prepareVisitRouteJson(playerUuid(exchange), islandUuid(exchange))));
+        server.createContext("/v1/routes/home", exchange -> {
+            String body = readBody(exchange);
+            write(exchange, 202, routing.prepareHomeRouteJson(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L))));
+        });
+        server.createContext("/v1/routes/visit", exchange -> {
+            String body = readBody(exchange);
+            write(exchange, 202, routing.prepareVisitRouteJson(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), JsonFields.uuid(body, "islandId", new UUID(0L, 0L))));
+        });
         server.createContext("/v1/routes/consume", exchange -> write(exchange, 200, routing.consumeTicketJson(readBody(exchange))));
         server.createContext("/v1/nodes/heartbeat", exchange -> {
             nodes.heartbeat(heartbeat(readBody(exchange)));
             write(exchange, 202, "{\"accepted\":true}");
         });
+        server.createContext("/v1/admin/nodes/drain", exchange -> {
+            boolean changed = nodes.drain(JsonFields.text(readBody(exchange), "nodeId", ""));
+            write(exchange, changed ? 202 : 404, "{\"accepted\":" + changed + "}");
+        });
+        server.createContext("/v1/admin/nodes/undrain", exchange -> {
+            boolean changed = nodes.undrain(JsonFields.text(readBody(exchange), "nodeId", ""));
+            write(exchange, changed ? 202 : 404, "{\"accepted\":" + changed + "}");
+        });
         server.createContext("/v1/islands", exchange -> {
             String body = readBody(exchange);
             CreateIslandResult result = createIsland.create(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), JsonFields.text(body, "templateId", "default"));
-            write(exchange, result.accepted() ? 202 : 409, "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\"}");
+            String ticketJson = result.ticket() == null ? "null" : RoutingOrchestrator.toJson(result.ticket());
+            String islandId = result.island() == null ? "" : result.island().islandId().toString();
+            write(exchange, result.accepted() ? 202 : 409, "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\",\"islandId\":\"" + islandId + "\",\"ticket\":" + ticketJson + "}");
         });
     }
 
@@ -54,14 +70,6 @@ public final class CloudIslandsCoreApplication {
     public static void main(String[] args) throws IOException {
         int port = args.length == 0 ? 8443 : Integer.parseInt(args[0]);
         new CloudIslandsCoreApplication(port).start();
-    }
-
-    private static UUID playerUuid(HttpExchange exchange) throws IOException {
-        return JsonFields.uuid(readBody(exchange), "playerUuid", new UUID(0L, 0L));
-    }
-
-    private static UUID islandUuid(HttpExchange exchange) throws IOException {
-        return JsonFields.uuid(readBody(exchange), "islandId", new UUID(0L, 0L));
     }
 
     private static NodeHeartbeatRequest heartbeat(String body) {

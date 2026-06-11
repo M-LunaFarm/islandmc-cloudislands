@@ -4,6 +4,7 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import net.kyori.adventure.text.Component;
@@ -17,6 +18,20 @@ public final class VelocityRoutingController {
         this.proxy = proxy;
         this.coreApiClient = coreApiClient;
         this.fallbackServer = fallbackServer;
+    }
+
+    public void createIsland(Player player, String templateId) {
+        coreApiClient.createIsland(player.getUniqueId(), templateId).thenAccept(result -> {
+            if (result == null || !result.accepted()) {
+                String code = result == null ? "FAILED" : result.code();
+                player.sendMessage(Component.text(messageForCreateFailure(code)));
+                return;
+            }
+            player.sendActionBar(Component.text("섬을 생성하고 있습니다."));
+            if (result.ticket() != null) {
+                route(player, result.ticket(), "섬으로 이동하지 못했습니다.");
+            }
+        });
     }
 
     public void routeHome(Player player) {
@@ -51,5 +66,13 @@ public final class VelocityRoutingController {
     private void fallback(Player player, String message) {
         player.sendMessage(Component.text(message));
         proxy.getServer(fallbackServer).ifPresent(server -> player.createConnectionRequest(server).connectWithIndication());
+    }
+
+    private String messageForCreateFailure(String code) {
+        return switch (code) {
+            case "ALREADY_HAS_ISLAND" -> "이미 섬을 보유하고 있습니다.";
+            case "NODE_UNAVAILABLE" -> "현재 섬 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.";
+            default -> "섬 생성에 실패했습니다.";
+        };
     }
 }

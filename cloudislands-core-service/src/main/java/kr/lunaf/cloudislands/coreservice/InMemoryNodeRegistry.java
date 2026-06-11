@@ -1,7 +1,6 @@
 package kr.lunaf.cloudislands.coreservice;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -21,35 +20,32 @@ public final class InMemoryNodeRegistry {
 
     public void heartbeat(NodeHeartbeatRequest request) {
         NodeLoad current = nodes.get(request.nodeId());
-        int hardCap = current == null ? 110 : current.hardPlayerCap();
-        int maxActiveIslands = current == null ? 600 : current.maxActiveIslands();
-        int maxQueue = current == null ? 20 : current.maxActivationQueue();
-        double chunkPressure = current == null ? 0.0D : current.chunkLoadPressure();
-        int failurePenalty = current == null ? 0 : current.recentFailurePenalty();
+        NodeState nextState = current != null && current.state() == NodeState.DRAINING ? NodeState.DRAINING : request.state();
         upsert(new NodeLoad(
             request.nodeId(),
             request.velocityServerName(),
-            request.state(),
+            nextState,
             request.players(),
-            hardCap,
+            current == null ? 110 : current.hardPlayerCap(),
             request.activeIslands(),
-            maxActiveIslands,
+            current == null ? 600 : current.maxActiveIslands(),
             request.mspt(),
             request.activationQueue(),
-            maxQueue,
-            chunkPressure,
+            current == null ? 20 : current.maxActivationQueue(),
+            current == null ? 0.0D : current.chunkLoadPressure(),
             request.heapUsedMb(),
             request.heapMaxMb(),
-            failurePenalty,
+            current == null ? 0 : current.recentFailurePenalty(),
             Instant.now()
         ));
     }
 
-    public void markDraining(String nodeId) {
-        NodeLoad node = nodes.get(nodeId);
-        if (node != null) {
-            upsert(new NodeLoad(node.nodeId(), node.velocityServerName(), NodeState.DRAINING, node.players(), node.hardPlayerCap(), node.activeIslands(), node.maxActiveIslands(), node.mspt(), node.activationQueue(), node.maxActivationQueue(), node.chunkLoadPressure(), node.heapUsedMb(), node.heapMaxMb(), node.recentFailurePenalty(), node.lastHeartbeat()));
-        }
+    public boolean drain(String nodeId) {
+        return setState(nodeId, NodeState.DRAINING);
+    }
+
+    public boolean undrain(String nodeId) {
+        return setState(nodeId, NodeState.READY);
     }
 
     public List<NodeLoad> snapshot() {
@@ -72,10 +68,20 @@ public final class InMemoryNodeRegistry {
                 .append("\"activeIslands\":").append(node.activeIslands()).append(',')
                 .append("\"mspt\":").append(node.mspt()).append(',')
                 .append("\"activationQueue\":").append(node.activationQueue()).append(',')
+                .append("\"lastHeartbeat\":\"").append(node.lastHeartbeat()).append("\",")
                 .append("\"score\":").append(node.score())
                 .append('}');
         }
         return builder.append("]}").toString();
+    }
+
+    private boolean setState(String nodeId, NodeState state) {
+        NodeLoad node = nodes.get(nodeId);
+        if (node == null) {
+            return false;
+        }
+        upsert(new NodeLoad(node.nodeId(), node.velocityServerName(), state, node.players(), node.hardPlayerCap(), node.activeIslands(), node.maxActiveIslands(), node.mspt(), node.activationQueue(), node.maxActivationQueue(), node.chunkLoadPressure(), node.heapUsedMb(), node.heapMaxMb(), node.recentFailurePenalty(), node.lastHeartbeat()));
+        return true;
     }
 
     private void upsert(NodeLoad node) {
