@@ -10,19 +10,22 @@ import kr.lunaf.cloudislands.common.routing.NodeLoad;
 import kr.lunaf.cloudislands.coreservice.NodeRegistry;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobPublisher;
+import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 
 public final class IslandLifecycleWorkflow {
     private final IslandRuntimeRepository runtimes;
+    private final IslandRepository islands;
     private final NodeRegistry nodes;
     private final NodeAllocator allocator;
     private final IslandJobPublisher jobs;
     private final GlobalEventPublisher events;
 
-    public IslandLifecycleWorkflow(IslandRuntimeRepository runtimes, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events) {
+    public IslandLifecycleWorkflow(IslandRuntimeRepository runtimes, IslandRepository islands, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events) {
         this.runtimes = runtimes;
+        this.islands = islands;
         this.nodes = nodes;
         this.allocator = allocator;
         this.jobs = jobs;
@@ -30,7 +33,8 @@ public final class IslandLifecycleWorkflow {
     }
 
     public Result activate(UUID islandId) {
-        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now()).orElse(null);
+        String templateId = islands.templateId(islandId).orElse("default");
+        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId).orElse(null);
         if (node == null) {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
@@ -48,6 +52,11 @@ public final class IslandLifecycleWorkflow {
     }
 
     public Result migrate(UUID islandId, String targetNode) {
+        String templateId = islands.templateId(islandId).orElse("default");
+        NodeLoad node = nodes.find(targetNode).orElse(null);
+        if (node == null || allocator.selectBestNode(java.util.List.of(node), Instant.now(), templateId).isEmpty()) {
+            return new Result(false, "NODE_UNAVAILABLE", null);
+        }
         IslandRuntimeSnapshot runtime = runtimes.markMigrating(islandId, targetNode);
         jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.MIGRATE_ISLAND, islandId, targetNode, 10, Map.of("fencingToken", Long.toString(runtime.fencingToken()), "worldName", runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld(), "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()), "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ())), Instant.now()));
         events.publish(CloudIslandEventType.ISLAND_MIGRATED.name(), Map.of("islandId", islandId.toString(), "targetNode", targetNode, "fencingToken", Long.toString(runtime.fencingToken())));
@@ -62,7 +71,8 @@ public final class IslandLifecycleWorkflow {
     }
 
     public Result restore(UUID islandId, long snapshotNo) {
-        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now()).orElse(null);
+        String templateId = islands.templateId(islandId).orElse("default");
+        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId).orElse(null);
         if (node == null) {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
