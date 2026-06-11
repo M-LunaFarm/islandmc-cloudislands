@@ -13,6 +13,7 @@ import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.gui.IslandBankMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandLimitMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMissionMenu;
@@ -48,7 +49,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "challenge", "challenges", "challenge-menu", "challenge-list", "챌린지", "챌린지목록",
         "chat", "islandchat", "채팅", "teamchat", "team-chat", "팀채팅", "log", "logs", "로그",
         "biome", "바이옴", "size", "크기", "border", "경계",
-        "limit", "limits", "limit-list", "제한", "제한목록", "setlimit", "limit-set", "제한설정",
+        "limit", "limits", "limit-menu", "limit-list", "제한", "제한목록", "setlimit", "limit-set", "제한설정",
         "snapshot", "snapshots", "snapshot-menu", "snapshot-list", "스냅샷", "스냅샷목록", "snapshot-create", "snapshot-request", "스냅샷생성",
         "snapshot-restore", "rollback", "스냅샷복원", "롤백",
         "members", "member-menu", "member-list", "멤버", "멤버관리", "멤버목록", "invite", "초대", "invites", "invite-list", "초대목록",
@@ -333,9 +334,15 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         if (subcommand.equals("limit") || subcommand.equals("limits") || subcommand.equals("limit-list") || subcommand.equals("제한") || subcommand.equals("제한목록")) {
             if (args.length > 2) {
                 setIslandLimit(player, args[1], longValue(args[2], 0L));
-            } else {
+            } else if (subcommand.equals("limit-list") || subcommand.equals("제한목록")) {
                 listIslandLimits(player);
+            } else {
+                openIslandLimitMenu(player);
             }
+            return true;
+        }
+        if (subcommand.equals("limit-menu")) {
+            openIslandLimitMenu(player);
             return true;
         }
         if (subcommand.equals("setlimit") || subcommand.equals("limit-set") || subcommand.equals("제한설정")) {
@@ -985,6 +992,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                     return null;
                 });
         });
+    }
+
+    private void openIslandLimitMenu(Player player) {
+        currentIsland(player, "섬 안에서만 제한 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandLimitMenu.open(plugin, coreApiClient, player, islandId));
     }
 
     private void setIslandLimit(Player player, String limitKey, long value) {
