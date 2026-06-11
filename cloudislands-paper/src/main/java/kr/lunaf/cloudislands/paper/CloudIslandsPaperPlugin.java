@@ -138,7 +138,22 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         if (supportedTemplates.isBlank()) {
             supportedTemplates = getConfig().getString("node.supported-template", "*");
         }
-        this.heartbeatService = new PaperHeartbeatService(this, client, nodeId, pool, velocityServerName, getDescription().getVersion(), supportedTemplates, () -> storageAvailable(storage));
+        int maxActivationQueue = getConfig().getInt("island-node.activation.max-concurrent", 4);
+        this.heartbeatService = new PaperHeartbeatService(
+            this,
+            client,
+            nodeId,
+            pool,
+            velocityServerName,
+            getDescription().getVersion(),
+            supportedTemplates,
+            () -> storageAvailable(storage),
+            () -> activeIslands == null ? 0 : activeIslands.size(),
+            () -> jobWorker == null ? 0 : jobWorker.activationQueue(),
+            () -> maxActivationQueue,
+            () -> activeIslands == null ? 0.0D : Math.min(1.5D, activeIslands.size() / 600.0D),
+            () -> jobWorker == null ? 0 : jobWorker.recentFailurePenalty()
+        );
         heartbeatService.start(getConfig().getLong("heartbeat.interval-ticks", 20L));
         if (role == AgentRole.ISLAND_NODE) {
             startIslandNodeWorker(client, nodeId, storage, limitCache);

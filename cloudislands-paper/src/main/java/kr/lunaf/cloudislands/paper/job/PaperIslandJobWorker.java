@@ -27,7 +27,8 @@ public final class PaperIslandJobWorker {
     private final PermissionCacheSyncService permissionSync;
     private final String nodeId;
     private BukkitTask task;
-    private int consecutiveFailures;
+    private volatile int consecutiveFailures;
+    private volatile int inFlightJobs;
     private long nextPollAtMillis;
 
     public PaperIslandJobWorker(Plugin plugin, LocalJobSource jobSource, IslandActivationJobHandler activationHandler, ActiveIslandRegistry activeIslands, String nodeId) {
@@ -67,11 +68,14 @@ public final class PaperIslandJobWorker {
         }
         try {
             List<IslandJob> claimed = jobSource.claim(nodeId, List.of(IslandJobType.CREATE_ISLAND, IslandJobType.ACTIVATE_ISLAND, IslandJobType.SAVE_ISLAND, IslandJobType.DEACTIVATE_ISLAND, IslandJobType.SNAPSHOT_ISLAND, IslandJobType.DELETE_ISLAND, IslandJobType.MIGRATE_ISLAND, IslandJobType.RESTORE_ISLAND, IslandJobType.RESET_ISLAND), 4);
+            inFlightJobs = claimed.size();
             consecutiveFailures = 0;
             for (IslandJob job : claimed) {
                 handle(job);
+                inFlightJobs = Math.max(0, inFlightJobs - 1);
             }
         } catch (RuntimeException exception) {
+            inFlightJobs = 0;
             consecutiveFailures++;
             long backoffMillis = Math.min(30_000L, 1_000L * (1L << Math.min(consecutiveFailures, 5)));
             nextPollAtMillis = now + backoffMillis;
@@ -180,5 +184,13 @@ public final class PaperIslandJobWorker {
         void complete(String nodeId, java.util.UUID jobId);
         void complete(String nodeId, java.util.UUID jobId, Map<String, String> payload);
         void fail(String nodeId, java.util.UUID jobId, String errorMessage);
+    }
+
+    public int activationQueue() {
+        return inFlightJobs;
+    }
+
+    public int recentFailurePenalty() {
+        return Math.min(consecutiveFailures, 20);
     }
 }
