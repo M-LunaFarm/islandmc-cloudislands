@@ -56,6 +56,7 @@ import kr.lunaf.cloudislands.api.service.IslandRoutingService;
 import kr.lunaf.cloudislands.api.service.IslandRuntimeService;
 import kr.lunaf.cloudislands.api.service.PlayerIslandService;
 import kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot;
+import kr.lunaf.cloudislands.api.upgrade.UpgradeRuleSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
@@ -199,6 +200,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<List<IslandUpgradeSnapshot>> getUpgrades(UUID islandId) {
             return client.listIslandUpgrades(islandId).thenApply(PaperCloudIslandsApi::upgrades);
+        }
+
+        @Override
+        public CompletableFuture<List<UpgradeRuleSnapshot>> getUpgradeRules() {
+            return client.listUpgradeRules().thenApply(PaperCloudIslandsApi::upgradeRules);
         }
 
         @Override
@@ -663,6 +669,20 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             ));
         }
         return upgrades;
+    }
+
+    private static List<UpgradeRuleSnapshot> upgradeRules(String json) {
+        List<UpgradeRuleSnapshot> rules = new ArrayList<>();
+        for (String object : objects(json, "rules")) {
+            rules.add(new UpgradeRuleSnapshot(
+                text(object, "upgradeKey", ""),
+                enumValue(UpgradeType.class, text(object, "type", "ISLAND_SIZE"), UpgradeType.ISLAND_SIZE),
+                integer(object, "maxLevel", 0),
+                text(object, "baseCost", "0"),
+                text(object, "multiplier", "1")
+            ));
+        }
+        return rules;
     }
 
     private static List<IslandMissionSnapshot> missions(String json) {

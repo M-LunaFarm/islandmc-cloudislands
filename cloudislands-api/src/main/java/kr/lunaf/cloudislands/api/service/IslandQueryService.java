@@ -22,6 +22,7 @@ import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot;
+import kr.lunaf.cloudislands.api.upgrade.UpgradeRuleSnapshot;
 
 public interface IslandQueryService {
     CompletableFuture<Optional<IslandSnapshot>> getIsland(UUID islandId);
@@ -39,6 +40,7 @@ public interface IslandQueryService {
     CompletableFuture<List<IslandRankSnapshot>> getTopByLevel(int limit);
     CompletableFuture<List<IslandRankSnapshot>> getTopByWorth(int limit);
     CompletableFuture<IslandRuntimeSnapshot> getRuntime(UUID islandId);
+    CompletableFuture<List<UpgradeRuleSnapshot>> getUpgradeRules();
     CompletableFuture<List<IslandUpgradeSnapshot>> getUpgrades(UUID islandId);
     CompletableFuture<List<IslandMissionSnapshot>> getMissions(UUID islandId, String kind);
     CompletableFuture<List<IslandSnapshotRecord>> getSnapshots(UUID islandId, int limit);
