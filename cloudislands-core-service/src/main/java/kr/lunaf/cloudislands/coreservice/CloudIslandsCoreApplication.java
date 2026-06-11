@@ -804,7 +804,7 @@ public final class CloudIslandsCoreApplication {
             var snapshot = bankRepository.deposit(islandId, amount);
             audit.log(actorUuid, "PLAYER", "ISLAND_BANK_DEPOSIT", "ISLAND", islandId.toString(), Map.of("amount", amount.toPlainString(), "balance", snapshot.balance()));
             islandLogs.append(islandId, actorUuid, "ISLAND_BANK_DEPOSIT", Map.of("amount", amount.toPlainString(), "balance", snapshot.balance()));
-            events.publish("ISLAND_BANK_DEPOSIT", Map.of("islandId", islandId.toString(), "amount", amount.toPlainString()));
+            events.publish(CloudIslandEventType.ISLAND_BANK_CHANGED.name(), Map.of("islandId", islandId.toString(), "operation", "DEPOSIT", "amount", amount.toPlainString(), "balance", snapshot.balance()));
             write(exchange, 202, bankJson(snapshot));
         });
         route("/v1/islands/bank/withdraw", exchange -> {
@@ -819,7 +819,7 @@ public final class CloudIslandsCoreApplication {
             audit.log(actorUuid, "PLAYER", "ISLAND_BANK_WITHDRAW", "ISLAND", islandId.toString(), Map.of("amount", amount.toPlainString(), "code", result.code(), "balance", result.snapshot().balance()));
             islandLogs.append(islandId, actorUuid, "ISLAND_BANK_WITHDRAW", Map.of("amount", amount.toPlainString(), "code", result.code(), "balance", result.snapshot().balance()));
             if (result.accepted()) {
-                events.publish("ISLAND_BANK_WITHDRAW", Map.of("islandId", islandId.toString(), "amount", amount.toPlainString()));
+                events.publish(CloudIslandEventType.ISLAND_BANK_CHANGED.name(), Map.of("islandId", islandId.toString(), "operation", "WITHDRAW", "amount", amount.toPlainString(), "balance", result.snapshot().balance()));
             }
             write(exchange, result.accepted() ? 202 : 409, "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\",\"bank\":" + bankJson(result.snapshot()) + "}");
         });
