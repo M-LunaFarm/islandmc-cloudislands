@@ -391,13 +391,11 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("accept") || args[0].equals("수락") || args[0].equals("초대수락")) {
-            UUID inviteId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            routingController.acceptInvite(player, inviteId);
+            routingController.acceptInviteTarget(player, args.length > 1 ? args[1] : "");
             return;
         }
         if (args[0].equalsIgnoreCase("decline") || args[0].equals("거절") || args[0].equals("초대거절")) {
-            UUID inviteId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            routingController.declineInvite(player, inviteId);
+            routingController.declineInviteTarget(player, args.length > 1 ? args[1] : "");
             return;
         }
         if (args[0].equalsIgnoreCase("members") || args[0].equals("멤버")) {

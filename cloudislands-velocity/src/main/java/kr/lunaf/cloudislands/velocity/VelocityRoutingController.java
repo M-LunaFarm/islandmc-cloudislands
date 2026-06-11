@@ -270,11 +270,37 @@ public final class VelocityRoutingController {
     }
 
     public void acceptInvite(Player player, UUID inviteId) {
-        sendActionResult(player, coreApiClient.acceptIslandInvite(inviteId, player.getUniqueId()), "섬 초대를 수락했습니다.", "섬 초대를 수락하지 못했습니다.");
+        sendInviteActionResult(player, coreApiClient.acceptIslandInviteResult(inviteId, player.getUniqueId()), "섬 초대를 수락했습니다.", "섬 초대를 수락하지 못했습니다.");
+    }
+
+    public void acceptInviteTarget(Player player, String target) {
+        resolveInviteTarget(player, target).thenAccept(inviteId -> {
+            if (inviteId.equals(new UUID(0L, 0L))) {
+                player.sendMessage(Component.text("대상 초대를 찾지 못했습니다."));
+                return;
+            }
+            acceptInvite(player, inviteId);
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("대상 초대를 찾지 못했습니다."));
+            return null;
+        });
     }
 
     public void declineInvite(Player player, UUID inviteId) {
-        sendActionResult(player, coreApiClient.declineIslandInvite(inviteId, player.getUniqueId()), "섬 초대를 거절했습니다.", "섬 초대를 거절하지 못했습니다.");
+        sendInviteActionResult(player, coreApiClient.declineIslandInviteResult(inviteId, player.getUniqueId()), "섬 초대를 거절했습니다.", "섬 초대를 거절하지 못했습니다.");
+    }
+
+    public void declineInviteTarget(Player player, String target) {
+        resolveInviteTarget(player, target).thenAccept(inviteId -> {
+            if (inviteId.equals(new UUID(0L, 0L))) {
+                player.sendMessage(Component.text("대상 초대를 찾지 못했습니다."));
+                return;
+            }
+            declineInvite(player, inviteId);
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("대상 초대를 찾지 못했습니다."));
+            return null;
+        });
     }
 
     public void listMembers(Player player, UUID islandId) {
@@ -601,6 +627,62 @@ public final class VelocityRoutingController {
             player.sendMessage(Component.text(emptyMessage));
             return null;
         });
+    }
+
+    private void sendInviteActionResult(Player player, CompletableFuture<String> future, String successMessage, String failureMessage) {
+        future.thenAccept(body -> {
+            if (body == null || body.isBlank() || body.contains("\"error\"") || body.contains("\"accepted\":false")) {
+                player.sendMessage(Component.text(failureMessage));
+                return;
+            }
+            player.sendMessage(Component.text(successMessage));
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text(failureMessage));
+            return null;
+        });
+    }
+
+    private CompletableFuture<UUID> resolveInviteTarget(Player player, String target) {
+        if (target == null || target.isBlank()) {
+            return CompletableFuture.completedFuture(new UUID(0L, 0L));
+        }
+        UUID parsed = parseUuid(target);
+        if (!parsed.equals(new UUID(0L, 0L))) {
+            return coreApiClient.listPendingInvites(player.getUniqueId()).thenApply(body -> {
+                UUID inviteId = findInviteId(body, parsed);
+                return inviteId.equals(new UUID(0L, 0L)) ? parsed : inviteId;
+            });
+        }
+        Optional<Player> online = proxy.getPlayer(target);
+        if (online.isPresent()) {
+            return coreApiClient.listPendingInvites(player.getUniqueId()).thenApply(body -> findInviteId(body, online.get().getUniqueId()));
+        }
+        return coreApiClient.playerInfoByName(target)
+            .thenCompose(body -> coreApiClient.listPendingInvites(player.getUniqueId()).thenApply(invites -> findInviteId(invites, parseUuid(jsonValue(body, "playerUuid")))));
+    }
+
+    private UUID findInviteId(String body, UUID targetUuid) {
+        if (body == null || targetUuid == null || targetUuid.equals(new UUID(0L, 0L))) {
+            return new UUID(0L, 0L);
+        }
+        int index = 0;
+        while (index < body.length()) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            UUID inviteId = parseUuid(jsonValue(object, "inviteId"));
+            if (targetUuid.equals(inviteId) || targetUuid.equals(parseUuid(jsonValue(object, "islandId"))) || targetUuid.equals(parseUuid(jsonValue(object, "inviterUuid")))) {
+                return inviteId;
+            }
+            index = objectEnd + 1;
+        }
+        return new UUID(0L, 0L);
     }
 
     private String playerPayloadMessage(String body, String emptyMessage, String successMessage) {
