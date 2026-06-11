@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
@@ -16,6 +17,7 @@ import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 public final class RedisIslandJobQueue implements IslandJobQueue {
     private static final String GROUP = "cloudislands-agents";
     private final URI redisUri;
+    private final Map<UUID, String> streamIdsByJobId = new ConcurrentHashMap<>();
 
     public RedisIslandJobQueue(URI redisUri) {
         this.redisUri = redisUri;
@@ -25,16 +27,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
     @Override
     public void publish(IslandJob job) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            redis.command(
-                "XADD", RedisKeys.jobsStream(), "*",
-                "jobId", job.jobId().toString(),
-                "type", job.type().name(),
-                "islandId", job.islandId().toString(),
-                "targetNode", job.targetNode() == null ? "" : job.targetNode(),
-                "priority", Integer.toString(job.priority()),
-                "createdAt", job.createdAt().toString(),
-                "payload", encodePayload(job.payload())
-            );
+            redis.command("XADD", RedisKeys.jobsStream(), "*", "jobId", job.jobId().toString(), "type", job.type().name(), "islandId", job.islandId().toString(), "targetNode", job.targetNode() == null ? "" : job.targetNode(), "priority", Integer.toString(job.priority()), "createdAt", job.createdAt().toString(), "payload", encodePayload(job.payload()));
         } catch (IOException exception) {
             throw new IllegalStateException("failed to publish redis island job", exception);
         }
@@ -64,13 +57,17 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             redis.command("XGROUP", "CREATE", RedisKeys.jobsStream(), GROUP, "0", "MKSTREAM");
         } catch (Exception ignored) {
-            // Group already exists or Redis is temporarily unavailable; publish/claim will surface real failures.
+            // Existing groups and startup Redis outages are handled by publish/claim paths.
         }
     }
 
     private void ackByJobId(UUID jobId, String state, String errorMessage) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_" + state.toUpperCase(), "jobId", jobId.toString(), "error", errorMessage == null ? "" : errorMessage);
+            String streamId = streamIdsByJobId.remove(jobId);
+            if (streamId != null && !streamId.isBlank()) {
+                redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
+            }
+            redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_" + state.toUpperCase(), "jobId", jobId.toString(), "streamId", streamId == null ? "" : streamId, "error", errorMessage == null ? "" : errorMessage);
         } catch (IOException exception) {
             throw new IllegalStateException("failed to ack redis island job", exception);
         }
@@ -83,21 +80,26 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
         }
         String[] lines = reply.split("\\R");
         Map<String, String> current = new java.util.HashMap<>();
-        for (int i = 0; i + 1 < lines.length; i += 2) {
-            current.put(lines[i], lines[i + 1]);
+        String streamId = null;
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+            if (line.matches("\\d+-\\d+")) {
+                streamId = line;
+                current.clear();
+                continue;
+            }
+            if (i + 1 < lines.length) {
+                current.put(line, lines[++i]);
+            }
             if (current.containsKey("jobId") && current.containsKey("type") && current.containsKey("islandId")) {
                 IslandJobType type = safeType(current.get("type"));
                 String targetNode = current.getOrDefault("targetNode", "");
                 if (type != null && supportedTypes.contains(type) && (targetNode.isBlank() || targetNode.equals(nodeId))) {
-                    jobs.add(new IslandJob(
-                        UUID.fromString(current.get("jobId")),
-                        type,
-                        UUID.fromString(current.get("islandId")),
-                        targetNode,
-                        parseInt(current.get("priority"), 0),
-                        decodePayload(current.getOrDefault("payload", "")),
-                        parseInstant(current.get("createdAt"))
-                    ));
+                    UUID jobId = UUID.fromString(current.get("jobId"));
+                    if (streamId != null) {
+                        streamIdsByJobId.put(jobId, streamId);
+                    }
+                    jobs.add(new IslandJob(jobId, type, UUID.fromString(current.get("islandId")), targetNode, parseInt(current.get("priority"), 0), decodePayload(current.getOrDefault("payload", "")), parseInstant(current.get("createdAt"))));
                 }
                 current.clear();
             }
