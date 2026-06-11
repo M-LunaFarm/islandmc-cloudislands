@@ -56,7 +56,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "info", "정보", "list", "my", "my-islands", "목록", "내섬", "create", "생성", "delete", "삭제", "reset", "리셋", "danger", "위험작업",
         "sethome", "셋홈", "homes", "home-menu", "home-list", "홈관리", "홈목록", "home", "홈",
         "warps", "warp-menu", "warp-list", "워프", "워프관리", "워프목록", "warp", "setwarp", "워프설정",
-        "delwarp", "deletewarp", "워프삭제", "warp-public", "워프공개", "warp-private", "워프비공개",
+        "delwarp", "deletewarp", "워프삭제", "warp-public", "publicwarp", "워프공개", "warp-private", "privatewarp", "워프비공개",
         "public", "공개", "private", "비공개", "lock", "잠금", "unlock", "잠금해제",
         "visit", "randomvisit", "random-visit", "방문", "랜덤방문",
         "level", "레벨", "worth", "value", "가치", "rank", "ranking", "rank-list", "랭킹", "랭킹목록", "levelcalc", "recalculate", "레벨계산",
@@ -206,7 +206,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             deleteWarp(player, args[1]);
             return true;
         }
-        if (subcommand.equals("warp-public") || subcommand.equals("워프공개")) {
+        if (subcommand.equals("warp-public") || subcommand.equals("publicwarp") || subcommand.equals("워프공개")) {
             if (args.length < 2) {
                 player.sendMessage("워프 이름을 입력해주세요.");
                 return true;
@@ -214,7 +214,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             setWarpPublicAccess(player, args[1], true);
             return true;
         }
-        if (subcommand.equals("warp-private") || subcommand.equals("워프비공개")) {
+        if (subcommand.equals("warp-private") || subcommand.equals("privatewarp") || subcommand.equals("워프비공개")) {
             if (args.length < 2) {
                 player.sendMessage("워프 이름을 입력해주세요.");
                 return true;
