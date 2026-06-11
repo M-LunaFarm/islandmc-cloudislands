@@ -33,6 +33,7 @@ public interface IslandAdminService {
     CompletableFuture<java.util.Optional<PlayerIslandProfile>> getPlayerProfile(UUID playerUuid);
     CompletableFuture<java.util.Optional<PlayerIslandProfile>> setPlayerPrimaryIsland(UUID playerUuid, UUID islandId);
     CompletableFuture<java.util.Optional<PlayerIslandProfile>> clearPlayerPrimaryIsland(UUID playerUuid);
+    CompletableFuture<Void> setBlockValue(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit);
     CompletableFuture<List<GlobalEventSnapshot>> listEvents();
     CompletableFuture<List<AuditLogSnapshot>> listAuditLogs();
     CompletableFuture<List<String>> listNodes();
