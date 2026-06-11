@@ -143,17 +143,36 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return client.listIslandPermissions(islandId).thenApply(PaperCloudIslandsApi::permissionRules);
         }
 
-        @Override public CompletableFuture<List<IslandBanSnapshot>> getBans(UUID islandId) { return unsupported("ban list typed parsing is not registered yet"); }
-        @Override public CompletableFuture<List<IslandInviteSnapshot>> getPendingInvites(UUID playerUuid) { return unsupported("invite list typed parsing is not registered yet"); }
+        @Override
+        public CompletableFuture<List<IslandBanSnapshot>> getBans(UUID islandId) {
+            return client.listIslandBans(islandId).thenApply(PaperCloudIslandsApi::bans);
+        }
+
+        @Override
+        public CompletableFuture<List<IslandInviteSnapshot>> getPendingInvites(UUID playerUuid) {
+            return client.listPendingInvites(playerUuid).thenApply(PaperCloudIslandsApi::invites);
+        }
+
         @Override public CompletableFuture<IslandFlagsSnapshot> getFlags(UUID islandId) { return unsupported("flag typed parsing is not registered yet"); }
-        @Override public CompletableFuture<IslandBiomeSnapshot> getBiome(UUID islandId) { return unsupported("biome typed parsing is not registered yet"); }
-        @Override public CompletableFuture<List<IslandLimitSnapshot>> getLimits(UUID islandId) { return unsupported("limit list typed parsing is not registered yet"); }
+        @Override
+        public CompletableFuture<IslandBiomeSnapshot> getBiome(UUID islandId) {
+            return client.islandBiome(islandId).thenApply(PaperCloudIslandsApi::biome);
+        }
+
+        @Override
+        public CompletableFuture<List<IslandLimitSnapshot>> getLimits(UUID islandId) {
+            return client.listIslandLimits(islandId).thenApply(PaperCloudIslandsApi::limits);
+        }
+
         @Override public CompletableFuture<IslandLevelSnapshot> getLevel(UUID islandId) { return unsupported("level typed parsing is not registered yet"); }
         @Override public CompletableFuture<List<IslandUpgradeSnapshot>> getUpgrades(UUID islandId) { return unsupported("upgrade typed parsing is not registered yet"); }
         @Override public CompletableFuture<List<IslandMissionSnapshot>> getMissions(UUID islandId, String kind) { return unsupported("mission typed parsing is not registered yet"); }
         @Override public CompletableFuture<List<IslandSnapshotRecord>> getSnapshots(UUID islandId, int limit) { return unsupported("snapshot typed parsing is not registered yet"); }
         @Override public CompletableFuture<List<IslandLogRecord>> getLogs(UUID islandId, int limit) { return unsupported("log typed parsing is not registered yet"); }
-        @Override public CompletableFuture<IslandBankSnapshot> getBank(UUID islandId) { return unsupported("bank typed parsing is not registered yet"); }
+        @Override
+        public CompletableFuture<IslandBankSnapshot> getBank(UUID islandId) {
+            return client.islandBank(islandId).thenApply(PaperCloudIslandsApi::bank);
+        }
     }
 
     private static final class PlayerService implements PlayerIslandService {
@@ -342,6 +361,37 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return members;
     }
 
+    private static List<IslandBanSnapshot> bans(String json) {
+        List<IslandBanSnapshot> bans = new ArrayList<>();
+        for (String object : objects(json, "bans")) {
+            bans.add(new IslandBanSnapshot(
+                uuid(object, "islandId", new UUID(0L, 0L)),
+                uuid(object, "bannedUuid", new UUID(0L, 0L)),
+                uuid(object, "actorUuid", new UUID(0L, 0L)),
+                text(object, "reason", ""),
+                instant(text(object, "createdAt", Instant.EPOCH.toString())),
+                nullableInstant(object, "expiresAt")
+            ));
+        }
+        return bans;
+    }
+
+    private static List<IslandInviteSnapshot> invites(String json) {
+        List<IslandInviteSnapshot> invites = new ArrayList<>();
+        for (String object : objects(json, "invites")) {
+            invites.add(new IslandInviteSnapshot(
+                uuid(object, "inviteId", new UUID(0L, 0L)),
+                uuid(object, "islandId", new UUID(0L, 0L)),
+                uuid(object, "inviterUuid", new UUID(0L, 0L)),
+                uuid(object, "targetUuid", new UUID(0L, 0L)),
+                text(object, "state", "PENDING"),
+                instant(text(object, "createdAt", Instant.EPOCH.toString())),
+                instant(text(object, "expiresAt", Instant.EPOCH.toString()))
+            ));
+        }
+        return invites;
+    }
+
     private static List<IslandHomeSnapshot> homes(String json) {
         List<IslandHomeSnapshot> homes = new ArrayList<>();
         for (String object : objects(json, "homes")) {
@@ -382,6 +432,37 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             ));
         }
         return rules;
+    }
+
+    private static IslandBiomeSnapshot biome(String json) {
+        return new IslandBiomeSnapshot(
+            uuid(json, "islandId", new UUID(0L, 0L)),
+            text(json, "biomeKey", "minecraft:plains"),
+            uuid(json, "updatedBy", new UUID(0L, 0L)),
+            instant(text(json, "updatedAt", Instant.EPOCH.toString()))
+        );
+    }
+
+    private static List<IslandLimitSnapshot> limits(String json) {
+        List<IslandLimitSnapshot> limits = new ArrayList<>();
+        for (String object : objects(json, "limits")) {
+            limits.add(new IslandLimitSnapshot(
+                uuid(object, "islandId", new UUID(0L, 0L)),
+                text(object, "limitKey", ""),
+                longValue(object, "value", 0L),
+                uuid(object, "updatedBy", new UUID(0L, 0L)),
+                instant(text(object, "updatedAt", Instant.EPOCH.toString()))
+            ));
+        }
+        return limits;
+    }
+
+    private static IslandBankSnapshot bank(String json) {
+        return new IslandBankSnapshot(
+            uuid(json, "islandId", new UUID(0L, 0L)),
+            text(json, "balance", "0"),
+            instant(text(json, "updatedAt", Instant.EPOCH.toString()))
+        );
     }
 
     private static IslandLocation location(String json) {
