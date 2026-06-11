@@ -35,6 +35,19 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
         return Optional.of(completed);
     }
 
+    @Override
+    public IslandMissionSnapshot importCompleted(UUID islandId, UUID actorUuid, String missionKey, String kind) {
+        ensureDefaults(islandId);
+        Map<String, IslandMissionSnapshot> islandMissions = missions.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>());
+        String key = missionKey.toLowerCase();
+        IslandMissionSnapshot current = islandMissions.get(key);
+        IslandMissionSnapshot completed = current == null
+            ? new IslandMissionSnapshot(islandId, key, MissionCatalog.normalizeKind(kind), key, 1L, 1L, true, "", Instant.now())
+            : new IslandMissionSnapshot(islandId, current.missionKey(), current.kind(), current.title(), current.goal(), current.goal(), true, current.reward(), Instant.now());
+        islandMissions.put(key, completed);
+        return completed;
+    }
+
     private void ensureDefaults(UUID islandId) {
         Map<String, IslandMissionSnapshot> islandMissions = missions.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>());
         for (MissionDefinition definition : MissionCatalog.all()) {

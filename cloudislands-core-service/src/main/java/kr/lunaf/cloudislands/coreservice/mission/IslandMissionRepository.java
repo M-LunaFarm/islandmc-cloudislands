@@ -8,4 +8,5 @@ import kr.lunaf.cloudislands.api.model.IslandMissionSnapshot;
 public interface IslandMissionRepository {
     List<IslandMissionSnapshot> list(UUID islandId, String kind);
     Optional<IslandMissionSnapshot> complete(UUID islandId, UUID actorUuid, String missionKey);
+    IslandMissionSnapshot importCompleted(UUID islandId, UUID actorUuid, String missionKey, String kind);
 }

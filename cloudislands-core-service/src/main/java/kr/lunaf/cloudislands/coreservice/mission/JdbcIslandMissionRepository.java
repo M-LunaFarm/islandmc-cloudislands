@@ -53,6 +53,28 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
         }
     }
 
+    @Override
+    public IslandMissionSnapshot importCompleted(UUID islandId, UUID actorUuid, String missionKey, String kind) {
+        ensureDefaults(islandId);
+        String key = missionKey.toLowerCase();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_missions(island_id, mission_key, kind, title, progress, goal, completed, reward, updated_by) VALUES (?, ?, ?, ?, 1, 1, true, '', ?) ON CONFLICT (island_id, mission_key) DO UPDATE SET progress = island_missions.goal, completed = true, updated_by = EXCLUDED.updated_by, updated_at = now() RETURNING island_id, mission_key, kind, title, progress, goal, completed, reward, updated_at")) {
+            statement.setObject(1, islandId);
+            statement.setString(2, key);
+            statement.setString(3, MissionCatalog.normalizeKind(kind));
+            statement.setString(4, key);
+            statement.setObject(5, actorUuid);
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    return snapshot(rs);
+                }
+                throw new IllegalStateException("mission import did not return a row");
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to import completed island mission", exception);
+        }
+    }
+
     private void ensureDefaults(UUID islandId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("INSERT INTO island_missions(island_id, mission_key, kind, title, progress, goal, completed, reward) VALUES (?, ?, ?, ?, 0, ?, false, ?) ON CONFLICT (island_id, mission_key) DO NOTHING")) {

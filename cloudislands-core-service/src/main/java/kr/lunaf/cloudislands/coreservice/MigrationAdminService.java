@@ -110,7 +110,7 @@ public final class MigrationAdminService {
                 limits.set(manifest.islandId(), limit.limitKey(), limit.value(), manifest.ownerUuid());
             }
             for (kr.lunaf.cloudislands.migration.MigrationMission mission : manifest.completedMissions()) {
-                missions.complete(manifest.islandId(), manifest.ownerUuid(), mission.missionKey());
+                missions.importCompleted(manifest.islandId(), manifest.ownerUuid(), mission.missionKey(), mission.kind());
             }
             if (!manifest.biomeKey().isBlank()) {
                 metadata.setBiome(manifest.islandId(), manifest.biomeKey(), manifest.ownerUuid());
