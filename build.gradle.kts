@@ -8,17 +8,19 @@ allprojects {
 }
 
 subprojects {
-    apply(plugin = "java-library")
+    if (name != "cloudislands-bom") {
+        apply(plugin = "java-library")
 
-    java {
-        toolchain {
-            languageVersion.set(JavaLanguageVersion.of(21))
+        java {
+            toolchain {
+                languageVersion.set(JavaLanguageVersion.of(21))
+            }
+            withSourcesJar()
         }
-        withSourcesJar()
-    }
 
-    tasks.withType<JavaCompile>().configureEach {
-        options.encoding = "UTF-8"
-        options.compilerArgs.addAll(listOf("-Xlint:all", "-Xlint:-processing"))
+        tasks.withType<JavaCompile>().configureEach {
+            options.encoding = "UTF-8"
+            options.compilerArgs.addAll(listOf("-Xlint:all", "-Xlint:-processing"))
+        }
     }
 }

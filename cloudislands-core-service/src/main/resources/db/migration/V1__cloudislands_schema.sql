@@ -189,3 +189,58 @@ CREATE TABLE audit_logs (
     payload JSONB NOT NULL DEFAULT '{}',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE island_rank_snapshots (
+    island_id UUID PRIMARY KEY REFERENCES islands(id),
+    level BIGINT NOT NULL,
+    worth NUMERIC(20, 2) NOT NULL,
+    member_count INTEGER NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_island_rank_level ON island_rank_snapshots(level DESC, worth DESC);
+CREATE INDEX idx_island_rank_worth ON island_rank_snapshots(worth DESC, level DESC);
+
+CREATE TABLE block_values (
+    material_key VARCHAR(128) PRIMARY KEY,
+    worth NUMERIC(20, 2) NOT NULL,
+    level_points BIGINT NOT NULL,
+    island_limit INTEGER
+);
+
+CREATE TABLE island_block_counts (
+    island_id UUID NOT NULL REFERENCES islands(id),
+    material_key VARCHAR(128) NOT NULL,
+    amount BIGINT NOT NULL,
+    dirty BOOLEAN NOT NULL DEFAULT false,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (island_id, material_key)
+);
+
+CREATE TABLE island_upgrades (
+    island_id UUID NOT NULL REFERENCES islands(id),
+    upgrade_key VARCHAR(64) NOT NULL,
+    level INTEGER NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (island_id, upgrade_key)
+);
+
+CREATE TABLE island_logs (
+    id UUID PRIMARY KEY,
+    island_id UUID NOT NULL REFERENCES islands(id),
+    actor_uuid UUID,
+    action VARCHAR(128) NOT NULL,
+    payload JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE migration_runs (
+    id UUID PRIMARY KEY,
+    source VARCHAR(64) NOT NULL,
+    state VARCHAR(32) NOT NULL,
+    scanned_islands INTEGER NOT NULL DEFAULT 0,
+    blocking_issues INTEGER NOT NULL DEFAULT 0,
+    manifest_path TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

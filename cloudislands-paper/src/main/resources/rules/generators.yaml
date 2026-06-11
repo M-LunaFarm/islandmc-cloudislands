@@ -1,0 +1,15 @@
+generators:
+  default:
+    levels:
+      1:
+        minecraft:cobblestone: 90
+        minecraft:coal_ore: 10
+      2:
+        minecraft:cobblestone: 75
+        minecraft:coal_ore: 15
+        minecraft:iron_ore: 10
+      3:
+        minecraft:cobblestone: 60
+        minecraft:coal_ore: 15
+        minecraft:iron_ore: 15
+        minecraft:diamond_ore: 10
