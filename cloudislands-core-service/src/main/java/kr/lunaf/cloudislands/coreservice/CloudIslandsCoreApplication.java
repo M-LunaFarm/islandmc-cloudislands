@@ -142,7 +142,7 @@ public final class CloudIslandsCoreApplication {
         IslandLogRepository islandLogs = config.jdbcRepositories() ? new JdbcIslandLogRepository(dataSource) : new InMemoryIslandLogRepository();
         InMemoryAuditLogger inMemoryAudit = audit instanceof InMemoryAuditLogger logger ? logger : new InMemoryAuditLogger();
         RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets, islandRepository, metadataRepository, runtimeRepository, jobs, events);
-        CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, metadataRepository, nodes, allocator, jobs, events, tickets);
+        CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, metadataRepository, playerProfiles, nodes, allocator, jobs, events, tickets);
         IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(runtimeRepository, nodes, allocator, jobs, events);
         MigrationAdminService migrationAdmin = new MigrationAdminService(islandRepository, metadataRepository);
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets);
@@ -475,6 +475,9 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             java.util.Optional<IslandSnapshot> island = islandRepository.findById(islandId);
             boolean deleted = island.isPresent() && islandRepository.markDeleted(islandId, island.get().ownerUuid());
+            if (deleted) {
+                playerProfiles.clearPrimaryIsland(island.get().ownerUuid());
+            }
             audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of("deleted", Boolean.toString(deleted)));
             if (deleted) {
                 events.publish("ISLAND_DELETED", Map.of("islandId", islandId.toString()));
@@ -605,6 +608,9 @@ public final class CloudIslandsCoreApplication {
             UUID requesterUuid = JsonFields.uuid(body, "requesterUuid", new UUID(0L, 0L));
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             boolean deleted = islandRepository.markDeleted(islandId, requesterUuid);
+            if (deleted) {
+                playerProfiles.clearPrimaryIsland(requesterUuid);
+            }
             if (deleted) {
                 runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETED);
                 audit.log(requesterUuid, "PLAYER", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of());
