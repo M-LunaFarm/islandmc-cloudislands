@@ -51,13 +51,16 @@ public final class CreateIslandWorkflow {
         String normalizedTemplate = templateId == null || templateId.isBlank() ? "default" : templateId;
         IslandTemplateSnapshot template = templates.find(normalizedTemplate).orElse(null);
         if (template == null || !template.enabled()) {
+            publishTicketFailure(ownerUuid, null, "TEMPLATE_UNAVAILABLE");
             return new CreateIslandResult(false, "TEMPLATE_UNAVAILABLE", null, null);
         }
         if (islands.findByOwner(ownerUuid).isPresent()) {
+            publishTicketFailure(ownerUuid, null, "ALREADY_HAS_ISLAND");
             return new CreateIslandResult(false, "ALREADY_HAS_ISLAND", null, null);
         }
         NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), normalizedTemplate, template.minNodeVersion()).orElse(null);
         if (node == null) {
+            publishTicketFailure(ownerUuid, null, "NODE_UNAVAILABLE");
             return new CreateIslandResult(false, "NODE_UNAVAILABLE", null, null);
         }
         UUID islandId = UUID.randomUUID();
@@ -76,5 +79,14 @@ public final class CreateIslandWorkflow {
         )));
         events.publish(CloudIslandEventType.ROUTE_TICKET_CREATED.name(), Map.of("ticketId", ticket.ticketId().toString(), "islandId", islandId.toString(), "playerUuid", ownerUuid.toString()));
         return new CreateIslandResult(true, "CREATING", island, ticket);
+    }
+
+    private void publishTicketFailure(UUID playerUuid, UUID islandId, String reason) {
+        events.publish("ROUTE_TICKET_FAILED", Map.of(
+            "playerUuid", playerUuid.toString(),
+            "islandId", islandId == null ? "" : islandId.toString(),
+            "action", RouteAction.HOME.name(),
+            "reason", reason
+        ));
     }
 }
