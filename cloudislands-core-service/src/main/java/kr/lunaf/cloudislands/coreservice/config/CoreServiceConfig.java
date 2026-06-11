@@ -13,8 +13,11 @@ public record CoreServiceConfig(
     String databaseUsername,
     String databasePassword,
     URI redisUri,
+    String storageType,
     URI storageEndpoint,
     String storageBucket,
+    String storageLocalPath,
+    String storageBearerToken,
     String coreToken,
     String adminToken,
     String ipAllowlist,
@@ -32,8 +35,11 @@ public record CoreServiceConfig(
             env("CI_DB_USERNAME", "cloudislands"),
             env("CI_DB_PASSWORD", ""),
             URI.create(env("CI_REDIS_URI", "redis://redis.internal:6379")),
+            env("CI_STORAGE_TYPE", "NONE"),
             URI.create(env("CI_STORAGE_ENDPOINT", "http://minio.internal:9000")),
             env("CI_STORAGE_BUCKET", "cloudislands"),
+            env("CI_STORAGE_LOCAL_PATH", "cloudislands-storage"),
+            env("CI_STORAGE_BEARER_TOKEN", ""),
             env("CI_CORE_TOKEN", ""),
             env("CI_ADMIN_TOKEN", ""),
             env("CI_IP_ALLOWLIST", ""),
@@ -59,7 +65,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, redisUri, storageEndpoint, storageBucket, coreToken, adminToken, ipAllowlist, heartbeatTimeout, leaseDuration);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageBearerToken, coreToken, adminToken, ipAllowlist, heartbeatTimeout, leaseDuration);
     }
 
     private static String env(String key, String fallback) {

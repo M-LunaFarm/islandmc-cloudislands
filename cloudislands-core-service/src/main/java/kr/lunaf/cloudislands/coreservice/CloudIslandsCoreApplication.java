@@ -8,7 +8,10 @@ import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.Clock;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import javax.sql.DataSource;
@@ -100,8 +103,15 @@ import kr.lunaf.cloudislands.coreservice.upgrade.UpgradePurchaseResult;
 import kr.lunaf.cloudislands.coreservice.upgrade.UpgradeRule;
 import kr.lunaf.cloudislands.coreservice.workflow.CreateIslandWorkflow;
 import kr.lunaf.cloudislands.coreservice.workflow.IslandLifecycleWorkflow;
+import kr.lunaf.cloudislands.migration.rollback.CompositeRollbackTarget;
+import kr.lunaf.cloudislands.migration.rollback.MigrationRollbackService.RollbackTarget;
+import kr.lunaf.cloudislands.migration.rollback.StorageRollbackTarget;
+import kr.lunaf.cloudislands.migration.rollback.jdbc.JdbcMigrationRollbackTarget;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
+import kr.lunaf.cloudislands.storage.IslandStorage;
+import kr.lunaf.cloudislands.storage.LocalIslandStorage;
+import kr.lunaf.cloudislands.storage.s3.S3IslandStorage;
 
 public final class CloudIslandsCoreApplication {
     private final HttpServer server;
@@ -164,7 +174,7 @@ public final class CloudIslandsCoreApplication {
             limitRepository,
             missionRepository,
             levelRepository,
-            config.jdbcRepositories() ? new kr.lunaf.cloudislands.migration.rollback.jdbc.JdbcMigrationRollbackTarget(dataSource) : null
+            migrationRollbackTarget(config, dataSource)
         );
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets);
         PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, inMemoryEvents, config.heartbeatTimeout());
@@ -1152,6 +1162,35 @@ public final class CloudIslandsCoreApplication {
             String islandId = result.island() == null ? "" : result.island().islandId().toString();
             write(exchange, result.accepted() ? 202 : 409, "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\",\"islandId\":\"" + islandId + "\",\"ticket\":" + ticketJson + "}");
         });
+    }
+
+    private static RollbackTarget migrationRollbackTarget(CoreServiceConfig config, DataSource dataSource) {
+        if (!config.jdbcRepositories()) {
+            return null;
+        }
+        List<RollbackTarget> targets = new ArrayList<>();
+        targets.add(new JdbcMigrationRollbackTarget(dataSource));
+        IslandStorage storage = migrationRollbackStorage(config);
+        if (storage != null) {
+            targets.add(new StorageRollbackTarget(islandId -> {
+                try {
+                    storage.deleteIsland(islandId);
+                } catch (IOException exception) {
+                    throw new IllegalStateException("failed to delete island storage " + islandId, exception);
+                }
+            }));
+        }
+        return targets.size() == 1 ? targets.get(0) : new CompositeRollbackTarget(targets);
+    }
+
+    private static IslandStorage migrationRollbackStorage(CoreServiceConfig config) {
+        if ("LOCAL".equalsIgnoreCase(config.storageType())) {
+            return new LocalIslandStorage(Path.of(config.storageLocalPath()));
+        }
+        if ("S3".equalsIgnoreCase(config.storageType())) {
+            return new S3IslandStorage(config.storageEndpoint(), config.storageBucket(), config.storageBearerToken());
+        }
+        return null;
     }
 
     public void start() {
