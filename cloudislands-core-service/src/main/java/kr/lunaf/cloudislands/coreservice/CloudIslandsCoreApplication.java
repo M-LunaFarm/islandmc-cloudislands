@@ -938,11 +938,13 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             UUID inviteId = JsonFields.uuid(body, "inviteId", new UUID(0L, 0L));
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            java.util.Optional<kr.lunaf.cloudislands.api.model.IslandInviteSnapshot> invite = metadataRepository.pendingInvites(playerUuid).stream().filter(value -> value.inviteId().equals(inviteId)).findFirst();
+            String islandId = invite.map(value -> value.islandId().toString()).orElse("");
             boolean accepted = metadataRepository.acceptInvite(inviteId, playerUuid);
             audit.log(playerUuid, "PLAYER", "ISLAND_INVITE_ACCEPT", "INVITE", inviteId.toString(), Map.of("accepted", Boolean.toString(accepted)));
-            events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "playerUuid", playerUuid.toString(), "accepted", Boolean.toString(accepted)));
+            events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "accepted", Boolean.toString(accepted)));
             if (accepted) {
-                events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "playerUuid", playerUuid.toString()));
+                events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString()));
             }
             write(exchange, accepted ? 202 : 409, accepted ? ApiResponses.ok(true) : ApiResponses.error("INVITE_UNAVAILABLE", "Invite is missing, expired, or not pending"));
         });
@@ -950,9 +952,11 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             UUID inviteId = JsonFields.uuid(body, "inviteId", new UUID(0L, 0L));
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            java.util.Optional<kr.lunaf.cloudislands.api.model.IslandInviteSnapshot> invite = metadataRepository.pendingInvites(playerUuid).stream().filter(value -> value.inviteId().equals(inviteId)).findFirst();
+            String islandId = invite.map(value -> value.islandId().toString()).orElse("");
             boolean declined = metadataRepository.declineInvite(inviteId, playerUuid);
             audit.log(playerUuid, "PLAYER", "ISLAND_INVITE_DECLINE", "INVITE", inviteId.toString(), Map.of("declined", Boolean.toString(declined)));
-            events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "playerUuid", playerUuid.toString(), "declined", Boolean.toString(declined)));
+            events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "declined", Boolean.toString(declined)));
             write(exchange, declined ? 202 : 409, declined ? ApiResponses.ok(true) : ApiResponses.error("INVITE_UNAVAILABLE", "Invite is missing or not pending"));
         });
         route("/v1/islands/bans/set", exchange -> {
