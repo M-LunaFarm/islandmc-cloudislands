@@ -128,6 +128,7 @@ public final class JobCompletionService {
             return;
         }
         islands.restoreDeleted(job.islandId()).ifPresent(island -> {
+            islands.createOwnerMember(island.islandId(), island.ownerUuid());
             if (playerProfiles != null) {
                 playerProfiles.setPrimaryIsland(island.ownerUuid(), island.islandId());
             }
