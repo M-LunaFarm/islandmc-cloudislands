@@ -126,6 +126,9 @@ public final class IslandWarpMenu implements Listener {
             }
             String object = body.substring(objectStart, objectEnd + 1);
             String name = text(object, "name");
+            if (name.isBlank()) {
+                name = text(object, "warpName");
+            }
             if (!name.isBlank()) {
                 warps.add(new Warp(text(object, "islandId"), name, decimal(object, "localX"), decimal(object, "localY"), decimal(object, "localZ"), bool(object, "publicAccess")));
             }
