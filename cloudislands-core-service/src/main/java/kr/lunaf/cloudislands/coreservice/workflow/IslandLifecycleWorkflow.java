@@ -62,7 +62,7 @@ public final class IslandLifecycleWorkflow {
         }
         IslandRuntimeSnapshot runtime = runtimes.markMigrating(islandId, targetNode);
         jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.MIGRATE_ISLAND, islandId, targetNode, 10, Map.of("fencingToken", Long.toString(runtime.fencingToken()), "worldName", runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld(), "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()), "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ())), Instant.now()));
-        events.publish(CloudIslandEventType.ISLAND_MIGRATED.name(), Map.of("islandId", islandId.toString(), "targetNode", targetNode, "fencingToken", Long.toString(runtime.fencingToken())));
+        events.publish(CloudIslandEventType.ISLAND_MIGRATE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "targetNode", targetNode, "fencingToken", Long.toString(runtime.fencingToken())));
         return new Result(true, "MIGRATING", runtime);
     }
 
