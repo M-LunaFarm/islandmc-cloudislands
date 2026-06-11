@@ -457,6 +457,7 @@ public final class VelocityRoutingController {
     private String messageForCreateFailure(String code) {
         return switch (code) {
             case "ALREADY_HAS_ISLAND" -> "이미 섬을 보유하고 있습니다.";
+            case "TEMPLATE_UNAVAILABLE" -> "사용할 수 없는 섬 템플릿입니다.";
             case "NODE_UNAVAILABLE" -> "현재 섬 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.";
             default -> "섬 생성에 실패했습니다.";
         };

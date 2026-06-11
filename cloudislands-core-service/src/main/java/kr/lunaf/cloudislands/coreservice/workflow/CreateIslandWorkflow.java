@@ -18,6 +18,7 @@ import kr.lunaf.cloudislands.coreservice.job.IslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
+import kr.lunaf.cloudislands.coreservice.template.IslandTemplateRepository;
 import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
@@ -26,16 +27,18 @@ public final class CreateIslandWorkflow {
     private final IslandRepository islands;
     private final IslandMetadataRepository metadata;
     private final PlayerProfileRepository playerProfiles;
+    private final IslandTemplateRepository templates;
     private final NodeRegistry nodes;
     private final NodeAllocator allocator;
     private final IslandJobPublisher jobs;
     private final GlobalEventPublisher events;
     private final RouteTicketStore tickets;
 
-    public CreateIslandWorkflow(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events, RouteTicketStore tickets) {
+    public CreateIslandWorkflow(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events, RouteTicketStore tickets) {
         this.islands = islands;
         this.metadata = metadata;
         this.playerProfiles = playerProfiles;
+        this.templates = templates;
         this.nodes = nodes;
         this.allocator = allocator;
         this.jobs = jobs;
@@ -44,18 +47,22 @@ public final class CreateIslandWorkflow {
     }
 
     public CreateIslandResult create(UUID ownerUuid, String templateId) {
+        String normalizedTemplate = templateId == null || templateId.isBlank() ? "default" : templateId;
+        if (!templates.enabled(normalizedTemplate)) {
+            return new CreateIslandResult(false, "TEMPLATE_UNAVAILABLE", null, null);
+        }
         if (islands.findByOwner(ownerUuid).isPresent()) {
             return new CreateIslandResult(false, "ALREADY_HAS_ISLAND", null, null);
         }
-        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId).orElse(null);
+        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), normalizedTemplate).orElse(null);
         if (node == null) {
             return new CreateIslandResult(false, "NODE_UNAVAILABLE", null, null);
         }
         UUID islandId = UUID.randomUUID();
-        IslandSnapshot island = islands.createOwnedIsland(islandId, ownerUuid, templateId, "Island");
+        IslandSnapshot island = islands.createOwnedIsland(islandId, ownerUuid, normalizedTemplate, "Island");
         metadata.upsertMember(islandId, ownerUuid, IslandRole.OWNER);
         playerProfiles.setPrimaryIsland(ownerUuid, islandId);
-        jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.CREATE_ISLAND, islandId, node.nodeId(), 0, Map.of("templateId", templateId), Instant.now()));
+        jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.CREATE_ISLAND, islandId, node.nodeId(), 0, Map.of("templateId", normalizedTemplate), Instant.now()));
         events.publish(CloudIslandEventType.ISLAND_CREATED.name(), Map.of("islandId", islandId.toString(), "ownerUuid", ownerUuid.toString(), "targetNode", node.nodeId()));
         RouteTicket ticket = tickets.save(new RouteTicket(UUID.randomUUID(), ownerUuid, RouteAction.HOME, islandId, node.nodeId(), "ci_shard_001", RouteTicketState.PREPARING, Instant.now().plusSeconds(120), UUID.randomUUID().toString(), Map.of(
             "targetServerName", node.velocityServerName(),
