@@ -72,7 +72,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PaperRouteSessionListener(this, client, agent.routeTickets(), nodeId), this);
         PluginCommand admin = getCommand("ciadmin");
         if (admin != null) {
-            admin.setExecutor(new AdminCommandController(agent));
+            AdminCommandController adminController = new AdminCommandController(agent, client, nodeId);
+            admin.setExecutor(adminController);
+            admin.setTabCompleter(adminController);
         }
         PluginCommand island = getCommand("island");
         if (island != null) {
