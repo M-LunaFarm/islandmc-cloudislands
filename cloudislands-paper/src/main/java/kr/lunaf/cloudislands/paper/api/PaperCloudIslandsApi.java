@@ -11,6 +11,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.model.AuditLogSnapshot;
+import kr.lunaf.cloudislands.api.model.BlockValueSnapshot;
 import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
@@ -205,6 +206,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<List<UpgradeRuleSnapshot>> getUpgradeRules() {
             return client.listUpgradeRules().thenApply(PaperCloudIslandsApi::upgradeRules);
+        }
+
+        @Override
+        public CompletableFuture<List<BlockValueSnapshot>> getBlockValues() {
+            return client.listBlockValues().thenApply(PaperCloudIslandsApi::blockValues);
         }
 
         @Override
@@ -685,6 +691,19 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             ));
         }
         return rules;
+    }
+
+    private static List<BlockValueSnapshot> blockValues(String json) {
+        List<BlockValueSnapshot> values = new ArrayList<>();
+        for (String object : objects(json, "values")) {
+            values.add(new BlockValueSnapshot(
+                text(object, "materialKey", ""),
+                text(object, "worth", "0"),
+                longValue(object, "levelPoints", 0L),
+                longValue(object, "limit", 0L)
+            ));
+        }
+        return values;
     }
 
     private static List<IslandMissionSnapshot> missions(String json) {

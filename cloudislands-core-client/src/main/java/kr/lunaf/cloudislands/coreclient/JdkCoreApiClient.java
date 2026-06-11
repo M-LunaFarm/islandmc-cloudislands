@@ -213,6 +213,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> listBlockValues() {
+        return post("/v1/admin/block-values/list", "{}");
+    }
+
+    @Override
     public CompletableFuture<String> listUpgradeRules() {
         return post("/v1/upgrades/rules", "{}");
     }

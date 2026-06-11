@@ -177,6 +177,7 @@ public final class CloudIslandsCoreApplication {
             write(exchange, 200, rankingsJson(rankingRepository.topByWorth(JsonFields.integer(body, "limit", 10))));
         });
         route("/v1/upgrades/rules", exchange -> write(exchange, 200, upgradeRulesJson(upgradePolicy.list())));
+        route("/v1/admin/block-values/list", exchange -> write(exchange, 200, blockValuesJson(levelRepository.blockValues())));
         route("/v1/islands/missions", exchange -> {
             String body = readBody(exchange);
             write(exchange, 200, missionsJson(missionRepository.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "kind", "MISSION"))));
@@ -1259,6 +1260,25 @@ public final class CloudIslandsCoreApplication {
                 .append("\"maxLevel\":").append(rule.maxLevel()).append(',')
                 .append("\"baseCost\":\"").append(rule.baseCost().toPlainString()).append("\",")
                 .append("\"multiplier\":\"").append(rule.multiplier().toPlainString()).append("\"")
+                .append('}');
+        }
+        return builder.append("]}").toString();
+    }
+
+    private static String blockValuesJson(Map<String, RankingRecalculationService.BlockValue> values) {
+        StringBuilder builder = new StringBuilder("{\"values\":[");
+        boolean first = true;
+        for (Map.Entry<String, RankingRecalculationService.BlockValue> entry : values.entrySet()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            RankingRecalculationService.BlockValue value = entry.getValue();
+            builder.append('{')
+                .append("\"materialKey\":\"").append(escape(entry.getKey())).append("\",")
+                .append("\"worth\":\"").append(value.worth().toPlainString()).append("\",")
+                .append("\"levelPoints\":").append(value.levelPoints()).append(',')
+                .append("\"limit\":").append(value.limit())
                 .append('}');
         }
         return builder.append("]}").toString();

@@ -93,7 +93,7 @@ public final class AdminEndpointGuard {
             case "/v1/admin/islands/tp" -> AdminPermission.ISLAND_TELEPORT;
             case "/v1/admin/islands/delete" -> AdminPermission.ISLAND_DELETE;
             case "/v1/admin/islands/repair" -> AdminPermission.ISLAND_REPAIR;
-            case "/v1/admin/block-values" -> AdminPermission.ECONOMY_MANAGE;
+            case "/v1/admin/block-values", "/v1/admin/block-values/list" -> AdminPermission.ECONOMY_MANAGE;
             default -> path.startsWith("/v1/admin") ? AdminPermission.AUDIT_READ : null;
         };
     }
