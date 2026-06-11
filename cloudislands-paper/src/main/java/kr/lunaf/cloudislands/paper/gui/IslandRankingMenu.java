@@ -1,0 +1,149 @@
+package kr.lunaf.cloudislands.paper.gui;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.plugin.Plugin;
+
+public final class IslandRankingMenu implements Listener {
+    private static final String TITLE = "섬 랭킹";
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player) {
+        CompletableFuture<String> level = client.topIslandsByLevel(10);
+        CompletableFuture<String> worth = client.topIslandsByWorth(10);
+        level.thenCombine(worth, RankingData::new)
+            .thenAccept(data -> openSync(plugin, player, rankings(data.levelBody(), "level"), rankings(data.worthBody(), "worth")))
+            .exceptionally(error -> {
+                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("섬 랭킹을 불러오지 못했습니다."));
+                return null;
+            });
+    }
+
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (!TITLE.equals(event.getView().getTitle())) {
+            return;
+        }
+        event.setCancelled(true);
+        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
+            return;
+        }
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null || meta.getLore() == null) {
+            return;
+        }
+        String islandId = loreValue(meta, "islandId=");
+        if (islandId.isBlank()) {
+            return;
+        }
+        player.closeInventory();
+        player.performCommand("섬 방문 " + islandId);
+    }
+
+    private static void openSync(Plugin plugin, Player player, List<Ranking> levels, List<Ranking> worths) {
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
+            inventory.setItem(4, item(Material.GOLD_BLOCK, "섬 랭킹", "좌측: 레벨 TOP", "우측: 가치 TOP"));
+            int slot = 9;
+            for (Ranking ranking : levels) {
+                inventory.setItem(slot++, rankingItem(Material.EXPERIENCE_BOTTLE, ranking));
+            }
+            slot = 27;
+            for (Ranking ranking : worths) {
+                inventory.setItem(slot++, rankingItem(Material.EMERALD, ranking));
+            }
+            player.openInventory(inventory);
+        });
+    }
+
+    private static ItemStack rankingItem(Material material, Ranking ranking) {
+        return item(material, ranking.label() + " #" + ranking.rank(), "islandId=" + ranking.islandId(), "level=" + ranking.level(), "worth=" + ranking.worth(), "클릭하면 방문을 시도합니다.");
+    }
+
+    private static ItemStack item(Material material, String name, String... lore) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            meta.setLore(List.of(lore));
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private static List<Ranking> rankings(String body, String label) {
+        List<Ranking> rankings = new ArrayList<>();
+        int index = 0;
+        while (body != null && index < body.length()) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String islandId = text(object, "islandId");
+            if (!islandId.isBlank()) {
+                rankings.add(new Ranking(rankings.size() + 1, label, islandId, number(object, "level"), text(object, "worth")));
+            }
+            index = objectEnd + 1;
+        }
+        return rankings;
+    }
+
+    private static String loreValue(ItemMeta meta, String prefix) {
+        for (String line : meta.getLore()) {
+            if (line.startsWith(prefix)) {
+                return line.substring(prefix.length());
+            }
+        }
+        return "";
+    }
+
+    private static String text(String body, String key) {
+        String needle = "\"" + key + "\":\"";
+        int start = body.indexOf(needle);
+        if (start < 0) {
+            return "";
+        }
+        start += needle.length();
+        int end = body.indexOf('"', start);
+        return end < start ? "" : body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
+    }
+
+    private static long number(String body, String key) {
+        String needle = "\"" + key + "\":";
+        int start = body.indexOf(needle);
+        if (start < 0) {
+            return 0L;
+        }
+        start += needle.length();
+        int end = start;
+        while (end < body.length() && Character.isDigit(body.charAt(end))) {
+            end++;
+        }
+        try {
+            return Long.parseLong(body.substring(start, end));
+        } catch (NumberFormatException exception) {
+            return 0L;
+        }
+    }
+
+    private record RankingData(String levelBody, String worthBody) {
+    }
+
+    private record Ranking(int rank, String label, String islandId, long level, String worth) {
+    }
+}

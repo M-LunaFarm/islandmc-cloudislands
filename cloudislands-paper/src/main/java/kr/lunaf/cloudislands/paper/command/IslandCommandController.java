@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMissionMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandPermissionMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandRankingMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandUpgradeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
@@ -39,7 +40,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "warps", "warp-menu", "warp-list", "워프", "워프관리", "워프목록", "warp", "setwarp", "워프설정",
         "delwarp", "deletewarp", "워프삭제", "warp-public", "워프공개", "warp-private", "워프비공개",
         "public", "공개", "private", "비공개", "lock", "잠금", "unlock", "잠금해제",
-        "level", "레벨", "worth", "value", "가치", "rank", "ranking", "랭킹", "levelcalc", "recalculate", "레벨계산",
+        "level", "레벨", "worth", "value", "가치", "rank", "ranking", "rank-list", "랭킹", "랭킹목록", "levelcalc", "recalculate", "레벨계산",
         "bank", "bank-balance", "은행", "은행잔액", "deposit", "bank-deposit", "입금", "withdraw", "bank-withdraw", "출금",
         "upgrade", "upgrades", "upgrade-menu", "upgrade-list", "업그레이드", "업그레이드목록",
         "mission", "missions", "mission-menu", "mission-list", "미션", "미션목록",
@@ -203,6 +204,15 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return true;
         }
         if (subcommand.equals("rank") || subcommand.equals("ranking") || subcommand.equals("랭킹")) {
+            if (args.length > 1) {
+                boolean worthRanking = args[1].equalsIgnoreCase("worth") || args[1].equals("가치");
+                listIslandRanking(player, worthRanking);
+            } else {
+                IslandRankingMenu.open(plugin, coreApiClient, player);
+            }
+            return true;
+        }
+        if (subcommand.equals("rank-list") || subcommand.equals("랭킹목록")) {
             boolean worthRanking = args.length > 1 && (args[1].equalsIgnoreCase("worth") || args[1].equals("가치"));
             listIslandRanking(player, worthRanking);
             return true;
