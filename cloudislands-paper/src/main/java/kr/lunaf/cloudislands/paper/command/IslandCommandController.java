@@ -767,7 +767,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 return;
             }
             coreApiClient.setIslandPublicAccess(islandId, player.getUniqueId(), publicAccess)
-                .thenRun(() -> message(player, publicAccess ? "섬을 공개했습니다." : "섬을 비공개로 변경했습니다."))
+                .thenRun(() -> {
+                    message(player, publicAccess ? "섬을 공개했습니다." : "섬을 비공개로 변경했습니다.");
+                    plugin.getServer().getScheduler().runTask(plugin, () -> player.performCommand("섬 설정"));
+                })
                 .exceptionally(error -> {
                     message(player, "섬 공개 상태를 변경하지 못했습니다.");
                     return null;
@@ -782,7 +785,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 return;
             }
             coreApiClient.setIslandLocked(islandId, player.getUniqueId(), locked)
-                .thenRun(() -> message(player, locked ? "섬을 잠갔습니다." : "섬 잠금을 해제했습니다."))
+                .thenRun(() -> {
+                    message(player, locked ? "섬을 잠갔습니다." : "섬 잠금을 해제했습니다.");
+                    plugin.getServer().getScheduler().runTask(plugin, () -> player.performCommand("섬 설정"));
+                })
                 .exceptionally(error -> {
                     message(player, "섬 잠금 상태를 변경하지 못했습니다.");
                     return null;
