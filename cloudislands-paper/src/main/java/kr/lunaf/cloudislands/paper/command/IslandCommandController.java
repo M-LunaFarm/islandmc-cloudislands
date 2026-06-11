@@ -60,7 +60,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "public", "공개", "private", "비공개", "lock", "잠금", "unlock", "잠금해제",
         "fly", "비행", "keepinventory", "keepinv", "인벤보존", "pvp", "피빕", "publicwarps", "공개워프",
         "visit", "randomvisit", "random-visit", "방문", "랜덤방문",
-        "level", "레벨", "worth", "value", "가치", "rank", "ranking", "rank-list", "랭킹", "랭킹목록", "가치랭킹", "levelcalc", "recalculate", "레벨계산",
+        "level", "레벨", "worth", "value", "가치", "rank", "ranking", "rank-list", "worthrank", "valuerank", "랭킹", "랭킹목록", "가치랭킹", "levelcalc", "recalculate", "레벨계산",
         "bank", "bank-balance", "은행", "은행잔액", "deposit", "bank-deposit", "입금", "withdraw", "bank-withdraw", "출금",
         "upgrade", "upgrades", "upgrade-menu", "upgrade-list", "buyupgrade", "upgrade-buy", "업그레이드", "업그레이드목록", "업그레이드구매",
         "mission", "missions", "mission-menu", "mission-list", "미션", "미션목록",
@@ -70,12 +70,12 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "limit", "limits", "limit-menu", "limit-list", "제한", "제한목록", "setlimit", "limit-set", "제한설정",
         "hoppers", "호퍼", "spawners", "스포너", "entities", "엔티티", "redstone", "레드스톤",
         "snapshot", "snapshots", "snapshot-menu", "snapshot-list", "스냅샷", "스냅샷목록", "snapshot-create", "snapshot-request", "스냅샷생성",
-        "snapshot-restore", "rollback", "스냅샷복원", "복원", "롤백",
+        "snapshot-restore", "restore", "rollback", "스냅샷복원", "복원", "롤백",
         "members", "member-menu", "member-list", "멤버", "멤버관리", "멤버목록", "invite", "초대", "invites", "invite-menu", "invite-list", "초대목록",
         "accept", "invite-accept", "초대수락", "decline", "invite-decline", "초대거절",
         "kick", "remove-member", "추방", "trust", "신뢰", "untrust", "신뢰해제",
         "promote", "승급", "demote", "강등", "transfer", "양도",
-        "ban", "밴", "unban", "pardon", "밴해제", "kickvisitor", "방문자추방", "bans", "ban-menu", "ban-list", "밴목록",
+        "ban", "밴", "unban", "pardon", "밴해제", "kickvisitor", "방문자추방", "bans", "ban-menu", "ban-list", "banlist", "밴목록",
         "settings", "setting", "설정",
         "flags", "flag-menu", "flag-list", "flag", "setflag", "flag-set", "플래그", "플래그설정", "플래그목록",
         "permissions", "permission-menu", "permission-list", "permission", "perms", "setpermission", "permission-set", "권한", "권한설정", "권한목록"
@@ -310,7 +310,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             listIslandRanking(player, worthRanking);
             return true;
         }
-        if (subcommand.equals("가치랭킹")) {
+        if (subcommand.equals("worthrank") || subcommand.equals("valuerank") || subcommand.equals("가치랭킹")) {
             listIslandRanking(player, true);
             return true;
         }
@@ -500,7 +500,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             requestIslandSnapshot(player, args.length > 1 ? joined(args, 1) : "manual");
             return true;
         }
-        if (subcommand.equals("snapshot-restore") || subcommand.equals("rollback") || subcommand.equals("스냅샷복원") || subcommand.equals("복원") || subcommand.equals("롤백")) {
+        if (subcommand.equals("snapshot-restore") || subcommand.equals("restore") || subcommand.equals("rollback") || subcommand.equals("스냅샷복원") || subcommand.equals("복원") || subcommand.equals("롤백")) {
             if (args.length < 2) {
                 player.sendMessage("복원할 스냅샷 번호를 입력해주세요.");
                 return true;
@@ -620,7 +620,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             kickIslandVisitor(player, args[1]);
             return true;
         }
-        if (subcommand.equals("bans") || subcommand.equals("ban-menu") || subcommand.equals("밴목록")) {
+        if (subcommand.equals("bans") || subcommand.equals("ban-menu") || subcommand.equals("banlist") || subcommand.equals("밴목록")) {
             openIslandBanMenu(player);
             return true;
         }
