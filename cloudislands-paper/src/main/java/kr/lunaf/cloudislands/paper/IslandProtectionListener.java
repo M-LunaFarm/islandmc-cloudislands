@@ -4,7 +4,10 @@ import java.util.Optional;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.api.model.PermissionResult;
+import kr.lunaf.cloudislands.paper.event.IslandPermissionCheckEvent;
 import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.EntityType;
@@ -226,7 +229,9 @@ public final class IslandProtectionListener implements Listener {
     }
 
     private boolean denied(Player player, Block block, IslandPermission permission) {
-        return !protection.checkBlock(player.getUniqueId(), block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), permission, player.hasPermission("cloudislands.admin.bypass")).allowed();
+        PermissionResult result = protection.checkBlock(player.getUniqueId(), block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), permission, player.hasPermission("cloudislands.admin.bypass"));
+        protection.islandAt(block).ifPresent(islandId -> Bukkit.getPluginManager().callEvent(new IslandPermissionCheckEvent(islandId, player.getUniqueId(), player, block, permission, result)));
+        return !result.allowed();
     }
 
     private IslandPermission interactionPermission(Material type) {
