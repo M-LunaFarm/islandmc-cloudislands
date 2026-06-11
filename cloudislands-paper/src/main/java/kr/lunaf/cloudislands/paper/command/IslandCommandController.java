@@ -345,6 +345,22 @@ public final class IslandCommandController implements CommandExecutor {
             listIslandBans(player);
             return true;
         }
+        if (subcommand.equals("flags") || subcommand.equals("flag") || subcommand.equals("플래그")) {
+            if (args.length > 2) {
+                setIslandFlag(player, args[1], args[2]);
+            } else {
+                listIslandFlags(player);
+            }
+            return true;
+        }
+        if (subcommand.equals("permissions") || subcommand.equals("permission") || subcommand.equals("perms") || subcommand.equals("권한")) {
+            if (args.length > 3) {
+                setIslandPermission(player, args[1], args[2], args[3]);
+            } else {
+                listIslandPermissions(player);
+            }
+            return true;
+        }
         return false;
     }
 
@@ -962,6 +978,70 @@ public final class IslandCommandController implements CommandExecutor {
         });
     }
 
+    private void listIslandFlags(Player player) {
+        currentIsland(player, "섬 안에서만 플래그를 확인할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.listIslandFlags(islandId)
+                .thenAccept(body -> message(player, flagListMessage(body)))
+                .exceptionally(error -> {
+                    message(player, "섬 플래그를 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void setIslandFlag(Player player, String flagName, String value) {
+        currentIsland(player, "섬 안에서만 플래그를 변경할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.MANAGE_FLAGS)) {
+                player.sendMessage("섬 플래그를 변경할 권한이 없습니다.");
+                return;
+            }
+            IslandFlag flag = islandFlag(flagName);
+            if (flag == null) {
+                player.sendMessage("올바른 섬 플래그를 입력해주세요.");
+                return;
+            }
+            coreApiClient.setIslandFlagResult(islandId, player.getUniqueId(), flag, value)
+                .thenAccept(body -> message(player, "섬 플래그를 변경했습니다: " + flag.name() + " = " + value))
+                .exceptionally(error -> {
+                    message(player, "섬 플래그를 변경하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void listIslandPermissions(Player player) {
+        currentIsland(player, "섬 안에서만 권한을 확인할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.listIslandPermissions(islandId)
+                .thenAccept(body -> message(player, permissionListMessage(body)))
+                .exceptionally(error -> {
+                    message(player, "섬 권한을 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void setIslandPermission(Player player, String roleName, String permissionName, String allowedValue) {
+        currentIsland(player, "섬 안에서만 권한을 변경할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
+                player.sendMessage("섬 권한을 변경할 권한이 없습니다.");
+                return;
+            }
+            IslandRole role = islandRole(roleName);
+            IslandPermission permission = islandPermission(permissionName);
+            if (role == null || permission == null) {
+                player.sendMessage("올바른 역할과 권한을 입력해주세요.");
+                return;
+            }
+            boolean allowed = booleanValue(allowedValue);
+            coreApiClient.setIslandPermissionResult(islandId, player.getUniqueId(), role, permission, allowed)
+                .thenAccept(body -> message(player, "섬 권한을 변경했습니다: " + role.name() + " " + permission.name() + " = " + allowed))
+                .exceptionally(error -> {
+                    message(player, "섬 권한을 변경하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
     private java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
         java.util.Optional<UUID> islandId = protection.islandAt(player.getLocation().getBlock());
         if (islandId.isEmpty()) {
@@ -1219,6 +1299,62 @@ public final class IslandCommandController implements CommandExecutor {
         return entries.isEmpty() ? "섬 밴 목록이 비어 있습니다." : "섬 밴 목록: " + String.join(", ", entries);
     }
 
+    private String flagListMessage(String body) {
+        if (body == null || body.isBlank()) {
+            return "섬 플래그가 없습니다.";
+        }
+        int flagsStart = body.indexOf("\"flags\":{");
+        if (flagsStart < 0) {
+            return "섬 플래그가 없습니다.";
+        }
+        int objectStart = body.indexOf('{', flagsStart);
+        int objectEnd = body.indexOf('}', objectStart);
+        if (objectStart < 0 || objectEnd < 0) {
+            return "섬 플래그가 없습니다.";
+        }
+        String flags = body.substring(objectStart + 1, objectEnd);
+        List<String> entries = new ArrayList<>();
+        int index = 0;
+        while (index < flags.length()) {
+            int keyStart = flags.indexOf('"', index);
+            if (keyStart < 0) {
+                break;
+            }
+            int keyEnd = flags.indexOf('"', keyStart + 1);
+            int valueStart = flags.indexOf('"', keyEnd + 1);
+            int valueEnd = valueStart < 0 ? -1 : flags.indexOf('"', valueStart + 1);
+            if (keyEnd < 0 || valueStart < 0 || valueEnd < 0) {
+                break;
+            }
+            entries.add(flags.substring(keyStart + 1, keyEnd) + "=" + unescape(flags.substring(valueStart + 1, valueEnd)));
+            index = valueEnd + 1;
+        }
+        return entries.isEmpty() ? "섬 플래그가 없습니다." : "섬 플래그: " + String.join(", ", entries);
+    }
+
+    private String permissionListMessage(String body) {
+        List<String> entries = new ArrayList<>();
+        int index = 0;
+        while (body != null && index < body.length()) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String role = text(object, "role");
+            String permission = text(object, "permission");
+            if (!role.isBlank() && !permission.isBlank()) {
+                entries.add(role + ":" + permission + "=" + bool(object, "allowed"));
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "섬 권한 규칙이 없습니다." : "섬 권한: " + String.join(", ", entries);
+    }
+
     private String joined(String[] args, int start) {
         StringBuilder builder = new StringBuilder();
         for (int i = start; i < args.length; i++) {
@@ -1264,6 +1400,38 @@ public final class IslandCommandController implements CommandExecutor {
             return parsed;
         }
         return plugin.getServer().getOfflinePlayer(value).getUniqueId();
+    }
+
+    private IslandFlag islandFlag(String value) {
+        try {
+            return IslandFlag.valueOf(value.toUpperCase().replace('-', '_'));
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private IslandRole islandRole(String value) {
+        try {
+            return IslandRole.valueOf(value.toUpperCase().replace('-', '_'));
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private IslandPermission islandPermission(String value) {
+        try {
+            return IslandPermission.valueOf(value.toUpperCase().replace('-', '_'));
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private boolean booleanValue(String value) {
+        return value.equalsIgnoreCase("true")
+            || value.equalsIgnoreCase("yes")
+            || value.equalsIgnoreCase("on")
+            || value.equals("1")
+            || value.equals("허용");
     }
 
     private Point point(String body, String requestedName, String fallbackWorldName) {
