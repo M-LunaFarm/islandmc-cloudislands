@@ -35,7 +35,7 @@ public record NodeLoad(
         if (lastHeartbeat == null || lastHeartbeat.plus(heartbeatTimeout).isBefore(now)) {
             return false;
         }
-        return players < hardPlayerCap && activationQueue < maxActivationQueue;
+        return players < hardPlayerCap && activeIslands < maxActiveIslands && activationQueue < maxActivationQueue;
     }
 
     public boolean acceptsExistingRoute(Instant now, Duration heartbeatTimeout, String templateId, String minVersion) {
