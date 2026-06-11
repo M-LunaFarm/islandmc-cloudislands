@@ -83,6 +83,15 @@ public final class CloudIslandsVelocityPlugin {
             routingController.showIslandBorder(player, islandId);
             return;
         }
+        if (args[0].equalsIgnoreCase("biome") || args[0].equals("바이옴")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            if (args.length > 2) {
+                routingController.setBiome(player, islandId, args[2]);
+            } else {
+                routingController.showBiome(player, islandId);
+            }
+            return;
+        }
         if (args[0].equalsIgnoreCase("homes") || args[0].equals("홈목록")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.listHomes(player, islandId);

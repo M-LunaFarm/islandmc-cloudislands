@@ -71,6 +71,14 @@ public final class VelocityRoutingController {
         coreApiClient.islandInfo(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 경계를 불러오지 못했습니다." : body)));
     }
 
+    public void showBiome(Player player, UUID islandId) {
+        coreApiClient.islandBiome(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 바이옴을 불러오지 못했습니다." : body)));
+    }
+
+    public void setBiome(Player player, UUID islandId, String biomeKey) {
+        coreApiClient.setIslandBiome(islandId, player.getUniqueId(), biomeKey).thenRun(() -> player.sendMessage(Component.text("섬 바이옴을 변경했습니다.")));
+    }
+
     public void routeHome(Player player) {
         routeHome(player, "default");
     }

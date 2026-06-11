@@ -126,6 +126,16 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> islandBiome(UUID islandId) {
+        return post("/v1/islands/biome", "{\"islandId\":\"" + islandId + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<Void> setIslandBiome(UUID islandId, UUID actorUuid, String biomeKey) {
+        return post("/v1/islands/biome/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"biomeKey\":\"" + escape(biomeKey) + "\"}").thenApply(_body -> null);
+    }
+
+    @Override
     public CompletableFuture<String> listIslandHomes(UUID islandId) {
         return post("/v1/islands/homes", "{\"islandId\":\"" + islandId + "\"}");
     }

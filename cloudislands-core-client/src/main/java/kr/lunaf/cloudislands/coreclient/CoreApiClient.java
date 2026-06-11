@@ -35,6 +35,8 @@ public interface CoreApiClient {
     CompletableFuture<Void> pardonIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid);
     CompletableFuture<String> listIslandFlags(UUID islandId);
     CompletableFuture<Void> setIslandFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value);
+    CompletableFuture<String> islandBiome(UUID islandId);
+    CompletableFuture<Void> setIslandBiome(UUID islandId, UUID actorUuid, String biomeKey);
     CompletableFuture<String> listIslandHomes(UUID islandId);
     CompletableFuture<Void> setIslandHome(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<String> listIslandPermissions(UUID islandId);

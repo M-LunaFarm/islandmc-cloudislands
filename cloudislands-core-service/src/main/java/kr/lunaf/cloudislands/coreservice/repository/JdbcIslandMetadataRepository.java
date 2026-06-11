@@ -13,6 +13,7 @@ import java.util.UUID;
 import javax.sql.DataSource;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
@@ -279,6 +280,35 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to set island flag", exception);
+        }
+    }
+
+    @Override
+    public IslandBiomeSnapshot biome(UUID islandId) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT island_id, biome_key, updated_by, updated_at FROM island_biomes WHERE island_id = ?")) {
+            statement.setObject(1, islandId);
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    return new IslandBiomeSnapshot((UUID) rs.getObject("island_id"), rs.getString("biome_key"), (UUID) rs.getObject("updated_by"), rs.getTimestamp("updated_at").toInstant());
+                }
+                return new IslandBiomeSnapshot(islandId, "minecraft:plains", new UUID(0L, 0L), Instant.EPOCH);
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read island biome", exception);
+        }
+    }
+
+    @Override
+    public void setBiome(UUID islandId, String biomeKey, UUID updatedBy) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_biomes(island_id, biome_key, updated_by) VALUES (?, ?, ?) ON CONFLICT (island_id) DO UPDATE SET biome_key = EXCLUDED.biome_key, updated_by = EXCLUDED.updated_by, updated_at = now()")) {
+            statement.setObject(1, islandId);
+            statement.setString(2, biomeKey);
+            statement.setObject(3, updatedBy);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to set island biome", exception);
         }
     }
 

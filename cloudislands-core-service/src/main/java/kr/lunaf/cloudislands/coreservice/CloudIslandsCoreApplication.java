@@ -482,6 +482,21 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             write(exchange, 200, flagsJson(metadataRepository.flags(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
         });
+        route("/v1/islands/biome", exchange -> {
+            String body = readBody(exchange);
+            write(exchange, 200, biomeJson(metadataRepository.biome(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
+        });
+        route("/v1/islands/biome/set", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            String biomeKey = JsonFields.text(body, "biomeKey", "minecraft:plains").toLowerCase();
+            metadataRepository.setBiome(islandId, biomeKey, actorUuid);
+            audit.log(actorUuid, "PLAYER", "ISLAND_BIOME_SET", "ISLAND", islandId.toString(), Map.of("biomeKey", biomeKey));
+            islandLogs.append(islandId, actorUuid, "ISLAND_BIOME_SET", Map.of("biomeKey", biomeKey));
+            events.publish("ISLAND_BIOME_SET", Map.of("islandId", islandId.toString(), "biomeKey", biomeKey));
+            write(exchange, 202, ApiResponses.ok(true));
+        });
         route("/v1/islands/flags/set", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -857,6 +872,14 @@ public final class CloudIslandsCoreApplication {
             builder.append("\"").append(entry.getKey().name()).append("\":\"").append(escape(entry.getValue())).append("\"");
         }
         return builder.append("}}").toString();
+    }
+
+    private static String biomeJson(kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot biome) {
+        return "{\"islandId\":\"" + biome.islandId()
+            + "\",\"biomeKey\":\"" + escape(biome.biomeKey())
+            + "\",\"updatedBy\":\"" + biome.updatedBy()
+            + "\",\"updatedAt\":\"" + biome.updatedAt()
+            + "\"}";
     }
 
     private static String homesJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandHomeSnapshot> homes) {

@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
@@ -22,6 +23,7 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     private final Map<UUID, IslandInviteSnapshot> invites = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, IslandBanSnapshot>> bans = new ConcurrentHashMap<>();
     private final Map<UUID, Map<IslandFlag, String>> flags = new ConcurrentHashMap<>();
+    private final Map<UUID, IslandBiomeSnapshot> biomes = new ConcurrentHashMap<>();
     private final Map<UUID, Map<String, IslandHomeSnapshot>> homes = new ConcurrentHashMap<>();
     private final Map<UUID, Map<String, IslandWarpSnapshot>> warps = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> publicAccess = new ConcurrentHashMap<>();
@@ -134,6 +136,16 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     @Override
     public void setFlag(UUID islandId, IslandFlag flag, String value) {
         flags.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>()).put(flag, value);
+    }
+
+    @Override
+    public IslandBiomeSnapshot biome(UUID islandId) {
+        return biomes.getOrDefault(islandId, new IslandBiomeSnapshot(islandId, "minecraft:plains", new UUID(0L, 0L), Instant.EPOCH));
+    }
+
+    @Override
+    public void setBiome(UUID islandId, String biomeKey, UUID updatedBy) {
+        biomes.put(islandId, new IslandBiomeSnapshot(islandId, biomeKey, updatedBy, Instant.now()));
     }
 
     @Override
