@@ -431,6 +431,19 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     }
 
     @Override
+    public boolean isPublicAccess(UUID islandId) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT public_access FROM islands WHERE id = ? AND deleted_at IS NULL")) {
+            statement.setObject(1, islandId);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() && rs.getBoolean("public_access");
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read island access", exception);
+        }
+    }
+
+    @Override
     public void setPublicAccess(UUID islandId, boolean publicAccess) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("UPDATE islands SET public_access = ?, updated_at = now() WHERE id = ?")) {

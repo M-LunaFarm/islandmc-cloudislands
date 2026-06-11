@@ -109,7 +109,7 @@ public final class RoutingOrchestrator {
         if (metadata.isLocked(island.islandId()) && !metadata.isMember(island.islandId(), playerUuid)) {
             return RoutePreparationResult.rejected(423, ApiResponses.error("ISLAND_LOCKED", "Island is locked"));
         }
-        if (!island.publicAccess() && !metadata.isMember(island.islandId(), playerUuid)) {
+        if (!metadata.isPublicAccess(island.islandId()) && !metadata.isMember(island.islandId(), playerUuid)) {
             return RoutePreparationResult.rejected(403, ApiResponses.error("ISLAND_PRIVATE", "Island is private"));
         }
         return prepareTicket(playerUuid, island, action, extraPayload);

@@ -190,6 +190,11 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     }
 
     @Override
+    public boolean isPublicAccess(UUID islandId) {
+        return publicAccess.getOrDefault(islandId, false);
+    }
+
+    @Override
     public void setPublicAccess(UUID islandId, boolean publicAccess) {
         this.publicAccess.put(islandId, publicAccess);
     }
