@@ -1,6 +1,8 @@
 package kr.lunaf.cloudislands.coreservice.job;
 
+import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
@@ -15,12 +17,18 @@ public final class JobCompletionService {
     private final GlobalEventPublisher events;
     private final IslandSnapshotRepository snapshots;
     private final RouteTicketStore tickets;
+    private final IslandJobPublisher jobs;
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets) {
+        this(runtimes, events, snapshots, tickets, null);
+    }
+
+    public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs) {
         this.runtimes = runtimes;
         this.events = events;
         this.snapshots = snapshots;
         this.tickets = tickets;
+        this.jobs = jobs;
     }
 
     public void completed(IslandJob job) {
@@ -41,6 +49,7 @@ public final class JobCompletionService {
                 snapshots.prune(job.islandId(), 50);
             }
             runtimes.markInactive(job.islandId());
+            publishMigrationActivation(job);
             events.publish(CloudIslandEventType.ISLAND_DEACTIVATED.name(), Map.of("islandId", job.islandId().toString()));
             return;
         }
@@ -101,6 +110,19 @@ public final class JobCompletionService {
             return;
         }
         snapshots.record(job.islandId(), snapshotNo, "islands/" + job.islandId() + "/snapshots/" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", job.payload().getOrDefault("preMutationReason", "BEFORE_MUTATION"), null, job.payload().getOrDefault("preMutationChecksum", ""), longValue(job.payload().get("preMutationSizeBytes")));
+    }
+
+    private void publishMigrationActivation(IslandJob job) {
+        if (jobs == null) {
+            return;
+        }
+        String targetNode = job.payload().getOrDefault("migrateTargetNode", "");
+        if (targetNode.isBlank()) {
+            return;
+        }
+        String fencingToken = job.payload().getOrDefault("migrationFencingToken", job.payload().getOrDefault("fencingToken", "0"));
+        jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.MIGRATE_ISLAND, job.islandId(), targetNode, 10, Map.of("fencingToken", fencingToken), Instant.now()));
+        events.publish(CloudIslandEventType.ISLAND_MIGRATE_REQUESTED.name(), Map.of("islandId", job.islandId().toString(), "targetNode", targetNode, "phase", "ACTIVATE_TARGET"));
     }
 
     private long longValue(String value) {

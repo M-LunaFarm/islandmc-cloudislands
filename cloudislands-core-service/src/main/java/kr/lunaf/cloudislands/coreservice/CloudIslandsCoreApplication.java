@@ -178,7 +178,7 @@ public final class CloudIslandsCoreApplication {
             levelRepository,
             migrationRollbackTarget(config, dataSource)
         );
-        kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets);
+        kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets, jobs);
         PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, inMemoryEvents, config.heartbeatTimeout());
         this.nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, events, config.heartbeatTimeout());
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);

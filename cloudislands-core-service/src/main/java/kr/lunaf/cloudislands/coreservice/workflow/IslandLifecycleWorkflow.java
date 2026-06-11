@@ -60,8 +60,14 @@ public final class IslandLifecycleWorkflow {
         if (node == null || allocator.selectBestNode(java.util.List.of(node), Instant.now(), templateId, minNodeVersion(templateId)).isEmpty()) {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
+        IslandRuntimeSnapshot current = runtimes.find(islandId).orElse(null);
         IslandRuntimeSnapshot runtime = runtimes.markMigrating(islandId, targetNode);
-        jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.MIGRATE_ISLAND, islandId, targetNode, 10, Map.of("fencingToken", Long.toString(runtime.fencingToken()), "worldName", runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld(), "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()), "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ())), Instant.now()));
+        String sourceNode = current == null ? "" : current.activeNode();
+        if (sourceNode != null && !sourceNode.isBlank() && !sourceNode.equals(targetNode)) {
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DEACTIVATE_ISLAND, islandId, sourceNode, 10, Map.of("reason", "BEFORE_MIGRATION", "migrateTargetNode", targetNode, "migrationFencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
+        } else {
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.MIGRATE_ISLAND, islandId, targetNode, 10, Map.of("fencingToken", Long.toString(runtime.fencingToken()), "worldName", runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld(), "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()), "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ())), Instant.now()));
+        }
         events.publish(CloudIslandEventType.ISLAND_MIGRATE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "targetNode", targetNode, "fencingToken", Long.toString(runtime.fencingToken())));
         return new Result(true, "MIGRATING", runtime);
     }
