@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
+import kr.lunaf.cloudislands.api.model.AuditLogSnapshot;
 import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
@@ -339,6 +340,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> clearCache() { return client.clearCache().thenApply(_body -> null); }
         @Override public CompletableFuture<Void> reload() { return client.reload().thenApply(_body -> null); }
         @Override public CompletableFuture<List<GlobalEventSnapshot>> listEvents() { return client.listEvents().thenApply(PaperCloudIslandsApi::events); }
+        @Override public CompletableFuture<List<AuditLogSnapshot>> listAuditLogs() { return client.listAuditLogs().thenApply(PaperCloudIslandsApi::auditLogs); }
 
         @Override
         public CompletableFuture<List<String>> listNodes() {
@@ -728,6 +730,23 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return events;
     }
 
+    private static List<AuditLogSnapshot> auditLogs(String json) {
+        List<AuditLogSnapshot> audit = new ArrayList<>();
+        for (String object : objects(json, "audit")) {
+            audit.add(new AuditLogSnapshot(
+                uuid(object, "id", new UUID(0L, 0L)),
+                nullableUuid(object, "actorUuid"),
+                text(object, "actorType", ""),
+                text(object, "action", ""),
+                text(object, "targetType", ""),
+                text(object, "targetId", ""),
+                stringMap(object, "payload"),
+                instant(text(object, "createdAt", Instant.EPOCH.toString()))
+            ));
+        }
+        return audit;
+    }
+
     private static List<String> objects(String json, String arrayField) {
         List<String> values = new ArrayList<>();
         String needle = "\"" + arrayField + "\":[";
@@ -814,6 +833,18 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return UUID.fromString(text(json, field, fallback.toString()));
         } catch (RuntimeException ignored) {
             return fallback;
+        }
+    }
+
+    private static UUID nullableUuid(String json, String field) {
+        String value = nullableText(json, field);
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return UUID.fromString(value);
+        } catch (RuntimeException ignored) {
+            return null;
         }
     }
 
