@@ -196,7 +196,7 @@ public final class CloudIslandsCoreApplication {
             completed.ifPresent(snapshot -> {
                 audit.log(actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE", "ISLAND", islandId.toString(), Map.of("missionKey", snapshot.missionKey(), "kind", snapshot.kind()));
                 islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_COMPLETE", Map.of("missionKey", snapshot.missionKey(), "kind", snapshot.kind(), "reward", snapshot.reward()));
-                events.publish("ISLAND_MISSION_COMPLETE", Map.of("islandId", islandId.toString(), "missionKey", snapshot.missionKey(), "kind", snapshot.kind()));
+                events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), Map.of("islandId", islandId.toString(), "missionKey", snapshot.missionKey(), "kind", snapshot.kind()));
             });
             write(exchange, completed.isPresent() ? 202 : 404, completed.map(CloudIslandsCoreApplication::missionJson).orElseGet(() -> ApiResponses.error("MISSION_NOT_FOUND", "Mission was not found")));
         });
@@ -216,7 +216,7 @@ public final class CloudIslandsCoreApplication {
             kr.lunaf.cloudislands.api.model.IslandLimitSnapshot snapshot = limitRepository.set(islandId, limitKey, value, actorUuid);
             audit.log(actorUuid, "PLAYER", "ISLAND_LIMIT_SET", "ISLAND", islandId.toString(), Map.of("limitKey", snapshot.limitKey(), "value", Long.toString(snapshot.value())));
             islandLogs.append(islandId, actorUuid, "ISLAND_LIMIT_SET", Map.of("limitKey", snapshot.limitKey(), "value", Long.toString(snapshot.value())));
-            events.publish("ISLAND_LIMIT_SET", Map.of("islandId", islandId.toString(), "limitKey", snapshot.limitKey(), "value", Long.toString(snapshot.value())));
+            events.publish(CloudIslandEventType.ISLAND_LIMIT_CHANGED.name(), Map.of("islandId", islandId.toString(), "limitKey", snapshot.limitKey(), "value", Long.toString(snapshot.value())));
             write(exchange, 202, limitJson(snapshot));
         });
         route("/v1/islands/info", exchange -> {
@@ -738,7 +738,7 @@ public final class CloudIslandsCoreApplication {
             long delta = JsonFields.longValue(body, "delta", 0L);
             levelRepository.addBlockDelta(islandId, materialKey, delta);
             rankingRepository.markDirty(islandId);
-            events.publish("ISLAND_BLOCK_DELTA", Map.of("islandId", islandId.toString(), "materialKey", materialKey, "delta", Long.toString(delta)));
+            events.publish(CloudIslandEventType.ISLAND_BLOCKS_CHANGED.name(), Map.of("islandId", islandId.toString(), "materialKey", materialKey, "delta", Long.toString(delta)));
             write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/islands/level/recalculate", exchange -> {
