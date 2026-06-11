@@ -16,7 +16,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public final class AdminCommandController implements CommandExecutor, TabCompleter {
-    private static final List<String> ROOT_COMMANDS = List.of("status", "cache", "node", "island", "player", "jobs", "route", "template", "reload");
+    private static final List<String> ROOT_COMMANDS = List.of("status", "cache", "node", "island", "player", "jobs", "route", "template", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
@@ -24,6 +24,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private static final List<String> JOB_COMMANDS = List.of("list", "retry", "cancel", "recover");
     private static final List<String> ROUTE_COMMANDS = List.of("debug", "ticket", "clear");
     private static final List<String> TEMPLATE_COMMANDS = List.of("list", "upsert", "enable", "disable");
+    private static final List<String> MIGRATION_COMMANDS = List.of("scan", "dryrun", "dry-run", "import", "verify", "rollback");
     private final CloudIslandsPaperAgent agent;
     private final CoreApiClient coreApiClient;
     private final String nodeId;
@@ -71,6 +72,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (args[0].equalsIgnoreCase("template")) {
             return handleTemplate(sender, args);
         }
+        if (args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
+            return handleSuperiorSkyblock2Migration(sender, args);
+        }
         usage(sender, label);
         return true;
     }
@@ -103,6 +107,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("template")) {
             return matches(TEMPLATE_COMMANDS, args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
+            return matches(MIGRATION_COMMANDS, args[1]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("node")) {
             return matches(List.of(nodeId), args[2]);
@@ -353,6 +360,17 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         return true;
     }
 
+    private boolean handleSuperiorSkyblock2Migration(CommandSender sender, String[] args) {
+        String action = args.length > 1 ? args[1] : "scan";
+        if (!MIGRATION_COMMANDS.contains(action.toLowerCase(Locale.ROOT))) {
+            sender.sendMessage("사용법: /ciadmin migrate-superiorskyblock2 scan [path] | dryrun | import | verify | rollback");
+            return true;
+        }
+        String path = args.length > 2 ? joined(args, 2) : "plugins/SuperiorSkyblock2";
+        run(sender, "SuperiorSkyblock2 migration " + action, coreApiClient.migrateSuperiorSkyblock2(action, path));
+        return true;
+    }
+
     private void run(CommandSender sender, String action, CompletableFuture<String> future) {
         future.thenAccept(body -> message(sender, action + " 완료" + (body == null || body.isBlank() ? "" : ": " + body)))
             .exceptionally(error -> {
@@ -366,7 +384,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private void usage(CommandSender sender, String label) {
-        sender.sendMessage("사용법: /" + label + " status, cache clear, node list, island info <uuid>, player info <uuid>, jobs list, route debug <uuid>, template list, reload");
+        sender.sendMessage("사용법: /" + label + " status, cache clear, node list, island info <uuid>, player info <uuid>, jobs list, route debug <uuid>, template list, migrate-superiorskyblock2 scan, reload");
     }
 
     private UUID uuid(CommandSender sender, String value) {
