@@ -297,39 +297,39 @@ public final class VelocityRoutingController {
     }
 
     public void listJobs(Player player) {
-        coreApiClient.listJobs().thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "작업 목록을 불러오지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.listJobs(), "작업 목록을 불러오지 못했습니다.");
     }
 
     public void retryJob(Player player, UUID jobId) {
-        coreApiClient.retryJob(jobId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "작업 재시도를 요청하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.retryJob(jobId), "작업 재시도를 요청하지 못했습니다.");
     }
 
     public void cancelJob(Player player, UUID jobId) {
-        coreApiClient.cancelJob(jobId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "작업 취소를 요청하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.cancelJob(jobId), "작업 취소를 요청하지 못했습니다.");
     }
 
     public void recoverJobs(Player player, String nodeId, long minIdleMillis, int maxJobs) {
-        coreApiClient.recoverJobs(nodeId, minIdleMillis, maxJobs).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "작업 복구를 요청하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.recoverJobs(nodeId, minIdleMillis, maxJobs), "작업 복구를 요청하지 못했습니다.");
     }
 
     public void listNodes(Player player) {
-        coreApiClient.listNodes().thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "노드 목록을 불러오지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.listNodes(), "노드 목록을 불러오지 못했습니다.");
     }
 
     public void nodeInfo(Player player, String nodeId) {
-        coreApiClient.nodeInfo(nodeId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "노드 정보를 불러오지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.nodeInfo(nodeId), "노드 정보를 불러오지 못했습니다.");
     }
 
     public void drainNode(Player player, String nodeId) {
-        coreApiClient.drainNode(nodeId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "노드 drain을 요청하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.drainNode(nodeId), "노드 drain을 요청하지 못했습니다.");
     }
 
     public void undrainNode(Player player, String nodeId) {
-        coreApiClient.undrainNode(nodeId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "노드 undrain을 요청하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.undrainNode(nodeId), "노드 undrain을 요청하지 못했습니다.");
     }
 
     public void sweepNode(Player player, String nodeId) {
-        coreApiClient.sweepNode(nodeId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "노드 장애 스윕을 요청하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.sweepNode(nodeId), "노드 장애 스윕을 요청하지 못했습니다.");
     }
 
     public void kickAllNode(Player player, String nodeId) {
@@ -345,19 +345,19 @@ public final class VelocityRoutingController {
     }
 
     public void activateIsland(Player player, UUID islandId) {
-        coreApiClient.activateIsland(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 활성화를 요청하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.activateIsland(islandId), "섬 활성화를 요청하지 못했습니다.");
     }
 
     public void deactivateIsland(Player player, UUID islandId) {
-        coreApiClient.deactivateIsland(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 비활성화를 요청하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.deactivateIsland(islandId), "섬 비활성화를 요청하지 못했습니다.");
     }
 
     public void migrateIsland(Player player, UUID islandId, String targetNode) {
-        coreApiClient.migrateIsland(islandId, targetNode).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 마이그레이션을 요청하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.migrateIsland(islandId, targetNode), "섬 마이그레이션을 요청하지 못했습니다.");
     }
 
     public void quarantineIsland(Player player, UUID islandId, String reason) {
-        coreApiClient.quarantineIsland(islandId, reason).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 격리를 요청하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.quarantineIsland(islandId, reason), "섬 격리를 요청하지 못했습니다.");
     }
 
     public void adminIslandInfo(Player player, UUID lookupUuid) {
@@ -365,7 +365,7 @@ public final class VelocityRoutingController {
     }
 
     public void adminIslandWhere(Player player, UUID islandId) {
-        coreApiClient.adminIslandWhere(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 위치 정보를 불러오지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.adminIslandWhere(islandId), "섬 위치 정보를 불러오지 못했습니다.");
     }
 
     public void adminTeleportIsland(Player player, UUID islandId) {
@@ -373,63 +373,63 @@ public final class VelocityRoutingController {
     }
 
     public void adminDeleteIsland(Player player, UUID islandId) {
-        coreApiClient.adminDeleteIsland(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 삭제를 요청하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.adminDeleteIsland(islandId), "섬 삭제를 요청하지 못했습니다.");
     }
 
     public void repairIsland(Player player, UUID islandId, String reason) {
-        coreApiClient.repairIsland(islandId, reason).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 복구를 요청하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.repairIsland(islandId, reason), "섬 복구를 요청하지 못했습니다.");
     }
 
     public void debugRoutes(Player player, UUID playerUuid) {
-        coreApiClient.debugRoutes(playerUuid).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "라우트 정보를 불러오지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.debugRoutes(playerUuid), "라우트 정보를 불러오지 못했습니다.");
     }
 
     public void routeTicket(Player player, UUID ticketId) {
-        coreApiClient.routeTicket(ticketId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "티켓 정보를 불러오지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.routeTicket(ticketId), "티켓 정보를 불러오지 못했습니다.");
     }
 
     public void clearRoute(Player player, UUID playerUuid, UUID ticketId) {
-        coreApiClient.clearRoute(playerUuid, ticketId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "라우트 정리를 요청하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.clearRoute(playerUuid, ticketId), "라우트 정리를 요청하지 못했습니다.");
     }
 
     public void clearCache(Player player) {
-        coreApiClient.clearCache().thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "캐시 정리를 요청하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.clearCache(), "캐시 정리를 요청하지 못했습니다.");
     }
 
     public void reload(Player player) {
-        coreApiClient.reload().thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "reload를 요청하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.reload(), "reload를 요청하지 못했습니다.");
     }
 
     public void migrateSuperiorSkyblock2(Player player, String action, String path) {
-        coreApiClient.migrateSuperiorSkyblock2(action, path).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "마이그레이션 명령을 실행하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.migrateSuperiorSkyblock2(action, path), "마이그레이션 명령을 실행하지 못했습니다.");
     }
 
     public void playerInfo(Player player, UUID playerUuid) {
-        coreApiClient.playerInfo(playerUuid).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "플레이어 정보를 불러오지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.playerInfo(playerUuid), "플레이어 정보를 불러오지 못했습니다.");
     }
 
     public void setPlayerIsland(Player player, UUID playerUuid, UUID islandId) {
-        coreApiClient.setPlayerIsland(playerUuid, islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "플레이어 섬을 설정하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.setPlayerIsland(playerUuid, islandId), "플레이어 섬을 설정하지 못했습니다.");
     }
 
     public void clearPlayerIsland(Player player, UUID playerUuid) {
-        coreApiClient.clearPlayerIsland(playerUuid).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "플레이어 섬을 해제하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.clearPlayerIsland(playerUuid), "플레이어 섬을 해제하지 못했습니다.");
     }
 
     public void listTemplates(Player player) {
-        coreApiClient.listTemplates().thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 템플릿 목록을 불러오지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.listTemplates(), "섬 템플릿 목록을 불러오지 못했습니다.");
     }
 
     public void upsertTemplate(Player player, String templateId, String displayName, boolean enabled, String minNodeVersion) {
-        coreApiClient.upsertTemplate(templateId, displayName, enabled, minNodeVersion).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 템플릿을 저장하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.upsertTemplate(templateId, displayName, enabled, minNodeVersion), "섬 템플릿을 저장하지 못했습니다.");
     }
 
     public void enableTemplate(Player player, String templateId) {
-        coreApiClient.enableTemplate(templateId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 템플릿을 활성화하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.enableTemplate(templateId), "섬 템플릿을 활성화하지 못했습니다.");
     }
 
     public void disableTemplate(Player player, String templateId) {
-        coreApiClient.disableTemplate(templateId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 템플릿을 비활성화하지 못했습니다." : body)));
+        sendBodyResult(player, coreApiClient.disableTemplate(templateId), "섬 템플릿을 비활성화하지 못했습니다.");
     }
 
     private void sendPlayerPayload(Player player, String body, String emptyMessage, String successMessage) {
@@ -446,6 +446,13 @@ public final class VelocityRoutingController {
     private void sendActionResult(Player player, CompletableFuture<Void> future, String successMessage, String failureMessage) {
         future.thenRun(() -> player.sendMessage(Component.text(successMessage))).exceptionally(error -> {
             player.sendMessage(Component.text(failureMessage));
+            return null;
+        });
+    }
+
+    private void sendBodyResult(Player player, CompletableFuture<String> future, String emptyMessage) {
+        future.thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? emptyMessage : body))).exceptionally(error -> {
+            player.sendMessage(Component.text(emptyMessage));
             return null;
         });
     }
