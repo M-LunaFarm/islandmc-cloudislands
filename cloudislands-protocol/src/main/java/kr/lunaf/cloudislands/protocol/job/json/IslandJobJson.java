@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.protocol.job.json;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -16,8 +17,9 @@ public final class IslandJobJson {
             + "\"jobId\":\"" + job.jobId() + "\","
             + "\"type\":\"" + job.type() + "\","
             + "\"islandId\":\"" + job.islandId() + "\","
-            + "\"targetNode\":\"" + nullSafe(job.targetNode()) + "\","
+            + "\"targetNode\":\"" + escape(nullSafe(job.targetNode())) + "\","
             + "\"priority\":" + job.priority() + ","
+            + "\"payload\":" + writeMap(job.payload()) + ","
             + "\"createdAt\":\"" + job.createdAt() + "\""
             + "}";
     }
@@ -69,13 +71,78 @@ public final class IslandJobJson {
             uuid(json, "islandId", new UUID(0L, 0L)),
             text(json, "targetNode", ""),
             integer(json, "priority", 0),
-            Map.of(),
+            readPayload(json),
             instant(json, "createdAt", Instant.now())
         );
     }
 
+    private static String writeMap(Map<String, String> payload) {
+        StringBuilder builder = new StringBuilder("{");
+        boolean first = true;
+        for (Map.Entry<String, String> entry : payload.entrySet()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('"').append(escape(entry.getKey())).append("\":\"").append(escape(entry.getValue())).append('"');
+        }
+        return builder.append('}').toString();
+    }
+
+    private static Map<String, String> readPayload(String json) {
+        int fieldStart = json.indexOf("\"payload\":");
+        if (fieldStart < 0) {
+            return Map.of();
+        }
+        int objectStart = json.indexOf('{', fieldStart);
+        if (objectStart < 0) {
+            return Map.of();
+        }
+        int depth = 0;
+        int objectEnd = -1;
+        for (int i = objectStart; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (c == '{') {
+                depth++;
+            } else if (c == '}') {
+                depth--;
+                if (depth == 0) {
+                    objectEnd = i;
+                    break;
+                }
+            }
+        }
+        if (objectEnd < objectStart) {
+            return Map.of();
+        }
+        String body = json.substring(objectStart + 1, objectEnd).trim();
+        if (body.isBlank()) {
+            return Map.of();
+        }
+        Map<String, String> values = new LinkedHashMap<>();
+        for (String pair : body.split(",")) {
+            int colon = pair.indexOf(':');
+            if (colon > 0) {
+                values.put(unquote(pair.substring(0, colon).trim()), unquote(pair.substring(colon + 1).trim()));
+            }
+        }
+        return Map.copyOf(values);
+    }
+
+    private static String unquote(String value) {
+        String trimmed = value.trim();
+        if (trimmed.startsWith("\"") && trimmed.endsWith("\"") && trimmed.length() >= 2) {
+            trimmed = trimmed.substring(1, trimmed.length() - 1);
+        }
+        return trimmed.replace("\\\"", "\"").replace("\\\\", "\\");
+    }
+
     private static String nullSafe(String value) {
         return value == null ? "" : value;
+    }
+
+    private static String escape(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private static String text(String json, String field, String fallback) {

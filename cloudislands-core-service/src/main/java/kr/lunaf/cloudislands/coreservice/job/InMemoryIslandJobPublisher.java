@@ -11,6 +11,7 @@ import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 
 public final class InMemoryIslandJobPublisher implements IslandJobQueue {
+    private static final int MAX_ATTEMPTS = 3;
     private final List<JobRecord> jobs = new ArrayList<>();
 
     @Override
@@ -64,6 +65,7 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
                 .append("\"islandId\":\"").append(job.islandId()).append("\",")
                 .append("\"targetNode\":\"").append(job.targetNode()).append("\",")
                 .append("\"state\":\"").append(record.state()).append("\",")
+                .append("\"attempts\":").append(record.attempts()).append(',')
                 .append("\"lockedBy\":\"").append(record.lockedBy() == null ? "" : record.lockedBy()).append("\",")
                 .append("\"error\":\"").append(record.errorMessage() == null ? "" : record.errorMessage()).append("\"")
                 .append('}');
@@ -100,8 +102,11 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
         private JobRecord failed(String error) {
             Map<String, String> payload = new HashMap<>(job.payload());
             payload.put("lastError", error == null ? "unknown" : error);
+            payload.put("attempts", Integer.toString(attempts));
             IslandJob failedJob = new IslandJob(job.jobId(), job.type(), job.islandId(), job.targetNode(), job.priority(), Map.copyOf(payload), job.createdAt());
-            return new JobRecord(failedJob, JobState.FAILED, lockedBy, lockedAt, attempts, error, Instant.now());
+            JobState nextState = attempts < MAX_ATTEMPTS ? JobState.PENDING : JobState.FAILED;
+            String nextLockedBy = nextState == JobState.PENDING ? null : lockedBy;
+            return new JobRecord(failedJob, nextState, nextLockedBy, null, attempts, error, Instant.now());
         }
     }
 }
