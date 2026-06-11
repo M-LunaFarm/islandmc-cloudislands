@@ -474,6 +474,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<IslandActionResult> adminDeleteIslandResult(UUID islandId) { return client.adminDeleteIslandResult(islandId).thenApply(body -> action(body, "ISLAND_DELETED")); }
         @Override public CompletableFuture<RouteTicket> createAdminTeleportTicket(UUID playerUuid, UUID islandId) { return client.adminIslandTeleport(playerUuid, islandId); }
         @Override public CompletableFuture<Optional<RouteTicket>> getRouteTicket(UUID ticketId) { return client.routeTicket(ticketId).thenApply(PaperCloudIslandsApi::routeTicket); }
+        @Override public CompletableFuture<Optional<PlayerRouteSessionSnapshot>> getRouteSession(UUID playerUuid) { return client.debugRoutes(playerUuid).thenApply(PaperCloudIslandsApi::routeSession); }
         @Override public CompletableFuture<Void> clearRoute(UUID playerUuid, UUID ticketId) { return clearRouteResult(playerUuid, ticketId).thenApply(_result -> null); }
         @Override public CompletableFuture<RouteClearResult> clearRouteResult(UUID playerUuid, UUID ticketId) { return client.clearRouteResult(playerUuid, ticketId).thenApply(PaperCloudIslandsApi::routeClear); }
         @Override public CompletableFuture<List<IslandJobSnapshot>> listJobs() { return client.listJobs().thenApply(PaperCloudIslandsApi::jobs); }
@@ -662,6 +663,20 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             session.nonce(),
             session.expiresAt()
         );
+    }
+
+    private static Optional<PlayerRouteSessionSnapshot> routeSession(String json) {
+        if (json == null || json.isBlank() || json.contains("\"error\"")) {
+            return Optional.empty();
+        }
+        return Optional.of(new PlayerRouteSessionSnapshot(
+            uuid(json, "playerUuid", new UUID(0L, 0L)),
+            uuid(json, "ticketId", new UUID(0L, 0L)),
+            text(json, "targetNode", ""),
+            text(json, "targetServerName", ""),
+            text(json, "nonce", ""),
+            instant(text(json, "expiresAt", Instant.EPOCH.toString()))
+        ));
     }
 
     private static IslandRuntimeSnapshot runtime(String json) {

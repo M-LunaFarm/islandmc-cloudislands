@@ -15,6 +15,7 @@ import kr.lunaf.cloudislands.api.model.JobRecoveryResult;
 import kr.lunaf.cloudislands.api.model.MigrationRunSnapshot;
 import kr.lunaf.cloudislands.api.model.NodeSweepResult;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
+import kr.lunaf.cloudislands.api.model.PlayerRouteSessionSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteClearResult;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 
@@ -39,6 +40,7 @@ public interface IslandAdminService {
     CompletableFuture<IslandActionResult> adminDeleteIslandResult(UUID islandId);
     CompletableFuture<RouteTicket> createAdminTeleportTicket(UUID playerUuid, UUID islandId);
     CompletableFuture<java.util.Optional<RouteTicket>> getRouteTicket(UUID ticketId);
+    CompletableFuture<java.util.Optional<PlayerRouteSessionSnapshot>> getRouteSession(UUID playerUuid);
     CompletableFuture<Void> clearRoute(UUID playerUuid, UUID ticketId);
     CompletableFuture<RouteClearResult> clearRouteResult(UUID playerUuid, UUID ticketId);
     CompletableFuture<List<IslandJobSnapshot>> listJobs();
