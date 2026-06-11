@@ -19,6 +19,7 @@ import kr.lunaf.cloudislands.paper.generator.DefaultGeneratorRules;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
 import kr.lunaf.cloudislands.paper.generator.IslandGeneratorListener;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandBankMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
@@ -74,6 +75,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandLimitListener(agent.protection(), limitCache), this);
         getServer().getPluginManager().registerEvents(new IslandEntityLimitListener(agent.protection(), limitCache), this);
         getServer().getPluginManager().registerEvents(new AdminNodeMenu(), this);
+        getServer().getPluginManager().registerEvents(new IslandBankMenu(), this);
         getServer().getPluginManager().registerEvents(new IslandCreateMenu(), this);
         getServer().getPluginManager().registerEvents(new IslandFlagMenu(), this);
         getServer().getPluginManager().registerEvents(new IslandMainMenu(), this);

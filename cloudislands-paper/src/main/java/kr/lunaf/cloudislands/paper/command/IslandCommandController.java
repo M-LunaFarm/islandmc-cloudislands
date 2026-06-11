@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.paper.gui.IslandBankMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
@@ -39,7 +40,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "delwarp", "deletewarp", "워프삭제", "warp-public", "워프공개", "warp-private", "워프비공개",
         "public", "공개", "private", "비공개", "lock", "잠금", "unlock", "잠금해제",
         "level", "레벨", "worth", "value", "가치", "rank", "ranking", "랭킹", "levelcalc", "recalculate", "레벨계산",
-        "bank", "은행", "deposit", "bank-deposit", "입금", "withdraw", "bank-withdraw", "출금",
+        "bank", "bank-balance", "은행", "은행잔액", "deposit", "bank-deposit", "입금", "withdraw", "bank-withdraw", "출금",
         "upgrade", "upgrades", "upgrade-menu", "upgrade-list", "업그레이드", "업그레이드목록",
         "mission", "missions", "mission-menu", "mission-list", "미션", "미션목록",
         "challenge", "challenges", "challenge-menu", "challenge-list", "챌린지", "챌린지목록",
@@ -211,6 +212,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return true;
         }
         if (subcommand.equals("bank") || subcommand.equals("은행")) {
+            openIslandBankMenu(player);
+            return true;
+        }
+        if (subcommand.equals("bank-balance") || subcommand.equals("은행잔액")) {
             showIslandBank(player);
             return true;
         }
@@ -768,6 +773,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                     return null;
                 });
         });
+    }
+
+    private void openIslandBankMenu(Player player) {
+        currentIsland(player, "섬 안에서만 은행 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandBankMenu.open(plugin, coreApiClient, player, islandId));
     }
 
     private void depositIslandBank(Player player, String amount) {
