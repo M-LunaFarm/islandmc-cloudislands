@@ -23,6 +23,8 @@ import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
+import kr.lunaf.cloudislands.protocol.job.IslandJob;
+import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.audit.InMemoryAuditLogger;
 import kr.lunaf.cloudislands.coreservice.audit.JdbcAuditLogger;
@@ -262,7 +264,7 @@ public final class CloudIslandsCoreApplication {
                 boolean deleted = island.isPresent() && islandRepository.markDeleted(islandId, island.get().ownerUuid());
                 if (deleted) {
                     playerProfiles.clearPrimaryIsland(island.get().ownerUuid());
-                    runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETED);
+                    publishDeleteJobOrMarkDeleted(islandId, "api-delete");
                     events.publish("ISLAND_DELETED", Map.of("islandId", islandId.toString()));
                 }
                 audit.log(new UUID(0L, 0L), "API", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of("deleted", Boolean.toString(deleted)));
@@ -695,6 +697,7 @@ public final class CloudIslandsCoreApplication {
             }
             audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of("deleted", Boolean.toString(deleted)));
             if (deleted) {
+                publishDeleteJobOrMarkDeleted(islandId, "admin-delete");
                 events.publish("ISLAND_DELETED", Map.of("islandId", islandId.toString()));
             }
             write(exchange, deleted ? 202 : 404, deleted ? ApiResponses.ok(true) : ApiResponses.error("ISLAND_NOT_DELETED", "Island was not found or could not be deleted"));
@@ -827,7 +830,7 @@ public final class CloudIslandsCoreApplication {
                 playerProfiles.clearPrimaryIsland(requesterUuid);
             }
             if (deleted) {
-                runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETED);
+                publishDeleteJobOrMarkDeleted(islandId, "player-delete");
                 audit.log(requesterUuid, "PLAYER", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of());
                 islandLogs.append(islandId, requesterUuid, "ISLAND_DELETE", Map.of());
                 events.publish("ISLAND_DELETE", Map.of("islandId", islandId.toString(), "requesterUuid", requesterUuid.toString()));
@@ -1199,6 +1202,17 @@ public final class CloudIslandsCoreApplication {
 
     private static void routeResult(HttpExchange exchange, RoutePreparationResult result) throws IOException {
         write(exchange, result.status(), result.body());
+    }
+
+    private void publishDeleteJobOrMarkDeleted(UUID islandId, String reason) {
+        java.util.Optional<kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot> runtime = runtimeRepository.find(islandId);
+        String targetNode = runtime.map(kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot::activeNode).orElse("");
+        if (targetNode != null && !targetNode.isBlank()) {
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DELETE_ISLAND, islandId, targetNode, 50, Map.of("reason", reason), java.time.Instant.now()));
+            events.publish("ISLAND_DELETE_REQUESTED", Map.of("islandId", islandId.toString(), "targetNode", targetNode, "reason", reason));
+        } else {
+            runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETED);
+        }
     }
 
     private static String jobsJson(IslandJobQueue jobs) {
