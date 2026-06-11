@@ -5,8 +5,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -195,33 +197,70 @@ public final class SuperiorSkyblock2MigrationScanner {
     }
 
     private List<MigrationHome> parseHomes(String content) {
-        if (!containsAnyKey(content, "homeX", "homeY", "homeZ", "homeWorld", "spawnX", "spawnY", "spawnZ", "spawnWorld")) {
-            return List.of();
+        Map<String, MigrationHome> homes = new LinkedHashMap<>();
+        for (NamedLocationKey key : namedLocationKeys(content, "homes", "home")) {
+            String prefix = key.root() + "." + key.name() + ".";
+            String world = parseString(content, prefix + "world", parseString(content, "world", ""));
+            double x = parseDouble(content, prefix + "x", 0.5D);
+            double y = parseDouble(content, prefix + "y", 100.0D);
+            double z = parseDouble(content, prefix + "z", 0.5D);
+            float yaw = parseFloat(content, prefix + "yaw", 180.0F);
+            float pitch = parseFloat(content, prefix + "pitch", 0.0F);
+            homes.putIfAbsent(key.name(), new MigrationHome(key.name(), world, x, y, z, yaw, pitch));
         }
-        String name = parseString(content, "homeName", parseString(content, "spawnName", "default"));
-        String world = parseString(content, "homeWorld", parseString(content, "spawnWorld", parseString(content, "world", "")));
-        double x = parseDouble(content, "homeX", parseDouble(content, "spawnX", parseDouble(content, "x", 0.5D)));
-        double y = parseDouble(content, "homeY", parseDouble(content, "spawnY", parseDouble(content, "y", 100.0D)));
-        double z = parseDouble(content, "homeZ", parseDouble(content, "spawnZ", parseDouble(content, "z", 0.5D)));
-        float yaw = parseFloat(content, "homeYaw", parseFloat(content, "spawnYaw", parseFloat(content, "yaw", 180.0F)));
-        float pitch = parseFloat(content, "homePitch", parseFloat(content, "spawnPitch", parseFloat(content, "pitch", 0.0F)));
-        return List.of(new MigrationHome(name.isBlank() ? "default" : name, world, x, y, z, yaw, pitch));
+        if (homes.isEmpty() && containsAnyKey(content, "homeX", "homeY", "homeZ", "homeWorld", "spawnX", "spawnY", "spawnZ", "spawnWorld")) {
+            String name = parseString(content, "homeName", parseString(content, "spawnName", "default"));
+            String world = parseString(content, "homeWorld", parseString(content, "spawnWorld", parseString(content, "world", "")));
+            double x = parseDouble(content, "homeX", parseDouble(content, "spawnX", parseDouble(content, "x", 0.5D)));
+            double y = parseDouble(content, "homeY", parseDouble(content, "spawnY", parseDouble(content, "y", 100.0D)));
+            double z = parseDouble(content, "homeZ", parseDouble(content, "spawnZ", parseDouble(content, "z", 0.5D)));
+            float yaw = parseFloat(content, "homeYaw", parseFloat(content, "spawnYaw", parseFloat(content, "yaw", 180.0F)));
+            float pitch = parseFloat(content, "homePitch", parseFloat(content, "spawnPitch", parseFloat(content, "pitch", 0.0F)));
+            homes.put(name.isBlank() ? "default" : name, new MigrationHome(name.isBlank() ? "default" : name, world, x, y, z, yaw, pitch));
+        }
+        return List.copyOf(homes.values());
     }
 
     private List<MigrationWarp> parseWarps(String content) {
-        if (!containsAnyKey(content, "warpX", "warpY", "warpZ", "warpWorld")) {
-            return List.of();
+        Map<String, MigrationWarp> warps = new LinkedHashMap<>();
+        for (NamedLocationKey key : namedLocationKeys(content, "warps", "warp")) {
+            String prefix = key.root() + "." + key.name() + ".";
+            String world = parseString(content, prefix + "world", parseString(content, "world", ""));
+            double x = parseDouble(content, prefix + "x", 0.5D);
+            double y = parseDouble(content, prefix + "y", 100.0D);
+            double z = parseDouble(content, prefix + "z", 0.5D);
+            float yaw = parseFloat(content, prefix + "yaw", parseFloat(content, "yaw", 180.0F));
+            float pitch = parseFloat(content, prefix + "pitch", parseFloat(content, "pitch", 0.0F));
+            boolean publicAccess = parseBoolean(content, prefix + "public", parseBoolean(content, prefix + "publicAccess", true));
+            warps.putIfAbsent(key.name(), new MigrationWarp(key.name(), world, x, y, z, yaw, pitch, publicAccess));
         }
-        String name = parseString(content, "warpName", "default");
-        String world = parseString(content, "warpWorld", parseString(content, "world", ""));
-        double x = parseDouble(content, "warpX", 0.5D);
-        double y = parseDouble(content, "warpY", 100.0D);
-        double z = parseDouble(content, "warpZ", 0.5D);
-        float yaw = parseFloat(content, "warpYaw", parseFloat(content, "yaw", 180.0F));
-        float pitch = parseFloat(content, "warpPitch", parseFloat(content, "pitch", 0.0F));
-        boolean publicAccess = parseBoolean(content, "warpPublic", parseBoolean(content, "publicWarp", true));
-        return List.of(new MigrationWarp(name.isBlank() ? "default" : name, world, x, y, z, yaw, pitch, publicAccess));
+        if (warps.isEmpty() && containsAnyKey(content, "warpX", "warpY", "warpZ", "warpWorld")) {
+            String name = parseString(content, "warpName", "default");
+            String world = parseString(content, "warpWorld", parseString(content, "world", ""));
+            double x = parseDouble(content, "warpX", 0.5D);
+            double y = parseDouble(content, "warpY", 100.0D);
+            double z = parseDouble(content, "warpZ", 0.5D);
+            float yaw = parseFloat(content, "warpYaw", parseFloat(content, "yaw", 180.0F));
+            float pitch = parseFloat(content, "warpPitch", parseFloat(content, "pitch", 0.0F));
+            boolean publicAccess = parseBoolean(content, "warpPublic", parseBoolean(content, "publicWarp", true));
+            warps.put(name.isBlank() ? "default" : name, new MigrationWarp(name.isBlank() ? "default" : name, world, x, y, z, yaw, pitch, publicAccess));
+        }
+        return List.copyOf(warps.values());
     }
+
+    private List<NamedLocationKey> namedLocationKeys(String content, String... roots) {
+        LinkedHashMap<String, NamedLocationKey> keys = new LinkedHashMap<>();
+        for (String root : roots) {
+            Matcher matcher = Pattern.compile(Pattern.quote(root) + "\\.([A-Za-z0-9_-]+)\\.(?:world|x|y|z|yaw|pitch|public|publicAccess)").matcher(content);
+            while (matcher.find()) {
+                String name = matcher.group(1);
+                keys.putIfAbsent(root + ":" + name, new NamedLocationKey(root, name));
+            }
+        }
+        return List.copyOf(keys.values());
+    }
+
+    private record NamedLocationKey(String root, String name) {}
 
     private List<MigrationFlag> parseFlags(String content) {
         List<MigrationFlag> flags = new ArrayList<>();
