@@ -1072,7 +1072,12 @@ public final class VelocityRoutingController {
     }
 
     private void connectWithTicket(Player player, String targetServerName) {
-        proxy.getServer(targetServerName).ifPresentOrElse(server -> connect(player, server), () -> fallback(player, "섬 이동 경로를 찾을 수 없습니다."));
+        RegisteredServer server = findServer(targetServerName);
+        if (server == null) {
+            fallback(player, "섬 이동 경로를 찾을 수 없습니다.");
+            return;
+        }
+        connect(player, server);
     }
 
     private void connect(Player player, RegisteredServer server) {
