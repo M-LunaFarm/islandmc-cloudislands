@@ -341,6 +341,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
+        public CompletableFuture<IslandActionResult> activateResult(UUID islandId, String preferredPool) {
+            return client.activateIslandResult(islandId).thenApply(body -> actionCode(body, "ACTIVATED"));
+        }
+
+        @Override
         public CompletableFuture<Void> deactivate(UUID islandId) {
             return deactivateResult(islandId).thenApply(_result -> null);
         }

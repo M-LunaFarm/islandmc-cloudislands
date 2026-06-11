@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 
 public interface IslandRuntimeService {
     CompletableFuture<IslandRuntimeSnapshot> activate(UUID islandId, String preferredPool);
+    CompletableFuture<IslandActionResult> activateResult(UUID islandId, String preferredPool);
     CompletableFuture<Void> deactivate(UUID islandId);
     CompletableFuture<IslandActionResult> deactivateResult(UUID islandId);
     CompletableFuture<Void> heartbeat(String nodeId, NodeHeartbeat heartbeat);
