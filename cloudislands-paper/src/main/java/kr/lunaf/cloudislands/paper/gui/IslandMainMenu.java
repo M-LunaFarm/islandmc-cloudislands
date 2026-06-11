@@ -56,7 +56,7 @@ public final class IslandMainMenu implements Listener {
                 player.sendMessage("사용법: /섬 방문 <플레이어|섬이름>");
             }
         } else if (name.equals("멤버 관리")) {
-            player.performCommand("섬 멤버");
+            player.performCommand("섬 멤버관리");
         } else if (name.equals("섬 설정")) {
             player.performCommand("섬 설정");
         } else if (name.equals("섬 랭킹")) {

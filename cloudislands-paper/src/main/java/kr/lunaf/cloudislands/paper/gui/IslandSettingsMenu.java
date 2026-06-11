@@ -46,7 +46,7 @@ public final class IslandSettingsMenu implements Listener {
         } else if (name.equals("잠금 설정")) {
             player.performCommand(event.isRightClick() ? "섬 잠금" : "섬 잠금해제");
         } else if (name.equals("멤버 관리")) {
-            player.performCommand("섬 멤버");
+            player.performCommand("섬 멤버관리");
         } else if (name.equals("권한 설정")) {
             player.performCommand("섬 권한");
         } else if (name.equals("플래그 설정")) {

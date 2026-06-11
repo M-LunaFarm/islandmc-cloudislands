@@ -12,6 +12,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -40,7 +41,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "limit", "limits", "limit-list", "제한", "제한목록", "setlimit", "limit-set", "제한설정",
         "snapshot", "snapshots", "스냅샷", "snapshot-create", "snapshot-request", "스냅샷생성",
         "snapshot-restore", "rollback", "스냅샷복원", "롤백",
-        "members", "member-list", "멤버", "invite", "초대", "invites", "invite-list", "초대목록",
+        "members", "member-menu", "member-list", "멤버", "멤버관리", "멤버목록", "invite", "초대", "invites", "invite-list", "초대목록",
         "accept", "invite-accept", "초대수락", "decline", "invite-decline", "초대거절",
         "kick", "remove-member", "추방", "trust", "신뢰", "untrust", "신뢰해제",
         "promote", "승급", "demote", "강등", "transfer", "양도",
@@ -309,7 +310,11 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             restoreIslandSnapshot(player, longValue(args[1], 0L));
             return true;
         }
-        if (subcommand.equals("members") || subcommand.equals("member-list") || subcommand.equals("멤버")) {
+        if (subcommand.equals("members") || subcommand.equals("member-menu") || subcommand.equals("멤버") || subcommand.equals("멤버관리")) {
+            openIslandMemberMenu(player);
+            return true;
+        }
+        if (subcommand.equals("member-list") || subcommand.equals("멤버목록")) {
             listIslandMembers(player);
             return true;
         }
@@ -955,6 +960,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                     return null;
                 });
         });
+    }
+
+    private void openIslandMemberMenu(Player player) {
+        currentIsland(player, "섬 안에서만 멤버 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandMemberMenu.open(plugin, coreApiClient, player, islandId));
     }
 
     private void inviteIslandMember(Player player, String target) {
