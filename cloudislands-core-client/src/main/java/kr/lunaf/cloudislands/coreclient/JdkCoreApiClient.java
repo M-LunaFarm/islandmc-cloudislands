@@ -164,7 +164,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<Void> setIslandFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value) {
-        return post("/v1/islands/flags/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"flag\":\"" + flag.name() + "\",\"value\":\"" + escape(value) + "\"}").thenApply(_body -> null);
+        return setIslandFlagResult(islandId, actorUuid, flag, value).thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> setIslandFlagResult(UUID islandId, UUID actorUuid, IslandFlag flag, String value) {
+        return postWithResultBody("/v1/islands/flags/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"flag\":\"" + flag.name() + "\",\"value\":\"" + escape(value) + "\"}");
     }
 
     @Override
@@ -189,7 +194,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<Void> setIslandHome(UUID islandId, UUID actorUuid, String name, IslandLocation location) {
-        return post("/v1/islands/homes/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"" + escape(name) + "\",\"worldName\":\"" + escape(location.worldName()) + "\",\"localX\":" + location.localX() + ",\"localY\":" + location.localY() + ",\"localZ\":" + location.localZ() + ",\"yaw\":" + location.yaw() + ",\"pitch\":" + location.pitch() + "}").thenApply(_body -> null);
+        return setIslandHomeResult(islandId, actorUuid, name, location).thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> setIslandHomeResult(UUID islandId, UUID actorUuid, String name, IslandLocation location) {
+        return postWithResultBody("/v1/islands/homes/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"" + escape(name) + "\",\"worldName\":\"" + escape(location.worldName()) + "\",\"localX\":" + location.localX() + ",\"localY\":" + location.localY() + ",\"localZ\":" + location.localZ() + ",\"yaw\":" + location.yaw() + ",\"pitch\":" + location.pitch() + "}");
     }
 
     @Override
@@ -199,7 +209,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<Void> setIslandPermission(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed) {
-        return post("/v1/islands/permissions/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"" + role.name() + "\",\"permission\":\"" + permission.name() + "\",\"allowed\":" + allowed + "}").thenApply(_body -> null);
+        return setIslandPermissionResult(islandId, actorUuid, role, permission, allowed).thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> setIslandPermissionResult(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed) {
+        return postWithResultBody("/v1/islands/permissions/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"" + role.name() + "\",\"permission\":\"" + permission.name() + "\",\"allowed\":" + allowed + "}");
     }
 
     @Override
@@ -209,17 +224,32 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<Void> setIslandWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) {
-        return post("/v1/islands/warps/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"" + escape(name) + "\",\"worldName\":\"" + escape(location.worldName()) + "\",\"localX\":" + location.localX() + ",\"localY\":" + location.localY() + ",\"localZ\":" + location.localZ() + ",\"yaw\":" + location.yaw() + ",\"pitch\":" + location.pitch() + ",\"publicAccess\":" + publicAccess + "}").thenApply(_body -> null);
+        return setIslandWarpResult(islandId, actorUuid, name, location, publicAccess).thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> setIslandWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) {
+        return postWithResultBody("/v1/islands/warps/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"" + escape(name) + "\",\"worldName\":\"" + escape(location.worldName()) + "\",\"localX\":" + location.localX() + ",\"localY\":" + location.localY() + ",\"localZ\":" + location.localZ() + ",\"yaw\":" + location.yaw() + ",\"pitch\":" + location.pitch() + ",\"publicAccess\":" + publicAccess + "}");
     }
 
     @Override
     public CompletableFuture<Void> deleteIslandWarp(UUID islandId, UUID actorUuid, String name) {
-        return post("/v1/islands/warps/delete", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"" + escape(name) + "\"}").thenApply(_body -> null);
+        return deleteIslandWarpResult(islandId, actorUuid, name).thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> deleteIslandWarpResult(UUID islandId, UUID actorUuid, String name) {
+        return postWithResultBody("/v1/islands/warps/delete", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"" + escape(name) + "\"}");
     }
 
     @Override
     public CompletableFuture<Void> setIslandPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess) {
-        return post("/v1/islands/access", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"publicAccess\":" + publicAccess + "}").thenApply(_body -> null);
+        return setIslandPublicAccessResult(islandId, actorUuid, publicAccess).thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> setIslandPublicAccessResult(UUID islandId, UUID actorUuid, boolean publicAccess) {
+        return postWithResultBody("/v1/islands/access", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"publicAccess\":" + publicAccess + "}");
     }
 
     @Override

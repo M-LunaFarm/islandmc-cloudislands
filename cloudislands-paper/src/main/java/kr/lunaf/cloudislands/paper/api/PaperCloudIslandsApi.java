@@ -454,18 +454,25 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<IslandActionResult> setRoleResult(UUID islandId, UUID actorUuid, UUID targetUuid, IslandRole role) { return client.setIslandMemberResult(islandId, actorUuid, targetUuid, role).thenApply(body -> action(body, "MEMBER_ROLE_SET")); }
         @Override public CompletableFuture<Void> transferOwnership(UUID islandId, UUID actorUuid, UUID targetUuid) { return transferOwnershipResult(islandId, actorUuid, targetUuid).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> transferOwnershipResult(UUID islandId, UUID actorUuid, UUID targetUuid) { return client.transferIslandOwnershipResult(islandId, actorUuid, targetUuid).thenApply(body -> action(body, "OWNERSHIP_TRANSFERRED")); }
-        @Override public CompletableFuture<Void> setFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value) { return client.setIslandFlag(islandId, actorUuid, flag, value); }
-        @Override public CompletableFuture<Void> setPermission(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed) { return client.setIslandPermission(islandId, actorUuid, role, permission, allowed); }
+        @Override public CompletableFuture<Void> setFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value) { return setFlagResult(islandId, actorUuid, flag, value).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> setFlagResult(UUID islandId, UUID actorUuid, IslandFlag flag, String value) { return client.setIslandFlagResult(islandId, actorUuid, flag, value).thenApply(body -> action(body, "FLAG_SET")); }
+        @Override public CompletableFuture<Void> setPermission(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed) { return setPermissionResult(islandId, actorUuid, role, permission, allowed).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> setPermissionResult(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed) { return client.setIslandPermissionResult(islandId, actorUuid, role, permission, allowed).thenApply(body -> action(body, "PERMISSION_SET")); }
         @Override public CompletableFuture<Void> setLocked(UUID islandId, UUID actorUuid, boolean locked) { return setLockedResult(islandId, actorUuid, locked).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> setLockedResult(UUID islandId, UUID actorUuid, boolean locked) { return client.setIslandLockedResult(islandId, actorUuid, locked).thenApply(body -> action(body, locked ? "ISLAND_LOCKED" : "ISLAND_UNLOCKED")); }
-        @Override public CompletableFuture<Void> setHome(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return client.setIslandHome(islandId, actorUuid, name, location); }
+        @Override public CompletableFuture<Void> setHome(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return setHomeResult(islandId, actorUuid, name, location).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> setHomeResult(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return client.setIslandHomeResult(islandId, actorUuid, name, location).thenApply(body -> action(body, "HOME_SET")); }
         @Override public CompletableFuture<Void> setBiome(UUID islandId, UUID actorUuid, String biomeKey) { return setBiomeResult(islandId, actorUuid, biomeKey).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> setBiomeResult(UUID islandId, UUID actorUuid, String biomeKey) { return client.setIslandBiomeResult(islandId, actorUuid, biomeKey).thenApply(body -> action(body, "BIOME_SET")); }
-        @Override public CompletableFuture<Void> setLimit(UUID islandId, UUID actorUuid, String limitKey, long value) { return client.setIslandLimit(islandId, actorUuid, limitKey, value).thenApply(_body -> null); }
+        @Override public CompletableFuture<Void> setLimit(UUID islandId, UUID actorUuid, String limitKey, long value) { return setLimitResult(islandId, actorUuid, limitKey, value).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandLimitSnapshot> setLimitResult(UUID islandId, UUID actorUuid, String limitKey, long value) { return client.setIslandLimit(islandId, actorUuid, limitKey, value).thenApply(PaperCloudIslandsApi::limit); }
         @Override public CompletableFuture<Void> createWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return setWarp(islandId, actorUuid, name, location, false); }
-        @Override public CompletableFuture<Void> setWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) { return client.setIslandWarp(islandId, actorUuid, name, location, publicAccess); }
-        @Override public CompletableFuture<Void> deleteWarp(UUID islandId, UUID actorUuid, String name) { return client.deleteIslandWarp(islandId, actorUuid, name); }
-        @Override public CompletableFuture<Void> setPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess) { return client.setIslandPublicAccess(islandId, actorUuid, publicAccess); }
+        @Override public CompletableFuture<Void> setWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) { return setWarpResult(islandId, actorUuid, name, location, publicAccess).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> setWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) { return client.setIslandWarpResult(islandId, actorUuid, name, location, publicAccess).thenApply(body -> action(body, "WARP_SET")); }
+        @Override public CompletableFuture<Void> deleteWarp(UUID islandId, UUID actorUuid, String name) { return deleteWarpResult(islandId, actorUuid, name).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> deleteWarpResult(UUID islandId, UUID actorUuid, String name) { return client.deleteIslandWarpResult(islandId, actorUuid, name).thenApply(body -> action(body, "WARP_DELETED")); }
+        @Override public CompletableFuture<Void> setPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess) { return setPublicAccessResult(islandId, actorUuid, publicAccess).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> setPublicAccessResult(UUID islandId, UUID actorUuid, boolean publicAccess) { return client.setIslandPublicAccessResult(islandId, actorUuid, publicAccess).thenApply(body -> action(body, publicAccess ? "PUBLIC_ACCESS_ENABLED" : "PUBLIC_ACCESS_DISABLED")); }
         @Override public CompletableFuture<IslandLevelSnapshot> recalculateLevel(UUID islandId, UUID actorUuid) { return client.recalculateIslandLevel(islandId, actorUuid).thenApply(PaperCloudIslandsApi::level); }
         @Override public CompletableFuture<Void> purchaseUpgrade(UUID islandId, UUID actorUuid, String upgradeKey) { return purchaseUpgradeResult(islandId, actorUuid, upgradeKey).thenApply(_result -> null); }
         @Override public CompletableFuture<UpgradePurchaseSnapshot> purchaseUpgradeResult(UUID islandId, UUID actorUuid, String upgradeKey) { return client.purchaseIslandUpgrade(islandId, actorUuid, upgradeKey).thenApply(PaperCloudIslandsApi::upgradePurchase); }
@@ -660,15 +667,19 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private static List<IslandLimitSnapshot> limits(String json) {
         List<IslandLimitSnapshot> limits = new ArrayList<>();
         for (String object : objects(json, "limits")) {
-            limits.add(new IslandLimitSnapshot(
-                uuid(object, "islandId", new UUID(0L, 0L)),
-                text(object, "limitKey", ""),
-                longValue(object, "value", 0L),
-                uuid(object, "updatedBy", new UUID(0L, 0L)),
-                instant(text(object, "updatedAt", Instant.EPOCH.toString()))
-            ));
+            limits.add(limit(object));
         }
         return limits;
+    }
+
+    private static IslandLimitSnapshot limit(String json) {
+        return new IslandLimitSnapshot(
+            uuid(json, "islandId", new UUID(0L, 0L)),
+            text(json, "limitKey", ""),
+            longValue(json, "value", 0L),
+            uuid(json, "updatedBy", new UUID(0L, 0L)),
+            instant(text(json, "updatedAt", Instant.EPOCH.toString()))
+        );
     }
 
     private static IslandBankSnapshot bank(String json) {
