@@ -243,6 +243,18 @@ public final class IslandProtectionListener implements Listener {
         if (name.equals("LEVER") || name.equals("REDSTONE_WIRE") || name.endsWith("REPEATER") || name.endsWith("COMPARATOR")) {
             return IslandPermission.USE_REDSTONE;
         }
+        if (name.equals("SPAWNER")) {
+            return IslandPermission.USE_SPAWNER;
+        }
+        if (name.equals("ANVIL") || name.equals("CHIPPED_ANVIL") || name.equals("DAMAGED_ANVIL")) {
+            return IslandPermission.USE_ANVIL;
+        }
+        if (name.equals("ENCHANTING_TABLE")) {
+            return IslandPermission.USE_ENCHANT_TABLE;
+        }
+        if (name.equals("BREWING_STAND")) {
+            return IslandPermission.USE_BREWING_STAND;
+        }
         return IslandPermission.INTERACT;
     }
 
