@@ -16,6 +16,7 @@ public interface IslandStorage {
     void promoteSnapshot(UUID islandId, long snapshotNo) throws IOException;
     void promoteBundle(UUID islandId, long snapshotNo, String storagePath) throws IOException;
     int pruneSnapshots(UUID islandId, int keepLatest) throws IOException;
+    void deleteLiveState(UUID islandId) throws IOException;
     void deleteIsland(UUID islandId) throws IOException;
 
     record StoredBundle(String checksum, long sizeBytes) {}

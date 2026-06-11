@@ -1336,6 +1336,7 @@ public final class CloudIslandsCoreApplication {
             long snapshotNo = System.currentTimeMillis();
             IslandStorage.StoredBundle storedBundle = deleteStorage.writeDeleteBackupFromLatest(islandId, snapshotNo);
             snapshotRepository.record(islandId, snapshotNo, "islands/" + islandId + "/backups/delete-" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", reason, null, storedBundle.checksum(), storedBundle.sizeBytes());
+            deleteStorage.deleteLiveState(islandId);
         } catch (IOException exception) {
             events.publish("ISLAND_DELETE_BACKUP_FAILED", Map.of("islandId", islandId.toString(), "reason", reason, "error", exception.getMessage() == null ? "" : exception.getMessage()));
         }

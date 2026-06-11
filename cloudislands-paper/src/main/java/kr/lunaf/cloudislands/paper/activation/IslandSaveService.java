@@ -47,7 +47,9 @@ public final class IslandSaveService {
     }
 
     public SaveResult backupBeforeDelete(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland) throws IOException {
-        return save(islandId, activeIsland, true, false);
+        SaveResult result = save(islandId, activeIsland, true, false);
+        storage.deleteLiveState(islandId);
+        return result;
     }
 
     private SaveResult save(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland, boolean deleteBackup, boolean pruneAfterSave) throws IOException {

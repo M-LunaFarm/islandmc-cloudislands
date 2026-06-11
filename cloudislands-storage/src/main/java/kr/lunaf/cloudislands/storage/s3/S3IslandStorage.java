@@ -167,6 +167,15 @@ public final class S3IslandStorage implements IslandStorage {
         }
     }
 
+    @Override
+    public void deleteLiveState(UUID islandId) throws IOException {
+        for (String key : listKeys("islands/" + islandId + "/snapshots/")) {
+            requestBytes("DELETE", key, null);
+        }
+        requestBytes("DELETE", key(islandId, "manifest.json"), null);
+        requestBytes("DELETE", key(islandId, "latest"), null);
+    }
+
     private String key(UUID islandId, String suffix) {
         return "islands/" + islandId + "/" + suffix;
     }
