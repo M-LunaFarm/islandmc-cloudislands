@@ -19,6 +19,7 @@ import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.gui.IslandBankMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandBiomeMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandChatMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandHomeMenu;
@@ -62,7 +63,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "upgrade", "upgrades", "upgrade-menu", "upgrade-list", "업그레이드", "업그레이드목록",
         "mission", "missions", "mission-menu", "mission-list", "미션", "미션목록",
         "challenge", "challenges", "challenge-menu", "challenge-list", "챌린지", "챌린지목록",
-        "chat", "islandchat", "채팅", "teamchat", "team-chat", "팀채팅", "log", "logs", "log-menu", "log-list", "로그", "로그목록",
+        "chat", "chat-menu", "islandchat", "채팅", "teamchat", "team-chat", "팀채팅", "log", "logs", "log-menu", "log-list", "로그", "로그목록",
         "biome", "biome-menu", "biome-info", "바이옴", "바이옴정보", "size", "크기", "border", "경계",
         "limit", "limits", "limit-menu", "limit-list", "제한", "제한목록", "setlimit", "limit-set", "제한설정",
         "snapshot", "snapshots", "snapshot-menu", "snapshot-list", "스냅샷", "스냅샷목록", "snapshot-create", "snapshot-request", "스냅샷생성",
@@ -338,15 +339,19 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("chat") || subcommand.equals("islandchat") || subcommand.equals("채팅")) {
             if (args.length < 2) {
-                player.sendMessage("섬 채팅 메시지를 입력해주세요.");
+                IslandChatMenu.open(player);
                 return true;
             }
             sendIslandChat(player, "ISLAND", joined(args, 1), "섬 채팅");
             return true;
         }
+        if (subcommand.equals("chat-menu")) {
+            IslandChatMenu.open(player);
+            return true;
+        }
         if (subcommand.equals("teamchat") || subcommand.equals("team-chat") || subcommand.equals("팀채팅")) {
             if (args.length < 2) {
-                player.sendMessage("팀 채팅 메시지를 입력해주세요.");
+                IslandChatMenu.open(player);
                 return true;
             }
             sendIslandChat(player, "TEAM", joined(args, 1), "팀 채팅");
