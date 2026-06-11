@@ -224,7 +224,7 @@ public final class VelocityRoutingController {
     }
 
     public void recalculateLevel(Player player, UUID islandId) {
-        coreApiClient.recalculateIslandLevel(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "레벨 계산을 시작하지 못했습니다." : body)));
+        coreApiClient.recalculateIslandLevel(islandId, player.getUniqueId()).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "레벨 계산을 시작하지 못했습니다." : body)));
     }
 
     public void listUpgradeRules(Player player) {

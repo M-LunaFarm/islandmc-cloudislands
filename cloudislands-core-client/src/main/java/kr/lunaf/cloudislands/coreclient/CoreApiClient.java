@@ -47,7 +47,7 @@ public interface CoreApiClient {
     CompletableFuture<Void> setIslandPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess);
     CompletableFuture<Void> setIslandLocked(UUID islandId, UUID actorUuid, boolean locked);
     CompletableFuture<Void> recordBlockDelta(UUID islandId, String materialKey, long delta);
-    CompletableFuture<String> recalculateIslandLevel(UUID islandId);
+    CompletableFuture<String> recalculateIslandLevel(UUID islandId, UUID actorUuid);
     CompletableFuture<String> topIslandsByLevel(int limit);
     CompletableFuture<String> topIslandsByWorth(int limit);
     CompletableFuture<Void> setBlockValue(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit);
