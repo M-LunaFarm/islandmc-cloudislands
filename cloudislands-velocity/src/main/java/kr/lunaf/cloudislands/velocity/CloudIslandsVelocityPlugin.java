@@ -334,7 +334,7 @@ public final class CloudIslandsVelocityPlugin {
         }
         if (args[0].equalsIgnoreCase("invite") || args[0].equals("초대")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
+            UUID targetUuid = args.length > 2 ? parsePlayerUuidOrNil(args[2]) : new UUID(0L, 0L);
             routingController.invite(player, islandId, targetUuid);
             return;
         }
@@ -359,50 +359,50 @@ public final class CloudIslandsVelocityPlugin {
         }
         if (args[0].equalsIgnoreCase("kick") || args[0].equals("추방")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
+            UUID targetUuid = args.length > 2 ? parsePlayerUuidOrNil(args[2]) : new UUID(0L, 0L);
             routingController.kickMember(player, islandId, targetUuid);
             return;
         }
         if (args[0].equalsIgnoreCase("promote") || args[0].equals("승급")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
+            UUID targetUuid = args.length > 2 ? parsePlayerUuidOrNil(args[2]) : new UUID(0L, 0L);
             routingController.setRole(player, islandId, targetUuid, IslandRole.MODERATOR);
             return;
         }
         if (args[0].equalsIgnoreCase("demote") || args[0].equals("강등")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
+            UUID targetUuid = args.length > 2 ? parsePlayerUuidOrNil(args[2]) : new UUID(0L, 0L);
             routingController.setRole(player, islandId, targetUuid, IslandRole.MEMBER);
             return;
         }
         if (args[0].equalsIgnoreCase("transfer") || args[0].equals("양도")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
+            UUID targetUuid = args.length > 2 ? parsePlayerUuidOrNil(args[2]) : new UUID(0L, 0L);
             routingController.transferOwnership(player, islandId, targetUuid);
             return;
         }
         if (args[0].equalsIgnoreCase("trust") || args[0].equals("신뢰")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
+            UUID targetUuid = args.length > 2 ? parsePlayerUuidOrNil(args[2]) : new UUID(0L, 0L);
             routingController.setRole(player, islandId, targetUuid, IslandRole.TRUSTED);
             return;
         }
         if (args[0].equalsIgnoreCase("untrust") || args[0].equals("신뢰해제")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
+            UUID targetUuid = args.length > 2 ? parsePlayerUuidOrNil(args[2]) : new UUID(0L, 0L);
             routingController.kickMember(player, islandId, targetUuid);
             return;
         }
         if (args[0].equalsIgnoreCase("ban") || args[0].equals("밴")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
+            UUID targetUuid = args.length > 2 ? parsePlayerUuidOrNil(args[2]) : new UUID(0L, 0L);
             String reason = args.length > 3 ? args[3] : "island ban";
             routingController.banVisitor(player, islandId, targetUuid, reason);
             return;
         }
         if (args[0].equalsIgnoreCase("unban") || args[0].equals("밴해제")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
+            UUID targetUuid = args.length > 2 ? parsePlayerUuidOrNil(args[2]) : new UUID(0L, 0L);
             routingController.pardonVisitor(player, islandId, targetUuid);
             return;
         }
@@ -617,6 +617,10 @@ public final class CloudIslandsVelocityPlugin {
         } catch (IllegalArgumentException ignored) {
             return new UUID(0L, 0L);
         }
+    }
+
+    private UUID parsePlayerUuidOrNil(String value) {
+        return proxy.getPlayer(value).map(Player::getUniqueId).orElseGet(() -> parseUuidOrNil(value));
     }
 
     private long parseLongOrZero(String value) {
