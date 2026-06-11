@@ -73,6 +73,7 @@ public final class SuperiorSkyblock2MigrationScanner {
             List<MigrationUpgrade> upgrades = parseUpgrades(content);
             List<MigrationLimit> limits = parseLimits(content);
             List<MigrationMission> completedMissions = parseCompletedMissions(content);
+            List<MigrationBlockValue> blockValues = parseBlockValues(content);
             String biomeKey = parseBiomeKey(content);
             String bankBalance = parseString(content, "bankBalance", parseString(content, "balance", parseString(content, "islandBank", "0.00")));
             boolean publicAccess = parseBoolean(content, "public", parseBoolean(content, "isPublic", parseBoolean(content, "publicAccess", false)));
@@ -83,7 +84,7 @@ public final class SuperiorSkyblock2MigrationScanner {
             for (MigrationMemberRole memberRole : memberRoles) {
                 allMembers.add(memberRole.playerUuid());
             }
-            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), memberRoles, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, biomeKey, bankBalance, publicAccess, locked, size, level, worth));
+            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), memberRoles, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, blockValues, biomeKey, bankBalance, publicAccess, locked, size, level, worth));
         } catch (RuntimeException | IOException exception) {
             issues.add(new MigrationIssue("ISLAND_FILE_PARSE_FAILED", file + ": " + exception.getMessage(), true));
         }
@@ -382,6 +383,20 @@ public final class SuperiorSkyblock2MigrationScanner {
             result.add(new MigrationMission(missionKey, "CHALLENGE"));
         }
         return List.copyOf(result);
+    }
+
+    private List<MigrationBlockValue> parseBlockValues(String content) {
+        LinkedHashMap<String, MigrationBlockValue> values = new LinkedHashMap<>();
+        Matcher matcher = Pattern.compile("blockValues\\.([A-Za-z0-9:_/-]+)\\.(?:worth|level|levelPoints|limit)").matcher(content);
+        while (matcher.find()) {
+            String materialKey = matcher.group(1).toLowerCase();
+            String prefix = "blockValues." + materialKey + ".";
+            String worth = parseString(content, prefix + "worth", "0.00");
+            long levelPoints = parseLong(content, prefix + "levelPoints", parseLong(content, prefix + "level", 0L));
+            long limit = parseLong(content, prefix + "limit", 0L);
+            values.putIfAbsent(materialKey, new MigrationBlockValue(materialKey, worth, levelPoints, limit));
+        }
+        return List.copyOf(values.values());
     }
 
     private void addLimit(String content, List<MigrationLimit> limits, String limitKey, String... keys) {

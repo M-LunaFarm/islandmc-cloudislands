@@ -154,7 +154,7 @@ public final class CloudIslandsCoreApplication {
         RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets, islandRepository, metadataRepository, runtimeRepository, templateRepository, jobs, events);
         CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, metadataRepository, playerProfiles, templateRepository, nodes, allocator, jobs, events, tickets);
         IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(runtimeRepository, islandRepository, templateRepository, nodes, allocator, jobs, events);
-        MigrationAdminService migrationAdmin = new MigrationAdminService(islandRepository, metadataRepository, playerProfiles, permissionRules, upgradeRepository, bankRepository, limitRepository, missionRepository);
+        MigrationAdminService migrationAdmin = new MigrationAdminService(islandRepository, metadataRepository, playerProfiles, permissionRules, upgradeRepository, bankRepository, limitRepository, missionRepository, levelRepository);
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets);
         PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, inMemoryEvents, config.heartbeatTimeout());
         this.nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, events, config.heartbeatTimeout());

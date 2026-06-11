@@ -15,6 +15,8 @@ import kr.lunaf.cloudislands.coreservice.limit.IslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.mission.IslandMissionRepository;
 import kr.lunaf.cloudislands.coreservice.permission.IslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
+import kr.lunaf.cloudislands.coreservice.ranking.IslandLevelRepository;
+import kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeRepository;
@@ -38,6 +40,7 @@ public final class MigrationAdminService {
     private final IslandBankRepository bank;
     private final IslandLimitRepository limits;
     private final IslandMissionRepository missions;
+    private final IslandLevelRepository levels;
     private final SuperiorSkyblock2MigrationScanner scanner = new SuperiorSkyblock2MigrationScanner();
     private final CloudIslandsMigrationImporter importer = new CloudIslandsMigrationImporter();
     private final MigrationVerifier verifier = new MigrationVerifier();
@@ -46,7 +49,7 @@ public final class MigrationAdminService {
     private MigrationImportPlan lastPlan = new MigrationImportPlan(List.of(), List.of());
     private MigrationRollbackPlan lastRollbackPlan;
 
-    public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions) {
+    public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandLevelRepository levels) {
         this.islands = islands;
         this.metadata = metadata;
         this.playerProfiles = playerProfiles;
@@ -55,6 +58,7 @@ public final class MigrationAdminService {
         this.bank = bank;
         this.limits = limits;
         this.missions = missions;
+        this.levels = levels;
     }
 
     public synchronized String scan(String path) {
@@ -112,6 +116,9 @@ public final class MigrationAdminService {
             for (kr.lunaf.cloudislands.migration.MigrationMission mission : manifest.completedMissions()) {
                 missions.importCompleted(manifest.islandId(), manifest.ownerUuid(), mission.missionKey(), mission.kind());
             }
+            for (kr.lunaf.cloudislands.migration.MigrationBlockValue value : manifest.blockValues()) {
+                levels.putBlockValue(value.materialKey(), new RankingRecalculationService.BlockValue(decimal(value.worth()), value.levelPoints(), value.limit()));
+            }
             if (!manifest.biomeKey().isBlank()) {
                 metadata.setBiome(manifest.islandId(), manifest.biomeKey(), manifest.ownerUuid());
             }
@@ -146,6 +153,7 @@ public final class MigrationAdminService {
                 .filter(_island -> upgradesMatch(manifest))
                 .filter(_island -> limitsMatch(manifest))
                 .filter(_island -> missionsMatch(manifest))
+                .filter(_island -> blockValuesMatch(manifest))
                 .filter(_island -> manifest.biomeKey().isBlank() || metadata.biome(manifest.islandId()).biomeKey().equals(manifest.biomeKey()))
                 .filter(_island -> decimal(bank.balance(manifest.islandId()).balance()).compareTo(decimal(manifest.bankBalance())) == 0)
                 .filter(_island -> metadata.isPublicAccess(manifest.islandId()) == manifest.publicAccess())
@@ -214,6 +222,17 @@ public final class MigrationAdminService {
             current.put(mission.missionKey(), mission.completed());
         }
         return manifest.completedMissions().stream().allMatch(mission -> Boolean.TRUE.equals(current.get(mission.missionKey())));
+    }
+
+    private boolean blockValuesMatch(MigrationManifest manifest) {
+        Map<String, RankingRecalculationService.BlockValue> current = levels.blockValues();
+        return manifest.blockValues().stream().allMatch(value -> {
+            RankingRecalculationService.BlockValue currentValue = current.get(value.materialKey());
+            return currentValue != null
+                && currentValue.worth().compareTo(decimal(value.worth())) == 0
+                && currentValue.levelPoints() == value.levelPoints()
+                && currentValue.limit() == value.limit();
+        });
     }
 
     private BigDecimal decimal(String value) {
