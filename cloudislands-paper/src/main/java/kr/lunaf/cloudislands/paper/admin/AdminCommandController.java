@@ -265,33 +265,37 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
 
     private boolean handlePlayer(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage("사용법: /ciadmin player info|setisland|clearisland <playerUuid> [islandUuid]");
+            sender.sendMessage("사용법: /ciadmin player info|setisland|clearisland <playerUuid|playerName> [islandUuid]");
             return true;
         }
-        UUID playerUuid = uuid(sender, args[2]);
-        if (playerUuid == null) {
-            return true;
-        }
-        if (args[1].equalsIgnoreCase("info")) {
-            run(sender, "Player info", coreApiClient.playerInfo(playerUuid));
-            return true;
-        }
-        if (args[1].equalsIgnoreCase("setisland")) {
-            if (args.length < 4) {
-                sender.sendMessage("섬 UUID를 입력해주세요.");
-                return true;
+        resolvePlayerUuid(sender, args[2]).thenAccept(playerUuid -> {
+            if (playerUuid == null) {
+                return;
             }
-            UUID islandId = uuid(sender, args[3]);
-            if (islandId != null) {
-                run(sender, "Player setisland", coreApiClient.setPlayerIsland(playerUuid, islandId));
+            if (args[1].equalsIgnoreCase("info")) {
+                run(sender, "Player info", coreApiClient.playerInfo(playerUuid));
+                return;
             }
-            return true;
-        }
-        if (args[1].equalsIgnoreCase("clearisland")) {
-            run(sender, "Player clearisland", coreApiClient.clearPlayerIsland(playerUuid));
-            return true;
-        }
-        sender.sendMessage("사용법: /ciadmin player info|setisland|clearisland <playerUuid> [islandUuid]");
+            if (args[1].equalsIgnoreCase("setisland")) {
+                if (args.length < 4) {
+                    sender.sendMessage("섬 UUID를 입력해주세요.");
+                    return;
+                }
+                UUID islandId = uuid(sender, args[3]);
+                if (islandId != null) {
+                    run(sender, "Player setisland", coreApiClient.setPlayerIsland(playerUuid, islandId));
+                }
+                return;
+            }
+            if (args[1].equalsIgnoreCase("clearisland")) {
+                run(sender, "Player clearisland", coreApiClient.clearPlayerIsland(playerUuid));
+                return;
+            }
+            sender.sendMessage("사용법: /ciadmin player info|setisland|clearisland <playerUuid|playerName> [islandUuid]");
+        }).exceptionally(error -> {
+            sender.sendMessage("플레이어를 찾지 못했습니다: " + args[2]);
+            return null;
+        });
         return true;
     }
 
@@ -502,6 +506,47 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             sender.sendMessage("UUID 형식이 올바르지 않습니다: " + value);
             return null;
         }
+    }
+
+    private CompletableFuture<UUID> resolvePlayerUuid(CommandSender sender, String value) {
+        Player online = agent.plugin().getServer().getPlayerExact(value);
+        if (online != null) {
+            return CompletableFuture.completedFuture(online.getUniqueId());
+        }
+        try {
+            return CompletableFuture.completedFuture(UUID.fromString(value));
+        } catch (IllegalArgumentException ignored) {
+            return coreApiClient.playerInfoByName(value).thenApply(body -> {
+                UUID playerUuid = uuidValue(body, "playerUuid");
+                if (playerUuid == null) {
+                    sender.sendMessage("플레이어를 찾지 못했습니다: " + value);
+                }
+                return playerUuid;
+            });
+        }
+    }
+
+    private UUID uuidValue(String body, String field) {
+        String value = textValue(body, field);
+        if (value.isBlank()) {
+            return null;
+        }
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
+    private String textValue(String body, String field) {
+        String needle = "\"" + field + "\":\"";
+        int start = body == null ? -1 : body.indexOf(needle);
+        if (start < 0) {
+            return "";
+        }
+        start += needle.length();
+        int end = body.indexOf('"', start);
+        return end < start ? "" : body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
     }
 
     private long number(String value, long fallback) {
