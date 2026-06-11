@@ -21,6 +21,7 @@ import kr.lunaf.cloudislands.api.model.IslandActionResult;
 import kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandBoundarySnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandChatResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
@@ -173,6 +174,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<List<IslandPermissionRuleSnapshot>> getPermissionRules(UUID islandId) {
             return client.listIslandPermissions(islandId).thenApply(PaperCloudIslandsApi::permissionRules);
+        }
+
+        @Override
+        public CompletableFuture<IslandBoundarySnapshot> getBoundary(UUID islandId) {
+            return client.islandInfo(islandId).thenApply(PaperCloudIslandsApi::boundary);
         }
 
         @Override
@@ -669,6 +675,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             island(object).ifPresent(islands::add);
         }
         return islands;
+    }
+
+    private static IslandBoundarySnapshot boundary(String json) {
+        UUID islandId = uuid(json, "islandId", new UUID(0L, 0L));
+        int size = integer(json, "size", 0);
+        return new IslandBoundarySnapshot(islandId, size, integer(json, "border", size));
     }
 
     private static Optional<PlayerIslandProfile> playerProfile(String json) {

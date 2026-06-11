@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.BlockValueSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandBoundarySnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
@@ -37,6 +38,7 @@ public interface IslandQueryService {
     CompletableFuture<IslandBiomeSnapshot> getBiome(UUID islandId);
     CompletableFuture<List<IslandLimitSnapshot>> getLimits(UUID islandId);
     CompletableFuture<List<IslandPermissionRuleSnapshot>> getPermissionRules(UUID islandId);
+    CompletableFuture<IslandBoundarySnapshot> getBoundary(UUID islandId);
     CompletableFuture<IslandLevelSnapshot> getLevel(UUID islandId);
     CompletableFuture<List<IslandRankSnapshot>> getTopByLevel(int limit);
     CompletableFuture<List<IslandRankSnapshot>> getTopByWorth(int limit);
