@@ -253,6 +253,18 @@ public final class VelocityRoutingController {
         coreApiClient.restoreIslandSnapshot(islandId, snapshotNo).thenRun(() -> player.sendMessage(Component.text("섬 복원을 요청했습니다.")));
     }
 
+    public void listJobs(Player player) {
+        coreApiClient.listJobs().thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "작업 목록을 불러오지 못했습니다." : body)));
+    }
+
+    public void retryJob(Player player, UUID jobId) {
+        coreApiClient.retryJob(jobId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "작업 재시도를 요청하지 못했습니다." : body)));
+    }
+
+    public void cancelJob(Player player, UUID jobId) {
+        coreApiClient.cancelJob(jobId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "작업 취소를 요청하지 못했습니다." : body)));
+    }
+
     private void route(Player player, RouteTicket ticket, String failureMessage) {
         if (ticket == null) {
             fallback(player, failureMessage);

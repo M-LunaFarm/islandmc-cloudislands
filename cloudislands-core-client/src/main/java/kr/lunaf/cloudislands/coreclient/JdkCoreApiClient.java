@@ -328,6 +328,21 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> listJobs() {
+        return post("/v1/admin/jobs/list", "{}");
+    }
+
+    @Override
+    public CompletableFuture<String> retryJob(UUID jobId) {
+        return post("/v1/admin/jobs/retry", "{\"jobId\":\"" + jobId + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> cancelJob(UUID jobId) {
+        return post("/v1/admin/jobs/cancel", "{\"jobId\":\"" + jobId + "\"}");
+    }
+
+    @Override
     public CompletableFuture<Void> completeJob(String nodeId, UUID jobId) {
         return post("/v1/jobs/complete", "{\"nodeId\":\"" + nodeId + "\",\"jobId\":\"" + jobId + "\"}").thenApply(_body -> null);
     }

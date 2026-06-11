@@ -45,7 +45,30 @@ public final class CloudIslandsVelocityPlugin {
             dispatch(player, invocation.arguments());
         };
         commands.register(commands.metaBuilder("섬").aliases("is", "island").build(), islandCommand);
+        commands.register(commands.metaBuilder("ciadmin").aliases("섬관리").build(), invocation -> {
+            if (!(invocation.source() instanceof Player player)) {
+                invocation.source().sendMessage(Component.text("플레이어만 사용할 수 있습니다."));
+                return;
+            }
+            dispatchAdmin(player, invocation.arguments());
+        });
         logger.info("CloudIslands Velocity router enabled with aliases {}", ALIASES);
+    }
+
+    private void dispatchAdmin(Player player, String[] args) {
+        if (args.length >= 2 && args[0].equalsIgnoreCase("jobs") && args[1].equalsIgnoreCase("list")) {
+            routingController.listJobs(player);
+            return;
+        }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("jobs") && args[1].equalsIgnoreCase("retry")) {
+            routingController.retryJob(player, parseUuidOrNil(args[2]));
+            return;
+        }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("jobs") && args[1].equalsIgnoreCase("cancel")) {
+            routingController.cancelJob(player, parseUuidOrNil(args[2]));
+            return;
+        }
+        player.sendMessage(Component.text("사용법: /ciadmin jobs list, /ciadmin jobs retry <jobId>, /ciadmin jobs cancel <jobId>"));
     }
 
     private void dispatch(Player player, String[] args) {

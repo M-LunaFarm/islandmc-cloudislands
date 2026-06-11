@@ -247,6 +247,29 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 409, ApiResponses.error("RECOVERY_UNAVAILABLE", "Redis job recovery is only available when CI_JOB_QUEUE_MODE=REDIS"));
             }
         });
+        route("/v1/admin/jobs/list", exchange -> write(exchange, 200, jobs instanceof InMemoryIslandJobPublisher memoryJobs ? memoryJobs.toJson() : "{\"mode\":\"REDIS\"}"));
+        route("/v1/admin/jobs/retry", exchange -> {
+            String body = readBody(exchange);
+            UUID jobId = JsonFields.uuid(body, "jobId", new UUID(0L, 0L));
+            if (jobs instanceof InMemoryIslandJobPublisher memoryJobs) {
+                boolean retried = memoryJobs.retry(jobId);
+                audit.log(new UUID(0L, 0L), "ADMIN", "JOB_RETRY", "JOB", jobId.toString(), Map.of("retried", Boolean.toString(retried)));
+                write(exchange, retried ? 202 : 404, retried ? ApiResponses.ok(true) : ApiResponses.error("JOB_NOT_RETRIED", "Job was not found or cannot be retried"));
+            } else {
+                write(exchange, 409, ApiResponses.error("JOB_RETRY_UNAVAILABLE", "Job retry is only available for in-memory queue mode"));
+            }
+        });
+        route("/v1/admin/jobs/cancel", exchange -> {
+            String body = readBody(exchange);
+            UUID jobId = JsonFields.uuid(body, "jobId", new UUID(0L, 0L));
+            if (jobs instanceof InMemoryIslandJobPublisher memoryJobs) {
+                boolean canceled = memoryJobs.cancel(jobId);
+                audit.log(new UUID(0L, 0L), "ADMIN", "JOB_CANCEL", "JOB", jobId.toString(), Map.of("canceled", Boolean.toString(canceled)));
+                write(exchange, canceled ? 202 : 404, canceled ? ApiResponses.ok(true) : ApiResponses.error("JOB_NOT_CANCELED", "Job was not found or cannot be canceled"));
+            } else {
+                write(exchange, 409, ApiResponses.error("JOB_CANCEL_UNAVAILABLE", "Job cancel is only available for in-memory queue mode"));
+            }
+        });
         route("/v1/routes/home", exchange -> {
             String body = readBody(exchange);
             routeResult(exchange, routing.prepareHomeRoute(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), JsonFields.text(body, "homeName", "default")));

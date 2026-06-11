@@ -55,6 +55,30 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
         replace(jobId, record -> record.lockedBy() != null && record.lockedBy().equals(nodeId) ? record.failed(errorMessage) : record);
     }
 
+    public synchronized boolean retry(UUID jobId) {
+        final boolean[] changed = {false};
+        replace(jobId, record -> {
+            if (record.state() == JobState.FAILED || record.state() == JobState.CLAIMED) {
+                changed[0] = true;
+                return record.pending();
+            }
+            return record;
+        });
+        return changed[0];
+    }
+
+    public synchronized boolean cancel(UUID jobId) {
+        final boolean[] changed = {false};
+        replace(jobId, record -> {
+            if (record.state() == JobState.PENDING || record.state() == JobState.CLAIMED || record.state() == JobState.FAILED) {
+                changed[0] = true;
+                return record.canceled();
+            }
+            return record;
+        });
+        return changed[0];
+    }
+
     public synchronized List<IslandJob> snapshot() {
         return jobs.stream().map(JobRecord::job).toList();
     }
@@ -107,10 +131,19 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
         PENDING,
         CLAIMED,
         COMPLETED,
-        FAILED
+        FAILED,
+        CANCELED
     }
 
     private record JobRecord(IslandJob job, JobState state, String lockedBy, Instant lockedAt, int attempts, String errorMessage, Instant updatedAt) {
+        private JobRecord pending() {
+            return new JobRecord(job, JobState.PENDING, null, null, attempts, null, Instant.now());
+        }
+
+        private JobRecord canceled() {
+            return new JobRecord(job, JobState.CANCELED, lockedBy, lockedAt, attempts, errorMessage, Instant.now());
+        }
+
         private JobRecord locked(String nodeId) {
             return new JobRecord(job, JobState.CLAIMED, nodeId, Instant.now(), attempts + 1, null, Instant.now());
         }
