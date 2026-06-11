@@ -1,7 +1,9 @@
 package kr.lunaf.cloudislands.paper;
 
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.event.RouteTicketConsumedEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -26,7 +28,7 @@ public final class RouteTicketConsumer {
     private void consumeAndTeleport(UUID ticketId, UUID playerUuid, String nonce, int attempt) {
         coreApiClient.consumeTicket(ticketId, playerUuid, nodeId, nonce).thenAccept(ticket -> {
             if (ticket.isPresent()) {
-                Bukkit.getScheduler().runTask(plugin, () -> teleport(playerUuid, ticket.get().targetWorld(), ticket.get().payload()));
+                Bukkit.getScheduler().runTask(plugin, () -> teleport(playerUuid, ticket.get()));
                 return;
             }
             if (attempt < 20) {
@@ -35,13 +37,17 @@ public final class RouteTicketConsumer {
         });
     }
 
-    private void teleport(UUID playerUuid, String worldName, java.util.Map<String, String> payload) {
+    private void teleport(UUID playerUuid, RouteTicket ticket) {
         Player player = Bukkit.getPlayer(playerUuid);
+        String worldName = ticket.targetWorld();
         World world = worldName == null ? null : Bukkit.getWorld(worldName);
         if (player == null || world == null) {
             return;
         }
-        player.teleport(new Location(world, decimal(payload, "localX", 0.5D), decimal(payload, "localY", 100.0D), decimal(payload, "localZ", 0.5D), (float) decimal(payload, "yaw", 180.0D), (float) decimal(payload, "pitch", 0.0D)));
+        java.util.Map<String, String> payload = ticket.payload();
+        if (player.teleport(new Location(world, decimal(payload, "localX", 0.5D), decimal(payload, "localY", 100.0D), decimal(payload, "localZ", 0.5D), (float) decimal(payload, "yaw", 180.0D), (float) decimal(payload, "pitch", 0.0D)))) {
+            Bukkit.getPluginManager().callEvent(new RouteTicketConsumedEvent(ticket.islandId(), ticket.ticketId(), playerUuid, player, ticket.action(), worldName));
+        }
     }
 
     private double decimal(java.util.Map<String, String> payload, String key, double fallback) {
