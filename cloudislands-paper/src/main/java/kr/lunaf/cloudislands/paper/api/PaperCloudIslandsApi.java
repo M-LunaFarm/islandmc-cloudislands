@@ -450,6 +450,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> createWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return client.setIslandWarp(islandId, actorUuid, name, location, false); }
         @Override public CompletableFuture<Void> deleteWarp(UUID islandId, UUID actorUuid, String name) { return client.deleteIslandWarp(islandId, actorUuid, name); }
         @Override public CompletableFuture<Void> setPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess) { return client.setIslandPublicAccess(islandId, actorUuid, publicAccess); }
+        @Override public CompletableFuture<IslandLevelSnapshot> recalculateLevel(UUID islandId, UUID actorUuid) { return client.recalculateIslandLevel(islandId, actorUuid).thenApply(PaperCloudIslandsApi::level); }
         @Override public CompletableFuture<Void> purchaseUpgrade(UUID islandId, UUID actorUuid, String upgradeKey) { return client.purchaseIslandUpgrade(islandId, actorUuid, upgradeKey).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> completeMission(UUID islandId, UUID actorUuid, String missionKey) { return client.completeIslandMission(islandId, actorUuid, missionKey).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> sendChat(UUID islandId, UUID actorUuid, String channel, String message) { return client.sendIslandChat(islandId, actorUuid, channel, message).thenApply(_body -> null); }
@@ -644,11 +645,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     }
 
     private static IslandLevelSnapshot level(String json) {
+        String calculatedAt = text(json, "calculatedAt", text(json, "updatedAt", Instant.EPOCH.toString()));
         return new IslandLevelSnapshot(
             uuid(json, "islandId", new UUID(0L, 0L)),
             longValue(json, "level", 0L),
             text(json, "worth", "0"),
-            instant(text(json, "updatedAt", Instant.EPOCH.toString()))
+            instant(calculatedAt)
         );
     }
 
