@@ -229,6 +229,14 @@ public final class VelocityRoutingController {
         coreApiClient.completeIslandMission(islandId, player.getUniqueId(), missionKey).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "미션을 완료하지 못했습니다." : body)));
     }
 
+    public void listLimits(Player player, UUID islandId) {
+        coreApiClient.listIslandLimits(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 제한을 불러오지 못했습니다." : body)));
+    }
+
+    public void setLimit(Player player, UUID islandId, String limitKey, long value) {
+        coreApiClient.setIslandLimit(islandId, player.getUniqueId(), limitKey, value).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 제한을 변경하지 못했습니다." : body)));
+    }
+
     public void sendIslandChat(Player player, UUID islandId, String channel, String message) {
         coreApiClient.sendIslandChat(islandId, player.getUniqueId(), channel, message).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 채팅을 전송하지 못했습니다." : body)));
     }

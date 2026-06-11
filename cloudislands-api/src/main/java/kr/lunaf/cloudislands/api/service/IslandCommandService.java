@@ -24,6 +24,7 @@ public interface IslandCommandService {
     CompletableFuture<Void> setLocked(UUID islandId, UUID actorUuid, boolean locked);
     CompletableFuture<Void> setHome(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<Void> setBiome(UUID islandId, UUID actorUuid, String biomeKey);
+    CompletableFuture<Void> setLimit(UUID islandId, UUID actorUuid, String limitKey, long value);
     CompletableFuture<Void> createWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<Void> purchaseUpgrade(UUID islandId, UUID actorUuid, String upgradeKey);
     CompletableFuture<Void> completeMission(UUID islandId, UUID actorUuid, String missionKey);

@@ -42,6 +42,9 @@ import kr.lunaf.cloudislands.coreservice.islandlog.JdbcIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue;
+import kr.lunaf.cloudislands.coreservice.limit.InMemoryIslandLimitRepository;
+import kr.lunaf.cloudislands.coreservice.limit.IslandLimitRepository;
+import kr.lunaf.cloudislands.coreservice.limit.JdbcIslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.metrics.PrometheusMetricsRenderer;
 import kr.lunaf.cloudislands.coreservice.mission.InMemoryIslandMissionRepository;
 import kr.lunaf.cloudislands.coreservice.mission.IslandMissionRepository;
@@ -127,6 +130,7 @@ public final class CloudIslandsCoreApplication {
         IslandUpgradeService upgradeService = new IslandUpgradeService(upgradeRepository, upgradePolicy);
         IslandBankRepository bankRepository = config.jdbcRepositories() ? new JdbcIslandBankRepository(dataSource) : new InMemoryIslandBankRepository();
         IslandMissionRepository missionRepository = config.jdbcRepositories() ? new JdbcIslandMissionRepository(dataSource) : new InMemoryIslandMissionRepository();
+        IslandLimitRepository limitRepository = config.jdbcRepositories() ? new JdbcIslandLimitRepository(dataSource) : new InMemoryIslandLimitRepository();
         AuditLogger audit = config.jdbcRepositories() ? new JdbcAuditLogger(dataSource) : new InMemoryAuditLogger();
         IslandLogRepository islandLogs = config.jdbcRepositories() ? new JdbcIslandLogRepository(dataSource) : new InMemoryIslandLogRepository();
         InMemoryAuditLogger inMemoryAudit = audit instanceof InMemoryAuditLogger logger ? logger : new InMemoryAuditLogger();
@@ -167,6 +171,22 @@ public final class CloudIslandsCoreApplication {
                 events.publish("ISLAND_MISSION_COMPLETE", Map.of("islandId", islandId.toString(), "missionKey", snapshot.missionKey(), "kind", snapshot.kind()));
             });
             write(exchange, completed.isPresent() ? 202 : 404, completed.map(CloudIslandsCoreApplication::missionJson).orElseGet(() -> ApiResponses.error("MISSION_NOT_FOUND", "Mission was not found")));
+        });
+        route("/v1/islands/limits", exchange -> {
+            String body = readBody(exchange);
+            write(exchange, 200, limitsJson(limitRepository.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
+        });
+        route("/v1/islands/limits/set", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            String limitKey = JsonFields.text(body, "limitKey", "HOPPER");
+            long value = JsonFields.longValue(body, "value", 0L);
+            kr.lunaf.cloudislands.api.model.IslandLimitSnapshot snapshot = limitRepository.set(islandId, limitKey, value, actorUuid);
+            audit.log(actorUuid, "PLAYER", "ISLAND_LIMIT_SET", "ISLAND", islandId.toString(), Map.of("limitKey", snapshot.limitKey(), "value", Long.toString(snapshot.value())));
+            islandLogs.append(islandId, actorUuid, "ISLAND_LIMIT_SET", Map.of("limitKey", snapshot.limitKey(), "value", Long.toString(snapshot.value())));
+            events.publish("ISLAND_LIMIT_SET", Map.of("islandId", islandId.toString(), "limitKey", snapshot.limitKey(), "value", Long.toString(snapshot.value())));
+            write(exchange, 202, limitJson(snapshot));
         });
         route("/v1/islands/info", exchange -> {
             String body = readBody(exchange);
@@ -742,6 +762,28 @@ public final class CloudIslandsCoreApplication {
             + ",\"completed\":" + mission.completed()
             + ",\"reward\":\"" + escape(mission.reward())
             + "\",\"updatedAt\":\"" + mission.updatedAt()
+            + "\"}";
+    }
+
+    private static String limitsJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandLimitSnapshot> limits) {
+        StringBuilder builder = new StringBuilder("{\"limits\":[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.api.model.IslandLimitSnapshot limit : limits) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append(limitJson(limit));
+        }
+        return builder.append("]}").toString();
+    }
+
+    private static String limitJson(kr.lunaf.cloudislands.api.model.IslandLimitSnapshot limit) {
+        return "{\"islandId\":\"" + limit.islandId()
+            + "\",\"limitKey\":\"" + escape(limit.limitKey())
+            + "\",\"value\":" + limit.value()
+            + ",\"updatedBy\":\"" + limit.updatedBy()
+            + "\",\"updatedAt\":\"" + limit.updatedAt()
             + "\"}";
     }
 
