@@ -29,10 +29,8 @@ public final class IslandGameplayFlagListener implements Listener {
         if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) {
             return;
         }
-        if (protection.islandAt(player.getLocation().getBlock()).isEmpty()) {
-            return;
-        }
-        boolean allowed = islandFlagAllowed(player.getLocation().getBlock(), IslandFlag.FLY);
+        Block block = event.getTo() == null ? player.getLocation().getBlock() : event.getTo().getBlock();
+        boolean allowed = protection.islandAt(block).isPresent() && islandFlagAllowed(block, IslandFlag.FLY);
         player.setAllowFlight(allowed);
         if (!allowed && player.isFlying()) {
             player.setFlying(false);
