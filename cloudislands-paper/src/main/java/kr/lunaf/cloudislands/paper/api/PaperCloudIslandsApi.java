@@ -310,6 +310,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<RoutePlan> resolveHome(UUID playerUuid, String homeName) { return createHomeTicket(playerUuid, homeName).thenApply(PaperCloudIslandsApi::plan); }
         @Override public CompletableFuture<RoutePlan> resolveVisit(UUID visitorUuid, UUID targetIslandId) { return createVisitTicket(visitorUuid, targetIslandId).thenApply(PaperCloudIslandsApi::plan); }
         @Override public CompletableFuture<RoutePlan> resolveRandomVisit(UUID visitorUuid) { return createRandomVisitTicket(visitorUuid).thenApply(PaperCloudIslandsApi::plan); }
+        @Override public CompletableFuture<RoutePlan> resolveWarp(UUID playerUuid, UUID islandId, String warpName) { return createWarpTicket(playerUuid, islandId, warpName).thenApply(PaperCloudIslandsApi::plan); }
     }
 
     private static final class PermissionService implements IslandPermissionService {
