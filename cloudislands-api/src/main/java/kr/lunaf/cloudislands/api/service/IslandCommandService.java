@@ -6,6 +6,7 @@ import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandChatResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLevelSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
@@ -40,6 +41,7 @@ public interface IslandCommandService {
     CompletableFuture<Void> completeMission(UUID islandId, UUID actorUuid, String missionKey);
     CompletableFuture<java.util.Optional<IslandMissionSnapshot>> completeMissionResult(UUID islandId, UUID actorUuid, String missionKey);
     CompletableFuture<Void> sendChat(UUID islandId, UUID actorUuid, String channel, String message);
+    CompletableFuture<IslandChatResult> sendChatResult(UUID islandId, UUID actorUuid, String channel, String message);
     CompletableFuture<Void> depositBank(UUID islandId, UUID actorUuid, BigDecimal amount);
     CompletableFuture<IslandBankChangeSnapshot> depositBankResult(UUID islandId, UUID actorUuid, BigDecimal amount);
     CompletableFuture<Void> withdrawBank(UUID islandId, UUID actorUuid, BigDecimal amount);

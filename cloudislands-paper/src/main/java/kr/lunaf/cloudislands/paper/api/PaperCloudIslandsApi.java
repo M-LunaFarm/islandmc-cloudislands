@@ -19,6 +19,7 @@ import kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandChatResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
@@ -457,7 +458,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<UpgradePurchaseSnapshot> purchaseUpgradeResult(UUID islandId, UUID actorUuid, String upgradeKey) { return client.purchaseIslandUpgrade(islandId, actorUuid, upgradeKey).thenApply(PaperCloudIslandsApi::upgradePurchase); }
         @Override public CompletableFuture<Void> completeMission(UUID islandId, UUID actorUuid, String missionKey) { return completeMissionResult(islandId, actorUuid, missionKey).thenApply(_result -> null); }
         @Override public CompletableFuture<Optional<IslandMissionSnapshot>> completeMissionResult(UUID islandId, UUID actorUuid, String missionKey) { return client.completeIslandMission(islandId, actorUuid, missionKey).thenApply(PaperCloudIslandsApi::mission); }
-        @Override public CompletableFuture<Void> sendChat(UUID islandId, UUID actorUuid, String channel, String message) { return client.sendIslandChat(islandId, actorUuid, channel, message).thenApply(_body -> null); }
+        @Override public CompletableFuture<Void> sendChat(UUID islandId, UUID actorUuid, String channel, String message) { return sendChatResult(islandId, actorUuid, channel, message).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandChatResult> sendChatResult(UUID islandId, UUID actorUuid, String channel, String message) { return client.sendIslandChat(islandId, actorUuid, channel, message).thenApply(PaperCloudIslandsApi::chatResult); }
         @Override public CompletableFuture<Void> depositBank(UUID islandId, UUID actorUuid, BigDecimal amount) { return depositBankResult(islandId, actorUuid, amount).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandBankChangeSnapshot> depositBankResult(UUID islandId, UUID actorUuid, BigDecimal amount) { return client.depositIslandBank(islandId, actorUuid, amount.toPlainString()).thenApply(PaperCloudIslandsApi::bankDeposit); }
         @Override public CompletableFuture<Void> withdrawBank(UUID islandId, UUID actorUuid, BigDecimal amount) { return withdrawBankResult(islandId, actorUuid, amount).thenApply(_result -> null); }
@@ -659,6 +661,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             bool(json, "accepted", false),
             text(json, "code", hasError(json) ? "FAILED" : ""),
             json == null || json.isBlank() || json.contains("\"bank\":null") ? null : bank(json)
+        );
+    }
+
+    private static IslandChatResult chatResult(String json) {
+        return new IslandChatResult(
+            bool(json, "accepted", false),
+            text(json, "channel", ""),
+            text(json, "message", "")
         );
     }
 
