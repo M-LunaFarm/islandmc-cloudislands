@@ -372,6 +372,16 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> adminDeleteIsland(UUID islandId) {
+        return post("/v1/admin/islands/delete", "{\"islandId\":\"" + islandId + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> repairIsland(UUID islandId, String reason) {
+        return post("/v1/admin/islands/repair", "{\"islandId\":\"" + islandId + "\",\"reason\":\"" + escape(reason) + "\"}");
+    }
+
+    @Override
     public CompletableFuture<String> debugRoutes(UUID playerUuid) {
         return post("/v1/admin/routes/debug", "{\"playerUuid\":\"" + playerUuid + "\"}");
     }

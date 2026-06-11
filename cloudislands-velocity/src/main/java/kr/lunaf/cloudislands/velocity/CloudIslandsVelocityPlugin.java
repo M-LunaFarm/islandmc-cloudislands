@@ -69,6 +69,30 @@ public final class CloudIslandsVelocityPlugin {
             routingController.adminTeleportIsland(player, parseUuidOrNil(args[2]));
             return;
         }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("save")) {
+            routingController.snapshot(player, parseUuidOrNil(args[2]), "ADMIN_SAVE");
+            return;
+        }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("snapshot")) {
+            routingController.snapshot(player, parseUuidOrNil(args[2]), args.length > 3 ? joinArgs(args, 3) : "MANUAL");
+            return;
+        }
+        if (args.length >= 4 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("rollback")) {
+            routingController.restore(player, parseUuidOrNil(args[2]), parseLongOrZero(args[3]));
+            return;
+        }
+        if (args.length >= 4 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("restore")) {
+            routingController.restore(player, parseUuidOrNil(args[2]), parseLongOrZero(args[3]));
+            return;
+        }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("delete")) {
+            routingController.adminDeleteIsland(player, parseUuidOrNil(args[2]));
+            return;
+        }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("repair")) {
+            routingController.repairIsland(player, parseUuidOrNil(args[2]), args.length > 3 ? joinArgs(args, 3) : "admin");
+            return;
+        }
         if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("activate")) {
             routingController.activateIsland(player, parseUuidOrNil(args[2]));
             return;

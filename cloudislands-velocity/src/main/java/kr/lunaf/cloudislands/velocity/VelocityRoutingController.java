@@ -305,6 +305,14 @@ public final class VelocityRoutingController {
         coreApiClient.adminIslandTeleport(player.getUniqueId(), islandId).thenAccept(ticket -> route(player, ticket, "섬으로 이동하지 못했습니다."));
     }
 
+    public void adminDeleteIsland(Player player, UUID islandId) {
+        coreApiClient.adminDeleteIsland(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 삭제를 요청하지 못했습니다." : body)));
+    }
+
+    public void repairIsland(Player player, UUID islandId, String reason) {
+        coreApiClient.repairIsland(islandId, reason).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 복구를 요청하지 못했습니다." : body)));
+    }
+
     public void debugRoutes(Player player, UUID playerUuid) {
         coreApiClient.debugRoutes(playerUuid).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "라우트 정보를 불러오지 못했습니다." : body)));
     }

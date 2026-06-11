@@ -429,6 +429,30 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             routeResult(exchange, routing.prepareAdminTeleportRoute(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), JsonFields.uuid(body, "islandId", new UUID(0L, 0L))));
         });
+        route("/v1/admin/islands/delete", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            java.util.Optional<IslandSnapshot> island = islandRepository.findById(islandId);
+            boolean deleted = island.isPresent() && islandRepository.markDeleted(islandId, island.get().ownerUuid());
+            audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of("deleted", Boolean.toString(deleted)));
+            if (deleted) {
+                events.publish("ISLAND_DELETED", Map.of("islandId", islandId.toString()));
+            }
+            write(exchange, deleted ? 202 : 404, deleted ? ApiResponses.ok(true) : ApiResponses.error("ISLAND_NOT_DELETED", "Island was not found or could not be deleted"));
+        });
+        route("/v1/admin/islands/repair", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            String reason = JsonFields.text(body, "reason", "admin");
+            if (islandRepository.findById(islandId).isEmpty()) {
+                write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+                return;
+            }
+            var runtime = runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.INACTIVE_READY);
+            audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_REPAIR", "ISLAND", islandId.toString(), Map.of("reason", reason));
+            events.publish("ISLAND_REPAIRED", Map.of("islandId", islandId.toString(), "reason", reason));
+            write(exchange, 202, runtimeJson(runtime));
+        });
         route("/v1/islands/snapshots", exchange -> {
             String body = readBody(exchange);
             write(exchange, 200, snapshotsJson(snapshotRepository.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.integer(body, "limit", 20))));
