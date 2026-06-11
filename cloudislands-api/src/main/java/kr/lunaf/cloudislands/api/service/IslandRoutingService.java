@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.api.model.RouteTicket;
 
 public interface IslandRoutingService {
     CompletableFuture<RoutePlan> resolveHome(UUID playerUuid);
+    CompletableFuture<RoutePlan> resolveHome(UUID playerUuid, String homeName);
     CompletableFuture<RoutePlan> resolveVisit(UUID visitorUuid, UUID targetIslandId);
     CompletableFuture<RoutePlan> resolveRandomVisit(UUID visitorUuid);
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid);
