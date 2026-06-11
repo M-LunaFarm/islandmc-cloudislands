@@ -58,7 +58,7 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             String nodeId = JsonFields.text(body, "nodeId", "");
             java.util.List<kr.lunaf.cloudislands.protocol.job.IslandJob> claimed = jobs.claim(nodeId, java.util.List.of(kr.lunaf.cloudislands.protocol.job.IslandJobType.CREATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.ACTIVATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.DEACTIVATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.SNAPSHOT_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.MIGRATE_ISLAND), JsonFields.integer(body, "maxJobs", 4));
-            write(exchange, 200, "{\"claimed\":" + claimed.size() + "}");
+            write(exchange, 200, kr.lunaf.cloudislands.protocol.job.json.IslandJobJson.writeArray(claimed));
         });
         route("/v1/jobs/complete", exchange -> {
             String body = readBody(exchange);

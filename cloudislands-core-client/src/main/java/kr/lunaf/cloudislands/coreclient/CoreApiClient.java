@@ -1,10 +1,13 @@
 package kr.lunaf.cloudislands.coreclient;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
+import kr.lunaf.cloudislands.protocol.job.IslandJob;
+import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
@@ -15,5 +18,8 @@ public interface CoreApiClient {
     CompletableFuture<Void> publishRouteSession(RouteTicket ticket);
     CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId);
     CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce);
+    CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs);
+    CompletableFuture<Void> completeJob(String nodeId, UUID jobId);
+    CompletableFuture<Void> failJob(String nodeId, UUID jobId, String errorMessage);
     CompletableFuture<Void> publishHeartbeat(NodeHeartbeatRequest request);
 }

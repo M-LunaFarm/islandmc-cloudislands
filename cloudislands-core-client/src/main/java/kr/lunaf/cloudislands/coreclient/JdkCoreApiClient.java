@@ -6,14 +6,19 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
+import kr.lunaf.cloudislands.protocol.job.IslandJob;
+import kr.lunaf.cloudislands.protocol.job.IslandJobType;
+import kr.lunaf.cloudislands.protocol.job.json.IslandJobJson;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
@@ -61,6 +66,22 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs) {
+        String types = supportedTypes.stream().map(Enum::name).collect(Collectors.joining(","));
+        return post("/v1/jobs/claim", "{\"nodeId\":\"" + nodeId + "\",\"supportedTypes\":\"" + types + "\",\"maxJobs\":" + maxJobs + "}").thenApply(IslandJobJson::readArray);
+    }
+
+    @Override
+    public CompletableFuture<Void> completeJob(String nodeId, UUID jobId) {
+        return post("/v1/jobs/complete", "{\"nodeId\":\"" + nodeId + "\",\"jobId\":\"" + jobId + "\"}").thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<Void> failJob(String nodeId, UUID jobId, String errorMessage) {
+        return post("/v1/jobs/fail", "{\"nodeId\":\"" + nodeId + "\",\"jobId\":\"" + jobId + "\",\"error\":\"" + escape(errorMessage) + "\"}").thenApply(_body -> null);
+    }
+
+    @Override
     public CompletableFuture<Void> publishHeartbeat(NodeHeartbeatRequest request) {
         return post("/v1/nodes/heartbeat", "{\"nodeId\":\"" + request.nodeId() + "\",\"pool\":\"" + request.pool() + "\",\"velocityServerName\":\"" + request.velocityServerName() + "\",\"state\":\"" + request.state() + "\",\"players\":" + request.players() + ",\"activeIslands\":" + request.activeIslands() + ",\"mspt\":" + request.mspt() + ",\"activationQueue\":" + request.activationQueue() + ",\"heapUsedMb\":" + request.heapUsedMb() + ",\"heapMaxMb\":" + request.heapMaxMb() + "}").thenApply(_body -> null);
     }
@@ -85,6 +106,10 @@ public final class JdkCoreApiClient implements CoreApiClient {
         int valueStart = start + needle.length();
         int end = json.indexOf('"', valueStart);
         return end < 0 ? fallback : json.substring(valueStart, end);
+    }
+
+    private static String escape(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private static UUID uuid(String json, String field, UUID fallback) {
