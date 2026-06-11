@@ -66,6 +66,7 @@ import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
 import kr.lunaf.cloudislands.api.service.IslandAdminService;
 import kr.lunaf.cloudislands.api.service.IslandCommandService;
+import kr.lunaf.cloudislands.api.service.IslandEventService;
 import kr.lunaf.cloudislands.api.service.IslandPermissionService;
 import kr.lunaf.cloudislands.api.service.IslandQueryService;
 import kr.lunaf.cloudislands.api.service.IslandRoutingService;
@@ -88,6 +89,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private final RoutingService routing;
     private final PermissionService permissions;
     private final RuntimeService runtime;
+    private final EventService events;
     private final AdminService admin;
     private final CommandService commands;
 
@@ -97,6 +99,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         this.routing = new RoutingService(client);
         this.permissions = new PermissionService(agent);
         this.runtime = new RuntimeService(client);
+        this.events = new EventService(client);
         this.admin = new AdminService(client);
         this.commands = new CommandService(client);
     }
@@ -124,6 +127,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     @Override
     public IslandRuntimeService runtime() {
         return runtime;
+    }
+
+    @Override
+    public IslandEventService events() {
+        return events;
     }
 
     @Override
@@ -594,6 +602,19 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<MigrationRunSnapshot> rollbackSuperiorSkyblock2(String path) {
             return client.migrateSuperiorSkyblock2("rollback", path).thenApply(PaperCloudIslandsApi::migrationRun);
+        }
+    }
+
+    private static final class EventService implements IslandEventService {
+        private final CoreApiClient client;
+
+        private EventService(CoreApiClient client) {
+            this.client = client;
+        }
+
+        @Override
+        public CompletableFuture<List<GlobalEventSnapshot>> listGlobalEvents() {
+            return client.listEvents().thenApply(PaperCloudIslandsApi::events);
         }
     }
 
