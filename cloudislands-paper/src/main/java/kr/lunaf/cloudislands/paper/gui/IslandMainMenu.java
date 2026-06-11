@@ -26,6 +26,7 @@ public final class IslandMainMenu implements Listener {
         inventory.setItem(19, item(Material.MAP, "섬 정보", "/섬 정보"));
         inventory.setItem(20, item(Material.EMERALD, "섬 은행", "/섬 은행"));
         inventory.setItem(21, item(Material.BOOK, "미션", "/섬 미션"));
+        inventory.setItem(22, item(Material.CHEST, "스냅샷", "/섬 스냅샷"));
         inventory.setItem(23, item(Material.BEACON, "업그레이드", "/섬 업그레이드"));
         player.openInventory(inventory);
     }
@@ -69,6 +70,8 @@ public final class IslandMainMenu implements Listener {
             player.performCommand("섬 은행");
         } else if (name.equals("미션")) {
             player.performCommand("섬 미션");
+        } else if (name.equals("스냅샷")) {
+            player.performCommand("섬 스냅샷");
         } else if (name.equals("업그레이드")) {
             player.performCommand("섬 업그레이드");
         }

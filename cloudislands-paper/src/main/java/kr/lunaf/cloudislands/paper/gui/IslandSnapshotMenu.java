@@ -46,9 +46,22 @@ public final class IslandSnapshotMenu implements Listener {
             player.performCommand("섬 스냅샷생성 manual");
             return;
         }
+        if (name.equals("새로고침")) {
+            player.performCommand("섬 스냅샷");
+            return;
+        }
         String snapshotNo = loreValue(meta, "snapshotNo=");
         if (!snapshotNo.isBlank()) {
-            player.performCommand("섬 스냅샷복원 " + snapshotNo);
+            if (event.isRightClick()) {
+                player.performCommand("섬 스냅샷복원 " + snapshotNo);
+                return;
+            }
+            player.sendMessage("스냅샷 상세");
+            if (meta.getLore() != null) {
+                for (String line : meta.getLore()) {
+                    player.sendMessage("- " + line);
+                }
+            }
         }
     }
 
@@ -56,16 +69,21 @@ public final class IslandSnapshotMenu implements Listener {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
             inventory.setItem(45, item(Material.CHEST, "새 스냅샷 생성", "/섬 스냅샷생성 manual"));
+            inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 스냅샷"));
             int slot = 0;
-            for (Snapshot snapshot : snapshots.stream().limit(45).toList()) {
-                inventory.setItem(slot++, snapshotItem(snapshot));
+            if (snapshots.isEmpty()) {
+                inventory.setItem(22, item(Material.BARRIER, "스냅샷 없음", "아직 생성된 섬 스냅샷이 없습니다."));
+            } else {
+                for (Snapshot snapshot : snapshots.stream().limit(45).toList()) {
+                    inventory.setItem(slot++, snapshotItem(snapshot));
+                }
             }
             player.openInventory(inventory);
         });
     }
 
     private static ItemStack snapshotItem(Snapshot snapshot) {
-        return item(Material.PAPER, "스냅샷 #" + snapshot.snapshotNo(), "snapshotNo=" + snapshot.snapshotNo(), "reason=" + snapshot.reason(), "sizeBytes=" + snapshot.sizeBytes(), "createdAt=" + snapshot.createdAt(), "클릭하면 이 스냅샷 복원을 요청합니다.");
+        return item(Material.PAPER, "스냅샷 #" + snapshot.snapshotNo(), "snapshotNo=" + snapshot.snapshotNo(), "reason=" + snapshot.reason(), "sizeBytes=" + snapshot.sizeBytes(), "createdAt=" + snapshot.createdAt(), "좌클릭: 상세 보기", "우클릭: 이 스냅샷 복원 요청");
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
