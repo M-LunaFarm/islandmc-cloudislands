@@ -54,6 +54,22 @@ public final class CloudIslandsCoreApplication {
         route("/health", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));
         route("/v1/nodes", exchange -> write(exchange, 200, nodes.toJson()));
         route("/v1/jobs", exchange -> write(exchange, 200, jobs.toJson()));
+        route("/v1/jobs/claim", exchange -> {
+            String body = readBody(exchange);
+            String nodeId = JsonFields.text(body, "nodeId", "");
+            java.util.List<kr.lunaf.cloudislands.protocol.job.IslandJob> claimed = jobs.claim(nodeId, java.util.List.of(kr.lunaf.cloudislands.protocol.job.IslandJobType.CREATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.ACTIVATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.DEACTIVATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.SNAPSHOT_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.MIGRATE_ISLAND), JsonFields.integer(body, "maxJobs", 4));
+            write(exchange, 200, "{\"claimed\":" + claimed.size() + "}");
+        });
+        route("/v1/jobs/complete", exchange -> {
+            String body = readBody(exchange);
+            jobs.complete(JsonFields.text(body, "nodeId", ""), JsonFields.uuid(body, "jobId", new UUID(0L, 0L)));
+            write(exchange, 202, "{\"accepted\":true}");
+        });
+        route("/v1/jobs/fail", exchange -> {
+            String body = readBody(exchange);
+            jobs.fail(JsonFields.text(body, "nodeId", ""), JsonFields.uuid(body, "jobId", new UUID(0L, 0L)), JsonFields.text(body, "error", "unknown"));
+            write(exchange, 202, "{\"accepted\":true}");
+        });
         route("/v1/events", exchange -> write(exchange, 200, events.toJson()));
         route("/v1/audit", exchange -> write(exchange, 200, audit.toJson()));
         route("/v1/routes/home", exchange -> {
