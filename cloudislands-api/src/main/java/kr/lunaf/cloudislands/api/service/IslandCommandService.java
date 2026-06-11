@@ -22,6 +22,8 @@ import kr.lunaf.cloudislands.api.upgrade.UpgradePurchaseSnapshot;
 public interface IslandCommandService {
     CompletableFuture<CreateIslandResult> createIsland(UUID ownerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
+    CompletableFuture<Void> resetIsland(UUID islandId, UUID actorUuid, String reason);
+    CompletableFuture<IslandActionResult> resetIslandResult(UUID islandId, UUID actorUuid, String reason);
     CompletableFuture<Void> invite(UUID islandId, UUID inviterUuid, UUID targetUuid);
     CompletableFuture<IslandInviteSnapshot> inviteResult(UUID islandId, UUID inviterUuid, UUID targetUuid);
     CompletableFuture<Void> acceptInvite(UUID inviteId, UUID playerUuid);

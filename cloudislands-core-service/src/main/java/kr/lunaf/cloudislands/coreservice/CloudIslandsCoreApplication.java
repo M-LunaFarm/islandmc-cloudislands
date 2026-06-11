@@ -307,7 +307,7 @@ public final class CloudIslandsCoreApplication {
         route("/v1/jobs/claim", exchange -> {
             String body = readBody(exchange);
             String nodeId = JsonFields.text(body, "nodeId", "");
-            java.util.List<kr.lunaf.cloudislands.protocol.job.IslandJob> claimed = jobs.claim(nodeId, java.util.List.of(kr.lunaf.cloudislands.protocol.job.IslandJobType.CREATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.ACTIVATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.DEACTIVATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.SNAPSHOT_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.MIGRATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.RESTORE_ISLAND), JsonFields.integer(body, "maxJobs", 4));
+            java.util.List<kr.lunaf.cloudislands.protocol.job.IslandJob> claimed = jobs.claim(nodeId, java.util.List.of(kr.lunaf.cloudislands.protocol.job.IslandJobType.CREATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.ACTIVATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.DEACTIVATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.SNAPSHOT_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.MIGRATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.RESTORE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.RESET_ISLAND), JsonFields.integer(body, "maxJobs", 4));
             write(exchange, 200, kr.lunaf.cloudislands.protocol.job.json.IslandJobJson.writeArray(claimed));
         });
         route("/v1/jobs/complete", exchange -> {
@@ -833,6 +833,21 @@ public final class CloudIslandsCoreApplication {
                 events.publish("ISLAND_DELETE", Map.of("islandId", islandId.toString(), "requesterUuid", requesterUuid.toString()));
             }
             write(exchange, deleted ? 202 : 403, deleteResultJson(new DeleteIslandResult(deleted, deleted ? "DELETED" : "NOT_OWNER_OR_MISSING", islandId)));
+        });
+        route("/v1/islands/reset", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            String reason = JsonFields.text(body, "reason", "player-reset");
+            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
+            IslandLifecycleWorkflow.Result result = lifecycle.reset(islandId, reason);
+            if (result.accepted()) {
+                audit.log(actorUuid, "PLAYER", "ISLAND_RESET", "ISLAND", islandId.toString(), Map.of("reason", reason));
+                islandLogs.append(islandId, actorUuid, "ISLAND_RESET", Map.of("reason", reason));
+            }
+            lifecycle(exchange, result);
         });
         route("/v1/islands/members", exchange -> {
             String body = readBody(exchange);

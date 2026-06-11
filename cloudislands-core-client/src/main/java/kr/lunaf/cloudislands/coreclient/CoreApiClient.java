@@ -20,6 +20,8 @@ import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 public interface CoreApiClient {
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
+    CompletableFuture<String> resetIsland(UUID islandId, UUID actorUuid, String reason);
+    CompletableFuture<String> resetIslandResult(UUID islandId, UUID actorUuid, String reason);
     CompletableFuture<String> islandInfo(UUID islandId);
     CompletableFuture<String> islandInfoByOwner(UUID ownerUuid);
     CompletableFuture<String> listIslandMembers(UUID islandId);

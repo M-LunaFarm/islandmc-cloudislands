@@ -588,6 +588,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override public CompletableFuture<CreateIslandResult> createIsland(UUID ownerUuid, String templateId) { return client.createIsland(ownerUuid, templateId); }
         @Override public CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId) { return client.deleteIsland(requesterUuid, islandId); }
+        @Override public CompletableFuture<Void> resetIsland(UUID islandId, UUID actorUuid, String reason) { return resetIslandResult(islandId, actorUuid, reason).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> resetIslandResult(UUID islandId, UUID actorUuid, String reason) { return client.resetIslandResult(islandId, actorUuid, reason).thenApply(body -> actionCode(body, "RESET_QUEUED")); }
         @Override public CompletableFuture<Void> invite(UUID islandId, UUID inviterUuid, UUID targetUuid) { return inviteResult(islandId, inviterUuid, targetUuid).thenApply(_invite -> null); }
         @Override public CompletableFuture<IslandInviteSnapshot> inviteResult(UUID islandId, UUID inviterUuid, UUID targetUuid) { return client.createIslandInvite(islandId, inviterUuid, targetUuid).thenApply(PaperCloudIslandsApi::invite); }
         @Override public CompletableFuture<Void> acceptInvite(UUID inviteId, UUID playerUuid) { return acceptInviteResult(inviteId, playerUuid).thenApply(_result -> null); }

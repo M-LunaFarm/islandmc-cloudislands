@@ -24,11 +24,11 @@ public final class JobCompletionService {
     }
 
     public void completed(IslandJob job) {
-        if (job.type() == IslandJobType.CREATE_ISLAND || job.type() == IslandJobType.ACTIVATE_ISLAND) {
+        if (job.type() == IslandJobType.CREATE_ISLAND || job.type() == IslandJobType.ACTIVATE_ISLAND || job.type() == IslandJobType.RESET_ISLAND) {
             String worldName = job.payload().getOrDefault("worldName", "ci_shard_001");
             runtimes.markActive(job.islandId(), job.targetNode(), worldName, integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), longValue(job.payload().get("fencingToken")));
             int readyTickets = tickets.markReadyForIsland(job.islandId(), job.targetNode(), worldName, Map.of());
-            events.publish(CloudIslandEventType.ISLAND_ACTIVATED.name(), Map.of("islandId", job.islandId().toString(), "nodeId", job.targetNode() == null ? "" : job.targetNode(), "readyTickets", Integer.toString(readyTickets)));
+            events.publish(job.type() == IslandJobType.RESET_ISLAND ? "ISLAND_RESET" : CloudIslandEventType.ISLAND_ACTIVATED.name(), Map.of("islandId", job.islandId().toString(), "nodeId", job.targetNode() == null ? "" : job.targetNode(), "readyTickets", Integer.toString(readyTickets)));
             return;
         }
         if (job.type() == IslandJobType.DEACTIVATE_ISLAND || job.type() == IslandJobType.SAVE_ISLAND || job.type() == IslandJobType.SNAPSHOT_ISLAND) {
@@ -55,7 +55,7 @@ public final class JobCompletionService {
     public void failed(IslandJob job, String errorMessage) {
         IslandState state = switch (job.type()) {
             case CREATE_ISLAND -> IslandState.ERROR_CREATING;
-            case ACTIVATE_ISLAND, MIGRATE_ISLAND, RESTORE_ISLAND -> IslandState.ERROR_ACTIVATING;
+            case ACTIVATE_ISLAND, MIGRATE_ISLAND, RESTORE_ISLAND, RESET_ISLAND -> IslandState.ERROR_ACTIVATING;
             case SAVE_ISLAND, SNAPSHOT_ISLAND, DEACTIVATE_ISLAND -> IslandState.ERROR_SAVING;
             default -> IslandState.RECOVERY_REQUIRED;
         };

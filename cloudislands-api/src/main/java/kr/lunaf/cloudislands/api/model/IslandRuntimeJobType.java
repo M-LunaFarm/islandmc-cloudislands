@@ -8,5 +8,6 @@ public enum IslandRuntimeJobType {
     SNAPSHOT_ISLAND,
     MIGRATE_ISLAND,
     DELETE_ISLAND,
+    RESET_ISLAND,
     RESTORE_ISLAND
 }
