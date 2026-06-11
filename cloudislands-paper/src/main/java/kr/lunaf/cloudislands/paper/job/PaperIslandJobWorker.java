@@ -7,8 +7,10 @@ import kr.lunaf.cloudislands.paper.activation.IslandActivationJobHandler;
 import kr.lunaf.cloudislands.paper.activation.IslandDeactivationHandler;
 import kr.lunaf.cloudislands.paper.cache.PermissionCacheSyncService;
 import kr.lunaf.cloudislands.paper.event.IslandActivateEvent;
+import kr.lunaf.cloudislands.paper.event.IslandCreateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandDeactivateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandPreActivateEvent;
+import kr.lunaf.cloudislands.paper.event.IslandPreCreateEvent;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import org.bukkit.Bukkit;
@@ -82,6 +84,14 @@ public final class PaperIslandJobWorker {
                 handleDeactivation(job);
                 return;
             }
+            if (job.type() == IslandJobType.CREATE_ISLAND) {
+                IslandPreCreateEvent preCreate = new IslandPreCreateEvent(job.islandId(), job.jobId(), nodeId);
+                Bukkit.getPluginManager().callEvent(preCreate);
+                if (preCreate.isCancelled()) {
+                    jobSource.fail(nodeId, job.jobId(), "CREATE_CANCELLED");
+                    return;
+                }
+            }
             IslandPreActivateEvent preEvent = new IslandPreActivateEvent(job.islandId(), job.jobId(), job.type(), nodeId);
             Bukkit.getPluginManager().callEvent(preEvent);
             if (preEvent.isCancelled()) {
@@ -91,6 +101,9 @@ public final class PaperIslandJobWorker {
             IslandActivationJobHandler.ActivationResult result = activationHandler.handle(job);
             if (result.success()) {
                 activeIslands.activated(result);
+                if (job.type() == IslandJobType.CREATE_ISLAND) {
+                    Bukkit.getPluginManager().callEvent(new IslandCreateEvent(result.islandId(), job.jobId(), nodeId, result.worldName()));
+                }
                 Bukkit.getPluginManager().callEvent(new IslandActivateEvent(result.islandId(), nodeId, result.worldName(), result.cellX(), result.cellZ(), result.schemaVersion()));
                 if (permissionSync != null) {
                     permissionSync.sync(job.islandId());
