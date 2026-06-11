@@ -38,6 +38,7 @@ public final class CloudIslandsVelocityPlugin {
     private final ProxyServer proxy;
     private final Logger logger;
     private final VelocityRoutingController routingController;
+    private final List<String> commandAliases;
 
     @Inject
     public CloudIslandsVelocityPlugin(ProxyServer proxy, Logger logger, @DataDirectory Path dataDirectory) {
@@ -51,10 +52,12 @@ public final class CloudIslandsVelocityPlugin {
         int routeWaitSeconds = Integer.getInteger("cloudislands.routeWaitSeconds", config.routeWaitSeconds());
         CoreApiClient client = new JdkCoreApiClient(URI.create(coreUrl), coreToken, Duration.ofMillis(Math.max(1L, timeoutMs)));
         this.routingController = new VelocityRoutingController(proxy, client, fallbackServer, routeWaitSeconds);
+        this.commandAliases = config.aliases();
     }
 
     private static VelocityConfig loadConfig(Path dataDirectory, Logger logger) {
         Map<String, String> values = new HashMap<>();
+        List<String> aliases = new ArrayList<>();
         Path configPath = dataDirectory.resolve("config.yaml");
         try {
             if (Files.notExists(configPath)) {
@@ -67,11 +70,20 @@ public final class CloudIslandsVelocityPlugin {
             }
             if (Files.exists(configPath)) {
                 String section = "";
+                boolean readingAliases = false;
                 for (String rawLine : Files.readAllLines(configPath)) {
                     String line = rawLine.strip();
-                    if (line.isBlank() || line.startsWith("#") || line.startsWith("-")) {
+                    if (line.isBlank() || line.startsWith("#")) {
                         continue;
                     }
+                    if (readingAliases && line.startsWith("-")) {
+                        String alias = unquote(line.substring(1).strip());
+                        if (!alias.isBlank()) {
+                            aliases.add(alias);
+                        }
+                        continue;
+                    }
+                    readingAliases = false;
                     if (!rawLine.startsWith(" ") && line.endsWith(":")) {
                         section = line.substring(0, line.length() - 1).strip();
                         continue;
@@ -82,6 +94,10 @@ public final class CloudIslandsVelocityPlugin {
                     }
                     String key = line.substring(0, colon).strip();
                     String value = unquote(line.substring(colon + 1).strip());
+                    if (section.equals("commands") && key.equals("aliases") && value.isBlank()) {
+                        readingAliases = true;
+                        continue;
+                    }
                     values.put(section.isBlank() ? key : section + "." + key, resolveEnv(value));
                 }
             }
@@ -93,7 +109,8 @@ public final class CloudIslandsVelocityPlugin {
             values.getOrDefault("core-api.auth-token", ""),
             integer(values.get("core-api.timeout-ms"), 3000),
             values.getOrDefault("routing.fallback-on-failure", values.getOrDefault("routing.default-lobby", "Lobby")),
-            integer(values.get("routing.wait-for-activation-timeout-seconds"), 20)
+            integer(values.get("routing.wait-for-activation-timeout-seconds"), 20),
+            aliases.isEmpty() ? ALIASES : List.copyOf(aliases)
         );
     }
 
@@ -119,7 +136,11 @@ public final class CloudIslandsVelocityPlugin {
         }
     }
 
-    private record VelocityConfig(String coreBaseUrl, String coreToken, int timeoutMs, String fallbackServer, int routeWaitSeconds) {}
+    private static String[] commandAliasArray(List<String> aliases) {
+        return aliases.stream().filter(alias -> !alias.equalsIgnoreCase("섬")).distinct().toArray(String[]::new);
+    }
+
+    private record VelocityConfig(String coreBaseUrl, String coreToken, int timeoutMs, String fallbackServer, int routeWaitSeconds, List<String> aliases) {}
 
     @Subscribe
     public void onProxyInitialize(ProxyInitializeEvent event) {
@@ -139,7 +160,7 @@ public final class CloudIslandsVelocityPlugin {
                 return suggestions(IslandCommandCatalog.playerCommands(), "섬", invocation.arguments());
             }
         };
-        commands.register(commands.metaBuilder("섬").aliases("is", "island").build(), islandCommand);
+        commands.register(commands.metaBuilder("섬").aliases(commandAliasArray(commandAliases)).build(), islandCommand);
         commands.register(commands.metaBuilder("ciadmin").aliases("섬관리").build(), new SimpleCommand() {
             @Override
             public void execute(SimpleCommand.Invocation invocation) {
@@ -155,7 +176,7 @@ public final class CloudIslandsVelocityPlugin {
                 return adminSuggestions(invocation.arguments());
             }
         });
-        logger.info("CloudIslands Velocity router enabled with aliases {}", ALIASES);
+        logger.info("CloudIslands Velocity router enabled with aliases {}", commandAliases);
     }
 
     @Subscribe
