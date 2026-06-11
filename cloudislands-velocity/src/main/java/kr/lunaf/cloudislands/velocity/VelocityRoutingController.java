@@ -265,6 +265,19 @@ public final class VelocityRoutingController {
         sendPlayerPayloadFuture(player, coreApiClient.createIslandInvite(islandId, player.getUniqueId(), targetUuid), "초대를 생성하지 못했습니다.", "섬 초대를 보냈습니다.");
     }
 
+    public void inviteTarget(Player player, UUID islandId, String target) {
+        resolvePlayerUuid(target).thenAccept(targetUuid -> {
+            if (targetUuid.equals(new UUID(0L, 0L))) {
+                player.sendMessage(Component.text("초대할 플레이어를 찾지 못했습니다."));
+                return;
+            }
+            invite(player, islandId, targetUuid);
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("초대할 플레이어를 찾지 못했습니다."));
+            return null;
+        });
+    }
+
     public void listInvites(Player player) {
         coreApiClient.listPendingInvites(player.getUniqueId()).thenAccept(body -> player.sendMessage(Component.text(inviteListMessage(body)))).exceptionally(error -> {
             player.sendMessage(Component.text("초대 목록을 불러오지 못했습니다."));
@@ -662,6 +675,21 @@ public final class VelocityRoutingController {
         }
         return coreApiClient.playerInfoByName(target)
             .thenCompose(body -> coreApiClient.listPendingInvites(player.getUniqueId()).thenApply(invites -> findInviteId(invites, parseUuid(jsonValue(body, "playerUuid")))));
+    }
+
+    private CompletableFuture<UUID> resolvePlayerUuid(String target) {
+        if (target == null || target.isBlank()) {
+            return CompletableFuture.completedFuture(new UUID(0L, 0L));
+        }
+        UUID parsed = parseUuid(target);
+        if (!parsed.equals(new UUID(0L, 0L))) {
+            return CompletableFuture.completedFuture(parsed);
+        }
+        Optional<Player> online = proxy.getPlayer(target);
+        if (online.isPresent()) {
+            return CompletableFuture.completedFuture(online.get().getUniqueId());
+        }
+        return coreApiClient.playerInfoByName(target).thenApply(body -> parseUuid(jsonValue(body, "playerUuid")));
     }
 
     private UUID findInviteId(String body, UUID targetUuid) {

@@ -382,8 +382,7 @@ public final class CloudIslandsVelocityPlugin {
         }
         if (args[0].equalsIgnoreCase("invite") || args[0].equals("초대")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
-            UUID targetUuid = parsePlayerUuidOrNil(argumentAfterOptionalIsland(args, 1, ""));
-            routingController.invite(player, islandId, targetUuid);
+            routingController.inviteTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""));
             return;
         }
         if (args[0].equalsIgnoreCase("invites") || args[0].equals("초대목록")) {
