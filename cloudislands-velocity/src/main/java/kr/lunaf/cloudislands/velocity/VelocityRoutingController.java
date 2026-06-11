@@ -201,6 +201,10 @@ public final class VelocityRoutingController {
         coreApiClient.topIslandsByLevel(10).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "랭킹을 불러오지 못했습니다." : body)));
     }
 
+    public void showWorthRanking(Player player) {
+        coreApiClient.topIslandsByWorth(10).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "가치 랭킹을 불러오지 못했습니다." : body)));
+    }
+
     public void recalculateLevel(Player player, UUID islandId) {
         coreApiClient.recalculateIslandLevel(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "레벨 계산을 시작하지 못했습니다." : body)));
     }

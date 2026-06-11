@@ -420,6 +420,10 @@ public final class CloudIslandsVelocityPlugin {
             routingController.withdrawBank(player, islandId, amount);
             return;
         }
+        if (args[0].equalsIgnoreCase("worthrank") || args[0].equalsIgnoreCase("valuerank") || args[0].equals("가치랭킹") || (args.length > 1 && (args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("ranking") || args[0].equals("랭킹")) && (args[1].equalsIgnoreCase("worth") || args[1].equalsIgnoreCase("value") || args[1].equals("가치")))) {
+            routingController.showWorthRanking(player);
+            return;
+        }
         if (args[0].equalsIgnoreCase("rank") || args[0].equals("ranking") || args[0].equals("랭킹")) {
             routingController.showLevelRanking(player);
             return;
