@@ -265,7 +265,7 @@ public final class CloudIslandsCoreApplication {
                 if (deleted) {
                     playerProfiles.clearPrimaryIsland(island.get().ownerUuid());
                     if (publishDeleteJobOrMarkDeleted(islandId, "api-delete")) {
-                        events.publish("ISLAND_DELETED", Map.of("islandId", islandId.toString()));
+                        events.publish(CloudIslandEventType.ISLAND_DELETED.name(), Map.of("islandId", islandId.toString()));
                     }
                 }
                 audit.log(new UUID(0L, 0L), "API", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of("deleted", Boolean.toString(deleted)));
@@ -699,7 +699,7 @@ public final class CloudIslandsCoreApplication {
             audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of("deleted", Boolean.toString(deleted)));
             if (deleted) {
                 if (publishDeleteJobOrMarkDeleted(islandId, "admin-delete")) {
-                    events.publish("ISLAND_DELETED", Map.of("islandId", islandId.toString()));
+                    events.publish(CloudIslandEventType.ISLAND_DELETED.name(), Map.of("islandId", islandId.toString()));
                 }
             }
             write(exchange, deleted ? 202 : 404, deleted ? ApiResponses.ok(true) : ApiResponses.error("ISLAND_NOT_DELETED", "Island was not found or could not be deleted"));
@@ -767,7 +767,7 @@ public final class CloudIslandsCoreApplication {
             audit.log(actorUuid, "PLAYER", "ISLAND_UPGRADE_PURCHASE", "ISLAND", islandId.toString(), Map.of("upgradeKey", upgradeKey, "code", result.code(), "cost", result.cost().toPlainString()));
             islandLogs.append(islandId, actorUuid, "ISLAND_UPGRADE_PURCHASE", Map.of("upgradeKey", upgradeKey, "code", result.code(), "cost", result.cost().toPlainString()));
             if (result.accepted()) {
-                events.publish("ISLAND_UPGRADE", Map.of("islandId", islandId.toString(), "upgradeKey", upgradeKey, "level", Integer.toString(result.snapshot().level())));
+                events.publish(CloudIslandEventType.ISLAND_UPGRADE.name(), Map.of("islandId", islandId.toString(), "upgradeKey", upgradeKey, "level", Integer.toString(result.snapshot().level())));
             }
             write(exchange, result.accepted() ? 202 : 409, upgradePurchaseJson(result));
         });
@@ -832,10 +832,12 @@ public final class CloudIslandsCoreApplication {
                 playerProfiles.clearPrimaryIsland(requesterUuid);
             }
             if (deleted) {
-                publishDeleteJobOrMarkDeleted(islandId, "player-delete");
+                boolean deletedImmediately = publishDeleteJobOrMarkDeleted(islandId, "player-delete");
                 audit.log(requesterUuid, "PLAYER", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of());
                 islandLogs.append(islandId, requesterUuid, "ISLAND_DELETE", Map.of());
-                events.publish("ISLAND_DELETE", Map.of("islandId", islandId.toString(), "requesterUuid", requesterUuid.toString()));
+                if (deletedImmediately) {
+                    events.publish(CloudIslandEventType.ISLAND_DELETED.name(), Map.of("islandId", islandId.toString(), "requesterUuid", requesterUuid.toString()));
+                }
             }
             write(exchange, deleted ? 202 : 403, deleteResultJson(new DeleteIslandResult(deleted, deleted ? "DELETED" : "NOT_OWNER_OR_MISSING", islandId)));
         });
