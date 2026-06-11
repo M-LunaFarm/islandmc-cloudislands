@@ -996,7 +996,13 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 return;
             }
             coreApiClient.depositIslandBank(islandId, player.getUniqueId(), amount)
-                .thenAccept(body -> message(player, "섬 은행에 입금했습니다. 잔액: " + bankBalance(body)))
+                .thenAccept(body -> {
+                    if (body.contains("\"accepted\":false")) {
+                        message(player, "섬 은행에 입금하지 못했습니다. 잔액: " + bankBalance(body));
+                        return;
+                    }
+                    message(player, "섬 은행에 입금했습니다. 잔액: " + bankBalance(body));
+                })
                 .exceptionally(error -> {
                     message(player, "섬 은행에 입금하지 못했습니다.");
                     return null;
