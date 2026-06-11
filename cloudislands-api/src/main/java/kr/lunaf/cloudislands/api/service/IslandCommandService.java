@@ -63,6 +63,8 @@ public interface IslandCommandService {
     CompletableFuture<IslandActionResult> lockIslandResult(UUID islandId, UUID actorUuid);
     CompletableFuture<Void> unlockIsland(UUID islandId, UUID actorUuid);
     CompletableFuture<IslandActionResult> unlockIslandResult(UUID islandId, UUID actorUuid);
+    CompletableFuture<Void> setHome(UUID islandId, UUID actorUuid, IslandLocation location);
+    CompletableFuture<IslandActionResult> setHomeResult(UUID islandId, UUID actorUuid, IslandLocation location);
     CompletableFuture<Void> setHome(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<IslandActionResult> setHomeResult(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<Void> setBiome(UUID islandId, UUID actorUuid, String biomeKey);

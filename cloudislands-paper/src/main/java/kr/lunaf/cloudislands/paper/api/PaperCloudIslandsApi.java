@@ -647,6 +647,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<IslandActionResult> lockIslandResult(UUID islandId, UUID actorUuid) { return setLockedResult(islandId, actorUuid, true); }
         @Override public CompletableFuture<Void> unlockIsland(UUID islandId, UUID actorUuid) { return unlockIslandResult(islandId, actorUuid).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> unlockIslandResult(UUID islandId, UUID actorUuid) { return setLockedResult(islandId, actorUuid, false); }
+        @Override public CompletableFuture<Void> setHome(UUID islandId, UUID actorUuid, IslandLocation location) { return setHomeResult(islandId, actorUuid, location).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> setHomeResult(UUID islandId, UUID actorUuid, IslandLocation location) { return setHomeResult(islandId, actorUuid, "default", location); }
         @Override public CompletableFuture<Void> setHome(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return setHomeResult(islandId, actorUuid, name, location).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> setHomeResult(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return client.setIslandHomeResult(islandId, actorUuid, name, location).thenApply(body -> action(body, "HOME_SET")); }
         @Override public CompletableFuture<Void> setBiome(UUID islandId, UUID actorUuid, String biomeKey) { return setBiomeResult(islandId, actorUuid, biomeKey).thenApply(_result -> null); }
