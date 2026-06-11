@@ -78,7 +78,7 @@ public final class IslandProtectionListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent event) {
         if (event.getClickedBlock() != null) {
-            event.setCancelled(denied(event.getPlayer(), event.getClickedBlock(), IslandPermission.INTERACT));
+            event.setCancelled(denied(event.getPlayer(), event.getClickedBlock(), interactionPermission(event.getClickedBlock().getType())));
         }
     }
 
@@ -227,6 +227,23 @@ public final class IslandProtectionListener implements Listener {
 
     private boolean denied(Player player, Block block, IslandPermission permission) {
         return !protection.checkBlock(player.getUniqueId(), block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), permission).allowed();
+    }
+
+    private IslandPermission interactionPermission(Material type) {
+        String name = type.name();
+        if (name.endsWith("_DOOR") || name.endsWith("_TRAPDOOR") || name.endsWith("_FENCE_GATE")) {
+            return IslandPermission.USE_DOOR;
+        }
+        if (name.endsWith("_BUTTON")) {
+            return IslandPermission.USE_BUTTON;
+        }
+        if (name.endsWith("_PRESSURE_PLATE")) {
+            return IslandPermission.USE_PRESSURE_PLATE;
+        }
+        if (name.equals("LEVER") || name.equals("REDSTONE_WIRE") || name.endsWith("REPEATER") || name.endsWith("COMPARATOR")) {
+            return IslandPermission.USE_REDSTONE;
+        }
+        return IslandPermission.INTERACT;
     }
 
     private IslandFlag explosionFlag(EntityType type) {
