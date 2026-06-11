@@ -386,12 +386,12 @@ public final class CloudIslandsVelocityPlugin {
             routingController.listInvites(player);
             return;
         }
-        if (args[0].equalsIgnoreCase("accept") || args[0].equals("수락")) {
+        if (args[0].equalsIgnoreCase("accept") || args[0].equals("수락") || args[0].equals("초대수락")) {
             UUID inviteId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.acceptInvite(player, inviteId);
             return;
         }
-        if (args[0].equalsIgnoreCase("decline") || args[0].equals("거절")) {
+        if (args[0].equalsIgnoreCase("decline") || args[0].equals("거절") || args[0].equals("초대거절")) {
             UUID inviteId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.declineInvite(player, inviteId);
             return;
@@ -501,6 +501,11 @@ public final class CloudIslandsVelocityPlugin {
         if (args[0].equalsIgnoreCase("publicwarps") || args[0].equals("공개워프")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.setBooleanFlag(player, islandId, kr.lunaf.cloudislands.api.model.IslandFlag.PUBLIC_WARPS, parseToggle(args, 2, true), "공개 워프");
+            return;
+        }
+        if (args[0].equalsIgnoreCase("flags") || args[0].equals("플래그")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.showIslandSettings(player, islandId);
             return;
         }
         if (args[0].equalsIgnoreCase("permissions") || args[0].equals("권한")) {
