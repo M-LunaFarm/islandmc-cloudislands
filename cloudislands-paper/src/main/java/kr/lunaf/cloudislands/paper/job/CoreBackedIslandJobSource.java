@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.job;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
@@ -21,6 +22,11 @@ public final class CoreBackedIslandJobSource implements PaperIslandJobWorker.Loc
     @Override
     public void complete(String nodeId, UUID jobId) {
         coreApiClient.completeJob(nodeId, jobId);
+    }
+
+    @Override
+    public void complete(String nodeId, UUID jobId, Map<String, String> payload) {
+        coreApiClient.completeJob(nodeId, jobId, payload);
     }
 
     @Override

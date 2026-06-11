@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreclient;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -20,6 +21,7 @@ public interface CoreApiClient {
     CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce);
     CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs);
     CompletableFuture<Void> completeJob(String nodeId, UUID jobId);
+    CompletableFuture<Void> completeJob(String nodeId, UUID jobId, Map<String, String> payload);
     CompletableFuture<Void> failJob(String nodeId, UUID jobId, String errorMessage);
     CompletableFuture<Void> publishHeartbeat(NodeHeartbeatRequest request);
 }
