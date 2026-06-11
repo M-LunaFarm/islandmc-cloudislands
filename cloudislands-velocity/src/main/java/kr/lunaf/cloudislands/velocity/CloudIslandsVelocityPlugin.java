@@ -397,8 +397,23 @@ public final class CloudIslandsVelocityPlugin {
         }
         if (args[0].equalsIgnoreCase("fly") || args[0].equals("비행")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            boolean enabled = args.length <= 2 || args[2].equalsIgnoreCase("on") || args[2].equalsIgnoreCase("true") || args[2].equals("켜기");
+            boolean enabled = parseToggle(args, 2, true);
             routingController.setFlyFlag(player, islandId, enabled);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("keepinventory") || args[0].equalsIgnoreCase("keepinv") || args[0].equals("인벤보존")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.setBooleanFlag(player, islandId, kr.lunaf.cloudislands.api.model.IslandFlag.KEEP_INVENTORY, parseToggle(args, 2, true), "인벤토리 보존");
+            return;
+        }
+        if (args[0].equalsIgnoreCase("pvp") || args[0].equals("피빕")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.setBooleanFlag(player, islandId, kr.lunaf.cloudislands.api.model.IslandFlag.PVP, parseToggle(args, 2, true), "PVP");
+            return;
+        }
+        if (args[0].equalsIgnoreCase("publicwarps") || args[0].equals("공개워프")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.setBooleanFlag(player, islandId, kr.lunaf.cloudislands.api.model.IslandFlag.PUBLIC_WARPS, parseToggle(args, 2, true), "공개 워프");
             return;
         }
         if (args[0].equalsIgnoreCase("permissions") || args[0].equals("권한")) {
@@ -562,6 +577,17 @@ public final class CloudIslandsVelocityPlugin {
         } catch (NumberFormatException ignored) {
             return 0L;
         }
+    }
+
+    private boolean parseToggle(String[] args, int index, boolean fallback) {
+        if (args.length <= index) {
+            return fallback;
+        }
+        String value = args[index];
+        return value.equalsIgnoreCase("on")
+            || value.equalsIgnoreCase("true")
+            || value.equalsIgnoreCase("yes")
+            || value.equals("켜기");
     }
 
     private String joinArgs(String[] args, int start) {

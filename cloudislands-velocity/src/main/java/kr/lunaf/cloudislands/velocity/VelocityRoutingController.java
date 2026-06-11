@@ -173,6 +173,11 @@ public final class VelocityRoutingController {
             .thenRun(() -> player.sendMessage(Component.text(enabled ? "섬 비행을 허용했습니다." : "섬 비행을 비활성화했습니다.")));
     }
 
+    public void setBooleanFlag(Player player, UUID islandId, kr.lunaf.cloudislands.api.model.IslandFlag flag, boolean enabled, String label) {
+        coreApiClient.setIslandFlag(islandId, player.getUniqueId(), flag, Boolean.toString(enabled))
+            .thenRun(() -> player.sendMessage(Component.text("섬 " + label + " 설정을 " + (enabled ? "켰습니다." : "껐습니다."))));
+    }
+
     public void listHomes(Player player, UUID islandId) {
         coreApiClient.listIslandHomes(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 홈을 불러오지 못했습니다." : body)));
     }
