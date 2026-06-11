@@ -7,6 +7,7 @@ import org.bukkit.entity.Animals;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -71,7 +72,7 @@ public final class IslandGameplayFlagListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onPlayerDamage(EntityDamageByEntityEvent event) {
-        if (!(event.getDamager() instanceof Player) || !(event.getEntity() instanceof Player victim)) {
+        if (attackingPlayer(event.getDamager()) == null || !(event.getEntity() instanceof Player victim)) {
             return;
         }
         Block block = victim.getLocation().getBlock();
@@ -93,6 +94,16 @@ public final class IslandGameplayFlagListener implements Listener {
         }
         if (event.getEntity() instanceof Animals) {
             return IslandFlag.ANIMAL_SPAWN;
+        }
+        return null;
+    }
+
+    private Player attackingPlayer(org.bukkit.entity.Entity damager) {
+        if (damager instanceof Player player) {
+            return player;
+        }
+        if (damager instanceof Projectile projectile && projectile.getShooter() instanceof Player player) {
+            return player;
         }
         return null;
     }
