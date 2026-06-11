@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.api.service;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandTemplateSnapshot;
 
 public interface IslandAdminService {
@@ -19,6 +20,7 @@ public interface IslandAdminService {
     CompletableFuture<Void> recoverJobs(String nodeId, long minIdleMillis, int maxJobs);
     CompletableFuture<Void> clearCache();
     CompletableFuture<Void> reload();
+    CompletableFuture<List<GlobalEventSnapshot>> listEvents();
     CompletableFuture<List<String>> listNodes();
     CompletableFuture<List<IslandTemplateSnapshot>> listTemplates();
     CompletableFuture<IslandTemplateSnapshot> upsertTemplate(String templateId, String displayName, boolean enabled, String minNodeVersion);

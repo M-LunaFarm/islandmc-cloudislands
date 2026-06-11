@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
+import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
@@ -337,6 +338,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> recoverJobs(String nodeId, long minIdleMillis, int maxJobs) { return client.recoverJobs(nodeId, minIdleMillis, maxJobs).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> clearCache() { return client.clearCache().thenApply(_body -> null); }
         @Override public CompletableFuture<Void> reload() { return client.reload().thenApply(_body -> null); }
+        @Override public CompletableFuture<List<GlobalEventSnapshot>> listEvents() { return client.listEvents().thenApply(PaperCloudIslandsApi::events); }
 
         @Override
         public CompletableFuture<List<String>> listNodes() {
@@ -712,6 +714,18 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             bool(json, "enabled", false),
             text(json, "minNodeVersion", "")
         );
+    }
+
+    private static List<GlobalEventSnapshot> events(String json) {
+        List<GlobalEventSnapshot> events = new ArrayList<>();
+        for (String object : objects(json, "events")) {
+            events.add(new GlobalEventSnapshot(
+                text(object, "type", ""),
+                stringMap(object, "fields"),
+                instant(text(object, "occurredAt", Instant.EPOCH.toString()))
+            ));
+        }
+        return events;
     }
 
     private static List<String> objects(String json, String arrayField) {
