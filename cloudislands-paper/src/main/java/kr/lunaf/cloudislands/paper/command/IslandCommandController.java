@@ -1484,7 +1484,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private void openIslandSettings(Player player) {
-        currentIsland(player, "섬 안에서만 설정 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandSettingsMenu.open(player));
+        currentIsland(player, "섬 안에서만 설정 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandSettingsMenu.open(plugin, coreApiClient, player, islandId));
     }
 
     private java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
