@@ -395,6 +395,12 @@ public final class CloudIslandsVelocityPlugin {
             routingController.setLocked(player, islandId, false);
             return;
         }
+        if (args[0].equalsIgnoreCase("fly") || args[0].equals("비행")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            boolean enabled = args.length <= 2 || args[2].equalsIgnoreCase("on") || args[2].equalsIgnoreCase("true") || args[2].equals("켜기");
+            routingController.setFlyFlag(player, islandId, enabled);
+            return;
+        }
         if (args[0].equalsIgnoreCase("permissions") || args[0].equals("권한")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.listPermissions(player, islandId);
