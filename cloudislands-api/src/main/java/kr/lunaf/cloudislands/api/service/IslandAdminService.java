@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.AuditLogSnapshot;
 import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandTemplateSnapshot;
 
 public interface IslandAdminService {
@@ -24,6 +25,7 @@ public interface IslandAdminService {
     CompletableFuture<List<GlobalEventSnapshot>> listEvents();
     CompletableFuture<List<AuditLogSnapshot>> listAuditLogs();
     CompletableFuture<List<String>> listNodes();
+    CompletableFuture<List<IslandNodeSnapshot>> listNodeSnapshots();
     CompletableFuture<List<IslandTemplateSnapshot>> listTemplates();
     CompletableFuture<IslandTemplateSnapshot> upsertTemplate(String templateId, String displayName, boolean enabled, String minNodeVersion);
     CompletableFuture<IslandTemplateSnapshot> enableTemplate(String templateId);

@@ -27,6 +27,7 @@ import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandLogRecord;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandMissionSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRankSnapshot;
@@ -345,6 +346,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<List<String>> listNodes() {
             return client.listNodes().thenApply(PaperCloudIslandsApi::nodeIds);
+        }
+
+        @Override
+        public CompletableFuture<List<IslandNodeSnapshot>> listNodeSnapshots() {
+            return client.listNodes().thenApply(PaperCloudIslandsApi::nodes);
         }
 
         @Override
@@ -699,6 +705,32 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             index = end + 1;
         }
         return ids;
+    }
+
+    private static List<IslandNodeSnapshot> nodes(String json) {
+        List<IslandNodeSnapshot> nodes = new ArrayList<>();
+        for (String object : objects(json, "nodes")) {
+            nodes.add(new IslandNodeSnapshot(
+                text(object, "id", ""),
+                text(object, "server", ""),
+                text(object, "nodeVersion", ""),
+                enumValue(NodeState.class, text(object, "state", "DOWN"), NodeState.DOWN),
+                integer(object, "players", 0),
+                integer(object, "hardPlayerCap", 0),
+                integer(object, "activeIslands", 0),
+                integer(object, "maxActiveIslands", 0),
+                decimal(object, "mspt", 0.0D),
+                integer(object, "activationQueue", 0),
+                integer(object, "maxActivationQueue", 0),
+                longValue(object, "heapUsedMb", 0L),
+                longValue(object, "heapMaxMb", 0L),
+                bool(object, "storageAvailable", false),
+                text(object, "supportedTemplates", ""),
+                instant(text(object, "lastHeartbeat", Instant.EPOCH.toString())),
+                decimal(object, "score", 0.0D)
+            ));
+        }
+        return nodes;
     }
 
     private static List<IslandTemplateSnapshot> templates(String json) {
