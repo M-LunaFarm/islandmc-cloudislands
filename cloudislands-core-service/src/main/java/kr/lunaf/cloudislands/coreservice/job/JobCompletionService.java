@@ -65,7 +65,7 @@ public final class JobCompletionService {
         IslandState state = switch (job.type()) {
             case CREATE_ISLAND -> IslandState.ERROR_CREATING;
             case ACTIVATE_ISLAND, MIGRATE_ISLAND, RESTORE_ISLAND, RESET_ISLAND -> IslandState.ERROR_ACTIVATING;
-            case SAVE_ISLAND, SNAPSHOT_ISLAND, DEACTIVATE_ISLAND -> IslandState.ERROR_SAVING;
+            case SAVE_ISLAND, SNAPSHOT_ISLAND, DEACTIVATE_ISLAND, DELETE_ISLAND -> IslandState.ERROR_SAVING;
             default -> IslandState.RECOVERY_REQUIRED;
         };
         runtimes.setState(job.islandId(), state);
