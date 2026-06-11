@@ -1,0 +1,68 @@
+package kr.lunaf.cloudislands.coreservice.repository;
+
+import java.time.Instant;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandState;
+
+public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepository {
+    private final Map<UUID, IslandRuntimeSnapshot> runtimes = new ConcurrentHashMap<>();
+
+    @Override
+    public Optional<IslandRuntimeSnapshot> find(UUID islandId) {
+        return Optional.ofNullable(runtimes.get(islandId));
+    }
+
+    @Override
+    public IslandRuntimeSnapshot markActivating(UUID islandId, String targetNode, String targetWorld, int cellX, int cellZ) {
+        long nextToken = find(islandId).map(IslandRuntimeSnapshot::fencingToken).orElse(0L) + 1L;
+        return put(new IslandRuntimeSnapshot(islandId, IslandState.ACTIVATING, targetNode, targetWorld, cellX, cellZ, targetNode, nextToken, null, Instant.now()));
+    }
+
+    @Override
+    public IslandRuntimeSnapshot markActive(UUID islandId, String nodeId, String worldName, int cellX, int cellZ, long fencingToken) {
+        return put(new IslandRuntimeSnapshot(islandId, IslandState.ACTIVE, nodeId, worldName, cellX, cellZ, nodeId, fencingToken, Instant.now(), Instant.now()));
+    }
+
+    @Override
+    public IslandRuntimeSnapshot markSaving(UUID islandId) {
+        IslandRuntimeSnapshot current = find(islandId).orElse(defaultRuntime(islandId));
+        return put(new IslandRuntimeSnapshot(islandId, IslandState.SAVING, current.activeNode(), current.activeWorld(), current.cellX(), current.cellZ(), current.leaseOwner(), current.fencingToken(), current.activatedAt(), Instant.now()));
+    }
+
+    @Override
+    public IslandRuntimeSnapshot markInactive(UUID islandId) {
+        IslandRuntimeSnapshot current = find(islandId).orElse(defaultRuntime(islandId));
+        return put(new IslandRuntimeSnapshot(islandId, IslandState.INACTIVE_READY, null, null, null, null, null, current.fencingToken(), null, Instant.now()));
+    }
+
+    @Override
+    public IslandRuntimeSnapshot markMigrating(UUID islandId, String targetNode) {
+        IslandRuntimeSnapshot current = find(islandId).orElse(defaultRuntime(islandId));
+        return put(new IslandRuntimeSnapshot(islandId, IslandState.DEACTIVATING, targetNode, current.activeWorld(), current.cellX(), current.cellZ(), targetNode, current.fencingToken() + 1L, current.activatedAt(), Instant.now()));
+    }
+
+    @Override
+    public IslandRuntimeSnapshot markQuarantined(UUID islandId, String reason) {
+        IslandRuntimeSnapshot current = find(islandId).orElse(defaultRuntime(islandId));
+        return put(new IslandRuntimeSnapshot(islandId, IslandState.QUARANTINED, current.activeNode(), current.activeWorld(), current.cellX(), current.cellZ(), current.leaseOwner(), current.fencingToken(), current.activatedAt(), Instant.now()));
+    }
+
+    @Override
+    public IslandRuntimeSnapshot setState(UUID islandId, IslandState state) {
+        IslandRuntimeSnapshot current = find(islandId).orElse(defaultRuntime(islandId));
+        return put(new IslandRuntimeSnapshot(islandId, state, current.activeNode(), current.activeWorld(), current.cellX(), current.cellZ(), current.leaseOwner(), current.fencingToken(), current.activatedAt(), Instant.now()));
+    }
+
+    private IslandRuntimeSnapshot put(IslandRuntimeSnapshot runtime) {
+        runtimes.put(runtime.islandId(), runtime);
+        return runtime;
+    }
+
+    private IslandRuntimeSnapshot defaultRuntime(UUID islandId) {
+        return new IslandRuntimeSnapshot(islandId, IslandState.INACTIVE_READY, null, null, null, null, null, 0L, null, Instant.now());
+    }
+}

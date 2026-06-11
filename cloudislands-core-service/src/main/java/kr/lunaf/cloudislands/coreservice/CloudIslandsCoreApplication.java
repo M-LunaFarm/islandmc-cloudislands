@@ -16,6 +16,8 @@ import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
+import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRuntimeRepository;
+import kr.lunaf.cloudislands.coreservice.workflow.IslandLifecycleWorkflow;
 import kr.lunaf.cloudislands.coreservice.ticket.InMemoryRouteTicketStore;
 import kr.lunaf.cloudislands.coreservice.workflow.CreateIslandWorkflow;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
@@ -31,6 +33,7 @@ public final class CloudIslandsCoreApplication {
         InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
         RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets);
         CreateIslandWorkflow createIsland = new CreateIslandWorkflow(new InMemoryIslandRepository(), nodes, allocator, jobs, events);
+        IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(new InMemoryIslandRuntimeRepository(), nodes, allocator, jobs, events);
         this.server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
         server.createContext("/health", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));
         server.createContext("/v1/nodes", exchange -> write(exchange, 200, nodes.toJson()));
@@ -56,6 +59,31 @@ public final class CloudIslandsCoreApplication {
         server.createContext("/v1/admin/nodes/undrain", exchange -> {
             boolean changed = nodes.undrain(JsonFields.text(readBody(exchange), "nodeId", ""));
             write(exchange, changed ? 202 : 404, "{\"accepted\":" + changed + "}");
+        });
+        server.createContext("/v1/admin/islands/activate", exchange -> {
+            String body = readBody(exchange);
+            IslandLifecycleWorkflow.Result result = lifecycle.activate(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)));
+            write(exchange, result.accepted() ? 202 : 409, "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\"}");
+        });
+        server.createContext("/v1/admin/islands/deactivate", exchange -> {
+            String body = readBody(exchange);
+            IslandLifecycleWorkflow.Result result = lifecycle.deactivate(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)));
+            write(exchange, result.accepted() ? 202 : 409, "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\"}");
+        });
+        server.createContext("/v1/admin/islands/migrate", exchange -> {
+            String body = readBody(exchange);
+            IslandLifecycleWorkflow.Result result = lifecycle.migrate(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "targetNode", ""));
+            write(exchange, result.accepted() ? 202 : 409, "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\"}");
+        });
+        server.createContext("/v1/admin/islands/snapshot", exchange -> {
+            String body = readBody(exchange);
+            IslandLifecycleWorkflow.Result result = lifecycle.snapshot(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "reason", "MANUAL"));
+            write(exchange, result.accepted() ? 202 : 409, "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\"}");
+        });
+        server.createContext("/v1/admin/islands/quarantine", exchange -> {
+            String body = readBody(exchange);
+            IslandLifecycleWorkflow.Result result = lifecycle.quarantine(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "reason", "admin"));
+            write(exchange, result.accepted() ? 202 : 409, "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\"}");
         });
         server.createContext("/v1/islands", exchange -> {
             String body = readBody(exchange);
