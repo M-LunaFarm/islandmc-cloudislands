@@ -43,7 +43,7 @@ public final class IslandLifecycleWorkflow {
         }
         IslandRuntimeSnapshot runtime = runtimes.markActivating(islandId, node.nodeId(), "ci_shard_001", 0, 0);
         jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.ACTIVATE_ISLAND, islandId, node.nodeId(), 0, Map.of("fencingToken", Long.toString(runtime.fencingToken()), "worldName", runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld(), "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()), "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ())), Instant.now()));
-        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", runtime.state().name(), "targetNode", node.nodeId()));
+        events.publish(CloudIslandEventType.ISLAND_ACTIVATE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "state", runtime.state().name(), "targetNode", node.nodeId()));
         return new Result(true, "ACTIVATING", runtime);
     }
 
