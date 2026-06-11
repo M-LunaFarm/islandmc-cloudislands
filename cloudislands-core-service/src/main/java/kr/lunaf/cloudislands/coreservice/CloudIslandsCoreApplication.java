@@ -404,6 +404,15 @@ public final class CloudIslandsCoreApplication {
             PlayerRouteSession session = sessions.consume(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), JsonFields.text(body, "nodeId", "")).orElse(null);
             write(exchange, session == null ? 404 : 200, session == null ? "" : sessionJson(session));
         });
+        route("/v1/routes/ticket-status", exchange -> {
+            String body = readBody(exchange);
+            UUID ticketId = JsonFields.uuid(body, "ticketId", new UUID(0L, 0L));
+            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            String nonce = JsonFields.text(body, "nonce", "");
+            RouteTicket ticket = tickets.find(ticketId).orElse(null);
+            boolean allowed = ticket != null && ticket.playerUuid().equals(playerUuid) && ticket.nonce().equals(nonce);
+            write(exchange, allowed ? 200 : 404, allowed ? RoutingOrchestrator.toJson(ticket) : ApiResponses.error("ROUTE_TICKET_NOT_FOUND", "Route ticket was not found"));
+        });
         route("/v1/routes/consume", exchange -> write(exchange, 200, routing.consumeTicketJson(readBody(exchange))));
         route("/v1/admin/routes/debug", exchange -> {
             String body = readBody(exchange);

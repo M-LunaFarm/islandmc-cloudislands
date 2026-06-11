@@ -3,7 +3,10 @@ package kr.lunaf.cloudislands.velocity;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
@@ -416,6 +419,30 @@ public final class VelocityRoutingController {
             fallback(player, failureMessage);
             return;
         }
+        if (ticket.state().name().equals("PREPARING")) {
+            player.sendActionBar(Component.text("섬을 준비하는 중입니다."));
+            waitForReadyTicket(player, ticket, failureMessage, 0);
+            return;
+        }
+        publishAndConnect(player, ticket);
+    }
+
+    private void waitForReadyTicket(Player player, RouteTicket ticket, String failureMessage, int attempt) {
+        coreApiClient.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
+            Optional<RouteTicket> ready = status.filter(value -> value.state().name().equals("READY"));
+            if (ready.isPresent()) {
+                publishAndConnect(player, ready.get());
+                return;
+            }
+            if (attempt >= 60) {
+                fallback(player, failureMessage);
+                return;
+            }
+            CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() -> waitForReadyTicket(player, ticket, failureMessage, attempt + 1));
+        });
+    }
+
+    private void publishAndConnect(Player player, RouteTicket ticket) {
         coreApiClient.publishRouteSession(ticket).thenRun(() -> {
             String targetServerName = ticket.payload().getOrDefault("targetServerName", ticket.targetNode());
             connectWithTicket(player, targetServerName);
