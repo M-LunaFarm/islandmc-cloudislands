@@ -428,9 +428,12 @@ public final class VelocityRoutingController {
     }
 
     private void waitForReadyTicket(Player player, RouteTicket ticket, String failureMessage, int attempt) {
+        int progress = Math.min(95, 20 + attempt);
+        player.sendActionBar(Component.text("섬을 준비하는 중입니다... " + progress + "%"));
         coreApiClient.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
             Optional<RouteTicket> ready = status.filter(value -> value.state().name().equals("READY"));
             if (ready.isPresent()) {
+                player.sendActionBar(Component.text("잠시 후 섬으로 이동합니다."));
                 publishAndConnect(player, ready.get());
                 return;
             }
