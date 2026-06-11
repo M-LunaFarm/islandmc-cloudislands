@@ -372,6 +372,21 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> playerInfo(UUID playerUuid) {
+        return post("/v1/admin/players/info", "{\"playerUuid\":\"" + playerUuid + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> setPlayerIsland(UUID playerUuid, UUID islandId) {
+        return post("/v1/admin/players/setisland", "{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> clearPlayerIsland(UUID playerUuid) {
+        return post("/v1/admin/players/clearisland", "{\"playerUuid\":\"" + playerUuid + "\"}");
+    }
+
+    @Override
     public CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs) {
         String types = supportedTypes.stream().map(Enum::name).collect(Collectors.joining(","));
         return post("/v1/jobs/claim", "{\"nodeId\":\"" + nodeId + "\",\"supportedTypes\":\"" + types + "\",\"maxJobs\":" + maxJobs + "}").thenApply(IslandJobJson::readArray);

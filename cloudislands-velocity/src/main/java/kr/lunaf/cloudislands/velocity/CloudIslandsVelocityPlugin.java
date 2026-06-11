@@ -86,6 +86,18 @@ public final class CloudIslandsVelocityPlugin {
             routingController.clearRoute(player, playerUuid, ticketId);
             return;
         }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("player") && args[1].equalsIgnoreCase("info")) {
+            routingController.playerInfo(player, parseUuidOrNil(args[2]));
+            return;
+        }
+        if (args.length >= 4 && args[0].equalsIgnoreCase("player") && args[1].equalsIgnoreCase("setisland")) {
+            routingController.setPlayerIsland(player, parseUuidOrNil(args[2]), parseUuidOrNil(args[3]));
+            return;
+        }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("player") && args[1].equalsIgnoreCase("clearisland")) {
+            routingController.clearPlayerIsland(player, parseUuidOrNil(args[2]));
+            return;
+        }
         if (args.length >= 2 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("list")) {
             routingController.listNodes(player);
             return;
@@ -110,7 +122,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.cancelJob(player, parseUuidOrNil(args[2]));
             return;
         }
-        player.sendMessage(Component.text("사용법: /ciadmin island activate <섬>, /ciadmin route debug [player], /ciadmin node list, /ciadmin jobs list"));
+        player.sendMessage(Component.text("사용법: /ciadmin player info <player>, /ciadmin island activate <섬>, /ciadmin route debug [player], /ciadmin node list"));
     }
 
     private void dispatch(Player player, String[] args) {

@@ -52,6 +52,9 @@ import kr.lunaf.cloudislands.coreservice.mission.JdbcIslandMissionRepository;
 import kr.lunaf.cloudislands.coreservice.permission.InMemoryIslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.permission.IslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.permission.JdbcIslandPermissionRuleRepository;
+import kr.lunaf.cloudislands.coreservice.profile.InMemoryPlayerProfileRepository;
+import kr.lunaf.cloudislands.coreservice.profile.JdbcPlayerProfileRepository;
+import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.InMemoryIslandLevelRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.InMemoryRankingRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.IslandLevelRepository;
@@ -119,6 +122,7 @@ public final class CloudIslandsCoreApplication {
             : inMemoryEvents;
         IslandRepository islandRepository = config.jdbcRepositories() ? new JdbcIslandRepository(dataSource) : new InMemoryIslandRepository();
         IslandMetadataRepository metadataRepository = config.jdbcRepositories() ? new JdbcIslandMetadataRepository(dataSource) : new InMemoryIslandMetadataRepository();
+        PlayerProfileRepository playerProfiles = config.jdbcRepositories() ? new JdbcPlayerProfileRepository(dataSource) : new InMemoryPlayerProfileRepository();
         IslandPermissionRuleRepository permissionRules = config.jdbcRepositories() ? new JdbcIslandPermissionRuleRepository(dataSource) : new InMemoryIslandPermissionRuleRepository();
         IslandRuntimeRepository runtimeRepository = config.jdbcRepositories() ? new JdbcIslandRuntimeRepository(dataSource) : new InMemoryIslandRuntimeRepository();
         IslandSnapshotRepository snapshotRepository = config.jdbcRepositories() ? new JdbcIslandSnapshotRepository(dataSource) : new InMemoryIslandSnapshotRepository();
@@ -320,6 +324,23 @@ public final class CloudIslandsCoreApplication {
             boolean clearedSession = !playerUuid.equals(new UUID(0L, 0L)) && sessions.clear(playerUuid);
             boolean clearedTicket = !ticketId.equals(new UUID(0L, 0L)) && tickets.clear(ticketId);
             write(exchange, 202, "{\"clearedSession\":" + clearedSession + ",\"clearedTicket\":" + clearedTicket + "}");
+        });
+        route("/v1/admin/players/info", exchange -> {
+            String body = readBody(exchange);
+            write(exchange, 200, playerProfileJson(playerProfiles.find(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)))));
+        });
+        route("/v1/admin/players/setisland", exchange -> {
+            String body = readBody(exchange);
+            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            audit.log(new UUID(0L, 0L), "ADMIN", "PLAYER_SET_ISLAND", "PLAYER", playerUuid.toString(), Map.of("islandId", islandId.toString()));
+            write(exchange, 202, playerProfileJson(playerProfiles.setPrimaryIsland(playerUuid, islandId)));
+        });
+        route("/v1/admin/players/clearisland", exchange -> {
+            String body = readBody(exchange);
+            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            audit.log(new UUID(0L, 0L), "ADMIN", "PLAYER_CLEAR_ISLAND", "PLAYER", playerUuid.toString(), Map.of());
+            write(exchange, 202, playerProfileJson(playerProfiles.clearPrimaryIsland(playerUuid)));
         });
         route("/v1/nodes/heartbeat", exchange -> {
             nodes.heartbeat(heartbeat(readBody(exchange)));
@@ -731,6 +752,14 @@ public final class CloudIslandsCoreApplication {
             + "\",\"publicAccess\":" + island.publicAccess()
             + ",\"createdAt\":\"" + island.createdAt()
             + "\",\"updatedAt\":\"" + island.updatedAt()
+            + "\"}";
+    }
+
+    private static String playerProfileJson(kr.lunaf.cloudislands.api.model.PlayerIslandProfile profile) {
+        return "{\"playerUuid\":\"" + profile.playerUuid()
+            + "\",\"lastName\":\"" + escape(profile.lastName())
+            + "\",\"primaryIslandId\":" + profile.primaryIslandId().map(value -> "\"" + value + "\"").orElse("null")
+            + ",\"lastSeenAt\":\"" + profile.lastSeenAt()
             + "\"}";
     }
 

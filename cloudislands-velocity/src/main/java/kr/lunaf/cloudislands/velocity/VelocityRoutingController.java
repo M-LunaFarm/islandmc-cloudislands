@@ -305,6 +305,18 @@ public final class VelocityRoutingController {
         coreApiClient.clearRoute(playerUuid, ticketId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "라우트 정리를 요청하지 못했습니다." : body)));
     }
 
+    public void playerInfo(Player player, UUID playerUuid) {
+        coreApiClient.playerInfo(playerUuid).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "플레이어 정보를 불러오지 못했습니다." : body)));
+    }
+
+    public void setPlayerIsland(Player player, UUID playerUuid, UUID islandId) {
+        coreApiClient.setPlayerIsland(playerUuid, islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "플레이어 섬을 설정하지 못했습니다." : body)));
+    }
+
+    public void clearPlayerIsland(Player player, UUID playerUuid) {
+        coreApiClient.clearPlayerIsland(playerUuid).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "플레이어 섬을 해제하지 못했습니다." : body)));
+    }
+
     private void route(Player player, RouteTicket ticket, String failureMessage) {
         if (ticket == null) {
             fallback(player, failureMessage);
