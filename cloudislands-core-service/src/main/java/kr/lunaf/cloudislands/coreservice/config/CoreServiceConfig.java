@@ -21,6 +21,7 @@ public record CoreServiceConfig(
     String coreToken,
     String adminToken,
     String ipAllowlist,
+    String upgradesFile,
     Duration heartbeatTimeout,
     Duration leaseDuration
 ) {
@@ -43,6 +44,7 @@ public record CoreServiceConfig(
             env("CI_CORE_TOKEN", ""),
             env("CI_ADMIN_TOKEN", ""),
             env("CI_IP_ALLOWLIST", ""),
+            env("CI_UPGRADES_FILE", ""),
             Duration.ofSeconds(integer("CI_HEARTBEAT_TIMEOUT_SECONDS", 5)),
             Duration.ofSeconds(integer("CI_LEASE_SECONDS", 30))
         );
@@ -65,7 +67,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageBearerToken, coreToken, adminToken, ipAllowlist, heartbeatTimeout, leaseDuration);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, heartbeatTimeout, leaseDuration);
     }
 
     private static String env(String key, String fallback) {

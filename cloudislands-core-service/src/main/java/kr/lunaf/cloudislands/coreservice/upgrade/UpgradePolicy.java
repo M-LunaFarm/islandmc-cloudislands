@@ -24,6 +24,10 @@ public final class UpgradePolicy {
         this.rules = Map.copyOf(defaults);
     }
 
+    public UpgradePolicy(Map<String, UpgradeRule> rules) {
+        this.rules = Map.copyOf(rules);
+    }
+
     public UpgradeRule rule(String upgradeKey) {
         return rules.get(upgradeKey.toLowerCase());
     }

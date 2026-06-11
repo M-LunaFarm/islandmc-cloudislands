@@ -1,0 +1,59 @@
+upgrades:
+  size:
+    type: "ISLAND_SIZE"
+    levels:
+      1:
+        cost: 0
+      2:
+        cost: 10000
+      3:
+        cost: 50000
+  members:
+    type: "MAX_MEMBERS"
+    levels:
+      1:
+        cost: 0
+      2:
+        cost: 25000
+      3:
+        cost: 75000
+  warps:
+    type: "MAX_WARPS"
+    max-level: 5
+    base-cost: 5000
+    multiplier: 2
+  hoppers:
+    type: "HOPPER_LIMIT"
+    max-level: 5
+    base-cost: 30000
+    multiplier: 2
+  spawners:
+    type: "SPAWNER_LIMIT"
+    max-level: 5
+    base-cost: 50000
+    multiplier: 2
+  generator:
+    type: "GENERATOR_LEVEL"
+    max-level: 5
+    base-cost: 25000
+    multiplier: 2
+  mob:
+    type: "MOB_LIMIT"
+    max-level: 5
+    base-cost: 20000
+    multiplier: 2
+  crop:
+    type: "CROP_GROWTH"
+    max-level: 5
+    base-cost: 15000
+    multiplier: 2
+  fly:
+    type: "FLY_ACCESS"
+    max-level: 1
+    base-cost: 100000
+    multiplier: 1
+  bank:
+    type: "BANK_LIMIT"
+    max-level: 5
+    base-cost: 10000
+    multiplier: 2

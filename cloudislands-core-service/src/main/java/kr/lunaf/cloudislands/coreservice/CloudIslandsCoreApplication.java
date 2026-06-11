@@ -94,6 +94,7 @@ import kr.lunaf.cloudislands.coreservice.template.JdbcIslandTemplateRepository;
 import kr.lunaf.cloudislands.coreservice.ticket.InMemoryRouteTicketStore;
 import kr.lunaf.cloudislands.coreservice.ticket.JdbcRouteTicketStore;
 import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
+import kr.lunaf.cloudislands.coreservice.upgrade.ConfigUpgradePolicy;
 import kr.lunaf.cloudislands.coreservice.upgrade.InMemoryIslandUpgradeRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeService;
@@ -151,7 +152,7 @@ public final class CloudIslandsCoreApplication {
         IslandLevelRepository levelRepository = config.jdbcRepositories() ? new JdbcIslandLevelRepository(dataSource) : new InMemoryIslandLevelRepository();
         RankingRecalculationService levelRecalculation = new RankingRecalculationService(rankingRepository, events);
         IslandUpgradeRepository upgradeRepository = config.jdbcRepositories() ? new JdbcIslandUpgradeRepository(dataSource) : new InMemoryIslandUpgradeRepository();
-        UpgradePolicy upgradePolicy = new UpgradePolicy();
+        UpgradePolicy upgradePolicy = ConfigUpgradePolicy.load(config.upgradesFile());
         IslandUpgradeService upgradeService = new IslandUpgradeService(upgradeRepository, upgradePolicy);
         IslandBankRepository bankRepository = config.jdbcRepositories() ? new JdbcIslandBankRepository(dataSource) : new InMemoryIslandBankRepository();
         IslandMissionRepository missionRepository = config.jdbcRepositories() ? new JdbcIslandMissionRepository(dataSource) : new InMemoryIslandMissionRepository();

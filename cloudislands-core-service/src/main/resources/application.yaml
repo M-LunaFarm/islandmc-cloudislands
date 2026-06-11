@@ -22,6 +22,9 @@ routing:
   hard-full-policy: "DENY_OR_QUEUE"
   migration-policy: "INACTIVE_ONLY_AUTOMATIC"
 
+upgrades:
+  file: "${CI_UPGRADES_FILE}"
+
 security:
   require-mtls: true
   admin-api-enabled: true
