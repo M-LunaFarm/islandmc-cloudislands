@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 import kr.lunaf.cloudislands.common.event.CacheInvalidationPlan;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
@@ -20,14 +21,16 @@ public final class PermissionEventPoller {
     private final Plugin plugin;
     private final CoreApiClient client;
     private final PermissionCacheSyncService permissionSync;
+    private final GeneratorLevelCache generatorLevels;
     private final String nodeId;
     private final Set<String> seen = ConcurrentHashMap.newKeySet();
     private BukkitTask task;
 
-    public PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, String nodeId) {
+    public PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, GeneratorLevelCache generatorLevels, String nodeId) {
         this.plugin = plugin;
         this.client = client;
         this.permissionSync = permissionSync;
+        this.generatorLevels = generatorLevels;
         this.nodeId = nodeId;
     }
 
@@ -61,6 +64,12 @@ public final class PermissionEventPoller {
                     String islandId = fields.get("islandId");
                     if (islandId != null && !islandId.isBlank()) {
                         permissionSync.sync(UUID.fromString(islandId));
+                    }
+                }
+                if (affectsGenerator(type, fields)) {
+                    String islandId = fields.get("islandId");
+                    if (islandId != null && !islandId.isBlank()) {
+                        generatorLevels.invalidate(UUID.fromString(islandId));
                     }
                 }
             }
@@ -111,6 +120,15 @@ public final class PermissionEventPoller {
                 || type.equals("ISLAND_OWNERSHIP_TRANSFER")
                 || type.equals("ISLAND_VISITOR_BAN")
                 || type.equals("ISLAND_VISITOR_PARDON");
+        }
+    }
+
+    private boolean affectsGenerator(String type, Map<String, String> fields) {
+        try {
+            return CacheInvalidationPlan.targetsFor(CloudIslandEventType.valueOf(type)).contains(CacheInvalidationPlan.CacheTarget.GENERATOR)
+                && fields.getOrDefault("upgradeKey", "").equalsIgnoreCase("generator");
+        } catch (IllegalArgumentException ignored) {
+            return type.equals("ISLAND_UPGRADE") && fields.getOrDefault("upgradeKey", "").equalsIgnoreCase("generator");
         }
     }
 
