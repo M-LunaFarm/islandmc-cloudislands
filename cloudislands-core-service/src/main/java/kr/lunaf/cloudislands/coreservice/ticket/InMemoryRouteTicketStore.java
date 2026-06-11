@@ -85,15 +85,39 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
                 builder.append(',');
             }
             first = false;
-            builder.append("{\"ticketId\":\"").append(ticket.ticketId())
-                .append("\",\"playerUuid\":\"").append(ticket.playerUuid())
-                .append("\",\"action\":\"").append(ticket.action())
-                .append("\",\"islandId\":\"").append(ticket.islandId())
-                .append("\",\"targetNode\":\"").append(ticket.targetNode())
-                .append("\",\"state\":\"").append(ticket.state())
-                .append("\",\"expiresAt\":\"").append(ticket.expiresAt())
-                .append("\"}");
+            builder.append(json(ticket));
         }
         return builder.append("]}").toString();
+    }
+
+    private String json(RouteTicket ticket) {
+        return "{\"ticketId\":\"" + ticket.ticketId()
+            + "\",\"playerUuid\":\"" + ticket.playerUuid()
+            + "\",\"action\":\"" + ticket.action()
+            + "\",\"islandId\":\"" + ticket.islandId()
+            + "\",\"targetNode\":\"" + ticket.targetNode()
+            + "\",\"targetWorld\":\"" + ticket.targetWorld()
+            + "\",\"targetServerName\":\"" + ticket.payload().getOrDefault("targetServerName", ticket.targetNode())
+            + "\",\"state\":\"" + ticket.state()
+            + "\",\"expiresAt\":\"" + ticket.expiresAt()
+            + "\",\"payload\":" + payloadJson(ticket.payload())
+            + "}";
+    }
+
+    private String payloadJson(Map<String, String> payload) {
+        StringBuilder builder = new StringBuilder("{");
+        boolean first = true;
+        for (Map.Entry<String, String> entry : payload.entrySet()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append("\"").append(escape(entry.getKey())).append("\":\"").append(escape(entry.getValue())).append("\"");
+        }
+        return builder.append("}").toString();
+    }
+
+    private String escape(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

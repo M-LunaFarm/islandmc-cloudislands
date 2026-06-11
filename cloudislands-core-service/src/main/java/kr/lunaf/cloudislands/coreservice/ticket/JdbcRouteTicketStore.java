@@ -132,14 +132,7 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
                     builder.append(',');
                 }
                 first = false;
-                builder.append("{\"ticketId\":\"").append(ticket.ticketId())
-                    .append("\",\"playerUuid\":\"").append(ticket.playerUuid())
-                    .append("\",\"action\":\"").append(ticket.action())
-                    .append("\",\"islandId\":\"").append(ticket.islandId())
-                    .append("\",\"targetNode\":\"").append(ticket.targetNode())
-                    .append("\",\"state\":\"").append(ticket.state())
-                    .append("\",\"expiresAt\":\"").append(ticket.expiresAt())
-                    .append("\"}");
+                builder.append(json(ticket));
             }
             return builder.append("]}").toString();
         } catch (SQLException exception) {
@@ -219,6 +212,20 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
     }
 
     private String escape(String value) {
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private String json(RouteTicket ticket) {
+        return "{\"ticketId\":\"" + ticket.ticketId()
+            + "\",\"playerUuid\":\"" + ticket.playerUuid()
+            + "\",\"action\":\"" + ticket.action()
+            + "\",\"islandId\":\"" + ticket.islandId()
+            + "\",\"targetNode\":\"" + ticket.targetNode()
+            + "\",\"targetWorld\":\"" + ticket.targetWorld()
+            + "\",\"targetServerName\":\"" + ticket.payload().getOrDefault("targetServerName", ticket.targetNode())
+            + "\",\"state\":\"" + ticket.state()
+            + "\",\"expiresAt\":\"" + ticket.expiresAt()
+            + "\",\"payload\":" + toJson(ticket.payload())
+            + "}";
     }
 }
