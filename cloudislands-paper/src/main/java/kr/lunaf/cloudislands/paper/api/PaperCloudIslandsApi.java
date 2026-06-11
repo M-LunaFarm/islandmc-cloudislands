@@ -33,6 +33,7 @@ import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.api.model.IslandState;
+import kr.lunaf.cloudislands.api.model.IslandTemplateSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
@@ -340,6 +341,26 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<List<String>> listNodes() {
             return client.listNodes().thenApply(PaperCloudIslandsApi::nodeIds);
+        }
+
+        @Override
+        public CompletableFuture<List<IslandTemplateSnapshot>> listTemplates() {
+            return client.listTemplates().thenApply(PaperCloudIslandsApi::templates);
+        }
+
+        @Override
+        public CompletableFuture<IslandTemplateSnapshot> upsertTemplate(String templateId, String displayName, boolean enabled, String minNodeVersion) {
+            return client.upsertTemplate(templateId, displayName, enabled, minNodeVersion).thenApply(PaperCloudIslandsApi::template);
+        }
+
+        @Override
+        public CompletableFuture<IslandTemplateSnapshot> enableTemplate(String templateId) {
+            return client.enableTemplate(templateId).thenApply(PaperCloudIslandsApi::template);
+        }
+
+        @Override
+        public CompletableFuture<IslandTemplateSnapshot> disableTemplate(String templateId) {
+            return client.disableTemplate(templateId).thenApply(PaperCloudIslandsApi::template);
         }
     }
 
@@ -674,6 +695,23 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             index = end + 1;
         }
         return ids;
+    }
+
+    private static List<IslandTemplateSnapshot> templates(String json) {
+        List<IslandTemplateSnapshot> templates = new ArrayList<>();
+        for (String object : objects(json, "templates")) {
+            templates.add(template(object));
+        }
+        return templates;
+    }
+
+    private static IslandTemplateSnapshot template(String json) {
+        return new IslandTemplateSnapshot(
+            text(json, "id", ""),
+            text(json, "displayName", ""),
+            bool(json, "enabled", false),
+            text(json, "minNodeVersion", "")
+        );
     }
 
     private static List<String> objects(String json, String arrayField) {
