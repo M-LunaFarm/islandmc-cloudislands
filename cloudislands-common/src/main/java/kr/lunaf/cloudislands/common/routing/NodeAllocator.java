@@ -40,6 +40,10 @@ public final class NodeAllocator {
     }
 
     public boolean acceptsExistingRoute(NodeLoad node, Instant now, String templateId, String minNodeVersion) {
-        return node.inPool("island") && node.acceptsExistingRoute(now, heartbeatTimeout, templateId, minNodeVersion);
+        return acceptsExistingRoute(node, now, templateId, minNodeVersion, "island");
+    }
+
+    public boolean acceptsExistingRoute(NodeLoad node, Instant now, String templateId, String minNodeVersion, String pool) {
+        return node.inPool(pool) && node.acceptsExistingRoute(now, heartbeatTimeout, templateId, minNodeVersion);
     }
 }

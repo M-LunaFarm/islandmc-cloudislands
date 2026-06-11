@@ -41,8 +41,13 @@ public final class RoutingOrchestrator {
     private final IslandTemplateRepository templates;
     private final IslandJobPublisher jobs;
     private final GlobalEventPublisher events;
+    private final String islandPool;
 
     public RoutingOrchestrator(NodeRegistry nodes, NodeAllocator allocator, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, IslandRuntimeRepository runtimes, IslandTemplateRepository templates, IslandJobPublisher jobs, GlobalEventPublisher events) {
+        this(nodes, allocator, tickets, islands, metadata, runtimes, templates, jobs, events, "island");
+    }
+
+    public RoutingOrchestrator(NodeRegistry nodes, NodeAllocator allocator, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, IslandRuntimeRepository runtimes, IslandTemplateRepository templates, IslandJobPublisher jobs, GlobalEventPublisher events, String islandPool) {
         this.nodes = nodes;
         this.allocator = allocator;
         this.tickets = tickets;
@@ -52,6 +57,7 @@ public final class RoutingOrchestrator {
         this.templates = templates;
         this.jobs = jobs;
         this.events = events;
+        this.islandPool = islandPool == null || islandPool.isBlank() ? "island" : islandPool;
     }
 
     public RoutePreparationResult prepareHomeRoute(UUID playerUuid) {
@@ -280,7 +286,7 @@ public final class RoutingOrchestrator {
                 markActiveRouteRecoveryRequired(runtime, "active_node_not_registered");
                 throw new IllegalStateException("active node is unavailable");
             }
-            if (!allocator.acceptsExistingRoute(activeNode, Instant.now(), templateId, minNodeVersion)) {
+            if (!allocator.acceptsExistingRoute(activeNode, Instant.now(), templateId, minNodeVersion, islandPool)) {
                 markActiveRouteRecoveryRequired(runtime, "active_node_unhealthy");
                 throw new IllegalStateException("active node is unavailable");
             }
@@ -290,7 +296,7 @@ public final class RoutingOrchestrator {
             String worldName = runtime.activeWorld() == null || runtime.activeWorld().isBlank() ? "ci_shard_001" : runtime.activeWorld();
             return new RouteTarget(activeNode, worldName, RouteTicketState.READY);
         }
-        NodeLoad selected = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion)
+        NodeLoad selected = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion, islandPool)
             .orElseThrow(() -> new IllegalStateException("no eligible island node"));
         IslandRuntimeSnapshot activating = runtimes.markActivating(runtime.islandId(), selected.nodeId(), "ci_shard_001", 0, 0);
         jobs.publish(new IslandJob(

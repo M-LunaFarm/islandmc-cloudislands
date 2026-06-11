@@ -34,8 +34,13 @@ public final class CreateIslandWorkflow {
     private final IslandJobPublisher jobs;
     private final GlobalEventPublisher events;
     private final RouteTicketStore tickets;
+    private final String islandPool;
 
     public CreateIslandWorkflow(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events, RouteTicketStore tickets) {
+        this(islands, metadata, playerProfiles, templates, nodes, allocator, jobs, events, tickets, "island");
+    }
+
+    public CreateIslandWorkflow(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events, RouteTicketStore tickets, String islandPool) {
         this.islands = islands;
         this.metadata = metadata;
         this.playerProfiles = playerProfiles;
@@ -45,6 +50,7 @@ public final class CreateIslandWorkflow {
         this.jobs = jobs;
         this.events = events;
         this.tickets = tickets;
+        this.islandPool = islandPool == null || islandPool.isBlank() ? "island" : islandPool;
     }
 
     public CreateIslandResult create(UUID ownerUuid, String templateId) {
@@ -58,7 +64,7 @@ public final class CreateIslandWorkflow {
             publishTicketFailure(ownerUuid, null, "ALREADY_HAS_ISLAND");
             return new CreateIslandResult(false, "ALREADY_HAS_ISLAND", null, null);
         }
-        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), normalizedTemplate, template.minNodeVersion()).orElse(null);
+        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), normalizedTemplate, template.minNodeVersion(), islandPool).orElse(null);
         if (node == null) {
             publishTicketFailure(ownerUuid, null, "NODE_UNAVAILABLE");
             return new CreateIslandResult(false, "NODE_UNAVAILABLE", null, null);

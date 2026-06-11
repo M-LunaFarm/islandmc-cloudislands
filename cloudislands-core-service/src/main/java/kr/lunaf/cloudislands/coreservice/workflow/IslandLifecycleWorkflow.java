@@ -24,8 +24,13 @@ public final class IslandLifecycleWorkflow {
     private final NodeAllocator allocator;
     private final IslandJobPublisher jobs;
     private final GlobalEventPublisher events;
+    private final String islandPool;
 
     public IslandLifecycleWorkflow(IslandRuntimeRepository runtimes, IslandRepository islands, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events) {
+        this(runtimes, islands, templates, nodes, allocator, jobs, events, "island");
+    }
+
+    public IslandLifecycleWorkflow(IslandRuntimeRepository runtimes, IslandRepository islands, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events, String islandPool) {
         this.runtimes = runtimes;
         this.islands = islands;
         this.templates = templates;
@@ -33,11 +38,12 @@ public final class IslandLifecycleWorkflow {
         this.allocator = allocator;
         this.jobs = jobs;
         this.events = events;
+        this.islandPool = islandPool == null || islandPool.isBlank() ? "island" : islandPool;
     }
 
     public Result activate(UUID islandId) {
         String templateId = islands.templateId(islandId).orElse("default");
-        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId)).orElse(null);
+        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId), islandPool).orElse(null);
         if (node == null) {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
@@ -57,7 +63,7 @@ public final class IslandLifecycleWorkflow {
     public Result migrate(UUID islandId, String targetNode) {
         String templateId = islands.templateId(islandId).orElse("default");
         NodeLoad node = nodes.find(targetNode).orElse(null);
-        if (node == null || allocator.selectBestNode(java.util.List.of(node), Instant.now(), templateId, minNodeVersion(templateId)).isEmpty()) {
+        if (node == null || allocator.selectBestNode(java.util.List.of(node), Instant.now(), templateId, minNodeVersion(templateId), islandPool).isEmpty()) {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
         IslandRuntimeSnapshot current = runtimes.find(islandId).orElse(null);
@@ -88,7 +94,7 @@ public final class IslandLifecycleWorkflow {
 
     public Result restore(UUID islandId, long snapshotNo, String storagePath) {
         String templateId = islands.templateId(islandId).orElse("default");
-        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId)).orElse(null);
+        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId), islandPool).orElse(null);
         if (node == null) {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
@@ -100,7 +106,7 @@ public final class IslandLifecycleWorkflow {
 
     public Result reset(UUID islandId, String reason) {
         String templateId = islands.templateId(islandId).orElse("default");
-        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId)).orElse(null);
+        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId), islandPool).orElse(null);
         if (node == null) {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
