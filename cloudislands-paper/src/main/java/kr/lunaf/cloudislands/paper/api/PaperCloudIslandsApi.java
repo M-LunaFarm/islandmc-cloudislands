@@ -325,10 +325,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override public CompletableFuture<Void> drainNode(String nodeId) { return client.drainNode(nodeId).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> undrainNode(String nodeId) { return client.undrainNode(nodeId).thenApply(_body -> null); }
+        @Override public CompletableFuture<Void> sweepNode(String nodeId) { return client.sweepNode(nodeId).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> migrateIsland(UUID islandId, String targetNode) { return client.migrateIsland(islandId, targetNode).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> snapshotIsland(UUID islandId, String reason) { return client.requestIslandSnapshot(islandId, reason); }
         @Override public CompletableFuture<Void> restoreIsland(UUID islandId, long snapshotNo) { return client.restoreIslandSnapshot(islandId, snapshotNo); }
         @Override public CompletableFuture<Void> quarantineIsland(UUID islandId, String reason) { return client.quarantineIsland(islandId, reason).thenApply(_body -> null); }
+        @Override public CompletableFuture<Void> repairIsland(UUID islandId, String reason) { return client.repairIsland(islandId, reason).thenApply(_body -> null); }
+        @Override public CompletableFuture<Void> retryJob(UUID jobId) { return client.retryJob(jobId).thenApply(_body -> null); }
+        @Override public CompletableFuture<Void> cancelJob(UUID jobId) { return client.cancelJob(jobId).thenApply(_body -> null); }
+        @Override public CompletableFuture<Void> recoverJobs(String nodeId, long minIdleMillis, int maxJobs) { return client.recoverJobs(nodeId, minIdleMillis, maxJobs).thenApply(_body -> null); }
+        @Override public CompletableFuture<Void> clearCache() { return client.clearCache().thenApply(_body -> null); }
+        @Override public CompletableFuture<Void> reload() { return client.reload().thenApply(_body -> null); }
 
         @Override
         public CompletableFuture<List<String>> listNodes() {
