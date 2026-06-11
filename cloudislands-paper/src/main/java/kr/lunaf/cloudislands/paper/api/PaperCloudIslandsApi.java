@@ -3,7 +3,9 @@ package kr.lunaf.cloudislands.paper.api;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -153,7 +155,10 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return client.listPendingInvites(playerUuid).thenApply(PaperCloudIslandsApi::invites);
         }
 
-        @Override public CompletableFuture<IslandFlagsSnapshot> getFlags(UUID islandId) { return unsupported("flag typed parsing is not registered yet"); }
+        @Override
+        public CompletableFuture<IslandFlagsSnapshot> getFlags(UUID islandId) {
+            return client.listIslandFlags(islandId).thenApply(PaperCloudIslandsApi::flags);
+        }
         @Override
         public CompletableFuture<IslandBiomeSnapshot> getBiome(UUID islandId) {
             return client.islandBiome(islandId).thenApply(PaperCloudIslandsApi::biome);
@@ -441,6 +446,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             uuid(json, "updatedBy", new UUID(0L, 0L)),
             instant(text(json, "updatedAt", Instant.EPOCH.toString()))
         );
+    }
+
+    private static IslandFlagsSnapshot flags(String json) {
+        Map<IslandFlag, String> values = new EnumMap<>(IslandFlag.class);
+        for (IslandFlag flag : IslandFlag.values()) {
+            String value = text(json, flag.name(), null);
+            if (value != null) {
+                values.put(flag, value);
+            }
+        }
+        return new IslandFlagsSnapshot(uuid(json, "islandId", new UUID(0L, 0L)), Map.copyOf(values));
     }
 
     private static List<IslandLimitSnapshot> limits(String json) {
