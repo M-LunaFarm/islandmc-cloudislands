@@ -50,6 +50,10 @@ public record CoreServiceConfig(
         return "REDIS".equalsIgnoreCase(jobQueueMode);
     }
 
+    public boolean jdbcJobs() {
+        return "JDBC".equalsIgnoreCase(jobQueueMode);
+    }
+
     public boolean redisEvents() {
         return "REDIS".equalsIgnoreCase(eventBusMode);
     }

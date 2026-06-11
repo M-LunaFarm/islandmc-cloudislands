@@ -8,6 +8,7 @@ import kr.lunaf.cloudislands.common.routing.NodeLoad;
 import kr.lunaf.cloudislands.coreservice.NodeRegistry;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
+import kr.lunaf.cloudislands.coreservice.job.JdbcIslandJobQueue;
 
 public final class PrometheusMetricsRenderer {
     private final NodeRegistry nodes;
@@ -54,6 +55,10 @@ public final class PrometheusMetricsRenderer {
         if (jobs instanceof InMemoryIslandJobPublisher memoryJobs) {
             for (Map.Entry<String, Long> entry : memoryJobs.countsByState().entrySet()) {
                 out.append("cloudislands_jobs_total{state=\"").append(entry.getKey()).append("\",backend=\"memory\"} ").append(entry.getValue()).append('\n');
+            }
+        } else if (jobs instanceof JdbcIslandJobQueue jdbcJobs) {
+            for (Map.Entry<String, Long> entry : jdbcJobs.countsByState().entrySet()) {
+                out.append("cloudislands_jobs_total{state=\"").append(entry.getKey()).append("\",backend=\"jdbc\"} ").append(entry.getValue()).append('\n');
             }
         } else {
             out.append("cloudislands_jobs_total{state=\"backend_external\",backend=\"redis\"} 1\n");

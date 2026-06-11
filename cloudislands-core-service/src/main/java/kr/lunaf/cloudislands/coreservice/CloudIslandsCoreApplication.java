@@ -41,6 +41,7 @@ import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.islandlog.JdbcIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
+import kr.lunaf.cloudislands.coreservice.job.JdbcIslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.limit.InMemoryIslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.limit.IslandLimitRepository;
@@ -117,7 +118,7 @@ public final class CloudIslandsCoreApplication {
         NodeAllocator allocator = new NodeAllocator(config.heartbeatTimeout());
         RouteTicketStore tickets = config.jdbcRepositories() ? new JdbcRouteTicketStore(dataSource, clock) : new InMemoryRouteTicketStore(clock);
         InMemoryRouteSessionStore sessions = new InMemoryRouteSessionStore(clock);
-        IslandJobQueue jobs = config.redisJobs() ? new RedisIslandJobQueue(config.redisUri()) : new InMemoryIslandJobPublisher();
+        IslandJobQueue jobs = config.jdbcJobs() ? new JdbcIslandJobQueue(dataSource, clock, config.leaseDuration()) : config.redisJobs() ? new RedisIslandJobQueue(config.redisUri()) : new InMemoryIslandJobPublisher();
         InMemoryGlobalEventPublisher inMemoryEvents = new InMemoryGlobalEventPublisher();
         GlobalEventPublisher events = config.redisEvents()
             ? new CompositeGlobalEventPublisher(java.util.List.of(inMemoryEvents, new RedisStreamEventPublisher(new RedisStreamWriterAdapter(config.redisUri()))))
@@ -155,7 +156,7 @@ public final class CloudIslandsCoreApplication {
             String nodeId = JsonFields.text(body, "nodeId", "");
             write(exchange, nodes.find(nodeId).isPresent() ? 200 : 404, nodes.find(nodeId).map(NodeRegistry::toJson).orElseGet(() -> ApiResponses.error("NODE_NOT_FOUND", "Node was not found")));
         });
-        route("/v1/jobs", exchange -> write(exchange, 200, jobs instanceof InMemoryIslandJobPublisher memoryJobs ? memoryJobs.toJson() : "{\"mode\":\"REDIS\"}"));
+        route("/v1/jobs", exchange -> write(exchange, 200, jobsJson(jobs)));
         route("/v1/events", exchange -> write(exchange, 200, inMemoryEvents.toJson()));
         route("/v1/audit", exchange -> write(exchange, 200, inMemoryAudit.toJson()));
         route("/v1/rankings/level", exchange -> {
@@ -268,27 +269,37 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 409, ApiResponses.error("RECOVERY_UNAVAILABLE", "Redis job recovery is only available when CI_JOB_QUEUE_MODE=REDIS"));
             }
         });
-        route("/v1/admin/jobs/list", exchange -> write(exchange, 200, jobs instanceof InMemoryIslandJobPublisher memoryJobs ? memoryJobs.toJson() : "{\"mode\":\"REDIS\"}"));
+        route("/v1/admin/jobs/list", exchange -> write(exchange, 200, jobsJson(jobs)));
         route("/v1/admin/jobs/retry", exchange -> {
             String body = readBody(exchange);
             UUID jobId = JsonFields.uuid(body, "jobId", new UUID(0L, 0L));
+            boolean retried;
             if (jobs instanceof InMemoryIslandJobPublisher memoryJobs) {
-                boolean retried = memoryJobs.retry(jobId);
+                retried = memoryJobs.retry(jobId);
+                audit.log(new UUID(0L, 0L), "ADMIN", "JOB_RETRY", "JOB", jobId.toString(), Map.of("retried", Boolean.toString(retried)));
+                write(exchange, retried ? 202 : 404, retried ? ApiResponses.ok(true) : ApiResponses.error("JOB_NOT_RETRIED", "Job was not found or cannot be retried"));
+            } else if (jobs instanceof JdbcIslandJobQueue jdbcJobs) {
+                retried = jdbcJobs.retry(jobId);
                 audit.log(new UUID(0L, 0L), "ADMIN", "JOB_RETRY", "JOB", jobId.toString(), Map.of("retried", Boolean.toString(retried)));
                 write(exchange, retried ? 202 : 404, retried ? ApiResponses.ok(true) : ApiResponses.error("JOB_NOT_RETRIED", "Job was not found or cannot be retried"));
             } else {
-                write(exchange, 409, ApiResponses.error("JOB_RETRY_UNAVAILABLE", "Job retry is only available for in-memory queue mode"));
+                write(exchange, 409, ApiResponses.error("JOB_RETRY_UNAVAILABLE", "Job retry is only available for in-memory or JDBC queue mode"));
             }
         });
         route("/v1/admin/jobs/cancel", exchange -> {
             String body = readBody(exchange);
             UUID jobId = JsonFields.uuid(body, "jobId", new UUID(0L, 0L));
+            boolean canceled;
             if (jobs instanceof InMemoryIslandJobPublisher memoryJobs) {
-                boolean canceled = memoryJobs.cancel(jobId);
+                canceled = memoryJobs.cancel(jobId);
+                audit.log(new UUID(0L, 0L), "ADMIN", "JOB_CANCEL", "JOB", jobId.toString(), Map.of("canceled", Boolean.toString(canceled)));
+                write(exchange, canceled ? 202 : 404, canceled ? ApiResponses.ok(true) : ApiResponses.error("JOB_NOT_CANCELED", "Job was not found or cannot be canceled"));
+            } else if (jobs instanceof JdbcIslandJobQueue jdbcJobs) {
+                canceled = jdbcJobs.cancel(jobId);
                 audit.log(new UUID(0L, 0L), "ADMIN", "JOB_CANCEL", "JOB", jobId.toString(), Map.of("canceled", Boolean.toString(canceled)));
                 write(exchange, canceled ? 202 : 404, canceled ? ApiResponses.ok(true) : ApiResponses.error("JOB_NOT_CANCELED", "Job was not found or cannot be canceled"));
             } else {
-                write(exchange, 409, ApiResponses.error("JOB_CANCEL_UNAVAILABLE", "Job cancel is only available for in-memory queue mode"));
+                write(exchange, 409, ApiResponses.error("JOB_CANCEL_UNAVAILABLE", "Job cancel is only available for in-memory or JDBC queue mode"));
             }
         });
         route("/v1/routes/home", exchange -> {
@@ -885,6 +896,16 @@ public final class CloudIslandsCoreApplication {
 
     private static void routeResult(HttpExchange exchange, RoutePreparationResult result) throws IOException {
         write(exchange, result.status(), result.body());
+    }
+
+    private static String jobsJson(IslandJobQueue jobs) {
+        if (jobs instanceof InMemoryIslandJobPublisher memoryJobs) {
+            return memoryJobs.toJson();
+        }
+        if (jobs instanceof JdbcIslandJobQueue jdbcJobs) {
+            return jdbcJobs.toJson();
+        }
+        return "{\"mode\":\"REDIS\"}";
     }
 
     private static String deleteResultJson(DeleteIslandResult result) {
