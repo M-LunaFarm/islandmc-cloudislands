@@ -305,6 +305,10 @@ public final class VelocityRoutingController {
         coreApiClient.clearRoute(playerUuid, ticketId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "라우트 정리를 요청하지 못했습니다." : body)));
     }
 
+    public void clearCache(Player player) {
+        coreApiClient.clearCache().thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "캐시 정리를 요청하지 못했습니다." : body)));
+    }
+
     public void playerInfo(Player player, UUID playerUuid) {
         coreApiClient.playerInfo(playerUuid).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "플레이어 정보를 불러오지 못했습니다." : body)));
     }

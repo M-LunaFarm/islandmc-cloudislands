@@ -84,6 +84,7 @@ public interface CoreApiClient {
     CompletableFuture<String> debugRoutes(UUID playerUuid);
     CompletableFuture<String> routeTicket(UUID ticketId);
     CompletableFuture<String> clearRoute(UUID playerUuid, UUID ticketId);
+    CompletableFuture<String> clearCache();
     CompletableFuture<String> playerInfo(UUID playerUuid);
     CompletableFuture<String> setPlayerIsland(UUID playerUuid, UUID islandId);
     CompletableFuture<String> clearPlayerIsland(UUID playerUuid);

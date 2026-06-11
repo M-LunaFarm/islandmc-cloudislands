@@ -44,6 +44,12 @@ public final class InMemoryRouteTicketStore {
         return tickets.remove(ticketId) != null;
     }
 
+    public int clearAll() {
+        int cleared = tickets.size();
+        tickets.clear();
+        return cleared;
+    }
+
     public String toJson() {
         StringBuilder builder = new StringBuilder("{\"tickets\":[");
         boolean first = true;

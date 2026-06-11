@@ -325,6 +325,13 @@ public final class CloudIslandsCoreApplication {
             boolean clearedTicket = !ticketId.equals(new UUID(0L, 0L)) && tickets.clear(ticketId);
             write(exchange, 202, "{\"clearedSession\":" + clearedSession + ",\"clearedTicket\":" + clearedTicket + "}");
         });
+        route("/v1/admin/cache/clear", exchange -> {
+            int clearedSessions = sessions.clearAll();
+            int clearedTickets = tickets.clearAll();
+            audit.log(new UUID(0L, 0L), "ADMIN", "CACHE_CLEAR", "CORE", "route-cache", Map.of("sessions", Integer.toString(clearedSessions), "tickets", Integer.toString(clearedTickets)));
+            events.publish("CACHE_CLEAR", Map.of("scope", "route-cache", "sessions", Integer.toString(clearedSessions), "tickets", Integer.toString(clearedTickets)));
+            write(exchange, 202, "{\"clearedSessions\":" + clearedSessions + ",\"clearedTickets\":" + clearedTickets + "}");
+        });
         route("/v1/admin/players/info", exchange -> {
             String body = readBody(exchange);
             write(exchange, 200, playerProfileJson(playerProfiles.find(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)))));

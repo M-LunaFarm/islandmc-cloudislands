@@ -58,6 +58,12 @@ public final class InMemoryRouteSessionStore implements RouteSessionStore {
         return byPlayer.remove(playerUuid) != null;
     }
 
+    public int clearAll() {
+        int cleared = byPlayer.size();
+        byPlayer.clear();
+        return cleared;
+    }
+
     public String toJson() {
         StringBuilder builder = new StringBuilder("{\"sessions\":[");
         boolean first = true;

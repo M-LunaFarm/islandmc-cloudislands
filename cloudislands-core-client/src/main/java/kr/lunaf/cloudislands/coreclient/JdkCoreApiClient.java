@@ -372,6 +372,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> clearCache() {
+        return post("/v1/admin/cache/clear", "{}");
+    }
+
+    @Override
     public CompletableFuture<String> playerInfo(UUID playerUuid) {
         return post("/v1/admin/players/info", "{\"playerUuid\":\"" + playerUuid + "\"}");
     }
