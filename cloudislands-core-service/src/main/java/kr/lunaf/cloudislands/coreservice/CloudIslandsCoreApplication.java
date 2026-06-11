@@ -139,7 +139,7 @@ public final class CloudIslandsCoreApplication {
         IslandLogRepository islandLogs = config.jdbcRepositories() ? new JdbcIslandLogRepository(dataSource) : new InMemoryIslandLogRepository();
         InMemoryAuditLogger inMemoryAudit = audit instanceof InMemoryAuditLogger logger ? logger : new InMemoryAuditLogger();
         RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets, islandRepository, metadataRepository, runtimeRepository, jobs, events);
-        CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, metadataRepository, nodes, allocator, jobs, events);
+        CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, metadataRepository, nodes, allocator, jobs, events, tickets);
         IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(runtimeRepository, nodes, allocator, jobs, events);
         MigrationAdminService migrationAdmin = new MigrationAdminService(islandRepository, metadataRepository);
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository);

@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
+import kr.lunaf.cloudislands.coreservice.ticket.InMemoryRouteTicketStore;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 
@@ -27,14 +28,16 @@ public final class CreateIslandWorkflow {
     private final NodeAllocator allocator;
     private final IslandJobPublisher jobs;
     private final GlobalEventPublisher events;
+    private final InMemoryRouteTicketStore tickets;
 
-    public CreateIslandWorkflow(IslandRepository islands, IslandMetadataRepository metadata, InMemoryNodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events) {
+    public CreateIslandWorkflow(IslandRepository islands, IslandMetadataRepository metadata, InMemoryNodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events, InMemoryRouteTicketStore tickets) {
         this.islands = islands;
         this.metadata = metadata;
         this.nodes = nodes;
         this.allocator = allocator;
         this.jobs = jobs;
         this.events = events;
+        this.tickets = tickets;
     }
 
     public CreateIslandResult create(UUID ownerUuid, String templateId) {
@@ -50,7 +53,14 @@ public final class CreateIslandWorkflow {
         metadata.upsertMember(islandId, ownerUuid, IslandRole.OWNER);
         jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.CREATE_ISLAND, islandId, node.nodeId(), 0, Map.of("templateId", templateId), Instant.now()));
         events.publish(CloudIslandEventType.ISLAND_CREATED.name(), Map.of("islandId", islandId.toString(), "ownerUuid", ownerUuid.toString(), "targetNode", node.nodeId()));
-        RouteTicket ticket = new RouteTicket(UUID.randomUUID(), ownerUuid, RouteAction.HOME, islandId, node.nodeId(), "ci_shard_001", RouteTicketState.PREPARING, Instant.now().plusSeconds(30), UUID.randomUUID().toString(), Map.of("targetServerName", node.velocityServerName()));
+        RouteTicket ticket = tickets.save(new RouteTicket(UUID.randomUUID(), ownerUuid, RouteAction.HOME, islandId, node.nodeId(), "ci_shard_001", RouteTicketState.READY, Instant.now().plusSeconds(30), UUID.randomUUID().toString(), Map.of(
+            "targetServerName", node.velocityServerName(),
+            "localX", "0.5",
+            "localY", "100.0",
+            "localZ", "0.5",
+            "yaw", "180.0",
+            "pitch", "0.0"
+        )));
         events.publish(CloudIslandEventType.ROUTE_TICKET_CREATED.name(), Map.of("ticketId", ticket.ticketId().toString(), "islandId", islandId.toString(), "playerUuid", ownerUuid.toString()));
         return new CreateIslandResult(true, "CREATING", island, ticket);
     }
