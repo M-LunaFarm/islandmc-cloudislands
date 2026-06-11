@@ -102,6 +102,7 @@ public final class CloudIslandsCoreApplication {
     private final FixedWindowRateLimiter rateLimiter;
     private final AdminEndpointGuard adminGuard;
     private final IpAllowlist ipAllowlist;
+    private final NodeFailureMonitor nodeFailureMonitor;
 
     public CloudIslandsCoreApplication(int port) throws IOException {
         this(CoreServiceConfig.fromEnvironment().withPort(port));
@@ -147,6 +148,7 @@ public final class CloudIslandsCoreApplication {
         MigrationAdminService migrationAdmin = new MigrationAdminService(islandRepository, metadataRepository);
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets);
         PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, config.heartbeatTimeout());
+        this.nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, events, config.heartbeatTimeout());
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
         route("/health", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));
         route("/metrics", exchange -> write(exchange, 200, metrics.render(), "text/plain; version=0.0.4; charset=utf-8"));
@@ -883,6 +885,7 @@ public final class CloudIslandsCoreApplication {
 
     public void start() {
         server.start();
+        nodeFailureMonitor.start();
     }
 
     public static void main(String[] args) throws IOException {
