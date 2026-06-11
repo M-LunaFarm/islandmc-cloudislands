@@ -207,7 +207,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<Optional<PlayerIslandProfile>> getProfile(UUID playerUuid) {
-            return unsupported("player profile typed parsing is not registered yet");
+            return getOwnedIslandId(playerUuid)
+                .thenApply(islandId -> Optional.of(new PlayerIslandProfile(playerUuid, "", islandId, Instant.EPOCH)));
         }
     }
 
