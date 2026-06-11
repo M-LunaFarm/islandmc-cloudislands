@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
+import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
 import kr.lunaf.cloudislands.storage.manifest.IslandManifestJson;
 
 public final class LocalIslandStorage implements IslandStorage {
@@ -22,12 +23,13 @@ public final class LocalIslandStorage implements IslandStorage {
         if (!Files.exists(manifest)) {
             throw new IOException("missing island manifest: " + islandId);
         }
-        return IslandManifestJson.minimal(islandId, new UUID(0L, 0L), "unknown");
+        return IslandManifestJson.read(Files.readString(manifest, StandardCharsets.UTF_8));
     }
 
     @Override
     public InputStream openLatestBundle(UUID islandId) throws IOException {
-        return Files.newInputStream(islandRoot(islandId).resolve("latest"));
+        String latest = Files.readString(islandRoot(islandId).resolve("latest"), StandardCharsets.UTF_8).trim();
+        return Files.newInputStream(islandRoot(islandId).resolve("snapshots").resolve(latest).resolve("bundle.tar.zst"));
     }
 
     @Override
@@ -37,8 +39,25 @@ public final class LocalIslandStorage implements IslandStorage {
         Files.createDirectories(snapshotDir);
         Path snapshotBundle = snapshotDir.resolve("bundle.tar.zst");
         Files.copy(bundle, snapshotBundle, StandardCopyOption.REPLACE_EXISTING);
-        Files.writeString(snapshotDir.resolve("manifest.json"), IslandManifestJson.write(manifest), StandardCharsets.UTF_8);
-        Files.writeString(islandRoot.resolve("manifest.json"), IslandManifestJson.write(manifest), StandardCharsets.UTF_8);
+        String actualChecksum;
+        try (InputStream input = Files.newInputStream(snapshotBundle)) {
+            actualChecksum = Sha256Checksums.of(input);
+        }
+        IslandBundleManifest savedManifest = new IslandBundleManifest(
+            manifest.islandId(),
+            manifest.ownerUuid(),
+            manifest.formatVersion(),
+            manifest.minecraftVersion(),
+            manifest.schemaVersion(),
+            manifest.size(),
+            manifest.spawn(),
+            manifest.createdAt(),
+            manifest.savedAt(),
+            actualChecksum
+        );
+        Files.writeString(snapshotDir.resolve("manifest.json"), IslandManifestJson.write(savedManifest), StandardCharsets.UTF_8);
+        Files.writeString(snapshotDir.resolve("checksums.sha256"), actualChecksum + "  bundle.tar.zst\n", StandardCharsets.UTF_8);
+        Files.writeString(islandRoot.resolve("manifest.json"), IslandManifestJson.write(savedManifest), StandardCharsets.UTF_8);
         Files.writeString(islandRoot.resolve("latest"), snapshotDir.getFileName().toString(), StandardCharsets.UTF_8);
     }
 

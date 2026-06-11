@@ -1,6 +1,6 @@
 package kr.lunaf.cloudislands.storage.s3;
 
-import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
+import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
 import kr.lunaf.cloudislands.storage.manifest.IslandManifestJson;
 
 public final class S3IslandStorage implements IslandStorage {
@@ -31,22 +32,26 @@ public final class S3IslandStorage implements IslandStorage {
         if (manifest.isBlank()) {
             throw new IOException("missing island manifest: " + islandId);
         }
-        return IslandManifestJson.minimal(islandId, new UUID(0L, 0L), "remote");
+        return IslandManifestJson.read(manifest);
     }
 
     @Override
     public InputStream openLatestBundle(UUID islandId) throws IOException {
         String latest = request("GET", key(islandId, "latest"), null).trim();
         byte[] bytes = requestBytes("GET", key(islandId, "snapshots/" + latest + "/bundle.tar.zst"), null);
-        return new java.io.ByteArrayInputStream(bytes);
+        return new ByteArrayInputStream(bytes);
     }
 
     @Override
     public void writeSnapshot(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
         String snapshot = String.format("%06d", snapshotNo);
-        requestBytes("PUT", key(islandId, "snapshots/" + snapshot + "/bundle.tar.zst"), bundle.readAllBytes());
-        requestBytes("PUT", key(islandId, "snapshots/" + snapshot + "/manifest.json"), IslandManifestJson.write(manifest).getBytes(StandardCharsets.UTF_8));
-        requestBytes("PUT", key(islandId, "manifest.json"), IslandManifestJson.write(manifest).getBytes(StandardCharsets.UTF_8));
+        byte[] bundleBytes = bundle.readAllBytes();
+        String checksum = Sha256Checksums.of(new ByteArrayInputStream(bundleBytes));
+        IslandBundleManifest savedManifest = new IslandBundleManifest(manifest.islandId(), manifest.ownerUuid(), manifest.formatVersion(), manifest.minecraftVersion(), manifest.schemaVersion(), manifest.size(), manifest.spawn(), manifest.createdAt(), manifest.savedAt(), checksum);
+        requestBytes("PUT", key(islandId, "snapshots/" + snapshot + "/bundle.tar.zst"), bundleBytes);
+        requestBytes("PUT", key(islandId, "snapshots/" + snapshot + "/manifest.json"), IslandManifestJson.write(savedManifest).getBytes(StandardCharsets.UTF_8));
+        requestBytes("PUT", key(islandId, "snapshots/" + snapshot + "/checksums.sha256"), (checksum + "  bundle.tar.zst\n").getBytes(StandardCharsets.UTF_8));
+        requestBytes("PUT", key(islandId, "manifest.json"), IslandManifestJson.write(savedManifest).getBytes(StandardCharsets.UTF_8));
         requestBytes("PUT", key(islandId, "latest"), snapshot.getBytes(StandardCharsets.UTF_8));
     }
 
