@@ -170,12 +170,15 @@ public final class IslandCommandController implements CommandExecutor {
 
     private void teleportWarp(Player player, String name) {
         currentIsland(player, "섬 안에서만 워프로 이동할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.INTERACT)) {
-                player.sendMessage("섬 워프로 이동할 권한이 없습니다.");
-                return;
-            }
             coreApiClient.listIslandWarps(islandId)
-                .thenAccept(body -> teleport(player, point(body, name, player.getWorld().getName()), "워프를 찾을 수 없습니다.", "섬 워프로 이동했습니다."))
+                .thenAccept(body -> {
+                    Point point = point(body, name, player.getWorld().getName());
+                    if (point != null && !point.publicAccess() && !allowed(player, IslandPermission.INTERACT)) {
+                        message(player, "섬 워프로 이동할 권한이 없습니다.");
+                        return;
+                    }
+                    teleport(player, point, "워프를 찾을 수 없습니다.", "섬 워프로 이동했습니다.");
+                })
                 .exceptionally(error -> {
                     message(player, "섬 워프를 불러오지 못했습니다.");
                     return null;
@@ -273,7 +276,8 @@ public final class IslandCommandController implements CommandExecutor {
                     decimal(object, "localY"),
                     decimal(object, "localZ"),
                     (float) decimal(object, "yaw"),
-                    (float) decimal(object, "pitch")
+                    (float) decimal(object, "pitch"),
+                    bool(object, "publicAccess")
                 );
             }
             index = objectEnd + 1;
@@ -329,6 +333,16 @@ public final class IslandCommandController implements CommandExecutor {
         } catch (RuntimeException ignored) {
             return 0.0D;
         }
+    }
+
+    private boolean bool(String json, String key) {
+        String needle = "\"" + key + "\":";
+        int start = json.indexOf(needle);
+        if (start < 0) {
+            return false;
+        }
+        int valueStart = start + needle.length();
+        return json.startsWith("true", valueStart);
     }
 
     private List<String> names(String body) {
@@ -403,5 +417,5 @@ public final class IslandCommandController implements CommandExecutor {
         plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message));
     }
 
-    private record Point(String worldName, double x, double y, double z, float yaw, float pitch) {}
+    private record Point(String worldName, double x, double y, double z, float yaw, float pitch, boolean publicAccess) {}
 }
