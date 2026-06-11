@@ -77,7 +77,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         this.heartbeatService = new PaperHeartbeatService(this, client, nodeId, pool, velocityServerName, getDescription().getVersion(), supportedTemplates, () -> storageAvailable(storage));
         heartbeatService.start(getConfig().getLong("heartbeat.interval-ticks", 20L));
         if (role == AgentRole.ISLAND_NODE) {
-            startIslandNodeWorker(client, nodeId, storage);
+            startIslandNodeWorker(client, nodeId, storage, limitCache);
         }
         getLogger().info("CloudIslands Paper agent enabled as " + role + " node " + nodeId);
     }
@@ -107,7 +107,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         return activeIslands;
     }
 
-    private void startIslandNodeWorker(CoreApiClient client, String nodeId, IslandStorage storage) {
+    private void startIslandNodeWorker(CoreApiClient client, String nodeId, IslandStorage storage, IslandLimitCache limitCache) {
         ShardWorldManager shardWorldManager = new ShardWorldManager(
             getConfig().getString("island-node.shard-world-prefix", "ci_shard_"),
             getConfig().getInt("island-node.shard-count", 4),
