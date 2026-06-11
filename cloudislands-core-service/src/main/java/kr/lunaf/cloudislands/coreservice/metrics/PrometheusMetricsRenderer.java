@@ -42,6 +42,8 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_node_heap_max_mb", "gauge");
         help(out, "cloudislands_node_memory_pressure", "Node heap usage divided by max heap");
         type(out, "cloudislands_node_memory_pressure", "gauge");
+        help(out, "cloudislands_node_storage_available", "Node object storage availability reported by heartbeat");
+        type(out, "cloudislands_node_storage_available", "gauge");
         help(out, "cloudislands_node_state", "Node state marker by state label");
         type(out, "cloudislands_node_state", "gauge");
         Instant now = Instant.now();
@@ -55,6 +57,7 @@ public final class PrometheusMetricsRenderer {
             labels(out, "cloudislands_node_heap_used_mb", node, null).append(node.heapUsedMb()).append('\n');
             labels(out, "cloudislands_node_heap_max_mb", node, null).append(node.heapMaxMb()).append('\n');
             labels(out, "cloudislands_node_memory_pressure", node, null).append(memoryPressure(node)).append('\n');
+            labels(out, "cloudislands_node_storage_available", node, null).append(node.storageAvailable() ? 1 : 0).append('\n');
             for (NodeState state : NodeState.values()) {
                 labels(out, "cloudislands_node_state", node, "state=\"" + state.name() + "\"").append(node.state() == state ? 1 : 0).append('\n');
             }
