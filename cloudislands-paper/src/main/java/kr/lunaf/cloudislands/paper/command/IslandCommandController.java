@@ -11,6 +11,7 @@ import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandPermissionMenu;
@@ -49,7 +50,8 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "promote", "승급", "demote", "강등", "transfer", "양도",
         "ban", "밴", "unban", "pardon", "밴해제", "bans", "ban-list", "밴목록",
         "settings", "setting", "설정",
-        "flags", "flag", "플래그", "permissions", "permission-menu", "permission-list", "permission", "perms", "setpermission", "permission-set", "권한", "권한설정", "권한목록"
+        "flags", "flag-menu", "flag-list", "flag", "setflag", "flag-set", "플래그", "플래그설정", "플래그목록",
+        "permissions", "permission-menu", "permission-list", "permission", "perms", "setpermission", "permission-set", "권한", "권한설정", "권한목록"
     );
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
@@ -424,12 +426,24 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             openIslandSettings(player);
             return true;
         }
-        if (subcommand.equals("flags") || subcommand.equals("flag") || subcommand.equals("플래그")) {
+        if (subcommand.equals("flags") || subcommand.equals("flag-menu") || subcommand.equals("flag") || subcommand.equals("플래그")) {
             if (args.length > 2) {
                 setIslandFlag(player, args[1], args[2]);
             } else {
-                listIslandFlags(player);
+                openIslandFlagMenu(player);
             }
+            return true;
+        }
+        if (subcommand.equals("flag-list") || subcommand.equals("플래그목록")) {
+            listIslandFlags(player);
+            return true;
+        }
+        if (subcommand.equals("setflag") || subcommand.equals("flag-set") || subcommand.equals("플래그설정")) {
+            if (args.length < 3) {
+                player.sendMessage("플래그와 값을 입력해주세요.");
+                return true;
+            }
+            setIslandFlag(player, args[1], args[2]);
             return true;
         }
         if (subcommand.equals("permissions") || subcommand.equals("permission-menu") || subcommand.equals("permission") || subcommand.equals("perms") || subcommand.equals("권한")) {
@@ -1129,6 +1143,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                     return null;
                 });
         });
+    }
+
+    private void openIslandFlagMenu(Player player) {
+        currentIsland(player, "섬 안에서만 플래그 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandFlagMenu.open(plugin, coreApiClient, player, islandId));
     }
 
     private void setIslandFlag(Player player, String flagName, String value) {
