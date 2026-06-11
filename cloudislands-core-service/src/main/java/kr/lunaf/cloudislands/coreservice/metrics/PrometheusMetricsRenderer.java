@@ -68,10 +68,10 @@ public final class PrometheusMetricsRenderer {
         }
         help(out, "cloudislands_route_ticket_created_total", "Route tickets created by Core API");
         type(out, "cloudislands_route_ticket_created_total", "counter");
-        out.append("cloudislands_route_ticket_created_total ").append(events.countByType("ROUTE_TICKET_CREATED")).append('\n');
+        out.append("cloudislands_route_ticket_created_total ").append(events.countByType(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CREATED.name())).append('\n');
         help(out, "cloudislands_route_ticket_consumed_total", "Route tickets consumed by Paper nodes");
         type(out, "cloudislands_route_ticket_consumed_total", "counter");
-        out.append("cloudislands_route_ticket_consumed_total ").append(events.countByType("ROUTE_TICKET_CONSUMED")).append('\n');
+        out.append("cloudislands_route_ticket_consumed_total ").append(events.countByType(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CONSUMED.name())).append('\n');
         help(out, "cloudislands_route_ticket_failed_total", "Route ticket failures recorded by Core API");
         type(out, "cloudislands_route_ticket_failed_total", "counter");
         out.append("cloudislands_route_ticket_failed_total ").append(events.countByType(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_FAILED.name())).append('\n');

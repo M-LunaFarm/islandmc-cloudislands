@@ -113,7 +113,7 @@ public final class RoutingOrchestrator {
             nodeId,
             nonce
         );
-        consumed.ifPresent(ticket -> events.publish("ROUTE_TICKET_CONSUMED", Map.of(
+        consumed.ifPresent(ticket -> events.publish(CloudIslandEventType.ROUTE_TICKET_CONSUMED.name(), Map.of(
             "ticketId", ticket.ticketId().toString(),
             "playerUuid", ticket.playerUuid().toString(),
             "islandId", ticket.islandId().toString(),
@@ -209,7 +209,7 @@ public final class RoutingOrchestrator {
             }
             String templateId = islands.templateId(island.islandId()).orElse("default");
             RouteTicket saved = tickets.save(ticket(playerUuid, island.islandId(), action, extraPayload, routeTarget(runtime, templateId, templates.find(templateId).map(kr.lunaf.cloudislands.coreservice.template.IslandTemplateSnapshot::minNodeVersion).orElse(""), action)));
-            events.publish("ROUTE_TICKET_CREATED", Map.of(
+            events.publish(CloudIslandEventType.ROUTE_TICKET_CREATED.name(), Map.of(
                 "ticketId", saved.ticketId().toString(),
                 "playerUuid", saved.playerUuid().toString(),
                 "islandId", saved.islandId().toString(),
