@@ -176,6 +176,34 @@ public final class IslandCommandController implements CommandExecutor {
             }
             return true;
         }
+        if (subcommand.equals("chat") || subcommand.equals("islandchat") || subcommand.equals("채팅")) {
+            if (args.length < 2) {
+                player.sendMessage("섬 채팅 메시지를 입력해주세요.");
+                return true;
+            }
+            sendIslandChat(player, "ISLAND", joined(args, 1), "섬 채팅");
+            return true;
+        }
+        if (subcommand.equals("teamchat") || subcommand.equals("team-chat") || subcommand.equals("팀채팅")) {
+            if (args.length < 2) {
+                player.sendMessage("팀 채팅 메시지를 입력해주세요.");
+                return true;
+            }
+            sendIslandChat(player, "TEAM", joined(args, 1), "팀 채팅");
+            return true;
+        }
+        if (subcommand.equals("log") || subcommand.equals("logs") || subcommand.equals("로그")) {
+            listIslandLogs(player, args.length > 1 ? integer(args[1], 10) : 10);
+            return true;
+        }
+        if (subcommand.equals("biome") || subcommand.equals("바이옴")) {
+            if (args.length > 1) {
+                setIslandBiome(player, args[1]);
+            } else {
+                showIslandBiome(player);
+            }
+            return true;
+        }
         return false;
     }
 
@@ -509,6 +537,54 @@ public final class IslandCommandController implements CommandExecutor {
         });
     }
 
+    private void sendIslandChat(Player player, String channel, String chatMessage, String label) {
+        currentIsland(player, "섬 안에서만 " + label + "을 사용할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.sendIslandChat(islandId, player.getUniqueId(), channel, chatMessage)
+                .thenAccept(body -> message(player, label + " 전송: " + text(body, "message")))
+                .exceptionally(error -> {
+                    message(player, label + "을 전송하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void listIslandLogs(Player player, int limit) {
+        currentIsland(player, "섬 안에서만 로그를 확인할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.listIslandLogs(islandId, Math.max(1, Math.min(limit, 30)))
+                .thenAccept(body -> message(player, logListMessage(body)))
+                .exceptionally(error -> {
+                    message(player, "섬 로그를 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void showIslandBiome(Player player) {
+        currentIsland(player, "섬 안에서만 바이옴을 확인할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.islandBiome(islandId)
+                .thenAccept(body -> message(player, "섬 바이옴: " + text(body, "biomeKey")))
+                .exceptionally(error -> {
+                    message(player, "섬 바이옴을 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void setIslandBiome(Player player, String biomeKey) {
+        currentIsland(player, "섬 안에서만 바이옴을 변경할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.SET_BIOME)) {
+                player.sendMessage("섬 바이옴을 변경할 권한이 없습니다.");
+                return;
+            }
+            coreApiClient.setIslandBiome(islandId, player.getUniqueId(), biomeKey)
+                .thenRun(() -> message(player, "섬 바이옴을 변경했습니다: " + biomeKey))
+                .exceptionally(error -> {
+                    message(player, "섬 바이옴을 변경하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
     private java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
         java.util.Optional<UUID> islandId = protection.islandAt(player.getLocation().getBlock());
         if (islandId.isEmpty()) {
@@ -627,6 +703,48 @@ public final class IslandCommandController implements CommandExecutor {
             index = objectEnd + 1;
         }
         return entries.isEmpty() ? label + "이 없습니다." : label + ": " + String.join(", ", entries);
+    }
+
+    private String logListMessage(String body) {
+        List<String> entries = new ArrayList<>();
+        int index = 0;
+        while (body != null && index < body.length()) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String action = text(object, "action");
+            if (!action.isBlank()) {
+                String actor = text(object, "actorUuid");
+                entries.add(action + (actor.isBlank() ? "" : " by " + actor));
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "섬 로그가 없습니다." : "섬 로그: " + String.join(" | ", entries);
+    }
+
+    private String joined(String[] args, int start) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = start; i < args.length; i++) {
+            if (builder.length() > 0) {
+                builder.append(' ');
+            }
+            builder.append(args[i]);
+        }
+        return builder.toString();
+    }
+
+    private int integer(String value, int fallback) {
+        try {
+            return Integer.parseInt(value);
+        } catch (RuntimeException ignored) {
+            return fallback;
+        }
     }
 
     private Point point(String body, String requestedName, String fallbackWorldName) {
