@@ -36,6 +36,10 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_node_active_islands", "gauge");
         help(out, "cloudislands_node_activation_queue", "Activation queue depth currently reported by a node");
         type(out, "cloudislands_node_activation_queue", "gauge");
+        help(out, "cloudislands_node_chunk_load_pressure", "Node chunk loading pressure reported by heartbeat");
+        type(out, "cloudislands_node_chunk_load_pressure", "gauge");
+        help(out, "cloudislands_node_recent_failure_penalty", "Recent node failure penalty used by routing score");
+        type(out, "cloudislands_node_recent_failure_penalty", "gauge");
         help(out, "cloudislands_node_heap_used_mb", "Node JVM heap used in MiB");
         type(out, "cloudislands_node_heap_used_mb", "gauge");
         help(out, "cloudislands_node_heap_max_mb", "Node JVM maximum heap in MiB");
@@ -54,6 +58,8 @@ public final class PrometheusMetricsRenderer {
             labels(out, "cloudislands_node_mspt", node, null).append(node.mspt()).append('\n');
             labels(out, "cloudislands_node_active_islands", node, null).append(node.activeIslands()).append('\n');
             labels(out, "cloudislands_node_activation_queue", node, null).append(node.activationQueue()).append('\n');
+            labels(out, "cloudislands_node_chunk_load_pressure", node, null).append(node.chunkLoadPressure()).append('\n');
+            labels(out, "cloudislands_node_recent_failure_penalty", node, null).append(node.recentFailurePenalty()).append('\n');
             labels(out, "cloudislands_node_heap_used_mb", node, null).append(node.heapUsedMb()).append('\n');
             labels(out, "cloudislands_node_heap_max_mb", node, null).append(node.heapMaxMb()).append('\n');
             labels(out, "cloudislands_node_memory_pressure", node, null).append(memoryPressure(node)).append('\n');
