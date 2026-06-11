@@ -7,6 +7,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JdkCoreApiClient;
 import kr.lunaf.cloudislands.paper.api.PaperCloudIslandsApi;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
+import kr.lunaf.cloudislands.paper.activation.EmptyIslandSaveTask;
 import kr.lunaf.cloudislands.paper.activation.IslandActivationJobHandler;
 import kr.lunaf.cloudislands.paper.activation.IslandDeactivationHandler;
 import kr.lunaf.cloudislands.paper.activation.IslandSaveService;
@@ -70,6 +71,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private PaperIslandJobWorker jobWorker;
     private PermissionEventPoller permissionEventPoller;
     private PeriodicIslandSaveTask periodicSaveTask;
+    private EmptyIslandSaveTask emptyIslandSaveTask;
     private ActiveIslandRegistry activeIslands;
     private CloudIslandsApi api;
     private GeneratorLevelCache generatorLevels;
@@ -155,6 +157,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         if (periodicSaveTask != null) {
             periodicSaveTask.stop();
         }
+        if (emptyIslandSaveTask != null) {
+            emptyIslandSaveTask.stop();
+        }
         if (heartbeatService != null) {
             heartbeatService.stop();
         }
@@ -186,9 +191,11 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         this.jobWorker = new PaperIslandJobWorker(this, new CoreBackedIslandJobSource(client), activationHandler, deactivationHandler, activeIslands, permissionSync, nodeId);
         this.permissionEventPoller = new PermissionEventPoller(this, client, permissionSync, generatorLevels, limitCache, nodeId);
         this.periodicSaveTask = new PeriodicIslandSaveTask(this, activeIslands, saveService);
+        this.emptyIslandSaveTask = new EmptyIslandSaveTask(this, activeIslands, agent.protection(), saveService);
         permissionEventPoller.start(getConfig().getLong("protection.cache-event-poll-ticks", 100L));
         jobWorker.start(getConfig().getLong("island-node.activation.worker-interval-ticks", 20L));
         periodicSaveTask.start(getConfig().getLong("island-node.activation.periodic-save-seconds", 600L));
+        emptyIslandSaveTask.start(getConfig().getLong("island-node.activation.save-on-empty-after-seconds", 300L));
     }
 
     private boolean storageAvailable(IslandStorage storage) {
