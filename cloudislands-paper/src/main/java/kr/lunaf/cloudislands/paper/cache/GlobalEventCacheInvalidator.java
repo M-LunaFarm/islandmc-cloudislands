@@ -13,7 +13,12 @@ public final class GlobalEventCacheInvalidator {
     }
 
     public void accept(String type, Map<String, String> fields) {
-        CloudIslandEventType eventType = CloudIslandEventType.valueOf(type);
+        CloudIslandEventType eventType;
+        try {
+            eventType = CloudIslandEventType.valueOf(type);
+        } catch (IllegalArgumentException exception) {
+            return;
+        }
         if (CacheInvalidationPlan.targetsFor(eventType).contains(CacheInvalidationPlan.CacheTarget.PERMISSIONS)) {
             String islandId = fields.get("islandId");
             if (islandId == null || islandId.isBlank()) {

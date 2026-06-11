@@ -6,6 +6,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import kr.lunaf.cloudislands.common.event.CacheInvalidationPlan;
+import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
@@ -63,14 +65,16 @@ public final class PermissionEventPoller {
     }
 
     private boolean affectsPermissions(String type) {
-        return type.equals("ISLAND_PERMISSION_SET")
-            || type.equals("ISLAND_PERMISSION_CHANGED")
-            || type.equals("ISLAND_MEMBER_SET")
-            || type.equals("ISLAND_MEMBER_REMOVE")
-            || type.equals("ISLAND_MEMBER_CHANGED")
-            || type.equals("ISLAND_OWNERSHIP_TRANSFER")
-            || type.equals("ISLAND_VISITOR_BAN")
-            || type.equals("ISLAND_VISITOR_PARDON");
+        try {
+            return CacheInvalidationPlan.targetsFor(CloudIslandEventType.valueOf(type)).contains(CacheInvalidationPlan.CacheTarget.PERMISSIONS);
+        } catch (IllegalArgumentException ignored) {
+            return type.equals("ISLAND_PERMISSION_SET")
+                || type.equals("ISLAND_MEMBER_SET")
+                || type.equals("ISLAND_MEMBER_REMOVE")
+                || type.equals("ISLAND_OWNERSHIP_TRANSFER")
+                || type.equals("ISLAND_VISITOR_BAN")
+                || type.equals("ISLAND_VISITOR_PARDON");
+        }
     }
 
     private Map<String, String> fields(String raw) {
