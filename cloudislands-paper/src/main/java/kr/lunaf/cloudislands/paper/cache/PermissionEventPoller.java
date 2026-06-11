@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.common.event.CacheInvalidationPlan;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
+import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
@@ -22,15 +23,17 @@ public final class PermissionEventPoller {
     private final CoreApiClient client;
     private final PermissionCacheSyncService permissionSync;
     private final GeneratorLevelCache generatorLevels;
+    private final IslandLimitCache limits;
     private final String nodeId;
     private final Set<String> seen = ConcurrentHashMap.newKeySet();
     private BukkitTask task;
 
-    public PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, GeneratorLevelCache generatorLevels, String nodeId) {
+    public PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, GeneratorLevelCache generatorLevels, IslandLimitCache limits, String nodeId) {
         this.plugin = plugin;
         this.client = client;
         this.permissionSync = permissionSync;
         this.generatorLevels = generatorLevels;
+        this.limits = limits;
         this.nodeId = nodeId;
     }
 
@@ -70,6 +73,12 @@ public final class PermissionEventPoller {
                     String islandId = fields.get("islandId");
                     if (islandId != null && !islandId.isBlank()) {
                         generatorLevels.invalidate(UUID.fromString(islandId));
+                    }
+                }
+                if (affectsLimits(type, fields)) {
+                    String islandId = fields.get("islandId");
+                    if (islandId != null && !islandId.isBlank()) {
+                        limits.invalidate(UUID.fromString(islandId));
                     }
                 }
             }
@@ -136,6 +145,17 @@ public final class PermissionEventPoller {
                 && fields.getOrDefault("upgradeKey", "").equalsIgnoreCase("generator");
         } catch (IllegalArgumentException ignored) {
             return type.equals("ISLAND_UPGRADE") && fields.getOrDefault("upgradeKey", "").equalsIgnoreCase("generator");
+        }
+    }
+
+    private boolean affectsLimits(String type, Map<String, String> fields) {
+        if (targetsInclude(fields, CacheInvalidationPlan.CacheTarget.LIMITS)) {
+            return true;
+        }
+        try {
+            return CacheInvalidationPlan.targetsFor(CloudIslandEventType.valueOf(type)).contains(CacheInvalidationPlan.CacheTarget.LIMITS);
+        } catch (IllegalArgumentException ignored) {
+            return type.equals("ISLAND_LIMIT_SET");
         }
     }
 
