@@ -60,7 +60,7 @@ public final class PermissionEventPoller {
                 if (handlesNodeOperation(type, fields)) {
                     continue;
                 }
-                if (affectsPermissions(type)) {
+                if (affectsPermissions(type, fields)) {
                     String islandId = fields.get("islandId");
                     if (islandId != null && !islandId.isBlank()) {
                         permissionSync.sync(UUID.fromString(islandId));
@@ -111,7 +111,10 @@ public final class PermissionEventPoller {
         }
     }
 
-    private boolean affectsPermissions(String type) {
+    private boolean affectsPermissions(String type, Map<String, String> fields) {
+        if (targetsInclude(fields, CacheInvalidationPlan.CacheTarget.PERMISSIONS)) {
+            return true;
+        }
         try {
             return CacheInvalidationPlan.targetsFor(CloudIslandEventType.valueOf(type)).contains(CacheInvalidationPlan.CacheTarget.PERMISSIONS);
         } catch (IllegalArgumentException ignored) {
@@ -125,12 +128,25 @@ public final class PermissionEventPoller {
     }
 
     private boolean affectsGenerator(String type, Map<String, String> fields) {
+        if (targetsInclude(fields, CacheInvalidationPlan.CacheTarget.GENERATOR)) {
+            return fields.getOrDefault("upgradeKey", "").equalsIgnoreCase("generator");
+        }
         try {
             return CacheInvalidationPlan.targetsFor(CloudIslandEventType.valueOf(type)).contains(CacheInvalidationPlan.CacheTarget.GENERATOR)
                 && fields.getOrDefault("upgradeKey", "").equalsIgnoreCase("generator");
         } catch (IllegalArgumentException ignored) {
             return type.equals("ISLAND_UPGRADE") && fields.getOrDefault("upgradeKey", "").equalsIgnoreCase("generator");
         }
+    }
+
+    private boolean targetsInclude(Map<String, String> fields, CacheInvalidationPlan.CacheTarget target) {
+        String cacheTargets = fields.getOrDefault("cacheTargets", "");
+        for (String value : cacheTargets.split(",")) {
+            if (value.trim().equals(target.name())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Map<String, String> fields(String raw) {
