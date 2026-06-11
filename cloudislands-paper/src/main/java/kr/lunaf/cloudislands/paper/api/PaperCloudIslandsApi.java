@@ -321,12 +321,22 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<Void> deactivate(UUID islandId) {
-            return client.deactivateIsland(islandId).thenApply(_body -> null);
+            return deactivateResult(islandId).thenApply(_result -> null);
+        }
+
+        @Override
+        public CompletableFuture<IslandActionResult> deactivateResult(UUID islandId) {
+            return client.deactivateIslandResult(islandId).thenApply(body -> actionCode(body, "DEACTIVATED"));
         }
 
         @Override
         public CompletableFuture<Void> heartbeat(String nodeId, NodeHeartbeat heartbeat) {
-            return client.publishHeartbeat(new NodeHeartbeatRequest(
+            return heartbeatResult(nodeId, heartbeat).thenApply(_result -> null);
+        }
+
+        @Override
+        public CompletableFuture<IslandActionResult> heartbeatResult(String nodeId, NodeHeartbeat heartbeat) {
+            return client.publishHeartbeatResult(new NodeHeartbeatRequest(
                 nodeId,
                 "island",
                 nodeId,
@@ -340,7 +350,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 heartbeat.heapMaxMb(),
                 true,
                 "*"
-            ));
+            )).thenApply(body -> action(body, "HEARTBEAT_ACCEPTED"));
         }
     }
 

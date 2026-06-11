@@ -470,7 +470,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> deactivateIsland(UUID islandId) {
-        return post("/v1/admin/islands/deactivate", "{\"islandId\":\"" + islandId + "\"}");
+        return deactivateIslandResult(islandId);
+    }
+
+    @Override
+    public CompletableFuture<String> deactivateIslandResult(UUID islandId) {
+        return postWithResultBody("/v1/admin/islands/deactivate", "{\"islandId\":\"" + islandId + "\"}");
     }
 
     @Override
@@ -683,7 +688,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<Void> publishHeartbeat(NodeHeartbeatRequest request) {
-        return post("/v1/nodes/heartbeat", "{\"nodeId\":\"" + request.nodeId() + "\",\"pool\":\"" + request.pool() + "\",\"velocityServerName\":\"" + request.velocityServerName() + "\",\"nodeVersion\":\"" + escape(request.nodeVersion()) + "\",\"state\":\"" + request.state() + "\",\"players\":" + request.players() + ",\"activeIslands\":" + request.activeIslands() + ",\"mspt\":" + request.mspt() + ",\"activationQueue\":" + request.activationQueue() + ",\"heapUsedMb\":" + request.heapUsedMb() + ",\"heapMaxMb\":" + request.heapMaxMb() + ",\"storageAvailable\":" + request.storageAvailable() + ",\"supportedTemplates\":\"" + escape(request.supportedTemplates()) + "\"}").thenApply(_body -> null);
+        return publishHeartbeatResult(request).thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> publishHeartbeatResult(NodeHeartbeatRequest request) {
+        return postWithResultBody("/v1/nodes/heartbeat", "{\"nodeId\":\"" + request.nodeId() + "\",\"pool\":\"" + request.pool() + "\",\"velocityServerName\":\"" + request.velocityServerName() + "\",\"nodeVersion\":\"" + escape(request.nodeVersion()) + "\",\"state\":\"" + request.state() + "\",\"players\":" + request.players() + ",\"activeIslands\":" + request.activeIslands() + ",\"mspt\":" + request.mspt() + ",\"activationQueue\":" + request.activationQueue() + ",\"heapUsedMb\":" + request.heapUsedMb() + ",\"heapMaxMb\":" + request.heapMaxMb() + ",\"storageAvailable\":" + request.storageAvailable() + ",\"supportedTemplates\":\"" + escape(request.supportedTemplates()) + "\"}");
     }
 
     private String mapJson(Map<String, String> payload) {

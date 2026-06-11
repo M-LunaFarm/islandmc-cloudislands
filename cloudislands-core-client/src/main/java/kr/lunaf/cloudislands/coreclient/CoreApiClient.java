@@ -104,6 +104,7 @@ public interface CoreApiClient {
     CompletableFuture<String> sweepNode(String nodeId);
     CompletableFuture<String> activateIsland(UUID islandId);
     CompletableFuture<String> deactivateIsland(UUID islandId);
+    CompletableFuture<String> deactivateIslandResult(UUID islandId);
     CompletableFuture<String> migrateIsland(UUID islandId, String targetNode);
     CompletableFuture<String> migrateIslandResult(UUID islandId, String targetNode);
     CompletableFuture<String> quarantineIsland(UUID islandId, String reason);
@@ -145,4 +146,5 @@ public interface CoreApiClient {
     CompletableFuture<Void> completeJob(String nodeId, UUID jobId, Map<String, String> payload);
     CompletableFuture<Void> failJob(String nodeId, UUID jobId, String errorMessage);
     CompletableFuture<Void> publishHeartbeat(NodeHeartbeatRequest request);
+    CompletableFuture<String> publishHeartbeatResult(NodeHeartbeatRequest request);
 }
