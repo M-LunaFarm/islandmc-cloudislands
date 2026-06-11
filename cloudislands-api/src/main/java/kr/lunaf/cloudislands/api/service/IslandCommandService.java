@@ -73,6 +73,10 @@ public interface IslandCommandService {
     CompletableFuture<java.util.Optional<IslandMissionSnapshot>> completeMissionResult(UUID islandId, UUID actorUuid, String missionKey);
     CompletableFuture<Void> sendChat(UUID islandId, UUID actorUuid, String channel, String message);
     CompletableFuture<IslandChatResult> sendChatResult(UUID islandId, UUID actorUuid, String channel, String message);
+    CompletableFuture<Void> sendIslandChat(UUID islandId, UUID actorUuid, String message);
+    CompletableFuture<IslandChatResult> sendIslandChatResult(UUID islandId, UUID actorUuid, String message);
+    CompletableFuture<Void> sendTeamChat(UUID islandId, UUID actorUuid, String message);
+    CompletableFuture<IslandChatResult> sendTeamChatResult(UUID islandId, UUID actorUuid, String message);
     CompletableFuture<Void> depositBank(UUID islandId, UUID actorUuid, BigDecimal amount);
     CompletableFuture<IslandBankChangeSnapshot> depositBankResult(UUID islandId, UUID actorUuid, BigDecimal amount);
     CompletableFuture<Void> withdrawBank(UUID islandId, UUID actorUuid, BigDecimal amount);
