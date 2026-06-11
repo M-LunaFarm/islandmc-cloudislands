@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,6 +58,34 @@ public final class JdbcNodeRegistry implements NodeRegistry {
     @Override
     public boolean undrain(String nodeId) {
         return setState(nodeId, NodeState.READY);
+    }
+
+    @Override
+    public List<String> markStaleDown(Duration heartbeatTimeout) {
+        Instant staleBefore = Instant.now().minus(heartbeatTimeout);
+        List<String> down = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement statement = connection.prepareStatement("SELECT id FROM server_nodes WHERE state <> 'DOWN' AND (last_heartbeat IS NULL OR last_heartbeat < ?) FOR UPDATE")) {
+                statement.setObject(1, java.sql.Timestamp.from(staleBefore));
+                try (ResultSet rs = statement.executeQuery()) {
+                    while (rs.next()) {
+                        down.add(rs.getString("id"));
+                    }
+                }
+            }
+            try (PreparedStatement statement = connection.prepareStatement("UPDATE server_nodes SET state = 'DOWN', updated_at = now() WHERE id = ?")) {
+                for (String nodeId : down) {
+                    statement.setString(1, nodeId);
+                    statement.addBatch();
+                }
+                statement.executeBatch();
+            }
+            connection.commit();
+            return List.copyOf(down);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to mark stale nodes down", exception);
+        }
     }
 
     @Override

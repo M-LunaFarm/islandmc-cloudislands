@@ -1,6 +1,8 @@
 package kr.lunaf.cloudislands.coreservice;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +52,20 @@ public final class InMemoryNodeRegistry implements NodeRegistry {
     @Override
     public boolean undrain(String nodeId) {
         return setState(nodeId, NodeState.READY);
+    }
+
+    @Override
+    public List<String> markStaleDown(Duration heartbeatTimeout) {
+        Instant now = Instant.now();
+        List<String> down = new ArrayList<>();
+        for (NodeLoad node : nodes.values()) {
+            if (node.state() == NodeState.DOWN || (node.lastHeartbeat() != null && !node.lastHeartbeat().plus(heartbeatTimeout).isBefore(now))) {
+                continue;
+            }
+            upsert(new NodeLoad(node.nodeId(), node.velocityServerName(), NodeState.DOWN, node.players(), node.hardPlayerCap(), node.activeIslands(), node.maxActiveIslands(), node.mspt(), node.activationQueue(), node.maxActivationQueue(), node.chunkLoadPressure(), node.heapUsedMb(), node.heapMaxMb(), node.recentFailurePenalty(), node.lastHeartbeat()));
+            down.add(node.nodeId());
+        }
+        return List.copyOf(down);
     }
 
     @Override

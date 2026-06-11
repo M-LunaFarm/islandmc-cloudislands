@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.coreservice;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
@@ -11,6 +12,8 @@ public interface NodeRegistry {
     boolean drain(String nodeId);
 
     boolean undrain(String nodeId);
+
+    List<String> markStaleDown(Duration heartbeatTimeout);
 
     List<NodeLoad> snapshot();
 
