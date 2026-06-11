@@ -92,6 +92,7 @@ public interface CoreApiClient {
     CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid);
     CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName);
     CompletableFuture<Void> publishRouteSession(RouteTicket ticket);
+    CompletableFuture<String> publishRouteSessionResult(RouteTicket ticket);
     CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId);
     CompletableFuture<Optional<RouteTicket>> routeTicketStatus(UUID ticketId, UUID playerUuid, String nonce);
     CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce);

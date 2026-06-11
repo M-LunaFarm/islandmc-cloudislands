@@ -52,6 +52,7 @@ import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.NodeSweepResult;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
+import kr.lunaf.cloudislands.api.model.PlayerRouteSessionSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteClearResult;
 import kr.lunaf.cloudislands.api.model.RoutePlan;
@@ -71,6 +72,7 @@ import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
+import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
 public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private final QueryService query;
@@ -284,6 +286,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId) { return client.createVisitTicket(visitorUuid, targetIslandId); }
         @Override public CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid) { return client.createRandomVisitTicket(visitorUuid); }
         @Override public CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName) { return client.createWarpTicket(playerUuid, islandId, warpName); }
+        @Override public CompletableFuture<Void> publishRouteSession(RouteTicket ticket) { return publishRouteSessionResult(ticket).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> publishRouteSessionResult(RouteTicket ticket) { return client.publishRouteSessionResult(ticket).thenApply(body -> action(body, "ROUTE_SESSION_PUBLISHED")); }
+        @Override public CompletableFuture<Optional<PlayerRouteSessionSnapshot>> consumeRouteSession(UUID playerUuid, String nodeId) { return client.consumeRouteSession(playerUuid, nodeId).thenApply(session -> session.map(PaperCloudIslandsApi::routeSession)); }
+        @Override public CompletableFuture<Optional<RouteTicket>> routeTicketStatus(UUID ticketId, UUID playerUuid, String nonce) { return client.routeTicketStatus(ticketId, playerUuid, nonce); }
+        @Override public CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce) { return client.consumeTicket(ticketId, playerUuid, nodeId, nonce); }
         @Override public CompletableFuture<RoutePlan> resolveHome(UUID playerUuid) { return createHomeTicket(playerUuid).thenApply(PaperCloudIslandsApi::plan); }
         @Override public CompletableFuture<RoutePlan> resolveVisit(UUID visitorUuid, UUID targetIslandId) { return createVisitTicket(visitorUuid, targetIslandId).thenApply(PaperCloudIslandsApi::plan); }
         @Override public CompletableFuture<RoutePlan> resolveRandomVisit(UUID visitorUuid) { return createRandomVisitTicket(visitorUuid).thenApply(PaperCloudIslandsApi::plan); }
@@ -554,6 +561,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             primaryIslandId == null || primaryIslandId.isBlank() ? Optional.empty() : Optional.of(uuid(json, "primaryIslandId", new UUID(0L, 0L))),
             instant(text(json, "lastSeenAt", Instant.EPOCH.toString()))
         ));
+    }
+
+    private static PlayerRouteSessionSnapshot routeSession(PlayerRouteSession session) {
+        return new PlayerRouteSessionSnapshot(
+            session.playerUuid(),
+            session.ticketId(),
+            session.targetNode(),
+            session.targetServerName(),
+            session.nonce(),
+            session.expiresAt()
+        );
     }
 
     private static IslandRuntimeSnapshot runtime(String json) {
