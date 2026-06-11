@@ -62,7 +62,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "visit", "randomvisit", "random-visit", "방문", "랜덤방문",
         "level", "레벨", "worth", "value", "가치", "rank", "ranking", "rank-list", "랭킹", "랭킹목록", "levelcalc", "recalculate", "레벨계산",
         "bank", "bank-balance", "은행", "은행잔액", "deposit", "bank-deposit", "입금", "withdraw", "bank-withdraw", "출금",
-        "upgrade", "upgrades", "upgrade-menu", "upgrade-list", "업그레이드", "업그레이드목록",
+        "upgrade", "upgrades", "upgrade-menu", "upgrade-list", "buyupgrade", "upgrade-buy", "업그레이드", "업그레이드목록", "업그레이드구매",
         "mission", "missions", "mission-menu", "mission-list", "미션", "미션목록",
         "challenge", "challenges", "challenge-menu", "challenge-list", "챌린지", "챌린지목록",
         "chat", "chat-menu", "islandchat", "채팅", "teamchat", "team-chat", "팀채팅", "log", "logs", "log-menu", "log-list", "로그", "로그목록",
@@ -352,6 +352,14 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("upgrade-list") || subcommand.equals("업그레이드목록")) {
             listIslandUpgrades(player);
+            return true;
+        }
+        if (subcommand.equals("buyupgrade") || subcommand.equals("upgrade-buy") || subcommand.equals("업그레이드구매")) {
+            if (args.length < 2) {
+                player.sendMessage("구매할 업그레이드 키를 입력해주세요.");
+                return true;
+            }
+            purchaseIslandUpgrade(player, args[1]);
             return true;
         }
         if (subcommand.equals("mission") || subcommand.equals("missions") || subcommand.equals("미션")) {
