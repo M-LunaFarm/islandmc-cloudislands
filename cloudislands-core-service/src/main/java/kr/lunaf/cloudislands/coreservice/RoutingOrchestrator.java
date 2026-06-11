@@ -61,13 +61,13 @@ public final class RoutingOrchestrator {
     public RoutePreparationResult prepareHomeRoute(UUID playerUuid, String homeName) {
         return islands.findByOwner(playerUuid)
             .map(island -> prepareTicket(playerUuid, island, RouteAction.HOME, homePayload(island.islandId(), homeName)))
-            .orElseGet(() -> RoutePreparationResult.rejected(404, ApiResponses.error("ISLAND_NOT_FOUND", "Player does not own an island")));
+            .orElseGet(() -> rejectRoute(404, "ISLAND_NOT_FOUND", "Player does not own an island", playerUuid, null, RouteAction.HOME));
     }
 
     public RoutePreparationResult prepareVisitRoute(UUID playerUuid, UUID islandId) {
         return islands.findById(islandId)
             .map(island -> visitAllowed(playerUuid, island))
-            .orElseGet(() -> RoutePreparationResult.rejected(404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
+            .orElseGet(() -> rejectRoute(404, "ISLAND_NOT_FOUND", "Island was not found", playerUuid, islandId, RouteAction.VISIT));
     }
 
     public RoutePreparationResult prepareRandomVisitRoute(UUID playerUuid) {
@@ -87,19 +87,19 @@ public final class RoutingOrchestrator {
                 return result;
             }
         }
-        return RoutePreparationResult.rejected(404, ApiResponses.error("PUBLIC_ISLAND_NOT_FOUND", "No public island is available"));
+        return rejectRoute(404, "PUBLIC_ISLAND_NOT_FOUND", "No public island is available", playerUuid, null, RouteAction.VISIT);
     }
 
     public RoutePreparationResult prepareWarpRoute(UUID playerUuid, UUID islandId, String warpName) {
         return islands.findById(islandId)
             .map(island -> warpAllowed(playerUuid, island, warpName))
-            .orElseGet(() -> RoutePreparationResult.rejected(404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
+            .orElseGet(() -> rejectRoute(404, "ISLAND_NOT_FOUND", "Island was not found", playerUuid, islandId, RouteAction.WARP));
     }
 
     public RoutePreparationResult prepareAdminTeleportRoute(UUID playerUuid, UUID islandId) {
         return islands.findById(islandId)
             .map(island -> prepareTicket(playerUuid, island, RouteAction.ADMIN_TELEPORT, Map.of("admin", "true")))
-            .orElseGet(() -> RoutePreparationResult.rejected(404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
+            .orElseGet(() -> rejectRoute(404, "ISLAND_NOT_FOUND", "Island was not found", playerUuid, islandId, RouteAction.ADMIN_TELEPORT));
     }
 
     public String consumeTicketJson(String body) {
@@ -125,13 +125,13 @@ public final class RoutingOrchestrator {
 
     private RoutePreparationResult visitAllowed(UUID playerUuid, IslandSnapshot island, RouteAction action, Map<String, String> extraPayload) {
         if (metadata.isBanned(island.islandId(), playerUuid)) {
-            return RoutePreparationResult.rejected(403, ApiResponses.error("VISITOR_BANNED", "Visitor is banned from this island"));
+            return rejectRoute(403, "VISITOR_BANNED", "Visitor is banned from this island", playerUuid, island.islandId(), action);
         }
         if (metadata.isLocked(island.islandId()) && !metadata.isMember(island.islandId(), playerUuid)) {
-            return RoutePreparationResult.rejected(423, ApiResponses.error("ISLAND_LOCKED", "Island is locked"));
+            return rejectRoute(423, "ISLAND_LOCKED", "Island is locked", playerUuid, island.islandId(), action);
         }
         if (!metadata.isPublicAccess(island.islandId()) && !metadata.isMember(island.islandId(), playerUuid)) {
-            return RoutePreparationResult.rejected(403, ApiResponses.error("ISLAND_PRIVATE", "Island is private"));
+            return rejectRoute(403, "ISLAND_PRIVATE", "Island is private", playerUuid, island.islandId(), action);
         }
         return prepareTicket(playerUuid, island, action, extraPayload);
     }
@@ -139,17 +139,17 @@ public final class RoutingOrchestrator {
     private RoutePreparationResult warpAllowed(UUID playerUuid, IslandSnapshot island, String warpName) {
         IslandWarpSnapshot warp = metadata.warp(island.islandId(), normalizeName(warpName)).orElse(null);
         if (warp == null) {
-            return RoutePreparationResult.rejected(404, ApiResponses.error("WARP_NOT_FOUND", "Island warp was not found"));
+            return rejectRoute(404, "WARP_NOT_FOUND", "Island warp was not found", playerUuid, island.islandId(), RouteAction.WARP);
         }
         if (metadata.isBanned(island.islandId(), playerUuid)) {
-            return RoutePreparationResult.rejected(403, ApiResponses.error("VISITOR_BANNED", "Visitor is banned from this island"));
+            return rejectRoute(403, "VISITOR_BANNED", "Visitor is banned from this island", playerUuid, island.islandId(), RouteAction.WARP);
         }
         boolean member = metadata.isMember(island.islandId(), playerUuid);
         if (metadata.isLocked(island.islandId()) && !member) {
-            return RoutePreparationResult.rejected(423, ApiResponses.error("ISLAND_LOCKED", "Island is locked"));
+            return rejectRoute(423, "ISLAND_LOCKED", "Island is locked", playerUuid, island.islandId(), RouteAction.WARP);
         }
         if (!warp.publicAccess() && !member) {
-            return RoutePreparationResult.rejected(403, ApiResponses.error("WARP_PRIVATE", "Island warp is private"));
+            return rejectRoute(403, "WARP_PRIVATE", "Island warp is private", playerUuid, island.islandId(), RouteAction.WARP);
         }
         return prepareTicket(playerUuid, island, RouteAction.WARP, warpPayload(warp));
     }
@@ -161,7 +161,7 @@ public final class RoutingOrchestrator {
     private RoutePreparationResult prepareTicket(UUID playerUuid, IslandSnapshot island, RouteAction action, Map<String, String> extraPayload) {
         try {
             IslandRuntimeSnapshot runtime = runtimes.find(island.islandId()).orElse(null);
-            RoutePreparationResult unavailable = unavailableRuntime(runtime);
+            RoutePreparationResult unavailable = unavailableRuntime(runtime, playerUuid, island.islandId(), action);
             if (unavailable != null) {
                 return unavailable;
             }
@@ -177,13 +177,7 @@ public final class RoutingOrchestrator {
             ));
             return RoutePreparationResult.accepted(toJson(saved));
         } catch (IllegalStateException exception) {
-            events.publish("ROUTE_TICKET_FAILED", Map.of(
-                "playerUuid", playerUuid.toString(),
-                "islandId", island.islandId().toString(),
-                "action", action.name(),
-                "reason", "NODE_UNAVAILABLE"
-            ));
-            return RoutePreparationResult.rejected(409, ApiResponses.error("NODE_UNAVAILABLE", "No eligible island node is available"));
+            return rejectRoute(409, "NODE_UNAVAILABLE", "No eligible island node is available", playerUuid, island.islandId(), action);
         }
     }
 
@@ -205,18 +199,32 @@ public final class RoutingOrchestrator {
         );
     }
 
-    private RoutePreparationResult unavailableRuntime(IslandRuntimeSnapshot runtime) {
+    private RoutePreparationResult unavailableRuntime(IslandRuntimeSnapshot runtime, UUID playerUuid, UUID islandId, RouteAction action) {
         if (runtime == null) {
-            return RoutePreparationResult.rejected(409, ApiResponses.error("ISLAND_LOADING_FAILED", "Island runtime is not ready"));
+            return rejectRoute(409, "ISLAND_LOADING_FAILED", "Island runtime is not ready", playerUuid, islandId, action);
         }
         IslandState state = runtime.state();
         if (state == IslandState.ACTIVE || state == IslandState.INACTIVE_READY) {
             return null;
         }
         if (state == IslandState.DELETED || state == IslandState.DELETE_REQUESTED || state == IslandState.DELETING) {
-            return RoutePreparationResult.rejected(404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return rejectRoute(404, "ISLAND_NOT_FOUND", "Island was not found", playerUuid, islandId, action);
         }
-        return RoutePreparationResult.rejected(409, ApiResponses.error("ISLAND_LOADING_FAILED", "Island is not ready for routing"));
+        return rejectRoute(409, "ISLAND_LOADING_FAILED", "Island is not ready for routing", playerUuid, islandId, action);
+    }
+
+    private RoutePreparationResult rejectRoute(int status, String reason, String message, UUID playerUuid, UUID islandId, RouteAction action) {
+        publishTicketFailure(playerUuid, islandId, action, reason);
+        return RoutePreparationResult.rejected(status, ApiResponses.error(reason, message));
+    }
+
+    private void publishTicketFailure(UUID playerUuid, UUID islandId, RouteAction action, String reason) {
+        events.publish("ROUTE_TICKET_FAILED", Map.of(
+            "playerUuid", playerUuid == null ? "" : playerUuid.toString(),
+            "islandId", islandId == null ? "" : islandId.toString(),
+            "action", action == null ? "" : action.name(),
+            "reason", reason
+        ));
     }
 
     private RouteTarget routeTarget(IslandRuntimeSnapshot runtime, String templateId, String minNodeVersion, RouteAction action) {
