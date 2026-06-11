@@ -68,6 +68,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
         String nodeId = getConfig().getString("node.id", "island-1");
         String pool = getConfig().getString("node.pool", "island");
         String velocityServerName = getConfig().getString("node.velocity-server-name", nodeId);

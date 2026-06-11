@@ -1,13 +1,19 @@
 package kr.lunaf.cloudislands.paper.command;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
+import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.gui.IslandBankMenu;
@@ -46,6 +52,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "warps", "warp-menu", "warp-list", "워프", "워프관리", "워프목록", "warp", "setwarp", "워프설정",
         "delwarp", "deletewarp", "워프삭제", "warp-public", "워프공개", "warp-private", "워프비공개",
         "public", "공개", "private", "비공개", "lock", "잠금", "unlock", "잠금해제",
+        "visit", "randomvisit", "random-visit", "방문", "랜덤방문",
         "level", "레벨", "worth", "value", "가치", "rank", "ranking", "rank-list", "랭킹", "랭킹목록", "levelcalc", "recalculate", "레벨계산",
         "bank", "bank-balance", "은행", "은행잔액", "deposit", "bank-deposit", "입금", "withdraw", "bank-withdraw", "출금",
         "upgrade", "upgrades", "upgrade-menu", "upgrade-list", "업그레이드", "업그레이드목록",
@@ -207,6 +214,20 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("unlock") || subcommand.equals("잠금해제")) {
             setIslandLocked(player, false);
+            return true;
+        }
+        if (subcommand.equals("visit") || subcommand.equals("방문")) {
+            if (args.length < 2) {
+                routeRandomVisit(player);
+            } else if (args[1].equalsIgnoreCase("random") || args[1].equals("랜덤")) {
+                routeRandomVisit(player);
+            } else {
+                routeVisitTarget(player, args[1]);
+            }
+            return true;
+        }
+        if (subcommand.equals("randomvisit") || subcommand.equals("random-visit") || subcommand.equals("랜덤방문")) {
+            routeRandomVisit(player);
             return true;
         }
         if (subcommand.equals("level") || subcommand.equals("레벨")) {
@@ -750,6 +771,101 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                     message(player, "섬 잠금 상태를 변경하지 못했습니다.");
                     return null;
                 });
+        });
+    }
+
+    private void routeVisitTarget(Player player, String target) {
+        UUID islandId = uuid(target);
+        if (islandId != null) {
+            routeVisit(player, islandId);
+            return;
+        }
+        coreApiClient.playerInfoByName(target).thenAccept(body -> {
+            UUID primaryIslandId = uuid(text(body, "primaryIslandId"));
+            if (primaryIslandId != null) {
+                routeVisit(player, primaryIslandId);
+                return;
+            }
+            routeVisitName(player, target);
+        }).exceptionally(error -> {
+            routeVisitName(player, target);
+            return null;
+        });
+    }
+
+    private void routeVisitName(Player player, String islandName) {
+        coreApiClient.islandInfoByName(islandName).thenAccept(body -> {
+            UUID islandId = uuid(text(body, "islandId"));
+            if (islandId == null) {
+                message(player, "방문할 섬을 찾을 수 없습니다.");
+                return;
+            }
+            routeVisit(player, islandId);
+        }).exceptionally(error -> {
+            message(player, "방문할 섬을 불러오지 못했습니다.");
+            return null;
+        });
+    }
+
+    private void routeVisit(Player player, UUID islandId) {
+        routeTicket(player, coreApiClient.createVisitTicket(player.getUniqueId(), islandId), "해당 섬에 방문할 수 없습니다.");
+    }
+
+    private void routeRandomVisit(Player player) {
+        routeTicket(player, coreApiClient.createRandomVisitTicket(player.getUniqueId()), "방문 가능한 공개 섬을 찾지 못했습니다.");
+    }
+
+    private void routeTicket(Player player, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {
+        ticketFuture.thenAccept(ticket -> routeTicket(player, ticket, failureMessage, 0)).exceptionally(error -> {
+            message(player, failureMessage);
+            return null;
+        });
+    }
+
+    private void routeTicket(Player player, RouteTicket ticket, String failureMessage, int attempt) {
+        if (ticket.state().name().equals("READY")) {
+            publishAndConnect(player, ticket, failureMessage);
+            return;
+        }
+        if (attempt >= 45) {
+            message(player, failureMessage);
+            return;
+        }
+        CompletableFuture.runAsync(() -> coreApiClient.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
+            if (status.isPresent()) {
+                routeTicket(player, status.get(), failureMessage, attempt + 1);
+            } else {
+                message(player, failureMessage);
+            }
+        }).exceptionally(error -> {
+            message(player, failureMessage);
+            return null;
+        }), CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS));
+    }
+
+    private void publishAndConnect(Player player, RouteTicket ticket, String failureMessage) {
+        coreApiClient.publishRouteSession(ticket).thenRun(() -> connectWithTicket(player, ticket.payload().getOrDefault("targetServerName", ticket.targetNode()))).exceptionally(error -> {
+            message(player, failureMessage);
+            return null;
+        });
+    }
+
+    private void connectWithTicket(Player player, String targetServerName) {
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            if (targetServerName == null || targetServerName.isBlank()) {
+                player.sendMessage("섬 서버를 찾을 수 없습니다.");
+                return;
+            }
+            try {
+                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                DataOutputStream output = new DataOutputStream(bytes);
+                output.writeUTF("Connect");
+                output.writeUTF(targetServerName);
+                player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
+                player.sendMessage("섬 서버로 이동합니다.");
+            } catch (IOException exception) {
+                player.sendMessage("섬 서버로 이동하지 못했습니다.");
+            }
         });
     }
 
