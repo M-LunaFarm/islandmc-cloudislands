@@ -51,7 +51,7 @@ public final class CloudIslandsVelocityPlugin {
         String fallbackServer = System.getProperty("cloudislands.fallback", config.fallbackServer());
         int routeWaitSeconds = Integer.getInteger("cloudislands.routeWaitSeconds", config.routeWaitSeconds());
         CoreApiClient client = new JdkCoreApiClient(URI.create(coreUrl), coreToken, Duration.ofMillis(Math.max(1L, timeoutMs)));
-        this.routingController = new VelocityRoutingController(proxy, client, fallbackServer, routeWaitSeconds);
+        this.routingController = new VelocityRoutingController(proxy, client, fallbackServer, routeWaitSeconds, config.useActionBar(), config.useBossBarLoading());
         this.commandAliases = config.aliases();
     }
 
@@ -110,6 +110,8 @@ public final class CloudIslandsVelocityPlugin {
             integer(values.get("core-api.timeout-ms"), 3000),
             values.getOrDefault("routing.fallback-on-failure", values.getOrDefault("routing.default-lobby", "Lobby")),
             integer(values.get("routing.wait-for-activation-timeout-seconds"), 20),
+            bool(values.get("messages.use-actionbar"), true),
+            bool(values.get("messages.use-bossbar-loading"), true),
             aliases.isEmpty() ? ALIASES : List.copyOf(aliases)
         );
     }
@@ -136,11 +138,15 @@ public final class CloudIslandsVelocityPlugin {
         }
     }
 
+    private static boolean bool(String value, boolean fallback) {
+        return value == null || value.isBlank() ? fallback : Boolean.parseBoolean(value);
+    }
+
     private static String[] commandAliasArray(List<String> aliases) {
         return aliases.stream().filter(alias -> !alias.equalsIgnoreCase("섬")).distinct().toArray(String[]::new);
     }
 
-    private record VelocityConfig(String coreBaseUrl, String coreToken, int timeoutMs, String fallbackServer, int routeWaitSeconds, List<String> aliases) {}
+    private record VelocityConfig(String coreBaseUrl, String coreToken, int timeoutMs, String fallbackServer, int routeWaitSeconds, boolean useActionBar, boolean useBossBarLoading, List<String> aliases) {}
 
     @Subscribe
     public void onProxyInitialize(ProxyInitializeEvent event) {

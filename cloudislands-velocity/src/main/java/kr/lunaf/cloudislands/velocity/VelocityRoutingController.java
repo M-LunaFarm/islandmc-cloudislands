@@ -22,16 +22,24 @@ public final class VelocityRoutingController {
     private final CoreApiClient coreApiClient;
     private final String fallbackServer;
     private final int routeWaitSeconds;
+    private final boolean useActionBar;
+    private final boolean useBossBarLoading;
 
     public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer) {
         this(proxy, coreApiClient, fallbackServer, 20);
     }
 
     public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer, int routeWaitSeconds) {
+        this(proxy, coreApiClient, fallbackServer, routeWaitSeconds, true, true);
+    }
+
+    public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer, int routeWaitSeconds, boolean useActionBar, boolean useBossBarLoading) {
         this.proxy = proxy;
         this.coreApiClient = coreApiClient;
         this.fallbackServer = fallbackServer;
         this.routeWaitSeconds = Math.max(1, routeWaitSeconds);
+        this.useActionBar = useActionBar;
+        this.useBossBarLoading = useBossBarLoading;
     }
 
     public void createIsland(Player player, String templateId) {
@@ -41,7 +49,7 @@ public final class VelocityRoutingController {
                 player.sendMessage(Component.text(messageForCreateFailure(code)));
                 return;
             }
-            player.sendActionBar(Component.text("섬을 생성하고 있습니다."));
+            actionBar(player, "섬을 생성하고 있습니다.");
             if (result.ticket() != null) {
                 route(player, result.ticket(), "섬으로 이동하지 못했습니다.");
             }
@@ -1028,9 +1036,9 @@ public final class VelocityRoutingController {
             return;
         }
         if (ticket.state().name().equals("PREPARING")) {
-            player.sendActionBar(Component.text("섬을 준비하는 중입니다."));
+            actionBar(player, "섬을 준비하는 중입니다.");
             BossBar bossBar = BossBar.bossBar(Component.text("섬 로딩 중"), 0.2F, BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
-            player.showBossBar(bossBar);
+            showBossBar(player, bossBar);
             waitForReadyTicket(player, ticket, failureMessage, bossBar, 0);
             return;
         }
@@ -1048,28 +1056,46 @@ public final class VelocityRoutingController {
         int progress = Math.min(95, 20 + attempt);
         bossBar.progress(progress / 100.0F);
         bossBar.name(Component.text("섬 로딩 중 " + progress + "%"));
-        player.sendActionBar(Component.text("섬을 준비하는 중입니다... " + progress + "%"));
+        actionBar(player, "섬을 준비하는 중입니다... " + progress + "%");
         coreApiClient.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
             Optional<RouteTicket> ready = status.filter(value -> value.state().name().equals("READY"));
             if (ready.isPresent()) {
                 bossBar.progress(1.0F);
                 bossBar.name(Component.text("잠시 후 섬으로 이동합니다."));
-                player.sendActionBar(Component.text("잠시 후 섬으로 이동합니다."));
-                player.hideBossBar(bossBar);
+                actionBar(player, "잠시 후 섬으로 이동합니다.");
+                hideBossBar(player, bossBar);
                 publishAndConnect(player, ready.get());
                 return;
             }
             if (attempt >= routeWaitSeconds) {
-                player.hideBossBar(bossBar);
+                hideBossBar(player, bossBar);
                 fallback(player, failureMessage);
                 return;
             }
             CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() -> waitForReadyTicket(player, ticket, failureMessage, bossBar, attempt + 1));
         }).exceptionally(error -> {
-            player.hideBossBar(bossBar);
+            hideBossBar(player, bossBar);
             fallback(player, failureMessage);
             return null;
         });
+    }
+
+    private void actionBar(Player player, String message) {
+        if (useActionBar) {
+            player.sendActionBar(Component.text(message));
+        }
+    }
+
+    private void showBossBar(Player player, BossBar bossBar) {
+        if (useBossBarLoading) {
+            player.showBossBar(bossBar);
+        }
+    }
+
+    private void hideBossBar(Player player, BossBar bossBar) {
+        if (useBossBarLoading) {
+            player.hideBossBar(bossBar);
+        }
     }
 
     private void publishAndConnect(Player player, RouteTicket ticket) {
