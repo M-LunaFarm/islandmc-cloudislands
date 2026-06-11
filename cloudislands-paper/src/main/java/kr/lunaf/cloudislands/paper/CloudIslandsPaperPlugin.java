@@ -63,7 +63,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandEntityLimitListener(agent.protection(), limitCache), this);
         this.generatorLevels = new GeneratorLevelCache(client);
         getServer().getPluginManager().registerEvents(new IslandGeneratorListener(agent.protection(), DefaultGeneratorRules.create(), generatorLevels), this);
-        getServer().getPluginManager().registerEvents(new PaperRouteSessionListener(client, agent.routeTickets(), nodeId), this);
+        getServer().getPluginManager().registerEvents(new PaperRouteSessionListener(this, client, agent.routeTickets(), nodeId), this);
         PluginCommand admin = getCommand("ciadmin");
         if (admin != null) {
             admin.setExecutor(new AdminCommandController(agent));
