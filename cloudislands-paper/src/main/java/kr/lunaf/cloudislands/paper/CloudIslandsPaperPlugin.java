@@ -2,8 +2,10 @@ package kr.lunaf.cloudislands.paper;
 
 import java.net.URI;
 import java.time.Duration;
+import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JdkCoreApiClient;
+import kr.lunaf.cloudislands.paper.api.PaperCloudIslandsApi;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
 import kr.lunaf.cloudislands.paper.activation.IslandActivationJobHandler;
 import kr.lunaf.cloudislands.paper.activation.IslandDeactivationHandler;
@@ -32,6 +34,7 @@ import kr.lunaf.cloudislands.paper.world.cell.FileBackedCellTransfer;
 import kr.lunaf.cloudislands.paper.world.export.ExternalTarIslandBundleExporter;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class CloudIslandsPaperPlugin extends JavaPlugin {
@@ -40,6 +43,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private PaperIslandJobWorker jobWorker;
     private PermissionEventPoller permissionEventPoller;
     private ActiveIslandRegistry activeIslands;
+    private CloudIslandsApi api;
 
     @Override
     public void onEnable() {
@@ -50,6 +54,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         AgentRole role = AgentRole.valueOf(getConfig().getString("node.role", "ISLAND_NODE"));
         CoreApiClient client = new JdkCoreApiClient(URI.create(getConfig().getString("core-api.base-url", "https://core-api.internal:8443")), System.getenv().getOrDefault("CI_CORE_TOKEN", ""), Duration.ofSeconds(3));
         this.agent = new CloudIslandsPaperAgent(this, role, client, nodeId);
+        this.api = new PaperCloudIslandsApi(client, agent);
+        getServer().getServicesManager().register(CloudIslandsApi.class, api, this, ServicePriority.Normal);
         IslandLimitCache limitCache = new IslandLimitCache(client);
         getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection(), new BlockDeltaReporter(this, client)), this);
         getServer().getPluginManager().registerEvents(new IslandLimitListener(agent.protection(), limitCache), this);
@@ -83,6 +89,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         }
         if (heartbeatService != null) {
             heartbeatService.stop();
+        }
+        if (api != null) {
+            getServer().getServicesManager().unregister(CloudIslandsApi.class, api);
+            api = null;
         }
     }
 
