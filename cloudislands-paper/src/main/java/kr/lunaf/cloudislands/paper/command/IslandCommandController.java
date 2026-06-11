@@ -32,6 +32,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandRankingMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandSnapshotMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandUpgradeMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -218,7 +219,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("visit") || subcommand.equals("방문")) {
             if (args.length < 2) {
-                routeRandomVisit(player);
+                IslandVisitMenu.open(plugin, coreApiClient, player);
             } else if (args[1].equalsIgnoreCase("random") || args[1].equals("랜덤")) {
                 routeRandomVisit(player);
             } else {

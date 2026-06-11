@@ -1167,6 +1167,15 @@ public final class CloudIslandsCoreApplication {
             events.publish(CloudIslandEventType.ISLAND_ACCESS_CHANGED.name(), Map.of("islandId", islandId.toString(), "publicAccess", Boolean.toString(publicAccess)));
             write(exchange, 202, ApiResponses.ok(true));
         });
+        route("/v1/islands/public", exchange -> {
+            String body = readBody(exchange);
+            int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 27), 54));
+            java.util.List<IslandSnapshot> islands = metadataRepository.publicIslandIds(limit).stream()
+                .map(islandRepository::findById)
+                .flatMap(java.util.Optional::stream)
+                .toList();
+            write(exchange, 200, islandsJson(islands));
+        });
         route("/v1/islands", exchange -> {
             String body = readBody(exchange);
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));

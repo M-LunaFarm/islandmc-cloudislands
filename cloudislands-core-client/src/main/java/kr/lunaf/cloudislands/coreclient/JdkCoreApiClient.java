@@ -313,6 +313,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> listPublicIslands(int limit) {
+        return post("/v1/islands/public", "{\"limit\":" + limit + "}");
+    }
+
+    @Override
     public CompletableFuture<Void> setBlockValue(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) {
         return setBlockValueResult(actorUuid, materialKey, worth, levelPoints, limit).thenApply(_body -> null);
     }
