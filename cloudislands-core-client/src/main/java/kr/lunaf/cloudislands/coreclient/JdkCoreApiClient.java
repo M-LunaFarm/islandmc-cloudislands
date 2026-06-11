@@ -357,6 +357,21 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> adminIslandInfo(UUID lookupUuid) {
+        return post("/v1/admin/islands/info", "{\"lookupUuid\":\"" + lookupUuid + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> adminIslandWhere(UUID islandId) {
+        return post("/v1/admin/islands/where", "{\"islandId\":\"" + islandId + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId) {
+        return post("/v1/admin/islands/tp", "{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\"}").thenApply(RouteTicketJson::parse);
+    }
+
+    @Override
     public CompletableFuture<String> debugRoutes(UUID playerUuid) {
         return post("/v1/admin/routes/debug", "{\"playerUuid\":\"" + playerUuid + "\"}");
     }

@@ -77,6 +77,12 @@ public final class RoutingOrchestrator {
             .orElseGet(() -> RoutePreparationResult.rejected(404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
     }
 
+    public RoutePreparationResult prepareAdminTeleportRoute(UUID playerUuid, UUID islandId) {
+        return islands.findById(islandId)
+            .map(island -> prepareTicket(playerUuid, island, RouteAction.ADMIN_TELEPORT, Map.of("admin", "true")))
+            .orElseGet(() -> RoutePreparationResult.rejected(404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
+    }
+
     public String consumeTicketJson(String body) {
         return tickets.consume(
             JsonFields.uuid(body, "ticketId", new UUID(0L, 0L)),

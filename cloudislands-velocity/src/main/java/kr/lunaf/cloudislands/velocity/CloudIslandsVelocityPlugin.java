@@ -56,6 +56,19 @@ public final class CloudIslandsVelocityPlugin {
     }
 
     private void dispatchAdmin(Player player, String[] args) {
+        if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("info")) {
+            routingController.adminIslandInfo(player, parseUuidOrNil(args[2]));
+            return;
+        }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("where")) {
+            routingController.adminIslandWhere(player, parseUuidOrNil(args[2]));
+            return;
+        }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("tp")) {
+            player.sendActionBar(Component.text("섬으로 이동하는 중입니다."));
+            routingController.adminTeleportIsland(player, parseUuidOrNil(args[2]));
+            return;
+        }
         if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("activate")) {
             routingController.activateIsland(player, parseUuidOrNil(args[2]));
             return;
@@ -132,7 +145,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.cancelJob(player, parseUuidOrNil(args[2]));
             return;
         }
-        player.sendMessage(Component.text("사용법: /ciadmin player info <player>, /ciadmin island activate <섬>, /ciadmin route debug [player], /ciadmin cache clear, /ciadmin migrate-superiorskyblock2 scan, /ciadmin node list"));
+        player.sendMessage(Component.text("사용법: /ciadmin island info <섬|플레이어>, /ciadmin island where <섬>, /ciadmin island tp <섬>, /ciadmin player info <player>, /ciadmin node list"));
     }
 
     private void dispatch(Player player, String[] args) {

@@ -413,6 +413,22 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             lifecycle(exchange, lifecycle.quarantine(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "reason", "admin")));
         });
+        route("/v1/admin/islands/info", exchange -> {
+            String body = readBody(exchange);
+            UUID lookupUuid = JsonFields.uuid(body, "lookupUuid", new UUID(0L, 0L));
+            java.util.Optional<IslandSnapshot> island = islandRepository.findById(lookupUuid).or(() -> islandRepository.findByOwner(lookupUuid));
+            write(exchange, island.isPresent() ? 200 : 404, island.map(CloudIslandsCoreApplication::islandJson).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
+        });
+        route("/v1/admin/islands/where", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            java.util.Optional<kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot> runtime = runtimeRepository.find(islandId);
+            write(exchange, runtime.isPresent() ? 200 : 404, runtime.map(CloudIslandsCoreApplication::runtimeJson).orElseGet(() -> ApiResponses.error("ISLAND_RUNTIME_NOT_FOUND", "Island runtime was not found")));
+        });
+        route("/v1/admin/islands/tp", exchange -> {
+            String body = readBody(exchange);
+            routeResult(exchange, routing.prepareAdminTeleportRoute(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), JsonFields.uuid(body, "islandId", new UUID(0L, 0L))));
+        });
         route("/v1/islands/snapshots", exchange -> {
             String body = readBody(exchange);
             write(exchange, 200, snapshotsJson(snapshotRepository.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.integer(body, "limit", 20))));
@@ -790,6 +806,24 @@ public final class CloudIslandsCoreApplication {
             + "\",\"primaryIslandId\":" + profile.primaryIslandId().map(value -> "\"" + value + "\"").orElse("null")
             + ",\"lastSeenAt\":\"" + profile.lastSeenAt()
             + "\"}";
+    }
+
+    private static String runtimeJson(kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime) {
+        return "{\"islandId\":\"" + runtime.islandId()
+            + "\",\"state\":\"" + runtime.state()
+            + "\",\"activeNode\":" + nullable(runtime.activeNode())
+            + ",\"activeWorld\":" + nullable(runtime.activeWorld())
+            + ",\"cellX\":" + (runtime.cellX() == null ? "null" : runtime.cellX())
+            + ",\"cellZ\":" + (runtime.cellZ() == null ? "null" : runtime.cellZ())
+            + ",\"leaseOwner\":" + nullable(runtime.leaseOwner())
+            + ",\"fencingToken\":" + runtime.fencingToken()
+            + ",\"activatedAt\":" + nullable(runtime.activatedAt() == null ? null : runtime.activatedAt().toString())
+            + ",\"lastHeartbeat\":" + nullable(runtime.lastHeartbeat() == null ? null : runtime.lastHeartbeat().toString())
+            + "}";
+    }
+
+    private static String nullable(String value) {
+        return value == null ? "null" : "\"" + escape(value) + "\"";
     }
 
     private static BigDecimal amount(String body) {
