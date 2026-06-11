@@ -1,6 +1,8 @@
 package kr.lunaf.cloudislands.paper.command;
 
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
@@ -115,7 +117,7 @@ public final class IslandCommandController implements CommandExecutor {
     private void listHomes(Player player) {
         currentIsland(player, "섬 안에서만 홈 목록을 볼 수 있습니다.").ifPresent(islandId -> {
             coreApiClient.listIslandHomes(islandId)
-                .thenAccept(body -> message(player, body == null || body.isBlank() ? "섬 홈이 없습니다." : body))
+                .thenAccept(body -> message(player, pointListMessage(body, "섬 홈", "섬 홈이 없습니다.")))
                 .exceptionally(error -> {
                     message(player, "섬 홈을 불러오지 못했습니다.");
                     return null;
@@ -126,7 +128,7 @@ public final class IslandCommandController implements CommandExecutor {
     private void listWarps(Player player) {
         currentIsland(player, "섬 안에서만 워프 목록을 볼 수 있습니다.").ifPresent(islandId -> {
             coreApiClient.listIslandWarps(islandId)
-                .thenAccept(body -> message(player, body == null || body.isBlank() ? "섬 워프가 없습니다." : body))
+                .thenAccept(body -> message(player, pointListMessage(body, "섬 워프", "섬 워프가 없습니다.")))
                 .exceptionally(error -> {
                     message(player, "섬 워프를 불러오지 못했습니다.");
                     return null;
@@ -194,6 +196,34 @@ public final class IslandCommandController implements CommandExecutor {
             location.getYaw(),
             location.getPitch()
         );
+    }
+
+    private String pointListMessage(String body, String label, String emptyMessage) {
+        List<String> names = names(body);
+        return names.isEmpty() ? emptyMessage : label + ": " + String.join(", ", names);
+    }
+
+    private List<String> names(String body) {
+        if (body == null || body.isBlank()) {
+            return List.of();
+        }
+        List<String> names = new ArrayList<>();
+        String needle = "\"name\":\"";
+        int index = 0;
+        while (index < body.length()) {
+            int start = body.indexOf(needle, index);
+            if (start < 0) {
+                break;
+            }
+            int valueStart = start + needle.length();
+            int end = body.indexOf('"', valueStart);
+            if (end < 0) {
+                break;
+            }
+            names.add(body.substring(valueStart, end));
+            index = end + 1;
+        }
+        return names;
     }
 
     private void message(Player player, String message) {
