@@ -8,6 +8,7 @@ public interface IslandRepository {
     Optional<IslandSnapshot> findById(UUID islandId);
     Optional<IslandSnapshot> findByOwner(UUID ownerUuid);
     IslandSnapshot createOwnedIsland(UUID islandId, UUID ownerUuid, String templateId, String name);
+    boolean markDeleted(UUID islandId, UUID requesterUuid);
     void createOwnerMember(UUID islandId, UUID ownerUuid);
     void createRuntime(UUID islandId, String state);
 }

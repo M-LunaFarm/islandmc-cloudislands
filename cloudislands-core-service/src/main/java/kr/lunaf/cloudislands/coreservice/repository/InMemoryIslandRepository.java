@@ -34,6 +34,17 @@ public final class InMemoryIslandRepository implements IslandRepository {
     }
 
     @Override
+    public boolean markDeleted(UUID islandId, UUID requesterUuid) {
+        IslandSnapshot island = byIslandId.get(islandId);
+        if (island == null || !island.ownerUuid().equals(requesterUuid)) {
+            return false;
+        }
+        byIslandId.remove(islandId);
+        byOwner.remove(requesterUuid, islandId);
+        return true;
+    }
+
+    @Override
     public void createOwnerMember(UUID islandId, UUID ownerUuid) {
     }
 

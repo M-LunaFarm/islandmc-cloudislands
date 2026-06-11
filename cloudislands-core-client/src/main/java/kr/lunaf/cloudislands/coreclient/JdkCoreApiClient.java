@@ -13,6 +13,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
+import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandRole;
@@ -40,6 +41,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
     public CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId) {
         return post("/v1/islands", "{\"playerUuid\":\"" + playerUuid + "\",\"templateId\":\"" + templateId + "\"}")
             .thenApply(body -> new CreateIslandResult(body.contains("\"accepted\":true"), text(body, "code", "FAILED"), null, RouteTicketJson.parseNested(body, "ticket")));
+    }
+
+    @Override
+    public CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId) {
+        return post("/v1/islands/delete", "{\"requesterUuid\":\"" + requesterUuid + "\",\"islandId\":\"" + islandId + "\"}")
+            .thenApply(body -> new DeleteIslandResult(body.contains("\"accepted\":true"), text(body, "code", "FAILED"), uuid(body, "islandId", islandId)));
     }
 
     @Override

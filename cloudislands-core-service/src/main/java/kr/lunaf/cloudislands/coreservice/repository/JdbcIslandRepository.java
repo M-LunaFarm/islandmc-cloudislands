@@ -72,6 +72,18 @@ public final class JdbcIslandRepository implements IslandRepository {
     }
 
     @Override
+    public boolean markDeleted(UUID islandId, UUID requesterUuid) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("UPDATE islands SET state = 'DELETED', deleted_at = now(), updated_at = now() WHERE id = ? AND owner_uuid = ? AND deleted_at IS NULL")) {
+            statement.setObject(1, islandId);
+            statement.setObject(2, requesterUuid);
+            return statement.executeUpdate() > 0;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to mark island deleted", exception);
+        }
+    }
+
+    @Override
     public void createOwnerMember(UUID islandId, UUID ownerUuid) {
         try (Connection connection = dataSource.getConnection()) {
             createOwnerMember(connection, islandId, ownerUuid);

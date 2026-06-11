@@ -201,7 +201,12 @@ public final class CloudIslandsVelocityPlugin {
             routingController.createIsland(player, templateId);
             return;
         }
-        player.sendMessage(Component.text("사용법: /섬 홈, /섬 생성, /섬 방문 <섬>, /섬 멤버 <섬>, /섬 공개 <섬>, /섬 밴 <섬> <플레이어>, /섬 랭킹"));
+        if (args[0].equalsIgnoreCase("delete") || args[0].equals("삭제")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.deleteIsland(player, islandId);
+            return;
+        }
+        player.sendMessage(Component.text("사용법: /섬 홈, /섬 생성, /섬 삭제 <섬>, /섬 방문 <섬>, /섬 멤버 <섬>, /섬 공개 <섬>, /섬 밴 <섬> <플레이어>, /섬 랭킹"));
     }
 
     private UUID parseUuidOrNil(String value) {

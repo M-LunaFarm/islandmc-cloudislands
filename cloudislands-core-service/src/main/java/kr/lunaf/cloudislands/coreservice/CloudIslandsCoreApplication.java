@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.UUID;
 import javax.sql.DataSource;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
+import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandRole;
@@ -291,6 +292,19 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             write(exchange, 200, islandLogsJson(islandLogs.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.integer(body, "limit", 30))));
         });
+        route("/v1/islands/delete", exchange -> {
+            String body = readBody(exchange);
+            UUID requesterUuid = JsonFields.uuid(body, "requesterUuid", new UUID(0L, 0L));
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            boolean deleted = islandRepository.markDeleted(islandId, requesterUuid);
+            if (deleted) {
+                runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETED);
+                audit.log(requesterUuid, "PLAYER", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of());
+                islandLogs.append(islandId, requesterUuid, "ISLAND_DELETE", Map.of());
+                events.publish("ISLAND_DELETE", Map.of("islandId", islandId.toString(), "requesterUuid", requesterUuid.toString()));
+            }
+            write(exchange, deleted ? 202 : 403, deleteResultJson(new DeleteIslandResult(deleted, deleted ? "DELETED" : "NOT_OWNER_OR_MISSING", islandId)));
+        });
         route("/v1/islands/members", exchange -> {
             String body = readBody(exchange);
             write(exchange, 200, membersJson(metadataRepository.members(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
@@ -478,6 +492,10 @@ public final class CloudIslandsCoreApplication {
 
     private static void routeResult(HttpExchange exchange, RoutePreparationResult result) throws IOException {
         write(exchange, result.status(), result.body());
+    }
+
+    private static String deleteResultJson(DeleteIslandResult result) {
+        return "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\",\"islandId\":\"" + result.islandId() + "\"}";
     }
 
     private static String sessionJson(PlayerRouteSession session) {

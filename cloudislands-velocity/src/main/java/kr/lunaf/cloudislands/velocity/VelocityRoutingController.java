@@ -35,6 +35,16 @@ public final class VelocityRoutingController {
         });
     }
 
+    public void deleteIsland(Player player, UUID islandId) {
+        coreApiClient.deleteIsland(player.getUniqueId(), islandId).thenAccept(result -> {
+            if (result != null && result.accepted()) {
+                player.sendMessage(Component.text("섬을 삭제했습니다."));
+                return;
+            }
+            player.sendMessage(Component.text("섬을 삭제할 수 없습니다."));
+        });
+    }
+
     public void routeHome(Player player) {
         coreApiClient.createHomeTicket(player.getUniqueId()).thenAccept(ticket -> route(player, ticket, "현재 섬 서비스 일부 기능이 점검 중입니다."));
     }
