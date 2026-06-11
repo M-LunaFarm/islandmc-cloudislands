@@ -4,10 +4,12 @@ import java.io.IOException;
 import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
@@ -19,6 +21,8 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
     private final URI redisUri;
     private final Map<UUID, String> streamIdsByJobId = new ConcurrentHashMap<>();
     private final Map<UUID, kr.lunaf.cloudislands.protocol.job.IslandJob> claimedJobs = new ConcurrentHashMap<>();
+    private final AtomicLong failedJobsTotal = new AtomicLong();
+    private final AtomicLong retryAttemptsTotal = new AtomicLong();
 
     public RedisIslandJobQueue(URI redisUri) {
         this.redisUri = redisUri;
@@ -26,7 +30,9 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
     }
 
     public String recoverPending(String nodeId, long minIdleMillis, int maxJobs) {
-        return new RedisPendingJobRecovery(redisUri, minIdleMillis).claimStale(nodeId, maxJobs);
+        String recovered = new RedisPendingJobRecovery(redisUri, minIdleMillis).claimStale(nodeId, maxJobs);
+        retryAttemptsTotal.addAndGet(countStreamIds(recovered));
+        return recovered;
     }
 
     @Override
@@ -60,7 +66,29 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
 
     @Override
     public void fail(String nodeId, UUID jobId, String errorMessage) {
+        failedJobsTotal.incrementAndGet();
         ackByJobId(jobId, "failed", errorMessage);
+    }
+
+    public Map<String, Long> countsByState() {
+        Map<String, Long> counts = new HashMap<>();
+        counts.put("PENDING", 0L);
+        counts.put("CLAIMED", (long) claimedJobs.size());
+        counts.put("COMPLETED", 0L);
+        counts.put("FAILED", failedJobsTotal.get());
+        counts.put("CANCELED", 0L);
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            String groups = redis.command("XINFO", "GROUPS", RedisKeys.jobsStream());
+            counts.put("PENDING", parseGroupLong(groups, "lag"));
+            counts.put("CLAIMED", parseGroupLong(groups, "pending"));
+        } catch (IOException ignored) {
+            // Keep metrics available from local state when Redis is temporarily unavailable.
+        }
+        return Map.copyOf(counts);
+    }
+
+    public long retryAttemptsTotal() {
+        return retryAttemptsTotal.get();
     }
 
     private void ensureGroup() {
@@ -118,6 +146,41 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             }
         }
         return jobs;
+    }
+
+    private long parseGroupLong(String reply, String key) {
+        if (reply == null || reply.isBlank()) {
+            return 0L;
+        }
+        String[] lines = reply.split("\\R");
+        for (int i = 0; i + 1 < lines.length; i++) {
+            if (lines[i].equals(key)) {
+                try {
+                    return Long.parseLong(lines[i + 1]);
+                } catch (NumberFormatException ignored) {
+                    return 0L;
+                }
+            }
+        }
+        return 0L;
+    }
+
+    private long countStreamIds(String reply) {
+        if (reply == null || reply.isBlank()) {
+            return 0L;
+        }
+        long total = 0L;
+        boolean skippedCursor = false;
+        for (String line : reply.split("\\R")) {
+            if (line.matches("\\d+-\\d+")) {
+                if (!skippedCursor) {
+                    skippedCursor = true;
+                    continue;
+                }
+                total++;
+            }
+        }
+        return total;
     }
 
     private IslandJobType safeType(String value) {

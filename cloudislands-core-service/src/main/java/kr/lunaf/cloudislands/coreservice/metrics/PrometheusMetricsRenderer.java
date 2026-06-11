@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.JdbcIslandJobQueue;
+import kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue;
 
 public final class PrometheusMetricsRenderer {
     private final NodeRegistry nodes;
@@ -93,9 +94,13 @@ public final class PrometheusMetricsRenderer {
             jobCounts = jdbcJobs.countsByState();
             jobBackend = "jdbc";
             jobRetries = jdbcJobs.retryAttemptsTotal();
+        } else if (jobs instanceof RedisIslandJobQueue redisJobs) {
+            jobCounts = redisJobs.countsByState();
+            jobBackend = "redis";
+            jobRetries = redisJobs.retryAttemptsTotal();
         } else {
             jobCounts = Map.of("PENDING", 0L, "CLAIMED", 0L, "COMPLETED", 0L, "FAILED", 0L, "CANCELED", 0L);
-            jobBackend = "redis";
+            jobBackend = "external";
             jobRetries = 0L;
         }
         for (Map.Entry<String, Long> entry : jobCounts.entrySet()) {
