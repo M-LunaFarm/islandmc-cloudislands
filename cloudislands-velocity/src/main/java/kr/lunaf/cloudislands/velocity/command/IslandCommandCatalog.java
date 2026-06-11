@@ -33,7 +33,8 @@ public final class IslandCommandCatalog {
             "ciadmin node drain", "ciadmin node undrain", "ciadmin node kickall",
             "ciadmin node sweep", "ciadmin node shutdown-safe", "ciadmin jobs list", "ciadmin jobs retry",
             "ciadmin jobs cancel", "ciadmin jobs recover", "ciadmin route debug", "ciadmin route ticket",
-            "ciadmin route clear", "ciadmin cache clear", "ciadmin reload",
+            "ciadmin route clear", "ciadmin cache clear", "ciadmin events", "ciadmin audit",
+            "ciadmin block-values list", "ciadmin block-values set", "ciadmin reload",
             "ciadmin migrate-superiorskyblock2"
         );
     }

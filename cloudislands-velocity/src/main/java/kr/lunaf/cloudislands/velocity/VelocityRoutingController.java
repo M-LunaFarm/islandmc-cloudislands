@@ -518,6 +518,22 @@ public final class VelocityRoutingController {
         sendBodyResult(player, coreApiClient.clearCache(), "캐시 정리를 요청하지 못했습니다.");
     }
 
+    public void listEvents(Player player) {
+        sendBodyResult(player, coreApiClient.listEvents(), "이벤트 목록을 불러오지 못했습니다.");
+    }
+
+    public void listAuditLogs(Player player) {
+        sendBodyResult(player, coreApiClient.listAuditLogs(), "감사 로그를 불러오지 못했습니다.");
+    }
+
+    public void listBlockValues(Player player) {
+        sendBodyResult(player, coreApiClient.listBlockValues(), "블록 가치 목록을 불러오지 못했습니다.");
+    }
+
+    public void setBlockValue(Player player, String materialKey, String worth, long levelPoints, long limit) {
+        sendBodyResult(player, coreApiClient.setBlockValueResult(player.getUniqueId(), materialKey, worth, levelPoints, limit), "블록 가치를 변경하지 못했습니다.");
+    }
+
     public void reload(Player player) {
         sendBodyResult(player, coreApiClient.reload(), "reload를 요청하지 못했습니다.");
     }
