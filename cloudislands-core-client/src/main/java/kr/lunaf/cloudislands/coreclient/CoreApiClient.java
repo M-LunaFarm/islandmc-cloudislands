@@ -58,6 +58,8 @@ public interface CoreApiClient {
     CompletableFuture<String> setIslandWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
     CompletableFuture<Void> deleteIslandWarp(UUID islandId, UUID actorUuid, String name);
     CompletableFuture<String> deleteIslandWarpResult(UUID islandId, UUID actorUuid, String name);
+    CompletableFuture<Void> setIslandWarpPublicAccess(UUID islandId, UUID actorUuid, String name, boolean publicAccess);
+    CompletableFuture<String> setIslandWarpPublicAccessResult(UUID islandId, UUID actorUuid, String name, boolean publicAccess);
     CompletableFuture<Void> setIslandPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess);
     CompletableFuture<String> setIslandPublicAccessResult(UUID islandId, UUID actorUuid, boolean publicAccess);
     CompletableFuture<Void> setIslandLocked(UUID islandId, UUID actorUuid, boolean locked);

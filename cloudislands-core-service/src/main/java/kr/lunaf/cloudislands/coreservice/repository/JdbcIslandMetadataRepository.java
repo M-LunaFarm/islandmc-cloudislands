@@ -436,6 +436,19 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     }
 
     @Override
+    public void setWarpPublicAccess(UUID islandId, String name, boolean publicAccess) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("UPDATE island_warps SET public_access = ? WHERE island_id = ? AND name = ?")) {
+            statement.setBoolean(1, publicAccess);
+            statement.setObject(2, islandId);
+            statement.setString(3, name.toLowerCase());
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to update island warp access", exception);
+        }
+    }
+
+    @Override
     public void deleteWarp(UUID islandId, String name) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("DELETE FROM island_warps WHERE island_id = ? AND name = ?")) {

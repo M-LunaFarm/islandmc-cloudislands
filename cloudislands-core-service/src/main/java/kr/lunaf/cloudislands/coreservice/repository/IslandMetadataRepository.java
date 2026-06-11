@@ -40,6 +40,7 @@ public interface IslandMetadataRepository {
     List<IslandWarpSnapshot> warps(UUID islandId);
     Optional<IslandWarpSnapshot> warp(UUID islandId, String name);
     void upsertWarp(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy);
+    void setWarpPublicAccess(UUID islandId, String name, boolean publicAccess);
     void deleteWarp(UUID islandId, String name);
     boolean isPublicAccess(UUID islandId);
     void setPublicAccess(UUID islandId, boolean publicAccess);

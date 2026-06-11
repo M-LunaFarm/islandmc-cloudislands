@@ -1070,6 +1070,26 @@ public final class CloudIslandsCoreApplication {
             events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name));
             write(exchange, 202, ApiResponses.ok(true));
         });
+        route("/v1/islands/warps/access", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            String name = JsonFields.text(body, "name", "default").toLowerCase();
+            boolean publicAccess = JsonFields.bool(body, "publicAccess", false);
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
+            if (metadataRepository.warp(islandId, name).isEmpty()) {
+                write(exchange, 404, ApiResponses.error("WARP_NOT_FOUND", "Island warp was not found"));
+                return;
+            }
+            metadataRepository.setWarpPublicAccess(islandId, name, publicAccess);
+            audit.log(actorUuid, "PLAYER", "ISLAND_WARP_ACCESS_SET", "ISLAND", islandId.toString(), Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
+            islandLogs.append(islandId, actorUuid, "ISLAND_WARP_ACCESS_SET", Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
+            events.publish("ISLAND_WARP_ACCESS_SET", Map.of("islandId", islandId.toString(), "name", name, "publicAccess", Boolean.toString(publicAccess)));
+            events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name));
+            write(exchange, 202, ApiResponses.ok(true));
+        });
         route("/v1/islands/access", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
