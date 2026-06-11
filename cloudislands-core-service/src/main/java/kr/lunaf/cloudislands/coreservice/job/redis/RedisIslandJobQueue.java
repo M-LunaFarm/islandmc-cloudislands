@@ -18,6 +18,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
     private static final String GROUP = "cloudislands-agents";
     private final URI redisUri;
     private final Map<UUID, String> streamIdsByJobId = new ConcurrentHashMap<>();
+    private final Map<UUID, kr.lunaf.cloudislands.protocol.job.IslandJob> claimedJobs = new ConcurrentHashMap<>();
 
     public RedisIslandJobQueue(URI redisUri) {
         this.redisUri = redisUri;
@@ -44,6 +45,11 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
     }
 
     @Override
+    public java.util.Optional<kr.lunaf.cloudislands.protocol.job.IslandJob> findClaimed(java.util.UUID jobId) {
+        return java.util.Optional.ofNullable(claimedJobs.get(jobId));
+    }
+
+    
     public void complete(String nodeId, UUID jobId) {
         ackByJobId(jobId, "completed", null);
     }
@@ -63,6 +69,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
 
     private void ackByJobId(UUID jobId, String state, String errorMessage) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            claimedJobs.remove(jobId);
             String streamId = streamIdsByJobId.remove(jobId);
             if (streamId != null && !streamId.isBlank()) {
                 redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
@@ -99,7 +106,9 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
                     if (streamId != null) {
                         streamIdsByJobId.put(jobId, streamId);
                     }
-                    jobs.add(new IslandJob(jobId, type, UUID.fromString(current.get("islandId")), targetNode, parseInt(current.get("priority"), 0), decodePayload(current.getOrDefault("payload", "")), parseInstant(current.get("createdAt"))));
+                    IslandJob claimedJob = new IslandJob(jobId, type, UUID.fromString(current.get("islandId")), targetNode, parseInt(current.get("priority"), 0), decodePayload(current.getOrDefault("payload", "")), parseInstant(current.get("createdAt")));
+                    claimedJobs.put(jobId, claimedJob);
+                    jobs.add(claimedJob);
                 }
                 current.clear();
             }

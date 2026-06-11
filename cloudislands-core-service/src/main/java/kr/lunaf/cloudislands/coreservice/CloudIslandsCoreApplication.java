@@ -74,6 +74,7 @@ public final class CloudIslandsCoreApplication {
         RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets);
         CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, nodes, allocator, jobs, events);
         IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(runtimeRepository, nodes, allocator, jobs, events);
+        kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events);
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
         route("/health", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));
         route("/v1/nodes", exchange -> write(exchange, 200, nodes.toJson()));
@@ -88,12 +89,17 @@ public final class CloudIslandsCoreApplication {
         });
         route("/v1/jobs/complete", exchange -> {
             String body = readBody(exchange);
-            jobs.complete(JsonFields.text(body, "nodeId", ""), JsonFields.uuid(body, "jobId", new UUID(0L, 0L)));
+            UUID jobId = JsonFields.uuid(body, "jobId", new UUID(0L, 0L));
+            jobs.findClaimed(jobId).ifPresent(jobCompletion::completed);
+            jobs.complete(JsonFields.text(body, "nodeId", ""), jobId);
             write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/jobs/fail", exchange -> {
             String body = readBody(exchange);
-            jobs.fail(JsonFields.text(body, "nodeId", ""), JsonFields.uuid(body, "jobId", new UUID(0L, 0L)), JsonFields.text(body, "error", "unknown"));
+            UUID jobId = JsonFields.uuid(body, "jobId", new UUID(0L, 0L));
+            String error = JsonFields.text(body, "error", "unknown");
+            jobs.findClaimed(jobId).ifPresent(job -> jobCompletion.failed(job, error));
+            jobs.fail(JsonFields.text(body, "nodeId", ""), jobId, error);
             write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/routes/home", exchange -> {

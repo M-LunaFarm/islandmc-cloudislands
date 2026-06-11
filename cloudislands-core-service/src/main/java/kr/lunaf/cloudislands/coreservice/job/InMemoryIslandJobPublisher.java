@@ -37,6 +37,15 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
     }
 
     @Override
+    public synchronized java.util.Optional<kr.lunaf.cloudislands.protocol.job.IslandJob> findClaimed(java.util.UUID jobId) {
+        return jobs.stream()
+            .filter(record -> record.job().jobId().equals(jobId))
+            .filter(record -> record.state() == JobState.CLAIMED)
+            .map(JobRecord::job)
+            .findFirst();
+    }
+
+    
     public synchronized void complete(String nodeId, UUID jobId) {
         replace(jobId, record -> record.lockedBy() != null && record.lockedBy().equals(nodeId) ? record.completed() : record);
     }
