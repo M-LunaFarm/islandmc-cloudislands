@@ -1,0 +1,13 @@
+values:
+  minecraft:diamond_block:
+    worth: 1000
+    level: 10
+    limit: 5000
+  minecraft:emerald_block:
+    worth: 800
+    level: 8
+    limit: 5000
+  minecraft:spawner:
+    worth: 5000
+    level: 50
+    limit: 200

@@ -25,6 +25,9 @@ routing:
 upgrades:
   file: "${CI_UPGRADES_FILE}"
 
+block-values:
+  file: "${CI_BLOCK_VALUES_FILE}"
+
 security:
   require-mtls: true
   admin-api-enabled: true
