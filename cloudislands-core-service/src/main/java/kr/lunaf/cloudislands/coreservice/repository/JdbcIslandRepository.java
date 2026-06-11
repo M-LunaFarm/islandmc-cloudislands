@@ -48,6 +48,19 @@ public final class JdbcIslandRepository implements IslandRepository {
     }
 
     @Override
+    public Optional<String> templateId(UUID islandId) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT template_id FROM islands WHERE id = ? AND deleted_at IS NULL")) {
+            statement.setObject(1, islandId);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? Optional.ofNullable(rs.getString("template_id")) : Optional.empty();
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read island template", exception);
+        }
+    }
+
+    @Override
     public IslandSnapshot createOwnedIsland(UUID islandId, UUID ownerUuid, String templateId, String name) {
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);

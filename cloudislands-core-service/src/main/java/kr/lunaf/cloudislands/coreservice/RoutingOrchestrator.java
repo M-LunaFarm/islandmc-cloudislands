@@ -153,7 +153,7 @@ public final class RoutingOrchestrator {
             if (unavailable != null) {
                 return unavailable;
             }
-            return RoutePreparationResult.accepted(toJson(tickets.save(ticket(playerUuid, island.islandId(), action, extraPayload, routeTarget(runtime)))));
+            return RoutePreparationResult.accepted(toJson(tickets.save(ticket(playerUuid, island.islandId(), action, extraPayload, routeTarget(runtime, islands.templateId(island.islandId()).orElse("default"))))));
         } catch (IllegalStateException exception) {
             return RoutePreparationResult.rejected(409, ApiResponses.error("NODE_UNAVAILABLE", "No eligible island node is available"));
         }
@@ -191,7 +191,7 @@ public final class RoutingOrchestrator {
         return RoutePreparationResult.rejected(409, ApiResponses.error("ISLAND_LOADING_FAILED", "Island is not ready for routing"));
     }
 
-    private RouteTarget routeTarget(IslandRuntimeSnapshot runtime) {
+    private RouteTarget routeTarget(IslandRuntimeSnapshot runtime, String templateId) {
         if (runtime.state() == IslandState.ACTIVE) {
             if (runtime.activeNode() == null || runtime.activeNode().isBlank()) {
                 throw new IllegalStateException("active node is unavailable");
@@ -200,7 +200,7 @@ public final class RoutingOrchestrator {
             String worldName = runtime.activeWorld() == null || runtime.activeWorld().isBlank() ? "ci_shard_001" : runtime.activeWorld();
             return new RouteTarget(activeNode, worldName, RouteTicketState.READY);
         }
-        NodeLoad selected = allocator.selectBestNode(nodes.snapshot(), Instant.now())
+        NodeLoad selected = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId)
             .orElseThrow(() -> new IllegalStateException("no eligible island node"));
         IslandRuntimeSnapshot activating = runtimes.markActivating(runtime.islandId(), selected.nodeId(), "ci_shard_001", 0, 0);
         jobs.publish(new IslandJob(

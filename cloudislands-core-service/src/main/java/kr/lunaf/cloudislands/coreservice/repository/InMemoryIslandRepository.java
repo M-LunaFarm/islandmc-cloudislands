@@ -11,6 +11,7 @@ import kr.lunaf.cloudislands.api.model.IslandState;
 public final class InMemoryIslandRepository implements IslandRepository {
     private final Map<UUID, IslandSnapshot> byIslandId = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> byOwner = new ConcurrentHashMap<>();
+    private final Map<UUID, String> templates = new ConcurrentHashMap<>();
 
     @Override
     public Optional<IslandSnapshot> findById(UUID islandId) {
@@ -24,12 +25,18 @@ public final class InMemoryIslandRepository implements IslandRepository {
     }
 
     @Override
+    public Optional<String> templateId(UUID islandId) {
+        return Optional.ofNullable(templates.get(islandId));
+    }
+
+    @Override
     public IslandSnapshot createOwnedIsland(UUID islandId, UUID ownerUuid, String templateId, String name) {
         if (byOwner.putIfAbsent(ownerUuid, islandId) != null) {
             throw new IllegalStateException("player already owns an island");
         }
         IslandSnapshot island = new IslandSnapshot(islandId, ownerUuid, name, IslandState.CREATING, 300, 0L, "0.00", false, Instant.now(), Instant.now());
         byIslandId.put(islandId, island);
+        templates.put(islandId, templateId == null || templateId.isBlank() ? "default" : templateId);
         return island;
     }
 
@@ -40,6 +47,7 @@ public final class InMemoryIslandRepository implements IslandRepository {
             return false;
         }
         byIslandId.remove(islandId);
+        templates.remove(islandId);
         byOwner.remove(requesterUuid, islandId);
         return true;
     }
