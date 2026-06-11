@@ -20,6 +20,7 @@ import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.upgrade.UpgradePurchaseSnapshot;
 
 public interface IslandCommandService {
+    CompletableFuture<CreateIslandResult> createIsland(UUID ownerUuid);
     CompletableFuture<CreateIslandResult> createIsland(UUID ownerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
     CompletableFuture<Void> resetIsland(UUID islandId, UUID actorUuid, String reason);

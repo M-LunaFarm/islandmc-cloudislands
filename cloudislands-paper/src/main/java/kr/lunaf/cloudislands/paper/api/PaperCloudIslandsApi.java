@@ -604,6 +604,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             this.client = client;
         }
 
+        @Override public CompletableFuture<CreateIslandResult> createIsland(UUID ownerUuid) { return createIsland(ownerUuid, "default"); }
         @Override public CompletableFuture<CreateIslandResult> createIsland(UUID ownerUuid, String templateId) { return client.createIsland(ownerUuid, templateId); }
         @Override public CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId) { return client.deleteIsland(requesterUuid, islandId); }
         @Override public CompletableFuture<Void> resetIsland(UUID islandId, UUID actorUuid, String reason) { return resetIslandResult(islandId, actorUuid, reason).thenApply(_result -> null); }
