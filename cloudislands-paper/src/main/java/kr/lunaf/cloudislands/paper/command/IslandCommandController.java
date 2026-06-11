@@ -13,6 +13,7 @@ import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandPermissionMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
 import org.bukkit.Location;
@@ -48,7 +49,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "promote", "승급", "demote", "강등", "transfer", "양도",
         "ban", "밴", "unban", "pardon", "밴해제", "bans", "ban-list", "밴목록",
         "settings", "setting", "설정",
-        "flags", "flag", "플래그", "permissions", "permission", "perms", "권한"
+        "flags", "flag", "플래그", "permissions", "permission-menu", "permission-list", "permission", "perms", "setpermission", "permission-set", "권한", "권한설정", "권한목록"
     );
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
@@ -431,12 +432,24 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             }
             return true;
         }
-        if (subcommand.equals("permissions") || subcommand.equals("permission") || subcommand.equals("perms") || subcommand.equals("권한")) {
+        if (subcommand.equals("permissions") || subcommand.equals("permission-menu") || subcommand.equals("permission") || subcommand.equals("perms") || subcommand.equals("권한")) {
             if (args.length > 3) {
                 setIslandPermission(player, args[1], args[2], args[3]);
             } else {
-                listIslandPermissions(player);
+                openIslandPermissionMenu(player);
             }
+            return true;
+        }
+        if (subcommand.equals("permission-list") || subcommand.equals("권한목록")) {
+            listIslandPermissions(player);
+            return true;
+        }
+        if (subcommand.equals("setpermission") || subcommand.equals("permission-set") || subcommand.equals("권한설정")) {
+            if (args.length < 4) {
+                player.sendMessage("역할, 권한, 허용 여부를 입력해주세요.");
+                return true;
+            }
+            setIslandPermission(player, args[1], args[2], args[3]);
             return true;
         }
         return false;
@@ -1147,6 +1160,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                     return null;
                 });
         });
+    }
+
+    private void openIslandPermissionMenu(Player player) {
+        currentIsland(player, "섬 안에서만 권한 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandPermissionMenu.open(plugin, coreApiClient, player, islandId));
     }
 
     private void setIslandPermission(Player player, String roleName, String permissionName, String allowedValue) {
