@@ -8,6 +8,7 @@ import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandJobSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandTemplateSnapshot;
+import kr.lunaf.cloudislands.api.model.MigrationRunSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 
 public interface IslandAdminService {
@@ -36,4 +37,9 @@ public interface IslandAdminService {
     CompletableFuture<IslandTemplateSnapshot> upsertTemplate(String templateId, String displayName, boolean enabled, String minNodeVersion);
     CompletableFuture<IslandTemplateSnapshot> enableTemplate(String templateId);
     CompletableFuture<IslandTemplateSnapshot> disableTemplate(String templateId);
+    CompletableFuture<MigrationRunSnapshot> scanSuperiorSkyblock2(String path);
+    CompletableFuture<MigrationRunSnapshot> dryRunSuperiorSkyblock2(String path);
+    CompletableFuture<MigrationRunSnapshot> importSuperiorSkyblock2(String path);
+    CompletableFuture<MigrationRunSnapshot> verifySuperiorSkyblock2(String path);
+    CompletableFuture<MigrationRunSnapshot> rollbackSuperiorSkyblock2(String path);
 }

@@ -39,6 +39,8 @@ import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.api.model.IslandTemplateSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
+import kr.lunaf.cloudislands.api.model.MigrationIssueSnapshot;
+import kr.lunaf.cloudislands.api.model.MigrationRunSnapshot;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
@@ -377,6 +379,31 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<IslandTemplateSnapshot> disableTemplate(String templateId) {
             return client.disableTemplate(templateId).thenApply(PaperCloudIslandsApi::template);
+        }
+
+        @Override
+        public CompletableFuture<MigrationRunSnapshot> scanSuperiorSkyblock2(String path) {
+            return client.migrateSuperiorSkyblock2("scan", path).thenApply(PaperCloudIslandsApi::migrationRun);
+        }
+
+        @Override
+        public CompletableFuture<MigrationRunSnapshot> dryRunSuperiorSkyblock2(String path) {
+            return client.migrateSuperiorSkyblock2("dryrun", path).thenApply(PaperCloudIslandsApi::migrationRun);
+        }
+
+        @Override
+        public CompletableFuture<MigrationRunSnapshot> importSuperiorSkyblock2(String path) {
+            return client.migrateSuperiorSkyblock2("import", path).thenApply(PaperCloudIslandsApi::migrationRun);
+        }
+
+        @Override
+        public CompletableFuture<MigrationRunSnapshot> verifySuperiorSkyblock2(String path) {
+            return client.migrateSuperiorSkyblock2("verify", path).thenApply(PaperCloudIslandsApi::migrationRun);
+        }
+
+        @Override
+        public CompletableFuture<MigrationRunSnapshot> rollbackSuperiorSkyblock2(String path) {
+            return client.migrateSuperiorSkyblock2("rollback", path).thenApply(PaperCloudIslandsApi::migrationRun);
         }
     }
 
@@ -754,6 +781,34 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             bool(json, "enabled", false),
             text(json, "minNodeVersion", "")
         );
+    }
+
+    private static MigrationRunSnapshot migrationRun(String json) {
+        return new MigrationRunSnapshot(
+            text(json, "state", ""),
+            text(json, "path", ""),
+            integer(json, "manifests", 0),
+            bool(json, "canImport", false),
+            bool(json, "imported", false),
+            integer(json, "importedIslands", 0),
+            bool(json, "passed", false),
+            integer(json, "expected", 0),
+            bool(json, "rolledBack", false),
+            integer(json, "removedIslands", 0),
+            migrationIssues(json)
+        );
+    }
+
+    private static List<MigrationIssueSnapshot> migrationIssues(String json) {
+        List<MigrationIssueSnapshot> issues = new ArrayList<>();
+        for (String object : objects(json, "issues")) {
+            issues.add(new MigrationIssueSnapshot(
+                text(object, "code", ""),
+                text(object, "message", ""),
+                bool(object, "blocking", false)
+            ));
+        }
+        return issues;
     }
 
     private static List<GlobalEventSnapshot> events(String json) {
