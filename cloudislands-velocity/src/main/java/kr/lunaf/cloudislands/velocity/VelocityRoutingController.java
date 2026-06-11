@@ -136,7 +136,7 @@ public final class VelocityRoutingController {
     }
 
     public void invite(Player player, UUID islandId, UUID targetUuid) {
-        coreApiClient.createIslandInvite(islandId, player.getUniqueId(), targetUuid).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "초대를 생성하지 못했습니다." : "섬 초대를 보냈습니다.")));
+        sendPlayerPayloadFuture(player, coreApiClient.createIslandInvite(islandId, player.getUniqueId(), targetUuid), "초대를 생성하지 못했습니다.", "섬 초대를 보냈습니다.");
     }
 
     public void listInvites(Player player) {
