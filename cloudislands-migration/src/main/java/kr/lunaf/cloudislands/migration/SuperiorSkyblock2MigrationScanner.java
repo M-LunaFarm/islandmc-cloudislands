@@ -65,12 +65,13 @@ public final class SuperiorSkyblock2MigrationScanner {
             List<UUID> bannedVisitors = parseUuidList(content, "bans", "bannedPlayers", "bannedVisitors", "visitorBans");
             List<MigrationHome> homes = parseHomes(content);
             List<MigrationWarp> warps = parseWarps(content);
+            List<MigrationFlag> flags = parseFlags(content);
             boolean publicAccess = parseBoolean(content, "public", parseBoolean(content, "isPublic", parseBoolean(content, "publicAccess", false)));
             boolean locked = parseBoolean(content, "locked", parseBoolean(content, "isLocked", false));
             LinkedHashSet<UUID> allMembers = new LinkedHashSet<>();
             allMembers.add(ownerUuid);
             allMembers.addAll(members);
-            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), bannedVisitors, homes, warps, publicAccess, locked, size, level, worth));
+            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), bannedVisitors, homes, warps, flags, publicAccess, locked, size, level, worth));
         } catch (RuntimeException | IOException exception) {
             issues.add(new MigrationIssue("ISLAND_FILE_PARSE_FAILED", file + ": " + exception.getMessage(), true));
         }
@@ -210,6 +211,44 @@ public final class SuperiorSkyblock2MigrationScanner {
         float pitch = parseFloat(content, "warpPitch", parseFloat(content, "pitch", 0.0F));
         boolean publicAccess = parseBoolean(content, "warpPublic", parseBoolean(content, "publicWarp", true));
         return List.of(new MigrationWarp(name.isBlank() ? "default" : name, world, x, y, z, yaw, pitch, publicAccess));
+    }
+
+    private List<MigrationFlag> parseFlags(String content) {
+        List<MigrationFlag> flags = new ArrayList<>();
+        addFlag(content, flags, "PVP", "pvp");
+        addFlag(content, flags, "MOB_SPAWN", "mobSpawn");
+        addFlag(content, flags, "ANIMAL_SPAWN", "animalSpawn");
+        addFlag(content, flags, "MONSTER_SPAWN", "monsterSpawn");
+        addFlag(content, flags, "FIRE_SPREAD", "fireSpread");
+        addFlag(content, flags, "EXPLOSION", "explosion");
+        addFlag(content, flags, "CREEPER_DAMAGE", "creeperDamage");
+        addFlag(content, flags, "TNT_DAMAGE", "tntDamage");
+        addFlag(content, flags, "WITHER_DAMAGE", "witherDamage");
+        addFlag(content, flags, "ENDERMAN_GRIEF", "endermanGrief");
+        addFlag(content, flags, "WATER_FLOW", "waterFlow");
+        addFlag(content, flags, "LAVA_FLOW", "lavaFlow");
+        addFlag(content, flags, "ICE_MELT", "iceMelt");
+        addFlag(content, flags, "LEAF_DECAY", "leafDecay");
+        addFlag(content, flags, "VISITOR_INTERACT", "visitorInteract");
+        addFlag(content, flags, "VISITOR_CONTAINER", "visitorContainer");
+        addFlag(content, flags, "VISITOR_PICKUP", "visitorPickup");
+        addFlag(content, flags, "VISITOR_DROP", "visitorDrop");
+        addFlag(content, flags, "VISITOR_PVP", "visitorPvp");
+        addFlag(content, flags, "FLY", "fly");
+        addFlag(content, flags, "KEEP_INVENTORY", "keepInventory");
+        addFlag(content, flags, "PUBLIC_WARPS", "publicWarps");
+        return List.copyOf(flags);
+    }
+
+    private void addFlag(String content, List<MigrationFlag> flags, String flagName, String key) {
+        String enumKey = flagName.toLowerCase();
+        if (!containsAnyKey(content, key, enumKey, flagName)) {
+            return;
+        }
+        String value = parseString(content, key, parseString(content, enumKey, parseString(content, flagName, "")));
+        if (!value.isBlank()) {
+            flags.add(new MigrationFlag(flagName, value));
+        }
     }
 
     private boolean containsAnyKey(String content, String... keys) {

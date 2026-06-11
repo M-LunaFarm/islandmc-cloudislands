@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
@@ -71,6 +72,9 @@ public final class MigrationAdminService {
             for (kr.lunaf.cloudislands.migration.MigrationWarp warp : manifest.warps()) {
                 metadata.upsertWarp(manifest.islandId(), warp.name(), new IslandLocation(warp.worldName(), warp.x(), warp.y(), warp.z(), warp.yaw(), warp.pitch()), warp.publicAccess(), manifest.ownerUuid());
             }
+            for (kr.lunaf.cloudislands.migration.MigrationFlag flag : manifest.flags()) {
+                metadata.setFlag(manifest.islandId(), IslandFlag.valueOf(flag.flagName()), flag.value());
+            }
             metadata.setPublicAccess(manifest.islandId(), manifest.publicAccess());
             metadata.setLocked(manifest.islandId(), manifest.locked());
             playerProfiles.setPrimaryIsland(manifest.ownerUuid(), manifest.islandId());
@@ -89,6 +93,7 @@ public final class MigrationAdminService {
                 .filter(_island -> manifest.bannedVisitors().stream().allMatch(bannedUuid -> metadata.isBanned(manifest.islandId(), bannedUuid)))
                 .filter(_island -> manifest.homes().stream().allMatch(home -> metadata.home(manifest.islandId(), home.name()).isPresent()))
                 .filter(_island -> manifest.warps().stream().allMatch(warp -> metadata.warp(manifest.islandId(), warp.name()).isPresent()))
+                .filter(_island -> manifest.flags().stream().allMatch(flag -> flag.value().equals(metadata.flags(manifest.islandId()).values().get(IslandFlag.valueOf(flag.flagName())))))
                 .filter(_island -> metadata.isPublicAccess(manifest.islandId()) == manifest.publicAccess())
                 .filter(_island -> metadata.isLocked(manifest.islandId()) == manifest.locked())
                 .ifPresent(_island -> imported.add(manifest));
