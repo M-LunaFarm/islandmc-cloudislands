@@ -63,7 +63,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
     public PaperCloudIslandsApi(CoreApiClient client, CloudIslandsPaperAgent agent) {
         this.query = new QueryService(client);
-        this.players = new PlayerService(query);
+        this.players = new PlayerService(client, query);
         this.routing = new RoutingService(client);
         this.permissions = new PermissionService(agent);
         this.runtime = new RuntimeService(client);
@@ -202,9 +202,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     }
 
     private static final class PlayerService implements PlayerIslandService {
+        private final CoreApiClient client;
         private final QueryService query;
 
-        private PlayerService(QueryService query) {
+        private PlayerService(CoreApiClient client, QueryService query) {
+            this.client = client;
             this.query = query;
         }
 
@@ -225,8 +227,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<Optional<PlayerIslandProfile>> getProfile(UUID playerUuid) {
-            return getOwnedIslandId(playerUuid)
-                .thenApply(islandId -> Optional.of(new PlayerIslandProfile(playerUuid, "", islandId, Instant.EPOCH)));
+            return client.playerInfo(playerUuid).thenApply(PaperCloudIslandsApi::playerProfile);
         }
     }
 
@@ -367,6 +368,19 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             bool(json, "publicAccess", false),
             instant(text(json, "createdAt", Instant.EPOCH.toString())),
             instant(text(json, "updatedAt", Instant.EPOCH.toString()))
+        ));
+    }
+
+    private static Optional<PlayerIslandProfile> playerProfile(String json) {
+        if (json == null || json.isBlank() || json.contains("\"error\"")) {
+            return Optional.empty();
+        }
+        String primaryIslandId = nullableText(json, "primaryIslandId");
+        return Optional.of(new PlayerIslandProfile(
+            uuid(json, "playerUuid", new UUID(0L, 0L)),
+            text(json, "lastName", ""),
+            primaryIslandId == null || primaryIslandId.isBlank() ? Optional.empty() : Optional.of(uuid(json, "primaryIslandId", new UUID(0L, 0L))),
+            instant(text(json, "lastSeenAt", Instant.EPOCH.toString()))
         ));
     }
 
