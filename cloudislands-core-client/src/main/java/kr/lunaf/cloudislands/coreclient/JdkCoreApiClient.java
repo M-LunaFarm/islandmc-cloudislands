@@ -58,6 +58,26 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> createIslandInvite(UUID islandId, UUID inviterUuid, UUID targetUuid) {
+        return post("/v1/islands/invites", "{\"islandId\":\"" + islandId + "\",\"inviterUuid\":\"" + inviterUuid + "\",\"targetUuid\":\"" + targetUuid + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> listPendingInvites(UUID playerUuid) {
+        return post("/v1/players/invites", "{\"playerUuid\":\"" + playerUuid + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<Void> acceptIslandInvite(UUID inviteId, UUID playerUuid) {
+        return post("/v1/islands/invites/accept", "{\"inviteId\":\"" + inviteId + "\",\"playerUuid\":\"" + playerUuid + "\"}").thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<Void> declineIslandInvite(UUID inviteId, UUID playerUuid) {
+        return post("/v1/islands/invites/decline", "{\"inviteId\":\"" + inviteId + "\",\"playerUuid\":\"" + playerUuid + "\"}").thenApply(_body -> null);
+    }
+
+    @Override
     public CompletableFuture<Void> banIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason) {
         return post("/v1/islands/bans/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"reason\":\"" + escape(reason) + "\"}").thenApply(_body -> null);
     }

@@ -65,13 +65,33 @@ public final class CloudIslandsVelocityPlugin {
             routingController.routeWarp(player, targetIslandId, warpName);
             return;
         }
+        if (args[0].equalsIgnoreCase("invite") || args[0].equals("초대")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            UUID targetUuid = args.length > 2 ? parseUuidOrNil(args[2]) : new UUID(0L, 0L);
+            routingController.invite(player, islandId, targetUuid);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("invites") || args[0].equals("초대목록")) {
+            routingController.listInvites(player);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("accept") || args[0].equals("수락")) {
+            UUID inviteId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.acceptInvite(player, inviteId);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("decline") || args[0].equals("거절")) {
+            UUID inviteId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.declineInvite(player, inviteId);
+            return;
+        }
         if (args[0].equalsIgnoreCase("create") || args[0].equals("생성")) {
             String templateId = args.length > 1 ? args[1] : "default";
             player.sendActionBar(Component.text("섬 생성 요청을 접수했습니다."));
             routingController.createIsland(player, templateId);
             return;
         }
-        player.sendMessage(Component.text("사용법: /섬 홈, /섬 생성, /섬 방문 <섬>, /섬 워프 <섬> <이름>"));
+        player.sendMessage(Component.text("사용법: /섬 홈, /섬 생성, /섬 방문 <섬>, /섬 워프 <섬> <이름>, /섬 초대 <섬> <플레이어>, /섬 수락 <초대>"));
     }
 
     private UUID parseUuidOrNil(String value) {

@@ -20,6 +20,10 @@ public interface CoreApiClient {
     CompletableFuture<String> listIslandMembers(UUID islandId);
     CompletableFuture<Void> setIslandMember(UUID islandId, UUID actorUuid, UUID playerUuid, IslandRole role);
     CompletableFuture<Void> removeIslandMember(UUID islandId, UUID actorUuid, UUID playerUuid);
+    CompletableFuture<String> createIslandInvite(UUID islandId, UUID inviterUuid, UUID targetUuid);
+    CompletableFuture<String> listPendingInvites(UUID playerUuid);
+    CompletableFuture<Void> acceptIslandInvite(UUID inviteId, UUID playerUuid);
+    CompletableFuture<Void> declineIslandInvite(UUID inviteId, UUID playerUuid);
     CompletableFuture<Void> banIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason);
     CompletableFuture<Void> pardonIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid);
     CompletableFuture<String> listIslandFlags(UUID islandId);

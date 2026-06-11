@@ -46,6 +46,22 @@ public final class VelocityRoutingController {
         coreApiClient.createWarpTicket(player.getUniqueId(), targetIslandId, warpName).thenAccept(ticket -> route(player, ticket, "해당 워프로 이동할 수 없습니다."));
     }
 
+    public void invite(Player player, UUID islandId, UUID targetUuid) {
+        coreApiClient.createIslandInvite(islandId, player.getUniqueId(), targetUuid).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "초대를 생성하지 못했습니다." : "섬 초대를 보냈습니다.")));
+    }
+
+    public void listInvites(Player player) {
+        coreApiClient.listPendingInvites(player.getUniqueId()).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "대기 중인 초대가 없습니다." : body)));
+    }
+
+    public void acceptInvite(Player player, UUID inviteId) {
+        coreApiClient.acceptIslandInvite(inviteId, player.getUniqueId()).thenRun(() -> player.sendMessage(Component.text("섬 초대를 수락했습니다.")));
+    }
+
+    public void declineInvite(Player player, UUID inviteId) {
+        coreApiClient.declineIslandInvite(inviteId, player.getUniqueId()).thenRun(() -> player.sendMessage(Component.text("섬 초대를 거절했습니다.")));
+    }
+
     private void route(Player player, RouteTicket ticket, String failureMessage) {
         if (ticket == null) {
             fallback(player, failureMessage);

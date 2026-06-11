@@ -13,6 +13,7 @@ public interface IslandCommandService {
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
     CompletableFuture<Void> invite(UUID islandId, UUID inviterUuid, UUID targetUuid);
     CompletableFuture<Void> acceptInvite(UUID inviteId, UUID playerUuid);
+    CompletableFuture<Void> declineInvite(UUID inviteId, UUID playerUuid);
     CompletableFuture<Void> kick(UUID islandId, UUID actorUuid, UUID targetUuid);
     CompletableFuture<Void> setRole(UUID islandId, UUID actorUuid, UUID targetUuid, IslandRole role);
     CompletableFuture<Void> setFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value);

@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLevelSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
@@ -15,6 +16,7 @@ public interface IslandQueryService {
     CompletableFuture<Optional<IslandSnapshot>> getIsland(UUID islandId);
     CompletableFuture<Optional<IslandSnapshot>> getIslandByOwner(UUID ownerUuid);
     CompletableFuture<List<IslandMemberSnapshot>> getMembers(UUID islandId);
+    CompletableFuture<List<IslandInviteSnapshot>> getPendingInvites(UUID playerUuid);
     CompletableFuture<List<IslandWarpSnapshot>> getWarps(UUID islandId);
     CompletableFuture<IslandFlagsSnapshot> getFlags(UUID islandId);
     CompletableFuture<IslandLevelSnapshot> getLevel(UUID islandId);

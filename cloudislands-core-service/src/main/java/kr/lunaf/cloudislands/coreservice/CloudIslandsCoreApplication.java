@@ -201,6 +201,38 @@ public final class CloudIslandsCoreApplication {
             events.publish("ISLAND_MEMBER_REMOVE", Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
             write(exchange, 202, ApiResponses.ok(true));
         });
+        route("/v1/islands/invites", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID inviterUuid = JsonFields.uuid(body, "inviterUuid", new UUID(0L, 0L));
+            UUID targetUuid = JsonFields.uuid(body, "targetUuid", new UUID(0L, 0L));
+            var invite = metadataRepository.createInvite(islandId, inviterUuid, targetUuid);
+            audit.log(inviterUuid, "PLAYER", "ISLAND_INVITE_CREATE", "ISLAND", islandId.toString(), Map.of("targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString()));
+            events.publish("ISLAND_INVITE_CREATE", Map.of("islandId", islandId.toString(), "targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString()));
+            write(exchange, 202, "{\"accepted\":true,\"inviteId\":\"" + invite.inviteId() + "\",\"expiresAt\":\"" + invite.expiresAt() + "\"}");
+        });
+        route("/v1/players/invites", exchange -> {
+            String body = readBody(exchange);
+            write(exchange, 200, invitesJson(metadataRepository.pendingInvites(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)))));
+        });
+        route("/v1/islands/invites/accept", exchange -> {
+            String body = readBody(exchange);
+            UUID inviteId = JsonFields.uuid(body, "inviteId", new UUID(0L, 0L));
+            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            boolean accepted = metadataRepository.acceptInvite(inviteId, playerUuid);
+            audit.log(playerUuid, "PLAYER", "ISLAND_INVITE_ACCEPT", "INVITE", inviteId.toString(), Map.of("accepted", Boolean.toString(accepted)));
+            events.publish("ISLAND_INVITE_ACCEPT", Map.of("inviteId", inviteId.toString(), "playerUuid", playerUuid.toString(), "accepted", Boolean.toString(accepted)));
+            write(exchange, accepted ? 202 : 409, accepted ? ApiResponses.ok(true) : ApiResponses.error("INVITE_UNAVAILABLE", "Invite is missing, expired, or not pending"));
+        });
+        route("/v1/islands/invites/decline", exchange -> {
+            String body = readBody(exchange);
+            UUID inviteId = JsonFields.uuid(body, "inviteId", new UUID(0L, 0L));
+            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            boolean declined = metadataRepository.declineInvite(inviteId, playerUuid);
+            audit.log(playerUuid, "PLAYER", "ISLAND_INVITE_DECLINE", "INVITE", inviteId.toString(), Map.of("declined", Boolean.toString(declined)));
+            events.publish("ISLAND_INVITE_DECLINE", Map.of("inviteId", inviteId.toString(), "playerUuid", playerUuid.toString(), "declined", Boolean.toString(declined)));
+            write(exchange, declined ? 202 : 409, declined ? ApiResponses.ok(true) : ApiResponses.error("INVITE_UNAVAILABLE", "Invite is missing or not pending"));
+        });
         route("/v1/islands/bans/set", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -353,6 +385,27 @@ public final class CloudIslandsCoreApplication {
                 .append("\"playerUuid\":\"").append(member.playerUuid()).append("\",")
                 .append("\"role\":\"").append(member.role()).append("\",")
                 .append("\"joinedAt\":\"").append(member.joinedAt()).append("\"")
+                .append('}');
+        }
+        return builder.append("]}").toString();
+    }
+
+    private static String invitesJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandInviteSnapshot> invites) {
+        StringBuilder builder = new StringBuilder("{\"invites\":[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.api.model.IslandInviteSnapshot invite : invites) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('{')
+                .append("\"inviteId\":\"").append(invite.inviteId()).append("\",")
+                .append("\"islandId\":\"").append(invite.islandId()).append("\",")
+                .append("\"inviterUuid\":\"").append(invite.inviterUuid()).append("\",")
+                .append("\"targetUuid\":\"").append(invite.targetUuid()).append("\",")
+                .append("\"state\":\"").append(invite.state()).append("\",")
+                .append("\"createdAt\":\"").append(invite.createdAt()).append("\",")
+                .append("\"expiresAt\":\"").append(invite.expiresAt()).append("\"")
                 .append('}');
         }
         return builder.append("]}").toString();

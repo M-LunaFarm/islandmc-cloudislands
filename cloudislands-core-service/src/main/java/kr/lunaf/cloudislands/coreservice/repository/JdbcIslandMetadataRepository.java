@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.UUID;
 import javax.sql.DataSource;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRole;
@@ -77,6 +79,85 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to remove island member", exception);
+        }
+    }
+
+    @Override
+    public IslandInviteSnapshot createInvite(UUID islandId, UUID inviterUuid, UUID targetUuid) {
+        UUID inviteId = UUID.randomUUID();
+        Instant expiresAt = Instant.now().plusSeconds(86400);
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_invites(id, island_id, inviter_uuid, target_uuid, state, expires_at) VALUES (?, ?, ?, ?, 'PENDING', ?)")) {
+            statement.setObject(1, inviteId);
+            statement.setObject(2, islandId);
+            statement.setObject(3, inviterUuid);
+            statement.setObject(4, targetUuid);
+            statement.setObject(5, expiresAt);
+            statement.executeUpdate();
+            return new IslandInviteSnapshot(inviteId, islandId, inviterUuid, targetUuid, "PENDING", Instant.now(), expiresAt);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to create island invite", exception);
+        }
+    }
+
+    @Override
+    public List<IslandInviteSnapshot> pendingInvites(UUID targetUuid) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT id, island_id, inviter_uuid, target_uuid, state, created_at, expires_at FROM island_invites WHERE target_uuid = ? AND state = 'PENDING' AND expires_at > now() ORDER BY created_at")) {
+            statement.setObject(1, targetUuid);
+            try (ResultSet rs = statement.executeQuery()) {
+                List<IslandInviteSnapshot> result = new ArrayList<>();
+                while (rs.next()) {
+                    result.add(invite(rs));
+                }
+                return result;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read island invites", exception);
+        }
+    }
+
+    @Override
+    public boolean acceptInvite(UUID inviteId, UUID playerUuid) {
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            IslandInviteSnapshot invite = lockInvite(connection, inviteId);
+            if (invite == null || !invite.targetUuid().equals(playerUuid) || !invite.state().equals("PENDING") || !invite.expiresAt().isAfter(Instant.now())) {
+                connection.rollback();
+                return false;
+            }
+            try (PreparedStatement update = connection.prepareStatement("UPDATE island_invites SET state = 'ACCEPTED' WHERE id = ?");
+                 PreparedStatement member = connection.prepareStatement("INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, 'MEMBER') ON CONFLICT (island_id, player_uuid) DO UPDATE SET role = EXCLUDED.role")) {
+                update.setObject(1, inviteId);
+                update.executeUpdate();
+                member.setObject(1, invite.islandId());
+                member.setObject(2, playerUuid);
+                member.executeUpdate();
+            }
+            connection.commit();
+            return true;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to accept island invite", exception);
+        }
+    }
+
+    @Override
+    public boolean declineInvite(UUID inviteId, UUID playerUuid) {
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            IslandInviteSnapshot invite = lockInvite(connection, inviteId);
+            if (invite == null || !invite.targetUuid().equals(playerUuid) || !invite.state().equals("PENDING")) {
+                connection.rollback();
+                return false;
+            }
+            try (PreparedStatement statement = connection.prepareStatement("UPDATE island_invites SET state = 'DECLINED' WHERE id = ?")) {
+                statement.setObject(1, inviteId);
+                statement.executeUpdate();
+            }
+            connection.commit();
+            return true;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to decline island invite", exception);
         }
     }
 
@@ -209,5 +290,26 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to update island access", exception);
         }
+    }
+
+    private IslandInviteSnapshot lockInvite(Connection connection, UUID inviteId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT id, island_id, inviter_uuid, target_uuid, state, created_at, expires_at FROM island_invites WHERE id = ? FOR UPDATE")) {
+            statement.setObject(1, inviteId);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? invite(rs) : null;
+            }
+        }
+    }
+
+    private IslandInviteSnapshot invite(ResultSet rs) throws SQLException {
+        return new IslandInviteSnapshot(
+            (UUID) rs.getObject("id"),
+            (UUID) rs.getObject("island_id"),
+            (UUID) rs.getObject("inviter_uuid"),
+            (UUID) rs.getObject("target_uuid"),
+            rs.getString("state"),
+            rs.getTimestamp("created_at").toInstant(),
+            rs.getTimestamp("expires_at").toInstant()
+        );
     }
 }

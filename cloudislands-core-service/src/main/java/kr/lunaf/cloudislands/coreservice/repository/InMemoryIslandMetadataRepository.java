@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRole;
@@ -16,6 +17,7 @@ import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 
 public final class InMemoryIslandMetadataRepository implements IslandMetadataRepository {
     private final Map<UUID, Map<UUID, IslandMemberSnapshot>> members = new ConcurrentHashMap<>();
+    private final Map<UUID, IslandInviteSnapshot> invites = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, String>> bans = new ConcurrentHashMap<>();
     private final Map<UUID, Map<IslandFlag, String>> flags = new ConcurrentHashMap<>();
     private final Map<UUID, Map<String, IslandWarpSnapshot>> warps = new ConcurrentHashMap<>();
@@ -43,6 +45,46 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
         if (islandMembers != null) {
             islandMembers.remove(playerUuid);
         }
+    }
+
+    @Override
+    public IslandInviteSnapshot createInvite(UUID islandId, UUID inviterUuid, UUID targetUuid) {
+        IslandInviteSnapshot invite = new IslandInviteSnapshot(UUID.randomUUID(), islandId, inviterUuid, targetUuid, "PENDING", Instant.now(), Instant.now().plusSeconds(86400));
+        invites.put(invite.inviteId(), invite);
+        return invite;
+    }
+
+    @Override
+    public List<IslandInviteSnapshot> pendingInvites(UUID targetUuid) {
+        Instant now = Instant.now();
+        List<IslandInviteSnapshot> result = new ArrayList<>();
+        for (IslandInviteSnapshot invite : invites.values()) {
+            if (invite.targetUuid().equals(targetUuid) && invite.state().equals("PENDING") && invite.expiresAt().isAfter(now)) {
+                result.add(invite);
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public boolean acceptInvite(UUID inviteId, UUID playerUuid) {
+        IslandInviteSnapshot invite = invites.get(inviteId);
+        if (invite == null || !invite.targetUuid().equals(playerUuid) || !invite.state().equals("PENDING") || !invite.expiresAt().isAfter(Instant.now())) {
+            return false;
+        }
+        invites.put(inviteId, new IslandInviteSnapshot(invite.inviteId(), invite.islandId(), invite.inviterUuid(), invite.targetUuid(), "ACCEPTED", invite.createdAt(), invite.expiresAt()));
+        upsertMember(invite.islandId(), playerUuid, IslandRole.MEMBER);
+        return true;
+    }
+
+    @Override
+    public boolean declineInvite(UUID inviteId, UUID playerUuid) {
+        IslandInviteSnapshot invite = invites.get(inviteId);
+        if (invite == null || !invite.targetUuid().equals(playerUuid) || !invite.state().equals("PENDING")) {
+            return false;
+        }
+        invites.put(inviteId, new IslandInviteSnapshot(invite.inviteId(), invite.islandId(), invite.inviterUuid(), invite.targetUuid(), "DECLINED", invite.createdAt(), invite.expiresAt()));
+        return true;
     }
 
     @Override
