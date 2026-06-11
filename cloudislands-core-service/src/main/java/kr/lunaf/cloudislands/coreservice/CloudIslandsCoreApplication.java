@@ -1212,7 +1212,7 @@ public final class CloudIslandsCoreApplication {
         if (targetNode != null && !targetNode.isBlank()) {
             runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETE_REQUESTED);
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DELETE_ISLAND, islandId, targetNode, 50, Map.of("reason", reason), java.time.Instant.now()));
-            events.publish("ISLAND_DELETE_REQUESTED", Map.of("islandId", islandId.toString(), "targetNode", targetNode, "reason", reason));
+            events.publish(CloudIslandEventType.ISLAND_DELETE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "targetNode", targetNode, "reason", reason));
             return false;
         }
         runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETED);

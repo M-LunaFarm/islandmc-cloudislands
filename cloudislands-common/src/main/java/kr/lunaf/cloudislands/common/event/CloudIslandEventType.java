@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.common.event;
 
 public enum CloudIslandEventType {
     ISLAND_CREATED,
+    ISLAND_DELETE_REQUESTED,
     ISLAND_DELETED,
     ISLAND_ACTIVATED,
     ISLAND_DEACTIVATED,
