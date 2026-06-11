@@ -14,6 +14,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandMissionMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandPermissionMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandUpgradeMenu;
@@ -39,7 +40,9 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "public", "공개", "private", "비공개", "lock", "잠금", "unlock", "잠금해제",
         "level", "레벨", "worth", "value", "가치", "rank", "ranking", "랭킹", "levelcalc", "recalculate", "레벨계산",
         "bank", "은행", "deposit", "bank-deposit", "입금", "withdraw", "bank-withdraw", "출금",
-        "upgrade", "upgrades", "upgrade-menu", "upgrade-list", "업그레이드", "업그레이드목록", "mission", "missions", "미션", "challenge", "challenges", "챌린지",
+        "upgrade", "upgrades", "upgrade-menu", "upgrade-list", "업그레이드", "업그레이드목록",
+        "mission", "missions", "mission-menu", "mission-list", "미션", "미션목록",
+        "challenge", "challenges", "challenge-menu", "challenge-list", "챌린지", "챌린지목록",
         "chat", "islandchat", "채팅", "teamchat", "team-chat", "팀채팅", "log", "logs", "로그",
         "biome", "바이옴", "size", "크기", "border", "경계",
         "limit", "limits", "limit-list", "제한", "제한목록", "setlimit", "limit-set", "제한설정",
@@ -247,16 +250,32 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             if (args.length > 1) {
                 completeIslandMission(player, args[1]);
             } else {
-                listIslandMissions(player, "MISSION", "섬 미션");
+                openIslandMissionMenu(player, "MISSION");
             }
+            return true;
+        }
+        if (subcommand.equals("mission-menu")) {
+            openIslandMissionMenu(player, "MISSION");
+            return true;
+        }
+        if (subcommand.equals("mission-list") || subcommand.equals("미션목록")) {
+            listIslandMissions(player, "MISSION", "섬 미션");
             return true;
         }
         if (subcommand.equals("challenge") || subcommand.equals("challenges") || subcommand.equals("챌린지")) {
             if (args.length > 1) {
                 completeIslandChallenge(player, args[1]);
             } else {
-                listIslandMissions(player, "CHALLENGE", "섬 챌린지");
+                openIslandMissionMenu(player, "CHALLENGE");
             }
+            return true;
+        }
+        if (subcommand.equals("challenge-menu")) {
+            openIslandMissionMenu(player, "CHALLENGE");
+            return true;
+        }
+        if (subcommand.equals("challenge-list") || subcommand.equals("챌린지목록")) {
+            listIslandMissions(player, "CHALLENGE", "섬 챌린지");
             return true;
         }
         if (subcommand.equals("chat") || subcommand.equals("islandchat") || subcommand.equals("채팅")) {
@@ -834,6 +853,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                     return null;
                 });
         });
+    }
+
+    private void openIslandMissionMenu(Player player, String kind) {
+        currentIsland(player, "섬 안에서만 과제 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandMissionMenu.open(plugin, coreApiClient, player, islandId, kind));
     }
 
     private void completeIslandMission(Player player, String missionKey) {
