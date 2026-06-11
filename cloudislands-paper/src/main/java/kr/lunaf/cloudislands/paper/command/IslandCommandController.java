@@ -216,14 +216,59 @@ public final class IslandCommandController implements CommandExecutor {
                 break;
             }
             int valueStart = start + needle.length();
-            int end = body.indexOf('"', valueStart);
+            int end = jsonStringEnd(body, valueStart);
             if (end < 0) {
                 break;
             }
-            names.add(body.substring(valueStart, end));
+            names.add(unescape(body.substring(valueStart, end)));
             index = end + 1;
         }
         return names;
+    }
+
+    private int jsonStringEnd(String value, int start) {
+        boolean escaped = false;
+        for (int i = start; i < value.length(); i++) {
+            char current = value.charAt(i);
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (current == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (current == '"') {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private String unescape(String value) {
+        StringBuilder builder = new StringBuilder();
+        boolean escaped = false;
+        for (int i = 0; i < value.length(); i++) {
+            char current = value.charAt(i);
+            if (!escaped) {
+                if (current == '\\') {
+                    escaped = true;
+                } else {
+                    builder.append(current);
+                }
+                continue;
+            }
+            switch (current) {
+                case 'n' -> builder.append('\n');
+                case 'r' -> builder.append('\r');
+                case 't' -> builder.append('\t');
+                case '"' -> builder.append('"');
+                case '\\' -> builder.append('\\');
+                default -> builder.append(current);
+            }
+            escaped = false;
+        }
+        return builder.toString();
     }
 
     private void message(Player player, String message) {
