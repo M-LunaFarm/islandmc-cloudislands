@@ -321,6 +321,10 @@ public final class VelocityRoutingController {
         sendActionResult(player, coreApiClient.setIslandFlag(islandId, player.getUniqueId(), flag, Boolean.toString(enabled)), "섬 " + label + " 설정을 " + (enabled ? "켰습니다." : "껐습니다."), "섬 " + label + " 설정을 변경하지 못했습니다.");
     }
 
+    public void listFlags(Player player, UUID islandId) {
+        sendPlayerPayloadFuture(player, coreApiClient.listIslandFlags(islandId), "섬 플래그를 불러오지 못했습니다.", "섬 플래그 정보를 불러왔습니다.");
+    }
+
     public void listHomes(Player player, UUID islandId) {
         sendPlayerPayloadFuture(player, coreApiClient.listIslandHomes(islandId), "섬 홈을 불러오지 못했습니다.", "섬 홈 목록을 불러왔습니다.");
     }

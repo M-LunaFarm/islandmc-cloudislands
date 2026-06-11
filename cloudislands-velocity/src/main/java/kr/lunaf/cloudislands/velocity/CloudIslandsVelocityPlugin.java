@@ -505,7 +505,7 @@ public final class CloudIslandsVelocityPlugin {
         }
         if (args[0].equalsIgnoreCase("flags") || args[0].equals("플래그")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            routingController.showIslandSettings(player, islandId);
+            routingController.listFlags(player, islandId);
             return;
         }
         if (args[0].equalsIgnoreCase("permissions") || args[0].equals("권한")) {
