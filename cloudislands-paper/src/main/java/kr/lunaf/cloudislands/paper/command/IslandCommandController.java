@@ -178,6 +178,13 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                     return true;
                 }
             }
+            if (args.length == 2) {
+                UUID islandId = uuid(args[1]);
+                if (islandId != null) {
+                    routeWarp(player, islandId, "default");
+                    return true;
+                }
+            }
             if (args.length > 1) {
                 teleportWarp(player, args[1]);
             } else {
@@ -202,6 +209,13 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 }
                 routeWarp(player, islandId, args[2]);
                 return true;
+            }
+            if (args.length == 2) {
+                UUID islandId = uuid(args[1]);
+                if (islandId != null) {
+                    routeWarp(player, islandId, "default");
+                    return true;
+                }
             }
             if (args.length < 2) {
                 player.sendMessage("워프 이름을 입력해주세요.");
