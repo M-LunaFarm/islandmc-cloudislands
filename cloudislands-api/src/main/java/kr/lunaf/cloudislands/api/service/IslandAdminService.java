@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.AuditLogSnapshot;
 import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandJobSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandTemplateSnapshot;
 
@@ -17,6 +18,7 @@ public interface IslandAdminService {
     CompletableFuture<Void> restoreIsland(UUID islandId, long snapshotNo);
     CompletableFuture<Void> quarantineIsland(UUID islandId, String reason);
     CompletableFuture<Void> repairIsland(UUID islandId, String reason);
+    CompletableFuture<List<IslandJobSnapshot>> listJobs();
     CompletableFuture<Void> retryJob(UUID jobId);
     CompletableFuture<Void> cancelJob(UUID jobId);
     CompletableFuture<Void> recoverJobs(String nodeId, long minIdleMillis, int maxJobs);

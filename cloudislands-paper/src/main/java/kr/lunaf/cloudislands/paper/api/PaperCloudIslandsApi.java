@@ -21,6 +21,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandJobSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLevelSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
@@ -335,6 +336,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> restoreIsland(UUID islandId, long snapshotNo) { return client.restoreIslandSnapshot(islandId, snapshotNo); }
         @Override public CompletableFuture<Void> quarantineIsland(UUID islandId, String reason) { return client.quarantineIsland(islandId, reason).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> repairIsland(UUID islandId, String reason) { return client.repairIsland(islandId, reason).thenApply(_body -> null); }
+        @Override public CompletableFuture<List<IslandJobSnapshot>> listJobs() { return client.listJobs().thenApply(PaperCloudIslandsApi::jobs); }
         @Override public CompletableFuture<Void> retryJob(UUID jobId) { return client.retryJob(jobId).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> cancelJob(UUID jobId) { return client.cancelJob(jobId).thenApply(_body -> null); }
         @Override public CompletableFuture<Void> recoverJobs(String nodeId, long minIdleMillis, int maxJobs) { return client.recoverJobs(nodeId, minIdleMillis, maxJobs).thenApply(_body -> null); }
@@ -777,6 +779,27 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             ));
         }
         return audit;
+    }
+
+    private static List<IslandJobSnapshot> jobs(String json) {
+        List<IslandJobSnapshot> jobs = new ArrayList<>();
+        for (String object : objects(json, "jobs")) {
+            jobs.add(new IslandJobSnapshot(
+                uuid(object, "id", uuid(object, "jobId", new UUID(0L, 0L))),
+                text(object, "type", ""),
+                uuid(object, "islandId", new UUID(0L, 0L)),
+                text(object, "targetNode", ""),
+                text(object, "state", ""),
+                integer(object, "priority", 0),
+                integer(object, "attempts", 0),
+                text(object, "lockedBy", ""),
+                text(object, "errorMessage", ""),
+                stringMap(object, "payload"),
+                instant(text(object, "createdAt", Instant.EPOCH.toString())),
+                instant(text(object, "updatedAt", Instant.EPOCH.toString()))
+            ));
+        }
+        return jobs;
     }
 
     private static List<String> objects(String json, String arrayField) {
