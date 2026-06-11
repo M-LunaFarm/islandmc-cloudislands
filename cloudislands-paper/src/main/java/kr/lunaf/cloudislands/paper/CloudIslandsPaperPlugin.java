@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
 import kr.lunaf.cloudislands.paper.activation.IslandActivationJobHandler;
 import kr.lunaf.cloudislands.paper.activation.IslandDeactivationHandler;
 import kr.lunaf.cloudislands.paper.activation.IslandSaveService;
+import kr.lunaf.cloudislands.paper.activation.PeriodicIslandSaveTask;
 import kr.lunaf.cloudislands.paper.activation.ShardWorldManager;
 import kr.lunaf.cloudislands.paper.admin.AdminCommandController;
 import kr.lunaf.cloudislands.paper.cache.PermissionEventPoller;
@@ -68,6 +69,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private PaperHeartbeatService heartbeatService;
     private PaperIslandJobWorker jobWorker;
     private PermissionEventPoller permissionEventPoller;
+    private PeriodicIslandSaveTask periodicSaveTask;
     private ActiveIslandRegistry activeIslands;
     private CloudIslandsApi api;
     private GeneratorLevelCache generatorLevels;
@@ -150,6 +152,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         if (permissionEventPoller != null) {
             permissionEventPoller.stop();
         }
+        if (periodicSaveTask != null) {
+            periodicSaveTask.stop();
+        }
         if (heartbeatService != null) {
             heartbeatService.stop();
         }
@@ -180,8 +185,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         PermissionCacheSyncService permissionSync = new PermissionCacheSyncService(this, client, agent.permissionCache());
         this.jobWorker = new PaperIslandJobWorker(this, new CoreBackedIslandJobSource(client), activationHandler, deactivationHandler, activeIslands, permissionSync, nodeId);
         this.permissionEventPoller = new PermissionEventPoller(this, client, permissionSync, generatorLevels, limitCache, nodeId);
+        this.periodicSaveTask = new PeriodicIslandSaveTask(this, activeIslands, saveService);
         permissionEventPoller.start(getConfig().getLong("protection.cache-event-poll-ticks", 100L));
         jobWorker.start(getConfig().getLong("island-node.activation.worker-interval-ticks", 20L));
+        periodicSaveTask.start(getConfig().getLong("island-node.activation.periodic-save-seconds", 600L));
     }
 
     private boolean storageAvailable(IslandStorage storage) {

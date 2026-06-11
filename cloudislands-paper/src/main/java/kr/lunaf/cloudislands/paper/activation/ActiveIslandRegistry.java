@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.activation;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,6 +26,10 @@ public final class ActiveIslandRegistry {
 
     public int size() {
         return active.size();
+    }
+
+    public List<ActiveIsland> snapshot() {
+        return List.copyOf(active.values());
     }
 
     public record ActiveIsland(UUID islandId, String worldName, int cellX, int cellZ, int originX, int originZ, int islandSize, long schemaVersion, Instant activatedAt) {}
