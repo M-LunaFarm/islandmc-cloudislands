@@ -35,9 +35,16 @@ public final class ProtectionController {
 
     public PermissionResult checkBlock(UUID playerUuid, String world, int blockX, int blockY, int blockZ, IslandPermission permission) {
         return regionIndex.find(world, blockX, blockZ)
-            .map(region -> permissionCache.allowed(region.islandId(), playerUuid, permission, false)
-                ? PermissionResult.allow(IslandRole.MEMBER)
-                : PermissionResult.deny("DEFAULT_DENY", IslandRole.VISITOR))
+            .map(region -> {
+                if (permissionCache.allowed(region.islandId(), playerUuid, permission, false)) {
+                    return PermissionResult.allow(IslandRole.MEMBER);
+                }
+                IslandFlag visitorFlag = visitorFlag(permission);
+                if (visitorFlag != null && permissionCache.flagAllowed(region.islandId(), visitorFlag)) {
+                    return PermissionResult.allow(IslandRole.VISITOR);
+                }
+                return PermissionResult.deny("DEFAULT_DENY", IslandRole.VISITOR);
+            })
             .orElseGet(() -> PermissionResult.deny("OUTSIDE_ISLAND", IslandRole.VISITOR));
     }
 
@@ -53,5 +60,16 @@ public final class ProtectionController {
                 ? PermissionResult.allow(IslandRole.OWNER)
                 : PermissionResult.deny(flag.name() + "_DISABLED", IslandRole.VISITOR))
             .orElseGet(() -> PermissionResult.allow(IslandRole.OWNER));
+    }
+
+    private IslandFlag visitorFlag(IslandPermission permission) {
+        return switch (permission) {
+            case INTERACT -> IslandFlag.VISITOR_INTERACT;
+            case OPEN_CONTAINER -> IslandFlag.VISITOR_CONTAINER;
+            case PICKUP_ITEM -> IslandFlag.VISITOR_PICKUP;
+            case DROP_ITEM -> IslandFlag.VISITOR_DROP;
+            case ATTACK_PLAYER -> IslandFlag.VISITOR_PVP;
+            default -> null;
+        };
     }
 }
