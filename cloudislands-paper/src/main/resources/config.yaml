@@ -3,6 +3,11 @@ node:
   role: "ISLAND_NODE"
   pool: "island"
   velocity-server-name: "Island-1"
+  soft-player-cap: 90
+  hard-player-cap: 110
+  max-active-islands: 600
+  supported-templates:
+    - "*"
 
 core-api:
   base-url: "https://core-api.internal:8443"
