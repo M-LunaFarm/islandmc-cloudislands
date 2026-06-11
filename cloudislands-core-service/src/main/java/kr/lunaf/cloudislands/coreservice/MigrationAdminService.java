@@ -28,6 +28,7 @@ import kr.lunaf.cloudislands.migration.importer.CloudIslandsMigrationImporter;
 import kr.lunaf.cloudislands.migration.importer.MigrationImportPlan;
 import kr.lunaf.cloudislands.migration.rollback.MigrationRollbackPlan;
 import kr.lunaf.cloudislands.migration.rollback.MigrationRollbackService;
+import kr.lunaf.cloudislands.migration.rollback.MigrationRollbackService.RollbackTarget;
 import kr.lunaf.cloudislands.migration.superior.MigrationRunState;
 import kr.lunaf.cloudislands.migration.verify.MigrationVerifier;
 
@@ -41,6 +42,7 @@ public final class MigrationAdminService {
     private final IslandLimitRepository limits;
     private final IslandMissionRepository missions;
     private final IslandLevelRepository levels;
+    private final RollbackTarget hardRollbackTarget;
     private final SuperiorSkyblock2MigrationScanner scanner = new SuperiorSkyblock2MigrationScanner();
     private final CloudIslandsMigrationImporter importer = new CloudIslandsMigrationImporter();
     private final MigrationVerifier verifier = new MigrationVerifier();
@@ -49,7 +51,7 @@ public final class MigrationAdminService {
     private MigrationImportPlan lastPlan = new MigrationImportPlan(List.of(), List.of());
     private MigrationRollbackPlan lastRollbackPlan;
 
-    public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandLevelRepository levels) {
+    public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandLevelRepository levels, RollbackTarget hardRollbackTarget) {
         this.islands = islands;
         this.metadata = metadata;
         this.playerProfiles = playerProfiles;
@@ -59,6 +61,7 @@ public final class MigrationAdminService {
         this.limits = limits;
         this.missions = missions;
         this.levels = levels;
+        this.hardRollbackTarget = hardRollbackTarget;
     }
 
     public synchronized String scan(String path) {
@@ -185,7 +188,9 @@ public final class MigrationAdminService {
         }
         MigrationRollbackService.RollbackResult result = rollback.rollback(lastRollbackPlan, islandId -> {
             IslandSnapshot island = islands.findById(islandId).orElseThrow(() -> new IllegalStateException("island not found"));
-            if (!islands.markDeleted(islandId, island.ownerUuid())) {
+            if (hardRollbackTarget != null) {
+                hardRollbackTarget.removeImportedIsland(islandId);
+            } else if (!islands.markDeleted(islandId, island.ownerUuid())) {
                 throw new IllegalStateException("island was not removed");
             }
             playerProfiles.find(island.ownerUuid()).primaryIslandId()

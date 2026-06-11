@@ -20,6 +20,15 @@ public final class JdbcMigrationRollbackTarget implements MigrationRollbackServi
             connection.setAutoCommit(false);
             delete(connection, "route_tickets", islandId);
             delete(connection, "island_jobs", islandId);
+            delete(connection, "island_logs", islandId);
+            delete(connection, "island_upgrades", islandId);
+            delete(connection, "island_block_counts", islandId);
+            delete(connection, "island_rank_snapshots", islandId);
+            delete(connection, "island_limits", islandId);
+            delete(connection, "island_missions", islandId);
+            delete(connection, "island_biomes", islandId);
+            delete(connection, "island_homes", islandId);
+            delete(connection, "island_bank", islandId);
             delete(connection, "island_snapshots", islandId);
             delete(connection, "island_runtime", islandId);
             delete(connection, "island_warps", islandId);
