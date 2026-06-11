@@ -69,17 +69,32 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<Void> setIslandMember(UUID islandId, UUID actorUuid, UUID playerUuid, IslandRole role) {
-        return post("/v1/islands/members/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"role\":\"" + role.name() + "\"}").thenApply(_body -> null);
+        return setIslandMemberResult(islandId, actorUuid, playerUuid, role).thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> setIslandMemberResult(UUID islandId, UUID actorUuid, UUID playerUuid, IslandRole role) {
+        return postWithResultBody("/v1/islands/members/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"role\":\"" + role.name() + "\"}");
     }
 
     @Override
     public CompletableFuture<Void> transferIslandOwnership(UUID islandId, UUID actorUuid, UUID targetUuid) {
-        return post("/v1/islands/transfer", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"targetUuid\":\"" + targetUuid + "\"}").thenApply(_body -> null);
+        return transferIslandOwnershipResult(islandId, actorUuid, targetUuid).thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> transferIslandOwnershipResult(UUID islandId, UUID actorUuid, UUID targetUuid) {
+        return postWithResultBody("/v1/islands/transfer", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"targetUuid\":\"" + targetUuid + "\"}");
     }
 
     @Override
     public CompletableFuture<Void> removeIslandMember(UUID islandId, UUID actorUuid, UUID playerUuid) {
-        return post("/v1/islands/members/remove", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\"}").thenApply(_body -> null);
+        return removeIslandMemberResult(islandId, actorUuid, playerUuid).thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> removeIslandMemberResult(UUID islandId, UUID actorUuid, UUID playerUuid) {
+        return postWithResultBody("/v1/islands/members/remove", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\"}");
     }
 
     @Override

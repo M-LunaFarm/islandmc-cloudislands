@@ -15,6 +15,7 @@ import kr.lunaf.cloudislands.api.model.BlockValueSnapshot;
 import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
+import kr.lunaf.cloudislands.api.model.IslandActionResult;
 import kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
@@ -445,9 +446,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<IslandInviteActionResult> declineInviteResult(UUID inviteId, UUID playerUuid) { return client.declineIslandInviteResult(inviteId, playerUuid).thenApply(body -> inviteAction(body, "DECLINED")); }
         @Override public CompletableFuture<Void> banVisitor(UUID islandId, UUID actorUuid, UUID targetUuid, String reason) { return client.banIslandVisitor(islandId, actorUuid, targetUuid, reason); }
         @Override public CompletableFuture<Void> pardonVisitor(UUID islandId, UUID actorUuid, UUID targetUuid) { return client.pardonIslandVisitor(islandId, actorUuid, targetUuid); }
-        @Override public CompletableFuture<Void> kick(UUID islandId, UUID actorUuid, UUID targetUuid) { return client.removeIslandMember(islandId, actorUuid, targetUuid); }
-        @Override public CompletableFuture<Void> setRole(UUID islandId, UUID actorUuid, UUID targetUuid, IslandRole role) { return client.setIslandMember(islandId, actorUuid, targetUuid, role); }
-        @Override public CompletableFuture<Void> transferOwnership(UUID islandId, UUID actorUuid, UUID targetUuid) { return client.transferIslandOwnership(islandId, actorUuid, targetUuid); }
+        @Override public CompletableFuture<Void> kick(UUID islandId, UUID actorUuid, UUID targetUuid) { return kickResult(islandId, actorUuid, targetUuid).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> kickResult(UUID islandId, UUID actorUuid, UUID targetUuid) { return client.removeIslandMemberResult(islandId, actorUuid, targetUuid).thenApply(body -> action(body, "MEMBER_REMOVED")); }
+        @Override public CompletableFuture<Void> setRole(UUID islandId, UUID actorUuid, UUID targetUuid, IslandRole role) { return setRoleResult(islandId, actorUuid, targetUuid, role).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> setRoleResult(UUID islandId, UUID actorUuid, UUID targetUuid, IslandRole role) { return client.setIslandMemberResult(islandId, actorUuid, targetUuid, role).thenApply(body -> action(body, "MEMBER_ROLE_SET")); }
+        @Override public CompletableFuture<Void> transferOwnership(UUID islandId, UUID actorUuid, UUID targetUuid) { return transferOwnershipResult(islandId, actorUuid, targetUuid).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandActionResult> transferOwnershipResult(UUID islandId, UUID actorUuid, UUID targetUuid) { return client.transferIslandOwnershipResult(islandId, actorUuid, targetUuid).thenApply(body -> action(body, "OWNERSHIP_TRANSFERRED")); }
         @Override public CompletableFuture<Void> setFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value) { return client.setIslandFlag(islandId, actorUuid, flag, value); }
         @Override public CompletableFuture<Void> setPermission(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed) { return client.setIslandPermission(islandId, actorUuid, role, permission, allowed); }
         @Override public CompletableFuture<Void> setLocked(UUID islandId, UUID actorUuid, boolean locked) { return client.setIslandLocked(islandId, actorUuid, locked); }
@@ -580,6 +584,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private static IslandInviteActionResult inviteAction(String json, String successCode) {
         boolean applied = json.contains("\"accepted\":true");
         return new IslandInviteActionResult(applied, applied ? successCode : text(json, "code", "FAILED"));
+    }
+
+    private static IslandActionResult action(String json, String successCode) {
+        boolean accepted = json.contains("\"accepted\":true");
+        return new IslandActionResult(accepted, accepted ? successCode : text(json, "code", "FAILED"));
     }
 
     private static List<IslandHomeSnapshot> homes(String json) {
