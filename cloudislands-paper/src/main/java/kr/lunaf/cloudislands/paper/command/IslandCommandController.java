@@ -8,6 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -45,8 +46,24 @@ public final class IslandCommandController implements CommandExecutor {
             listHomes(player);
             return true;
         }
+        if (subcommand.equals("home") || subcommand.equals("홈")) {
+            teleportHome(player, args.length > 1 ? args[1] : "default");
+            return true;
+        }
         if (subcommand.equals("warps") || subcommand.equals("warp-list") || subcommand.equals("워프")) {
-            listWarps(player);
+            if (args.length > 1) {
+                teleportWarp(player, args[1]);
+            } else {
+                listWarps(player);
+            }
+            return true;
+        }
+        if (subcommand.equals("warp")) {
+            if (args.length < 2) {
+                player.sendMessage("워프 이름을 입력해주세요.");
+                return true;
+            }
+            teleportWarp(player, args[1]);
             return true;
         }
         if (subcommand.equals("setwarp") || subcommand.equals("워프설정")) {
@@ -136,6 +153,28 @@ public final class IslandCommandController implements CommandExecutor {
         });
     }
 
+    private void teleportHome(Player player, String name) {
+        currentIsland(player, "섬 안에서만 홈으로 이동할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.listIslandHomes(islandId)
+                .thenAccept(body -> teleport(player, point(body, name, player.getWorld().getName()), "홈을 찾을 수 없습니다.", "섬 홈으로 이동했습니다."))
+                .exceptionally(error -> {
+                    message(player, "섬 홈을 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void teleportWarp(Player player, String name) {
+        currentIsland(player, "섬 안에서만 워프로 이동할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.listIslandWarps(islandId)
+                .thenAccept(body -> teleport(player, point(body, name, player.getWorld().getName()), "워프를 찾을 수 없습니다.", "섬 워프로 이동했습니다."))
+                .exceptionally(error -> {
+                    message(player, "섬 워프를 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
     private void deleteWarp(Player player, String name) {
         currentIsland(player, "섬 안에서만 워프를 삭제할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_WARPS)) {
@@ -201,6 +240,87 @@ public final class IslandCommandController implements CommandExecutor {
     private String pointListMessage(String body, String label, String emptyMessage) {
         List<String> names = names(body);
         return names.isEmpty() ? emptyMessage : label + ": " + String.join(", ", names);
+    }
+
+    private Point point(String body, String requestedName, String fallbackWorldName) {
+        if (body == null || body.isBlank()) {
+            return null;
+        }
+        String target = requestedName == null || requestedName.isBlank() ? "default" : requestedName;
+        int index = 0;
+        while (index < body.length()) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                return null;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                return null;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            if (target.equalsIgnoreCase(text(object, "name"))) {
+                return new Point(
+                    text(object, "worldName").isBlank() ? fallbackWorldName : text(object, "worldName"),
+                    decimal(object, "localX"),
+                    decimal(object, "localY"),
+                    decimal(object, "localZ"),
+                    (float) decimal(object, "yaw"),
+                    (float) decimal(object, "pitch")
+                );
+            }
+            index = objectEnd + 1;
+        }
+        return null;
+    }
+
+    private void teleport(Player player, Point point, String missingMessage, String successMessage) {
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            if (point == null) {
+                player.sendMessage(missingMessage);
+                return;
+            }
+            World world = plugin.getServer().getWorld(point.worldName());
+            if (world == null) {
+                player.sendMessage("대상 월드를 찾을 수 없습니다.");
+                return;
+            }
+            player.teleport(new Location(world, point.x(), point.y(), point.z(), point.yaw(), point.pitch()));
+            player.sendMessage(successMessage);
+        });
+    }
+
+    private String text(String json, String key) {
+        String needle = "\"" + key + "\":\"";
+        int start = json.indexOf(needle);
+        if (start < 0) {
+            return "";
+        }
+        int valueStart = start + needle.length();
+        int end = jsonStringEnd(json, valueStart);
+        return end < 0 ? "" : unescape(json.substring(valueStart, end));
+    }
+
+    private double decimal(String json, String key) {
+        String needle = "\"" + key + "\":";
+        int start = json.indexOf(needle);
+        if (start < 0) {
+            return 0.0D;
+        }
+        int valueStart = start + needle.length();
+        int end = valueStart;
+        while (end < json.length()) {
+            char current = json.charAt(end);
+            if ((current >= '0' && current <= '9') || current == '-' || current == '+' || current == '.') {
+                end++;
+                continue;
+            }
+            break;
+        }
+        try {
+            return Double.parseDouble(json.substring(valueStart, end));
+        } catch (RuntimeException ignored) {
+            return 0.0D;
+        }
     }
 
     private List<String> names(String body) {
@@ -274,4 +394,6 @@ public final class IslandCommandController implements CommandExecutor {
     private void message(Player player, String message) {
         plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message));
     }
+
+    private record Point(String worldName, double x, double y, double z, float yaw, float pitch) {}
 }
