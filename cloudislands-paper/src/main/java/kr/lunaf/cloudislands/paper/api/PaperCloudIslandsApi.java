@@ -436,7 +436,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override public CompletableFuture<CreateIslandResult> createIsland(UUID ownerUuid, String templateId) { return client.createIsland(ownerUuid, templateId); }
         @Override public CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId) { return client.deleteIsland(requesterUuid, islandId); }
-        @Override public CompletableFuture<Void> invite(UUID islandId, UUID inviterUuid, UUID targetUuid) { return client.createIslandInvite(islandId, inviterUuid, targetUuid).thenApply(_body -> null); }
+        @Override public CompletableFuture<Void> invite(UUID islandId, UUID inviterUuid, UUID targetUuid) { return inviteResult(islandId, inviterUuid, targetUuid).thenApply(_invite -> null); }
+        @Override public CompletableFuture<IslandInviteSnapshot> inviteResult(UUID islandId, UUID inviterUuid, UUID targetUuid) { return client.createIslandInvite(islandId, inviterUuid, targetUuid).thenApply(PaperCloudIslandsApi::invite); }
         @Override public CompletableFuture<Void> acceptInvite(UUID inviteId, UUID playerUuid) { return client.acceptIslandInvite(inviteId, playerUuid); }
         @Override public CompletableFuture<Void> declineInvite(UUID inviteId, UUID playerUuid) { return client.declineIslandInvite(inviteId, playerUuid); }
         @Override public CompletableFuture<Void> banVisitor(UUID islandId, UUID actorUuid, UUID targetUuid, String reason) { return client.banIslandVisitor(islandId, actorUuid, targetUuid, reason); }
@@ -556,17 +557,21 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private static List<IslandInviteSnapshot> invites(String json) {
         List<IslandInviteSnapshot> invites = new ArrayList<>();
         for (String object : objects(json, "invites")) {
-            invites.add(new IslandInviteSnapshot(
-                uuid(object, "inviteId", new UUID(0L, 0L)),
-                uuid(object, "islandId", new UUID(0L, 0L)),
-                uuid(object, "inviterUuid", new UUID(0L, 0L)),
-                uuid(object, "targetUuid", new UUID(0L, 0L)),
-                text(object, "state", "PENDING"),
-                instant(text(object, "createdAt", Instant.EPOCH.toString())),
-                instant(text(object, "expiresAt", Instant.EPOCH.toString()))
-            ));
+            invites.add(invite(object));
         }
         return invites;
+    }
+
+    private static IslandInviteSnapshot invite(String json) {
+        return new IslandInviteSnapshot(
+                uuid(json, "inviteId", new UUID(0L, 0L)),
+                uuid(json, "islandId", new UUID(0L, 0L)),
+                uuid(json, "inviterUuid", new UUID(0L, 0L)),
+                uuid(json, "targetUuid", new UUID(0L, 0L)),
+                text(json, "state", "PENDING"),
+                instant(text(json, "createdAt", Instant.EPOCH.toString())),
+                instant(text(json, "expiresAt", Instant.EPOCH.toString()))
+        );
     }
 
     private static List<IslandHomeSnapshot> homes(String json) {
