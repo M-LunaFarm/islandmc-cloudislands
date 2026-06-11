@@ -67,6 +67,19 @@ public final class VelocityRoutingController {
         coreApiClient.createWarpTicket(player.getUniqueId(), targetIslandId, warpName).thenAccept(ticket -> route(player, ticket, "해당 워프로 이동할 수 없습니다."));
     }
 
+    public void listWarps(Player player, UUID islandId) {
+        coreApiClient.listIslandWarps(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 워프를 불러오지 못했습니다." : body)));
+    }
+
+    public void setWarp(Player player, UUID islandId, String name, boolean publicAccess) {
+        IslandLocation defaultLocation = new IslandLocation("ci_shard_001", 0.5D, 100.0D, 0.5D, 180.0F, 0.0F);
+        coreApiClient.setIslandWarp(islandId, player.getUniqueId(), name, defaultLocation, publicAccess).thenRun(() -> player.sendMessage(Component.text("섬 워프를 설정했습니다.")));
+    }
+
+    public void deleteWarp(Player player, UUID islandId, String name) {
+        coreApiClient.deleteIslandWarp(islandId, player.getUniqueId(), name).thenRun(() -> player.sendMessage(Component.text("섬 워프를 삭제했습니다.")));
+    }
+
     public void invite(Player player, UUID islandId, UUID targetUuid) {
         coreApiClient.createIslandInvite(islandId, player.getUniqueId(), targetUuid).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "초대를 생성하지 못했습니다." : "섬 초대를 보냈습니다.")));
     }
