@@ -1443,16 +1443,59 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
         String object = json.substring(start + needle.length(), index - 1);
         java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>();
-        for (String entry : object.split(",")) {
-            int separator = entry.indexOf(':');
-            if (separator <= 0) {
-                continue;
+        int cursor = 0;
+        while (cursor < object.length()) {
+            while (cursor < object.length() && (object.charAt(cursor) == ',' || Character.isWhitespace(object.charAt(cursor)))) {
+                cursor++;
             }
-            String key = entry.substring(0, separator).trim().replace("\"", "");
-            String value = entry.substring(separator + 1).trim().replace("\"", "");
-            values.put(key, value);
+            if (cursor >= object.length() || object.charAt(cursor) != '"') {
+                break;
+            }
+            int keyEnd = nextQuote(object, cursor + 1);
+            if (keyEnd < 0) {
+                break;
+            }
+            String key = unescape(object.substring(cursor + 1, keyEnd));
+            int separator = object.indexOf(':', keyEnd + 1);
+            if (separator < 0) {
+                break;
+            }
+            int valueStart = separator + 1;
+            while (valueStart < object.length() && Character.isWhitespace(object.charAt(valueStart))) {
+                valueStart++;
+            }
+            if (valueStart >= object.length() || object.charAt(valueStart) != '"') {
+                break;
+            }
+            int valueEnd = nextQuote(object, valueStart + 1);
+            if (valueEnd < 0) {
+                break;
+            }
+            values.put(key, unescape(object.substring(valueStart + 1, valueEnd)));
+            cursor = valueEnd + 1;
         }
         return Map.copyOf(values);
+    }
+
+    private static int nextQuote(String value, int start) {
+        int index = start;
+        boolean escaped = false;
+        while (index < value.length()) {
+            char ch = value.charAt(index);
+            if (escaped) {
+                escaped = false;
+            } else if (ch == '\\') {
+                escaped = true;
+            } else if (ch == '"') {
+                return index;
+            }
+            index++;
+        }
+        return -1;
+    }
+
+    private static String unescape(String value) {
+        return value.replace("\\\"", "\"").replace("\\\\", "\\");
     }
 
     private static String text(String json, String field, String fallback) {
