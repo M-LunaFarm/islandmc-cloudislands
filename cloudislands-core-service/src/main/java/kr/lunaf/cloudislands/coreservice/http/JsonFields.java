@@ -91,6 +91,23 @@ public final class JsonFields {
         }
     }
 
+    public static boolean bool(String json, String field, boolean fallback) {
+        String needle = "\"" + field + "\":";
+        int start = json.indexOf(needle);
+        if (start < 0) {
+            return fallback;
+        }
+        int valueStart = start + needle.length();
+        String tail = json.substring(valueStart).trim();
+        if (tail.startsWith("true")) {
+            return true;
+        }
+        if (tail.startsWith("false")) {
+            return false;
+        }
+        return Boolean.parseBoolean(text(json, field, Boolean.toString(fallback)));
+    }
+
     public static UUID uuid(String json, String field, UUID fallback) {
         try {
             return UUID.fromString(text(json, field, fallback.toString()));

@@ -12,6 +12,9 @@ import java.util.Map;
 import java.util.UUID;
 import javax.sql.DataSource;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
+import kr.lunaf.cloudislands.api.model.IslandLocation;
+import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
@@ -27,9 +30,12 @@ import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
+import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRuntimeRepository;
+import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
+import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.security.ApiTokenGuard;
@@ -68,6 +74,7 @@ public final class CloudIslandsCoreApplication {
         IslandJobQueue jobs = config.redisJobs() ? new RedisIslandJobQueue(config.redisUri()) : new InMemoryIslandJobPublisher();
         InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
         IslandRepository islandRepository = config.jdbcRepositories() ? new JdbcIslandRepository(dataSource) : new InMemoryIslandRepository();
+        IslandMetadataRepository metadataRepository = config.jdbcRepositories() ? new JdbcIslandMetadataRepository(dataSource) : new InMemoryIslandMetadataRepository();
         IslandRuntimeRepository runtimeRepository = config.jdbcRepositories() ? new JdbcIslandRuntimeRepository(dataSource) : new InMemoryIslandRuntimeRepository();
         AuditLogger audit = config.jdbcRepositories() ? new JdbcAuditLogger(dataSource) : new InMemoryAuditLogger();
         InMemoryAuditLogger inMemoryAudit = audit instanceof InMemoryAuditLogger logger ? logger : new InMemoryAuditLogger();
@@ -167,10 +174,82 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             lifecycle(exchange, lifecycle.quarantine(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "reason", "admin")));
         });
+        route("/v1/islands/members", exchange -> {
+            String body = readBody(exchange);
+            write(exchange, 200, membersJson(metadataRepository.members(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
+        });
+        route("/v1/islands/members/set", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            IslandRole role = JsonFields.enumValue(IslandRole.class, body, "role", IslandRole.MEMBER);
+            metadataRepository.upsertMember(islandId, playerUuid, role);
+            audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_MEMBER_SET", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString(), "role", role.name()));
+            events.publish("ISLAND_MEMBER_SET", Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", role.name()));
+            write(exchange, 202, ApiResponses.ok(true));
+        });
+        route("/v1/islands/members/remove", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            metadataRepository.removeMember(islandId, playerUuid);
+            audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_MEMBER_REMOVE", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
+            events.publish("ISLAND_MEMBER_REMOVE", Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
+            write(exchange, 202, ApiResponses.ok(true));
+        });
+        route("/v1/islands/flags", exchange -> {
+            String body = readBody(exchange);
+            write(exchange, 200, flagsJson(metadataRepository.flags(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
+        });
+        route("/v1/islands/flags/set", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            IslandFlag flag = JsonFields.enumValue(IslandFlag.class, body, "flag", IslandFlag.VISITOR_INTERACT);
+            String value = JsonFields.text(body, "value", "false");
+            metadataRepository.setFlag(islandId, flag, value);
+            audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_FLAG_SET", "ISLAND", islandId.toString(), Map.of("flag", flag.name(), "value", value));
+            events.publish("ISLAND_FLAG_SET", Map.of("islandId", islandId.toString(), "flag", flag.name(), "value", value));
+            write(exchange, 202, ApiResponses.ok(true));
+        });
+        route("/v1/islands/warps", exchange -> {
+            String body = readBody(exchange);
+            write(exchange, 200, warpsJson(metadataRepository.warps(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
+        });
+        route("/v1/islands/warps/set", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            String name = JsonFields.text(body, "name", "default").toLowerCase();
+            boolean publicAccess = JsonFields.bool(body, "publicAccess", false);
+            metadataRepository.upsertWarp(islandId, name, location(body), publicAccess, JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)));
+            audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_WARP_SET", "ISLAND", islandId.toString(), Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
+            events.publish("ISLAND_WARP_SET", Map.of("islandId", islandId.toString(), "name", name));
+            write(exchange, 202, ApiResponses.ok(true));
+        });
+        route("/v1/islands/warps/delete", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            String name = JsonFields.text(body, "name", "default").toLowerCase();
+            metadataRepository.deleteWarp(islandId, name);
+            audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_WARP_DELETE", "ISLAND", islandId.toString(), Map.of("name", name));
+            events.publish("ISLAND_WARP_DELETE", Map.of("islandId", islandId.toString(), "name", name));
+            write(exchange, 202, ApiResponses.ok(true));
+        });
+        route("/v1/islands/access", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            boolean publicAccess = JsonFields.bool(body, "publicAccess", false);
+            metadataRepository.setPublicAccess(islandId, publicAccess);
+            audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_ACCESS_SET", "ISLAND", islandId.toString(), Map.of("publicAccess", Boolean.toString(publicAccess)));
+            events.publish("ISLAND_ACCESS_SET", Map.of("islandId", islandId.toString(), "publicAccess", Boolean.toString(publicAccess)));
+            write(exchange, 202, ApiResponses.ok(true));
+        });
         route("/v1/islands", exchange -> {
             String body = readBody(exchange);
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
             CreateIslandResult result = createIsland.create(playerUuid, JsonFields.text(body, "templateId", "default"));
+            if (result.accepted() && result.island() != null) {
+                metadataRepository.upsertMember(result.island().islandId(), playerUuid, IslandRole.OWNER);
+            }
             audit.log(playerUuid, "PLAYER", "ISLAND_CREATE", "ISLAND", result.island() == null ? "" : result.island().islandId().toString(), Map.of("code", result.code()));
             String ticketJson = result.ticket() == null ? "null" : RoutingOrchestrator.toJson(result.ticket());
             String islandId = result.island() == null ? "" : result.island().islandId().toString();
@@ -219,6 +298,77 @@ public final class CloudIslandsCoreApplication {
 
     private static String sessionJson(PlayerRouteSession session) {
         return "{\"playerUuid\":\"" + session.playerUuid() + "\",\"ticketId\":\"" + session.ticketId() + "\",\"targetNode\":\"" + session.targetNode() + "\",\"targetServerName\":\"" + session.targetServerName() + "\",\"nonce\":\"" + session.nonce() + "\",\"expiresAt\":\"" + session.expiresAt() + "\"}";
+    }
+
+    private static IslandLocation location(String body) {
+        return new IslandLocation(
+            JsonFields.text(body, "worldName", ""),
+            JsonFields.decimal(body, "localX", 0.5D),
+            JsonFields.decimal(body, "localY", 100.0D),
+            JsonFields.decimal(body, "localZ", 0.5D),
+            (float) JsonFields.decimal(body, "yaw", 0.0D),
+            (float) JsonFields.decimal(body, "pitch", 0.0D)
+        );
+    }
+
+    private static String membersJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandMemberSnapshot> members) {
+        StringBuilder builder = new StringBuilder("{\"members\":[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.api.model.IslandMemberSnapshot member : members) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('{')
+                .append("\"islandId\":\"").append(member.islandId()).append("\",")
+                .append("\"playerUuid\":\"").append(member.playerUuid()).append("\",")
+                .append("\"role\":\"").append(member.role()).append("\",")
+                .append("\"joinedAt\":\"").append(member.joinedAt()).append("\"")
+                .append('}');
+        }
+        return builder.append("]}").toString();
+    }
+
+    private static String flagsJson(kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot flags) {
+        StringBuilder builder = new StringBuilder("{\"islandId\":\"").append(flags.islandId()).append("\",\"flags\":{");
+        boolean first = true;
+        for (Map.Entry<IslandFlag, String> entry : flags.values().entrySet()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append("\"").append(entry.getKey().name()).append("\":\"").append(escape(entry.getValue())).append("\"");
+        }
+        return builder.append("}}").toString();
+    }
+
+    private static String warpsJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandWarpSnapshot> warps) {
+        StringBuilder builder = new StringBuilder("{\"warps\":[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.api.model.IslandWarpSnapshot warp : warps) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            IslandLocation location = warp.location();
+            builder.append('{')
+                .append("\"islandId\":\"").append(warp.islandId()).append("\",")
+                .append("\"name\":\"").append(escape(warp.name())).append("\",")
+                .append("\"localX\":").append(location.localX()).append(',')
+                .append("\"localY\":").append(location.localY()).append(',')
+                .append("\"localZ\":").append(location.localZ()).append(',')
+                .append("\"yaw\":").append(location.yaw()).append(',')
+                .append("\"pitch\":").append(location.pitch()).append(',')
+                .append("\"publicAccess\":").append(warp.publicAccess()).append(',')
+                .append("\"createdBy\":\"").append(warp.createdBy()).append("\",")
+                .append("\"createdAt\":\"").append(warp.createdAt()).append("\"")
+                .append('}');
+        }
+        return builder.append("]}").toString();
+    }
+
+    private static String escape(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private static NodeHeartbeatRequest heartbeat(String body) {

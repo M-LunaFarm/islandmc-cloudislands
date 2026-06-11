@@ -13,6 +13,9 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
+import kr.lunaf.cloudislands.api.model.IslandLocation;
+import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
@@ -37,6 +40,51 @@ public final class JdkCoreApiClient implements CoreApiClient {
     public CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId) {
         return post("/v1/islands", "{\"playerUuid\":\"" + playerUuid + "\",\"templateId\":\"" + templateId + "\"}")
             .thenApply(body -> new CreateIslandResult(body.contains("\"accepted\":true"), text(body, "code", "FAILED"), null, RouteTicketJson.parseNested(body, "ticket")));
+    }
+
+    @Override
+    public CompletableFuture<String> listIslandMembers(UUID islandId) {
+        return post("/v1/islands/members", "{\"islandId\":\"" + islandId + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<Void> setIslandMember(UUID islandId, UUID actorUuid, UUID playerUuid, IslandRole role) {
+        return post("/v1/islands/members/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"role\":\"" + role.name() + "\"}").thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<Void> removeIslandMember(UUID islandId, UUID actorUuid, UUID playerUuid) {
+        return post("/v1/islands/members/remove", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\"}").thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> listIslandFlags(UUID islandId) {
+        return post("/v1/islands/flags", "{\"islandId\":\"" + islandId + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<Void> setIslandFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value) {
+        return post("/v1/islands/flags/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"flag\":\"" + flag.name() + "\",\"value\":\"" + escape(value) + "\"}").thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> listIslandWarps(UUID islandId) {
+        return post("/v1/islands/warps", "{\"islandId\":\"" + islandId + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<Void> setIslandWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) {
+        return post("/v1/islands/warps/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"" + escape(name) + "\",\"worldName\":\"" + escape(location.worldName()) + "\",\"localX\":" + location.localX() + ",\"localY\":" + location.localY() + ",\"localZ\":" + location.localZ() + ",\"yaw\":" + location.yaw() + ",\"pitch\":" + location.pitch() + ",\"publicAccess\":" + publicAccess + "}").thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteIslandWarp(UUID islandId, UUID actorUuid, String name) {
+        return post("/v1/islands/warps/delete", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"" + escape(name) + "\"}").thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<Void> setIslandPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess) {
+        return post("/v1/islands/access", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"publicAccess\":" + publicAccess + "}").thenApply(_body -> null);
     }
 
     @Override
