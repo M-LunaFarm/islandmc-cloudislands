@@ -19,6 +19,7 @@ public final class CacheInvalidationPlan {
             case ISLAND_HOME_CHANGED -> EnumSet.of(CacheTarget.HOMES, CacheTarget.ROUTE, CacheTarget.SUMMARY);
             case ISLAND_WARP_CHANGED -> EnumSet.of(CacheTarget.WARPS, CacheTarget.ROUTE, CacheTarget.SUMMARY);
             case ISLAND_BANK_CHANGED -> EnumSet.of(CacheTarget.BANK, CacheTarget.SUMMARY);
+            case ISLAND_CHAT_SENT -> EnumSet.of(CacheTarget.CHAT);
             case ISLAND_MISSION_COMPLETED -> EnumSet.of(CacheTarget.MISSIONS, CacheTarget.SUMMARY, CacheTarget.LEVEL);
             case ISLAND_LIMIT_CHANGED -> EnumSet.of(CacheTarget.LIMITS, CacheTarget.SUMMARY);
             case ISLAND_BLOCKS_CHANGED -> EnumSet.of(CacheTarget.BLOCKS, CacheTarget.LEVEL, CacheTarget.SUMMARY);
@@ -44,6 +45,7 @@ public final class CacheInvalidationPlan {
         HOMES,
         WARPS,
         BANK,
+        CHAT,
         MISSIONS,
         LIMITS,
         BLOCKS,
