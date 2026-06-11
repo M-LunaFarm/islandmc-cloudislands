@@ -82,7 +82,7 @@ public final class CreateIslandWorkflow {
     }
 
     private void publishTicketFailure(UUID playerUuid, UUID islandId, String reason) {
-        events.publish("ROUTE_TICKET_FAILED", Map.of(
+        events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
             "playerUuid", playerUuid.toString(),
             "islandId", islandId == null ? "" : islandId.toString(),
             "action", RouteAction.HOME.name(),

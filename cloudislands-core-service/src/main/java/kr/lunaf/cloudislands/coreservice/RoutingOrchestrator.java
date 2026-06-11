@@ -129,7 +129,7 @@ public final class RoutingOrchestrator {
     private void publishTicketConsumeFailure(UUID ticketId, UUID playerUuid, String nodeId, String nonce) {
         RouteTicket ticket = tickets.find(ticketId).orElse(null);
         String reason = consumeFailureReason(ticket, playerUuid, nodeId, nonce);
-        events.publish("ROUTE_TICKET_FAILED", Map.of(
+        events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
             "ticketId", ticketId.toString(),
             "playerUuid", playerUuid.toString(),
             "islandId", ticket == null ? "" : ticket.islandId().toString(),
@@ -261,7 +261,7 @@ public final class RoutingOrchestrator {
     }
 
     private void publishTicketFailure(UUID playerUuid, UUID islandId, RouteAction action, String reason) {
-        events.publish("ROUTE_TICKET_FAILED", Map.of(
+        events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
             "playerUuid", playerUuid == null ? "" : playerUuid.toString(),
             "islandId", islandId == null ? "" : islandId.toString(),
             "action", action == null ? "" : action.name(),

@@ -74,7 +74,7 @@ public final class PrometheusMetricsRenderer {
         out.append("cloudislands_route_ticket_consumed_total ").append(events.countByType("ROUTE_TICKET_CONSUMED")).append('\n');
         help(out, "cloudislands_route_ticket_failed_total", "Route ticket failures recorded by Core API");
         type(out, "cloudislands_route_ticket_failed_total", "counter");
-        out.append("cloudislands_route_ticket_failed_total ").append(events.countByType("ROUTE_TICKET_FAILED")).append('\n');
+        out.append("cloudislands_route_ticket_failed_total ").append(events.countByType(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_FAILED.name())).append('\n');
         return out.toString();
     }
 
