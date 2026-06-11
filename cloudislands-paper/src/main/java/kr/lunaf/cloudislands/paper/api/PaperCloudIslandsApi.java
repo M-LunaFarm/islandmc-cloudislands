@@ -489,6 +489,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> deleteIsland(UUID islandId) { return adminDeleteIslandResult(islandId).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> adminDeleteIslandResult(UUID islandId) { return client.adminDeleteIslandResult(islandId).thenApply(body -> action(body, "ISLAND_DELETED")); }
         @Override public CompletableFuture<RouteTicket> createAdminTeleportTicket(UUID playerUuid, UUID islandId) { return client.adminIslandTeleport(playerUuid, islandId); }
+        @Override public CompletableFuture<RoutePlan> resolveAdminTeleport(UUID playerUuid, UUID islandId) { return createAdminTeleportTicket(playerUuid, islandId).thenApply(PaperCloudIslandsApi::plan); }
         @Override public CompletableFuture<Optional<RouteTicket>> getRouteTicket(UUID ticketId) { return client.routeTicket(ticketId).thenApply(PaperCloudIslandsApi::routeTicket); }
         @Override public CompletableFuture<Optional<PlayerRouteSessionSnapshot>> getRouteSession(UUID playerUuid) { return client.debugRoutes(playerUuid).thenApply(PaperCloudIslandsApi::routeSession); }
         @Override public CompletableFuture<RouteDebugSnapshot> getRouteDebug() { return client.debugRoutes(new UUID(0L, 0L)).thenApply(PaperCloudIslandsApi::routeDebug); }
