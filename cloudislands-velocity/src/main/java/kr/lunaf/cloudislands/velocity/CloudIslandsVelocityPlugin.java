@@ -191,7 +191,7 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("player") && args[1].equalsIgnoreCase("info")) {
-            routingController.playerInfo(player, parseUuidOrNil(args[2]));
+            routingController.playerInfoTarget(player, args[2]);
             return;
         }
         if (args.length >= 4 && args[0].equalsIgnoreCase("player") && args[1].equalsIgnoreCase("setisland")) {

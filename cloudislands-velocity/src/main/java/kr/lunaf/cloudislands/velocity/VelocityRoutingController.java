@@ -754,6 +754,19 @@ public final class VelocityRoutingController {
         sendBodyResult(player, coreApiClient.playerInfo(playerUuid), "플레이어 정보를 불러오지 못했습니다.");
     }
 
+    public void playerInfoTarget(Player player, String target) {
+        resolvePlayerUuid(target).thenAccept(playerUuid -> {
+            if (playerUuid.equals(new UUID(0L, 0L))) {
+                player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
+                return;
+            }
+            playerInfo(player, playerUuid);
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
+            return null;
+        });
+    }
+
     public void setPlayerIsland(Player player, UUID playerUuid, UUID islandId) {
         sendBodyResult(player, coreApiClient.setPlayerIsland(playerUuid, islandId), "플레이어 섬을 설정하지 못했습니다.");
     }
