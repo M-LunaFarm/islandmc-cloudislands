@@ -504,6 +504,15 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             write(exchange, 200, playerProfileJson(playerProfiles.find(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)))));
         });
+        route("/v1/players/info", exchange -> {
+            String body = readBody(exchange);
+            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            String lastName = JsonFields.text(body, "lastName", "");
+            java.util.Optional<kr.lunaf.cloudislands.api.model.PlayerIslandProfile> profile = playerUuid.equals(new UUID(0L, 0L))
+                ? playerProfiles.findByLastName(lastName)
+                : java.util.Optional.of(playerProfiles.find(playerUuid));
+            write(exchange, profile.isPresent() ? 200 : 404, profile.map(CloudIslandsCoreApplication::playerProfileJson).orElseGet(() -> ApiResponses.error("PLAYER_NOT_FOUND", "Player was not found")));
+        });
         route("/v1/admin/players/setisland", exchange -> {
             String body = readBody(exchange);
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));

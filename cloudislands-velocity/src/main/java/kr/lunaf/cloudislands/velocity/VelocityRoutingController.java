@@ -146,6 +146,24 @@ public final class VelocityRoutingController {
         });
     }
 
+    public void routeVisitNamedTarget(Player player, String targetName) {
+        if (targetName == null || targetName.isBlank()) {
+            player.sendMessage(Component.text("방문할 대상 이름을 입력해주세요."));
+            return;
+        }
+        coreApiClient.playerInfoByName(targetName).thenAccept(body -> {
+            UUID primaryIslandId = parseUuid(jsonValue(body, "primaryIslandId"));
+            if (primaryIslandId.equals(new UUID(0L, 0L))) {
+                routeVisitName(player, targetName);
+                return;
+            }
+            routeVisit(player, primaryIslandId);
+        }).exceptionally(error -> {
+            routeVisitName(player, targetName);
+            return null;
+        });
+    }
+
     public void routeRandomVisit(Player player) {
         routeFuture(player, coreApiClient.createRandomVisitTicket(player.getUniqueId()), "방문 가능한 공개 섬을 찾지 못했습니다.");
     }

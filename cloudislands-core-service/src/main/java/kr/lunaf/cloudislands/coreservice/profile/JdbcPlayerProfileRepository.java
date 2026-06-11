@@ -32,6 +32,22 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
     }
 
     @Override
+    public Optional<PlayerIslandProfile> findByLastName(String lastName) {
+        if (lastName == null || lastName.isBlank()) {
+            return Optional.empty();
+        }
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT uuid, last_name, primary_island_id, last_seen_at FROM player_profiles WHERE lower(last_name) = lower(?) ORDER BY last_seen_at DESC NULLS LAST LIMIT 1")) {
+            statement.setString(1, lastName);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? Optional.of(profile(rs)) : Optional.empty();
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read player profile by name", exception);
+        }
+    }
+
+    @Override
     public PlayerIslandProfile setPrimaryIsland(UUID playerUuid, UUID islandId) {
         ensure(playerUuid);
         try (Connection connection = dataSource.getConnection();

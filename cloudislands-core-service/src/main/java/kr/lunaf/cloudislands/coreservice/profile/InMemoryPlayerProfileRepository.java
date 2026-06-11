@@ -16,6 +16,16 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     }
 
     @Override
+    public Optional<PlayerIslandProfile> findByLastName(String lastName) {
+        if (lastName == null || lastName.isBlank()) {
+            return Optional.empty();
+        }
+        return profiles.values().stream()
+            .filter(profile -> profile.lastName().equalsIgnoreCase(lastName))
+            .findFirst();
+    }
+
+    @Override
     public PlayerIslandProfile setPrimaryIsland(UUID playerUuid, UUID islandId) {
         PlayerIslandProfile current = find(playerUuid);
         PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, current.lastName(), Optional.of(islandId), current.lastSeenAt());

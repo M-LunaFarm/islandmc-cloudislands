@@ -666,6 +666,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> playerInfoByName(String lastName) {
+        return post("/v1/players/info", "{\"lastName\":\"" + escape(lastName) + "\"}");
+    }
+
+    @Override
     public CompletableFuture<String> setPlayerIsland(UUID playerUuid, UUID islandId) {
         return post("/v1/admin/players/setisland", "{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\"}");
     }
