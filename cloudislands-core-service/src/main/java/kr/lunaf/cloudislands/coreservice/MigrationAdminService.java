@@ -119,6 +119,9 @@ public final class MigrationAdminService {
             for (kr.lunaf.cloudislands.migration.MigrationBlockValue value : manifest.blockValues()) {
                 levels.putBlockValue(value.materialKey(), new RankingRecalculationService.BlockValue(decimal(value.worth()), value.levelPoints(), value.limit()));
             }
+            for (kr.lunaf.cloudislands.migration.MigrationBlockCount count : manifest.blockCounts()) {
+                levels.addBlockDelta(manifest.islandId(), count.materialKey(), count.count());
+            }
             if (!manifest.biomeKey().isBlank()) {
                 metadata.setBiome(manifest.islandId(), manifest.biomeKey(), manifest.ownerUuid());
             }
@@ -154,6 +157,7 @@ public final class MigrationAdminService {
                 .filter(_island -> limitsMatch(manifest))
                 .filter(_island -> missionsMatch(manifest))
                 .filter(_island -> blockValuesMatch(manifest))
+                .filter(_island -> blockCountsMatch(manifest))
                 .filter(_island -> manifest.biomeKey().isBlank() || metadata.biome(manifest.islandId()).biomeKey().equals(manifest.biomeKey()))
                 .filter(_island -> decimal(bank.balance(manifest.islandId()).balance()).compareTo(decimal(manifest.bankBalance())) == 0)
                 .filter(_island -> metadata.isPublicAccess(manifest.islandId()) == manifest.publicAccess())
@@ -233,6 +237,11 @@ public final class MigrationAdminService {
                 && currentValue.levelPoints() == value.levelPoints()
                 && currentValue.limit() == value.limit();
         });
+    }
+
+    private boolean blockCountsMatch(MigrationManifest manifest) {
+        Map<String, Long> current = levels.blockCounts(manifest.islandId());
+        return manifest.blockCounts().stream().allMatch(count -> Long.valueOf(count.count()).equals(current.get(count.materialKey())));
     }
 
     private BigDecimal decimal(String value) {

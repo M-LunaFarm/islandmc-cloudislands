@@ -74,6 +74,7 @@ public final class SuperiorSkyblock2MigrationScanner {
             List<MigrationLimit> limits = parseLimits(content);
             List<MigrationMission> completedMissions = parseCompletedMissions(content);
             List<MigrationBlockValue> blockValues = parseBlockValues(content);
+            List<MigrationBlockCount> blockCounts = parseBlockCounts(content);
             String biomeKey = parseBiomeKey(content);
             String bankBalance = parseString(content, "bankBalance", parseString(content, "balance", parseString(content, "islandBank", "0.00")));
             boolean publicAccess = parseBoolean(content, "public", parseBoolean(content, "isPublic", parseBoolean(content, "publicAccess", false)));
@@ -84,7 +85,7 @@ public final class SuperiorSkyblock2MigrationScanner {
             for (MigrationMemberRole memberRole : memberRoles) {
                 allMembers.add(memberRole.playerUuid());
             }
-            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), memberRoles, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, blockValues, biomeKey, bankBalance, publicAccess, locked, size, level, worth));
+            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), memberRoles, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, blockValues, blockCounts, biomeKey, bankBalance, publicAccess, locked, size, level, worth));
         } catch (RuntimeException | IOException exception) {
             issues.add(new MigrationIssue("ISLAND_FILE_PARSE_FAILED", file + ": " + exception.getMessage(), true));
         }
@@ -397,6 +398,17 @@ public final class SuperiorSkyblock2MigrationScanner {
             values.putIfAbsent(materialKey, new MigrationBlockValue(materialKey, worth, levelPoints, limit));
         }
         return List.copyOf(values.values());
+    }
+
+    private List<MigrationBlockCount> parseBlockCounts(String content) {
+        LinkedHashMap<String, MigrationBlockCount> counts = new LinkedHashMap<>();
+        Matcher matcher = Pattern.compile("blockCounts\\.([A-Za-z0-9:_/-]+)").matcher(content);
+        while (matcher.find()) {
+            String materialKey = matcher.group(1).toLowerCase();
+            long count = Math.max(0L, parseLong(content, "blockCounts." + materialKey, 0L));
+            counts.putIfAbsent(materialKey, new MigrationBlockCount(materialKey, count));
+        }
+        return List.copyOf(counts.values());
     }
 
     private void addLimit(String content, List<MigrationLimit> limits, String limitKey, String... keys) {
