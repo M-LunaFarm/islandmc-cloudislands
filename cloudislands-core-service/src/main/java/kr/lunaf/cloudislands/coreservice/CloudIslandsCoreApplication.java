@@ -121,6 +121,10 @@ public final class CloudIslandsCoreApplication {
     private final AdminEndpointGuard adminGuard;
     private final IpAllowlist ipAllowlist;
     private final NodeFailureMonitor nodeFailureMonitor;
+    private final IslandStorage deleteStorage;
+    private final IslandRuntimeRepository runtimeRepository;
+    private final IslandJobQueue jobs;
+    private final GlobalEventPublisher events;
 
     public CloudIslandsCoreApplication(int port) throws IOException {
         this(CoreServiceConfig.fromEnvironment().withPort(port));
@@ -132,6 +136,7 @@ public final class CloudIslandsCoreApplication {
         this.rateLimiter = new FixedWindowRateLimiter(clock, 240, 60_000L);
         this.adminGuard = new AdminEndpointGuard(config.adminToken());
         this.ipAllowlist = new IpAllowlist(config.ipAllowlist());
+        this.deleteStorage = migrationRollbackStorage(config);
         DataSource dataSource = new DriverManagerDataSource(config.jdbcUrl(), config.databaseUsername(), config.databasePassword());
         NodeRegistry nodes = config.jdbcRepositories() ? new JdbcNodeRegistry(dataSource) : new InMemoryNodeRegistry();
         NodeAllocator allocator = new NodeAllocator(config.heartbeatTimeout());
@@ -147,6 +152,9 @@ public final class CloudIslandsCoreApplication {
         PlayerProfileRepository playerProfiles = config.jdbcRepositories() ? new JdbcPlayerProfileRepository(dataSource) : new InMemoryPlayerProfileRepository();
         IslandPermissionRuleRepository permissionRules = config.jdbcRepositories() ? new JdbcIslandPermissionRuleRepository(dataSource) : new InMemoryIslandPermissionRuleRepository();
         IslandRuntimeRepository runtimeRepository = config.jdbcRepositories() ? new JdbcIslandRuntimeRepository(dataSource) : new InMemoryIslandRuntimeRepository();
+        this.runtimeRepository = runtimeRepository;
+        this.jobs = jobs;
+        this.events = events;
         IslandSnapshotRepository snapshotRepository = config.jdbcRepositories() ? new JdbcIslandSnapshotRepository(dataSource) : new InMemoryIslandSnapshotRepository();
         RankingRepository rankingRepository = config.jdbcRepositories() ? new JdbcRankingRepository(dataSource) : new InMemoryRankingRepository();
         IslandLevelRepository levelRepository = config.jdbcRepositories() ? new JdbcIslandLevelRepository(dataSource) : new InMemoryIslandLevelRepository();
@@ -1312,8 +1320,20 @@ public final class CloudIslandsCoreApplication {
             events.publish(CloudIslandEventType.ISLAND_DELETE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "targetNode", targetNode, "reason", reason));
             return false;
         }
+        deleteInactiveStorage(islandId, reason);
         runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETED);
         return true;
+    }
+
+    private void deleteInactiveStorage(UUID islandId, String reason) {
+        if (deleteStorage == null) {
+            return;
+        }
+        try {
+            deleteStorage.deleteIsland(islandId);
+        } catch (IOException exception) {
+            events.publish("ISLAND_STORAGE_DELETE_FAILED", Map.of("islandId", islandId.toString(), "reason", reason, "error", exception.getMessage() == null ? "" : exception.getMessage()));
+        }
     }
 
     private static String jobsJson(IslandJobQueue jobs) {
