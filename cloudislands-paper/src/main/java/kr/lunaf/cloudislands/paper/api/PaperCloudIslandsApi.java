@@ -123,15 +123,31 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return client.adminIslandWhere(islandId).thenApply(PaperCloudIslandsApi::runtime);
         }
 
-        @Override public CompletableFuture<List<IslandMemberSnapshot>> getMembers(UUID islandId) { return unsupported("member list typed parsing is not registered yet"); }
+        @Override
+        public CompletableFuture<List<IslandMemberSnapshot>> getMembers(UUID islandId) {
+            return client.listIslandMembers(islandId).thenApply(PaperCloudIslandsApi::members);
+        }
+
+        @Override
+        public CompletableFuture<List<IslandHomeSnapshot>> getHomes(UUID islandId) {
+            return client.listIslandHomes(islandId).thenApply(PaperCloudIslandsApi::homes);
+        }
+
+        @Override
+        public CompletableFuture<List<IslandWarpSnapshot>> getWarps(UUID islandId) {
+            return client.listIslandWarps(islandId).thenApply(PaperCloudIslandsApi::warps);
+        }
+
+        @Override
+        public CompletableFuture<List<IslandPermissionRuleSnapshot>> getPermissionRules(UUID islandId) {
+            return client.listIslandPermissions(islandId).thenApply(PaperCloudIslandsApi::permissionRules);
+        }
+
         @Override public CompletableFuture<List<IslandBanSnapshot>> getBans(UUID islandId) { return unsupported("ban list typed parsing is not registered yet"); }
         @Override public CompletableFuture<List<IslandInviteSnapshot>> getPendingInvites(UUID playerUuid) { return unsupported("invite list typed parsing is not registered yet"); }
-        @Override public CompletableFuture<List<IslandHomeSnapshot>> getHomes(UUID islandId) { return unsupported("home list typed parsing is not registered yet"); }
-        @Override public CompletableFuture<List<IslandWarpSnapshot>> getWarps(UUID islandId) { return unsupported("warp list typed parsing is not registered yet"); }
         @Override public CompletableFuture<IslandFlagsSnapshot> getFlags(UUID islandId) { return unsupported("flag typed parsing is not registered yet"); }
         @Override public CompletableFuture<IslandBiomeSnapshot> getBiome(UUID islandId) { return unsupported("biome typed parsing is not registered yet"); }
         @Override public CompletableFuture<List<IslandLimitSnapshot>> getLimits(UUID islandId) { return unsupported("limit list typed parsing is not registered yet"); }
-        @Override public CompletableFuture<List<IslandPermissionRuleSnapshot>> getPermissionRules(UUID islandId) { return unsupported("permission rule typed parsing is not registered yet"); }
         @Override public CompletableFuture<IslandLevelSnapshot> getLevel(UUID islandId) { return unsupported("level typed parsing is not registered yet"); }
         @Override public CompletableFuture<List<IslandUpgradeSnapshot>> getUpgrades(UUID islandId) { return unsupported("upgrade typed parsing is not registered yet"); }
         @Override public CompletableFuture<List<IslandMissionSnapshot>> getMissions(UUID islandId, String kind) { return unsupported("mission typed parsing is not registered yet"); }
@@ -313,6 +329,72 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return new RoutePlan(ticket.islandId(), ticket.targetNode(), ticket.payload().getOrDefault("targetServerName", ticket.targetNode()), ticket.action(), ticket.state() == RouteTicketState.PREPARING);
     }
 
+    private static List<IslandMemberSnapshot> members(String json) {
+        List<IslandMemberSnapshot> members = new ArrayList<>();
+        for (String object : objects(json, "members")) {
+            members.add(new IslandMemberSnapshot(
+                uuid(object, "islandId", new UUID(0L, 0L)),
+                uuid(object, "playerUuid", new UUID(0L, 0L)),
+                enumValue(IslandRole.class, text(object, "role", "VISITOR"), IslandRole.VISITOR),
+                instant(text(object, "joinedAt", Instant.EPOCH.toString()))
+            ));
+        }
+        return members;
+    }
+
+    private static List<IslandHomeSnapshot> homes(String json) {
+        List<IslandHomeSnapshot> homes = new ArrayList<>();
+        for (String object : objects(json, "homes")) {
+            homes.add(new IslandHomeSnapshot(
+                uuid(object, "islandId", new UUID(0L, 0L)),
+                text(object, "name", "default"),
+                location(object),
+                uuid(object, "createdBy", new UUID(0L, 0L)),
+                instant(text(object, "createdAt", Instant.EPOCH.toString()))
+            ));
+        }
+        return homes;
+    }
+
+    private static List<IslandWarpSnapshot> warps(String json) {
+        List<IslandWarpSnapshot> warps = new ArrayList<>();
+        for (String object : objects(json, "warps")) {
+            warps.add(new IslandWarpSnapshot(
+                uuid(object, "islandId", new UUID(0L, 0L)),
+                text(object, "name", "default"),
+                location(object),
+                bool(object, "publicAccess", false),
+                uuid(object, "createdBy", new UUID(0L, 0L)),
+                instant(text(object, "createdAt", Instant.EPOCH.toString()))
+            ));
+        }
+        return warps;
+    }
+
+    private static List<IslandPermissionRuleSnapshot> permissionRules(String json) {
+        List<IslandPermissionRuleSnapshot> rules = new ArrayList<>();
+        for (String object : objects(json, "rules")) {
+            rules.add(new IslandPermissionRuleSnapshot(
+                uuid(object, "islandId", new UUID(0L, 0L)),
+                enumValue(IslandRole.class, text(object, "role", "VISITOR"), IslandRole.VISITOR),
+                enumValue(IslandPermission.class, text(object, "permission", "INTERACT"), IslandPermission.INTERACT),
+                bool(object, "allowed", false)
+            ));
+        }
+        return rules;
+    }
+
+    private static IslandLocation location(String json) {
+        return new IslandLocation(
+            text(json, "worldName", ""),
+            decimal(json, "localX", 0.5D),
+            decimal(json, "localY", 100.0D),
+            decimal(json, "localZ", 0.5D),
+            (float) decimal(json, "yaw", 0.0D),
+            (float) decimal(json, "pitch", 0.0D)
+        );
+    }
+
     private static List<String> nodeIds(String json) {
         List<String> ids = new ArrayList<>();
         String needle = "\"nodeId\":\"";
@@ -327,6 +409,37 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             index = end + 1;
         }
         return ids;
+    }
+
+    private static List<String> objects(String json, String arrayField) {
+        List<String> values = new ArrayList<>();
+        String needle = "\"" + arrayField + "\":[";
+        int arrayStart = json.indexOf(needle);
+        if (arrayStart < 0) {
+            return values;
+        }
+        int index = arrayStart + needle.length();
+        int depth = 0;
+        int objectStart = -1;
+        while (index < json.length()) {
+            char ch = json.charAt(index);
+            if (ch == '{') {
+                if (depth == 0) {
+                    objectStart = index;
+                }
+                depth++;
+            } else if (ch == '}') {
+                depth--;
+                if (depth == 0 && objectStart >= 0) {
+                    values.add(json.substring(objectStart, index + 1));
+                    objectStart = -1;
+                }
+            } else if (ch == ']' && depth == 0) {
+                break;
+            }
+            index++;
+        }
+        return values;
     }
 
     private static String text(String json, String field, String fallback) {
@@ -368,6 +481,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private static long longValue(String json, String field, long fallback) {
         try {
             return Long.parseLong(number(json, field, Long.toString(fallback)));
+        } catch (RuntimeException ignored) {
+            return fallback;
+        }
+    }
+
+    private static double decimal(String json, String field, double fallback) {
+        try {
+            return Double.parseDouble(number(json, field, Double.toString(fallback)));
         } catch (RuntimeException ignored) {
             return fallback;
         }
