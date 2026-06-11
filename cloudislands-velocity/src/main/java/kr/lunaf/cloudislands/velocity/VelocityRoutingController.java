@@ -5,6 +5,7 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
+import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
@@ -99,6 +100,14 @@ public final class VelocityRoutingController {
 
     public void setPublicAccess(Player player, UUID islandId, boolean publicAccess) {
         coreApiClient.setIslandPublicAccess(islandId, player.getUniqueId(), publicAccess).thenRun(() -> player.sendMessage(Component.text(publicAccess ? "섬을 공개로 변경했습니다." : "섬을 비공개로 변경했습니다.")));
+    }
+
+    public void listPermissions(Player player, UUID islandId) {
+        coreApiClient.listIslandPermissions(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 권한을 불러오지 못했습니다." : body)));
+    }
+
+    public void setPermission(Player player, UUID islandId, IslandRole role, IslandPermission permission, boolean allowed) {
+        coreApiClient.setIslandPermission(islandId, player.getUniqueId(), role, permission, allowed).thenRun(() -> player.sendMessage(Component.text("섬 권한을 변경했습니다.")));
     }
 
     public void listIslandLogs(Player player, UUID islandId) {

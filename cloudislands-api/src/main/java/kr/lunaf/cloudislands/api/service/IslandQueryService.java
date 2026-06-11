@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLevelSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLogRecord;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
@@ -23,6 +24,7 @@ public interface IslandQueryService {
     CompletableFuture<List<IslandInviteSnapshot>> getPendingInvites(UUID playerUuid);
     CompletableFuture<List<IslandWarpSnapshot>> getWarps(UUID islandId);
     CompletableFuture<IslandFlagsSnapshot> getFlags(UUID islandId);
+    CompletableFuture<List<IslandPermissionRuleSnapshot>> getPermissionRules(UUID islandId);
     CompletableFuture<IslandLevelSnapshot> getLevel(UUID islandId);
     CompletableFuture<IslandRuntimeSnapshot> getRuntime(UUID islandId);
     CompletableFuture<List<IslandUpgradeSnapshot>> getUpgrades(UUID islandId);

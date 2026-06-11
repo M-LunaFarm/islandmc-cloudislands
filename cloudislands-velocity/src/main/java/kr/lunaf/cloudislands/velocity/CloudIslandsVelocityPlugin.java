@@ -12,6 +12,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JdkCoreApiClient;
@@ -149,6 +150,19 @@ public final class CloudIslandsVelocityPlugin {
             routingController.setPublicAccess(player, islandId, false);
             return;
         }
+        if (args[0].equalsIgnoreCase("permissions") || args[0].equals("권한")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.listPermissions(player, islandId);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("setpermission") || args[0].equals("권한설정")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            IslandRole role = args.length > 2 ? parseRole(args[2]) : IslandRole.MEMBER;
+            IslandPermission permission = args.length > 3 ? parsePermission(args[3]) : IslandPermission.BUILD;
+            boolean allowed = args.length > 4 && Boolean.parseBoolean(args[4]);
+            routingController.setPermission(player, islandId, role, permission, allowed);
+            return;
+        }
         if (args[0].equalsIgnoreCase("logs") || args[0].equals("로그")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.listIslandLogs(player, islandId);
@@ -239,6 +253,22 @@ public final class CloudIslandsVelocityPlugin {
             return Long.parseLong(value);
         } catch (NumberFormatException ignored) {
             return 0L;
+        }
+    }
+
+    private IslandRole parseRole(String value) {
+        try {
+            return IslandRole.valueOf(value.toUpperCase());
+        } catch (IllegalArgumentException ignored) {
+            return IslandRole.MEMBER;
+        }
+    }
+
+    private IslandPermission parsePermission(String value) {
+        try {
+            return IslandPermission.valueOf(value.toUpperCase());
+        } catch (IllegalArgumentException ignored) {
+            return IslandPermission.BUILD;
         }
     }
 }

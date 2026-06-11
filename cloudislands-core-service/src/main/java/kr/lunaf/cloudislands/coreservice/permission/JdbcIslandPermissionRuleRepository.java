@@ -1,0 +1,57 @@
+package kr.lunaf.cloudislands.coreservice.permission;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import javax.sql.DataSource;
+import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandRole;
+
+public final class JdbcIslandPermissionRuleRepository implements IslandPermissionRuleRepository {
+    private final DataSource dataSource;
+
+    public JdbcIslandPermissionRuleRepository(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
+    @Override
+    public void put(UUID islandId, IslandRole role, IslandPermission permission, boolean allowed) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_permissions(island_id, role, permission_key, value) VALUES (?, ?, ?, ?) ON CONFLICT (island_id, role, permission_key) DO UPDATE SET value = EXCLUDED.value")) {
+            statement.setObject(1, islandId);
+            statement.setString(2, role.name());
+            statement.setString(3, permission.name());
+            statement.setBoolean(4, allowed);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to write island permission", exception);
+        }
+    }
+
+    @Override
+    public List<IslandPermissionRuleSnapshot> list(UUID islandId) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT island_id, role, permission_key, value FROM island_permissions WHERE island_id = ? ORDER BY role, permission_key")) {
+            statement.setObject(1, islandId);
+            try (ResultSet rs = statement.executeQuery()) {
+                List<IslandPermissionRuleSnapshot> result = new ArrayList<>();
+                while (rs.next()) {
+                    result.add(new IslandPermissionRuleSnapshot(
+                        (UUID) rs.getObject("island_id"),
+                        IslandRole.valueOf(rs.getString("role")),
+                        IslandPermission.valueOf(rs.getString("permission_key")),
+                        rs.getBoolean("value")
+                    ));
+                }
+                return List.copyOf(result);
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read island permissions", exception);
+        }
+    }
+}

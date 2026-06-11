@@ -16,6 +16,7 @@ import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
+import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
@@ -41,6 +42,9 @@ import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.metrics.PrometheusMetricsRenderer;
+import kr.lunaf.cloudislands.coreservice.permission.InMemoryIslandPermissionRuleRepository;
+import kr.lunaf.cloudislands.coreservice.permission.IslandPermissionRuleRepository;
+import kr.lunaf.cloudislands.coreservice.permission.JdbcIslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.InMemoryIslandLevelRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.InMemoryRankingRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.IslandLevelRepository;
@@ -108,6 +112,7 @@ public final class CloudIslandsCoreApplication {
             : inMemoryEvents;
         IslandRepository islandRepository = config.jdbcRepositories() ? new JdbcIslandRepository(dataSource) : new InMemoryIslandRepository();
         IslandMetadataRepository metadataRepository = config.jdbcRepositories() ? new JdbcIslandMetadataRepository(dataSource) : new InMemoryIslandMetadataRepository();
+        IslandPermissionRuleRepository permissionRules = config.jdbcRepositories() ? new JdbcIslandPermissionRuleRepository(dataSource) : new InMemoryIslandPermissionRuleRepository();
         IslandRuntimeRepository runtimeRepository = config.jdbcRepositories() ? new JdbcIslandRuntimeRepository(dataSource) : new InMemoryIslandRuntimeRepository();
         IslandSnapshotRepository snapshotRepository = config.jdbcRepositories() ? new JdbcIslandSnapshotRepository(dataSource) : new InMemoryIslandSnapshotRepository();
         RankingRepository rankingRepository = config.jdbcRepositories() ? new JdbcRankingRepository(dataSource) : new InMemoryRankingRepository();
@@ -141,6 +146,23 @@ public final class CloudIslandsCoreApplication {
             write(exchange, 200, rankingsJson(rankingRepository.topByWorth(JsonFields.integer(body, "limit", 10))));
         });
         route("/v1/upgrades/rules", exchange -> write(exchange, 200, upgradeRulesJson(upgradePolicy.list())));
+        route("/v1/islands/permissions", exchange -> {
+            String body = readBody(exchange);
+            write(exchange, 200, permissionsJson(permissionRules.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
+        });
+        route("/v1/islands/permissions/set", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            IslandRole role = JsonFields.enumValue(IslandRole.class, body, "role", IslandRole.MEMBER);
+            IslandPermission permission = JsonFields.enumValue(IslandPermission.class, body, "permission", IslandPermission.BUILD);
+            boolean allowed = JsonFields.bool(body, "allowed", false);
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            permissionRules.put(islandId, role, permission, allowed);
+            audit.log(actorUuid, "PLAYER", "ISLAND_PERMISSION_SET", "ISLAND", islandId.toString(), Map.of("role", role.name(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
+            islandLogs.append(islandId, actorUuid, "ISLAND_PERMISSION_SET", Map.of("role", role.name(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
+            events.publish("ISLAND_PERMISSION_SET", Map.of("islandId", islandId.toString(), "role", role.name(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
+            write(exchange, 202, ApiResponses.ok(true));
+        });
         route("/v1/jobs/claim", exchange -> {
             String body = readBody(exchange);
             String nodeId = JsonFields.text(body, "nodeId", "");
@@ -716,6 +738,24 @@ public final class CloudIslandsCoreApplication {
             builder.append("\"").append(escape(entry.getKey())).append("\":\"").append(escape(entry.getValue())).append("\"");
         }
         return builder.append("}").toString();
+    }
+
+    private static String permissionsJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot> rules) {
+        StringBuilder builder = new StringBuilder("{\"rules\":[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot rule : rules) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('{')
+                .append("\"islandId\":\"").append(rule.islandId()).append("\",")
+                .append("\"role\":\"").append(rule.role().name()).append("\",")
+                .append("\"permission\":\"").append(rule.permission().name()).append("\",")
+                .append("\"allowed\":").append(rule.allowed())
+                .append('}');
+        }
+        return builder.append("]}").toString();
     }
 
     private static String flagsJson(kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot flags) {
