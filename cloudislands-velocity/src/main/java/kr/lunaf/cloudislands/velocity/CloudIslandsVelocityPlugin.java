@@ -12,12 +12,15 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import java.net.URI;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JdkCoreApiClient;
+import kr.lunaf.cloudislands.velocity.command.IslandCommandCatalog;
 import net.kyori.adventure.text.Component;
 import org.slf4j.Logger;
 
@@ -39,20 +42,36 @@ public final class CloudIslandsVelocityPlugin {
     @Subscribe
     public void onProxyInitialize(ProxyInitializeEvent event) {
         CommandManager commands = proxy.getCommandManager();
-        SimpleCommand islandCommand = invocation -> {
-            if (!(invocation.source() instanceof Player player)) {
-                invocation.source().sendMessage(Component.text("플레이어만 사용할 수 있습니다."));
-                return;
+        SimpleCommand islandCommand = new SimpleCommand() {
+            @Override
+            public void execute(SimpleCommand.Invocation invocation) {
+                if (!(invocation.source() instanceof Player player)) {
+                    invocation.source().sendMessage(Component.text("플레이어만 사용할 수 있습니다."));
+                    return;
+                }
+                dispatch(player, invocation.arguments());
             }
-            dispatch(player, invocation.arguments());
+
+            @Override
+            public List<String> suggest(SimpleCommand.Invocation invocation) {
+                return suggestions(IslandCommandCatalog.playerCommands(), "섬", invocation.arguments());
+            }
         };
         commands.register(commands.metaBuilder("섬").aliases("is", "island").build(), islandCommand);
-        commands.register(commands.metaBuilder("ciadmin").aliases("섬관리").build(), invocation -> {
-            if (!(invocation.source() instanceof Player player)) {
-                invocation.source().sendMessage(Component.text("플레이어만 사용할 수 있습니다."));
-                return;
+        commands.register(commands.metaBuilder("ciadmin").aliases("섬관리").build(), new SimpleCommand() {
+            @Override
+            public void execute(SimpleCommand.Invocation invocation) {
+                if (!(invocation.source() instanceof Player player)) {
+                    invocation.source().sendMessage(Component.text("플레이어만 사용할 수 있습니다."));
+                    return;
+                }
+                dispatchAdmin(player, invocation.arguments());
             }
-            dispatchAdmin(player, invocation.arguments());
+
+            @Override
+            public List<String> suggest(SimpleCommand.Invocation invocation) {
+                return suggestions(IslandCommandCatalog.adminCommands(), "ciadmin", invocation.arguments());
+            }
         });
         logger.info("CloudIslands Velocity router enabled with aliases {}", ALIASES);
     }
@@ -647,6 +666,26 @@ public final class CloudIslandsVelocityPlugin {
             || value.equalsIgnoreCase("true")
             || value.equalsIgnoreCase("yes")
             || value.equals("켜기");
+    }
+
+    private List<String> suggestions(List<String> catalog, String root, String[] args) {
+        String typed = String.join(" ", args).toLowerCase(Locale.ROOT);
+        List<String> matches = new ArrayList<>();
+        for (String command : catalog) {
+            String suffix = command.equals(root) ? "" : command.startsWith(root + " ") ? command.substring(root.length() + 1) : command;
+            if (suffix.isBlank()) {
+                continue;
+            }
+            if (!typed.isBlank() && !suffix.toLowerCase(Locale.ROOT).startsWith(typed)) {
+                continue;
+            }
+            String[] parts = suffix.split(" ");
+            int index = Math.max(0, args.length - 1);
+            if (index < parts.length && !matches.contains(parts[index])) {
+                matches.add(parts[index]);
+            }
+        }
+        return matches;
     }
 
     private String joinArgs(String[] args, int start) {
