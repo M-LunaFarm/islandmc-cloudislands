@@ -47,6 +47,7 @@ public interface NodeRegistry {
             .append("\"heapUsedMb\":").append(node.heapUsedMb()).append(',')
             .append("\"heapMaxMb\":").append(node.heapMaxMb()).append(',')
             .append("\"storageAvailable\":").append(node.storageAvailable()).append(',')
+            .append("\"supportedTemplates\":\"").append(node.supportedTemplates() == null ? "*" : node.supportedTemplates().replace("\"", "'")).append("\",")
             .append("\"lastHeartbeat\":\"").append(node.lastHeartbeat()).append("\",")
             .append("\"score\":").append(node.score())
             .append('}')

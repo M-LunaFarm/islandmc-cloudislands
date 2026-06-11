@@ -20,7 +20,8 @@ public record NodeLoad(
     long heapMaxMb,
     int recentFailurePenalty,
     Instant lastHeartbeat,
-    boolean storageAvailable
+    boolean storageAvailable,
+    String supportedTemplates
 ) {
     public boolean eligible(Instant now, Duration heartbeatTimeout) {
         if (state != NodeState.READY && state != NodeState.SOFT_FULL) {
@@ -33,6 +34,19 @@ public record NodeLoad(
             return false;
         }
         return players < hardPlayerCap && activationQueue < maxActivationQueue;
+    }
+
+    public boolean supportsTemplate(String templateId) {
+        if (supportedTemplates == null || supportedTemplates.isBlank() || supportedTemplates.equals("*")) {
+            return true;
+        }
+        String requested = templateId == null || templateId.isBlank() ? "default" : templateId;
+        for (String supported : supportedTemplates.split(",")) {
+            if (supported.trim().equals("*") || supported.trim().equalsIgnoreCase(requested)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public double score() {

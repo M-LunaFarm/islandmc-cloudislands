@@ -61,7 +61,11 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             admin.setExecutor(new AdminCommandController(agent));
         }
         IslandStorage storage = role == AgentRole.ISLAND_NODE ? PaperStorageFactory.create(this, getConfig()) : null;
-        this.heartbeatService = new PaperHeartbeatService(this, client, nodeId, pool, velocityServerName, () -> storageAvailable(storage));
+        String supportedTemplates = String.join(",", getConfig().getStringList("node.supported-templates"));
+        if (supportedTemplates.isBlank()) {
+            supportedTemplates = getConfig().getString("node.supported-template", "*");
+        }
+        this.heartbeatService = new PaperHeartbeatService(this, client, nodeId, pool, velocityServerName, supportedTemplates, () -> storageAvailable(storage));
         heartbeatService.start(getConfig().getLong("heartbeat.interval-ticks", 20L));
         if (role == AgentRole.ISLAND_NODE) {
             startIslandNodeWorker(client, nodeId, storage);

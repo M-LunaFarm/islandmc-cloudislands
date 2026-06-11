@@ -13,5 +13,6 @@ public record NodeHeartbeatRequest(
     int activationQueue,
     long heapUsedMb,
     long heapMaxMb,
-    boolean storageAvailable
+    boolean storageAvailable,
+    String supportedTemplates
 ) {}

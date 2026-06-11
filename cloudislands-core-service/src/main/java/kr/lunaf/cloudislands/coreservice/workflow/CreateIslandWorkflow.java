@@ -47,7 +47,7 @@ public final class CreateIslandWorkflow {
         if (islands.findByOwner(ownerUuid).isPresent()) {
             return new CreateIslandResult(false, "ALREADY_HAS_ISLAND", null, null);
         }
-        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now()).orElse(null);
+        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId).orElse(null);
         if (node == null) {
             return new CreateIslandResult(false, "NODE_UNAVAILABLE", null, null);
         }

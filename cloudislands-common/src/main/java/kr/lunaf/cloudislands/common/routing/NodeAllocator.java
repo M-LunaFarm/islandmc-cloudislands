@@ -14,8 +14,13 @@ public final class NodeAllocator {
     }
 
     public Optional<NodeLoad> selectBestNode(List<NodeLoad> nodes, Instant now) {
+        return selectBestNode(nodes, now, null);
+    }
+
+    public Optional<NodeLoad> selectBestNode(List<NodeLoad> nodes, Instant now, String templateId) {
         return nodes.stream()
             .filter(node -> node.eligible(now, heartbeatTimeout))
+            .filter(node -> node.supportsTemplate(templateId))
             .min(Comparator.comparingDouble(NodeLoad::score));
     }
 }
