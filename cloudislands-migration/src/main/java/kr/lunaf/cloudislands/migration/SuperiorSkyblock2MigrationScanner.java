@@ -63,10 +63,12 @@ public final class SuperiorSkyblock2MigrationScanner {
             String worth = parseString(content, "worth", "0.00");
             List<UUID> members = parseUuidList(content, "members", "islandMembers", "coopMembers", "coops");
             List<UUID> bannedVisitors = parseUuidList(content, "bans", "bannedPlayers", "bannedVisitors", "visitorBans");
+            boolean publicAccess = parseBoolean(content, "public", parseBoolean(content, "isPublic", parseBoolean(content, "publicAccess", false)));
+            boolean locked = parseBoolean(content, "locked", parseBoolean(content, "isLocked", false));
             LinkedHashSet<UUID> allMembers = new LinkedHashSet<>();
             allMembers.add(ownerUuid);
             allMembers.addAll(members);
-            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), bannedVisitors, size, level, worth));
+            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), bannedVisitors, publicAccess, locked, size, level, worth));
         } catch (RuntimeException | IOException exception) {
             issues.add(new MigrationIssue("ISLAND_FILE_PARSE_FAILED", file + ": " + exception.getMessage(), true));
         }
@@ -132,6 +134,15 @@ public final class SuperiorSkyblock2MigrationScanner {
         } catch (NumberFormatException ignored) {
             return fallback;
         }
+    }
+
+    private boolean parseBoolean(String content, String key, boolean fallback) {
+        String value = parseString(content, key, Boolean.toString(fallback));
+        return switch (value.toLowerCase()) {
+            case "true", "yes", "on", "1", "public", "open" -> true;
+            case "false", "no", "off", "0", "private", "closed" -> false;
+            default -> fallback;
+        };
     }
 
     private List<UUID> parseUuidList(String content, String... keys) {
