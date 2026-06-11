@@ -966,7 +966,7 @@ public final class CloudIslandsCoreApplication {
             metadataRepository.removeMember(islandId, playerUuid);
             audit.log(actorUuid, "PLAYER", "ISLAND_VISITOR_BAN", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString(), "reason", reason));
             islandLogs.append(islandId, actorUuid, "ISLAND_VISITOR_BAN", Map.of("playerUuid", playerUuid.toString(), "reason", reason));
-            events.publish("ISLAND_VISITOR_BAN", Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
+            events.publish(CloudIslandEventType.ISLAND_VISITOR_BAN_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "banned", Boolean.toString(true)));
             write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/islands/bans", exchange -> {
@@ -984,7 +984,7 @@ public final class CloudIslandsCoreApplication {
             metadataRepository.pardonVisitor(islandId, playerUuid);
             audit.log(actorUuid, "PLAYER", "ISLAND_VISITOR_PARDON", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
             islandLogs.append(islandId, actorUuid, "ISLAND_VISITOR_PARDON", Map.of("playerUuid", playerUuid.toString()));
-            events.publish("ISLAND_VISITOR_PARDON", Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
+            events.publish(CloudIslandEventType.ISLAND_VISITOR_BAN_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "banned", Boolean.toString(false)));
             write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/islands/lock", exchange -> {
@@ -998,7 +998,7 @@ public final class CloudIslandsCoreApplication {
             metadataRepository.setLocked(islandId, locked);
             audit.log(actorUuid, "PLAYER", "ISLAND_LOCK_SET", "ISLAND", islandId.toString(), Map.of("locked", Boolean.toString(locked)));
             islandLogs.append(islandId, actorUuid, "ISLAND_LOCK_SET", Map.of("locked", Boolean.toString(locked)));
-            events.publish("ISLAND_LOCK_SET", Map.of("islandId", islandId.toString(), "locked", Boolean.toString(locked)));
+            events.publish(CloudIslandEventType.ISLAND_ACCESS_CHANGED.name(), Map.of("islandId", islandId.toString(), "locked", Boolean.toString(locked)));
             write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/islands/flags", exchange -> {
@@ -1123,7 +1123,7 @@ public final class CloudIslandsCoreApplication {
             metadataRepository.setPublicAccess(islandId, publicAccess);
             audit.log(actorUuid, "PLAYER", "ISLAND_ACCESS_SET", "ISLAND", islandId.toString(), Map.of("publicAccess", Boolean.toString(publicAccess)));
             islandLogs.append(islandId, actorUuid, "ISLAND_ACCESS_SET", Map.of("publicAccess", Boolean.toString(publicAccess)));
-            events.publish("ISLAND_ACCESS_SET", Map.of("islandId", islandId.toString(), "publicAccess", Boolean.toString(publicAccess)));
+            events.publish(CloudIslandEventType.ISLAND_ACCESS_CHANGED.name(), Map.of("islandId", islandId.toString(), "publicAccess", Boolean.toString(publicAccess)));
             write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/islands", exchange -> {
