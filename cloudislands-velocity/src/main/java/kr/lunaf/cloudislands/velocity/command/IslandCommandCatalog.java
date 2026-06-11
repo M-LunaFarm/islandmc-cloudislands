@@ -26,7 +26,7 @@ public final class IslandCommandCatalog {
         return List.of(
             "ciadmin island info", "ciadmin island where", "ciadmin island tp",
             "ciadmin island activate", "ciadmin island deactivate", "ciadmin island migrate",
-            "ciadmin island save", "ciadmin island snapshot", "ciadmin island rollback",
+            "ciadmin island save", "ciadmin island snapshot", "ciadmin island snapshots", "ciadmin island rollback",
             "ciadmin island quarantine", "ciadmin island repair", "ciadmin island delete",
             "ciadmin island restore", "ciadmin player info", "ciadmin player setisland",
             "ciadmin player clearisland", "ciadmin node list", "ciadmin node info",
