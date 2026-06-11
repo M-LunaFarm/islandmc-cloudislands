@@ -1,0 +1,10 @@
+name: CloudIslands
+main: kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent
+version: 0.1.0
+api-version: '1.21'
+author: LeeSeungmin
+commands:
+  island:
+    aliases: [is, 섬]
+  ciadmin:
+    aliases: [섬관리]

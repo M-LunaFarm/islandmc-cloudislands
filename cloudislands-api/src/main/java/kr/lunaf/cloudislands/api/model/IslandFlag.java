@@ -1,0 +1,26 @@
+package kr.lunaf.cloudislands.api.model;
+
+public enum IslandFlag {
+    PVP,
+    MOB_SPAWN,
+    ANIMAL_SPAWN,
+    MONSTER_SPAWN,
+    FIRE_SPREAD,
+    EXPLOSION,
+    CREEPER_DAMAGE,
+    TNT_DAMAGE,
+    WITHER_DAMAGE,
+    ENDERMAN_GRIEF,
+    WATER_FLOW,
+    LAVA_FLOW,
+    ICE_MELT,
+    LEAF_DECAY,
+    VISITOR_INTERACT,
+    VISITOR_CONTAINER,
+    VISITOR_PICKUP,
+    VISITOR_DROP,
+    VISITOR_PVP,
+    FLY,
+    KEEP_INVENTORY,
+    PUBLIC_WARPS
+}

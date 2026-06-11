@@ -1,0 +1,26 @@
+plugin:
+  language: "ko_kr"
+  debug: false
+
+core-api:
+  base-url: "https://core-api.internal:8443"
+  auth-token: "${CI_CORE_TOKEN}"
+  timeout-ms: 3000
+
+routing:
+  default-lobby: "Lobby"
+  island-pool: "island"
+  route-ticket-ttl-seconds: 30
+  wait-for-activation-timeout-seconds: 20
+  fallback-on-failure: "Lobby"
+  hide-node-names: true
+
+commands:
+  aliases:
+    - "is"
+    - "island"
+    - "섬"
+
+messages:
+  use-actionbar: true
+  use-bossbar-loading: true

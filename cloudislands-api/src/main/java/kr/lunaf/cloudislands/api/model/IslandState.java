@@ -1,0 +1,20 @@
+package kr.lunaf.cloudislands.api.model;
+
+public enum IslandState {
+    CREATE_REQUESTED,
+    CREATING,
+    INACTIVE_READY,
+    ACTIVATING,
+    ACTIVE,
+    SAVING,
+    DELETE_REQUESTED,
+    DEACTIVATING,
+    BACKUP_BEFORE_DELETE,
+    DELETING,
+    DELETED,
+    ERROR_CREATING,
+    ERROR_ACTIVATING,
+    ERROR_SAVING,
+    QUARANTINED,
+    RECOVERY_REQUIRED
+}

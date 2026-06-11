@@ -1,0 +1,27 @@
+server:
+  bind: "0.0.0.0"
+  port: 8443
+
+database:
+  jdbc-url: "jdbc:postgresql://postgres.internal:5432/cloudislands"
+  username: "cloudislands"
+  password: "${DB_PASSWORD}"
+  pool-size: 20
+
+redis:
+  uri: "redis://redis.internal:6379"
+
+storage:
+  type: "S3"
+  bucket: "cloudislands"
+
+routing:
+  heartbeat-timeout-seconds: 5
+  lease-duration-seconds: 30
+  soft-full-policy: "AVOID_NEW_ACTIVATIONS"
+  hard-full-policy: "DENY_OR_QUEUE"
+  migration-policy: "INACTIVE_ONLY_AUTOMATIC"
+
+security:
+  require-mtls: true
+  admin-api-enabled: true
