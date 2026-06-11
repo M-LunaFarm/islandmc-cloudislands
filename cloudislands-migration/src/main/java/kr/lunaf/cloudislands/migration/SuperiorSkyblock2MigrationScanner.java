@@ -98,10 +98,30 @@ public final class SuperiorSkyblock2MigrationScanner {
         int jsonStart = content.indexOf(jsonNeedle);
         if (jsonStart >= 0) {
             int colon = content.indexOf(':', jsonStart + jsonNeedle.length());
-            int quote = colon < 0 ? -1 : content.indexOf('"', colon + 1);
-            int end = quote < 0 ? -1 : content.indexOf('"', quote + 1);
-            if (end > quote) {
-                return content.substring(quote + 1, end);
+            if (colon >= 0) {
+                int valueStart = colon + 1;
+                while (valueStart < content.length() && Character.isWhitespace(content.charAt(valueStart))) {
+                    valueStart++;
+                }
+                if (valueStart < content.length() && content.charAt(valueStart) == '"') {
+                    int end = content.indexOf('"', valueStart + 1);
+                    if (end > valueStart) {
+                        return content.substring(valueStart + 1, end);
+                    }
+                } else if (valueStart < content.length()) {
+                    int valueEnd = valueStart;
+                    while (valueEnd < content.length()) {
+                        char current = content.charAt(valueEnd);
+                        if (current == ',' || current == '}' || current == ']' || current == '\n' || current == '\r') {
+                            break;
+                        }
+                        valueEnd++;
+                    }
+                    String value = content.substring(valueStart, valueEnd).trim();
+                    if (!value.isBlank()) {
+                        return value;
+                    }
+                }
             }
         }
         String yamlNeedle = key + ":";
