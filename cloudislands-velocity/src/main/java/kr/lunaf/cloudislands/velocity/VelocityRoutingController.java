@@ -170,7 +170,66 @@ public final class VelocityRoutingController {
     }
 
     public void listMyIslands(Player player) {
-        sendPlayerPayloadFuture(player, coreApiClient.listPlayerIslands(player.getUniqueId()), "내 섬 목록을 불러오지 못했습니다.", "내 섬 목록을 불러왔습니다.");
+        coreApiClient.listPlayerIslands(player.getUniqueId())
+            .thenAccept(body -> player.sendMessage(Component.text(playerIslandListMessage(body))))
+            .exceptionally(error -> {
+                player.sendMessage(Component.text("내 섬 목록을 불러오지 못했습니다."));
+                return null;
+            });
+    }
+
+    private String playerIslandListMessage(String body) {
+        java.util.List<String> entries = new java.util.ArrayList<>();
+        int index = 0;
+        while (body != null && index < body.length()) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String islandId = islandText(object, "islandId");
+            if (!islandId.isBlank()) {
+                String name = islandText(object, "name");
+                String role = islandText(object, "role");
+                long level = islandNumber(object, "level");
+                entries.add((name.isBlank() ? islandId : name) + " [" + (role.isBlank() ? "MEMBER" : role) + ", Lv." + level + "]");
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "속한 섬이 없습니다." : "내 섬 목록: " + String.join(" / ", entries);
+    }
+
+    private String islandText(String body, String key) {
+        String needle = "\"" + key + "\":\"";
+        int start = body == null ? -1 : body.indexOf(needle);
+        if (start < 0) {
+            return "";
+        }
+        start += needle.length();
+        int end = body.indexOf('"', start);
+        return end < start ? "" : body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
+    }
+
+    private long islandNumber(String body, String key) {
+        String needle = "\"" + key + "\":";
+        int start = body == null ? -1 : body.indexOf(needle);
+        if (start < 0) {
+            return 0L;
+        }
+        start += needle.length();
+        int end = start;
+        while (end < body.length() && Character.isDigit(body.charAt(end))) {
+            end++;
+        }
+        try {
+            return Long.parseLong(body.substring(start, end));
+        } catch (NumberFormatException exception) {
+            return 0L;
+        }
     }
 
     public void routeRandomVisit(Player player) {
