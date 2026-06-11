@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -40,6 +41,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "kick", "remove-member", "추방", "trust", "신뢰", "untrust", "신뢰해제",
         "promote", "승급", "demote", "강등", "transfer", "양도",
         "ban", "밴", "unban", "pardon", "밴해제", "bans", "ban-list", "밴목록",
+        "settings", "setting", "설정",
         "flags", "flag", "플래그", "permissions", "permission", "perms", "권한"
     );
     private final Plugin plugin;
@@ -393,6 +395,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("bans") || subcommand.equals("ban-list") || subcommand.equals("밴목록")) {
             listIslandBans(player);
+            return true;
+        }
+        if (subcommand.equals("settings") || subcommand.equals("setting") || subcommand.equals("설정")) {
+            openIslandSettings(player);
             return true;
         }
         if (subcommand.equals("flags") || subcommand.equals("flag") || subcommand.equals("플래그")) {
@@ -1133,6 +1139,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                     return null;
                 });
         });
+    }
+
+    private void openIslandSettings(Player player) {
+        currentIsland(player, "섬 안에서만 설정 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandSettingsMenu.open(player));
     }
 
     private java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
