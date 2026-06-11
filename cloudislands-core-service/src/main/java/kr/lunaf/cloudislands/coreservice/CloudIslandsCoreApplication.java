@@ -621,7 +621,7 @@ public final class CloudIslandsCoreApplication {
             }
             String nodesJson = "[\"" + String.join("\",\"", downNodes.stream().map(value -> value.replace("\"", "'")).toList()) + "\"]";
             audit.log(new UUID(0L, 0L), "ADMIN", "NODE_SWEEP", "NODE", nodeId.isBlank() ? "*" : nodeId, Map.of("recoveryRequired", Integer.toString(affected), "nodes", String.join(",", downNodes)));
-            events.publish("NODE_SWEEP", Map.of("nodeId", nodeId.isBlank() ? "*" : nodeId, "recoveryRequired", Integer.toString(affected), "nodes", String.join(",", downNodes)));
+            events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId.isBlank() ? "*" : nodeId, "state", "SWEEP", "recoveryRequired", Integer.toString(affected), "nodes", String.join(",", downNodes)));
             write(exchange, 202, "{\"nodes\":" + nodesJson + ",\"recoveryRequired\":" + affected + "}");
         });
         route("/v1/admin/islands/activate", exchange -> lifecycle(exchange, lifecycle.activate(JsonFields.uuid(readBody(exchange), "islandId", new UUID(0L, 0L)))));
@@ -713,7 +713,7 @@ public final class CloudIslandsCoreApplication {
             }
             var runtime = runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.INACTIVE_READY);
             audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_REPAIR", "ISLAND", islandId.toString(), Map.of("reason", reason));
-            events.publish("ISLAND_REPAIRED", Map.of("islandId", islandId.toString(), "reason", reason));
+            events.publish(CloudIslandEventType.ISLAND_REPAIRED.name(), Map.of("islandId", islandId.toString(), "reason", reason));
             write(exchange, 202, runtimeJson(runtime));
         });
         route("/v1/islands/snapshots", exchange -> {

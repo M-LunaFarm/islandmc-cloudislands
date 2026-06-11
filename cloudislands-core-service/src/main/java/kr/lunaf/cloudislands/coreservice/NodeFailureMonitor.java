@@ -42,7 +42,7 @@ public final class NodeFailureMonitor {
         List<String> downNodes = nodes.markStaleDown(heartbeatTimeout);
         for (String nodeId : downNodes) {
             int affected = runtimes.markRecoveryRequiredForNode(nodeId);
-            events.publish("NODE_DOWN", Map.of("nodeId", nodeId, "recoveryRequired", Integer.toString(affected)));
+            events.publish(kr.lunaf.cloudislands.common.event.CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "DOWN", "recoveryRequired", Integer.toString(affected)));
         }
     }
 }
