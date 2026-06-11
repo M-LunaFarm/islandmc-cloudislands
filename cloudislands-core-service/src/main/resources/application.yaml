@@ -25,3 +25,5 @@ routing:
 security:
   require-mtls: true
   admin-api-enabled: true
+  core-token: "${CI_CORE_TOKEN}"
+  admin-token: "${CI_ADMIN_TOKEN}"

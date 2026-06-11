@@ -11,7 +11,7 @@ public final class ApiTokenGuard {
 
     public boolean allowed(HttpExchange exchange) {
         if (expectedToken.isBlank()) {
-            return true;
+            return false;
         }
         String header = exchange.getRequestHeaders().getFirst("Authorization");
         return header != null && header.equals("Bearer " + expectedToken);
