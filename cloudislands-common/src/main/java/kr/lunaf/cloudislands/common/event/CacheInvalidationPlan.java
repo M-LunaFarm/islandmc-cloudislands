@@ -27,6 +27,7 @@ public final class CacheInvalidationPlan {
             case ISLAND_UPGRADE -> EnumSet.of(CacheTarget.SUMMARY, CacheTarget.LEVEL, CacheTarget.GENERATOR);
             case ISLAND_SNAPSHOT_REQUESTED, ISLAND_SNAPSHOT_CREATED -> EnumSet.of(CacheTarget.SUMMARY, CacheTarget.SNAPSHOTS);
             case ISLAND_TEMPLATE_CHANGED -> EnumSet.of(CacheTarget.TEMPLATES, CacheTarget.ROUTE, CacheTarget.SUMMARY);
+            case CORE_CACHE_CLEARED, CORE_RELOADED -> EnumSet.of(CacheTarget.ROUTE, CacheTarget.SUMMARY);
             case ISLAND_DELETED -> EnumSet.allOf(CacheTarget.class);
             default -> EnumSet.of(CacheTarget.SUMMARY);
         };
