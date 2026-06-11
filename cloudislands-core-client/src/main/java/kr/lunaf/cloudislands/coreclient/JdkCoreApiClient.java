@@ -264,7 +264,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<Void> recordBlockDelta(UUID islandId, String materialKey, long delta) {
-        return post("/v1/islands/blocks/delta", "{\"islandId\":\"" + islandId + "\",\"materialKey\":\"" + escape(materialKey) + "\",\"delta\":" + delta + "}").thenApply(_body -> null);
+        return recordBlockDeltaResult(islandId, materialKey, delta).thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> recordBlockDeltaResult(UUID islandId, String materialKey, long delta) {
+        return postWithResultBody("/v1/islands/blocks/delta", "{\"islandId\":\"" + islandId + "\",\"materialKey\":\"" + escape(materialKey) + "\",\"delta\":" + delta + "}");
     }
 
     @Override

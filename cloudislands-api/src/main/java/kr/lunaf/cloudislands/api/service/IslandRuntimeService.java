@@ -11,6 +11,8 @@ public interface IslandRuntimeService {
     CompletableFuture<IslandActionResult> deactivateResult(UUID islandId);
     CompletableFuture<Void> heartbeat(String nodeId, NodeHeartbeat heartbeat);
     CompletableFuture<IslandActionResult> heartbeatResult(String nodeId, NodeHeartbeat heartbeat);
+    CompletableFuture<Void> recordBlockDelta(UUID islandId, String materialKey, long delta);
+    CompletableFuture<IslandActionResult> recordBlockDeltaResult(UUID islandId, String materialKey, long delta);
 
     record NodeHeartbeat(int players, int activeIslands, double mspt, int activationQueue, long heapUsedMb, long heapMaxMb) {}
 }

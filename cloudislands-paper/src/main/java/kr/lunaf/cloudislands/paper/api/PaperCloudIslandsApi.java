@@ -370,6 +370,16 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 "*"
             )).thenApply(body -> action(body, "HEARTBEAT_ACCEPTED"));
         }
+
+        @Override
+        public CompletableFuture<Void> recordBlockDelta(UUID islandId, String materialKey, long delta) {
+            return recordBlockDeltaResult(islandId, materialKey, delta).thenApply(_result -> null);
+        }
+
+        @Override
+        public CompletableFuture<IslandActionResult> recordBlockDeltaResult(UUID islandId, String materialKey, long delta) {
+            return client.recordBlockDeltaResult(islandId, materialKey, delta).thenApply(body -> action(body, "BLOCK_DELTA_RECORDED"));
+        }
     }
 
     private static final class AdminService implements IslandAdminService {
