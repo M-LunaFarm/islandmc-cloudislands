@@ -155,6 +155,10 @@ public final class IslandCommandController implements CommandExecutor {
 
     private void teleportHome(Player player, String name) {
         currentIsland(player, "섬 안에서만 홈으로 이동할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.SET_HOME)) {
+                player.sendMessage("섬 홈으로 이동할 권한이 없습니다.");
+                return;
+            }
             coreApiClient.listIslandHomes(islandId)
                 .thenAccept(body -> teleport(player, point(body, name, player.getWorld().getName()), "홈을 찾을 수 없습니다.", "섬 홈으로 이동했습니다."))
                 .exceptionally(error -> {
@@ -166,6 +170,10 @@ public final class IslandCommandController implements CommandExecutor {
 
     private void teleportWarp(Player player, String name) {
         currentIsland(player, "섬 안에서만 워프로 이동할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.INTERACT)) {
+                player.sendMessage("섬 워프로 이동할 권한이 없습니다.");
+                return;
+            }
             coreApiClient.listIslandWarps(islandId)
                 .thenAccept(body -> teleport(player, point(body, name, player.getWorld().getName()), "워프를 찾을 수 없습니다.", "섬 워프로 이동했습니다."))
                 .exceptionally(error -> {
