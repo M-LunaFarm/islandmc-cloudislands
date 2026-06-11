@@ -169,6 +169,10 @@ public final class VelocityRoutingController {
             .exceptionally(error -> null);
     }
 
+    public void listMyIslands(Player player) {
+        sendPlayerPayloadFuture(player, coreApiClient.listPlayerIslands(player.getUniqueId()), "내 섬 목록을 불러오지 못했습니다.", "내 섬 목록을 불러왔습니다.");
+    }
+
     public void routeRandomVisit(Player player) {
         routeFuture(player, coreApiClient.createRandomVisitTicket(player.getUniqueId()), "방문 가능한 공개 섬을 찾지 못했습니다.");
     }

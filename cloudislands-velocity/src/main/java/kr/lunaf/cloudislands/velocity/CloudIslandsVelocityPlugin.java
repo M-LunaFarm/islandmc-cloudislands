@@ -256,6 +256,10 @@ public final class CloudIslandsVelocityPlugin {
             routingController.showMyIsland(player);
             return;
         }
+        if (args[0].equalsIgnoreCase("list") || args[0].equalsIgnoreCase("my") || args[0].equalsIgnoreCase("my-islands") || args[0].equals("목록") || args[0].equals("내섬")) {
+            routingController.listMyIslands(player);
+            return;
+        }
         if (args[0].equalsIgnoreCase("settings") || args[0].equals("설정")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.showIslandSettings(player, islandId);
