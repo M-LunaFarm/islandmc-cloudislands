@@ -28,7 +28,7 @@ public final class JobCompletionService {
             String worldName = job.payload().getOrDefault("worldName", "ci_shard_001");
             runtimes.markActive(job.islandId(), job.targetNode(), worldName, integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), longValue(job.payload().get("fencingToken")));
             int readyTickets = tickets.markReadyForIsland(job.islandId(), job.targetNode(), worldName, Map.of());
-            events.publish(job.type() == IslandJobType.RESET_ISLAND ? "ISLAND_RESET" : CloudIslandEventType.ISLAND_ACTIVATED.name(), Map.of("islandId", job.islandId().toString(), "nodeId", job.targetNode() == null ? "" : job.targetNode(), "readyTickets", Integer.toString(readyTickets)));
+            events.publish(job.type() == IslandJobType.RESET_ISLAND ? CloudIslandEventType.ISLAND_RESET.name() : CloudIslandEventType.ISLAND_ACTIVATED.name(), Map.of("islandId", job.islandId().toString(), "nodeId", job.targetNode() == null ? "" : job.targetNode(), "readyTickets", Integer.toString(readyTickets)));
             return;
         }
         if (job.type() == IslandJobType.DEACTIVATE_ISLAND || job.type() == IslandJobType.SAVE_ISLAND) {
@@ -61,7 +61,7 @@ public final class JobCompletionService {
         }
         if (job.type() == IslandJobType.RESTORE_ISLAND) {
             runtimes.markActive(job.islandId(), job.targetNode(), job.payload().getOrDefault("worldName", "ci_shard_001"), integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), longValue(job.payload().get("fencingToken")));
-            events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", job.islandId().toString(), "state", "RESTORED", "snapshotNo", job.payload().getOrDefault("snapshotNo", "")));
+            events.publish(CloudIslandEventType.ISLAND_RESTORED.name(), Map.of("islandId", job.islandId().toString(), "state", "RESTORED", "snapshotNo", job.payload().getOrDefault("snapshotNo", "")));
             return;
         }
         if (job.type() == IslandJobType.MIGRATE_ISLAND) {

@@ -81,7 +81,7 @@ public final class IslandLifecycleWorkflow {
         }
         IslandRuntimeSnapshot runtime = runtimes.markActivating(islandId, node.nodeId(), "ci_shard_001", 0, 0);
         jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, node.nodeId(), 30, Map.of("snapshotNo", Long.toString(snapshotNo), "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
-        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", "RESTORING", "snapshotNo", Long.toString(snapshotNo)));
+        events.publish(CloudIslandEventType.ISLAND_RESTORE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "state", "RESTORING", "snapshotNo", Long.toString(snapshotNo)));
         return new Result(true, "RESTORE_QUEUED", runtime);
     }
 
@@ -93,7 +93,7 @@ public final class IslandLifecycleWorkflow {
         }
         IslandRuntimeSnapshot runtime = runtimes.markActivating(islandId, node.nodeId(), "ci_shard_001", 0, 0);
         jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESET_ISLAND, islandId, node.nodeId(), 40, Map.of("templateId", templateId, "reason", reason, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
-        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", "RESETTING", "targetNode", node.nodeId(), "reason", reason));
+        events.publish(CloudIslandEventType.ISLAND_RESET_REQUESTED.name(), Map.of("islandId", islandId.toString(), "state", "RESETTING", "targetNode", node.nodeId(), "reason", reason));
         return new Result(true, "RESET_QUEUED", runtime);
     }
 
