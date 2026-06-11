@@ -164,6 +164,11 @@ public final class VelocityRoutingController {
         });
     }
 
+    public void recordPlayerProfile(Player player) {
+        coreApiClient.touchPlayerProfile(player.getUniqueId(), player.getUsername())
+            .exceptionally(error -> null);
+    }
+
     public void routeRandomVisit(Player player) {
         routeFuture(player, coreApiClient.createRandomVisitTicket(player.getUniqueId()), "방문 가능한 공개 섬을 찾지 못했습니다.");
     }

@@ -671,6 +671,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> touchPlayerProfile(UUID playerUuid, String lastName) {
+        return postWithResultBody("/v1/players/touch", "{\"playerUuid\":\"" + playerUuid + "\",\"lastName\":\"" + escape(lastName) + "\"}");
+    }
+
+    @Override
     public CompletableFuture<String> setPlayerIsland(UUID playerUuid, UUID islandId) {
         return post("/v1/admin/players/setisland", "{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\"}");
     }

@@ -513,6 +513,12 @@ public final class CloudIslandsCoreApplication {
                 : java.util.Optional.of(playerProfiles.find(playerUuid));
             write(exchange, profile.isPresent() ? 200 : 404, profile.map(CloudIslandsCoreApplication::playerProfileJson).orElseGet(() -> ApiResponses.error("PLAYER_NOT_FOUND", "Player was not found")));
         });
+        route("/v1/players/touch", exchange -> {
+            String body = readBody(exchange);
+            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            String lastName = JsonFields.text(body, "lastName", "");
+            write(exchange, 202, playerProfileJson(playerProfiles.touch(playerUuid, lastName)));
+        });
         route("/v1/admin/players/setisland", exchange -> {
             String body = readBody(exchange);
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));

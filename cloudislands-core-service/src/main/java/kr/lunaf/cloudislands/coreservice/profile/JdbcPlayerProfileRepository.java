@@ -48,6 +48,20 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
     }
 
     @Override
+    public PlayerIslandProfile touch(UUID playerUuid, String lastName) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("INSERT INTO player_profiles(uuid, last_name, last_seen_at) VALUES (?, ?, now()) ON CONFLICT (uuid) DO UPDATE SET last_name = EXCLUDED.last_name, last_seen_at = now(), updated_at = now() RETURNING uuid, last_name, primary_island_id, last_seen_at")) {
+            statement.setObject(1, playerUuid);
+            statement.setString(2, lastName == null ? "" : lastName);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? profile(rs) : find(playerUuid);
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to touch player profile", exception);
+        }
+    }
+
+    @Override
     public PlayerIslandProfile setPrimaryIsland(UUID playerUuid, UUID islandId) {
         ensure(playerUuid);
         try (Connection connection = dataSource.getConnection();

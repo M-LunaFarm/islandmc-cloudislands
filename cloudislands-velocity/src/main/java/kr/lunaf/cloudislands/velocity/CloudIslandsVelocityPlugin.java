@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import com.velocitypowered.api.command.CommandManager;
 import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
+import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.Plugin;
@@ -62,6 +63,11 @@ public final class CloudIslandsVelocityPlugin {
         if (channel.equals("cloudislands") || channel.startsWith("cloudislands:")) {
             event.setResult(PluginMessageEvent.ForwardResult.handled());
         }
+    }
+
+    @Subscribe
+    public void onPostLogin(PostLoginEvent event) {
+        routingController.recordPlayerProfile(event.getPlayer());
     }
 
     private void dispatchAdmin(Player player, String[] args) {
