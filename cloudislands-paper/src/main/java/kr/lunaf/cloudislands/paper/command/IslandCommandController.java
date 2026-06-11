@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.command;
 import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
@@ -173,7 +174,7 @@ public final class IslandCommandController implements CommandExecutor {
             coreApiClient.listIslandWarps(islandId)
                 .thenAccept(body -> {
                     Point point = point(body, name, player.getWorld().getName());
-                    if (point != null && !point.publicAccess() && !allowed(player, IslandPermission.INTERACT)) {
+                    if (point != null && !publicWarpAllowed(player, point) && !allowed(player, IslandPermission.INTERACT)) {
                         message(player, "섬 워프로 이동할 권한이 없습니다.");
                         return;
                     }
@@ -235,6 +236,11 @@ public final class IslandCommandController implements CommandExecutor {
             permission,
             player.isOp()
         ).allowed();
+    }
+
+    private boolean publicWarpAllowed(Player player, Point point) {
+        return point.publicAccess()
+            && protection.checkSystemFlag(player.getLocation().getBlock(), IslandFlag.PUBLIC_WARPS).allowed();
     }
 
     private IslandLocation location(Location location) {
