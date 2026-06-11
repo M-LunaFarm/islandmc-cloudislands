@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.ClaimedIslandJobSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandActionResult;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandRuntimeJobType;
 
 public interface IslandRuntimeService {
     CompletableFuture<IslandRuntimeSnapshot> activate(UUID islandId, String preferredPool);
@@ -18,6 +19,7 @@ public interface IslandRuntimeService {
     CompletableFuture<Void> recordBlockDelta(UUID islandId, String materialKey, long delta);
     CompletableFuture<IslandActionResult> recordBlockDeltaResult(UUID islandId, String materialKey, long delta);
     CompletableFuture<List<ClaimedIslandJobSnapshot>> claimJobs(String nodeId, List<String> supportedTypes, int maxJobs);
+    CompletableFuture<List<ClaimedIslandJobSnapshot>> claimTypedJobs(String nodeId, List<IslandRuntimeJobType> supportedTypes, int maxJobs);
     CompletableFuture<Void> completeJob(String nodeId, UUID jobId);
     CompletableFuture<Void> completeJob(String nodeId, UUID jobId, Map<String, String> payload);
     CompletableFuture<IslandActionResult> completeJobResult(String nodeId, UUID jobId, Map<String, String> payload);

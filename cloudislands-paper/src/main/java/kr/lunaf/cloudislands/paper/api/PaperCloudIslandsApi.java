@@ -41,6 +41,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandRuntimeJobType;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.api.model.IslandState;
@@ -396,6 +397,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
+        public CompletableFuture<List<ClaimedIslandJobSnapshot>> claimTypedJobs(String nodeId, List<IslandRuntimeJobType> supportedTypes, int maxJobs) {
+            return client.claimJobs(nodeId, runtimeJobTypes(supportedTypes), maxJobs).thenApply(jobs -> jobs.stream().map(PaperCloudIslandsApi::claimedJob).toList());
+        }
+
+        @Override
         public CompletableFuture<Void> completeJob(String nodeId, UUID jobId) {
             return completeJob(nodeId, jobId, Map.of());
         }
@@ -434,6 +440,13 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             }
         }
         return types;
+    }
+
+    private static List<IslandJobType> runtimeJobTypes(List<IslandRuntimeJobType> supportedTypes) {
+        if (supportedTypes == null || supportedTypes.isEmpty()) {
+            return jobTypes(List.of());
+        }
+        return supportedTypes.stream().map(type -> IslandJobType.valueOf(type.name())).toList();
     }
 
     private static ClaimedIslandJobSnapshot claimedJob(IslandJob job) {
