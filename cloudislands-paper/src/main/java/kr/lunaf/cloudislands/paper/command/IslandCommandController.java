@@ -11,6 +11,7 @@ import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.gui.IslandBankMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandBiomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandHomeMenu;
@@ -49,7 +50,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "mission", "missions", "mission-menu", "mission-list", "미션", "미션목록",
         "challenge", "challenges", "challenge-menu", "challenge-list", "챌린지", "챌린지목록",
         "chat", "islandchat", "채팅", "teamchat", "team-chat", "팀채팅", "log", "logs", "로그",
-        "biome", "바이옴", "size", "크기", "border", "경계",
+        "biome", "biome-menu", "biome-info", "바이옴", "바이옴정보", "size", "크기", "border", "경계",
         "limit", "limits", "limit-menu", "limit-list", "제한", "제한목록", "setlimit", "limit-set", "제한설정",
         "snapshot", "snapshots", "snapshot-menu", "snapshot-list", "스냅샷", "스냅샷목록", "snapshot-create", "snapshot-request", "스냅샷생성",
         "snapshot-restore", "rollback", "스냅샷복원", "롤백",
@@ -324,8 +325,16 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             if (args.length > 1) {
                 setIslandBiome(player, args[1]);
             } else {
-                showIslandBiome(player);
+                openIslandBiomeMenu(player);
             }
+            return true;
+        }
+        if (subcommand.equals("biome-menu")) {
+            openIslandBiomeMenu(player);
+            return true;
+        }
+        if (subcommand.equals("biome-info") || subcommand.equals("바이옴정보")) {
+            showIslandBiome(player);
             return true;
         }
         if (subcommand.equals("size") || subcommand.equals("크기")) {
@@ -953,6 +962,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                     return null;
                 });
         });
+    }
+
+    private void openIslandBiomeMenu(Player player) {
+        currentIsland(player, "섬 안에서만 바이옴 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandBiomeMenu.open(plugin, coreApiClient, player, islandId));
     }
 
     private void setIslandBiome(Player player, String biomeKey) {
