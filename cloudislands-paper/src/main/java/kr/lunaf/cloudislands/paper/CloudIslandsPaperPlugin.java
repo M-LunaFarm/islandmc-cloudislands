@@ -14,6 +14,7 @@ import kr.lunaf.cloudislands.paper.activation.ShardWorldManager;
 import kr.lunaf.cloudislands.paper.admin.AdminCommandController;
 import kr.lunaf.cloudislands.paper.cache.PermissionEventPoller;
 import kr.lunaf.cloudislands.paper.cache.PermissionCacheSyncService;
+import kr.lunaf.cloudislands.paper.command.IslandCommandController;
 import kr.lunaf.cloudislands.paper.generator.DefaultGeneratorRules;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
 import kr.lunaf.cloudislands.paper.generator.IslandGeneratorListener;
@@ -68,6 +69,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         PluginCommand admin = getCommand("ciadmin");
         if (admin != null) {
             admin.setExecutor(new AdminCommandController(agent));
+        }
+        PluginCommand island = getCommand("island");
+        if (island != null) {
+            island.setExecutor(new IslandCommandController(this, client, agent.protection()));
         }
         IslandStorage storage = role == AgentRole.ISLAND_NODE ? PaperStorageFactory.create(this, getConfig()) : null;
         String supportedTemplates = String.join(",", getConfig().getStringList("node.supported-templates"));
