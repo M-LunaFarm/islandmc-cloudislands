@@ -335,7 +335,7 @@ public final class CloudIslandsCoreApplication {
         route("/v1/jobs/claim", exchange -> {
             String body = readBody(exchange);
             String nodeId = JsonFields.text(body, "nodeId", "");
-            java.util.List<kr.lunaf.cloudislands.protocol.job.IslandJob> claimed = jobs.claim(nodeId, java.util.List.of(kr.lunaf.cloudislands.protocol.job.IslandJobType.CREATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.ACTIVATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.DEACTIVATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.SNAPSHOT_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.MIGRATE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.RESTORE_ISLAND, kr.lunaf.cloudislands.protocol.job.IslandJobType.RESET_ISLAND), JsonFields.integer(body, "maxJobs", 4));
+            java.util.List<kr.lunaf.cloudislands.protocol.job.IslandJob> claimed = jobs.claim(nodeId, supportedJobTypes(JsonFields.text(body, "supportedTypes", "")), JsonFields.integer(body, "maxJobs", 4));
             write(exchange, 200, kr.lunaf.cloudislands.protocol.job.json.IslandJobJson.writeArray(claimed));
         });
         route("/v1/jobs/complete", exchange -> {
@@ -1558,6 +1558,30 @@ public final class CloudIslandsCoreApplication {
                 .append('}');
         }
         return builder.append("]}").toString();
+    }
+
+    private static java.util.List<kr.lunaf.cloudislands.protocol.job.IslandJobType> supportedJobTypes(String value) {
+        if (value == null || value.isBlank()) {
+            return java.util.List.of(
+                kr.lunaf.cloudislands.protocol.job.IslandJobType.CREATE_ISLAND,
+                kr.lunaf.cloudislands.protocol.job.IslandJobType.ACTIVATE_ISLAND,
+                kr.lunaf.cloudislands.protocol.job.IslandJobType.DEACTIVATE_ISLAND,
+                kr.lunaf.cloudislands.protocol.job.IslandJobType.SNAPSHOT_ISLAND,
+                kr.lunaf.cloudislands.protocol.job.IslandJobType.DELETE_ISLAND,
+                kr.lunaf.cloudislands.protocol.job.IslandJobType.MIGRATE_ISLAND,
+                kr.lunaf.cloudislands.protocol.job.IslandJobType.RESTORE_ISLAND,
+                kr.lunaf.cloudislands.protocol.job.IslandJobType.RESET_ISLAND
+            );
+        }
+        java.util.List<kr.lunaf.cloudislands.protocol.job.IslandJobType> result = new java.util.ArrayList<>();
+        for (String part : value.split(",")) {
+            try {
+                result.add(kr.lunaf.cloudislands.protocol.job.IslandJobType.valueOf(part.trim().toUpperCase()));
+            } catch (IllegalArgumentException ignored) {
+                // Ignore unknown worker capabilities.
+            }
+        }
+        return result.isEmpty() ? supportedJobTypes("") : java.util.List.copyOf(result);
     }
 
     private static String upgradePurchaseJson(UpgradePurchaseResult result) {
