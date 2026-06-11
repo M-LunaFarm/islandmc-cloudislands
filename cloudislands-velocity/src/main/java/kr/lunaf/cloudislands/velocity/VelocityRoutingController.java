@@ -387,6 +387,22 @@ public final class VelocityRoutingController {
         coreApiClient.clearPlayerIsland(playerUuid).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "플레이어 섬을 해제하지 못했습니다." : body)));
     }
 
+    public void listTemplates(Player player) {
+        coreApiClient.listTemplates().thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 템플릿 목록을 불러오지 못했습니다." : body)));
+    }
+
+    public void upsertTemplate(Player player, String templateId, String displayName, boolean enabled, String minNodeVersion) {
+        coreApiClient.upsertTemplate(templateId, displayName, enabled, minNodeVersion).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 템플릿을 저장하지 못했습니다." : body)));
+    }
+
+    public void enableTemplate(Player player, String templateId) {
+        coreApiClient.enableTemplate(templateId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 템플릿을 활성화하지 못했습니다." : body)));
+    }
+
+    public void disableTemplate(Player player, String templateId) {
+        coreApiClient.disableTemplate(templateId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 템플릿을 비활성화하지 못했습니다." : body)));
+    }
+
     private void route(Player player, RouteTicket ticket, String failureMessage) {
         if (ticket == null) {
             fallback(player, failureMessage);

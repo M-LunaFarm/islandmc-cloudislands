@@ -149,6 +149,22 @@ public final class CloudIslandsVelocityPlugin {
             routingController.clearPlayerIsland(player, parseUuidOrNil(args[2]));
             return;
         }
+        if (args.length >= 2 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("list")) {
+            routingController.listTemplates(player);
+            return;
+        }
+        if (args.length >= 4 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("upsert")) {
+            routingController.upsertTemplate(player, args[2], args[3], args.length > 4 ? parseToggle(args, 4, true) : true, args.length > 5 ? args[5] : "");
+            return;
+        }
+        if (args.length >= 3 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("enable")) {
+            routingController.enableTemplate(player, args[2]);
+            return;
+        }
+        if (args.length >= 3 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("disable")) {
+            routingController.disableTemplate(player, args[2]);
+            return;
+        }
         if (args.length >= 2 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("list")) {
             routingController.listNodes(player);
             return;
@@ -185,7 +201,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.cancelJob(player, parseUuidOrNil(args[2]));
             return;
         }
-        player.sendMessage(Component.text("사용법: /ciadmin island info <섬|플레이어>, /ciadmin island where <섬>, /ciadmin island tp <섬>, /ciadmin player info <player>, /ciadmin node list"));
+        player.sendMessage(Component.text("사용법: /ciadmin island info <섬|플레이어>, /ciadmin island where <섬>, /ciadmin template list, /ciadmin template upsert <id> <name> [enabled] [minNodeVersion], /ciadmin node list"));
     }
 
     private void dispatch(Player player, String[] args) {
