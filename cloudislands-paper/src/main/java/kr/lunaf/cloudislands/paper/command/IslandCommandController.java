@@ -1245,13 +1245,29 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("섬 멤버를 초대할 권한이 없습니다.");
                 return;
             }
-            coreApiClient.createIslandInvite(islandId, player.getUniqueId(), playerUuid(target))
-                .thenAccept(body -> message(player, "섬 초대를 보냈습니다: " + text(body, "inviteId")))
-                .exceptionally(error -> {
-                    message(player, "섬 초대를 보내지 못했습니다.");
-                    return null;
-                });
+            Player online = plugin.getServer().getPlayerExact(target);
+            UUID parsed = uuid(target);
+            if (online != null || parsed != null) {
+                sendIslandInvite(player, islandId, online == null ? parsed : online.getUniqueId());
+                return;
+            }
+            coreApiClient.playerInfoByName(target).thenAccept(body -> {
+                UUID profileUuid = uuid(text(body, "playerUuid"));
+                sendIslandInvite(player, islandId, profileUuid == null ? plugin.getServer().getOfflinePlayer(target).getUniqueId() : profileUuid);
+            }).exceptionally(error -> {
+                sendIslandInvite(player, islandId, plugin.getServer().getOfflinePlayer(target).getUniqueId());
+                return null;
+            });
         });
+    }
+
+    private void sendIslandInvite(Player player, UUID islandId, UUID targetUuid) {
+        coreApiClient.createIslandInvite(islandId, player.getUniqueId(), targetUuid)
+            .thenAccept(body -> message(player, "섬 초대를 보냈습니다: " + text(body, "inviteId")))
+            .exceptionally(error -> {
+                message(player, "섬 초대를 보내지 못했습니다.");
+                return null;
+            });
     }
 
     private void listPendingInvites(Player player) {
