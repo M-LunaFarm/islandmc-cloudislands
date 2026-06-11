@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.velocity;
 import com.google.inject.Inject;
 import com.velocitypowered.api.command.CommandManager;
 import com.velocitypowered.api.command.SimpleCommand;
+import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.Plugin;
@@ -53,6 +54,14 @@ public final class CloudIslandsVelocityPlugin {
             dispatchAdmin(player, invocation.arguments());
         });
         logger.info("CloudIslands Velocity router enabled with aliases {}", ALIASES);
+    }
+
+    @Subscribe
+    public void onPluginMessage(PluginMessageEvent event) {
+        String channel = event.getIdentifier().getId();
+        if (channel.equals("cloudislands") || channel.startsWith("cloudislands:")) {
+            event.setResult(PluginMessageEvent.ForwardResult.handled());
+        }
     }
 
     private void dispatchAdmin(Player player, String[] args) {
