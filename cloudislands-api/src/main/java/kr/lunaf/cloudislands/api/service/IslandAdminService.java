@@ -21,6 +21,7 @@ public interface IslandAdminService {
     CompletableFuture<Void> restoreIsland(UUID islandId, long snapshotNo);
     CompletableFuture<Void> quarantineIsland(UUID islandId, String reason);
     CompletableFuture<Void> repairIsland(UUID islandId, String reason);
+    CompletableFuture<Void> deleteIsland(UUID islandId);
     CompletableFuture<RouteTicket> createAdminTeleportTicket(UUID playerUuid, UUID islandId);
     CompletableFuture<java.util.Optional<RouteTicket>> getRouteTicket(UUID ticketId);
     CompletableFuture<Void> clearRoute(UUID playerUuid, UUID ticketId);
