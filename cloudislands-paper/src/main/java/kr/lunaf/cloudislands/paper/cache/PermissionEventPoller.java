@@ -156,11 +156,13 @@ public final class PermissionEventPoller {
 
     private boolean affectsGenerator(String type, Map<String, String> fields) {
         if (targetsInclude(fields, CacheInvalidationPlan.CacheTarget.GENERATOR)) {
-            return fields.getOrDefault("upgradeKey", "").equalsIgnoreCase("generator");
+            return true;
         }
         try {
-            return CacheInvalidationPlan.targetsFor(CloudIslandEventType.valueOf(type)).contains(CacheInvalidationPlan.CacheTarget.GENERATOR)
-                && fields.getOrDefault("upgradeKey", "").equalsIgnoreCase("generator");
+            if (!CacheInvalidationPlan.targetsFor(CloudIslandEventType.valueOf(type)).contains(CacheInvalidationPlan.CacheTarget.GENERATOR)) {
+                return false;
+            }
+            return !type.equals(CloudIslandEventType.ISLAND_UPGRADE.name()) || fields.getOrDefault("upgradeKey", "").equalsIgnoreCase("generator");
         } catch (IllegalArgumentException ignored) {
             return type.equals("ISLAND_UPGRADE") && fields.getOrDefault("upgradeKey", "").equalsIgnoreCase("generator");
         }
