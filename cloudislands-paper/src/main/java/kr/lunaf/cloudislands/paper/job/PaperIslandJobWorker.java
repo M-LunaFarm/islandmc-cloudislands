@@ -5,6 +5,7 @@ import java.util.Map;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
 import kr.lunaf.cloudislands.paper.activation.IslandActivationJobHandler;
 import kr.lunaf.cloudislands.paper.activation.IslandDeactivationHandler;
+import kr.lunaf.cloudislands.paper.cache.PermissionCacheSyncService;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import org.bukkit.Bukkit;
@@ -17,21 +18,27 @@ public final class PaperIslandJobWorker {
     private final IslandActivationJobHandler activationHandler;
     private final IslandDeactivationHandler deactivationHandler;
     private final ActiveIslandRegistry activeIslands;
+    private final PermissionCacheSyncService permissionSync;
     private final String nodeId;
     private BukkitTask task;
     private int consecutiveFailures;
     private long nextPollAtMillis;
 
     public PaperIslandJobWorker(Plugin plugin, LocalJobSource jobSource, IslandActivationJobHandler activationHandler, ActiveIslandRegistry activeIslands, String nodeId) {
-        this(plugin, jobSource, activationHandler, null, activeIslands, nodeId);
+        this(plugin, jobSource, activationHandler, null, activeIslands, null, nodeId);
     }
 
     public PaperIslandJobWorker(Plugin plugin, LocalJobSource jobSource, IslandActivationJobHandler activationHandler, IslandDeactivationHandler deactivationHandler, ActiveIslandRegistry activeIslands, String nodeId) {
+        this(plugin, jobSource, activationHandler, deactivationHandler, activeIslands, null, nodeId);
+    }
+
+    public PaperIslandJobWorker(Plugin plugin, LocalJobSource jobSource, IslandActivationJobHandler activationHandler, IslandDeactivationHandler deactivationHandler, ActiveIslandRegistry activeIslands, PermissionCacheSyncService permissionSync, String nodeId) {
         this.plugin = plugin;
         this.jobSource = jobSource;
         this.activationHandler = activationHandler;
         this.deactivationHandler = deactivationHandler;
         this.activeIslands = activeIslands;
+        this.permissionSync = permissionSync;
         this.nodeId = nodeId;
     }
 
@@ -75,6 +82,9 @@ public final class PaperIslandJobWorker {
             IslandActivationJobHandler.ActivationResult result = activationHandler.handle(job);
             if (result.success()) {
                 activeIslands.activated(result);
+                if (permissionSync != null) {
+                    permissionSync.sync(job.islandId());
+                }
                 jobSource.complete(nodeId, job.jobId(), Map.of(
                     "worldName", result.worldName() == null ? "" : result.worldName(),
                     "cellX", Integer.toString(result.cellX()),
