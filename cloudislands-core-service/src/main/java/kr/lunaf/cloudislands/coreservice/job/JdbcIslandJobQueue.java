@@ -104,6 +104,37 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
         }
     }
 
+    public String recoverPending(String nodeId, long minIdleMillis, int maxJobs) {
+        if (maxJobs <= 0) {
+            return "[]";
+        }
+        Instant staleBefore = clock.instant().minusMillis(Math.max(0L, minIdleMillis));
+        List<String> recovered = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement statement = connection.prepareStatement("SELECT id FROM island_jobs WHERE state = 'CLAIMED' AND locked_until IS NOT NULL AND locked_until < now() AND updated_at <= ? ORDER BY updated_at ASC LIMIT ? FOR UPDATE SKIP LOCKED")) {
+                statement.setObject(1, java.sql.Timestamp.from(staleBefore));
+                statement.setInt(2, maxJobs);
+                try (ResultSet rs = statement.executeQuery()) {
+                    while (rs.next()) {
+                        recovered.add(rs.getObject("id").toString());
+                    }
+                }
+            }
+            try (PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = 'PENDING', locked_by = NULL, locked_until = NULL, error_message = NULL, updated_at = now() WHERE id = ?")) {
+                for (String jobId : recovered) {
+                    statement.setObject(1, UUID.fromString(jobId));
+                    statement.addBatch();
+                }
+                statement.executeBatch();
+            }
+            connection.commit();
+            return "[\"" + String.join("\",\"", recovered) + "\"]";
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to recover jdbc island jobs", exception);
+        }
+    }
+
     public boolean retry(UUID jobId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = 'PENDING', locked_by = NULL, locked_until = NULL, error_message = NULL, updated_at = now() WHERE id = ? AND state IN ('FAILED', 'CLAIMED')")) {

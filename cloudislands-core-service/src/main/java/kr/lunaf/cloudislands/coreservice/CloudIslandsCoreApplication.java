@@ -265,8 +265,15 @@ public final class CloudIslandsCoreApplication {
                     JsonFields.integer(body, "maxJobs", 16)
                 );
                 write(exchange, 202, "{\"recovered\":\"" + recovered.replace("\"", "'") + "\"}");
+            } else if (jobs instanceof JdbcIslandJobQueue jdbcJobs) {
+                String recovered = jdbcJobs.recoverPending(
+                    JsonFields.text(body, "nodeId", "recovery"),
+                    JsonFields.longValue(body, "minIdleMillis", 60000L),
+                    JsonFields.integer(body, "maxJobs", 16)
+                );
+                write(exchange, 202, "{\"recovered\":" + recovered + "}");
             } else {
-                write(exchange, 409, ApiResponses.error("RECOVERY_UNAVAILABLE", "Redis job recovery is only available when CI_JOB_QUEUE_MODE=REDIS"));
+                write(exchange, 409, ApiResponses.error("RECOVERY_UNAVAILABLE", "Job recovery is only available when CI_JOB_QUEUE_MODE=REDIS or JDBC"));
             }
         });
         route("/v1/admin/jobs/list", exchange -> write(exchange, 200, jobsJson(jobs)));
