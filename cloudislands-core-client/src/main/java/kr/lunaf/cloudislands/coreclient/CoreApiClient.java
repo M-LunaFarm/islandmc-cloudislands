@@ -85,6 +85,7 @@ public interface CoreApiClient {
     CompletableFuture<String> routeTicket(UUID ticketId);
     CompletableFuture<String> clearRoute(UUID playerUuid, UUID ticketId);
     CompletableFuture<String> clearCache();
+    CompletableFuture<String> migrateSuperiorSkyblock2(String action, String path);
     CompletableFuture<String> playerInfo(UUID playerUuid);
     CompletableFuture<String> setPlayerIsland(UUID playerUuid, UUID islandId);
     CompletableFuture<String> clearPlayerIsland(UUID playerUuid);

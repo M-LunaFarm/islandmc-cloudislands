@@ -309,6 +309,10 @@ public final class VelocityRoutingController {
         coreApiClient.clearCache().thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "캐시 정리를 요청하지 못했습니다." : body)));
     }
 
+    public void migrateSuperiorSkyblock2(Player player, String action, String path) {
+        coreApiClient.migrateSuperiorSkyblock2(action, path).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "마이그레이션 명령을 실행하지 못했습니다." : body)));
+    }
+
     public void playerInfo(Player player, UUID playerUuid) {
         coreApiClient.playerInfo(playerUuid).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "플레이어 정보를 불러오지 못했습니다." : body)));
     }

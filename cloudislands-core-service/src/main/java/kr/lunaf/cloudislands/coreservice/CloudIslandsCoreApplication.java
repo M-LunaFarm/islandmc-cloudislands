@@ -141,6 +141,7 @@ public final class CloudIslandsCoreApplication {
         RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets, islandRepository, metadataRepository);
         CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, nodes, allocator, jobs, events);
         IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(runtimeRepository, nodes, allocator, jobs, events);
+        MigrationAdminService migrationAdmin = new MigrationAdminService(islandRepository);
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository);
         PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, config.heartbeatTimeout());
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
@@ -331,6 +332,27 @@ public final class CloudIslandsCoreApplication {
             audit.log(new UUID(0L, 0L), "ADMIN", "CACHE_CLEAR", "CORE", "route-cache", Map.of("sessions", Integer.toString(clearedSessions), "tickets", Integer.toString(clearedTickets)));
             events.publish("CACHE_CLEAR", Map.of("scope", "route-cache", "sessions", Integer.toString(clearedSessions), "tickets", Integer.toString(clearedTickets)));
             write(exchange, 202, "{\"clearedSessions\":" + clearedSessions + ",\"clearedTickets\":" + clearedTickets + "}");
+        });
+        route("/v1/admin/migrations/superiorskyblock2/scan", exchange -> {
+            String body = readBody(exchange);
+            audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_SCAN", "MIGRATION", "superiorskyblock2", Map.of());
+            write(exchange, 202, migrationAdmin.scan(JsonFields.text(body, "path", "plugins/SuperiorSkyblock2")));
+        });
+        route("/v1/admin/migrations/superiorskyblock2/dryrun", exchange -> {
+            audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_DRYRUN", "MIGRATION", "superiorskyblock2", Map.of());
+            write(exchange, 202, migrationAdmin.dryRun());
+        });
+        route("/v1/admin/migrations/superiorskyblock2/import", exchange -> {
+            audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_IMPORT", "MIGRATION", "superiorskyblock2", Map.of());
+            write(exchange, 202, migrationAdmin.importLastPlan());
+        });
+        route("/v1/admin/migrations/superiorskyblock2/verify", exchange -> {
+            audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_VERIFY", "MIGRATION", "superiorskyblock2", Map.of());
+            write(exchange, 202, migrationAdmin.verify());
+        });
+        route("/v1/admin/migrations/superiorskyblock2/rollback", exchange -> {
+            audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_ROLLBACK", "MIGRATION", "superiorskyblock2", Map.of());
+            write(exchange, 202, migrationAdmin.rollbackLastImport());
         });
         route("/v1/admin/players/info", exchange -> {
             String body = readBody(exchange);

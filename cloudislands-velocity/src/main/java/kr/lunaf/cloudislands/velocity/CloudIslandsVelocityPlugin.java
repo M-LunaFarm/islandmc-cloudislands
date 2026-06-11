@@ -90,6 +90,12 @@ public final class CloudIslandsVelocityPlugin {
             routingController.clearCache(player);
             return;
         }
+        if (args.length >= 1 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
+            String action = args.length > 1 ? args[1] : "scan";
+            String path = args.length > 2 ? joinArgs(args, 2) : "";
+            routingController.migrateSuperiorSkyblock2(player, action, path);
+            return;
+        }
         if (args.length >= 3 && args[0].equalsIgnoreCase("player") && args[1].equalsIgnoreCase("info")) {
             routingController.playerInfo(player, parseUuidOrNil(args[2]));
             return;
@@ -126,7 +132,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.cancelJob(player, parseUuidOrNil(args[2]));
             return;
         }
-        player.sendMessage(Component.text("사용법: /ciadmin player info <player>, /ciadmin island activate <섬>, /ciadmin route debug [player], /ciadmin cache clear, /ciadmin node list"));
+        player.sendMessage(Component.text("사용법: /ciadmin player info <player>, /ciadmin island activate <섬>, /ciadmin route debug [player], /ciadmin cache clear, /ciadmin migrate-superiorskyblock2 scan, /ciadmin node list"));
     }
 
     private void dispatch(Player player, String[] args) {

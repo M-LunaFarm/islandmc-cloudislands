@@ -5,6 +5,7 @@ dependencies {
     implementation(project(":cloudislands-common"))
     implementation(project(":cloudislands-protocol"))
     implementation(project(":cloudislands-storage"))
+    implementation(project(":cloudislands-migration"))
     runtimeOnly("org.postgresql:postgresql:42.7.7")
 }
 

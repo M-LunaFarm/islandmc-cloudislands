@@ -377,6 +377,18 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> migrateSuperiorSkyblock2(String action, String path) {
+        String endpoint = switch (action.toLowerCase()) {
+            case "dryrun", "dry-run" -> "dryrun";
+            case "import" -> "import";
+            case "verify" -> "verify";
+            case "rollback" -> "rollback";
+            default -> "scan";
+        };
+        return post("/v1/admin/migrations/superiorskyblock2/" + endpoint, "{\"path\":\"" + escape(path == null ? "" : path) + "\"}");
+    }
+
+    @Override
     public CompletableFuture<String> playerInfo(UUID playerUuid) {
         return post("/v1/admin/players/info", "{\"playerUuid\":\"" + playerUuid + "\"}");
     }
