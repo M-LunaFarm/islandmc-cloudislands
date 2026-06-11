@@ -26,10 +26,14 @@ public final class IslandWorldRestorer {
     }
 
     public BundleRestorePlan stage(UUID islandId, String worldName, int originX, int originZ, long snapshotNo) throws IOException {
+        return stage(islandId, worldName, originX, originZ, snapshotNo, "");
+    }
+
+    public BundleRestorePlan stage(UUID islandId, String worldName, int originX, int originZ, long snapshotNo, String storagePath) throws IOException {
         Path islandStage = stagingRoot.resolve(islandId.toString());
         Files.createDirectories(islandStage);
         Path bundle = islandStage.resolve("bundle.tar.zst");
-        try (InputStream input = snapshotNo > 0L ? storage.openSnapshotBundle(islandId, snapshotNo) : storage.openLatestBundle(islandId)) {
+        try (InputStream input = storagePath == null || storagePath.isBlank() ? snapshotNo > 0L ? storage.openSnapshotBundle(islandId, snapshotNo) : storage.openLatestBundle(islandId) : storage.openBundle(storagePath)) {
             Files.copy(input, bundle, StandardCopyOption.REPLACE_EXISTING);
         }
         RestorePlan restorePlan = new RestorePlan(islandId, worldName, originX, originZ, bundle);

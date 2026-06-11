@@ -9,10 +9,12 @@ public interface IslandStorage {
     IslandBundleManifest readManifest(UUID islandId) throws IOException;
     InputStream openLatestBundle(UUID islandId) throws IOException;
     InputStream openSnapshotBundle(UUID islandId, long snapshotNo) throws IOException;
+    InputStream openBundle(String storagePath) throws IOException;
     void writeSnapshot(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException;
     void writeDeleteBackup(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException;
     void writeDeleteBackupFromLatest(UUID islandId, long snapshotNo) throws IOException;
     void promoteSnapshot(UUID islandId, long snapshotNo) throws IOException;
+    void promoteBundle(UUID islandId, long snapshotNo, String storagePath) throws IOException;
     int pruneSnapshots(UUID islandId, int keepLatest) throws IOException;
     void deleteIsland(UUID islandId) throws IOException;
 }

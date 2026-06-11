@@ -83,13 +83,17 @@ public final class IslandLifecycleWorkflow {
     }
 
     public Result restore(UUID islandId, long snapshotNo) {
+        return restore(islandId, snapshotNo, "");
+    }
+
+    public Result restore(UUID islandId, long snapshotNo, String storagePath) {
         String templateId = islands.templateId(islandId).orElse("default");
         NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId)).orElse(null);
         if (node == null) {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
         IslandRuntimeSnapshot runtime = runtimes.markActivating(islandId, node.nodeId(), "ci_shard_001", 0, 0);
-        jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, node.nodeId(), 30, Map.of("snapshotNo", Long.toString(snapshotNo), "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
+        jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, node.nodeId(), 30, Map.of("snapshotNo", Long.toString(snapshotNo), "storagePath", storagePath == null ? "" : storagePath, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
         events.publish(CloudIslandEventType.ISLAND_RESTORE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "state", "RESTORING", "snapshotNo", Long.toString(snapshotNo)));
         return new Result(true, "RESTORE_QUEUED", runtime);
     }

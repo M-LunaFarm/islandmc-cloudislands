@@ -47,6 +47,11 @@ public final class LocalIslandStorage implements IslandStorage {
     }
 
     @Override
+    public InputStream openBundle(String storagePath) throws IOException {
+        return Files.newInputStream(root.resolve(storagePath));
+    }
+
+    @Override
     public void writeSnapshot(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
         Path islandRoot = islandRoot(islandId);
         Path snapshotDir = islandRoot.resolve("snapshots").resolve(String.format("%06d", snapshotNo));
@@ -77,6 +82,27 @@ public final class LocalIslandStorage implements IslandStorage {
             throw new IOException("missing snapshot manifest: " + islandId + " #" + snapshotNo);
         }
         Files.writeString(islandRoot.resolve("manifest.json"), Files.readString(snapshotManifest, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
+        Files.writeString(islandRoot.resolve("latest"), snapshot, StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public void promoteBundle(UUID islandId, long snapshotNo, String storagePath) throws IOException {
+        Path islandRoot = islandRoot(islandId);
+        String snapshot = String.format("%06d", snapshotNo);
+        Path sourceBundle = root.resolve(storagePath);
+        Path sourceManifest = sourceBundle.resolveSibling("manifest.json");
+        if (!Files.exists(sourceBundle) || !Files.exists(sourceManifest)) {
+            throw new IOException("missing stored bundle: " + storagePath);
+        }
+        Path snapshotDir = islandRoot.resolve("snapshots").resolve(snapshot);
+        Files.createDirectories(snapshotDir);
+        Files.copy(sourceBundle, snapshotDir.resolve("bundle.tar.zst"), StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(sourceManifest, snapshotDir.resolve("manifest.json"), StandardCopyOption.REPLACE_EXISTING);
+        Path sourceChecksums = sourceBundle.resolveSibling("checksums.sha256");
+        if (Files.exists(sourceChecksums)) {
+            Files.copy(sourceChecksums, snapshotDir.resolve("checksums.sha256"), StandardCopyOption.REPLACE_EXISTING);
+        }
+        Files.writeString(islandRoot.resolve("manifest.json"), Files.readString(snapshotDir.resolve("manifest.json"), StandardCharsets.UTF_8), StandardCharsets.UTF_8);
         Files.writeString(islandRoot.resolve("latest"), snapshot, StandardCharsets.UTF_8);
     }
 

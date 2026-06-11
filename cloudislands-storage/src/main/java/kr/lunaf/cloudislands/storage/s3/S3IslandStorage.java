@@ -70,6 +70,11 @@ public final class S3IslandStorage implements IslandStorage {
     }
 
     @Override
+    public InputStream openBundle(String storagePath) throws IOException {
+        return new ByteArrayInputStream(requestBytes("GET", storagePath, null));
+    }
+
+    @Override
     public void writeSnapshot(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
         String snapshot = String.format("%06d", snapshotNo);
         writeBundle(islandId, "snapshots/" + snapshot, bundle, manifest, true, snapshot);
@@ -92,6 +97,24 @@ public final class S3IslandStorage implements IslandStorage {
     public void promoteSnapshot(UUID islandId, long snapshotNo) throws IOException {
         String snapshot = String.format("%06d", snapshotNo);
         byte[] manifest = requestBytes("GET", key(islandId, "snapshots/" + snapshot + "/manifest.json"), null);
+        requestBytes("PUT", key(islandId, "manifest.json"), manifest);
+        requestBytes("PUT", key(islandId, "latest"), snapshot.getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Override
+    public void promoteBundle(UUID islandId, long snapshotNo, String storagePath) throws IOException {
+        String snapshot = String.format("%06d", snapshotNo);
+        String prefix = storagePath.substring(0, storagePath.lastIndexOf('/') + 1);
+        byte[] bundle = requestBytes("GET", storagePath, null);
+        byte[] manifest = requestBytes("GET", prefix + "manifest.json", null);
+        requestBytes("PUT", key(islandId, "snapshots/" + snapshot + "/bundle.tar.zst"), bundle);
+        requestBytes("PUT", key(islandId, "snapshots/" + snapshot + "/manifest.json"), manifest);
+        try {
+            byte[] checksums = requestBytes("GET", prefix + "checksums.sha256", null);
+            requestBytes("PUT", key(islandId, "snapshots/" + snapshot + "/checksums.sha256"), checksums);
+        } catch (IOException ignored) {
+            // Older bundles may not have a checksum sidecar.
+        }
         requestBytes("PUT", key(islandId, "manifest.json"), manifest);
         requestBytes("PUT", key(islandId, "latest"), snapshot.getBytes(StandardCharsets.UTF_8));
     }

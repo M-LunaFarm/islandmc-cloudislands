@@ -59,13 +59,18 @@ public final class IslandActivationJobHandler {
             IslandSaveService.SaveResult preMutationSnapshot = snapshotBeforeMutation(job);
             ShardWorldManager.CellAssignment cell = shardWorldManager.allocateCell(islandId);
             long snapshotNo = longValue(job.payload().get("snapshotNo"));
-            BundleRestorePlan restorePlan = stageBundle(islandId, cell, snapshotNo);
+            String storagePath = job.payload().getOrDefault("storagePath", "");
+            BundleRestorePlan restorePlan = stageBundle(islandId, cell, snapshotNo, storagePath);
             if (restorePlan != null && cellTransfer != null) {
                 CellPlacementPlan placement = new ShardCellTransferPlanner(manifest.size()).placement(restorePlan);
                 cellTransfer.place(placement);
             }
             if (job.type() == IslandJobType.RESTORE_ISLAND && snapshotNo > 0L) {
-                storage.promoteSnapshot(islandId, snapshotNo);
+                if (storagePath.isBlank()) {
+                    storage.promoteSnapshot(islandId, snapshotNo);
+                } else {
+                    storage.promoteBundle(islandId, snapshotNo, storagePath);
+                }
             }
             if (preloader != null) {
                 preloader.preload(cell.worldName(), cell.originX(), cell.originZ(), preloadRadius);
@@ -107,9 +112,9 @@ public final class IslandActivationJobHandler {
         return "";
     }
 
-    private BundleRestorePlan stageBundle(UUID islandId, ShardWorldManager.CellAssignment cell, long snapshotNo) throws IOException {
+    private BundleRestorePlan stageBundle(UUID islandId, ShardWorldManager.CellAssignment cell, long snapshotNo, String storagePath) throws IOException {
         if (worldRestorer != null) {
-            return worldRestorer.stage(islandId, cell.worldName(), cell.originX(), cell.originZ(), snapshotNo);
+            return worldRestorer.stage(islandId, cell.worldName(), cell.originX(), cell.originZ(), snapshotNo, storagePath);
         }
         return null;
     }

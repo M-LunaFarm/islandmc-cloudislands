@@ -713,10 +713,11 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             long snapshotNo = JsonFields.longValue(body, "snapshotNo", 0L);
-            if (snapshotNo <= 0L || snapshotRepository.find(islandId, snapshotNo).isEmpty()) {
+            java.util.Optional<kr.lunaf.cloudislands.api.model.IslandSnapshotRecord> snapshot = snapshotRepository.find(islandId, snapshotNo);
+            if (snapshotNo <= 0L || snapshot.isEmpty()) {
                 write(exchange, 404, ApiResponses.error("SNAPSHOT_NOT_FOUND", "Snapshot was not found"));
             } else {
-                lifecycle(exchange, lifecycle.restore(islandId, snapshotNo));
+                lifecycle(exchange, lifecycle.restore(islandId, snapshotNo, snapshot.get().storagePath()));
             }
         });
         route("/v1/admin/islands/quarantine", exchange -> {
