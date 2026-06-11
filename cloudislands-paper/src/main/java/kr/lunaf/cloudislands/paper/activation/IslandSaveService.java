@@ -42,6 +42,10 @@ public final class IslandSaveService {
         return save(islandId, activeIsland, false, false);
     }
 
+    public SaveResult snapshotBeforeMigration(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland) throws IOException {
+        return save(islandId, activeIsland, false, false);
+    }
+
     public SaveResult backupBeforeDelete(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland) throws IOException {
         return save(islandId, activeIsland, true, false);
     }

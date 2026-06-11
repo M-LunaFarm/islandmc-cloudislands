@@ -78,19 +78,26 @@ public final class IslandActivationJobHandler {
     }
 
     private IslandSaveService.SaveResult snapshotBeforeMutation(IslandJob job) throws IOException {
-        if ((job.type() != IslandJobType.RESTORE_ISLAND && job.type() != IslandJobType.RESET_ISLAND) || activeIslands == null || saveService == null) {
+        if ((job.type() != IslandJobType.RESTORE_ISLAND && job.type() != IslandJobType.RESET_ISLAND && job.type() != IslandJobType.MIGRATE_ISLAND) || activeIslands == null || saveService == null) {
             return null;
         }
         ActiveIslandRegistry.ActiveIsland activeIsland = activeIslands.find(job.islandId()).orElse(null);
         if (activeIsland == null) {
             return null;
         }
-        return job.type() == IslandJobType.RESET_ISLAND
-            ? saveService.snapshotBeforeReset(job.islandId(), activeIsland)
-            : saveService.snapshotBeforeRestore(job.islandId(), activeIsland);
+        if (job.type() == IslandJobType.RESET_ISLAND) {
+            return saveService.snapshotBeforeReset(job.islandId(), activeIsland);
+        }
+        if (job.type() == IslandJobType.MIGRATE_ISLAND) {
+            return saveService.snapshotBeforeMigration(job.islandId(), activeIsland);
+        }
+        return saveService.snapshotBeforeRestore(job.islandId(), activeIsland);
     }
 
     private String preMutationReason(IslandJob job) {
+        if (job.type() == IslandJobType.MIGRATE_ISLAND) {
+            return "BEFORE_MIGRATION";
+        }
         if (job.type() == IslandJobType.RESET_ISLAND) {
             return "BEFORE_RESET";
         }

@@ -69,6 +69,7 @@ public final class JobCompletionService {
             return;
         }
         if (job.type() == IslandJobType.MIGRATE_ISLAND) {
+            recordPreMutationSnapshot(job);
             String worldName = job.payload().getOrDefault("worldName", "ci_shard_001");
             runtimes.markActive(job.islandId(), job.targetNode(), worldName, integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), longValue(job.payload().get("fencingToken")));
             events.publish(CloudIslandEventType.ISLAND_MIGRATED.name(), Map.of("islandId", job.islandId().toString(), "targetNode", job.targetNode() == null ? "" : job.targetNode(), "worldName", worldName));
