@@ -185,6 +185,21 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> islandBank(UUID islandId) {
+        return post("/v1/islands/bank", "{\"islandId\":\"" + islandId + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> depositIslandBank(UUID islandId, UUID actorUuid, String amount) {
+        return post("/v1/islands/bank/deposit", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"amount\":\"" + escape(amount) + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> withdrawIslandBank(UUID islandId, UUID actorUuid, String amount) {
+        return post("/v1/islands/bank/withdraw", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"amount\":\"" + escape(amount) + "\"}");
+    }
+
+    @Override
     public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid) {
         return post("/v1/routes/home", "{\"playerUuid\":\"" + playerUuid + "\"}").thenApply(RouteTicketJson::parse);
     }

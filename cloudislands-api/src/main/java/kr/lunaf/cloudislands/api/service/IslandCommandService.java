@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.api.service;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
@@ -20,4 +21,6 @@ public interface IslandCommandService {
     CompletableFuture<Void> setHome(UUID islandId, UUID actorUuid, IslandLocation location);
     CompletableFuture<Void> createWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<Void> purchaseUpgrade(UUID islandId, UUID actorUuid, String upgradeKey);
+    CompletableFuture<Void> depositBank(UUID islandId, UUID actorUuid, BigDecimal amount);
+    CompletableFuture<Void> withdrawBank(UUID islandId, UUID actorUuid, BigDecimal amount);
 }

@@ -46,6 +46,9 @@ public interface CoreApiClient {
     CompletableFuture<Void> requestIslandSnapshot(UUID islandId, String reason);
     CompletableFuture<Void> restoreIslandSnapshot(UUID islandId, long snapshotNo);
     CompletableFuture<String> listIslandLogs(UUID islandId, int limit);
+    CompletableFuture<String> islandBank(UUID islandId);
+    CompletableFuture<String> depositIslandBank(UUID islandId, UUID actorUuid, String amount);
+    CompletableFuture<String> withdrawIslandBank(UUID islandId, UUID actorUuid, String amount);
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid);
     CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId);
     CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid);

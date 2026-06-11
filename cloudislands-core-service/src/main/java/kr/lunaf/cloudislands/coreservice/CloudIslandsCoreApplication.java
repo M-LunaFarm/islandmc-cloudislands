@@ -23,6 +23,9 @@ import kr.lunaf.cloudislands.common.routing.NodeAllocator;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.audit.InMemoryAuditLogger;
 import kr.lunaf.cloudislands.coreservice.audit.JdbcAuditLogger;
+import kr.lunaf.cloudislands.coreservice.bank.InMemoryIslandBankRepository;
+import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
+import kr.lunaf.cloudislands.coreservice.bank.JdbcIslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.config.CoreServiceConfig;
 import kr.lunaf.cloudislands.coreservice.db.DriverManagerDataSource;
 import kr.lunaf.cloudislands.coreservice.event.CompositeGlobalEventPublisher;
@@ -113,6 +116,7 @@ public final class CloudIslandsCoreApplication {
         IslandUpgradeRepository upgradeRepository = config.jdbcRepositories() ? new JdbcIslandUpgradeRepository(dataSource) : new InMemoryIslandUpgradeRepository();
         UpgradePolicy upgradePolicy = new UpgradePolicy();
         IslandUpgradeService upgradeService = new IslandUpgradeService(upgradeRepository, upgradePolicy);
+        IslandBankRepository bankRepository = config.jdbcRepositories() ? new JdbcIslandBankRepository(dataSource) : new InMemoryIslandBankRepository();
         AuditLogger audit = config.jdbcRepositories() ? new JdbcAuditLogger(dataSource) : new InMemoryAuditLogger();
         IslandLogRepository islandLogs = config.jdbcRepositories() ? new JdbcIslandLogRepository(dataSource) : new InMemoryIslandLogRepository();
         InMemoryAuditLogger inMemoryAudit = audit instanceof InMemoryAuditLogger logger ? logger : new InMemoryAuditLogger();
@@ -291,6 +295,34 @@ public final class CloudIslandsCoreApplication {
         route("/v1/islands/logs", exchange -> {
             String body = readBody(exchange);
             write(exchange, 200, islandLogsJson(islandLogs.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.integer(body, "limit", 30))));
+        });
+        route("/v1/islands/bank", exchange -> {
+            String body = readBody(exchange);
+            write(exchange, 200, bankJson(bankRepository.balance(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
+        });
+        route("/v1/islands/bank/deposit", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            BigDecimal amount = amount(body);
+            var snapshot = bankRepository.deposit(islandId, amount);
+            audit.log(actorUuid, "PLAYER", "ISLAND_BANK_DEPOSIT", "ISLAND", islandId.toString(), Map.of("amount", amount.toPlainString(), "balance", snapshot.balance()));
+            islandLogs.append(islandId, actorUuid, "ISLAND_BANK_DEPOSIT", Map.of("amount", amount.toPlainString(), "balance", snapshot.balance()));
+            events.publish("ISLAND_BANK_DEPOSIT", Map.of("islandId", islandId.toString(), "amount", amount.toPlainString()));
+            write(exchange, 202, bankJson(snapshot));
+        });
+        route("/v1/islands/bank/withdraw", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            BigDecimal amount = amount(body);
+            var result = bankRepository.withdraw(islandId, amount);
+            audit.log(actorUuid, "PLAYER", "ISLAND_BANK_WITHDRAW", "ISLAND", islandId.toString(), Map.of("amount", amount.toPlainString(), "code", result.code(), "balance", result.snapshot().balance()));
+            islandLogs.append(islandId, actorUuid, "ISLAND_BANK_WITHDRAW", Map.of("amount", amount.toPlainString(), "code", result.code(), "balance", result.snapshot().balance()));
+            if (result.accepted()) {
+                events.publish("ISLAND_BANK_WITHDRAW", Map.of("islandId", islandId.toString(), "amount", amount.toPlainString()));
+            }
+            write(exchange, result.accepted() ? 202 : 409, "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\",\"bank\":" + bankJson(result.snapshot()) + "}");
         });
         route("/v1/islands/delete", exchange -> {
             String body = readBody(exchange);
@@ -496,6 +528,18 @@ public final class CloudIslandsCoreApplication {
 
     private static String deleteResultJson(DeleteIslandResult result) {
         return "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\",\"islandId\":\"" + result.islandId() + "\"}";
+    }
+
+    private static BigDecimal amount(String body) {
+        try {
+            return new BigDecimal(JsonFields.text(body, "amount", Double.toString(JsonFields.decimal(body, "amount", 0.0D))));
+        } catch (NumberFormatException exception) {
+            return BigDecimal.ZERO;
+        }
+    }
+
+    private static String bankJson(kr.lunaf.cloudislands.api.model.IslandBankSnapshot bank) {
+        return "{\"islandId\":\"" + bank.islandId() + "\",\"balance\":\"" + escape(bank.balance()) + "\",\"updatedAt\":\"" + bank.updatedAt() + "\"}";
     }
 
     private static String sessionJson(PlayerRouteSession session) {

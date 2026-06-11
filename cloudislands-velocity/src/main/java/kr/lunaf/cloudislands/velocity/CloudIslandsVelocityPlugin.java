@@ -154,6 +154,23 @@ public final class CloudIslandsVelocityPlugin {
             routingController.listIslandLogs(player, islandId);
             return;
         }
+        if (args[0].equalsIgnoreCase("bank") || args[0].equals("은행")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.showBank(player, islandId);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("deposit") || args[0].equals("입금")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            String amount = args.length > 2 ? args[2] : "0";
+            routingController.depositBank(player, islandId, amount);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("withdraw") || args[0].equals("출금")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            String amount = args.length > 2 ? args[2] : "0";
+            routingController.withdrawBank(player, islandId, amount);
+            return;
+        }
         if (args[0].equalsIgnoreCase("rank") || args[0].equals("ranking") || args[0].equals("랭킹")) {
             routingController.showLevelRanking(player);
             return;
@@ -206,7 +223,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.deleteIsland(player, islandId);
             return;
         }
-        player.sendMessage(Component.text("사용법: /섬 홈, /섬 생성, /섬 삭제 <섬>, /섬 방문 <섬>, /섬 멤버 <섬>, /섬 공개 <섬>, /섬 밴 <섬> <플레이어>, /섬 랭킹"));
+        player.sendMessage(Component.text("사용법: /섬 홈, /섬 생성, /섬 삭제 <섬>, /섬 은행 <섬>, /섬 입금 <섬> <금액>, /섬 방문 <섬>, /섬 랭킹"));
     }
 
     private UUID parseUuidOrNil(String value) {

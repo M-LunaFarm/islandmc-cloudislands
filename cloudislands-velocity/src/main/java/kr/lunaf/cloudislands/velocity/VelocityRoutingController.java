@@ -105,6 +105,18 @@ public final class VelocityRoutingController {
         coreApiClient.listIslandLogs(islandId, 30).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 로그를 불러오지 못했습니다." : body)));
     }
 
+    public void showBank(Player player, UUID islandId) {
+        coreApiClient.islandBank(islandId).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 은행을 불러오지 못했습니다." : body)));
+    }
+
+    public void depositBank(Player player, UUID islandId, String amount) {
+        coreApiClient.depositIslandBank(islandId, player.getUniqueId(), amount).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "입금에 실패했습니다." : body)));
+    }
+
+    public void withdrawBank(Player player, UUID islandId, String amount) {
+        coreApiClient.withdrawIslandBank(islandId, player.getUniqueId(), amount).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "출금에 실패했습니다." : body)));
+    }
+
     public void showLevelRanking(Player player) {
         coreApiClient.topIslandsByLevel(10).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "랭킹을 불러오지 못했습니다." : body)));
     }
