@@ -1020,7 +1020,7 @@ public final class CloudIslandsCoreApplication {
             metadataRepository.setBiome(islandId, biomeKey, actorUuid);
             audit.log(actorUuid, "PLAYER", "ISLAND_BIOME_SET", "ISLAND", islandId.toString(), Map.of("biomeKey", biomeKey));
             islandLogs.append(islandId, actorUuid, "ISLAND_BIOME_SET", Map.of("biomeKey", biomeKey));
-            events.publish("ISLAND_BIOME_SET", Map.of("islandId", islandId.toString(), "biomeKey", biomeKey));
+            events.publish(CloudIslandEventType.ISLAND_BIOME_CHANGED.name(), Map.of("islandId", islandId.toString(), "biomeKey", biomeKey));
             write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/islands/flags/set", exchange -> {
@@ -1058,7 +1058,7 @@ public final class CloudIslandsCoreApplication {
             metadataRepository.upsertHome(islandId, name, location(body), actorUuid);
             audit.log(actorUuid, "PLAYER", "ISLAND_HOME_SET", "ISLAND", islandId.toString(), Map.of("name", name));
             islandLogs.append(islandId, actorUuid, "ISLAND_HOME_SET", Map.of("name", name));
-            events.publish("ISLAND_HOME_SET", Map.of("islandId", islandId.toString(), "name", name));
+            events.publish(CloudIslandEventType.ISLAND_HOME_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name));
             write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/islands/warps/set", exchange -> {
