@@ -1851,7 +1851,7 @@ public final class CloudIslandsCoreApplication {
     }
 
     private static NodeHeartbeatRequest heartbeat(String body) {
-        return new NodeHeartbeatRequest(JsonFields.text(body, "nodeId", "unknown"), JsonFields.text(body, "pool", "island"), JsonFields.text(body, "velocityServerName", JsonFields.text(body, "nodeId", "unknown")), JsonFields.text(body, "nodeVersion", ""), JsonFields.enumValue(NodeState.class, body, "state", NodeState.READY), JsonFields.integer(body, "players", 0), JsonFields.integer(body, "activeIslands", 0), JsonFields.decimal(body, "mspt", 20.0D), JsonFields.integer(body, "activationQueue", 0), JsonFields.longValue(body, "heapUsedMb", 0L), JsonFields.longValue(body, "heapMaxMb", 1L), JsonFields.bool(body, "storageAvailable", true), JsonFields.text(body, "supportedTemplates", "*"));
+        return new NodeHeartbeatRequest(JsonFields.text(body, "nodeId", "unknown"), JsonFields.text(body, "pool", "island"), JsonFields.text(body, "velocityServerName", JsonFields.text(body, "nodeId", "unknown")), JsonFields.text(body, "nodeVersion", ""), JsonFields.enumValue(NodeState.class, body, "state", NodeState.READY), JsonFields.integer(body, "players", 0), JsonFields.integer(body, "activeIslands", 0), JsonFields.decimal(body, "mspt", 20.0D), JsonFields.integer(body, "activationQueue", 0), JsonFields.integer(body, "maxActivationQueue", 20), JsonFields.decimal(body, "chunkLoadPressure", 0.0D), JsonFields.longValue(body, "heapUsedMb", 0L), JsonFields.longValue(body, "heapMaxMb", 1L), JsonFields.integer(body, "recentFailurePenalty", 0), JsonFields.bool(body, "storageAvailable", true), JsonFields.text(body, "supportedTemplates", "*"));
     }
 
     private static String readBody(HttpExchange exchange) throws IOException {

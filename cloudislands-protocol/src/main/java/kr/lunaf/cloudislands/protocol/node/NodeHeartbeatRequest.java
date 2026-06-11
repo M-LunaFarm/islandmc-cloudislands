@@ -12,8 +12,11 @@ public record NodeHeartbeatRequest(
     int activeIslands,
     double mspt,
     int activationQueue,
+    int maxActivationQueue,
+    double chunkLoadPressure,
     long heapUsedMb,
     long heapMaxMb,
+    int recentFailurePenalty,
     boolean storageAvailable,
     String supportedTemplates
 ) {}

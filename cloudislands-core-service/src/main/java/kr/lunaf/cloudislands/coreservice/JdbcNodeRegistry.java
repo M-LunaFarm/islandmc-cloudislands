@@ -30,7 +30,7 @@ public final class JdbcNodeRegistry implements NodeRegistry {
         NodeLoad current = find(request.nodeId()).orElse(null);
         NodeState nextState = current != null && current.state() == NodeState.DRAINING ? NodeState.DRAINING : request.state();
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO server_nodes(id, pool, velocity_server_name, node_version, state, soft_player_cap, hard_player_cap, max_active_islands, players, active_islands, mspt, heap_used_mb, heap_max_mb, activation_queue, object_storage_available, supported_templates, last_heartbeat, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), now()) ON CONFLICT (id) DO UPDATE SET pool = EXCLUDED.pool, velocity_server_name = EXCLUDED.velocity_server_name, node_version = EXCLUDED.node_version, state = EXCLUDED.state, players = EXCLUDED.players, active_islands = EXCLUDED.active_islands, mspt = EXCLUDED.mspt, heap_used_mb = EXCLUDED.heap_used_mb, heap_max_mb = EXCLUDED.heap_max_mb, activation_queue = EXCLUDED.activation_queue, object_storage_available = EXCLUDED.object_storage_available, supported_templates = EXCLUDED.supported_templates, last_heartbeat = now(), updated_at = now()")) {
+             PreparedStatement statement = connection.prepareStatement("INSERT INTO server_nodes(id, pool, velocity_server_name, node_version, state, soft_player_cap, hard_player_cap, max_active_islands, players, active_islands, mspt, heap_used_mb, heap_max_mb, activation_queue, max_activation_queue, chunk_load_pressure, recent_failure_penalty, object_storage_available, supported_templates, last_heartbeat, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), now()) ON CONFLICT (id) DO UPDATE SET pool = EXCLUDED.pool, velocity_server_name = EXCLUDED.velocity_server_name, node_version = EXCLUDED.node_version, state = EXCLUDED.state, players = EXCLUDED.players, active_islands = EXCLUDED.active_islands, mspt = EXCLUDED.mspt, heap_used_mb = EXCLUDED.heap_used_mb, heap_max_mb = EXCLUDED.heap_max_mb, activation_queue = EXCLUDED.activation_queue, max_activation_queue = EXCLUDED.max_activation_queue, chunk_load_pressure = EXCLUDED.chunk_load_pressure, recent_failure_penalty = EXCLUDED.recent_failure_penalty, object_storage_available = EXCLUDED.object_storage_available, supported_templates = EXCLUDED.supported_templates, last_heartbeat = now(), updated_at = now()")) {
             statement.setString(1, request.nodeId());
             statement.setString(2, request.pool() == null || request.pool().isBlank() ? "island" : request.pool());
             statement.setString(3, request.velocityServerName());
@@ -45,8 +45,11 @@ public final class JdbcNodeRegistry implements NodeRegistry {
             statement.setLong(12, request.heapUsedMb());
             statement.setLong(13, request.heapMaxMb());
             statement.setInt(14, request.activationQueue());
-            statement.setBoolean(15, request.storageAvailable());
-            statement.setString(16, request.supportedTemplates() == null || request.supportedTemplates().isBlank() ? "*" : request.supportedTemplates());
+            statement.setInt(15, request.maxActivationQueue());
+            statement.setDouble(16, request.chunkLoadPressure());
+            statement.setInt(17, request.recentFailurePenalty());
+            statement.setBoolean(18, request.storageAvailable());
+            statement.setString(19, request.supportedTemplates() == null || request.supportedTemplates().isBlank() ? "*" : request.supportedTemplates());
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to record node heartbeat", exception);
@@ -143,11 +146,11 @@ public final class JdbcNodeRegistry implements NodeRegistry {
             rs.getInt("max_active_islands"),
             rs.getDouble("mspt"),
             rs.getInt("activation_queue"),
-            DEFAULT_MAX_ACTIVATION_QUEUE,
-            0.0D,
+            rs.getInt("max_activation_queue"),
+            rs.getDouble("chunk_load_pressure"),
             rs.getLong("heap_used_mb"),
             rs.getLong("heap_max_mb"),
-            0,
+            rs.getInt("recent_failure_penalty"),
             lastHeartbeat == null ? Instant.EPOCH : lastHeartbeat.toInstant(),
             rs.getBoolean("object_storage_available"),
             rs.getString("supported_templates") == null ? "*" : rs.getString("supported_templates")

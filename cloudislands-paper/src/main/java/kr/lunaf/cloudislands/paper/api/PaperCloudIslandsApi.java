@@ -412,8 +412,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 heartbeat.activeIslands(),
                 heartbeat.mspt(),
                 heartbeat.activationQueue(),
+                20,
+                0.0D,
                 heartbeat.heapUsedMb(),
                 heartbeat.heapMaxMb(),
+                0,
                 true,
                 "*"
             )).thenApply(body -> action(body, "HEARTBEAT_ACCEPTED"));
@@ -1238,8 +1241,10 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             decimal(json, "mspt", 0.0D),
             integer(json, "activationQueue", 0),
             integer(json, "maxActivationQueue", 0),
+            decimal(json, "chunkLoadPressure", 0.0D),
             longValue(json, "heapUsedMb", 0L),
             longValue(json, "heapMaxMb", 0L),
+            integer(json, "recentFailurePenalty", 0),
             bool(json, "storageAvailable", false),
             text(json, "supportedTemplates", ""),
             instant(text(json, "lastHeartbeat", Instant.EPOCH.toString())),

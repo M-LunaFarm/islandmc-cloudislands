@@ -64,8 +64,11 @@ public final class PaperHeartbeatService {
             0,
             currentMspt(),
             0,
+            20,
+            0.0D,
             heapUsed,
             heapMax,
+            0,
             storageAvailable.getAsBoolean(),
             supportedTemplates
         );
