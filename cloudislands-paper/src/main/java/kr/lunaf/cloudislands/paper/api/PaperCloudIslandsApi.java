@@ -33,6 +33,7 @@ import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
+import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 import kr.lunaf.cloudislands.api.model.RoutePlan;
@@ -49,6 +50,7 @@ import kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
+import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 
 public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private final QueryService query;
@@ -283,7 +285,21 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<Void> heartbeat(String nodeId, NodeHeartbeat heartbeat) {
-            return unsupported("node heartbeat publishing requires node identity and config from the running Paper agent");
+            return client.publishHeartbeat(new NodeHeartbeatRequest(
+                nodeId,
+                "island",
+                nodeId,
+                "paper-api",
+                NodeState.READY,
+                heartbeat.players(),
+                heartbeat.activeIslands(),
+                heartbeat.mspt(),
+                heartbeat.activationQueue(),
+                heartbeat.heapUsedMb(),
+                heartbeat.heapMaxMb(),
+                true,
+                "*"
+            ));
         }
     }
 
@@ -759,7 +775,4 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
     }
 
-    private static <T> CompletableFuture<T> unsupported(String message) {
-        return CompletableFuture.failedFuture(new UnsupportedOperationException(message));
-    }
 }
