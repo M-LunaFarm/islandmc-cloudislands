@@ -55,7 +55,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "create-menu", "templates", "생성메뉴", "템플릿",
         "info", "정보", "list", "my", "my-islands", "목록", "내섬", "create", "생성", "delete", "삭제", "reset", "리셋", "danger", "위험작업",
         "sethome", "셋홈", "homes", "home-menu", "home-list", "홈관리", "홈목록", "home", "홈",
-        "warps", "warp-menu", "warp-list", "워프", "워프관리", "워프목록", "warp", "setwarp", "워프설정",
+        "warps", "warp-menu", "warp-list", "워프", "워프관리", "워프목록", "public-warps", "publicwarplist", "공개워프목록", "warp", "setwarp", "워프설정",
         "delwarp", "deletewarp", "워프삭제", "warp-public", "publicwarp", "워프공개", "warp-private", "privatewarp", "워프비공개",
         "public", "공개", "private", "비공개", "lock", "잠금", "unlock", "잠금해제",
         "visit", "randomvisit", "random-visit", "방문", "랜덤방문",
@@ -171,6 +171,13 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return true;
         }
         if (subcommand.equals("warps") || subcommand.equals("warp-menu") || subcommand.equals("워프") || subcommand.equals("워프관리")) {
+            if (args.length > 2) {
+                UUID islandId = uuid(args[1]);
+                if (islandId != null) {
+                    routeWarp(player, islandId, args[2]);
+                    return true;
+                }
+            }
             if (args.length > 1) {
                 teleportWarp(player, args[1]);
             } else {
@@ -182,7 +189,20 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             listWarps(player);
             return true;
         }
+        if (subcommand.equals("public-warps") || subcommand.equals("publicwarplist") || subcommand.equals("공개워프목록")) {
+            IslandWarpMenu.openPublic(plugin, coreApiClient, player);
+            return true;
+        }
         if (subcommand.equals("warp")) {
+            if (args.length > 2) {
+                UUID islandId = uuid(args[1]);
+                if (islandId == null) {
+                    player.sendMessage("섬 UUID가 올바르지 않습니다.");
+                    return true;
+                }
+                routeWarp(player, islandId, args[2]);
+                return true;
+            }
             if (args.length < 2) {
                 player.sendMessage("워프 이름을 입력해주세요.");
                 return true;
@@ -849,6 +869,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void routeVisit(Player player, UUID islandId) {
         routeTicket(player, coreApiClient.createVisitTicket(player.getUniqueId(), islandId), "해당 섬에 방문할 수 없습니다.");
+    }
+
+    private void routeWarp(Player player, UUID islandId, String warpName) {
+        routeTicket(player, coreApiClient.createWarpTicket(player.getUniqueId(), islandId, warpName), "해당 워프로 이동할 수 없습니다.");
     }
 
     private void routeRandomVisit(Player player) {

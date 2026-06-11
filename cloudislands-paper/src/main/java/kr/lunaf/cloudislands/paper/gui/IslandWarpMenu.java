@@ -17,19 +17,30 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandWarpMenu implements Listener {
     private static final String TITLE = "섬 워프 관리";
+    private static final String PUBLIC_TITLE = "공개 섬 워프";
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
         client.listIslandWarps(islandId)
-            .thenAccept(body -> openSync(plugin, player, warps(body)))
+            .thenAccept(body -> openSync(plugin, player, TITLE, warps(body), false))
             .exceptionally(error -> {
                 plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("섬 워프를 불러오지 못했습니다."));
                 return null;
             });
     }
 
+    public static void openPublic(Plugin plugin, CoreApiClient client, Player player) {
+        client.listPublicWarps(45)
+            .thenAccept(body -> openSync(plugin, player, PUBLIC_TITLE, warps(body), true))
+            .exceptionally(error -> {
+                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("공개 섬 워프를 불러오지 못했습니다."));
+                return null;
+            });
+    }
+
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!TITLE.equals(event.getView().getTitle())) {
+        boolean publicMenu = PUBLIC_TITLE.equals(event.getView().getTitle());
+        if (!TITLE.equals(event.getView().getTitle()) && !publicMenu) {
             return;
         }
         event.setCancelled(true);
@@ -46,8 +57,17 @@ public final class IslandWarpMenu implements Listener {
             player.sendMessage("사용법: /섬 워프설정 <이름>");
             return;
         }
+        if (name.equals("공개 워프 새로고침")) {
+            player.performCommand("섬 공개워프목록");
+            return;
+        }
         String warpName = loreValue(meta, "warpName=");
         if (warpName.isBlank()) {
+            return;
+        }
+        String islandId = loreValue(meta, "islandId=");
+        if (publicMenu && !islandId.isBlank()) {
+            player.performCommand("섬 warp " + islandId + " " + warpName);
             return;
         }
         if (event.isRightClick()) {
@@ -59,20 +79,25 @@ public final class IslandWarpMenu implements Listener {
         player.performCommand("섬 warp " + warpName);
     }
 
-    private static void openSync(Plugin plugin, Player player, List<Warp> warps) {
+    private static void openSync(Plugin plugin, Player player, String title, List<Warp> warps, boolean publicMenu) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
-            inventory.setItem(45, item(Material.ENDER_PEARL, "현재 위치를 워프로 설정", "사용법: /섬 워프설정 <이름>"));
+            Inventory inventory = Bukkit.createInventory(null, 54, title);
+            inventory.setItem(45, publicMenu
+                ? item(Material.COMPASS, "공개 워프 새로고침", "/섬 공개워프목록")
+                : item(Material.ENDER_PEARL, "현재 위치를 워프로 설정", "사용법: /섬 워프설정 <이름>"));
             int slot = 0;
             for (Warp warp : warps.stream().limit(45).toList()) {
-                inventory.setItem(slot++, warpItem(warp));
+                inventory.setItem(slot++, warpItem(warp, publicMenu));
             }
             player.openInventory(inventory);
         });
     }
 
-    private static ItemStack warpItem(Warp warp) {
+    private static ItemStack warpItem(Warp warp, boolean publicMenu) {
         Material material = warp.publicAccess() ? Material.ENDER_EYE : Material.ENDER_PEARL;
+        if (publicMenu) {
+            return item(material, warp.name(), "islandId=" + warp.islandId(), "warpName=" + warp.name(), "위치: " + (long) warp.x() + ", " + (long) warp.y() + ", " + (long) warp.z(), "좌클릭: 공개 워프로 이동");
+        }
         return item(material, warp.name(), "warpName=" + warp.name(), "위치: " + (long) warp.x() + ", " + (long) warp.y() + ", " + (long) warp.z(), warp.publicAccess() ? "공개 워프" : "비공개 워프", "좌클릭: 이동, 우클릭: 관리 명령");
     }
 
@@ -102,7 +127,7 @@ public final class IslandWarpMenu implements Listener {
             String object = body.substring(objectStart, objectEnd + 1);
             String name = text(object, "name");
             if (!name.isBlank()) {
-                warps.add(new Warp(name, decimal(object, "localX"), decimal(object, "localY"), decimal(object, "localZ"), bool(object, "publicAccess")));
+                warps.add(new Warp(text(object, "islandId"), name, decimal(object, "localX"), decimal(object, "localY"), decimal(object, "localZ"), bool(object, "publicAccess")));
             }
             index = objectEnd + 1;
         }
@@ -174,6 +199,6 @@ public final class IslandWarpMenu implements Listener {
         return -1;
     }
 
-    private record Warp(String name, double x, double y, double z, boolean publicAccess) {
+    private record Warp(String islandId, String name, double x, double y, double z, boolean publicAccess) {
     }
 }
