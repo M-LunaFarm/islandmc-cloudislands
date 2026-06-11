@@ -4,10 +4,12 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import org.bukkit.GameMode;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Animals;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -60,6 +62,13 @@ public final class IslandGameplayFlagListener implements Listener {
     public void onCreatureSpawn(CreatureSpawnEvent event) {
         IslandFlag flag = spawnFlag(event);
         if (flag != null && protection.islandAt(event.getLocation().getBlock()).isPresent() && !islandFlagAllowed(event.getLocation().getBlock(), flag)) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onEntityChangeBlock(EntityChangeBlockEvent event) {
+        if (event.getEntityType() == EntityType.ENDERMAN && protection.islandAt(event.getBlock()).isPresent() && !islandFlagAllowed(event.getBlock(), IslandFlag.ENDERMAN_GRIEF)) {
             event.setCancelled(true);
         }
     }
