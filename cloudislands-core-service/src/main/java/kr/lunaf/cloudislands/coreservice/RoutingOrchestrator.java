@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreservice;
 
 import java.time.Instant;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -42,12 +43,18 @@ public final class RoutingOrchestrator {
     private final IslandJobPublisher jobs;
     private final GlobalEventPublisher events;
     private final String islandPool;
+    private final Duration routeTicketTtl;
+    private final Duration routePreparingTicketTtl;
 
     public RoutingOrchestrator(NodeRegistry nodes, NodeAllocator allocator, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, IslandRuntimeRepository runtimes, IslandTemplateRepository templates, IslandJobPublisher jobs, GlobalEventPublisher events) {
         this(nodes, allocator, tickets, islands, metadata, runtimes, templates, jobs, events, "island");
     }
 
     public RoutingOrchestrator(NodeRegistry nodes, NodeAllocator allocator, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, IslandRuntimeRepository runtimes, IslandTemplateRepository templates, IslandJobPublisher jobs, GlobalEventPublisher events, String islandPool) {
+        this(nodes, allocator, tickets, islands, metadata, runtimes, templates, jobs, events, islandPool, Duration.ofSeconds(30), Duration.ofSeconds(120));
+    }
+
+    public RoutingOrchestrator(NodeRegistry nodes, NodeAllocator allocator, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, IslandRuntimeRepository runtimes, IslandTemplateRepository templates, IslandJobPublisher jobs, GlobalEventPublisher events, String islandPool, Duration routeTicketTtl, Duration routePreparingTicketTtl) {
         this.nodes = nodes;
         this.allocator = allocator;
         this.tickets = tickets;
@@ -58,6 +65,8 @@ public final class RoutingOrchestrator {
         this.jobs = jobs;
         this.events = events;
         this.islandPool = islandPool == null || islandPool.isBlank() ? "island" : islandPool;
+        this.routeTicketTtl = routeTicketTtl == null || routeTicketTtl.isNegative() || routeTicketTtl.isZero() ? Duration.ofSeconds(30) : routeTicketTtl;
+        this.routePreparingTicketTtl = routePreparingTicketTtl == null || routePreparingTicketTtl.isNegative() || routePreparingTicketTtl.isZero() ? Duration.ofSeconds(120) : routePreparingTicketTtl;
     }
 
     public RoutePreparationResult prepareHomeRoute(UUID playerUuid) {
@@ -241,7 +250,7 @@ public final class RoutingOrchestrator {
             target.node().nodeId(),
             target.worldName(),
             target.state(),
-            Instant.now().plusSeconds(target.state() == RouteTicketState.PREPARING ? 120 : 30),
+            Instant.now().plus(target.state() == RouteTicketState.PREPARING ? routePreparingTicketTtl : routeTicketTtl),
             UUID.randomUUID().toString(),
             Map.copyOf(payload)
         );

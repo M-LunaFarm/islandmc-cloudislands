@@ -24,6 +24,8 @@ public record CoreServiceConfig(
     String upgradesFile,
     String blockValuesFile,
     String islandPool,
+    Duration routeTicketTtl,
+    Duration routePreparingTicketTtl,
     Duration heartbeatTimeout,
     Duration leaseDuration
 ) {
@@ -49,6 +51,8 @@ public record CoreServiceConfig(
             env("CI_UPGRADES_FILE", ""),
             env("CI_BLOCK_VALUES_FILE", ""),
             env("CI_ISLAND_POOL", "island"),
+            Duration.ofSeconds(integer("CI_ROUTE_TICKET_TTL_SECONDS", 30)),
+            Duration.ofSeconds(integer("CI_ROUTE_PREPARING_TICKET_TTL_SECONDS", 120)),
             Duration.ofSeconds(integer("CI_HEARTBEAT_TIMEOUT_SECONDS", 5)),
             Duration.ofSeconds(integer("CI_LEASE_SECONDS", 30))
         );
@@ -71,7 +75,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, heartbeatTimeout, leaseDuration);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration);
     }
 
     private static String env(String key, String fallback) {
