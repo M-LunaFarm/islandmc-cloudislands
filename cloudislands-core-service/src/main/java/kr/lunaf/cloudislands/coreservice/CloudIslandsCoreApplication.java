@@ -192,6 +192,9 @@ public final class CloudIslandsCoreApplication {
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
             String limitKey = JsonFields.text(body, "limitKey", "HOPPER");
             long value = JsonFields.longValue(body, "value", 0L);
+            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
             kr.lunaf.cloudislands.api.model.IslandLimitSnapshot snapshot = limitRepository.set(islandId, limitKey, value, actorUuid);
             audit.log(actorUuid, "PLAYER", "ISLAND_LIMIT_SET", "ISLAND", islandId.toString(), Map.of("limitKey", snapshot.limitKey(), "value", Long.toString(snapshot.value())));
             islandLogs.append(islandId, actorUuid, "ISLAND_LIMIT_SET", Map.of("limitKey", snapshot.limitKey(), "value", Long.toString(snapshot.value())));
@@ -216,6 +219,9 @@ public final class CloudIslandsCoreApplication {
             IslandPermission permission = JsonFields.enumValue(IslandPermission.class, body, "permission", IslandPermission.BUILD);
             boolean allowed = JsonFields.bool(body, "allowed", false);
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
             permissionRules.put(islandId, role, permission, allowed);
             audit.log(actorUuid, "PLAYER", "ISLAND_PERMISSION_SET", "ISLAND", islandId.toString(), Map.of("role", role.name(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
             islandLogs.append(islandId, actorUuid, "ISLAND_PERMISSION_SET", Map.of("role", role.name(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
@@ -577,9 +583,13 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
             IslandRole role = JsonFields.enumValue(IslandRole.class, body, "role", IslandRole.MEMBER);
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
             metadataRepository.upsertMember(islandId, playerUuid, role);
-            audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_MEMBER_SET", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString(), "role", role.name()));
-            islandLogs.append(islandId, JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "ISLAND_MEMBER_SET", Map.of("playerUuid", playerUuid.toString(), "role", role.name()));
+            audit.log(actorUuid, "PLAYER", "ISLAND_MEMBER_SET", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString(), "role", role.name()));
+            islandLogs.append(islandId, actorUuid, "ISLAND_MEMBER_SET", Map.of("playerUuid", playerUuid.toString(), "role", role.name()));
             events.publish("ISLAND_MEMBER_SET", Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", role.name()));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -602,9 +612,13 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
             metadataRepository.removeMember(islandId, playerUuid);
-            audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_MEMBER_REMOVE", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
-            islandLogs.append(islandId, JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "ISLAND_MEMBER_REMOVE", Map.of("playerUuid", playerUuid.toString()));
+            audit.log(actorUuid, "PLAYER", "ISLAND_MEMBER_REMOVE", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
+            islandLogs.append(islandId, actorUuid, "ISLAND_MEMBER_REMOVE", Map.of("playerUuid", playerUuid.toString()));
             events.publish("ISLAND_MEMBER_REMOVE", Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -613,6 +627,9 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID inviterUuid = JsonFields.uuid(body, "inviterUuid", new UUID(0L, 0L));
             UUID targetUuid = JsonFields.uuid(body, "targetUuid", new UUID(0L, 0L));
+            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, inviterUuid)) {
+                return;
+            }
             var invite = metadataRepository.createInvite(islandId, inviterUuid, targetUuid);
             audit.log(inviterUuid, "PLAYER", "ISLAND_INVITE_CREATE", "ISLAND", islandId.toString(), Map.of("targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString()));
             islandLogs.append(islandId, inviterUuid, "ISLAND_INVITE_CREATE", Map.of("targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString()));
@@ -647,6 +664,9 @@ public final class CloudIslandsCoreApplication {
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
             String reason = JsonFields.text(body, "reason", "island ban");
+            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
             metadataRepository.banVisitor(islandId, actorUuid, playerUuid, reason);
             metadataRepository.removeMember(islandId, playerUuid);
             audit.log(actorUuid, "PLAYER", "ISLAND_VISITOR_BAN", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString(), "reason", reason));
@@ -662,9 +682,13 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
             metadataRepository.pardonVisitor(islandId, playerUuid);
-            audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_VISITOR_PARDON", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
-            islandLogs.append(islandId, JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "ISLAND_VISITOR_PARDON", Map.of("playerUuid", playerUuid.toString()));
+            audit.log(actorUuid, "PLAYER", "ISLAND_VISITOR_PARDON", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
+            islandLogs.append(islandId, actorUuid, "ISLAND_VISITOR_PARDON", Map.of("playerUuid", playerUuid.toString()));
             events.publish("ISLAND_VISITOR_PARDON", Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -673,6 +697,9 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             boolean locked = JsonFields.bool(body, "locked", false);
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
             metadataRepository.setLocked(islandId, locked);
             audit.log(actorUuid, "PLAYER", "ISLAND_LOCK_SET", "ISLAND", islandId.toString(), Map.of("locked", Boolean.toString(locked)));
             islandLogs.append(islandId, actorUuid, "ISLAND_LOCK_SET", Map.of("locked", Boolean.toString(locked)));
@@ -692,6 +719,9 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
             String biomeKey = JsonFields.text(body, "biomeKey", "minecraft:plains").toLowerCase();
+            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
             metadataRepository.setBiome(islandId, biomeKey, actorUuid);
             audit.log(actorUuid, "PLAYER", "ISLAND_BIOME_SET", "ISLAND", islandId.toString(), Map.of("biomeKey", biomeKey));
             islandLogs.append(islandId, actorUuid, "ISLAND_BIOME_SET", Map.of("biomeKey", biomeKey));
@@ -703,9 +733,13 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             IslandFlag flag = JsonFields.enumValue(IslandFlag.class, body, "flag", IslandFlag.VISITOR_INTERACT);
             String value = JsonFields.text(body, "value", "false");
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
             metadataRepository.setFlag(islandId, flag, value);
-            audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_FLAG_SET", "ISLAND", islandId.toString(), Map.of("flag", flag.name(), "value", value));
-            islandLogs.append(islandId, JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "ISLAND_FLAG_SET", Map.of("flag", flag.name(), "value", value));
+            audit.log(actorUuid, "PLAYER", "ISLAND_FLAG_SET", "ISLAND", islandId.toString(), Map.of("flag", flag.name(), "value", value));
+            islandLogs.append(islandId, actorUuid, "ISLAND_FLAG_SET", Map.of("flag", flag.name(), "value", value));
             events.publish("ISLAND_FLAG_SET", Map.of("islandId", islandId.toString(), "flag", flag.name(), "value", value));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -722,6 +756,9 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             String name = JsonFields.text(body, "name", "default").toLowerCase();
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
             metadataRepository.upsertHome(islandId, name, location(body), actorUuid);
             audit.log(actorUuid, "PLAYER", "ISLAND_HOME_SET", "ISLAND", islandId.toString(), Map.of("name", name));
             islandLogs.append(islandId, actorUuid, "ISLAND_HOME_SET", Map.of("name", name));
@@ -733,9 +770,13 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             String name = JsonFields.text(body, "name", "default").toLowerCase();
             boolean publicAccess = JsonFields.bool(body, "publicAccess", false);
-            metadataRepository.upsertWarp(islandId, name, location(body), publicAccess, JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)));
-            audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_WARP_SET", "ISLAND", islandId.toString(), Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
-            islandLogs.append(islandId, JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "ISLAND_WARP_SET", Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
+            metadataRepository.upsertWarp(islandId, name, location(body), publicAccess, actorUuid);
+            audit.log(actorUuid, "PLAYER", "ISLAND_WARP_SET", "ISLAND", islandId.toString(), Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
+            islandLogs.append(islandId, actorUuid, "ISLAND_WARP_SET", Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
             events.publish("ISLAND_WARP_SET", Map.of("islandId", islandId.toString(), "name", name));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -743,9 +784,13 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             String name = JsonFields.text(body, "name", "default").toLowerCase();
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
             metadataRepository.deleteWarp(islandId, name);
-            audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_WARP_DELETE", "ISLAND", islandId.toString(), Map.of("name", name));
-            islandLogs.append(islandId, JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "ISLAND_WARP_DELETE", Map.of("name", name));
+            audit.log(actorUuid, "PLAYER", "ISLAND_WARP_DELETE", "ISLAND", islandId.toString(), Map.of("name", name));
+            islandLogs.append(islandId, actorUuid, "ISLAND_WARP_DELETE", Map.of("name", name));
             events.publish("ISLAND_WARP_DELETE", Map.of("islandId", islandId.toString(), "name", name));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -753,9 +798,13 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             boolean publicAccess = JsonFields.bool(body, "publicAccess", false);
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
             metadataRepository.setPublicAccess(islandId, publicAccess);
-            audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "PLAYER", "ISLAND_ACCESS_SET", "ISLAND", islandId.toString(), Map.of("publicAccess", Boolean.toString(publicAccess)));
-            islandLogs.append(islandId, JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "ISLAND_ACCESS_SET", Map.of("publicAccess", Boolean.toString(publicAccess)));
+            audit.log(actorUuid, "PLAYER", "ISLAND_ACCESS_SET", "ISLAND", islandId.toString(), Map.of("publicAccess", Boolean.toString(publicAccess)));
+            islandLogs.append(islandId, actorUuid, "ISLAND_ACCESS_SET", Map.of("publicAccess", Boolean.toString(publicAccess)));
             events.publish("ISLAND_ACCESS_SET", Map.of("islandId", islandId.toString(), "publicAccess", Boolean.toString(publicAccess)));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -1013,6 +1062,19 @@ public final class CloudIslandsCoreApplication {
             + "\",\"level\":" + upgrade.level()
             + ",\"updatedAt\":\"" + upgrade.updatedAt()
             + "\"}";
+    }
+
+    private static boolean requireManager(HttpExchange exchange, IslandRepository islandRepository, IslandMetadataRepository metadataRepository, UUID islandId, UUID actorUuid) throws IOException {
+        boolean owner = islandRepository.findById(islandId)
+            .map(island -> island.ownerUuid().equals(actorUuid))
+            .orElse(false);
+        boolean allowed = metadataRepository.members(islandId).stream()
+            .anyMatch(member -> member.playerUuid().equals(actorUuid) && (member.role() == IslandRole.OWNER || member.role() == IslandRole.CO_OWNER));
+        if (owner || allowed) {
+            return true;
+        }
+        write(exchange, 403, ApiResponses.error("ISLAND_PERMISSION_DENIED", "Island manager permission is required"));
+        return false;
     }
 
     private static IslandLocation location(String body) {
