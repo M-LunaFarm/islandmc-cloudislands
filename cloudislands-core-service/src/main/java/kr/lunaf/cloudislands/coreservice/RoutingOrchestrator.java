@@ -8,7 +8,9 @@ import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
+import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
@@ -19,6 +21,7 @@ import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
+import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.ticket.InMemoryRouteTicketStore;
 
 public final class RoutingOrchestrator {
@@ -27,13 +30,15 @@ public final class RoutingOrchestrator {
     private final InMemoryRouteTicketStore tickets;
     private final IslandRepository islands;
     private final IslandMetadataRepository metadata;
+    private final IslandRuntimeRepository runtimes;
 
-    public RoutingOrchestrator(InMemoryNodeRegistry nodes, NodeAllocator allocator, InMemoryRouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata) {
+    public RoutingOrchestrator(InMemoryNodeRegistry nodes, NodeAllocator allocator, InMemoryRouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, IslandRuntimeRepository runtimes) {
         this.nodes = nodes;
         this.allocator = allocator;
         this.tickets = tickets;
         this.islands = islands;
         this.metadata = metadata;
+        this.runtimes = runtimes;
     }
 
     public RoutePreparationResult prepareHomeRoute(UUID playerUuid) {
@@ -134,30 +139,61 @@ public final class RoutingOrchestrator {
 
     private RoutePreparationResult prepareTicket(UUID playerUuid, IslandSnapshot island, RouteAction action, Map<String, String> extraPayload) {
         try {
-            return RoutePreparationResult.accepted(toJson(tickets.save(ticket(playerUuid, island.islandId(), action, extraPayload))));
+            IslandRuntimeSnapshot runtime = runtimes.find(island.islandId()).orElse(null);
+            RoutePreparationResult unavailable = unavailableRuntime(runtime);
+            if (unavailable != null) {
+                return unavailable;
+            }
+            return RoutePreparationResult.accepted(toJson(tickets.save(ticket(playerUuid, island.islandId(), action, extraPayload, routeTarget(runtime)))));
         } catch (IllegalStateException exception) {
             return RoutePreparationResult.rejected(409, ApiResponses.error("NODE_UNAVAILABLE", "No eligible island node is available"));
         }
     }
 
-    private RouteTicket ticket(UUID playerUuid, UUID islandId, RouteAction action, Map<String, String> extraPayload) {
-        NodeLoad selected = allocator.selectBestNode(nodes.snapshot(), Instant.now())
-            .orElseThrow(() -> new IllegalStateException("no eligible island node"));
+    private RouteTicket ticket(UUID playerUuid, UUID islandId, RouteAction action, Map<String, String> extraPayload, RouteTarget target) {
         java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
-        payload.put("targetServerName", selected.velocityServerName());
+        payload.put("targetServerName", target.node().velocityServerName());
         payload.putAll(extraPayload);
         return new RouteTicket(
             UUID.randomUUID(),
             playerUuid,
             action,
             islandId,
-            selected.nodeId(),
-            "ci_shard_001",
+            target.node().nodeId(),
+            target.worldName(),
             RouteTicketState.READY,
             Instant.now().plusSeconds(30),
             UUID.randomUUID().toString(),
             Map.copyOf(payload)
         );
+    }
+
+    private RoutePreparationResult unavailableRuntime(IslandRuntimeSnapshot runtime) {
+        if (runtime == null) {
+            return RoutePreparationResult.rejected(409, ApiResponses.error("ISLAND_LOADING_FAILED", "Island runtime is not ready"));
+        }
+        IslandState state = runtime.state();
+        if (state == IslandState.ACTIVE || state == IslandState.INACTIVE_READY) {
+            return null;
+        }
+        if (state == IslandState.DELETED || state == IslandState.DELETE_REQUESTED || state == IslandState.DELETING) {
+            return RoutePreparationResult.rejected(404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+        }
+        return RoutePreparationResult.rejected(409, ApiResponses.error("ISLAND_LOADING_FAILED", "Island is not ready for routing"));
+    }
+
+    private RouteTarget routeTarget(IslandRuntimeSnapshot runtime) {
+        if (runtime.state() == IslandState.ACTIVE) {
+            if (runtime.activeNode() == null || runtime.activeNode().isBlank()) {
+                throw new IllegalStateException("active node is unavailable");
+            }
+            NodeLoad activeNode = nodes.find(runtime.activeNode()).orElseThrow(() -> new IllegalStateException("active node is unavailable"));
+            String worldName = runtime.activeWorld() == null || runtime.activeWorld().isBlank() ? "ci_shard_001" : runtime.activeWorld();
+            return new RouteTarget(activeNode, worldName);
+        }
+        NodeLoad selected = allocator.selectBestNode(nodes.snapshot(), Instant.now())
+            .orElseThrow(() -> new IllegalStateException("no eligible island node"));
+        return new RouteTarget(selected, "ci_shard_001");
     }
 
     private Map<String, String> homePayload(UUID islandId, String homeName) {
@@ -191,6 +227,8 @@ public final class RoutingOrchestrator {
     private String normalizeName(String name) {
         return name == null || name.isBlank() ? "default" : name.toLowerCase();
     }
+
+    private record RouteTarget(NodeLoad node, String worldName) {}
 
     public static String toJson(RouteTicket ticket) {
         StringBuilder builder = new StringBuilder("{")
