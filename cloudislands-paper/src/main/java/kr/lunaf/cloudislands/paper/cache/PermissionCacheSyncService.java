@@ -35,6 +35,10 @@ public final class PermissionCacheSyncService {
         }
     }
 
+    public void invalidateAll() {
+        cache.invalidateAll();
+    }
+
     private void loadMembers(UUID islandId, String json) {
         Matcher matcher = MEMBER.matcher(json == null ? "" : json);
         while (matcher.find()) {

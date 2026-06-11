@@ -29,6 +29,10 @@ public final class IslandLimitCache {
         cache.remove(islandId);
     }
 
+    public void invalidateAll() {
+        cache.clear();
+    }
+
     private Map<String, Long> parse(String json) {
         if (json == null || json.isBlank()) {
             return Map.of();

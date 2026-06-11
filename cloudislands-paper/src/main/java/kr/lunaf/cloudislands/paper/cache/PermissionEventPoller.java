@@ -67,18 +67,24 @@ public final class PermissionEventPoller {
                     String islandId = fields.get("islandId");
                     if (islandId != null && !islandId.isBlank()) {
                         permissionSync.sync(UUID.fromString(islandId));
+                    } else if (isGlobalCacheEvent(type)) {
+                        permissionSync.invalidateAll();
                     }
                 }
                 if (affectsGenerator(type, fields)) {
                     String islandId = fields.get("islandId");
                     if (islandId != null && !islandId.isBlank()) {
                         generatorLevels.invalidate(UUID.fromString(islandId));
+                    } else if (isGlobalCacheEvent(type)) {
+                        generatorLevels.invalidateAll();
                     }
                 }
                 if (affectsLimits(type, fields)) {
                     String islandId = fields.get("islandId");
                     if (islandId != null && !islandId.isBlank()) {
                         limits.invalidate(UUID.fromString(islandId));
+                    } else if (isGlobalCacheEvent(type)) {
+                        limits.invalidateAll();
                     }
                 }
             }
@@ -152,6 +158,11 @@ public final class PermissionEventPoller {
                 || type.equals("ISLAND_VISITOR_BAN")
                 || type.equals("ISLAND_VISITOR_PARDON");
         }
+    }
+
+    private boolean isGlobalCacheEvent(String type) {
+        return type.equals(CloudIslandEventType.CORE_CACHE_CLEARED.name())
+            || type.equals(CloudIslandEventType.CORE_RELOADED.name());
     }
 
     private boolean affectsGenerator(String type, Map<String, String> fields) {

@@ -29,6 +29,10 @@ public final class GeneratorLevelCache {
         cache.remove(islandId);
     }
 
+    public void invalidateAll() {
+        cache.clear();
+    }
+
     private int parseGeneratorLevel(String json) {
         if (json == null || json.isBlank()) {
             return 1;
