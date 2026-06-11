@@ -103,11 +103,15 @@ public final class RoutingOrchestrator {
     }
 
     public String consumeTicketJson(String body) {
+        UUID ticketId = JsonFields.uuid(body, "ticketId", new UUID(0L, 0L));
+        UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+        String nodeId = JsonFields.text(body, "nodeId", "");
+        String nonce = JsonFields.text(body, "nonce", "");
         java.util.Optional<RouteTicket> consumed = tickets.consume(
-            JsonFields.uuid(body, "ticketId", new UUID(0L, 0L)),
-            JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)),
-            JsonFields.text(body, "nodeId", ""),
-            JsonFields.text(body, "nonce", "")
+            ticketId,
+            playerUuid,
+            nodeId,
+            nonce
         );
         consumed.ifPresent(ticket -> events.publish("ROUTE_TICKET_CONSUMED", Map.of(
             "ticketId", ticket.ticketId().toString(),
@@ -116,7 +120,45 @@ public final class RoutingOrchestrator {
             "action", ticket.action().name(),
             "targetNode", ticket.targetNode()
         )));
+        if (consumed.isEmpty()) {
+            publishTicketConsumeFailure(ticketId, playerUuid, nodeId, nonce);
+        }
         return consumed.map(RoutingOrchestrator::toJson).orElse("");
+    }
+
+    private void publishTicketConsumeFailure(UUID ticketId, UUID playerUuid, String nodeId, String nonce) {
+        RouteTicket ticket = tickets.find(ticketId).orElse(null);
+        String reason = consumeFailureReason(ticket, playerUuid, nodeId, nonce);
+        events.publish("ROUTE_TICKET_FAILED", Map.of(
+            "ticketId", ticketId.toString(),
+            "playerUuid", playerUuid.toString(),
+            "islandId", ticket == null ? "" : ticket.islandId().toString(),
+            "action", ticket == null ? "" : ticket.action().name(),
+            "targetNode", nodeId == null ? "" : nodeId,
+            "reason", reason
+        ));
+    }
+
+    private String consumeFailureReason(RouteTicket ticket, UUID playerUuid, String nodeId, String nonce) {
+        if (ticket == null) {
+            return "TICKET_NOT_FOUND";
+        }
+        if (ticket.state() != RouteTicketState.READY) {
+            return "TICKET_NOT_READY";
+        }
+        if (ticket.expiresAt().isBefore(Instant.now())) {
+            return "TICKET_EXPIRED";
+        }
+        if (!ticket.playerUuid().equals(playerUuid)) {
+            return "PLAYER_MISMATCH";
+        }
+        if (!ticket.targetNode().equals(nodeId)) {
+            return "NODE_MISMATCH";
+        }
+        if (!ticket.nonce().equals(nonce)) {
+            return "NONCE_MISMATCH";
+        }
+        return "CONSUME_CONFLICT";
     }
 
     private RoutePreparationResult visitAllowed(UUID playerUuid, IslandSnapshot island) {
