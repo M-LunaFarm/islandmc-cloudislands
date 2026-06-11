@@ -91,6 +91,9 @@ public final class MigrationAdminService {
             for (kr.lunaf.cloudislands.migration.MigrationUpgrade upgrade : manifest.upgrades()) {
                 upgrades.setLevel(manifest.islandId(), upgrade.upgradeKey(), UpgradePolicy.typeFor(upgrade.upgradeKey()), upgrade.level());
             }
+            if (!manifest.biomeKey().isBlank()) {
+                metadata.setBiome(manifest.islandId(), manifest.biomeKey(), manifest.ownerUuid());
+            }
             metadata.setPublicAccess(manifest.islandId(), manifest.publicAccess());
             metadata.setLocked(manifest.islandId(), manifest.locked());
             playerProfiles.setPrimaryIsland(manifest.ownerUuid(), manifest.islandId());
@@ -115,6 +118,7 @@ public final class MigrationAdminService {
                 .filter(_island -> manifest.flags().stream().allMatch(flag -> flag.value().equals(metadata.flags(manifest.islandId()).values().get(IslandFlag.valueOf(flag.flagName())))))
                 .filter(_island -> permissionsMatch(manifest))
                 .filter(_island -> upgradesMatch(manifest))
+                .filter(_island -> manifest.biomeKey().isBlank() || metadata.biome(manifest.islandId()).biomeKey().equals(manifest.biomeKey()))
                 .filter(_island -> metadata.isPublicAccess(manifest.islandId()) == manifest.publicAccess())
                 .filter(_island -> metadata.isLocked(manifest.islandId()) == manifest.locked())
                 .ifPresent(_island -> imported.add(manifest));

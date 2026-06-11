@@ -68,12 +68,13 @@ public final class SuperiorSkyblock2MigrationScanner {
             List<MigrationFlag> flags = parseFlags(content);
             List<MigrationPermission> permissions = parsePermissions(content);
             List<MigrationUpgrade> upgrades = parseUpgrades(content);
+            String biomeKey = parseBiomeKey(content);
             boolean publicAccess = parseBoolean(content, "public", parseBoolean(content, "isPublic", parseBoolean(content, "publicAccess", false)));
             boolean locked = parseBoolean(content, "locked", parseBoolean(content, "isLocked", false));
             LinkedHashSet<UUID> allMembers = new LinkedHashSet<>();
             allMembers.add(ownerUuid);
             allMembers.addAll(members);
-            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), bannedVisitors, homes, warps, flags, permissions, upgrades, publicAccess, locked, size, level, worth));
+            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), bannedVisitors, homes, warps, flags, permissions, upgrades, biomeKey, publicAccess, locked, size, level, worth));
         } catch (RuntimeException | IOException exception) {
             issues.add(new MigrationIssue("ISLAND_FILE_PARSE_FAILED", file + ": " + exception.getMessage(), true));
         }
@@ -301,6 +302,17 @@ public final class SuperiorSkyblock2MigrationScanner {
                 return;
             }
         }
+    }
+
+    private String parseBiomeKey(String content) {
+        if (!containsAnyKey(content, "biome", "biomeKey", "islandBiome")) {
+            return "";
+        }
+        String biome = parseString(content, "biomeKey", parseString(content, "islandBiome", parseString(content, "biome", ""))).trim().toLowerCase();
+        if (biome.isBlank()) {
+            return "";
+        }
+        return biome.contains(":") ? biome : "minecraft:" + biome;
     }
 
     private String toCamel(String enumName) {
