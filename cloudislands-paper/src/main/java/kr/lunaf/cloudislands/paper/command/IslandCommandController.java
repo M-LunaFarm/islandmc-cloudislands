@@ -174,11 +174,20 @@ public final class IslandCommandController implements CommandExecutor {
             coreApiClient.listIslandWarps(islandId)
                 .thenAccept(body -> {
                     Point point = point(body, name, player.getWorld().getName());
-                    if (point != null && !publicWarpAllowed(player, point) && !allowed(player, IslandPermission.INTERACT)) {
-                        message(player, "섬 워프로 이동할 권한이 없습니다.");
+                    if (point == null) {
+                        teleport(player, null, "워프를 찾을 수 없습니다.", "섬 워프로 이동했습니다.");
                         return;
                     }
-                    teleport(player, point, "워프를 찾을 수 없습니다.", "섬 워프로 이동했습니다.");
+                    coreApiClient.islandInfo(islandId).thenAccept(info -> {
+                        if (!publicWarpAllowed(player, point, info) && !allowed(player, IslandPermission.INTERACT)) {
+                            message(player, "섬 워프로 이동할 권한이 없습니다.");
+                            return;
+                        }
+                        teleport(player, point, "워프를 찾을 수 없습니다.", "섬 워프로 이동했습니다.");
+                    }).exceptionally(error -> {
+                        message(player, "섬 정보를 불러오지 못했습니다.");
+                        return null;
+                    });
                 })
                 .exceptionally(error -> {
                     message(player, "섬 워프를 불러오지 못했습니다.");
@@ -238,8 +247,9 @@ public final class IslandCommandController implements CommandExecutor {
         ).allowed();
     }
 
-    private boolean publicWarpAllowed(Player player, Point point) {
+    private boolean publicWarpAllowed(Player player, Point point, String islandInfo) {
         return point.publicAccess()
+            && bool(islandInfo, "publicAccess")
             && protection.checkSystemFlag(player.getLocation().getBlock(), IslandFlag.PUBLIC_WARPS).allowed();
     }
 
