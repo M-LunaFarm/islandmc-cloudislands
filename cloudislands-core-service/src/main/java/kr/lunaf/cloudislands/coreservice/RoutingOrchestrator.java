@@ -198,10 +198,16 @@ public final class RoutingOrchestrator {
     private RouteTarget routeTarget(IslandRuntimeSnapshot runtime, String templateId, String minNodeVersion) {
         if (runtime.state() == IslandState.ACTIVE) {
             if (runtime.activeNode() == null || runtime.activeNode().isBlank()) {
+                markActiveRouteRecoveryRequired(runtime, "missing_active_node");
                 throw new IllegalStateException("active node is unavailable");
             }
-            NodeLoad activeNode = nodes.find(runtime.activeNode()).orElseThrow(() -> new IllegalStateException("active node is unavailable"));
+            NodeLoad activeNode = nodes.find(runtime.activeNode()).orElse(null);
+            if (activeNode == null) {
+                markActiveRouteRecoveryRequired(runtime, "active_node_not_registered");
+                throw new IllegalStateException("active node is unavailable");
+            }
             if (!allocator.acceptsExistingRoute(activeNode, Instant.now(), templateId, minNodeVersion)) {
+                markActiveRouteRecoveryRequired(runtime, "active_node_unhealthy");
                 throw new IllegalStateException("active node is unavailable");
             }
             String worldName = runtime.activeWorld() == null || runtime.activeWorld().isBlank() ? "ci_shard_001" : runtime.activeWorld();
@@ -226,6 +232,15 @@ public final class RoutingOrchestrator {
         ));
         events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", runtime.islandId().toString(), "state", activating.state().name(), "targetNode", selected.nodeId()));
         return new RouteTarget(selected, activating.activeWorld() == null ? "ci_shard_001" : activating.activeWorld(), RouteTicketState.PREPARING);
+    }
+
+    private void markActiveRouteRecoveryRequired(IslandRuntimeSnapshot runtime, String reason) {
+        runtimes.setState(runtime.islandId(), IslandState.RECOVERY_REQUIRED);
+        events.publish("ISLAND_RECOVERY_REQUIRED", Map.of(
+            "islandId", runtime.islandId().toString(),
+            "activeNode", runtime.activeNode() == null ? "" : runtime.activeNode(),
+            "reason", reason
+        ));
     }
 
     private Map<String, String> homePayload(UUID islandId, String homeName) {
