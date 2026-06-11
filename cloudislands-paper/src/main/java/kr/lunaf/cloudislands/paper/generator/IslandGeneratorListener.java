@@ -5,9 +5,11 @@ import java.util.Random;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockFormEvent;
+import org.bukkit.event.block.BlockFromToEvent;
 
 public final class IslandGeneratorListener implements Listener {
     private final ProtectionController protection;
@@ -29,13 +31,44 @@ public final class IslandGeneratorListener implements Listener {
         }
         Block block = event.getBlock();
         protection.islandAt(block).ifPresent(islandId -> {
-            int level = levels.level(islandId);
-            String materialKey = registry.rule("default", level).select(random);
-            Material material = material(materialKey);
+            Material material = generatedMaterial(levels.level(islandId));
             if (material != null && material.isBlock()) {
                 event.getNewState().setType(material);
             }
         });
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onFluidFlow(BlockFromToEvent event) {
+        Material source = event.getBlock().getType();
+        if (source != Material.WATER && source != Material.LAVA) {
+            return;
+        }
+        Block target = event.getToBlock();
+        if (!touchesOppositeFluid(target, source)) {
+            return;
+        }
+        protection.islandAt(target).ifPresent(islandId -> {
+            Material material = generatedMaterial(levels.level(islandId));
+            if (material != null && material.isBlock()) {
+                event.setCancelled(true);
+                target.setType(material);
+            }
+        });
+    }
+
+    private Material generatedMaterial(int level) {
+        return material(registry.rule("default", level).select(random));
+    }
+
+    private boolean touchesOppositeFluid(Block block, Material source) {
+        Material opposite = source == Material.WATER ? Material.LAVA : Material.WATER;
+        return block.getRelative(BlockFace.NORTH).getType() == opposite
+            || block.getRelative(BlockFace.SOUTH).getType() == opposite
+            || block.getRelative(BlockFace.EAST).getType() == opposite
+            || block.getRelative(BlockFace.WEST).getType() == opposite
+            || block.getRelative(BlockFace.UP).getType() == opposite
+            || block.getRelative(BlockFace.DOWN).getType() == opposite;
     }
 
     private Material material(String materialKey) {
