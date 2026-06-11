@@ -303,7 +303,6 @@ public final class CloudIslandsCoreApplication {
             permissionRules.put(islandId, role, permission, allowed);
             audit.log(actorUuid, "PLAYER", "ISLAND_PERMISSION_SET", "ISLAND", islandId.toString(), Map.of("role", role.name(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
             islandLogs.append(islandId, actorUuid, "ISLAND_PERMISSION_SET", Map.of("role", role.name(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
-            events.publish("ISLAND_PERMISSION_SET", Map.of("islandId", islandId.toString(), "role", role.name(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
             events.publish(CloudIslandEventType.ISLAND_PERMISSION_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", role.name(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -1038,7 +1037,6 @@ public final class CloudIslandsCoreApplication {
             metadataRepository.setFlag(islandId, flag, value);
             audit.log(actorUuid, "PLAYER", "ISLAND_FLAG_SET", "ISLAND", islandId.toString(), Map.of("flag", flag.name(), "value", value));
             islandLogs.append(islandId, actorUuid, "ISLAND_FLAG_SET", Map.of("flag", flag.name(), "value", value));
-            events.publish("ISLAND_FLAG_SET", Map.of("islandId", islandId.toString(), "flag", flag.name(), "value", value));
             events.publish(CloudIslandEventType.ISLAND_FLAG_CHANGED.name(), Map.of("islandId", islandId.toString(), "flag", flag.name(), "value", value));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -1076,7 +1074,6 @@ public final class CloudIslandsCoreApplication {
             metadataRepository.upsertWarp(islandId, name, location(body), publicAccess, actorUuid);
             audit.log(actorUuid, "PLAYER", "ISLAND_WARP_SET", "ISLAND", islandId.toString(), Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
             islandLogs.append(islandId, actorUuid, "ISLAND_WARP_SET", Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
-            events.publish("ISLAND_WARP_SET", Map.of("islandId", islandId.toString(), "name", name));
             events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -1091,7 +1088,6 @@ public final class CloudIslandsCoreApplication {
             metadataRepository.deleteWarp(islandId, name);
             audit.log(actorUuid, "PLAYER", "ISLAND_WARP_DELETE", "ISLAND", islandId.toString(), Map.of("name", name));
             islandLogs.append(islandId, actorUuid, "ISLAND_WARP_DELETE", Map.of("name", name));
-            events.publish("ISLAND_WARP_DELETE", Map.of("islandId", islandId.toString(), "name", name));
             events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -1111,7 +1107,6 @@ public final class CloudIslandsCoreApplication {
             metadataRepository.setWarpPublicAccess(islandId, name, publicAccess);
             audit.log(actorUuid, "PLAYER", "ISLAND_WARP_ACCESS_SET", "ISLAND", islandId.toString(), Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
             islandLogs.append(islandId, actorUuid, "ISLAND_WARP_ACCESS_SET", Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
-            events.publish("ISLAND_WARP_ACCESS_SET", Map.of("islandId", islandId.toString(), "name", name, "publicAccess", Boolean.toString(publicAccess)));
             events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name));
             write(exchange, 202, ApiResponses.ok(true));
         });
