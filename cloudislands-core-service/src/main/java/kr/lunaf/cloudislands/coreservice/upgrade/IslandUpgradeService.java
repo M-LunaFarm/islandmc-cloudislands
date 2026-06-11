@@ -3,13 +3,16 @@ package kr.lunaf.cloudislands.coreservice.upgrade;
 import java.math.BigDecimal;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot;
+import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
 
 public final class IslandUpgradeService {
     private final IslandUpgradeRepository repository;
+    private final IslandBankRepository bankRepository;
     private final UpgradePolicy policy;
 
-    public IslandUpgradeService(IslandUpgradeRepository repository, UpgradePolicy policy) {
+    public IslandUpgradeService(IslandUpgradeRepository repository, IslandBankRepository bankRepository, UpgradePolicy policy) {
         this.repository = repository;
+        this.bankRepository = bankRepository;
         this.policy = policy;
     }
 
@@ -23,6 +26,12 @@ public final class IslandUpgradeService {
             return new UpgradePurchaseResult(false, "MAX_LEVEL", BigDecimal.ZERO, repository.find(islandId, rule.upgradeKey()).orElse(null));
         }
         BigDecimal cost = rule.costForNextLevel(currentLevel);
+        if (cost.signum() > 0) {
+            IslandBankRepository.BankChangeResult payment = bankRepository.withdraw(islandId, cost);
+            if (!payment.accepted()) {
+                return new UpgradePurchaseResult(false, payment.code(), cost, repository.find(islandId, rule.upgradeKey()).orElse(null));
+            }
+        }
         IslandUpgradeSnapshot snapshot = repository.setLevel(islandId, rule.upgradeKey(), rule.type(), currentLevel + 1);
         return new UpgradePurchaseResult(true, "UPGRADED", cost, snapshot);
     }

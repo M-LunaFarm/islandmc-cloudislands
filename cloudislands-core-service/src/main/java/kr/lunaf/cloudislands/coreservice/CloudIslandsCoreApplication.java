@@ -154,8 +154,8 @@ public final class CloudIslandsCoreApplication {
         RankingRecalculationService levelRecalculation = new RankingRecalculationService(rankingRepository, events);
         IslandUpgradeRepository upgradeRepository = config.jdbcRepositories() ? new JdbcIslandUpgradeRepository(dataSource) : new InMemoryIslandUpgradeRepository();
         UpgradePolicy upgradePolicy = ConfigUpgradePolicy.load(config.upgradesFile());
-        IslandUpgradeService upgradeService = new IslandUpgradeService(upgradeRepository, upgradePolicy);
         IslandBankRepository bankRepository = config.jdbcRepositories() ? new JdbcIslandBankRepository(dataSource) : new InMemoryIslandBankRepository();
+        IslandUpgradeService upgradeService = new IslandUpgradeService(upgradeRepository, bankRepository, upgradePolicy);
         IslandMissionRepository missionRepository = config.jdbcRepositories() ? new JdbcIslandMissionRepository(dataSource) : new InMemoryIslandMissionRepository();
         IslandLimitRepository limitRepository = config.jdbcRepositories() ? new JdbcIslandLimitRepository(dataSource) : new InMemoryIslandLimitRepository();
         IslandTemplateRepository templateRepository = config.jdbcRepositories() ? new JdbcIslandTemplateRepository(dataSource) : new InMemoryIslandTemplateRepository();
@@ -808,6 +808,10 @@ public final class CloudIslandsCoreApplication {
             islandLogs.append(islandId, actorUuid, "ISLAND_UPGRADE_PURCHASE", Map.of("upgradeKey", upgradeKey, "code", result.code(), "cost", result.cost().toPlainString()));
             if (result.accepted()) {
                 events.publish(CloudIslandEventType.ISLAND_UPGRADE.name(), Map.of("islandId", islandId.toString(), "upgradeKey", upgradeKey, "level", Integer.toString(result.snapshot().level())));
+                if (result.cost().signum() > 0) {
+                    String balance = bankRepository.balance(islandId).balance();
+                    events.publish(CloudIslandEventType.ISLAND_BANK_CHANGED.name(), Map.of("islandId", islandId.toString(), "operation", "UPGRADE_PURCHASE", "amount", result.cost().toPlainString(), "balance", balance));
+                }
             }
             write(exchange, result.accepted() ? 202 : 409, upgradePurchaseJson(result));
         });
