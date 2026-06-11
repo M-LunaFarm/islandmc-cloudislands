@@ -35,11 +35,15 @@ public final class CloudIslandsCoreApplication {
     private final HttpServer server;
     private final ApiTokenGuard tokenGuard;
     private final FixedWindowRateLimiter rateLimiter;
+    private final kr.lunaf.cloudislands.coreservice.security.AdminEndpointGuard adminGuard;
+    private final kr.lunaf.cloudislands.coreservice.security.IpAllowlist ipAllowlist;
 
     public CloudIslandsCoreApplication(int port) throws IOException {
         Clock clock = Clock.systemUTC();
         this.tokenGuard = new ApiTokenGuard(System.getenv().getOrDefault("CI_CORE_TOKEN", ""));
         this.rateLimiter = new FixedWindowRateLimiter(clock, 240, 60_000L);
+        this.adminGuard = new kr.lunaf.cloudislands.coreservice.security.AdminEndpointGuard(System.getenv().getOrDefault("CI_ADMIN_TOKEN", ""));
+        this.ipAllowlist = new kr.lunaf.cloudislands.coreservice.security.IpAllowlist(System.getenv().getOrDefault("CI_IP_ALLOWLIST", ""));
         InMemoryNodeRegistry nodes = new InMemoryNodeRegistry();
         NodeAllocator allocator = new NodeAllocator(Duration.ofSeconds(5));
         InMemoryRouteTicketStore tickets = new InMemoryRouteTicketStore(clock);
@@ -163,6 +167,14 @@ public final class CloudIslandsCoreApplication {
             }
             if (!path.equals("/health") && !tokenGuard.allowed(exchange)) {
                 write(exchange, 401, "{\"error\":\"unauthorized\"}");
+                return;
+            }
+            if (!ipAllowlist.allowed(exchange)) {
+                write(exchange, 403, "{\"error\":\"ip_not_allowed\"}");
+                return;
+            }
+            if (!adminGuard.allowed(path, exchange)) {
+                write(exchange, 403, "{\"error\":\"admin_token_required\"}");
                 return;
             }
             handler.handle(exchange);
