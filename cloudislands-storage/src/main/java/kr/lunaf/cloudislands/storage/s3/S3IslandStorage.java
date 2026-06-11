@@ -4,10 +4,16 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
@@ -77,8 +83,30 @@ public final class S3IslandStorage implements IslandStorage {
     }
 
     @Override
-    public int pruneSnapshots(UUID islandId, int keepLatest) {
-        return 0;
+    public int pruneSnapshots(UUID islandId, int keepLatest) throws IOException {
+        if (keepLatest < 1) {
+            return 0;
+        }
+        String prefix = "islands/" + islandId + "/snapshots/";
+        List<String> keys = listKeys(prefix);
+        List<String> snapshots = keys.stream()
+            .map(key -> snapshotName(prefix, key))
+            .filter(name -> !name.isBlank())
+            .distinct()
+            .sorted(Comparator.reverseOrder())
+            .toList();
+        if (snapshots.size() <= keepLatest) {
+            return 0;
+        }
+        Set<String> removedSnapshots = new HashSet<>(snapshots.subList(keepLatest, snapshots.size()));
+        int deleted = 0;
+        for (String key : keys) {
+            if (removedSnapshots.contains(snapshotName(prefix, key))) {
+                requestBytes("DELETE", key, null);
+                deleted++;
+            }
+        }
+        return deleted;
     }
 
     @Override
@@ -88,6 +116,68 @@ public final class S3IslandStorage implements IslandStorage {
 
     private String key(UUID islandId, String suffix) {
         return "islands/" + islandId + "/" + suffix;
+    }
+
+    private List<String> listKeys(String prefix) throws IOException {
+        List<String> keys = new ArrayList<>();
+        String continuationToken = "";
+        do {
+            String query = "?list-type=2&prefix=" + encode(prefix);
+            if (!continuationToken.isBlank()) {
+                query += "&continuation-token=" + encode(continuationToken);
+            }
+            String xml = request("GET", query, null);
+            for (String key : xmlValues(xml, "Key")) {
+                keys.add(xmlUnescape(key));
+            }
+            continuationToken = xmlValues(xml, "NextContinuationToken").stream()
+                .findFirst()
+                .map(S3IslandStorage::xmlUnescape)
+                .orElse("");
+        } while (!continuationToken.isBlank());
+        return keys;
+    }
+
+    private static String snapshotName(String prefix, String key) {
+        if (!key.startsWith(prefix)) {
+            return "";
+        }
+        String rest = key.substring(prefix.length());
+        int slash = rest.indexOf('/');
+        return slash <= 0 ? "" : rest.substring(0, slash);
+    }
+
+    private static String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
+    }
+
+    private static List<String> xmlValues(String xml, String tag) {
+        List<String> values = new ArrayList<>();
+        String open = "<" + tag + ">";
+        String close = "</" + tag + ">";
+        int index = 0;
+        while (index < xml.length()) {
+            int start = xml.indexOf(open, index);
+            if (start < 0) {
+                break;
+            }
+            int valueStart = start + open.length();
+            int end = xml.indexOf(close, valueStart);
+            if (end < 0) {
+                break;
+            }
+            values.add(xml.substring(valueStart, end));
+            index = end + close.length();
+        }
+        return values;
+    }
+
+    private static String xmlUnescape(String value) {
+        return value.replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"")
+            .replace("&apos;", "'")
+            .replace("&amp;", "&");
     }
 
     private String request(String method, String key, byte[] body) throws IOException {
