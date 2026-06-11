@@ -37,12 +37,15 @@ public interface CoreApiClient {
     CompletableFuture<Void> declineIslandInvite(UUID inviteId, UUID playerUuid);
     CompletableFuture<String> declineIslandInviteResult(UUID inviteId, UUID playerUuid);
     CompletableFuture<Void> banIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason);
+    CompletableFuture<String> banIslandVisitorResult(UUID islandId, UUID actorUuid, UUID playerUuid, String reason);
     CompletableFuture<String> listIslandBans(UUID islandId);
     CompletableFuture<Void> pardonIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid);
+    CompletableFuture<String> pardonIslandVisitorResult(UUID islandId, UUID actorUuid, UUID playerUuid);
     CompletableFuture<String> listIslandFlags(UUID islandId);
     CompletableFuture<Void> setIslandFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value);
     CompletableFuture<String> islandBiome(UUID islandId);
     CompletableFuture<Void> setIslandBiome(UUID islandId, UUID actorUuid, String biomeKey);
+    CompletableFuture<String> setIslandBiomeResult(UUID islandId, UUID actorUuid, String biomeKey);
     CompletableFuture<String> listIslandHomes(UUID islandId);
     CompletableFuture<Void> setIslandHome(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<String> listIslandPermissions(UUID islandId);
@@ -52,6 +55,7 @@ public interface CoreApiClient {
     CompletableFuture<Void> deleteIslandWarp(UUID islandId, UUID actorUuid, String name);
     CompletableFuture<Void> setIslandPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess);
     CompletableFuture<Void> setIslandLocked(UUID islandId, UUID actorUuid, boolean locked);
+    CompletableFuture<String> setIslandLockedResult(UUID islandId, UUID actorUuid, boolean locked);
     CompletableFuture<Void> recordBlockDelta(UUID islandId, String materialKey, long delta);
     CompletableFuture<String> recalculateIslandLevel(UUID islandId, UUID actorUuid);
     CompletableFuture<String> topIslandsByLevel(int limit);

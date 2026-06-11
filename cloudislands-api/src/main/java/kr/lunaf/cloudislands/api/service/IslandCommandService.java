@@ -28,7 +28,9 @@ public interface IslandCommandService {
     CompletableFuture<Void> declineInvite(UUID inviteId, UUID playerUuid);
     CompletableFuture<IslandInviteActionResult> declineInviteResult(UUID inviteId, UUID playerUuid);
     CompletableFuture<Void> banVisitor(UUID islandId, UUID actorUuid, UUID targetUuid, String reason);
+    CompletableFuture<IslandActionResult> banVisitorResult(UUID islandId, UUID actorUuid, UUID targetUuid, String reason);
     CompletableFuture<Void> pardonVisitor(UUID islandId, UUID actorUuid, UUID targetUuid);
+    CompletableFuture<IslandActionResult> pardonVisitorResult(UUID islandId, UUID actorUuid, UUID targetUuid);
     CompletableFuture<Void> kick(UUID islandId, UUID actorUuid, UUID targetUuid);
     CompletableFuture<IslandActionResult> kickResult(UUID islandId, UUID actorUuid, UUID targetUuid);
     CompletableFuture<Void> setRole(UUID islandId, UUID actorUuid, UUID targetUuid, IslandRole role);
@@ -38,8 +40,10 @@ public interface IslandCommandService {
     CompletableFuture<Void> setFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value);
     CompletableFuture<Void> setPermission(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed);
     CompletableFuture<Void> setLocked(UUID islandId, UUID actorUuid, boolean locked);
+    CompletableFuture<IslandActionResult> setLockedResult(UUID islandId, UUID actorUuid, boolean locked);
     CompletableFuture<Void> setHome(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<Void> setBiome(UUID islandId, UUID actorUuid, String biomeKey);
+    CompletableFuture<IslandActionResult> setBiomeResult(UUID islandId, UUID actorUuid, String biomeKey);
     CompletableFuture<Void> setLimit(UUID islandId, UUID actorUuid, String limitKey, long value);
     CompletableFuture<Void> createWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<Void> setWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
