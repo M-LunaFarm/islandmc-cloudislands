@@ -11,7 +11,7 @@ public final class ActiveIslandRegistry {
 
     public void activated(IslandActivationJobHandler.ActivationResult result) {
         if (result.success() && result.islandId() != null) {
-            active.put(result.islandId(), new ActiveIsland(result.islandId(), result.worldName(), result.cellX(), result.cellZ(), result.schemaVersion(), Instant.now()));
+            active.put(result.islandId(), new ActiveIsland(result.islandId(), result.worldName(), result.cellX(), result.cellZ(), result.originX(), result.originZ(), result.islandSize(), result.schemaVersion(), Instant.now()));
         }
     }
 
@@ -27,5 +27,5 @@ public final class ActiveIslandRegistry {
         return active.size();
     }
 
-    public record ActiveIsland(UUID islandId, String worldName, int cellX, int cellZ, long schemaVersion, Instant activatedAt) {}
+    public record ActiveIsland(UUID islandId, String worldName, int cellX, int cellZ, int originX, int originZ, int islandSize, long schemaVersion, Instant activatedAt) {}
 }
