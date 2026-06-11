@@ -266,7 +266,10 @@ public final class VelocityRoutingController {
     }
 
     public void listInvites(Player player) {
-        sendPlayerPayloadFuture(player, coreApiClient.listPendingInvites(player.getUniqueId()), "대기 중인 초대가 없습니다.", "초대 목록을 불러왔습니다.");
+        coreApiClient.listPendingInvites(player.getUniqueId()).thenAccept(body -> player.sendMessage(Component.text(inviteListMessage(body)))).exceptionally(error -> {
+            player.sendMessage(Component.text("초대 목록을 불러오지 못했습니다."));
+            return null;
+        });
     }
 
     public void acceptInvite(Player player, UUID inviteId) {
@@ -683,6 +686,30 @@ public final class VelocityRoutingController {
             index = objectEnd + 1;
         }
         return new UUID(0L, 0L);
+    }
+
+    private String inviteListMessage(String body) {
+        java.util.List<String> entries = new java.util.ArrayList<>();
+        int index = 0;
+        while (body != null && index < body.length()) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String inviteId = jsonValue(object, "inviteId");
+            if (!inviteId.isBlank()) {
+                String islandId = jsonValue(object, "islandId");
+                String inviterUuid = jsonValue(object, "inviterUuid");
+                entries.add(inviteId + (islandId.isBlank() ? "" : " island=" + islandId) + (inviterUuid.isBlank() ? "" : " inviter=" + inviterUuid));
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "대기 중인 섬 초대가 없습니다." : "섬 초대: " + String.join(", ", entries);
     }
 
     private String playerPayloadMessage(String body, String emptyMessage, String successMessage) {

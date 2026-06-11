@@ -1809,8 +1809,9 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             String object = body.substring(objectStart, objectEnd + 1);
             String inviteId = text(object, "inviteId");
             String islandId = text(object, "islandId");
+            String inviterUuid = text(object, "inviterUuid");
             if (!inviteId.isBlank()) {
-                entries.add(inviteId + (islandId.isBlank() ? "" : " island=" + islandId));
+                entries.add(inviteId + (islandId.isBlank() ? "" : " island=" + islandId) + (inviterUuid.isBlank() ? "" : " inviter=" + inviterUuid));
             }
             index = objectEnd + 1;
         }
