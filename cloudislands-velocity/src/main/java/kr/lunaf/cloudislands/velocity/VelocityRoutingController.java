@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
@@ -598,36 +599,89 @@ public final class VelocityRoutingController {
         sendBodyResult(player, coreApiClient.activateIsland(islandId), "섬 활성화를 요청하지 못했습니다.");
     }
 
+    public void activateIslandTarget(Player player, String target) {
+        adminIslandTarget(player, target, islandId -> activateIsland(player, islandId));
+    }
+
     public void deactivateIsland(Player player, UUID islandId) {
         sendBodyResult(player, coreApiClient.deactivateIsland(islandId), "섬 비활성화를 요청하지 못했습니다.");
+    }
+
+    public void deactivateIslandTarget(Player player, String target) {
+        adminIslandTarget(player, target, islandId -> deactivateIsland(player, islandId));
     }
 
     public void migrateIsland(Player player, UUID islandId, String targetNode) {
         sendBodyResult(player, coreApiClient.migrateIsland(islandId, targetNode), "섬 마이그레이션을 요청하지 못했습니다.");
     }
 
+    public void migrateIslandTarget(Player player, String target, String targetNode) {
+        adminIslandTarget(player, target, islandId -> migrateIsland(player, islandId, targetNode));
+    }
+
     public void quarantineIsland(Player player, UUID islandId, String reason) {
         sendBodyResult(player, coreApiClient.quarantineIsland(islandId, reason), "섬 격리를 요청하지 못했습니다.");
+    }
+
+    public void quarantineIslandTarget(Player player, String target, String reason) {
+        adminIslandTarget(player, target, islandId -> quarantineIsland(player, islandId, reason));
     }
 
     public void adminIslandInfo(Player player, UUID lookupUuid) {
         coreApiClient.adminIslandInfo(lookupUuid).thenAccept(body -> sendPlayerPayload(player, body, "섬 정보를 불러오지 못했습니다.", "섬 정보를 불러왔습니다."));
     }
 
+    public void adminIslandInfoTarget(Player player, String target) {
+        UUID parsed = parseUuid(target);
+        if (!parsed.equals(new UUID(0L, 0L))) {
+            adminIslandInfo(player, parsed);
+            return;
+        }
+        sendPlayerPayloadFuture(player, coreApiClient.islandInfoByName(target), "섬 정보를 불러오지 못했습니다.", "섬 정보를 불러왔습니다.");
+    }
+
     public void adminIslandWhere(Player player, UUID islandId) {
         sendBodyResult(player, coreApiClient.adminIslandWhere(islandId), "섬 위치 정보를 불러오지 못했습니다.");
+    }
+
+    public void adminIslandWhereTarget(Player player, String target) {
+        adminIslandTarget(player, target, islandId -> adminIslandWhere(player, islandId));
     }
 
     public void adminTeleportIsland(Player player, UUID islandId) {
         routeFuture(player, coreApiClient.adminIslandTeleport(player.getUniqueId(), islandId), "섬으로 이동하지 못했습니다.");
     }
 
+    public void adminTeleportIslandTarget(Player player, String target) {
+        adminIslandTarget(player, target, islandId -> adminTeleportIsland(player, islandId));
+    }
+
     public void adminDeleteIsland(Player player, UUID islandId) {
         sendBodyResult(player, coreApiClient.adminDeleteIsland(islandId), "섬 삭제를 요청하지 못했습니다.");
     }
 
+    public void adminDeleteIslandTarget(Player player, String target) {
+        adminIslandTarget(player, target, islandId -> adminDeleteIsland(player, islandId));
+    }
+
     public void repairIsland(Player player, UUID islandId, String reason) {
         sendBodyResult(player, coreApiClient.repairIsland(islandId, reason), "섬 복구를 요청하지 못했습니다.");
+    }
+
+    public void repairIslandTarget(Player player, String target, String reason) {
+        adminIslandTarget(player, target, islandId -> repairIsland(player, islandId, reason));
+    }
+
+    public void listSnapshotsTarget(Player player, String target) {
+        adminIslandTarget(player, target, islandId -> listSnapshots(player, islandId));
+    }
+
+    public void snapshotTarget(Player player, String target, String reason) {
+        adminIslandTarget(player, target, islandId -> snapshot(player, islandId, reason));
+    }
+
+    public void restoreTarget(Player player, String target, long snapshotNo) {
+        adminIslandTarget(player, target, islandId -> restore(player, islandId, snapshotNo));
     }
 
     public void debugRoutes(Player player, UUID playerUuid) {
@@ -794,6 +848,30 @@ public final class VelocityRoutingController {
             return CompletableFuture.completedFuture(online.get().getUniqueId());
         }
         return coreApiClient.playerInfoByName(target).thenApply(body -> parseUuid(jsonValue(body, "playerUuid")));
+    }
+
+    private void adminIslandTarget(Player player, String target, Consumer<UUID> action) {
+        resolveIslandId(target).thenAccept(islandId -> {
+            if (islandId.equals(new UUID(0L, 0L))) {
+                player.sendMessage(Component.text("섬을 찾지 못했습니다."));
+                return;
+            }
+            action.accept(islandId);
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("섬을 찾지 못했습니다."));
+            return null;
+        });
+    }
+
+    private CompletableFuture<UUID> resolveIslandId(String target) {
+        if (target == null || target.isBlank()) {
+            return CompletableFuture.completedFuture(new UUID(0L, 0L));
+        }
+        UUID parsed = parseUuid(target);
+        if (!parsed.equals(new UUID(0L, 0L))) {
+            return CompletableFuture.completedFuture(parsed);
+        }
+        return coreApiClient.islandInfoByName(target).thenApply(body -> parseUuid(jsonValue(body, "islandId")));
     }
 
     private UUID findInviteId(String body, UUID targetUuid) {

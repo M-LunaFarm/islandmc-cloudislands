@@ -91,56 +91,60 @@ public final class CloudIslandsVelocityPlugin {
 
     private void dispatchAdmin(Player player, String[] args) {
         if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("info")) {
-            routingController.adminIslandInfo(player, parseUuidOrNil(args[2]));
+            routingController.adminIslandInfoTarget(player, args[2]);
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("where")) {
-            routingController.adminIslandWhere(player, parseUuidOrNil(args[2]));
+            routingController.adminIslandWhereTarget(player, args[2]);
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("tp")) {
             player.sendActionBar(Component.text("섬으로 이동하는 중입니다."));
-            routingController.adminTeleportIsland(player, parseUuidOrNil(args[2]));
+            routingController.adminTeleportIslandTarget(player, args[2]);
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("save")) {
-            routingController.snapshot(player, parseUuidOrNil(args[2]), "ADMIN_SAVE");
+            routingController.snapshotTarget(player, args[2], "ADMIN_SAVE");
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("snapshot")) {
-            routingController.snapshot(player, parseUuidOrNil(args[2]), args.length > 3 ? joinArgs(args, 3) : "MANUAL");
+            routingController.snapshotTarget(player, args[2], args.length > 3 ? joinArgs(args, 3) : "MANUAL");
+            return;
+        }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("snapshots")) {
+            routingController.listSnapshotsTarget(player, args[2]);
             return;
         }
         if (args.length >= 4 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("rollback")) {
-            routingController.restore(player, parseUuidOrNil(args[2]), parseLongOrZero(args[3]));
+            routingController.restoreTarget(player, args[2], parseLongOrZero(args[3]));
             return;
         }
         if (args.length >= 4 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("restore")) {
-            routingController.restore(player, parseUuidOrNil(args[2]), parseLongOrZero(args[3]));
+            routingController.restoreTarget(player, args[2], parseLongOrZero(args[3]));
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("delete")) {
-            routingController.adminDeleteIsland(player, parseUuidOrNil(args[2]));
+            routingController.adminDeleteIslandTarget(player, args[2]);
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("repair")) {
-            routingController.repairIsland(player, parseUuidOrNil(args[2]), args.length > 3 ? joinArgs(args, 3) : "admin");
+            routingController.repairIslandTarget(player, args[2], args.length > 3 ? joinArgs(args, 3) : "admin");
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("activate")) {
-            routingController.activateIsland(player, parseUuidOrNil(args[2]));
+            routingController.activateIslandTarget(player, args[2]);
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("deactivate")) {
-            routingController.deactivateIsland(player, parseUuidOrNil(args[2]));
+            routingController.deactivateIslandTarget(player, args[2]);
             return;
         }
         if (args.length >= 4 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("migrate")) {
-            routingController.migrateIsland(player, parseUuidOrNil(args[2]), args[3]);
+            routingController.migrateIslandTarget(player, args[2], args[3]);
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("quarantine")) {
-            routingController.quarantineIsland(player, parseUuidOrNil(args[2]), args.length > 3 ? joinArgs(args, 3) : "admin");
+            routingController.quarantineIslandTarget(player, args[2], args.length > 3 ? joinArgs(args, 3) : "admin");
             return;
         }
         if (args.length >= 2 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("debug")) {
