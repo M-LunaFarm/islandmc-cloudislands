@@ -119,7 +119,7 @@ public final class VelocityRoutingController {
     }
 
     public void listWarps(Player player, UUID islandId) {
-        coreApiClient.listIslandWarps(islandId).thenAccept(body -> sendPlayerPayload(player, body, "섬 워프를 불러오지 못했습니다.", "섬 워프 목록을 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.listIslandWarps(islandId), "섬 워프를 불러오지 못했습니다.", "섬 워프 목록을 불러왔습니다.");
     }
 
     public void setWarp(Player player, UUID islandId, String name, boolean publicAccess) {
@@ -140,7 +140,7 @@ public final class VelocityRoutingController {
     }
 
     public void listInvites(Player player) {
-        coreApiClient.listPendingInvites(player.getUniqueId()).thenAccept(body -> sendPlayerPayload(player, body, "대기 중인 초대가 없습니다.", "초대 목록을 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.listPendingInvites(player.getUniqueId()), "대기 중인 초대가 없습니다.", "초대 목록을 불러왔습니다.");
     }
 
     public void acceptInvite(Player player, UUID inviteId) {
@@ -152,7 +152,7 @@ public final class VelocityRoutingController {
     }
 
     public void listMembers(Player player, UUID islandId) {
-        coreApiClient.listIslandMembers(islandId).thenAccept(body -> sendPlayerPayload(player, body, "멤버 목록을 불러오지 못했습니다.", "멤버 목록을 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.listIslandMembers(islandId), "멤버 목록을 불러오지 못했습니다.", "멤버 목록을 불러왔습니다.");
     }
 
     public void setRole(Player player, UUID islandId, UUID targetUuid, IslandRole role) {
@@ -172,7 +172,7 @@ public final class VelocityRoutingController {
     }
 
     public void listBans(Player player, UUID islandId) {
-        coreApiClient.listIslandBans(islandId).thenAccept(body -> sendPlayerPayload(player, body, "밴 목록을 불러오지 못했습니다.", "밴 목록을 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.listIslandBans(islandId), "밴 목록을 불러오지 못했습니다.", "밴 목록을 불러왔습니다.");
     }
 
     public void pardonVisitor(Player player, UUID islandId, UUID targetUuid) {
@@ -202,7 +202,7 @@ public final class VelocityRoutingController {
     }
 
     public void listHomes(Player player, UUID islandId) {
-        coreApiClient.listIslandHomes(islandId).thenAccept(body -> sendPlayerPayload(player, body, "섬 홈을 불러오지 못했습니다.", "섬 홈 목록을 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.listIslandHomes(islandId), "섬 홈을 불러오지 못했습니다.", "섬 홈 목록을 불러왔습니다.");
     }
 
     public void setHome(Player player, UUID islandId, String name) {
@@ -215,7 +215,7 @@ public final class VelocityRoutingController {
     }
 
     public void listPermissions(Player player, UUID islandId) {
-        coreApiClient.listIslandPermissions(islandId).thenAccept(body -> sendPlayerPayload(player, body, "섬 권한을 불러오지 못했습니다.", "섬 권한 정보를 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.listIslandPermissions(islandId), "섬 권한을 불러오지 못했습니다.", "섬 권한 정보를 불러왔습니다.");
     }
 
     public void setPermission(Player player, UUID islandId, IslandRole role, IslandPermission permission, boolean allowed) {
@@ -223,11 +223,11 @@ public final class VelocityRoutingController {
     }
 
     public void listIslandLogs(Player player, UUID islandId) {
-        coreApiClient.listIslandLogs(islandId, 30).thenAccept(body -> sendPlayerPayload(player, body, "섬 로그를 불러오지 못했습니다.", "섬 로그를 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.listIslandLogs(islandId, 30), "섬 로그를 불러오지 못했습니다.", "섬 로그를 불러왔습니다.");
     }
 
     public void showBank(Player player, UUID islandId) {
-        coreApiClient.islandBank(islandId).thenAccept(body -> sendPlayerPayload(player, body, "섬 은행을 불러오지 못했습니다.", "섬 은행 정보를 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.islandBank(islandId), "섬 은행을 불러오지 못했습니다.", "섬 은행 정보를 불러왔습니다.");
     }
 
     public void depositBank(Player player, UUID islandId, String amount) {
@@ -239,11 +239,11 @@ public final class VelocityRoutingController {
     }
 
     public void showLevelRanking(Player player) {
-        coreApiClient.topIslandsByLevel(10).thenAccept(body -> sendPlayerPayload(player, body, "랭킹을 불러오지 못했습니다.", "랭킹을 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.topIslandsByLevel(10), "랭킹을 불러오지 못했습니다.", "랭킹을 불러왔습니다.");
     }
 
     public void showWorthRanking(Player player) {
-        coreApiClient.topIslandsByWorth(10).thenAccept(body -> sendPlayerPayload(player, body, "가치 랭킹을 불러오지 못했습니다.", "가치 랭킹을 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.topIslandsByWorth(10), "가치 랭킹을 불러오지 못했습니다.", "가치 랭킹을 불러왔습니다.");
     }
 
     public void recalculateLevel(Player player, UUID islandId) {
@@ -251,11 +251,11 @@ public final class VelocityRoutingController {
     }
 
     public void listUpgradeRules(Player player) {
-        coreApiClient.listUpgradeRules().thenAccept(body -> sendPlayerPayload(player, body, "업그레이드 목록을 불러오지 못했습니다.", "업그레이드 목록을 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.listUpgradeRules(), "업그레이드 목록을 불러오지 못했습니다.", "업그레이드 목록을 불러왔습니다.");
     }
 
     public void listUpgrades(Player player, UUID islandId) {
-        coreApiClient.listIslandUpgrades(islandId).thenAccept(body -> sendPlayerPayload(player, body, "섬 업그레이드를 불러오지 못했습니다.", "섬 업그레이드 정보를 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.listIslandUpgrades(islandId), "섬 업그레이드를 불러오지 못했습니다.", "섬 업그레이드 정보를 불러왔습니다.");
     }
 
     public void purchaseUpgrade(Player player, UUID islandId, String upgradeKey) {
@@ -263,11 +263,11 @@ public final class VelocityRoutingController {
     }
 
     public void listMissions(Player player, UUID islandId) {
-        coreApiClient.listIslandMissions(islandId, "MISSION").thenAccept(body -> sendPlayerPayload(player, body, "미션 목록을 불러오지 못했습니다.", "미션 목록을 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.listIslandMissions(islandId, "MISSION"), "미션 목록을 불러오지 못했습니다.", "미션 목록을 불러왔습니다.");
     }
 
     public void listChallenges(Player player, UUID islandId) {
-        coreApiClient.listIslandMissions(islandId, "CHALLENGE").thenAccept(body -> sendPlayerPayload(player, body, "챌린지 목록을 불러오지 못했습니다.", "챌린지 목록을 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.listIslandMissions(islandId, "CHALLENGE"), "챌린지 목록을 불러오지 못했습니다.", "챌린지 목록을 불러왔습니다.");
     }
 
     public void completeMission(Player player, UUID islandId, String missionKey) {
@@ -275,7 +275,7 @@ public final class VelocityRoutingController {
     }
 
     public void listLimits(Player player, UUID islandId) {
-        coreApiClient.listIslandLimits(islandId).thenAccept(body -> sendPlayerPayload(player, body, "섬 제한을 불러오지 못했습니다.", "섬 제한을 불러왔습니다."));
+        sendPlayerPayloadFuture(player, coreApiClient.listIslandLimits(islandId), "섬 제한을 불러오지 못했습니다.", "섬 제한을 불러왔습니다.");
     }
 
     public void setLimit(Player player, UUID islandId, String limitKey, long value) {
