@@ -7,7 +7,7 @@ public final class AdminPermissionPolicy {
     private final Set<AdminPermission> allowed;
 
     public AdminPermissionPolicy(Set<AdminPermission> allowed) {
-        this.allowed = EnumSet.copyOf(allowed);
+        this.allowed = allowed.isEmpty() ? EnumSet.noneOf(AdminPermission.class) : EnumSet.copyOf(allowed);
     }
 
     public static AdminPermissionPolicy all() {
