@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.paper.heartbeat;
 
+import java.util.function.BooleanSupplier;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
@@ -13,14 +14,20 @@ public final class PaperHeartbeatService {
     private final String nodeId;
     private final String pool;
     private final String velocityServerName;
+    private final BooleanSupplier storageAvailable;
     private BukkitTask task;
 
     public PaperHeartbeatService(Plugin plugin, CoreApiClient coreApiClient, String nodeId, String pool, String velocityServerName) {
+        this(plugin, coreApiClient, nodeId, pool, velocityServerName, () -> true);
+    }
+
+    public PaperHeartbeatService(Plugin plugin, CoreApiClient coreApiClient, String nodeId, String pool, String velocityServerName, BooleanSupplier storageAvailable) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.nodeId = nodeId;
         this.pool = pool;
         this.velocityServerName = velocityServerName;
+        this.storageAvailable = storageAvailable;
     }
 
     public void start(long intervalTicks) {
@@ -50,7 +57,7 @@ public final class PaperHeartbeatService {
             0,
             heapUsed,
             heapMax,
-            true
+            storageAvailable.getAsBoolean()
         );
         coreApiClient.publishHeartbeat(heartbeat);
     }

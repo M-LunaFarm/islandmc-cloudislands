@@ -27,6 +27,21 @@ public final class S3IslandStorage implements IslandStorage {
     }
 
     @Override
+    public boolean available() throws IOException {
+        try {
+            HttpRequest request = HttpRequest.newBuilder(endpoint.resolve("/" + bucket + "/"))
+                .header("Authorization", "Bearer " + bearerToken)
+                .method("HEAD", HttpRequest.BodyPublishers.noBody())
+                .build();
+            HttpResponse<Void> response = client.send(request, HttpResponse.BodyHandlers.discarding());
+            return response.statusCode() >= 200 && response.statusCode() < 400;
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IOException("storage health check interrupted", exception);
+        }
+    }
+
+    @Override
     public IslandBundleManifest readManifest(UUID islandId) throws IOException {
         String manifest = request("GET", key(islandId, "manifest.json"), null);
         if (manifest.isBlank()) {

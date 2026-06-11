@@ -20,6 +20,13 @@ public final class LocalIslandStorage implements IslandStorage {
     }
 
     @Override
+    public boolean available() throws IOException {
+        Path islandsRoot = root.resolve("islands");
+        Files.createDirectories(islandsRoot);
+        return Files.isDirectory(islandsRoot) && Files.isWritable(islandsRoot);
+    }
+
+    @Override
     public IslandBundleManifest readManifest(UUID islandId) throws IOException {
         Path manifest = islandRoot(islandId).resolve("manifest.json");
         if (!Files.exists(manifest)) {

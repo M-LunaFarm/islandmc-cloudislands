@@ -60,10 +60,11 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         if (admin != null) {
             admin.setExecutor(new AdminCommandController(agent));
         }
-        this.heartbeatService = new PaperHeartbeatService(this, client, nodeId, pool, velocityServerName);
+        IslandStorage storage = role == AgentRole.ISLAND_NODE ? PaperStorageFactory.create(this, getConfig()) : null;
+        this.heartbeatService = new PaperHeartbeatService(this, client, nodeId, pool, velocityServerName, () -> storageAvailable(storage));
         heartbeatService.start(getConfig().getLong("heartbeat.interval-ticks", 20L));
         if (role == AgentRole.ISLAND_NODE) {
-            startIslandNodeWorker(client, nodeId);
+            startIslandNodeWorker(client, nodeId, storage);
         }
         getLogger().info("CloudIslands Paper agent enabled as " + role + " node " + nodeId);
     }
@@ -89,8 +90,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         return activeIslands;
     }
 
-    private void startIslandNodeWorker(CoreApiClient client, String nodeId) {
-        IslandStorage storage = PaperStorageFactory.create(this, getConfig());
+    private void startIslandNodeWorker(CoreApiClient client, String nodeId, IslandStorage storage) {
         ShardWorldManager shardWorldManager = new ShardWorldManager(
             getConfig().getString("island-node.shard-world-prefix", "ci_shard_"),
             getConfig().getInt("island-node.shard-count", 4),
@@ -105,5 +105,17 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         this.permissionEventPoller = new PermissionEventPoller(this, client, permissionSync);
         permissionEventPoller.start(getConfig().getLong("protection.cache-event-poll-ticks", 100L));
         jobWorker.start(getConfig().getLong("island-node.activation.worker-interval-ticks", 20L));
+    }
+
+    private boolean storageAvailable(IslandStorage storage) {
+        if (storage == null) {
+            return true;
+        }
+        try {
+            return storage.available();
+        } catch (Exception exception) {
+            getLogger().warning("Island storage health check failed: " + exception.getMessage());
+            return false;
+        }
     }
 }
