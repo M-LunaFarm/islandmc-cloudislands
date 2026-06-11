@@ -138,6 +138,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (args.length == 3 && args[0].equalsIgnoreCase("node")) {
             return matches(List.of(nodeId), args[2]);
         }
+        if (args.length == 3 && args[0].equalsIgnoreCase("player")) {
+            return matches(onlinePlayerNames(), args[2]);
+        }
         return List.of();
     }
 
@@ -577,5 +580,13 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             }
         }
         return matches;
+    }
+
+    private List<String> onlinePlayerNames() {
+        List<String> names = new ArrayList<>();
+        for (Player player : agent.plugin().getServer().getOnlinePlayers()) {
+            names.add(player.getName());
+        }
+        return names;
     }
 }
