@@ -205,6 +205,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             getConfig().getInt("island-node.cell-size", 1024)
         );
         this.activeIslands = new ActiveIslandRegistry();
+        agent.routeTickets().setActiveIslands(activeIslands);
         IslandSaveService saveService = new IslandSaveService(storage, new ExternalTarIslandBundleExporter(getServer().getWorldContainer().toPath()), getDataFolder().toPath().resolve("exports"), retainedSnapshots());
         IslandActivationJobHandler activationHandler = new IslandActivationJobHandler(storage, shardWorldManager, agent.protection(), new IslandWorldRestorer(storage, getDataFolder().toPath().resolve("staging"), new BundleRestorePlanner(new ExternalTarBundleExtractor())), new ShardWorldPreloader(this), getConfig().getInt("island-node.activation.preload-radius", 4), new FileBackedCellTransfer(getServer().getWorldContainer().toPath()), activeIslands, saveService);
         IslandDeactivationHandler deactivationHandler = new IslandDeactivationHandler(activeIslands, shardWorldManager, agent.protection(), saveService);

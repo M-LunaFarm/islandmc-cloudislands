@@ -4,6 +4,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
 import kr.lunaf.cloudislands.paper.event.IslandPreVisitEvent;
 import kr.lunaf.cloudislands.paper.event.IslandVisitEvent;
 import kr.lunaf.cloudislands.paper.event.RouteTicketConsumedEvent;
@@ -18,11 +19,16 @@ public final class RouteTicketConsumer {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
     private final String nodeId;
+    private volatile ActiveIslandRegistry activeIslands;
 
     public RouteTicketConsumer(Plugin plugin, CoreApiClient coreApiClient, String nodeId) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.nodeId = nodeId;
+    }
+
+    public void setActiveIslands(ActiveIslandRegistry activeIslands) {
+        this.activeIslands = activeIslands;
     }
 
     public void consumeAndTeleport(UUID ticketId, UUID playerUuid, String nonce) {
@@ -66,13 +72,25 @@ public final class RouteTicketConsumer {
             }
         }
         java.util.Map<String, String> payload = ticket.payload();
-        if (player.teleport(new Location(world, decimal(payload, "localX", 0.5D), decimal(payload, "localY", 100.0D), decimal(payload, "localZ", 0.5D), (float) decimal(payload, "yaw", 180.0D), (float) decimal(payload, "pitch", 0.0D)))) {
+        Location target = targetLocation(world, ticket, payload);
+        if (player.teleport(target)) {
             player.sendActionBar(Component.text(arrivalMessage(ticket.action())));
             Bukkit.getPluginManager().callEvent(new RouteTicketConsumedEvent(ticket.islandId(), ticket.ticketId(), playerUuid, player, ticket.action(), worldName));
             if (ticket.action() == RouteAction.VISIT) {
                 Bukkit.getPluginManager().callEvent(new IslandVisitEvent(ticket.islandId(), playerUuid, player, worldName));
             }
         }
+    }
+
+    private Location targetLocation(World world, RouteTicket ticket, java.util.Map<String, String> payload) {
+        double localX = decimal(payload, "localX", 0.5D);
+        double localY = decimal(payload, "localY", 100.0D);
+        double localZ = decimal(payload, "localZ", 0.5D);
+        ActiveIslandRegistry registry = activeIslands;
+        ActiveIslandRegistry.ActiveIsland active = registry == null ? null : registry.find(ticket.islandId()).orElse(null);
+        double worldX = active == null ? localX : active.originX() + localX;
+        double worldZ = active == null ? localZ : active.originZ() + localZ;
+        return new Location(world, worldX, localY, worldZ, (float) decimal(payload, "yaw", 180.0D), (float) decimal(payload, "pitch", 0.0D));
     }
 
     private String arrivalMessage(kr.lunaf.cloudislands.api.model.RouteAction action) {
