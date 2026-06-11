@@ -308,6 +308,20 @@ public final class CloudIslandsVelocityPlugin {
             routingController.purchaseUpgrade(player, islandId, upgradeKey);
             return;
         }
+        if (args[0].equalsIgnoreCase("mission") || args[0].equals("missions") || args[0].equals("미션")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            if (args.length > 2) {
+                routingController.completeMission(player, islandId, args[2]);
+            } else {
+                routingController.listMissions(player, islandId);
+            }
+            return;
+        }
+        if (args[0].equalsIgnoreCase("challenge") || args[0].equals("challenges") || args[0].equals("챌린지")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.listChallenges(player, islandId);
+            return;
+        }
         if (args[0].equalsIgnoreCase("snapshots") || args[0].equals("스냅샷목록")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.listSnapshots(player, islandId);

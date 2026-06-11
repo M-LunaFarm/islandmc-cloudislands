@@ -43,6 +43,9 @@ import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.metrics.PrometheusMetricsRenderer;
+import kr.lunaf.cloudislands.coreservice.mission.InMemoryIslandMissionRepository;
+import kr.lunaf.cloudislands.coreservice.mission.IslandMissionRepository;
+import kr.lunaf.cloudislands.coreservice.mission.JdbcIslandMissionRepository;
 import kr.lunaf.cloudislands.coreservice.permission.InMemoryIslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.permission.IslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.permission.JdbcIslandPermissionRuleRepository;
@@ -123,6 +126,7 @@ public final class CloudIslandsCoreApplication {
         UpgradePolicy upgradePolicy = new UpgradePolicy();
         IslandUpgradeService upgradeService = new IslandUpgradeService(upgradeRepository, upgradePolicy);
         IslandBankRepository bankRepository = config.jdbcRepositories() ? new JdbcIslandBankRepository(dataSource) : new InMemoryIslandBankRepository();
+        IslandMissionRepository missionRepository = config.jdbcRepositories() ? new JdbcIslandMissionRepository(dataSource) : new InMemoryIslandMissionRepository();
         AuditLogger audit = config.jdbcRepositories() ? new JdbcAuditLogger(dataSource) : new InMemoryAuditLogger();
         IslandLogRepository islandLogs = config.jdbcRepositories() ? new JdbcIslandLogRepository(dataSource) : new InMemoryIslandLogRepository();
         InMemoryAuditLogger inMemoryAudit = audit instanceof InMemoryAuditLogger logger ? logger : new InMemoryAuditLogger();
@@ -147,6 +151,23 @@ public final class CloudIslandsCoreApplication {
             write(exchange, 200, rankingsJson(rankingRepository.topByWorth(JsonFields.integer(body, "limit", 10))));
         });
         route("/v1/upgrades/rules", exchange -> write(exchange, 200, upgradeRulesJson(upgradePolicy.list())));
+        route("/v1/islands/missions", exchange -> {
+            String body = readBody(exchange);
+            write(exchange, 200, missionsJson(missionRepository.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "kind", "MISSION"))));
+        });
+        route("/v1/islands/missions/complete", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            String missionKey = JsonFields.text(body, "missionKey", "");
+            java.util.Optional<kr.lunaf.cloudislands.api.model.IslandMissionSnapshot> completed = missionRepository.complete(islandId, actorUuid, missionKey);
+            completed.ifPresent(snapshot -> {
+                audit.log(actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE", "ISLAND", islandId.toString(), Map.of("missionKey", snapshot.missionKey(), "kind", snapshot.kind()));
+                islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_COMPLETE", Map.of("missionKey", snapshot.missionKey(), "kind", snapshot.kind(), "reward", snapshot.reward()));
+                events.publish("ISLAND_MISSION_COMPLETE", Map.of("islandId", islandId.toString(), "missionKey", snapshot.missionKey(), "kind", snapshot.kind()));
+            });
+            write(exchange, completed.isPresent() ? 202 : 404, completed.map(CloudIslandsCoreApplication::missionJson).orElseGet(() -> ApiResponses.error("MISSION_NOT_FOUND", "Mission was not found")));
+        });
         route("/v1/islands/info", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -685,6 +706,32 @@ public final class CloudIslandsCoreApplication {
                 .append('}');
         }
         return builder.append("]}").toString();
+    }
+
+    private static String missionsJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandMissionSnapshot> missions) {
+        StringBuilder builder = new StringBuilder("{\"missions\":[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.api.model.IslandMissionSnapshot mission : missions) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append(missionJson(mission));
+        }
+        return builder.append("]}").toString();
+    }
+
+    private static String missionJson(kr.lunaf.cloudislands.api.model.IslandMissionSnapshot mission) {
+        return "{\"islandId\":\"" + mission.islandId()
+            + "\",\"missionKey\":\"" + escape(mission.missionKey())
+            + "\",\"kind\":\"" + escape(mission.kind())
+            + "\",\"title\":\"" + escape(mission.title())
+            + "\",\"progress\":" + mission.progress()
+            + ",\"goal\":" + mission.goal()
+            + ",\"completed\":" + mission.completed()
+            + ",\"reward\":\"" + escape(mission.reward())
+            + "\",\"updatedAt\":\"" + mission.updatedAt()
+            + "\"}";
     }
 
     private static String upgradesJson(java.util.List<kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot> upgrades) {

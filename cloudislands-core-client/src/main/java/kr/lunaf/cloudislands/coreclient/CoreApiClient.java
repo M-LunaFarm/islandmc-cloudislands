@@ -54,6 +54,8 @@ public interface CoreApiClient {
     CompletableFuture<String> listUpgradeRules();
     CompletableFuture<String> listIslandUpgrades(UUID islandId);
     CompletableFuture<String> purchaseIslandUpgrade(UUID islandId, UUID actorUuid, String upgradeKey);
+    CompletableFuture<String> listIslandMissions(UUID islandId, String kind);
+    CompletableFuture<String> completeIslandMission(UUID islandId, UUID actorUuid, String missionKey);
     CompletableFuture<String> listIslandSnapshots(UUID islandId, int limit);
     CompletableFuture<Void> requestIslandSnapshot(UUID islandId, String reason);
     CompletableFuture<Void> restoreIslandSnapshot(UUID islandId, long snapshotNo);

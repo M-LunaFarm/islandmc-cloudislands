@@ -217,6 +217,18 @@ public final class VelocityRoutingController {
         coreApiClient.purchaseIslandUpgrade(islandId, player.getUniqueId(), upgradeKey).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "업그레이드에 실패했습니다." : body)));
     }
 
+    public void listMissions(Player player, UUID islandId) {
+        coreApiClient.listIslandMissions(islandId, "MISSION").thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "미션 목록을 불러오지 못했습니다." : body)));
+    }
+
+    public void listChallenges(Player player, UUID islandId) {
+        coreApiClient.listIslandMissions(islandId, "CHALLENGE").thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "챌린지 목록을 불러오지 못했습니다." : body)));
+    }
+
+    public void completeMission(Player player, UUID islandId, String missionKey) {
+        coreApiClient.completeIslandMission(islandId, player.getUniqueId(), missionKey).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "미션을 완료하지 못했습니다." : body)));
+    }
+
     public void listSnapshots(Player player, UUID islandId) {
         coreApiClient.listIslandSnapshots(islandId, 20).thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "스냅샷 목록을 불러오지 못했습니다." : body)));
     }
