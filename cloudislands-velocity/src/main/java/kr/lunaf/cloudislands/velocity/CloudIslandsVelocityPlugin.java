@@ -404,58 +404,50 @@ public final class CloudIslandsVelocityPlugin {
         }
         if (args[0].equalsIgnoreCase("kick") || args[0].equals("추방")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
-            UUID targetUuid = parsePlayerUuidOrNil(argumentAfterOptionalIsland(args, 1, ""));
-            routingController.kickMember(player, islandId, targetUuid);
+            routingController.kickMemberTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""));
             return;
         }
         if (args[0].equalsIgnoreCase("promote") || args[0].equals("승급")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
-            UUID targetUuid = parsePlayerUuidOrNil(argumentAfterOptionalIsland(args, 1, ""));
-            routingController.setRole(player, islandId, targetUuid, IslandRole.MODERATOR);
+            routingController.setRoleTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""), IslandRole.MODERATOR);
             return;
         }
         if (args[0].equalsIgnoreCase("demote") || args[0].equals("강등")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
-            UUID targetUuid = parsePlayerUuidOrNil(argumentAfterOptionalIsland(args, 1, ""));
-            routingController.setRole(player, islandId, targetUuid, IslandRole.MEMBER);
+            routingController.setRoleTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""), IslandRole.MEMBER);
             return;
         }
         if (args[0].equalsIgnoreCase("transfer") || args[0].equals("양도")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
-            UUID targetUuid = parsePlayerUuidOrNil(argumentAfterOptionalIsland(args, 1, ""));
-            routingController.transferOwnership(player, islandId, targetUuid);
+            routingController.transferOwnershipTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""));
             return;
         }
         if (args[0].equalsIgnoreCase("trust") || args[0].equals("신뢰")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
-            UUID targetUuid = parsePlayerUuidOrNil(argumentAfterOptionalIsland(args, 1, ""));
-            routingController.setRole(player, islandId, targetUuid, IslandRole.TRUSTED);
+            routingController.setRoleTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""), IslandRole.TRUSTED);
             return;
         }
         if (args[0].equalsIgnoreCase("untrust") || args[0].equals("신뢰해제")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
-            UUID targetUuid = parsePlayerUuidOrNil(argumentAfterOptionalIsland(args, 1, ""));
-            routingController.kickMember(player, islandId, targetUuid);
+            routingController.kickMemberTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""));
             return;
         }
         if (args[0].equalsIgnoreCase("ban") || args[0].equals("밴")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
-            UUID targetUuid = parsePlayerUuidOrNil(argumentAfterOptionalIsland(args, 1, ""));
+            String target = argumentAfterOptionalIsland(args, 1, "");
             int reasonIndex = indexAfterOptionalIslandValue(args, 1);
             String reason = args.length > reasonIndex ? joinArgs(args, reasonIndex) : "island ban";
-            routingController.banVisitor(player, islandId, targetUuid, reason);
+            routingController.banVisitorTarget(player, islandId, target, reason);
             return;
         }
         if (args[0].equalsIgnoreCase("unban") || args[0].equals("밴해제")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
-            UUID targetUuid = parsePlayerUuidOrNil(argumentAfterOptionalIsland(args, 1, ""));
-            routingController.pardonVisitor(player, islandId, targetUuid);
+            routingController.pardonVisitorTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""));
             return;
         }
         if (args[0].equalsIgnoreCase("kickvisitor") || args[0].equals("방문자추방")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
-            UUID targetUuid = parsePlayerUuidOrNil(argumentAfterOptionalIsland(args, 1, ""));
-            routingController.kickVisitor(player, islandId, targetUuid);
+            routingController.kickVisitorTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""));
             return;
         }
         if (args[0].equalsIgnoreCase("banlist") || args[0].equals("밴목록")) {

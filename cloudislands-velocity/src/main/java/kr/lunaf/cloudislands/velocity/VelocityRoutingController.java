@@ -327,16 +327,68 @@ public final class VelocityRoutingController {
         sendActionResult(player, coreApiClient.setIslandMember(islandId, player.getUniqueId(), targetUuid, role), "섬 멤버 역할을 변경했습니다.", "섬 멤버 역할을 변경하지 못했습니다.");
     }
 
+    public void setRoleTarget(Player player, UUID islandId, String target, IslandRole role) {
+        resolvePlayerUuid(target).thenAccept(targetUuid -> {
+            if (targetUuid.equals(new UUID(0L, 0L))) {
+                player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
+                return;
+            }
+            setRole(player, islandId, targetUuid, role);
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
+            return null;
+        });
+    }
+
     public void transferOwnership(Player player, UUID islandId, UUID targetUuid) {
         sendActionResult(player, coreApiClient.transferIslandOwnership(islandId, player.getUniqueId(), targetUuid), "섬 소유권을 양도했습니다.", "섬 소유권을 양도하지 못했습니다.");
+    }
+
+    public void transferOwnershipTarget(Player player, UUID islandId, String target) {
+        resolvePlayerUuid(target).thenAccept(targetUuid -> {
+            if (targetUuid.equals(new UUID(0L, 0L))) {
+                player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
+                return;
+            }
+            transferOwnership(player, islandId, targetUuid);
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
+            return null;
+        });
     }
 
     public void kickMember(Player player, UUID islandId, UUID targetUuid) {
         sendActionResult(player, coreApiClient.removeIslandMember(islandId, player.getUniqueId(), targetUuid), "섬 멤버를 추방했습니다.", "섬 멤버를 추방하지 못했습니다.");
     }
 
+    public void kickMemberTarget(Player player, UUID islandId, String target) {
+        resolvePlayerUuid(target).thenAccept(targetUuid -> {
+            if (targetUuid.equals(new UUID(0L, 0L))) {
+                player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
+                return;
+            }
+            kickMember(player, islandId, targetUuid);
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
+            return null;
+        });
+    }
+
     public void banVisitor(Player player, UUID islandId, UUID targetUuid, String reason) {
         sendActionResult(player, coreApiClient.banIslandVisitor(islandId, player.getUniqueId(), targetUuid, reason), "방문자를 밴했습니다.", "방문자를 밴하지 못했습니다.");
+    }
+
+    public void banVisitorTarget(Player player, UUID islandId, String target, String reason) {
+        resolvePlayerUuid(target).thenAccept(targetUuid -> {
+            if (targetUuid.equals(new UUID(0L, 0L))) {
+                player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
+                return;
+            }
+            banVisitor(player, islandId, targetUuid, reason);
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
+            return null;
+        });
     }
 
     public void listBans(Player player, UUID islandId) {
@@ -347,12 +399,38 @@ public final class VelocityRoutingController {
         sendActionResult(player, coreApiClient.pardonIslandVisitor(islandId, player.getUniqueId(), targetUuid), "방문자 밴을 해제했습니다.", "방문자 밴을 해제하지 못했습니다.");
     }
 
+    public void pardonVisitorTarget(Player player, UUID islandId, String target) {
+        resolvePlayerUuid(target).thenAccept(targetUuid -> {
+            if (targetUuid.equals(new UUID(0L, 0L))) {
+                player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
+                return;
+            }
+            pardonVisitor(player, islandId, targetUuid);
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
+            return null;
+        });
+    }
+
     public void kickVisitor(Player player, UUID islandId, UUID targetUuid) {
         proxy.getPlayer(targetUuid).ifPresentOrElse(target -> {
             target.sendMessage(Component.text("섬에서 추방되어 로비로 이동합니다."));
             fallback(target, "섬에서 추방되어 로비로 이동합니다.");
             player.sendMessage(Component.text("방문자를 섬에서 추방했습니다."));
         }, () -> player.sendMessage(Component.text("대상 플레이어가 온라인이 아닙니다.")));
+    }
+
+    public void kickVisitorTarget(Player player, UUID islandId, String target) {
+        resolvePlayerUuid(target).thenAccept(targetUuid -> {
+            if (targetUuid.equals(new UUID(0L, 0L))) {
+                player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
+                return;
+            }
+            kickVisitor(player, islandId, targetUuid);
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
+            return null;
+        });
     }
 
     public void setPublicAccess(Player player, UUID islandId, boolean publicAccess) {
