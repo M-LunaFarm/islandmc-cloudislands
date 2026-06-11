@@ -221,6 +221,65 @@ public final class CloudIslandsCoreApplication {
             java.util.Optional<IslandSnapshot> island = islandId.equals(new UUID(0L, 0L)) ? islandRepository.findByOwner(ownerUuid) : islandRepository.findById(islandId);
             write(exchange, island.isPresent() ? 200 : 404, island.map(CloudIslandsCoreApplication::islandJson).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
         });
+        routePrefix("/v1/islands/", exchange -> {
+            String method = exchange.getRequestMethod();
+            String path = exchange.getRequestURI().getPath();
+            String tail = path.substring("/v1/islands/".length());
+            if (method.equalsIgnoreCase("GET") && tail.startsWith("by-owner/")) {
+                UUID ownerUuid = uuidPath(tail.substring("by-owner/".length()));
+                java.util.Optional<IslandSnapshot> island = islandRepository.findByOwner(ownerUuid);
+                write(exchange, island.isPresent() ? 200 : 404, island.map(CloudIslandsCoreApplication::islandJson).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
+                return;
+            }
+            if (method.equalsIgnoreCase("GET") && tail.endsWith("/members")) {
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/members".length()));
+                write(exchange, 200, membersJson(metadataRepository.members(islandId)));
+                return;
+            }
+            if (method.equalsIgnoreCase("GET") && tail.endsWith("/runtime")) {
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/runtime".length()));
+                java.util.Optional<kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot> runtime = runtimeRepository.find(islandId);
+                write(exchange, runtime.isPresent() ? 200 : 404, runtime.map(CloudIslandsCoreApplication::runtimeJson).orElseGet(() -> ApiResponses.error("ISLAND_RUNTIME_NOT_FOUND", "Island runtime was not found")));
+                return;
+            }
+            if (method.equalsIgnoreCase("GET") && tail.endsWith("/flags")) {
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/flags".length()));
+                write(exchange, 200, flagsJson(metadataRepository.flags(islandId)));
+                return;
+            }
+            if (method.equalsIgnoreCase("GET") && !tail.contains("/")) {
+                UUID islandId = uuidPath(tail);
+                java.util.Optional<IslandSnapshot> island = islandRepository.findById(islandId);
+                write(exchange, island.isPresent() ? 200 : 404, island.map(CloudIslandsCoreApplication::islandJson).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
+                return;
+            }
+            if (method.equalsIgnoreCase("DELETE") && !tail.contains("/")) {
+                UUID islandId = uuidPath(tail);
+                java.util.Optional<IslandSnapshot> island = islandRepository.findById(islandId);
+                boolean deleted = island.isPresent() && islandRepository.markDeleted(islandId, island.get().ownerUuid());
+                if (deleted) {
+                    playerProfiles.clearPrimaryIsland(island.get().ownerUuid());
+                    runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETED);
+                    events.publish("ISLAND_DELETED", Map.of("islandId", islandId.toString()));
+                }
+                audit.log(new UUID(0L, 0L), "API", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of("deleted", Boolean.toString(deleted)));
+                write(exchange, deleted ? 202 : 404, deleted ? ApiResponses.ok(true) : ApiResponses.error("ISLAND_NOT_DELETED", "Island was not found or could not be deleted"));
+                return;
+            }
+            write(exchange, 404, ApiResponses.error("ROUTE_NOT_FOUND", "Route was not found"));
+        });
+        routePrefix("/v1/players/", exchange -> {
+            String method = exchange.getRequestMethod();
+            String path = exchange.getRequestURI().getPath();
+            String tail = path.substring("/v1/players/".length());
+            if (method.equalsIgnoreCase("GET") && tail.endsWith("/island")) {
+                UUID playerUuid = uuidPath(tail.substring(0, tail.length() - "/island".length()));
+                java.util.Optional<IslandSnapshot> island = islandRepository.findByOwner(playerUuid);
+                write(exchange, island.isPresent() ? 200 : 404, island.map(CloudIslandsCoreApplication::islandJson).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
+                return;
+            }
+            write(exchange, 404, ApiResponses.error("ROUTE_NOT_FOUND", "Route was not found"));
+        });
         route("/v1/islands/permissions", exchange -> {
             String body = readBody(exchange);
             write(exchange, 200, permissionsJson(permissionRules.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
@@ -960,6 +1019,29 @@ public final class CloudIslandsCoreApplication {
         });
     }
 
+    private void routePrefix(String path, HttpHandler handler) {
+        server.createContext(path, exchange -> {
+            String key = exchange.getRemoteAddress() == null ? "unknown" : exchange.getRemoteAddress().getAddress().getHostAddress();
+            if (!rateLimiter.allow(key)) {
+                write(exchange, 429, ApiResponses.error("RATE_LIMITED", "Too many requests"));
+                return;
+            }
+            if (!tokenGuard.allowed(exchange)) {
+                write(exchange, 401, ApiResponses.error("UNAUTHORIZED", "Missing or invalid API token"));
+                return;
+            }
+            if (!ipAllowlist.allowed(exchange)) {
+                write(exchange, 403, ApiResponses.error("IP_NOT_ALLOWED", "Remote address is not allowed"));
+                return;
+            }
+            if (!adminGuard.allowed(exchange.getRequestURI().getPath(), exchange)) {
+                write(exchange, 403, ApiResponses.error("ADMIN_PERMISSION_DENIED", "Admin permission is required"));
+                return;
+            }
+            handler.handle(exchange);
+        });
+    }
+
     private static void lifecycle(HttpExchange exchange, IslandLifecycleWorkflow.Result result) throws IOException {
         write(exchange, result.accepted() ? 202 : 409, "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\"}");
     }
@@ -1425,6 +1507,14 @@ public final class CloudIslandsCoreApplication {
 
     private static String readBody(HttpExchange exchange) throws IOException {
         return new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+    }
+
+    private static UUID uuidPath(String value) {
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException ignored) {
+            return new UUID(0L, 0L);
+        }
     }
 
     private static void write(HttpExchange exchange, int status, String body) throws IOException {
