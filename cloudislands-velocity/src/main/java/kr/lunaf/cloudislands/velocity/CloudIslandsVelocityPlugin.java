@@ -127,6 +127,10 @@ public final class CloudIslandsVelocityPlugin {
             routingController.clearCache(player);
             return;
         }
+        if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {
+            routingController.reload(player);
+            return;
+        }
         if (args.length >= 1 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
             String action = args.length > 1 ? args[1] : "scan";
             String path = args.length > 2 ? joinArgs(args, 2) : "";

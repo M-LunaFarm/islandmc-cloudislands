@@ -407,6 +407,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> reload() {
+        return post("/v1/admin/reload", "{}");
+    }
+
+    @Override
     public CompletableFuture<String> migrateSuperiorSkyblock2(String action, String path) {
         String endpoint = switch (action.toLowerCase()) {
             case "dryrun", "dry-run" -> "dryrun";

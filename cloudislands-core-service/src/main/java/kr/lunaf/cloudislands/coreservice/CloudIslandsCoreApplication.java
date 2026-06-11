@@ -338,6 +338,13 @@ public final class CloudIslandsCoreApplication {
             events.publish("CACHE_CLEAR", Map.of("scope", "route-cache", "sessions", Integer.toString(clearedSessions), "tickets", Integer.toString(clearedTickets)));
             write(exchange, 202, "{\"clearedSessions\":" + clearedSessions + ",\"clearedTickets\":" + clearedTickets + "}");
         });
+        route("/v1/admin/reload", exchange -> {
+            int clearedSessions = sessions.clearAll();
+            int clearedTickets = tickets.clearAll();
+            audit.log(new UUID(0L, 0L), "ADMIN", "CORE_RELOAD", "CORE", "runtime", Map.of("clearedSessions", Integer.toString(clearedSessions), "clearedTickets", Integer.toString(clearedTickets)));
+            events.publish("CORE_RELOAD", Map.of("clearedSessions", Integer.toString(clearedSessions), "clearedTickets", Integer.toString(clearedTickets)));
+            write(exchange, 202, "{\"reloaded\":true,\"clearedSessions\":" + clearedSessions + ",\"clearedTickets\":" + clearedTickets + "}");
+        });
         route("/v1/admin/migrations/superiorskyblock2/scan", exchange -> {
             String body = readBody(exchange);
             audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_SCAN", "MIGRATION", "superiorskyblock2", Map.of());
