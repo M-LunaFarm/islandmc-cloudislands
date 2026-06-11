@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.command;
 import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
@@ -14,11 +15,33 @@ import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
-public final class IslandCommandController implements CommandExecutor {
+public final class IslandCommandController implements CommandExecutor, TabCompleter {
+    private static final List<String> SUBCOMMANDS = List.of(
+        "create", "생성", "delete", "삭제", "reset", "리셋",
+        "sethome", "셋홈", "homes", "home-list", "홈목록", "home", "홈",
+        "warps", "warp-list", "워프", "warp", "setwarp", "워프설정",
+        "delwarp", "deletewarp", "워프삭제", "warp-public", "워프공개", "warp-private", "워프비공개",
+        "public", "공개", "private", "비공개", "lock", "잠금", "unlock", "잠금해제",
+        "level", "레벨", "worth", "value", "가치", "rank", "ranking", "랭킹", "levelcalc", "recalculate", "레벨계산",
+        "bank", "은행", "deposit", "bank-deposit", "입금", "withdraw", "bank-withdraw", "출금",
+        "upgrade", "upgrades", "업그레이드", "mission", "missions", "미션", "challenge", "challenges", "챌린지",
+        "chat", "islandchat", "채팅", "teamchat", "team-chat", "팀채팅", "log", "logs", "로그",
+        "biome", "바이옴", "size", "크기", "border", "경계",
+        "limit", "limits", "limit-list", "제한", "제한목록", "setlimit", "limit-set", "제한설정",
+        "snapshot", "snapshots", "스냅샷", "snapshot-create", "snapshot-request", "스냅샷생성",
+        "snapshot-restore", "rollback", "스냅샷복원", "롤백",
+        "members", "member-list", "멤버", "invite", "초대", "invites", "invite-list", "초대목록",
+        "accept", "invite-accept", "초대수락", "decline", "invite-decline", "초대거절",
+        "kick", "remove-member", "추방", "trust", "신뢰", "untrust", "신뢰해제",
+        "promote", "승급", "demote", "강등", "transfer", "양도",
+        "ban", "밴", "unban", "pardon", "밴해제", "bans", "ban-list", "밴목록",
+        "flags", "flag", "플래그", "permissions", "permission", "perms", "권한"
+    );
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
     private final ProtectionController protection;
@@ -27,6 +50,21 @@ public final class IslandCommandController implements CommandExecutor {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.protection = protection;
+    }
+
+    @Override
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        if (args.length != 1) {
+            return List.of();
+        }
+        String typed = args[0].toLowerCase(Locale.ROOT);
+        List<String> matches = new ArrayList<>();
+        for (String subcommand : SUBCOMMANDS) {
+            if (typed.isBlank() || subcommand.toLowerCase(Locale.ROOT).startsWith(typed)) {
+                matches.add(subcommand);
+            }
+        }
+        return matches;
     }
 
     @Override
