@@ -238,6 +238,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> listPublicWarps(int limit) {
+        return post("/v1/islands/public-warps", "{\"limit\":" + limit + "}");
+    }
+
+    @Override
     public CompletableFuture<Void> setIslandWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) {
         return setIslandWarpResult(islandId, actorUuid, name, location, publicAccess).thenApply(_body -> null);
     }

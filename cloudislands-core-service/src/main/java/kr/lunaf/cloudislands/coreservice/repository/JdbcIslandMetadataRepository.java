@@ -399,6 +399,24 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     }
 
     @Override
+    public List<IslandWarpSnapshot> publicWarps(int limit) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT island_id, name, local_x, local_y, local_z, yaw, pitch, public_access, created_by, created_at FROM island_warps WHERE public_access = true ORDER BY created_at DESC LIMIT ?")) {
+            statement.setInt(1, Math.max(1, limit));
+            try (ResultSet rs = statement.executeQuery()) {
+                List<IslandWarpSnapshot> result = new ArrayList<>();
+                while (rs.next()) {
+                    IslandLocation location = new IslandLocation("", rs.getDouble("local_x"), rs.getDouble("local_y"), rs.getDouble("local_z"), rs.getFloat("yaw"), rs.getFloat("pitch"));
+                    result.add(new IslandWarpSnapshot((UUID) rs.getObject("island_id"), rs.getString("name"), location, rs.getBoolean("public_access"), (UUID) rs.getObject("created_by"), rs.getTimestamp("created_at").toInstant()));
+                }
+                return result;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read public island warps", exception);
+        }
+    }
+
+    @Override
     public Optional<IslandWarpSnapshot> warp(UUID islandId, String name) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT island_id, name, local_x, local_y, local_z, yaw, pitch, public_access, created_by, created_at FROM island_warps WHERE island_id = ? AND name = ?")) {

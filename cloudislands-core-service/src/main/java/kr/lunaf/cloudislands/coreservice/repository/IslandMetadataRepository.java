@@ -38,6 +38,7 @@ public interface IslandMetadataRepository {
     java.util.Optional<IslandHomeSnapshot> home(UUID islandId, String name);
     void upsertHome(UUID islandId, String name, IslandLocation location, UUID createdBy);
     List<IslandWarpSnapshot> warps(UUID islandId);
+    List<IslandWarpSnapshot> publicWarps(int limit);
     Optional<IslandWarpSnapshot> warp(UUID islandId, String name);
     void upsertWarp(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy);
     void setWarpPublicAccess(UUID islandId, String name, boolean publicAccess);

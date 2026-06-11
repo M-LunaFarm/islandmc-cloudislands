@@ -1089,6 +1089,11 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             write(exchange, 200, warpsJson(metadataRepository.warps(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
         });
+        route("/v1/islands/public-warps", exchange -> {
+            String body = readBody(exchange);
+            int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 27), 54));
+            write(exchange, 200, warpsJson(metadataRepository.publicWarps(limit)));
+        });
         route("/v1/islands/homes", exchange -> {
             String body = readBody(exchange);
             write(exchange, 200, homesJson(metadataRepository.homes(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));

@@ -36,6 +36,7 @@ public interface IslandQueryService {
     CompletableFuture<List<IslandInviteSnapshot>> getPendingInvites(UUID playerUuid);
     CompletableFuture<List<IslandHomeSnapshot>> getHomes(UUID islandId);
     CompletableFuture<List<IslandWarpSnapshot>> getWarps(UUID islandId);
+    CompletableFuture<List<IslandWarpSnapshot>> getPublicWarps(int limit);
     CompletableFuture<IslandFlagsSnapshot> getFlags(UUID islandId);
     CompletableFuture<IslandBiomeSnapshot> getBiome(UUID islandId);
     CompletableFuture<List<IslandLimitSnapshot>> getLimits(UUID islandId);

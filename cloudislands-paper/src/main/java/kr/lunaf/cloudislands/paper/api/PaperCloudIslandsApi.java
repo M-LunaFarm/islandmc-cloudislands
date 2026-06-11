@@ -182,6 +182,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
+        public CompletableFuture<List<IslandWarpSnapshot>> getPublicWarps(int limit) {
+            return client.listPublicWarps(limit).thenApply(PaperCloudIslandsApi::warps);
+        }
+
+        @Override
         public CompletableFuture<List<IslandPermissionRuleSnapshot>> getPermissionRules(UUID islandId) {
             return client.listIslandPermissions(islandId).thenApply(PaperCloudIslandsApi::permissionRules);
         }

@@ -184,6 +184,16 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     }
 
     @Override
+    public List<IslandWarpSnapshot> publicWarps(int limit) {
+        return warps.values().stream()
+            .flatMap(islandWarps -> islandWarps.values().stream())
+            .filter(IslandWarpSnapshot::publicAccess)
+            .sorted(java.util.Comparator.comparing(IslandWarpSnapshot::createdAt).reversed())
+            .limit(Math.max(1, limit))
+            .toList();
+    }
+
+    @Override
     public Optional<IslandWarpSnapshot> warp(UUID islandId, String name) {
         return Optional.ofNullable(warps.getOrDefault(islandId, Map.of()).get(name.toLowerCase()));
     }
