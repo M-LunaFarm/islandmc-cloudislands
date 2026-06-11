@@ -13,7 +13,8 @@ public final class IslandCommandCatalog {
             "섬 밴", "섬 밴해제", "섬 밴목록", "섬 공개", "섬 비공개",
             "섬 설정", "섬 권한", "섬 플래그", "섬 워프", "섬 워프설정",
             "섬 레벨", "섬 가치", "섬 랭킹", "섬 가치랭킹", "섬 업그레이드", "섬 바이옴",
-            "섬 미션", "섬 챌린지", "섬 채팅", "섬 로그", "섬 삭제"
+            "섬 미션", "섬 챌린지", "섬 채팅", "섬 제한", "섬 스냅샷",
+            "섬 스냅샷목록", "섬 복원", "섬 로그", "섬 삭제"
         );
     }
 
@@ -22,9 +23,13 @@ public final class IslandCommandCatalog {
             "ciadmin island info", "ciadmin island where", "ciadmin island tp",
             "ciadmin island activate", "ciadmin island deactivate", "ciadmin island migrate",
             "ciadmin island save", "ciadmin island snapshot", "ciadmin island rollback",
-            "ciadmin island quarantine", "ciadmin island repair", "ciadmin node list",
-            "ciadmin node drain", "ciadmin node undrain", "ciadmin jobs list",
-            "ciadmin route debug", "ciadmin cache clear", "ciadmin migrate-superiorskyblock2"
+            "ciadmin island quarantine", "ciadmin island repair", "ciadmin island delete",
+            "ciadmin island restore", "ciadmin player info", "ciadmin player setisland",
+            "ciadmin player clearisland", "ciadmin node list", "ciadmin node info",
+            "ciadmin node drain", "ciadmin node undrain", "ciadmin node kickall",
+            "ciadmin node shutdown-safe", "ciadmin jobs list", "ciadmin jobs retry",
+            "ciadmin jobs cancel", "ciadmin route debug", "ciadmin route ticket",
+            "ciadmin route clear", "ciadmin cache clear", "ciadmin migrate-superiorskyblock2"
         );
     }
 }
