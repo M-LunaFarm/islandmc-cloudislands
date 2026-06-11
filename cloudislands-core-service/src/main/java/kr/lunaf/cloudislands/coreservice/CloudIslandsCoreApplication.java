@@ -430,6 +430,14 @@ public final class CloudIslandsCoreApplication {
             audit.log(new UUID(0L, 0L), "ADMIN", "NODE_UNDRAIN", "NODE", nodeId, Map.of());
             write(exchange, changed ? 202 : 404, ApiResponses.ok(changed));
         });
+        route("/v1/admin/nodes/sweep", exchange -> {
+            String body = readBody(exchange);
+            String nodeId = JsonFields.text(body, "nodeId", "");
+            int affected = runtimeRepository.markRecoveryRequiredForNode(nodeId);
+            audit.log(new UUID(0L, 0L), "ADMIN", "NODE_SWEEP", "NODE", nodeId, Map.of("recoveryRequired", Integer.toString(affected)));
+            events.publish("NODE_SWEEP", Map.of("nodeId", nodeId, "recoveryRequired", Integer.toString(affected)));
+            write(exchange, 202, "{\"nodeId\":\"" + nodeId.replace("\"", "'") + "\",\"recoveryRequired\":" + affected + "}");
+        });
         route("/v1/admin/islands/activate", exchange -> lifecycle(exchange, lifecycle.activate(JsonFields.uuid(readBody(exchange), "islandId", new UUID(0L, 0L)))));
         route("/v1/admin/islands/deactivate", exchange -> lifecycle(exchange, lifecycle.deactivate(JsonFields.uuid(readBody(exchange), "islandId", new UUID(0L, 0L)))));
         route("/v1/admin/islands/migrate", exchange -> {

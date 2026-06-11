@@ -87,6 +87,17 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
         return update(islandId, state, current.activeNode(), current.activeWorld(), current.cellX(), current.cellZ(), current.leaseOwner(), current.fencingToken(), current.activatedAt());
     }
 
+    @Override
+    public int markRecoveryRequiredForNode(String nodeId) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("UPDATE island_runtime SET state = 'RECOVERY_REQUIRED', updated_at = now() WHERE active_node = ? AND state IN ('ACTIVE', 'ACTIVATING', 'SAVING', 'DEACTIVATING')")) {
+            statement.setString(1, nodeId);
+            return statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to mark node islands recovery required", exception);
+        }
+    }
+
     private IslandRuntimeSnapshot update(UUID islandId, IslandState state, String node, String world, Integer cellX, Integer cellZ, String leaseOwner, long token, Instant activatedAt) {
         try (Connection connection = dataSource.getConnection()) {
             return upsert(connection, islandId, state, node, world, cellX, cellZ, leaseOwner, token, activatedAt);

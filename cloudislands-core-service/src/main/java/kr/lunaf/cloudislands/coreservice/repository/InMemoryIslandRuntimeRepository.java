@@ -57,6 +57,22 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
         return put(new IslandRuntimeSnapshot(islandId, state, current.activeNode(), current.activeWorld(), current.cellX(), current.cellZ(), current.leaseOwner(), current.fencingToken(), current.activatedAt(), Instant.now()));
     }
 
+    @Override
+    public int markRecoveryRequiredForNode(String nodeId) {
+        int changed = 0;
+        for (IslandRuntimeSnapshot runtime : runtimes.values()) {
+            if (!nodeId.equals(runtime.activeNode())) {
+                continue;
+            }
+            if (runtime.state() != IslandState.ACTIVE && runtime.state() != IslandState.ACTIVATING && runtime.state() != IslandState.SAVING && runtime.state() != IslandState.DEACTIVATING) {
+                continue;
+            }
+            put(new IslandRuntimeSnapshot(runtime.islandId(), IslandState.RECOVERY_REQUIRED, runtime.activeNode(), runtime.activeWorld(), runtime.cellX(), runtime.cellZ(), runtime.leaseOwner(), runtime.fencingToken(), runtime.activatedAt(), Instant.now()));
+            changed++;
+        }
+        return changed;
+    }
+
     private IslandRuntimeSnapshot put(IslandRuntimeSnapshot runtime) {
         runtimes.put(runtime.islandId(), runtime);
         return runtime;

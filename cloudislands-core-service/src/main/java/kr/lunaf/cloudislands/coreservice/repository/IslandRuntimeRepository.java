@@ -14,4 +14,5 @@ public interface IslandRuntimeRepository {
     IslandRuntimeSnapshot markMigrating(UUID islandId, String targetNode);
     IslandRuntimeSnapshot markQuarantined(UUID islandId, String reason);
     IslandRuntimeSnapshot setState(UUID islandId, IslandState state);
+    int markRecoveryRequiredForNode(String nodeId);
 }
