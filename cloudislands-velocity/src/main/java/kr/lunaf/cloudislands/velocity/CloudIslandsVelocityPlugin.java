@@ -308,7 +308,7 @@ public final class CloudIslandsVelocityPlugin {
         if (args[0].equalsIgnoreCase("visit") || args[0].equals("방문")) {
             player.sendActionBar(Component.text("방문할 섬을 불러오는 중입니다."));
             if (args.length < 2) {
-                player.sendMessage(Component.text("방문할 섬 또는 플레이어를 입력해주세요."));
+                routingController.routeRandomVisit(player);
                 return;
             }
             UUID targetIslandId = parseUuidOrNil(args[1]);
