@@ -16,12 +16,13 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public final class AdminCommandController implements CommandExecutor, TabCompleter {
-    private static final List<String> ROOT_COMMANDS = List.of("status", "cache", "node", "island", "jobs", "route", "reload");
+    private static final List<String> ROOT_COMMANDS = List.of("status", "cache", "node", "island", "jobs", "route", "template", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "activate", "deactivate", "migrate", "quarantine", "repair", "delete");
     private static final List<String> JOB_COMMANDS = List.of("list", "retry", "cancel", "recover");
     private static final List<String> ROUTE_COMMANDS = List.of("debug", "ticket", "clear");
+    private static final List<String> TEMPLATE_COMMANDS = List.of("list", "upsert", "enable", "disable");
     private final CloudIslandsPaperAgent agent;
     private final CoreApiClient coreApiClient;
     private final String nodeId;
@@ -63,6 +64,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (args[0].equalsIgnoreCase("route")) {
             return handleRoute(sender, args);
         }
+        if (args[0].equalsIgnoreCase("template")) {
+            return handleTemplate(sender, args);
+        }
         usage(sender, label);
         return true;
     }
@@ -89,6 +93,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("route")) {
             return matches(ROUTE_COMMANDS, args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("template")) {
+            return matches(TEMPLATE_COMMANDS, args[1]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("node")) {
             return matches(List.of(nodeId), args[2]);
@@ -253,6 +260,37 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         return true;
     }
 
+    private boolean handleTemplate(CommandSender sender, String[] args) {
+        if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
+            run(sender, "Template list", coreApiClient.listTemplates());
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("upsert")) {
+            if (args.length < 4) {
+                sender.sendMessage("사용법: /ciadmin template upsert <id> <name> [enabled] [minNodeVersion]");
+                return true;
+            }
+            boolean enabled = args.length < 5 || Boolean.parseBoolean(args[4]);
+            String minNodeVersion = args.length > 5 ? args[5] : "";
+            run(sender, "Template upsert", coreApiClient.upsertTemplate(args[2], args[3], enabled, minNodeVersion));
+            return true;
+        }
+        if (args.length < 3) {
+            sender.sendMessage("템플릿 ID를 입력해주세요.");
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("enable")) {
+            run(sender, "Template enable", coreApiClient.enableTemplate(args[2]));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("disable")) {
+            run(sender, "Template disable", coreApiClient.disableTemplate(args[2]));
+            return true;
+        }
+        sender.sendMessage("사용법: /ciadmin template list|upsert|enable|disable");
+        return true;
+    }
+
     private void run(CommandSender sender, String action, CompletableFuture<String> future) {
         future.thenAccept(body -> message(sender, action + " 완료" + (body == null || body.isBlank() ? "" : ": " + body)))
             .exceptionally(error -> {
@@ -266,7 +304,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private void usage(CommandSender sender, String label) {
-        sender.sendMessage("사용법: /" + label + " status, cache clear, node list, island info <uuid>, jobs list, route debug <uuid>, reload");
+        sender.sendMessage("사용법: /" + label + " status, cache clear, node list, island info <uuid>, jobs list, route debug <uuid>, template list, reload");
     }
 
     private UUID uuid(CommandSender sender, String value) {
