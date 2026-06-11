@@ -38,6 +38,10 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_node_activation_queue", "gauge");
         help(out, "cloudislands_node_heap_used_mb", "Node JVM heap used in MiB");
         type(out, "cloudislands_node_heap_used_mb", "gauge");
+        help(out, "cloudislands_node_heap_max_mb", "Node JVM maximum heap in MiB");
+        type(out, "cloudislands_node_heap_max_mb", "gauge");
+        help(out, "cloudislands_node_memory_pressure", "Node heap usage divided by max heap");
+        type(out, "cloudislands_node_memory_pressure", "gauge");
         help(out, "cloudislands_node_state", "Node state marker by state label");
         type(out, "cloudislands_node_state", "gauge");
         Instant now = Instant.now();
@@ -49,6 +53,8 @@ public final class PrometheusMetricsRenderer {
             labels(out, "cloudislands_node_active_islands", node, null).append(node.activeIslands()).append('\n');
             labels(out, "cloudislands_node_activation_queue", node, null).append(node.activationQueue()).append('\n');
             labels(out, "cloudislands_node_heap_used_mb", node, null).append(node.heapUsedMb()).append('\n');
+            labels(out, "cloudislands_node_heap_max_mb", node, null).append(node.heapMaxMb()).append('\n');
+            labels(out, "cloudislands_node_memory_pressure", node, null).append(memoryPressure(node)).append('\n');
             for (NodeState state : NodeState.values()) {
                 labels(out, "cloudislands_node_state", node, "state=\"" + state.name() + "\"").append(node.state() == state ? 1 : 0).append('\n');
             }
@@ -109,6 +115,10 @@ public final class PrometheusMetricsRenderer {
             out.append(',').append(extra);
         }
         return out.append("} ");
+    }
+
+    private static double memoryPressure(NodeLoad node) {
+        return node.heapMaxMb() <= 0 ? 1.0D : Math.min((double) node.heapUsedMb() / node.heapMaxMb(), 1.5D);
     }
 
     private static String escape(String value) {
