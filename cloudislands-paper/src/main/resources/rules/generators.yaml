@@ -13,3 +13,15 @@ generators:
         minecraft:coal_ore: 15
         minecraft:iron_ore: 15
         minecraft:diamond_ore: 10
+      4:
+        minecraft:cobblestone: 45
+        minecraft:coal_ore: 15
+        minecraft:iron_ore: 18
+        minecraft:gold_ore: 12
+        minecraft:diamond_ore: 10
+      5:
+        minecraft:cobblestone: 35
+        minecraft:iron_ore: 20
+        minecraft:gold_ore: 15
+        minecraft:diamond_ore: 15
+        minecraft:emerald_ore: 15
