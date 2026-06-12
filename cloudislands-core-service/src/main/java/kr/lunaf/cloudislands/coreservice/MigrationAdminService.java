@@ -7,7 +7,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
@@ -145,6 +147,24 @@ public final class MigrationAdminService {
         } catch (RuntimeException exception) {
             throw new IllegalStateException("migration bundle snapshot unavailable for " + manifest.islandId() + ": " + exception.getMessage(), exception);
         }
+    }
+
+    private boolean snapshotRecordMatches(List<MigrationIssue> issues, MigrationManifest manifest, MigrationWorldBundle bundle, Path root) {
+        if (snapshots == null) {
+            return true;
+        }
+        Optional<IslandSnapshotRecord> record = snapshots.find(manifest.islandId(), 1L);
+        if (record.isEmpty()) {
+            issues.add(new MigrationIssue("MIGRATION_SNAPSHOT_MISSING", "missing migration snapshot record " + manifest.islandId(), true));
+            return false;
+        }
+        IslandSnapshotRecord snapshot = record.get();
+        boolean matched = true;
+        String storagePath = root.normalize().relativize(bundle.bundlePath().normalize()).toString().replace('\\', '/');
+        matched &= expect(issues, storagePath.equals(snapshot.storagePath()), "MIGRATION_SNAPSHOT_PATH_MISMATCH", "snapshot path mismatch " + manifest.islandId());
+        matched &= expect(issues, bundle.checksum().equalsIgnoreCase(snapshot.checksum()), "MIGRATION_SNAPSHOT_CHECKSUM_MISMATCH", "snapshot checksum mismatch " + manifest.islandId());
+        matched &= expect(issues, bundle.sizeBytes() == snapshot.sizeBytes(), "MIGRATION_SNAPSHOT_SIZE_MISMATCH", "snapshot size mismatch " + manifest.islandId());
+        return matched;
     }
 
     public synchronized String extractWorldBundles(String outputPath) {
@@ -292,6 +312,7 @@ public final class MigrationAdminService {
             } else {
                 try {
                     MigrationWorldBundle bundle = worldExtractor.verify(worldExtractor.plan(manifest, verifyBundleRoot));
+                    matched &= snapshotRecordMatches(issues, manifest, bundle, verifyBundleRoot);
                     extractedBundles++;
                     extractedFiles += bundle.fileCount();
                     extractedBytes += bundle.sizeBytes();
