@@ -1102,13 +1102,13 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 409, "{\"accepted\":false,\"code\":\"INVALID_AMOUNT\",\"bank\":" + bankJson(bankRepository.balance(islandId)) + "}");
                 return;
             }
-            var currentBank = bankRepository.balance(islandId);
             long bankLimit = limitValue(limitRepository, islandId, "BANK", Long.MAX_VALUE);
-            if (bankLimit != Long.MAX_VALUE && decimal(currentBank.balance()).add(amount).compareTo(BigDecimal.valueOf(bankLimit)) > 0) {
-                write(exchange, 409, "{\"accepted\":false,\"code\":\"BANK_LIMIT\",\"bank\":" + bankJson(currentBank) + "}");
+            var result = bankRepository.deposit(islandId, amount, bankLimit == Long.MAX_VALUE ? null : BigDecimal.valueOf(bankLimit));
+            if (!result.accepted()) {
+                write(exchange, 409, "{\"accepted\":false,\"code\":\"" + result.code() + "\",\"bank\":" + bankJson(result.snapshot()) + "}");
                 return;
             }
-            var snapshot = bankRepository.deposit(islandId, amount);
+            var snapshot = result.snapshot();
             audit.log(actorUuid, "PLAYER", "ISLAND_BANK_DEPOSIT", "ISLAND", islandId.toString(), Map.of("amount", amount.toPlainString(), "balance", snapshot.balance()));
             islandLogs.append(islandId, actorUuid, "ISLAND_BANK_DEPOSIT", Map.of("amount", amount.toPlainString(), "balance", snapshot.balance()));
             events.publish(CloudIslandEventType.ISLAND_BANK_CHANGED.name(), Map.of("islandId", islandId.toString(), "operation", "DEPOSIT", "amount", amount.toPlainString(), "balance", snapshot.balance()));

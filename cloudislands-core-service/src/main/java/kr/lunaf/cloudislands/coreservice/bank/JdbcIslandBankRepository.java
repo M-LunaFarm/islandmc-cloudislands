@@ -45,6 +45,32 @@ public final class JdbcIslandBankRepository implements IslandBankRepository {
     }
 
     @Override
+    public BankChangeResult deposit(UUID islandId, BigDecimal amount, BigDecimal maxBalance) {
+        if (amount.signum() <= 0) {
+            return new BankChangeResult(false, "INVALID_AMOUNT", balance(islandId));
+        }
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            ensureRow(connection, islandId);
+            BigDecimal current = lockedBalance(connection, islandId);
+            if (maxBalance != null && current.add(amount).compareTo(maxBalance) > 0) {
+                connection.rollback();
+                return new BankChangeResult(false, "BANK_LIMIT", new IslandBankSnapshot(islandId, current.toPlainString(), Instant.now()));
+            }
+            try (PreparedStatement statement = connection.prepareStatement("UPDATE island_bank SET balance = balance + ?, updated_at = now() WHERE island_id = ?")) {
+                statement.setBigDecimal(1, amount);
+                statement.setObject(2, islandId);
+                statement.executeUpdate();
+            }
+            IslandBankSnapshot snapshot = snapshot(connection, islandId);
+            connection.commit();
+            return new BankChangeResult(true, "DEPOSITED", snapshot);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to deposit island bank", exception);
+        }
+    }
+
+    @Override
     public BankChangeResult withdraw(UUID islandId, BigDecimal amount) {
         if (amount.signum() <= 0) {
             return new BankChangeResult(false, "INVALID_AMOUNT", balance(islandId));

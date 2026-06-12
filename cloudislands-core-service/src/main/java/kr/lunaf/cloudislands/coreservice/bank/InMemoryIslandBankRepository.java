@@ -27,6 +27,20 @@ public final class InMemoryIslandBankRepository implements IslandBankRepository 
     }
 
     @Override
+    public synchronized BankChangeResult deposit(UUID islandId, BigDecimal amount, BigDecimal maxBalance) {
+        if (amount.signum() <= 0) {
+            return new BankChangeResult(false, "INVALID_AMOUNT", snapshot(islandId));
+        }
+        BigDecimal current = balances.getOrDefault(islandId, BigDecimal.ZERO);
+        if (maxBalance != null && current.add(amount).compareTo(maxBalance) > 0) {
+            return new BankChangeResult(false, "BANK_LIMIT", snapshot(islandId));
+        }
+        balances.put(islandId, current.add(amount));
+        updatedAt.put(islandId, Instant.now());
+        return new BankChangeResult(true, "DEPOSITED", snapshot(islandId));
+    }
+
+    @Override
     public synchronized BankChangeResult withdraw(UUID islandId, BigDecimal amount) {
         if (amount.signum() <= 0) {
             return new BankChangeResult(false, "INVALID_AMOUNT", snapshot(islandId));
