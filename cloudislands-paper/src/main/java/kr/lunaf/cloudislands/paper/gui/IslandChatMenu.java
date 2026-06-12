@@ -19,7 +19,9 @@ public final class IslandChatMenu implements Listener {
         inventory.setItem(10, item(Material.WRITABLE_BOOK, "섬 채팅 보내기", "사용법: /섬 채팅 <메시지>", "섬 전체 채널로 기록됩니다."));
         inventory.setItem(12, item(Material.BOOK, "팀 채팅 보내기", "사용법: /섬 팀채팅 <메시지>", "섬 팀 채널로 기록됩니다."));
         inventory.setItem(14, item(Material.CLOCK, "최근 섬 로그", "/섬 로그", "채팅 기록도 섬 로그에서 확인합니다."));
-        inventory.setItem(16, item(Material.OAK_DOOR, "닫기", "메뉴를 닫습니다."));
+        inventory.setItem(15, item(Material.COMPARATOR, "섬 설정", "/섬 설정"));
+        inventory.setItem(16, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
+        inventory.setItem(22, item(Material.OAK_DOOR, "닫기", "메뉴를 닫습니다."));
         player.openInventory(inventory);
     }
 
@@ -44,6 +46,10 @@ public final class IslandChatMenu implements Listener {
             player.sendMessage("사용법: /섬 팀채팅 <메시지>");
         } else if (name.equals("최근 섬 로그")) {
             player.performCommand("섬 로그");
+        } else if (name.equals("섬 설정")) {
+            player.performCommand("섬 설정");
+        } else if (name.equals("메인 메뉴")) {
+            player.performCommand("섬 메뉴");
         }
     }
 
