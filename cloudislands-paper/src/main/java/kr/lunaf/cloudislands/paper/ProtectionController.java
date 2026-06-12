@@ -37,6 +37,19 @@ public final class ProtectionController {
         return regionIndex.find(block.getWorld().getName(), block.getX(), block.getZ());
     }
 
+    public IslandRole role(UUID islandId, UUID playerUuid) {
+        return permissionCache.role(islandId, playerUuid);
+    }
+
+    public boolean memberOrTrusted(UUID islandId, UUID playerUuid) {
+        IslandRole role = role(islandId, playerUuid);
+        return role == IslandRole.OWNER
+            || role == IslandRole.CO_OWNER
+            || role == IslandRole.MODERATOR
+            || role == IslandRole.MEMBER
+            || role == IslandRole.TRUSTED;
+    }
+
     public PermissionResult checkBlock(UUID playerUuid, String world, int blockX, int blockY, int blockZ, IslandPermission permission) {
         return checkBlock(playerUuid, world, blockX, blockY, blockZ, permission, false);
     }

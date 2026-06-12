@@ -30,6 +30,11 @@ public final class LocalIslandPermissionCache {
         return new PermissionResolver(cached.permissions(), cached.roles()).check(playerUuid, permission, adminBypass).allowed();
     }
 
+    public IslandRole role(UUID islandId, UUID playerUuid) {
+        CachedIslandPermissions cached = islands.computeIfAbsent(islandId, ignored -> empty());
+        return cached.roles().getOrDefault(playerUuid, IslandRole.VISITOR);
+    }
+
     public boolean flagAllowed(UUID islandId, IslandFlag flag) {
         CachedIslandPermissions cached = islands.computeIfAbsent(islandId, ignored -> empty());
         String value = cached.flags().get(flag);

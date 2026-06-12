@@ -29,9 +29,19 @@ public final class IslandBoundaryListener implements Listener {
             return;
         }
         IslandRegion region = fromRegion.get();
+        boolean member = protection.memberOrTrusted(region.islandId(), event.getPlayer().getUniqueId());
+        Location target = member ? memberSpawn(from, region) : visitorSpawn(from, region);
         event.setCancelled(true);
-        event.getPlayer().teleport(new Location(from.getWorld(), region.originX() + 0.5D, from.getY(), region.originZ() + 0.5D, from.getYaw(), from.getPitch()));
+        event.getPlayer().teleport(target);
         event.getPlayer().sendActionBar(net.kyori.adventure.text.Component.text("섬 경계 밖으로 이동할 수 없습니다."));
+    }
+
+    private Location memberSpawn(Location from, IslandRegion region) {
+        return new Location(from.getWorld(), region.originX() + 0.5D, Math.max(from.getY(), 100.0D), region.originZ() + 0.5D, from.getYaw(), from.getPitch());
+    }
+
+    private Location visitorSpawn(Location from, IslandRegion region) {
+        return new Location(from.getWorld(), region.originX() + 0.5D, Math.max(from.getY(), 100.0D), region.originZ() + 2.5D, 180.0F, 0.0F);
     }
 
     private boolean sameBlock(Location from, Location to) {

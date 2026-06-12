@@ -132,24 +132,6 @@ public final class IslandProtectionListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true)
-    public void onMove(PlayerMoveEvent event) {
-        if (event.getTo() == null || !event.getFrom().getWorld().equals(event.getTo().getWorld())) {
-            return;
-        }
-        if (event.getFrom().getBlockX() == event.getTo().getBlockX() && event.getFrom().getBlockZ() == event.getTo().getBlockZ()) {
-            return;
-        }
-        Optional<UUID> fromIsland = protection.islandAt(event.getFrom().getBlock());
-        if (fromIsland.isEmpty()) {
-            return;
-        }
-        Optional<UUID> toIsland = protection.islandAt(event.getTo().getBlock());
-        if (toIsland.isEmpty() || !toIsland.get().equals(fromIsland.get())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(ignoreCancelled = true)
     public void onHangingPlace(HangingPlaceEvent event) {
         event.setCancelled(denied(event.getPlayer(), event.getBlock(), IslandPermission.BUILD));
     }
