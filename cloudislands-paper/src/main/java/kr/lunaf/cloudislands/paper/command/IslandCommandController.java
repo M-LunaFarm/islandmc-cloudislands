@@ -1530,8 +1530,8 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("섬 바이옴을 변경할 권한이 없습니다.");
                 return;
             }
-            coreApiClient.setIslandBiome(islandId, player.getUniqueId(), biomeKey)
-                .thenRun(() -> message(player, "섬 바이옴을 변경했습니다: " + biomeKey))
+            coreApiClient.setIslandBiomeResult(islandId, player.getUniqueId(), biomeKey)
+                .thenAccept(body -> message(player, actionResultMessage("섬 바이옴 변경 " + biomeKey, biomeKey, body)))
                 .exceptionally(error -> {
                     message(player, "섬 바이옴을 변경하지 못했습니다.");
                     return null;
