@@ -104,31 +104,31 @@ public final class VelocityRoutingController {
     }
 
     public void showMyIsland(Player player) {
-        sendPlayerPayloadFuture(player, coreApiClient.islandInfoByOwner(player.getUniqueId()), "섬 정보를 불러오지 못했습니다.", "섬 정보를 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.islandInfoByOwner(player.getUniqueId()).thenApply(this::islandInfoMessage), "섬 정보를 불러오지 못했습니다.");
     }
 
     public void showIslandSettings(Player player, UUID islandId) {
-        sendPlayerPayloadFuture(player, coreApiClient.islandInfo(islandId), "섬 설정을 불러오지 못했습니다.", "섬 설정을 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(this::islandInfoMessage), "섬 설정을 불러오지 못했습니다.");
     }
 
     public void showIslandLevel(Player player, UUID islandId) {
-        sendPlayerPayloadFuture(player, coreApiClient.islandInfo(islandId), "섬 레벨을 불러오지 못했습니다.", "섬 레벨 정보를 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandStatMessage("Island level", "level", body)), "섬 레벨을 불러오지 못했습니다.");
     }
 
     public void showIslandWorth(Player player, UUID islandId) {
-        sendPlayerPayloadFuture(player, coreApiClient.islandInfo(islandId), "섬 가치를 불러오지 못했습니다.", "섬 가치 정보를 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandStatMessage("Island worth", "worth", body)), "섬 가치를 불러오지 못했습니다.");
     }
 
     public void showIslandSize(Player player, UUID islandId) {
-        sendPlayerPayloadFuture(player, coreApiClient.islandInfo(islandId), "섬 크기를 불러오지 못했습니다.", "섬 크기 정보를 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandStatMessage("Island size", "size", body)), "섬 크기를 불러오지 못했습니다.");
     }
 
     public void showIslandBorder(Player player, UUID islandId) {
-        sendPlayerPayloadFuture(player, coreApiClient.islandInfo(islandId), "섬 경계를 불러오지 못했습니다.", "섬 경계 정보를 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandStatMessage("Island border", "border", body)), "섬 경계를 불러오지 못했습니다.");
     }
 
     public void showBiome(Player player, UUID islandId) {
-        sendPlayerPayloadFuture(player, coreApiClient.islandBiome(islandId), "섬 바이옴을 불러오지 못했습니다.", "섬 바이옴 정보를 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.islandBiome(islandId).thenApply(this::biomeInfoMessage), "섬 바이옴을 불러오지 못했습니다.");
     }
 
     public void setBiome(Player player, UUID islandId, String biomeKey) {
@@ -282,11 +282,11 @@ public final class VelocityRoutingController {
     }
 
     public void listWarps(Player player, UUID islandId) {
-        sendPlayerPayloadFuture(player, coreApiClient.listIslandWarps(islandId), "섬 워프를 불러오지 못했습니다.", "섬 워프 목록을 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.listIslandWarps(islandId).thenApply(body -> warpListMessage("Warps", body)), "섬 워프를 불러오지 못했습니다.");
     }
 
     public void listPublicWarps(Player player) {
-        sendPlayerPayloadFuture(player, coreApiClient.listPublicWarps(27), "공개 워프를 불러오지 못했습니다.", "공개 워프 목록을 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.listPublicWarps(27).thenApply(body -> warpListMessage("Public warps", body)), "공개 워프를 불러오지 못했습니다.");
     }
 
     public void setWarp(Player player, UUID islandId, String name, boolean publicAccess) {
@@ -361,7 +361,7 @@ public final class VelocityRoutingController {
     }
 
     public void listMembers(Player player, UUID islandId) {
-        sendPlayerPayloadFuture(player, coreApiClient.listIslandMembers(islandId), "멤버 목록을 불러오지 못했습니다.", "멤버 목록을 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.listIslandMembers(islandId).thenApply(this::memberListMessage), "멤버 목록을 불러오지 못했습니다.");
     }
 
     public void setRole(Player player, UUID islandId, UUID targetUuid, IslandRole role) {
@@ -433,7 +433,7 @@ public final class VelocityRoutingController {
     }
 
     public void listBans(Player player, UUID islandId) {
-        sendPlayerPayloadFuture(player, coreApiClient.listIslandBans(islandId), "밴 목록을 불러오지 못했습니다.", "밴 목록을 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.listIslandBans(islandId).thenApply(this::banListMessage), "밴 목록을 불러오지 못했습니다.");
     }
 
     public void pardonVisitor(Player player, UUID islandId, UUID targetUuid) {
@@ -487,11 +487,11 @@ public final class VelocityRoutingController {
     }
 
     public void listFlags(Player player, UUID islandId) {
-        sendPlayerPayloadFuture(player, coreApiClient.listIslandFlags(islandId), "섬 플래그를 불러오지 못했습니다.", "섬 플래그 정보를 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.listIslandFlags(islandId).thenApply(this::flagListMessage), "섬 플래그를 불러오지 못했습니다.");
     }
 
     public void listHomes(Player player, UUID islandId) {
-        sendPlayerPayloadFuture(player, coreApiClient.listIslandHomes(islandId), "섬 홈을 불러오지 못했습니다.", "섬 홈 목록을 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.listIslandHomes(islandId).thenApply(this::homeListMessage), "섬 홈을 불러오지 못했습니다.");
     }
 
     public void setHome(Player player, UUID islandId, String name) {
@@ -504,7 +504,7 @@ public final class VelocityRoutingController {
     }
 
     public void listPermissions(Player player, UUID islandId) {
-        sendPlayerPayloadFuture(player, coreApiClient.listIslandPermissions(islandId), "섬 권한을 불러오지 못했습니다.", "섬 권한 정보를 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.listIslandPermissions(islandId).thenApply(this::permissionListMessage), "섬 권한을 불러오지 못했습니다.");
     }
 
     public void setPermission(Player player, UUID islandId, IslandRole role, IslandPermission permission, boolean allowed) {
@@ -512,11 +512,11 @@ public final class VelocityRoutingController {
     }
 
     public void listIslandLogs(Player player, UUID islandId) {
-        sendPlayerPayloadFuture(player, coreApiClient.listIslandLogs(islandId, 30), "섬 로그를 불러오지 못했습니다.", "섬 로그를 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.listIslandLogs(islandId, 30).thenApply(this::islandLogListMessage), "섬 로그를 불러오지 못했습니다.");
     }
 
     public void showBank(Player player, UUID islandId) {
-        sendPlayerPayloadFuture(player, coreApiClient.islandBank(islandId), "섬 은행을 불러오지 못했습니다.", "섬 은행 정보를 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.islandBank(islandId).thenApply(this::bankInfoMessage), "섬 은행을 불러오지 못했습니다.");
     }
 
     public void depositBank(Player player, UUID islandId, String amount) {
@@ -992,6 +992,26 @@ public final class VelocityRoutingController {
             + " public=" + boolValue(body, "publicAccess");
     }
 
+    private String islandStatMessage(String label, String field, String body) {
+        String code = jsonValue(body, "code");
+        if (!code.isBlank()) {
+            return label + ": failed code=" + code;
+        }
+        String islandId = jsonValue(body, "islandId");
+        String value = field.equals("worth") ? jsonValue(body, field) : Long.toString(longValue(body, field));
+        return label + ": island=" + shortId(islandId) + " " + field + "=" + value;
+    }
+
+    private String biomeInfoMessage(String body) {
+        String code = jsonValue(body, "code");
+        if (!code.isBlank()) {
+            return "Biome: failed code=" + code;
+        }
+        return "Biome: island=" + shortId(jsonValue(body, "islandId"))
+            + " biome=" + jsonValue(body, "biomeKey")
+            + " updatedBy=" + shortId(jsonValue(body, "updatedBy"));
+    }
+
     private String runtimeInfoMessage(String body) {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
@@ -1045,7 +1065,7 @@ public final class VelocityRoutingController {
                 entries.add("#" + total
                     + " " + shortId(jsonValue(object, "islandId"))
                     + " level=" + longValue(object, "level")
-                    + " worth=" + jsonValue(object, "worth"));
+            + " worth=" + jsonValue(object, "worth"));
             }
             index = objectEnd + 1;
         }
@@ -1114,6 +1134,113 @@ public final class VelocityRoutingController {
             index = objectEnd + 1;
         }
         return "Templates: total=" + total + " enabled=" + enabled + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String warpListMessage(String label, String body) {
+        return namedObjectListMessage(label, body, "warps", object -> jsonValue(object, "name")
+            + (boolValue(object, "publicAccess") ? "(public)" : "")
+            + " island=" + shortId(jsonValue(object, "islandId"))
+            + " at=" + seconds(doubleValue(object, "localX")) + "," + seconds(doubleValue(object, "localY")) + "," + seconds(doubleValue(object, "localZ")));
+    }
+
+    private String homeListMessage(String body) {
+        return namedObjectListMessage("Homes", body, "homes", object -> jsonValue(object, "name")
+            + " at=" + seconds(doubleValue(object, "localX")) + "," + seconds(doubleValue(object, "localY")) + "," + seconds(doubleValue(object, "localZ")));
+    }
+
+    private String memberListMessage(String body) {
+        return namedObjectListMessage("Members", body, "members", object -> shortId(jsonValue(object, "playerUuid"))
+            + " role=" + jsonValue(object, "role"));
+    }
+
+    private String banListMessage(String body) {
+        return namedObjectListMessage("Bans", body, "bans", object -> shortId(jsonValue(object, "bannedUuid"))
+            + " reason=" + fallback(jsonValue(object, "reason"), "-"));
+    }
+
+    private String permissionListMessage(String body) {
+        return namedObjectListMessage("Permissions", body, "rules", object -> jsonValue(object, "role")
+            + ":" + jsonValue(object, "permission")
+            + "=" + boolValue(object, "allowed"));
+    }
+
+    private String islandLogListMessage(String body) {
+        return namedObjectListMessage("Island logs", body, "logs", object -> fallback(jsonValue(object, "action"), "UNKNOWN")
+            + " by=" + shortId(jsonValue(object, "actorUuid"))
+            + " at=" + jsonValue(object, "createdAt"));
+    }
+
+    private String bankInfoMessage(String body) {
+        String code = jsonValue(body, "code");
+        if (!code.isBlank()) {
+            return "Bank: failed code=" + code;
+        }
+        return "Bank: island=" + shortId(jsonValue(body, "islandId"))
+            + " balance=" + jsonValue(body, "balance");
+    }
+
+    private String flagListMessage(String body) {
+        String flags = objectValue(body, "flags");
+        if (flags.isBlank()) {
+            return "Flags: empty";
+        }
+        java.util.List<String> entries = new java.util.ArrayList<>();
+        int total = 0;
+        int index = 0;
+        while (index < flags.length()) {
+            int keyStart = flags.indexOf('"', index);
+            if (keyStart < 0) {
+                break;
+            }
+            int keyEnd = flags.indexOf('"', keyStart + 1);
+            if (keyEnd < 0) {
+                break;
+            }
+            int valueStart = flags.indexOf('"', keyEnd + 1);
+            if (valueStart < 0) {
+                break;
+            }
+            int valueEnd = flags.indexOf('"', valueStart + 1);
+            if (valueEnd < 0) {
+                break;
+            }
+            total++;
+            if (entries.size() < 12) {
+                entries.add(flags.substring(keyStart + 1, keyEnd) + "=" + flags.substring(valueStart + 1, valueEnd));
+            }
+            index = valueEnd + 1;
+        }
+        return "Flags: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String namedObjectListMessage(String label, String body, String arrayField, java.util.function.Function<String, String> formatter) {
+        String array = arrayValue(body, arrayField);
+        if (array.isBlank()) {
+            return label + ": empty";
+        }
+        java.util.List<String> entries = new java.util.ArrayList<>();
+        int total = 0;
+        int index = 0;
+        while (index < array.length()) {
+            int objectStart = array.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(array, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            total++;
+            if (entries.size() < 10) {
+                entries.add(formatter.apply(array.substring(objectStart, objectEnd + 1)));
+            }
+            index = objectEnd + 1;
+        }
+        return label + ": total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String fallback(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 
     private String upgradeRulesMessage(String body) {
