@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 import kr.lunaf.cloudislands.common.event.CacheInvalidationPlan;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
 import org.bukkit.Bukkit;
@@ -23,16 +24,18 @@ public final class PermissionEventPoller {
     private final CoreApiClient client;
     private final PermissionCacheSyncService permissionSync;
     private final GeneratorLevelCache generatorLevels;
+    private final CropGrowthLevelCache cropGrowthLevels;
     private final IslandLimitCache limits;
     private final String nodeId;
     private final Set<String> seen = ConcurrentHashMap.newKeySet();
     private BukkitTask task;
 
-    public PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, GeneratorLevelCache generatorLevels, IslandLimitCache limits, String nodeId) {
+    public PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, GeneratorLevelCache generatorLevels, CropGrowthLevelCache cropGrowthLevels, IslandLimitCache limits, String nodeId) {
         this.plugin = plugin;
         this.client = client;
         this.permissionSync = permissionSync;
         this.generatorLevels = generatorLevels;
+        this.cropGrowthLevels = cropGrowthLevels;
         this.limits = limits;
         this.nodeId = nodeId;
     }
@@ -77,6 +80,14 @@ public final class PermissionEventPoller {
                         generatorLevels.invalidate(UUID.fromString(islandId));
                     } else if (isGlobalCacheEvent(type)) {
                         generatorLevels.invalidateAll();
+                    }
+                }
+                if (affectsCrop(type, fields)) {
+                    String islandId = fields.get("islandId");
+                    if (islandId != null && !islandId.isBlank()) {
+                        cropGrowthLevels.invalidate(UUID.fromString(islandId));
+                    } else if (isGlobalCacheEvent(type)) {
+                        cropGrowthLevels.invalidateAll();
                     }
                 }
                 if (affectsLimits(type, fields)) {
@@ -176,6 +187,20 @@ public final class PermissionEventPoller {
             return !type.equals(CloudIslandEventType.ISLAND_UPGRADE.name()) || fields.getOrDefault("upgradeKey", "").equalsIgnoreCase("generator");
         } catch (IllegalArgumentException ignored) {
             return type.equals("ISLAND_UPGRADE") && fields.getOrDefault("upgradeKey", "").equalsIgnoreCase("generator");
+        }
+    }
+
+    private boolean affectsCrop(String type, Map<String, String> fields) {
+        if (targetsInclude(fields, CacheInvalidationPlan.CacheTarget.CROP)) {
+            return true;
+        }
+        try {
+            if (!CacheInvalidationPlan.targetsFor(CloudIslandEventType.valueOf(type)).contains(CacheInvalidationPlan.CacheTarget.CROP)) {
+                return false;
+            }
+            return !type.equals(CloudIslandEventType.ISLAND_UPGRADE.name()) || fields.getOrDefault("upgradeKey", "").equalsIgnoreCase("crop");
+        } catch (IllegalArgumentException ignored) {
+            return type.equals("ISLAND_UPGRADE") && fields.getOrDefault("upgradeKey", "").equalsIgnoreCase("crop");
         }
     }
 

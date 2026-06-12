@@ -25,6 +25,14 @@ public final class CropGrowthLevelCache {
         return cached == null ? 1 : cached.level();
     }
 
+    public void invalidate(UUID islandId) {
+        cache.remove(islandId);
+    }
+
+    public void invalidateAll() {
+        cache.clear();
+    }
+
     private int parseCropLevel(String json) {
         if (json == null || json.isBlank()) {
             return 1;

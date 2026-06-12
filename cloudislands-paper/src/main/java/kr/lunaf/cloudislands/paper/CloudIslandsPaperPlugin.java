@@ -122,8 +122,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandVisitMenu(), this);
         getServer().getPluginManager().registerEvents(new IslandWarpMenu(), this);
         this.generatorLevels = new GeneratorLevelCache(client);
+        CropGrowthLevelCache cropGrowthLevels = new CropGrowthLevelCache(client);
         getServer().getPluginManager().registerEvents(new IslandGeneratorListener(agent.protection(), ConfigGeneratorRules.load(this), generatorLevels), this);
-        getServer().getPluginManager().registerEvents(new IslandCropGrowthListener(agent.protection(), new CropGrowthLevelCache(client)), this);
+        getServer().getPluginManager().registerEvents(new IslandCropGrowthListener(agent.protection(), cropGrowthLevels), this);
         getServer().getPluginManager().registerEvents(new PaperRouteSessionListener(this, client, agent.routeTickets(), nodeId), this);
         PluginCommand admin = getCommand("ciadmin");
         int routeWaitSeconds = getConfig().getInt("routing.wait-for-activation-timeout-seconds", 20);
@@ -217,7 +218,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         IslandDeactivationHandler deactivationHandler = new IslandDeactivationHandler(activeIslands, shardWorldManager, agent.protection(), saveService);
         PermissionCacheSyncService permissionSync = new PermissionCacheSyncService(this, client, agent.permissionCache());
         this.jobWorker = new PaperIslandJobWorker(this, new CoreBackedIslandJobSource(client), activationHandler, deactivationHandler, activeIslands, permissionSync, nodeId);
-        this.permissionEventPoller = new PermissionEventPoller(this, client, permissionSync, generatorLevels, limitCache, nodeId);
+        this.permissionEventPoller = new PermissionEventPoller(this, client, permissionSync, generatorLevels, cropGrowthLevels, limitCache, nodeId);
         this.periodicSaveTask = new PeriodicIslandSaveTask(this, activeIslands, saveService);
         this.emptyIslandSaveTask = new EmptyIslandSaveTask(this, activeIslands, agent.protection(), saveService, client);
         permissionEventPoller.start(getConfig().getLong("protection.cache-event-poll-ticks", 100L));
