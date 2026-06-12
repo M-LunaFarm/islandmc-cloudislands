@@ -38,6 +38,18 @@ public final class InMemoryGlobalEventPublisher implements GlobalEventPublisher 
         return events.stream().filter(event -> event.type().equals(type)).count();
     }
 
+    public synchronized Map<String, Long> countsByField(String type, String fieldName) {
+        Map<String, Long> counts = new LinkedHashMap<>();
+        for (EventRecord event : events) {
+            if (!event.type().equals(type)) {
+                continue;
+            }
+            String value = event.fields().getOrDefault(fieldName, "");
+            counts.put(value, counts.getOrDefault(value, 0L) + 1L);
+        }
+        return counts;
+    }
+
     private String fieldsJson(Map<String, String> fields) {
         StringBuilder builder = new StringBuilder("{");
         boolean first = true;
