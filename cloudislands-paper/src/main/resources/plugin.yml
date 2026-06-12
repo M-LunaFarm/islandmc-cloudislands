@@ -22,3 +22,37 @@ permissions:
     default: true
   cloudislands.admin:
     default: op
+  cloudislands.admin.status:
+    default: op
+  cloudislands.admin.cache:
+    default: op
+  cloudislands.admin.node:
+    default: op
+  cloudislands.admin.island:
+    default: op
+  cloudislands.admin.player:
+    default: op
+  cloudislands.admin.jobs:
+    default: op
+  cloudislands.admin.route:
+    default: op
+  cloudislands.admin.rankings:
+    default: op
+  cloudislands.admin.events:
+    default: op
+  cloudislands.admin.audit:
+    default: op
+  cloudislands.admin.metrics:
+    default: op
+  cloudislands.admin.storage:
+    default: op
+  cloudislands.admin.block-values:
+    default: op
+  cloudislands.admin.upgrade-rules:
+    default: op
+  cloudislands.admin.templates:
+    default: op
+  cloudislands.admin.migrate-superiorskyblock2:
+    default: op
+  cloudislands.admin.reload:
+    default: op

@@ -180,7 +180,7 @@ public final class CloudIslandsVelocityPlugin {
                     invocation.source().sendMessage(Component.text("플레이어만 사용할 수 있습니다."));
                     return;
                 }
-                if (!player.hasPermission("cloudislands.admin")) {
+                if (!hasAdminAccess(player, invocation.arguments())) {
                     player.sendMessage(Component.text("섬 관리 명령을 사용할 권한이 없습니다."));
                     return;
                 }
@@ -189,7 +189,7 @@ public final class CloudIslandsVelocityPlugin {
 
             @Override
             public List<String> suggest(SimpleCommand.Invocation invocation) {
-                if (!invocation.source().hasPermission("cloudislands.admin")) {
+                if (!hasAdminAccess(invocation.source(), invocation.arguments())) {
                     return List.of();
                 }
                 return adminSuggestions(invocation.arguments());
@@ -1027,6 +1027,31 @@ public final class CloudIslandsVelocityPlugin {
             addOnlinePlayerSuggestions(matches, args[2]);
         }
         return matches;
+    }
+
+    private boolean hasAdminAccess(com.velocitypowered.api.command.CommandSource source, String[] args) {
+        if (source.hasPermission("cloudislands.admin")) {
+            return true;
+        }
+        String permission = adminPermission(args);
+        return !permission.isBlank() && source.hasPermission(permission);
+    }
+
+    private String adminPermission(String[] args) {
+        if (args.length == 0) {
+            return "cloudislands.admin.status";
+        }
+        String root = args[0].toLowerCase(Locale.ROOT);
+        if (root.equals("help") || root.equals("commands") || root.equals("command") || root.equals("command-list") || root.equals("명령어") || root.equals("명령어목록")) {
+            return "cloudislands.admin.status";
+        }
+        if (root.equals("template")) {
+            root = "templates";
+        }
+        return switch (root) {
+            case "status", "cache", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
+            default -> "";
+        };
     }
 
     private void addLiteralSuggestions(List<String> matches, String typed, List<String> values) {

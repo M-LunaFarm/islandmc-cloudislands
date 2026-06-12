@@ -109,7 +109,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (!sender.hasPermission("cloudislands.admin")) {
+        if (!hasAdminAccess(sender, args)) {
             sender.sendMessage("권한이 없습니다.");
             return true;
         }
@@ -184,7 +184,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
 
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
-        if (!sender.hasPermission("cloudislands.admin")) {
+        if (!hasAdminAccess(sender, args)) {
             return List.of();
         }
         if (args.length == 1) {
@@ -1699,6 +1699,31 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (safePage < maxPage) {
             sender.sendMessage("> /" + label + " help " + (safePage + 1));
         }
+    }
+
+    private boolean hasAdminAccess(CommandSender sender, String[] args) {
+        if (sender.hasPermission("cloudislands.admin")) {
+            return true;
+        }
+        String permission = adminPermission(args);
+        return !permission.isBlank() && sender.hasPermission(permission);
+    }
+
+    private String adminPermission(String[] args) {
+        if (args.length == 0) {
+            return "cloudislands.admin.status";
+        }
+        String root = args[0].toLowerCase(Locale.ROOT);
+        if (root.equals("help") || root.equals("commands") || root.equals("command") || root.equals("command-list") || root.equals("명령어") || root.equals("명령어목록")) {
+            return "cloudislands.admin.status";
+        }
+        if (root.equals("template")) {
+            root = "templates";
+        }
+        return switch (root) {
+            case "status", "cache", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
+            default -> "";
+        };
     }
 
     private boolean isHelpRequest(String[] args) {
