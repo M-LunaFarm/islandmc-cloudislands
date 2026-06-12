@@ -124,6 +124,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PaperRouteSessionListener(this, client, agent.routeTickets(), nodeId), this);
         PluginCommand admin = getCommand("ciadmin");
         int routeWaitSeconds = getConfig().getInt("routing.wait-for-activation-timeout-seconds", 20);
+        String fallbackServerName = getConfig().getString("routing.fallback-on-failure", "Lobby");
         if (admin != null) {
             AdminCommandController adminController = new AdminCommandController(agent, client, nodeId, routeWaitSeconds);
             admin.setExecutor(adminController);
@@ -131,7 +132,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         }
         PluginCommand island = getCommand("island");
         if (island != null) {
-            IslandCommandController islandController = new IslandCommandController(this, client, agent.protection(), routeWaitSeconds);
+            IslandCommandController islandController = new IslandCommandController(this, client, agent.protection(), routeWaitSeconds, fallbackServerName);
             island.setExecutor(islandController);
             island.setTabCompleter(islandController);
         }

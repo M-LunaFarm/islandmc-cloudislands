@@ -86,16 +86,22 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private final CoreApiClient coreApiClient;
     private final ProtectionController protection;
     private final int routeWaitSeconds;
+    private final String fallbackServerName;
 
     public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection) {
         this(plugin, coreApiClient, protection, 20);
     }
 
     public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds) {
+        this(plugin, coreApiClient, protection, routeWaitSeconds, "Lobby");
+    }
+
+    public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.protection = protection;
         this.routeWaitSeconds = Math.max(1, routeWaitSeconds);
+        this.fallbackServerName = fallbackServerName == null || fallbackServerName.isBlank() ? "Lobby" : fallbackServerName;
     }
 
     @Override
@@ -1664,7 +1670,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                     player.sendMessage("해당 방문자는 이 섬에 없습니다.");
                     return;
                 }
-                connectPlayerToServer(targetPlayer, "Lobby", "섬에서 추방되어 로비로 이동합니다.", "섬에서 추방되어 로비로 이동하지 못했습니다.");
+                connectPlayerToServer(targetPlayer, fallbackServerName, "섬에서 추방되어 로비로 이동합니다.", "섬에서 추방되어 로비로 이동하지 못했습니다.");
                 player.sendMessage("방문자를 섬에서 추방했습니다.");
             })).exceptionally(error -> {
                 message(player, "대상 플레이어를 찾지 못했습니다.");
