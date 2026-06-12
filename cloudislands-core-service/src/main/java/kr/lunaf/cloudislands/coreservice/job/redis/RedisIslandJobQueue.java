@@ -56,7 +56,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
     public List<IslandJob> claim(String nodeId, List<IslandJobType> supportedTypes, int maxJobs) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             String reply = redis.command("XREADGROUP", "GROUP", GROUP, nodeId, "COUNT", Integer.toString(maxJobs), "STREAMS", RedisKeys.jobsStream(), ">");
-            return parseJobs(reply, nodeId, supportedTypes);
+            return parseJobs(redis, reply, nodeId, supportedTypes);
         } catch (IOException exception) {
             recordRedisFailure();
             throw new IllegalStateException("failed to claim redis island jobs", exception);
@@ -197,7 +197,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
         redisFailuresTotal.incrementAndGet();
     }
 
-    private List<IslandJob> parseJobs(String reply, String nodeId, List<IslandJobType> supportedTypes) {
+    private List<IslandJob> parseJobs(RedisRespConnection redis, String reply, String nodeId, List<IslandJobType> supportedTypes) throws IOException {
         List<IslandJob> jobs = new ArrayList<>();
         if (reply == null || reply.isBlank()) {
             return jobs;
@@ -218,7 +218,9 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             if (current.containsKey("jobId") && current.containsKey("type") && current.containsKey("islandId")) {
                 IslandJobType type = safeType(current.get("type"));
                 String targetNode = current.getOrDefault("targetNode", "");
-                if (type != null && supportedTypes.contains(type) && (targetNode.isBlank() || targetNode.equals(nodeId))) {
+                boolean supported = type != null && supportedTypes.contains(type);
+                boolean targetMatches = targetNode.isBlank() || targetNode.equals(nodeId);
+                if (supported && targetMatches) {
                     UUID jobId = UUID.fromString(current.get("jobId"));
                     if (streamId != null) {
                         streamIdsByJobId.put(jobId, streamId);
@@ -227,11 +229,33 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
                     claimedJobs.put(jobId, claimedJob);
                     claimedNodesByJobId.put(jobId, nodeId);
                     jobs.add(claimedJob);
+                } else if (streamId != null && type != null && !targetMatches) {
+                    requeueMismatchedTarget(redis, streamId, current, nodeId, targetNode);
+                } else if (streamId != null) {
+                    redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
+                    redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_SKIPPED_UNSUPPORTED", "jobId", current.getOrDefault("jobId", ""), "streamId", streamId, "nodeId", nodeId, "jobType", current.getOrDefault("type", ""));
                 }
                 current.clear();
             }
         }
         return jobs;
+    }
+
+    private void requeueMismatchedTarget(RedisRespConnection redis, String streamId, Map<String, String> job, String nodeId, String targetNode) throws IOException {
+        redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
+        redis.command(
+            "XADD",
+            RedisKeys.jobsStream(),
+            "*",
+            "jobId", job.getOrDefault("jobId", ""),
+            "type", job.getOrDefault("type", ""),
+            "islandId", job.getOrDefault("islandId", ""),
+            "targetNode", targetNode == null ? "" : targetNode,
+            "priority", job.getOrDefault("priority", "0"),
+            "createdAt", job.getOrDefault("createdAt", Instant.now().toString()),
+            "payload", job.getOrDefault("payload", "")
+        );
+        redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_REQUEUED_TARGET_MISMATCH", "jobId", job.getOrDefault("jobId", ""), "streamId", streamId, "nodeId", nodeId, "targetNode", targetNode == null ? "" : targetNode);
     }
 
     private long parseGroupLong(String reply, String key) {
