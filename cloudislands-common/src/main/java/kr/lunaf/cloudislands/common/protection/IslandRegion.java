@@ -6,4 +6,12 @@ public record IslandRegion(UUID islandId, String world, int minX, int maxX, int 
     public boolean contains(String otherWorld, int blockX, int blockZ) {
         return world.equals(otherWorld) && blockX >= minX && blockX <= maxX && blockZ >= minZ && blockZ <= maxZ;
     }
+
+    public double originX() {
+        return (minX + maxX) / 2.0D;
+    }
+
+    public double originZ() {
+        return (minZ + maxZ) / 2.0D;
+    }
 }

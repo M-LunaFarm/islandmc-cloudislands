@@ -14,6 +14,7 @@ import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
+import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.gui.IslandBankMenu;
@@ -1755,11 +1756,12 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private IslandLocation location(Location location) {
+        java.util.Optional<IslandRegion> region = protection.regionAt(location.getBlock());
         return new IslandLocation(
             location.getWorld().getName(),
-            location.getX(),
+            region.map(value -> location.getX() - value.originX()).orElse(location.getX()),
             location.getY(),
-            location.getZ(),
+            region.map(value -> location.getZ() - value.originZ()).orElse(location.getZ()),
             location.getYaw(),
             location.getPitch()
         );
@@ -2180,7 +2182,11 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("대상 월드를 찾을 수 없습니다.");
                 return;
             }
-            player.teleport(new Location(world, point.x(), point.y(), point.z(), point.yaw(), point.pitch()));
+            java.util.Optional<IslandRegion> region = protection.regionAt(player.getLocation().getBlock())
+                .filter(value -> value.world().equals(point.worldName()));
+            double targetX = region.map(value -> value.originX() + point.x()).orElse(point.x());
+            double targetZ = region.map(value -> value.originZ() + point.z()).orElse(point.z());
+            player.teleport(new Location(world, targetX, point.y(), targetZ, point.yaw(), point.pitch()));
             player.sendMessage(successMessage);
         });
     }
