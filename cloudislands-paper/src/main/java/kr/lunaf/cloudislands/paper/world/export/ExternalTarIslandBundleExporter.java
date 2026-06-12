@@ -1,15 +1,19 @@
 package kr.lunaf.cloudislands.paper.world.export;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
 import kr.lunaf.cloudislands.paper.world.cell.CellExtractionPlan;
 import kr.lunaf.cloudislands.paper.world.cell.FileBackedCellTransfer;
 import kr.lunaf.cloudislands.paper.world.cell.ShardCellTransferPlanner;
+import kr.lunaf.cloudislands.storage.IslandBundleManifest;
+import kr.lunaf.cloudislands.storage.manifest.IslandManifestJson;
 
 public final class ExternalTarIslandBundleExporter implements IslandBundleExporter {
     private final Path worldContainer;
@@ -33,6 +37,7 @@ public final class ExternalTarIslandBundleExporter implements IslandBundleExport
         CellExtractionPlan extraction = new ShardCellTransferPlanner(activeIsland.islandSize())
             .extraction(islandId, activeIsland.worldName(), activeIsland.originX(), activeIsland.originZ(), staging.resolve("chunks"));
         new FileBackedCellTransfer(worldContainer).extract(extraction);
+        writeStagedManifest(islandId, activeIsland, staging.resolve("manifest.json"));
         ProcessBuilder processBuilder = new ProcessBuilder("tar", "--zstd", "-cf", bundle.toAbsolutePath().toString(), "-C", staging.toAbsolutePath().toString(), ".");
         processBuilder.redirectErrorStream(true);
         try {
@@ -46,6 +51,23 @@ public final class ExternalTarIslandBundleExporter implements IslandBundleExport
             throw new IOException("bundle export interrupted", exception);
         }
         return new ExportedIslandBundle(islandId, bundle, snapshotNo);
+    }
+
+    private void writeStagedManifest(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland, Path manifestPath) throws IOException {
+        Instant now = Instant.now();
+        IslandBundleManifest manifest = new IslandBundleManifest(
+            islandId,
+            new UUID(0L, 0L),
+            3,
+            "unknown",
+            activeIsland.schemaVersion(),
+            activeIsland.islandSize(),
+            new IslandLocation(activeIsland.worldName(), 0.5D, 100.0D, 0.5D, 180.0F, 0.0F),
+            now,
+            now,
+            ""
+        );
+        Files.writeString(manifestPath, IslandManifestJson.write(manifest), StandardCharsets.UTF_8);
     }
 
     private void deleteDirectory(Path directory) throws IOException {
