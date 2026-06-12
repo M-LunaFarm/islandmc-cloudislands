@@ -60,7 +60,7 @@ public record CoreServiceConfig(
             Duration.ofSeconds(integer("CI_HEARTBEAT_TIMEOUT_SECONDS", 5)),
             Duration.ofSeconds(integer("CI_LEASE_SECONDS", 30)),
             integer("CI_SNAPSHOT_KEEP_LATEST", 85),
-            bool("CI_REQUIRE_MTLS", false),
+            bool("CI_REQUIRE_MTLS", true),
             env("CI_MTLS_VERIFIED_HEADER", "X-SSL-Client-Verify"),
             env("CI_MTLS_VERIFIED_VALUE", "SUCCESS")
         );
