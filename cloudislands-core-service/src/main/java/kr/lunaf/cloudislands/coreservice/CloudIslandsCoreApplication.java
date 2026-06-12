@@ -822,6 +822,7 @@ public final class CloudIslandsCoreApplication {
             if (result.accepted()) {
                 events.publish(CloudIslandEventType.ISLAND_UPGRADE.name(), Map.of("islandId", islandId.toString(), "upgradeKey", upgradeKey, "level", Integer.toString(result.snapshot().level())));
                 applyUpgradeLimit(limitRepository, events, islandId, actorUuid, result.snapshot().type(), result.snapshot().level());
+                applyUpgradeFlag(metadataRepository, events, islandId, result.snapshot().type());
                 if (result.cost().signum() > 0) {
                     String balance = bankRepository.balance(islandId).balance();
                     events.publish(CloudIslandEventType.ISLAND_BANK_CHANGED.name(), Map.of("islandId", islandId.toString(), "operation", "UPGRADE_PURCHASE", "amount", result.cost().toPlainString(), "balance", balance));
@@ -1682,6 +1683,14 @@ public final class CloudIslandsCoreApplication {
         if (snapshot != null) {
             events.publish(CloudIslandEventType.ISLAND_LIMIT_CHANGED.name(), Map.of("islandId", islandId.toString(), "limitKey", snapshot.limitKey(), "value", Long.toString(snapshot.value())));
         }
+    }
+
+    private static void applyUpgradeFlag(IslandMetadataRepository metadata, GlobalEventPublisher events, UUID islandId, UpgradeType type) {
+        if (type != UpgradeType.FLY_ACCESS) {
+            return;
+        }
+        metadata.setFlag(islandId, IslandFlag.FLY, "true");
+        events.publish(CloudIslandEventType.ISLAND_FLAG_CHANGED.name(), Map.of("islandId", islandId.toString(), "flag", IslandFlag.FLY.name(), "value", "true"));
     }
 
     private static String membersJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandMemberSnapshot> members) {
