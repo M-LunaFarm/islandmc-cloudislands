@@ -999,6 +999,8 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return fallback;
         }
         return switch (code) {
+            case "ALREADY_HAS_ISLAND" -> "이미 섬을 보유하고 있습니다.";
+            case "TEMPLATE_UNAVAILABLE" -> "사용할 수 없는 섬 템플릿입니다.";
             case "PLAYER_NOT_FOUND" -> "플레이어를 찾을 수 없습니다.";
             case "ISLAND_NOT_FOUND" -> "섬을 찾을 수 없습니다.";
             case "ISLAND_PRIVATE" -> "해당 섬은 비공개 상태입니다.";
