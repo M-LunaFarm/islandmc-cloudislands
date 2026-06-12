@@ -28,6 +28,9 @@ upgrades:
 block-values:
   file: "${CI_BLOCK_VALUES_FILE}"
 
+snapshots:
+  keep-latest: 85
+
 security:
   require-mtls: true
   admin-api-enabled: true

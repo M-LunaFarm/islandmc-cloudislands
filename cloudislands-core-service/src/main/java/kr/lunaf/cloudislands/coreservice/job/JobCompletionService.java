@@ -24,6 +24,7 @@ public final class JobCompletionService {
     private final IslandRepository islands;
     private final PlayerProfileRepository playerProfiles;
     private final Duration routeTicketTtl;
+    private final int snapshotKeepLatest;
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets) {
         this(runtimes, events, snapshots, tickets, null);
@@ -38,6 +39,10 @@ public final class JobCompletionService {
     }
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl) {
+        this(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, 85);
+    }
+
+    public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl, int snapshotKeepLatest) {
         this.runtimes = runtimes;
         this.events = events;
         this.snapshots = snapshots;
@@ -46,6 +51,7 @@ public final class JobCompletionService {
         this.islands = islands;
         this.playerProfiles = playerProfiles;
         this.routeTicketTtl = routeTicketTtl == null || routeTicketTtl.isNegative() || routeTicketTtl.isZero() ? Duration.ofSeconds(30) : routeTicketTtl;
+        this.snapshotKeepLatest = Math.max(1, snapshotKeepLatest);
     }
 
     public void completed(IslandJob job) {
@@ -63,7 +69,7 @@ public final class JobCompletionService {
             long snapshotNo = longValue(job.payload().get("snapshotNo"));
             if (snapshotNo > 0L) {
                 snapshots.record(job.islandId(), snapshotNo, "islands/" + job.islandId() + "/snapshots/" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", job.payload().getOrDefault("reason", job.type().name()), null, job.payload().getOrDefault("checksum", ""), longValue(job.payload().get("sizeBytes")));
-                snapshots.prune(job.islandId(), 50);
+                snapshots.prune(job.islandId(), snapshotKeepLatest);
             }
             runtimes.markInactive(job.islandId());
             publishMigrationActivation(job);
@@ -74,7 +80,7 @@ public final class JobCompletionService {
             long snapshotNo = longValue(job.payload().get("snapshotNo"));
             if (snapshotNo > 0L) {
                 snapshots.record(job.islandId(), snapshotNo, "islands/" + job.islandId() + "/snapshots/" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", job.payload().getOrDefault("reason", job.type().name()), null, job.payload().getOrDefault("checksum", ""), longValue(job.payload().get("sizeBytes")));
-                snapshots.prune(job.islandId(), 50);
+                snapshots.prune(job.islandId(), snapshotKeepLatest);
                 events.publish(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name(), Map.of("islandId", job.islandId().toString(), "snapshotNo", Long.toString(snapshotNo), "reason", job.payload().getOrDefault("reason", "")));
             }
             return;
