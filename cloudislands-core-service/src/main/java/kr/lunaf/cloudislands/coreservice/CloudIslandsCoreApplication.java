@@ -40,6 +40,7 @@ import kr.lunaf.cloudislands.coreservice.audit.RedisAuditLogger;
 import kr.lunaf.cloudislands.coreservice.bank.InMemoryIslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.bank.JdbcIslandBankRepository;
+import kr.lunaf.cloudislands.coreservice.cache.RedisCacheAdmin;
 import kr.lunaf.cloudislands.coreservice.config.CoreServiceConfig;
 import kr.lunaf.cloudislands.coreservice.db.DriverManagerDataSource;
 import kr.lunaf.cloudislands.coreservice.db.MeteredDataSource;
@@ -179,6 +180,7 @@ public final class CloudIslandsCoreApplication {
         IslandJobQueue jobs = config.jdbcJobs() ? new JdbcIslandJobQueue(dataSource, clock, config.leaseDuration()) : config.redisJobs() ? new RedisIslandJobQueue(config.redisUri()) : new InMemoryIslandJobPublisher();
         InMemoryGlobalEventPublisher inMemoryEvents = new InMemoryGlobalEventPublisher();
         RedisStreamWriterAdapter redisEventWriter = config.redisEvents() ? new RedisStreamWriterAdapter(config.redisUri()) : null;
+        RedisCacheAdmin redisCacheAdmin = config.redisEvents() || config.redisJobs() ? new RedisCacheAdmin(config.redisUri()) : null;
         GlobalEventPublisher events = config.redisEvents()
             ? new CompositeGlobalEventPublisher(java.util.List.of(inMemoryEvents, new RedisStreamEventPublisher(redisEventWriter)))
             : inMemoryEvents;
@@ -244,7 +246,7 @@ public final class CloudIslandsCoreApplication {
             migrationRollbackTarget(config, dataSource)
         );
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotKeepLatest());
-        PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, tickets, runtimeRepository, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::activeConnections, meteredDataSource::openedConnections, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventWriter == null ? 0L : redisEventWriter.failuresTotal(), () -> redisCacheFailures(nodes, tickets, islandRepository, metadataRepository, playerProfiles, permissionRules, runtimeRepository, rankingRepository, audit));
+        PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, tickets, runtimeRepository, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::activeConnections, meteredDataSource::openedConnections, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventWriter == null ? 0L : redisEventWriter.failuresTotal(), () -> redisCacheFailures(nodes, tickets, islandRepository, metadataRepository, playerProfiles, permissionRules, runtimeRepository, rankingRepository, redisCacheAdmin, audit));
         this.nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, islandRepository, events, config.heartbeatTimeout());
         this.routeTicketExpiryMonitor = new RouteTicketExpiryMonitor(tickets, events, config.routeTicketTtl());
         this.jobRecoveryMonitor = new JobRecoveryMonitor(jobs, Duration.ofSeconds(60), config.leaseDuration().toMillis(), 16);
@@ -714,16 +716,18 @@ public final class CloudIslandsCoreApplication {
         route("/v1/admin/cache/clear", exchange -> {
             int clearedSessions = sessions.clearAll();
             int clearedTickets = tickets.clearAll();
-            audit.log(new UUID(0L, 0L), "ADMIN", "CACHE_CLEAR", "CORE", "route-cache", Map.of("sessions", Integer.toString(clearedSessions), "tickets", Integer.toString(clearedTickets)));
-            events.publish(CloudIslandEventType.CORE_CACHE_CLEARED.name(), Map.of("scope", "route-cache", "sessions", Integer.toString(clearedSessions), "tickets", Integer.toString(clearedTickets)));
-            write(exchange, 202, "{\"clearedSessions\":" + clearedSessions + ",\"clearedTickets\":" + clearedTickets + "}");
+            int clearedRedisKeys = redisCacheAdmin == null ? 0 : redisCacheAdmin.clearApplicationCaches();
+            audit.log(new UUID(0L, 0L), "ADMIN", "CACHE_CLEAR", "CORE", "application-cache", Map.of("sessions", Integer.toString(clearedSessions), "tickets", Integer.toString(clearedTickets), "redisKeys", Integer.toString(clearedRedisKeys)));
+            events.publish(CloudIslandEventType.CORE_CACHE_CLEARED.name(), Map.of("scope", "application-cache", "sessions", Integer.toString(clearedSessions), "tickets", Integer.toString(clearedTickets), "redisKeys", Integer.toString(clearedRedisKeys)));
+            write(exchange, 202, "{\"clearedSessions\":" + clearedSessions + ",\"clearedTickets\":" + clearedTickets + ",\"clearedRedisKeys\":" + clearedRedisKeys + "}");
         });
         route("/v1/admin/reload", exchange -> {
             int clearedSessions = sessions.clearAll();
             int clearedTickets = tickets.clearAll();
-            audit.log(new UUID(0L, 0L), "ADMIN", "CORE_RELOAD", "CORE", "runtime", Map.of("clearedSessions", Integer.toString(clearedSessions), "clearedTickets", Integer.toString(clearedTickets)));
-            events.publish(CloudIslandEventType.CORE_RELOADED.name(), Map.of("clearedSessions", Integer.toString(clearedSessions), "clearedTickets", Integer.toString(clearedTickets)));
-            write(exchange, 202, "{\"reloaded\":true,\"clearedSessions\":" + clearedSessions + ",\"clearedTickets\":" + clearedTickets + "}");
+            int clearedRedisKeys = redisCacheAdmin == null ? 0 : redisCacheAdmin.clearApplicationCaches();
+            audit.log(new UUID(0L, 0L), "ADMIN", "CORE_RELOAD", "CORE", "runtime", Map.of("clearedSessions", Integer.toString(clearedSessions), "clearedTickets", Integer.toString(clearedTickets), "clearedRedisKeys", Integer.toString(clearedRedisKeys)));
+            events.publish(CloudIslandEventType.CORE_RELOADED.name(), Map.of("clearedSessions", Integer.toString(clearedSessions), "clearedTickets", Integer.toString(clearedTickets), "clearedRedisKeys", Integer.toString(clearedRedisKeys)));
+            write(exchange, 202, "{\"reloaded\":true,\"clearedSessions\":" + clearedSessions + ",\"clearedTickets\":" + clearedTickets + ",\"clearedRedisKeys\":" + clearedRedisKeys + "}");
         });
         route("/v1/admin/migrations/superiorskyblock2/scan", exchange -> {
             String body = readBody(exchange);
@@ -1594,7 +1598,7 @@ public final class CloudIslandsCoreApplication {
         });
     }
 
-    private static long redisCacheFailures(NodeRegistry nodes, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandRuntimeRepository runtimes, RankingRepository rankings, AuditLogger audit) {
+    private static long redisCacheFailures(NodeRegistry nodes, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandRuntimeRepository runtimes, RankingRepository rankings, RedisCacheAdmin redisCacheAdmin, AuditLogger audit) {
         long failures = 0L;
         if (nodes instanceof CachingNodeRegistry cachingNodes) {
             failures += cachingNodes.failuresTotal();
@@ -1619,6 +1623,9 @@ public final class CloudIslandsCoreApplication {
         }
         if (rankings instanceof CachingRankingRepository cachingRankings) {
             failures += cachingRankings.failuresTotal();
+        }
+        if (redisCacheAdmin != null) {
+            failures += redisCacheAdmin.failuresTotal();
         }
         if (audit instanceof RedisAuditLogger redisAudit) {
             failures += redisAudit.failuresTotal();
