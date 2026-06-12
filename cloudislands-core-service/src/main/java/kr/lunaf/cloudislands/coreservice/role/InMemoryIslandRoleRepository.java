@@ -1,7 +1,6 @@
 package kr.lunaf.cloudislands.coreservice.role;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -22,7 +21,6 @@ public final class InMemoryIslandRoleRepository implements IslandRoleRepository 
     @Override
     public List<IslandRoleSnapshot> list(UUID islandId) {
         List<IslandRoleSnapshot> snapshots = new ArrayList<>(roles.getOrDefault(islandId, Map.of()).values());
-        snapshots.sort(Comparator.comparingInt(IslandRoleSnapshot::weight).thenComparing(snapshot -> snapshot.role().name()));
-        return List.copyOf(snapshots);
+        return IslandRoleRepository.mergeDefaults(islandId, snapshots);
     }
 }

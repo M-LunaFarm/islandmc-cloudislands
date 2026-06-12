@@ -48,7 +48,7 @@ public final class JdbcIslandRoleRepository implements IslandRoleRepository {
                         rs.getString("display_name") == null ? "" : rs.getString("display_name")
                     ));
                 }
-                return List.copyOf(result);
+                return IslandRoleRepository.mergeDefaults(islandId, result);
             }
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to read island roles", exception);
