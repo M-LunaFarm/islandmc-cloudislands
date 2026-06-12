@@ -50,6 +50,12 @@ public interface IslandAdminService {
     CompletableFuture<List<IslandSnapshotRecord>> listIslandSnapshots(UUID islandId, int limit);
     CompletableFuture<Void> restoreIsland(UUID islandId, long snapshotNo);
     CompletableFuture<IslandActionResult> restoreIslandResult(UUID islandId, long snapshotNo);
+    default CompletableFuture<Void> rollbackIsland(UUID islandId, long snapshotNo) {
+        return restoreIsland(islandId, snapshotNo);
+    }
+    default CompletableFuture<IslandActionResult> rollbackIslandResult(UUID islandId, long snapshotNo) {
+        return restoreIslandResult(islandId, snapshotNo);
+    }
     CompletableFuture<Void> quarantineIsland(UUID islandId, String reason);
     CompletableFuture<IslandActionResult> quarantineIslandResult(UUID islandId, String reason);
     CompletableFuture<Void> repairIsland(UUID islandId, String reason);
