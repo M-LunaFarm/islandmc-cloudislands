@@ -1061,7 +1061,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void listPublicIslands(Player player, int limit) {
         int cappedLimit = Math.max(1, Math.min(limit, 100));
         coreApiClient.listPublicIslands(cappedLimit)
-            .thenAccept(body -> message(player, body == null || body.isBlank() ? "공개 섬이 없습니다." : body))
+            .thenAccept(body -> message(player, publicIslandListMessage(body)))
             .exceptionally(error -> {
                 message(player, "공개 섬 목록을 불러오지 못했습니다.");
                 return null;
@@ -2084,6 +2084,37 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             index = objectEnd + 1;
         }
         return entries.isEmpty() ? label + ": 기록이 없습니다." : label + ": " + String.join(" | ", entries);
+    }
+
+    private String publicIslandListMessage(String body) {
+        if (body == null || body.isBlank()) {
+            return "공개 섬이 없습니다.";
+        }
+        List<String> entries = new ArrayList<>();
+        int index = body.indexOf("\"islands\"");
+        while (index >= 0 && index < body.length() && entries.size() < 20) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String islandId = text(object, "islandId");
+            if (!islandId.isBlank()) {
+                String name = text(object, "name");
+                long level = (long) decimal(object, "level");
+                String worth = text(object, "worth");
+                if (worth.isBlank()) {
+                    worth = Long.toString((long) decimal(object, "worth"));
+                }
+                entries.add((entries.size() + 1) + ". " + (name.isBlank() ? islandId : name) + " (" + islandId + ", 레벨=" + level + ", 가치=" + worth + ")");
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "공개 섬이 없습니다." : "공개 섬: " + String.join(" | ", entries);
     }
 
     private String bankBalance(String body) {

@@ -274,7 +274,7 @@ public final class VelocityRoutingController {
     }
 
     public void listPublicIslands(Player player, int limit) {
-        sendBodyResult(player, coreApiClient.listPublicIslands(Math.max(1, Math.min(limit, 100))), "공개 섬 목록을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listPublicIslands(Math.max(1, Math.min(limit, 100))).thenApply(this::publicIslandListMessage), "공개 섬 목록을 불러오지 못했습니다.");
     }
 
     public void routeWarp(Player player, UUID targetIslandId, String warpName) {
@@ -1083,6 +1083,38 @@ public final class VelocityRoutingController {
             index = objectEnd + 1;
         }
         return "노드 섬 현황" + hiddenNodeLabel(nodeId) + ": " + (entries.isEmpty() ? "활성 섬 없음" : String.join(", ", entries));
+    }
+
+    private String publicIslandListMessage(String body) {
+        if (body == null || body.isBlank()) {
+            return "공개 섬이 없습니다.";
+        }
+        String islands = arrayValue(body, "islands");
+        if (islands.isBlank()) {
+            return "공개 섬이 없습니다.";
+        }
+        java.util.List<String> entries = new java.util.ArrayList<>();
+        int index = 0;
+        while (index < islands.length() && entries.size() < 20) {
+            int objectStart = islands.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(islands, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = islands.substring(objectStart, objectEnd + 1);
+            String islandId = jsonValue(object, "islandId");
+            if (!islandId.isBlank()) {
+                String name = jsonValue(object, "name");
+                long level = longValue(object, "level");
+                String worth = jsonValue(object, "worth");
+                entries.add((entries.size() + 1) + ". " + (name.isBlank() ? islandId : name) + " (" + islandId + ", 레벨=" + level + ", 가치=" + (worth.isBlank() ? "0" : worth) + ")");
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "공개 섬이 없습니다." : "공개 섬: " + String.join(" | ", entries);
     }
 
     private String hiddenNodeLabel(String nodeId) {
