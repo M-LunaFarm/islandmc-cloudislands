@@ -70,10 +70,13 @@ public final class IslandWarpMenu implements Listener {
             player.performCommand("섬 warp " + islandId + " " + warpName);
             return;
         }
+        if (event.isShiftClick() && event.isRightClick()) {
+            player.performCommand("섬 워프삭제 " + warpName);
+            return;
+        }
         if (event.isRightClick()) {
-            player.sendMessage("워프 관리: /섬 워프공개 " + warpName);
-            player.sendMessage("워프 관리: /섬 워프비공개 " + warpName);
-            player.sendMessage("워프 관리: /섬 워프삭제 " + warpName);
+            boolean publicAccess = Boolean.parseBoolean(loreValue(meta, "publicAccess="));
+            player.performCommand(publicAccess ? "섬 워프비공개 " + warpName : "섬 워프공개 " + warpName);
             return;
         }
         player.performCommand("섬 warp " + warpName);
@@ -98,7 +101,7 @@ public final class IslandWarpMenu implements Listener {
         if (publicMenu) {
             return item(material, warp.name(), "islandId=" + warp.islandId(), "warpName=" + warp.name(), "위치: " + (long) warp.x() + ", " + (long) warp.y() + ", " + (long) warp.z(), "좌클릭: 공개 워프로 이동");
         }
-        return item(material, warp.name(), "warpName=" + warp.name(), "위치: " + (long) warp.x() + ", " + (long) warp.y() + ", " + (long) warp.z(), warp.publicAccess() ? "공개 워프" : "비공개 워프", "좌클릭: 이동, 우클릭: 관리 명령");
+        return item(material, warp.name(), "warpName=" + warp.name(), "publicAccess=" + warp.publicAccess(), "위치: " + (long) warp.x() + ", " + (long) warp.y() + ", " + (long) warp.z(), warp.publicAccess() ? "공개 워프" : "비공개 워프", "좌클릭: 이동", "우클릭: 공개/비공개 전환", "Shift+우클릭: 삭제");
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
