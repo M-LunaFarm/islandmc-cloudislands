@@ -836,8 +836,8 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void resetIsland(Player player, String reason) {
         currentIsland(player, "섬 안에서만 섬을 리셋할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.resetIsland(islandId, player.getUniqueId(), reason)
-                .thenAccept(body -> message(player, "섬 리셋을 요청했습니다."))
+            coreApiClient.resetIslandResult(islandId, player.getUniqueId(), reason)
+                .thenAccept(body -> message(player, actionResultMessage("섬 리셋 요청", islandId, body)))
                 .exceptionally(error -> {
                     message(player, "섬을 리셋하지 못했습니다.");
                     return null;
@@ -1406,6 +1406,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         currentIsland(player, "섬 안에서만 " + label + "을 완료할 수 있습니다.").ifPresent(islandId -> {
             coreApiClient.completeIslandMission(islandId, player.getUniqueId(), missionKey, kind)
                 .thenAccept(body -> {
+                    if (resultRejected(body)) {
+                        message(player, playerCodeMessage(text(body, "code"), label + "을 완료하지 못했습니다."));
+                        return;
+                    }
                     String title = text(body, "title");
                     String reward = text(body, "reward");
                     message(player, label + " 완료: " + (title.isBlank() ? missionKey : title) + (reward.isBlank() ? "" : " / 보상 " + reward));
@@ -1591,7 +1595,13 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 return;
             }
             coreApiClient.setIslandLimit(islandId, player.getUniqueId(), limitKey, value)
-                .thenAccept(body -> message(player, "섬 제한 변경 완료: " + text(body, "limitKey") + " = " + (long) decimal(body, "value")))
+                .thenAccept(body -> {
+                    if (resultRejected(body)) {
+                        message(player, playerCodeMessage(text(body, "code"), "섬 제한을 변경하지 못했습니다."));
+                        return;
+                    }
+                    message(player, "섬 제한 변경 완료: " + text(body, "limitKey") + " = " + (long) decimal(body, "value"));
+                })
                 .exceptionally(error -> {
                     message(player, "섬 제한을 변경하지 못했습니다.");
                     return null;
