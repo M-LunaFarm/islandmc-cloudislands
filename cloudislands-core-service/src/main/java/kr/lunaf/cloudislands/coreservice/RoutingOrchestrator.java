@@ -316,7 +316,7 @@ public final class RoutingOrchestrator {
             String worldName = runtime.activeWorld() == null || runtime.activeWorld().isBlank() ? "ci_shard_001" : runtime.activeWorld();
             return new RouteTarget(activeNode, worldName, RouteTicketState.READY);
         }
-        NodeLoad selected = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion, islandPool)
+        NodeLoad selected = allocator.selectReadyNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion, islandPool)
             .orElseThrow(() -> new IllegalStateException("no eligible island node"));
         IslandRuntimeSnapshot activating = runtimes.markActivating(runtime.islandId(), selected.nodeId(), "ci_shard_001", 0, 0);
         jobs.publish(new IslandJob(

@@ -44,7 +44,7 @@ public final class IslandLifecycleWorkflow {
 
     public Result activate(UUID islandId) {
         String templateId = islands.templateId(islandId).orElse("default");
-        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId), islandPool).orElse(null);
+        NodeLoad node = allocator.selectReadyNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId), islandPool).orElse(null);
         if (node == null) {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
@@ -111,7 +111,7 @@ public final class IslandLifecycleWorkflow {
 
     public Result restore(UUID islandId, long snapshotNo, String storagePath) {
         String templateId = islands.templateId(islandId).orElse("default");
-        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId), islandPool).orElse(null);
+        NodeLoad node = allocator.selectReadyNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId), islandPool).orElse(null);
         if (node == null) {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
@@ -127,7 +127,7 @@ public final class IslandLifecycleWorkflow {
 
     public Result reset(UUID islandId, String reason) {
         String templateId = islands.templateId(islandId).orElse("default");
-        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId), islandPool).orElse(null);
+        NodeLoad node = allocator.selectReadyNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId), islandPool).orElse(null);
         if (node == null) {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
