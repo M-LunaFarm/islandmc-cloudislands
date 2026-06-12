@@ -110,17 +110,24 @@ public final class MigrationAdminService {
         return issues;
     }
 
-    private MigrationWorldBundle recordMigrationBundleSnapshot(MigrationManifest manifest) {
+    private MigrationWorldBundle verifyMigrationBundle(MigrationManifest manifest) {
+        try {
+            Path root = lastExtractionRoot == null ? migrationBundleRoot : lastExtractionRoot;
+            return worldExtractor.verify(worldExtractor.plan(manifest, root));
+        } catch (RuntimeException | java.io.IOException exception) {
+            throw new IllegalStateException("migration bundle unavailable for " + manifest.islandId() + ": " + exception.getMessage(), exception);
+        }
+    }
+
+    private void recordMigrationBundleSnapshot(MigrationManifest manifest, MigrationWorldBundle bundle) {
         if (snapshots == null) {
-            return null;
+            return;
         }
         try {
             Path root = lastExtractionRoot == null ? migrationBundleRoot : lastExtractionRoot;
-            MigrationWorldBundle bundle = worldExtractor.verify(worldExtractor.plan(manifest, root));
             String storagePath = root.normalize().relativize(bundle.bundlePath().normalize()).toString().replace('\\', '/');
             snapshots.record(manifest.islandId(), 1L, storagePath, "Migrated from SuperiorSkyblock2", manifest.ownerUuid(), bundle.checksum(), bundle.sizeBytes());
-            return bundle;
-        } catch (RuntimeException | java.io.IOException exception) {
+        } catch (RuntimeException exception) {
             throw new IllegalStateException("migration bundle snapshot unavailable for " + manifest.islandId() + ": " + exception.getMessage(), exception);
         }
     }
@@ -157,6 +164,7 @@ public final class MigrationAdminService {
         }
         long[] extractedStats = new long[] {0L, 0L, 0L};
         CloudIslandsMigrationImporter.ImportResult result = importer.importPlan(lastPlan, manifest -> {
+            MigrationWorldBundle bundle = verifyMigrationBundle(manifest);
             islands.createOwnedIsland(manifest.islandId(), manifest.ownerUuid(), "superiorskyblock2", "Migrated Island");
             islands.updateStats(manifest.islandId(), manifest.size(), manifest.level(), manifest.worth());
             metadata.upsertMember(manifest.islandId(), manifest.ownerUuid(), IslandRole.OWNER);
@@ -209,12 +217,10 @@ public final class MigrationAdminService {
             }
             metadata.setPublicAccess(manifest.islandId(), manifest.publicAccess());
             metadata.setLocked(manifest.islandId(), manifest.locked());
-            MigrationWorldBundle bundle = recordMigrationBundleSnapshot(manifest);
-            if (bundle != null) {
-                extractedStats[0]++;
-                extractedStats[1] += bundle.fileCount();
-                extractedStats[2] += bundle.sizeBytes();
-            }
+            recordMigrationBundleSnapshot(manifest, bundle);
+            extractedStats[0]++;
+            extractedStats[1] += bundle.fileCount();
+            extractedStats[2] += bundle.sizeBytes();
             playerProfiles.setPrimaryIsland(manifest.ownerUuid(), manifest.islandId());
         });
         lastRollbackPlan = result.rollbackPlan();
