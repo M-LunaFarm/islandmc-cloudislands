@@ -16,6 +16,7 @@ import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreApiException;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.gui.IslandBankMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
@@ -956,9 +957,30 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void routeTicket(Player player, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {
         ticketFuture.thenAccept(ticket -> routeTicket(player, ticket, failureMessage, 0)).exceptionally(error -> {
-            message(player, failureMessage);
+            message(player, routeFailureMessage(error, failureMessage));
             return null;
         });
+    }
+
+    private String routeFailureMessage(Throwable error, String fallback) {
+        Throwable current = error;
+        while (current != null) {
+            if (current instanceof CoreApiException coreError) {
+                return switch (coreError.code()) {
+                    case "ISLAND_LOCKED" -> "해당 섬은 현재 잠겨 있습니다.";
+                    case "ISLAND_PRIVATE" -> "해당 섬은 공개 상태가 아닙니다.";
+                    case "VISITOR_BANNED" -> "해당 섬에서 차단되어 방문할 수 없습니다.";
+                    case "PUBLIC_ISLAND_NOT_FOUND" -> "방문 가능한 공개 섬을 찾지 못했습니다.";
+                    case "WARP_NOT_FOUND" -> "해당 워프를 찾을 수 없습니다.";
+                    case "WARP_PRIVATE" -> "해당 워프는 공개 상태가 아닙니다.";
+                    case "ISLAND_LOADING_FAILED" -> "섬을 아직 이동할 수 있는 상태가 아닙니다.";
+                    case "ISLAND_NOT_FOUND" -> "해당 섬을 찾을 수 없습니다.";
+                    default -> fallback;
+                };
+            }
+            current = current.getCause();
+        }
+        return fallback;
     }
 
     private void routeTicket(Player player, RouteTicket ticket, String failureMessage, int attempt) {

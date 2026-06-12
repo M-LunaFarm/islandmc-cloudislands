@@ -11,6 +11,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreApiException;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import org.bukkit.command.Command;
@@ -469,9 +470,24 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         coreApiClient.adminIslandTeleport(player.getUniqueId(), islandId)
             .thenAccept(ticket -> routeTicket(player, ticket, "관리자 섬 이동에 실패했습니다.", 0))
             .exceptionally(error -> {
-                message(player, "관리자 섬 이동에 실패했습니다.");
+                message(player, routeFailureMessage(error, "관리자 섬 이동에 실패했습니다."));
                 return null;
             });
+    }
+
+    private String routeFailureMessage(Throwable error, String fallback) {
+        Throwable current = error;
+        while (current != null) {
+            if (current instanceof CoreApiException coreError) {
+                return switch (coreError.code()) {
+                    case "ISLAND_LOADING_FAILED" -> "섬을 아직 이동할 수 있는 상태가 아닙니다.";
+                    case "ISLAND_NOT_FOUND" -> "해당 섬을 찾을 수 없습니다.";
+                    default -> fallback;
+                };
+            }
+            current = current.getCause();
+        }
+        return fallback;
     }
 
     private void routeTicket(Player player, RouteTicket ticket, String failureMessage, int attempt) {

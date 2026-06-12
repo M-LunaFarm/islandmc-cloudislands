@@ -429,22 +429,22 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName) {
-        return post("/v1/routes/home", "{\"playerUuid\":\"" + playerUuid + "\",\"homeName\":\"" + escape(homeName) + "\"}").thenApply(RouteTicketJson::parse);
+        return postWithResultBody("/v1/routes/home", "{\"playerUuid\":\"" + playerUuid + "\",\"homeName\":\"" + escape(homeName) + "\"}").thenApply(JdkCoreApiClient::parseRouteTicketResult);
     }
 
     @Override
     public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId) {
-        return post("/v1/routes/visit", "{\"playerUuid\":\"" + visitorUuid + "\",\"islandId\":\"" + targetIslandId + "\"}").thenApply(RouteTicketJson::parse);
+        return postWithResultBody("/v1/routes/visit", "{\"playerUuid\":\"" + visitorUuid + "\",\"islandId\":\"" + targetIslandId + "\"}").thenApply(JdkCoreApiClient::parseRouteTicketResult);
     }
 
     @Override
     public CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid) {
-        return post("/v1/routes/random", "{\"playerUuid\":\"" + visitorUuid + "\"}").thenApply(RouteTicketJson::parse);
+        return postWithResultBody("/v1/routes/random", "{\"playerUuid\":\"" + visitorUuid + "\"}").thenApply(JdkCoreApiClient::parseRouteTicketResult);
     }
 
     @Override
     public CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName) {
-        return post("/v1/routes/warp", "{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\",\"warpName\":\"" + escape(warpName) + "\"}").thenApply(RouteTicketJson::parse);
+        return postWithResultBody("/v1/routes/warp", "{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\",\"warpName\":\"" + escape(warpName) + "\"}").thenApply(JdkCoreApiClient::parseRouteTicketResult);
     }
 
     @Override
@@ -585,7 +585,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId) {
-        return post("/v1/admin/islands/tp", "{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\"}").thenApply(RouteTicketJson::parse);
+        return postWithResultBody("/v1/admin/islands/tp", "{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\"}").thenApply(JdkCoreApiClient::parseRouteTicketResult);
     }
 
     @Override
@@ -830,6 +830,20 @@ public final class JdkCoreApiClient implements CoreApiClient {
         HttpRequest request = builder.build();
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
             .thenApply(response -> response.statusCode() >= 200 && response.statusCode() < 500 ? response.body() : "");
+    }
+
+    private static RouteTicket parseRouteTicketResult(String body) {
+        if (body == null || body.isBlank()) {
+            throw new CoreApiException("ROUTE_FAILED", "Route ticket could not be created");
+        }
+        if (!body.contains("\"ticketId\"")) {
+            throw new CoreApiException(text(body, "code", "ROUTE_FAILED"), text(body, "message", "Route ticket could not be created"));
+        }
+        RouteTicket ticket = RouteTicketJson.parse(body);
+        if (ticket == null) {
+            throw new CoreApiException("ROUTE_FAILED", "Route ticket could not be parsed");
+        }
+        return ticket;
     }
 
     private boolean adminProtected(String path) {
