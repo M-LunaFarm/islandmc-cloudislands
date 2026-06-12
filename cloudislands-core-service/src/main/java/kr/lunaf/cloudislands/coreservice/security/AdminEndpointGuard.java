@@ -24,7 +24,7 @@ public final class AdminEndpointGuard {
         if (required == null) {
             return true;
         }
-        if (!adminApiEnabled && path.startsWith("/v1/admin")) {
+        if (!adminApiEnabled && adminApiPath(path)) {
             return false;
         }
         if (!tokenAllowed(exchange)) {
@@ -39,6 +39,14 @@ public final class AdminEndpointGuard {
         }
         String header = exchange.getRequestHeaders().getFirst("X-CloudIslands-Admin-Token");
         return adminToken.equals(header);
+    }
+
+    private boolean adminApiPath(String path) {
+        return path.startsWith("/v1/admin")
+            || path.equals("/v1/audit")
+            || path.equals("/v1/events")
+            || path.equals("/v1/jobs")
+            || path.equals("/v1/jobs/recover");
     }
 
     private AdminPermissionPolicy policy(HttpExchange exchange) {
