@@ -33,7 +33,7 @@ import kr.lunaf.cloudislands.velocity.command.IslandCommandCatalog;
 import net.kyori.adventure.text.Component;
 import org.slf4j.Logger;
 
-@Plugin(id = "cloudislands", name = "CloudIslands", version = "0.1.0", authors = {"LeeSeungmin"})
+@Plugin(id = "cloudislands", name = "CloudIslands", version = "0.1.0", description = "Portable island routing and management", authors = {"LeeSeungmin"})
 public final class CloudIslandsVelocityPlugin {
     private static final List<String> ALIASES = List.of("is", "island", "섬");
     private final ProxyServer proxy;
