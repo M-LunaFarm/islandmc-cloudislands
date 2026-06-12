@@ -49,14 +49,22 @@ public final class IslandLifecycleWorkflow {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
         IslandRuntimeSnapshot runtime = runtimes.markActivating(islandId, node.nodeId(), "ci_shard_001", 0, 0);
-        jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.ACTIVATE_ISLAND, islandId, node.nodeId(), 0, Map.of("fencingToken", Long.toString(runtime.fencingToken()), "worldName", runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld(), "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()), "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ())), Instant.now()));
+        try {
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.ACTIVATE_ISLAND, islandId, node.nodeId(), 0, Map.of("fencingToken", Long.toString(runtime.fencingToken()), "worldName", runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld(), "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()), "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ())), Instant.now()));
+        } catch (RuntimeException exception) {
+            return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
+        }
         events.publish(CloudIslandEventType.ISLAND_ACTIVATE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "state", runtime.state().name(), "targetNode", node.nodeId()));
         return new Result(true, "ACTIVATING", runtime);
     }
 
     public Result deactivate(UUID islandId) {
         IslandRuntimeSnapshot runtime = runtimes.markSaving(islandId);
-        jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DEACTIVATE_ISLAND, islandId, runtime.activeNode(), 0, Map.of(), Instant.now()));
+        try {
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DEACTIVATE_ISLAND, islandId, runtime.activeNode(), 0, Map.of(), Instant.now()));
+        } catch (RuntimeException exception) {
+            return jobQueueFailed(islandId, IslandState.ERROR_SAVING);
+        }
         events.publish(CloudIslandEventType.ISLAND_DEACTIVATE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "state", runtime.state().name()));
         return new Result(true, "SAVING", runtime);
     }
@@ -70,10 +78,14 @@ public final class IslandLifecycleWorkflow {
         IslandRuntimeSnapshot current = runtimes.find(islandId).orElse(null);
         IslandRuntimeSnapshot runtime = runtimes.markMigrating(islandId, targetNode);
         String sourceNode = current == null ? "" : current.activeNode();
-        if (sourceNode != null && !sourceNode.isBlank() && !sourceNode.equals(targetNode)) {
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DEACTIVATE_ISLAND, islandId, sourceNode, 10, Map.of("reason", "BEFORE_MIGRATION", "migrateTargetNode", targetNode, "migrationFencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
-        } else {
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.MIGRATE_ISLAND, islandId, targetNode, 10, Map.of("fencingToken", Long.toString(runtime.fencingToken()), "worldName", runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld(), "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()), "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ())), Instant.now()));
+        try {
+            if (sourceNode != null && !sourceNode.isBlank() && !sourceNode.equals(targetNode)) {
+                jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DEACTIVATE_ISLAND, islandId, sourceNode, 10, Map.of("reason", "BEFORE_MIGRATION", "migrateTargetNode", targetNode, "migrationFencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
+            } else {
+                jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.MIGRATE_ISLAND, islandId, targetNode, 10, Map.of("fencingToken", Long.toString(runtime.fencingToken()), "worldName", runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld(), "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()), "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ())), Instant.now()));
+            }
+        } catch (RuntimeException exception) {
+            return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
         }
         events.publish(CloudIslandEventType.ISLAND_MIGRATE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "targetNode", targetNode, "fencingToken", Long.toString(runtime.fencingToken())));
         return new Result(true, "MIGRATING", runtime);
@@ -84,7 +96,11 @@ public final class IslandLifecycleWorkflow {
         if (runtime.activeNode() == null || runtime.activeNode().isBlank()) {
             return new Result(false, "ISLAND_NOT_ACTIVE", runtime);
         }
-        jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.SNAPSHOT_ISLAND, islandId, runtime.activeNode(), 20, Map.of("reason", reason), Instant.now()));
+        try {
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.SNAPSHOT_ISLAND, islandId, runtime.activeNode(), 20, Map.of("reason", reason), Instant.now()));
+        } catch (RuntimeException exception) {
+            return jobQueueFailed(islandId, IslandState.ERROR_SAVING);
+        }
         events.publish(CloudIslandEventType.ISLAND_SNAPSHOT_REQUESTED.name(), Map.of("islandId", islandId.toString(), "reason", reason));
         return new Result(true, "SNAPSHOT_QUEUED", runtime);
     }
@@ -100,7 +116,11 @@ public final class IslandLifecycleWorkflow {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
         IslandRuntimeSnapshot runtime = runtimes.markActivating(islandId, node.nodeId(), "ci_shard_001", 0, 0);
-        jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, node.nodeId(), 30, Map.of("snapshotNo", Long.toString(snapshotNo), "storagePath", storagePath == null ? "" : storagePath, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
+        try {
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, node.nodeId(), 30, Map.of("snapshotNo", Long.toString(snapshotNo), "storagePath", storagePath == null ? "" : storagePath, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
+        } catch (RuntimeException exception) {
+            return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
+        }
         events.publish(CloudIslandEventType.ISLAND_RESTORE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "state", "RESTORING", "snapshotNo", Long.toString(snapshotNo)));
         return new Result(true, "RESTORE_QUEUED", runtime);
     }
@@ -112,7 +132,11 @@ public final class IslandLifecycleWorkflow {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
         IslandRuntimeSnapshot runtime = runtimes.markActivating(islandId, node.nodeId(), "ci_shard_001", 0, 0);
-        jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESET_ISLAND, islandId, node.nodeId(), 40, Map.of("templateId", templateId, "reason", reason, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
+        try {
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESET_ISLAND, islandId, node.nodeId(), 40, Map.of("templateId", templateId, "reason", reason, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
+        } catch (RuntimeException exception) {
+            return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
+        }
         events.publish(CloudIslandEventType.ISLAND_RESET_REQUESTED.name(), Map.of("islandId", islandId.toString(), "state", "RESETTING", "targetNode", node.nodeId(), "reason", reason));
         return new Result(true, "RESET_QUEUED", runtime);
     }
@@ -125,6 +149,13 @@ public final class IslandLifecycleWorkflow {
     }
 
     public record Result(boolean accepted, String code, IslandRuntimeSnapshot runtime) {}
+
+    private Result jobQueueFailed(UUID islandId, IslandState state) {
+        IslandRuntimeSnapshot runtime = runtimes.setState(islandId, state);
+        islands.setState(islandId, state);
+        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", state.name(), "reason", "JOB_QUEUE_UNAVAILABLE"));
+        return new Result(false, "JOB_QUEUE_UNAVAILABLE", runtime);
+    }
 
     private String minNodeVersion(String templateId) {
         return templates.find(templateId).map(kr.lunaf.cloudislands.coreservice.template.IslandTemplateSnapshot::minNodeVersion).orElse("");
