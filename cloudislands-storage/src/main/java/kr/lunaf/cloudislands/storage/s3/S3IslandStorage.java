@@ -9,34 +9,53 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
 import kr.lunaf.cloudislands.storage.manifest.IslandManifestJson;
 
 public final class S3IslandStorage implements IslandStorage {
+    private static final DateTimeFormatter AMZ_DATE = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'").withZone(ZoneOffset.UTC);
+    private static final DateTimeFormatter DATE_STAMP = DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneOffset.UTC);
+
     private final URI endpoint;
     private final String bucket;
+    private final String region;
+    private final String accessKey;
+    private final String secretKey;
     private final String bearerToken;
     private final HttpClient client = HttpClient.newHttpClient();
 
     public S3IslandStorage(URI endpoint, String bucket, String bearerToken) {
+        this(endpoint, bucket, "us-east-1", "", "", bearerToken);
+    }
+
+    public S3IslandStorage(URI endpoint, String bucket, String region, String accessKey, String secretKey, String bearerToken) {
         this.endpoint = endpoint;
         this.bucket = bucket;
-        this.bearerToken = bearerToken;
+        this.region = region == null || region.isBlank() ? "us-east-1" : region;
+        this.accessKey = accessKey == null ? "" : accessKey;
+        this.secretKey = secretKey == null ? "" : secretKey;
+        this.bearerToken = bearerToken == null ? "" : bearerToken;
     }
 
     @Override
     public boolean available() throws IOException {
         try {
-            HttpRequest request = HttpRequest.newBuilder(endpoint.resolve("/" + bucket + "/"))
-                .header("Authorization", "Bearer " + bearerToken)
+            HttpRequest request = requestBuilder("HEAD", "", null)
                 .method("HEAD", HttpRequest.BodyPublishers.noBody())
                 .build();
             HttpResponse<Void> response = client.send(request, HttpResponse.BodyHandlers.discarding());
@@ -245,8 +264,7 @@ public final class S3IslandStorage implements IslandStorage {
 
     private void deleteKey(String key) throws IOException {
         try {
-            HttpRequest request = HttpRequest.newBuilder(endpoint.resolve("/" + bucket + "/" + key))
-                .header("Authorization", "Bearer " + bearerToken)
+            HttpRequest request = requestBuilder("DELETE", key, null)
                 .method("DELETE", HttpRequest.BodyPublishers.noBody())
                 .build();
             HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
@@ -262,10 +280,7 @@ public final class S3IslandStorage implements IslandStorage {
     private byte[] requestBytes(String method, String key, byte[] body) throws IOException {
         try {
             HttpRequest.BodyPublisher publisher = body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofByteArray(body);
-            HttpRequest request = HttpRequest.newBuilder(endpoint.resolve("/" + bucket + "/" + key))
-                .header("Authorization", "Bearer " + bearerToken)
-                .method(method, publisher)
-                .build();
+            HttpRequest request = requestBuilder(method, key, body).method(method, publisher).build();
             HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 throw new IOException("storage request failed with status " + response.statusCode());
@@ -275,5 +290,93 @@ public final class S3IslandStorage implements IslandStorage {
             Thread.currentThread().interrupt();
             throw new IOException("storage request interrupted", exception);
         }
+    }
+
+    private HttpRequest.Builder requestBuilder(String method, String key, byte[] body) throws IOException {
+        URI uri = endpoint.resolve("/" + bucket + "/" + (key == null ? "" : key));
+        HttpRequest.Builder builder = HttpRequest.newBuilder(uri);
+        if (accessKey.isBlank() || secretKey.isBlank()) {
+            if (!bearerToken.isBlank()) {
+                builder.header("Authorization", "Bearer " + bearerToken);
+            }
+            return builder;
+        }
+        byte[] payload = body == null ? new byte[0] : body;
+        String payloadHash = sha256Hex(payload);
+        Instant now = Instant.now();
+        String amzDate = AMZ_DATE.format(now);
+        String dateStamp = DATE_STAMP.format(now);
+        String signedHeaders = "host;x-amz-content-sha256;x-amz-date";
+        String canonicalHeaders = "host:" + hostHeader(uri) + "\n"
+            + "x-amz-content-sha256:" + payloadHash + "\n"
+            + "x-amz-date:" + amzDate + "\n";
+        String canonicalRequest = method + "\n"
+            + uri.getRawPath() + "\n"
+            + canonicalQuery(uri) + "\n"
+            + canonicalHeaders + "\n"
+            + signedHeaders + "\n"
+            + payloadHash;
+        String credentialScope = dateStamp + "/" + region + "/s3/aws4_request";
+        String stringToSign = "AWS4-HMAC-SHA256\n"
+            + amzDate + "\n"
+            + credentialScope + "\n"
+            + sha256Hex(canonicalRequest.getBytes(StandardCharsets.UTF_8));
+        String signature = hex(hmac(signingKey(dateStamp), stringToSign));
+        return builder
+            .header("x-amz-date", amzDate)
+            .header("x-amz-content-sha256", payloadHash)
+            .header("Authorization", "AWS4-HMAC-SHA256 Credential=" + accessKey + "/" + credentialScope + ", SignedHeaders=" + signedHeaders + ", Signature=" + signature);
+    }
+
+    private String hostHeader(URI uri) {
+        int port = uri.getPort();
+        if (port < 0 || (uri.getScheme().equalsIgnoreCase("http") && port == 80) || (uri.getScheme().equalsIgnoreCase("https") && port == 443)) {
+            return uri.getHost();
+        }
+        return uri.getHost() + ":" + port;
+    }
+
+    private String canonicalQuery(URI uri) {
+        String query = uri.getRawQuery();
+        if (query == null || query.isBlank()) {
+            return "";
+        }
+        return Arrays.stream(query.split("&"))
+            .sorted()
+            .reduce((left, right) -> left + "&" + right)
+            .orElse("");
+    }
+
+    private byte[] signingKey(String dateStamp) throws IOException {
+        byte[] dateKey = hmac(("AWS4" + secretKey).getBytes(StandardCharsets.UTF_8), dateStamp);
+        byte[] regionKey = hmac(dateKey, region);
+        byte[] serviceKey = hmac(regionKey, "s3");
+        return hmac(serviceKey, "aws4_request");
+    }
+
+    private static byte[] hmac(byte[] key, String value) throws IOException {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(key, "HmacSHA256"));
+            return mac.doFinal(value.getBytes(StandardCharsets.UTF_8));
+        } catch (Exception exception) {
+            throw new IOException("failed to sign storage request", exception);
+        }
+    }
+
+    private static String sha256Hex(byte[] bytes) throws IOException {
+        try {
+            return hex(MessageDigest.getInstance("SHA-256").digest(bytes));
+        } catch (Exception exception) {
+            throw new IOException("failed to hash storage request", exception);
+        }
+    }
+
+    private static String hex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            builder.append(String.format("%02x", value & 0xff));
+        }
+        return builder.toString();
     }
 }
