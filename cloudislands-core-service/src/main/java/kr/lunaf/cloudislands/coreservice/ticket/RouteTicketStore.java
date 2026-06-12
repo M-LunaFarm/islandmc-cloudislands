@@ -19,6 +19,8 @@ public interface RouteTicketStore {
 
     Optional<RouteTicket> findLatestForPlayer(UUID playerUuid);
 
+    Map<String, Long> countsByState();
+
     boolean clear(UUID ticketId);
 
     int clearAll();

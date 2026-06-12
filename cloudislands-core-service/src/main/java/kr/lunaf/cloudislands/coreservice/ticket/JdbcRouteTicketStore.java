@@ -148,6 +148,24 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
     }
 
     @Override
+    public Map<String, Long> countsByState() {
+        Map<String, Long> counts = new java.util.HashMap<>();
+        for (RouteTicketState state : RouteTicketState.values()) {
+            counts.put(state.name(), 0L);
+        }
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT state, count(*) AS total FROM route_tickets GROUP BY state");
+             ResultSet rs = statement.executeQuery()) {
+            while (rs.next()) {
+                counts.put(rs.getString("state"), rs.getLong("total"));
+            }
+            return Map.copyOf(counts);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to count route tickets", exception);
+        }
+    }
+
+    @Override
     public boolean clear(UUID ticketId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("DELETE FROM route_tickets WHERE id = ?")) {

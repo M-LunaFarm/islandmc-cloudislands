@@ -103,6 +103,18 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
             .max((left, right) -> left.expiresAt().compareTo(right.expiresAt()));
     }
 
+    @Override
+    public Map<String, Long> countsByState() {
+        Map<String, Long> counts = new java.util.HashMap<>();
+        for (RouteTicketState state : RouteTicketState.values()) {
+            counts.put(state.name(), 0L);
+        }
+        for (RouteTicket ticket : tickets.values()) {
+            counts.put(ticket.state().name(), counts.getOrDefault(ticket.state().name(), 0L) + 1L);
+        }
+        return Map.copyOf(counts);
+    }
+
     public boolean clear(UUID ticketId) {
         return tickets.remove(ticketId) != null;
     }

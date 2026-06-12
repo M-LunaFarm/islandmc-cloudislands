@@ -13,10 +13,12 @@ import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.JdbcIslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue;
+import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
 
 public final class PrometheusMetricsRenderer {
     private final NodeRegistry nodes;
     private final IslandJobQueue jobs;
+    private final RouteTicketStore tickets;
     private final InMemoryGlobalEventPublisher events;
     private final Duration heartbeatTimeout;
     private final DoubleSupplier databaseQuerySeconds;
@@ -26,9 +28,10 @@ public final class PrometheusMetricsRenderer {
     private final LongSupplier databaseQueryFailures;
     private final LongSupplier redisEventFailures;
 
-    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures) {
+    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures) {
         this.nodes = nodes;
         this.jobs = jobs;
+        this.tickets = tickets;
         this.events = events;
         this.heartbeatTimeout = heartbeatTimeout;
         this.databaseQuerySeconds = databaseQuerySeconds;
@@ -212,6 +215,11 @@ public final class PrometheusMetricsRenderer {
         appendEventFieldCounters(out, "cloudislands_route_ticket_failed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_FAILED, "targetNode");
         for (Map.Entry<String, Long> entry : events.countsByField(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_FAILED.name(), "reason").entrySet()) {
             out.append("cloudislands_route_ticket_failed_total{reason=\"").append(escape(entry.getKey())).append("\"} ").append(entry.getValue()).append('\n');
+        }
+        help(out, "cloudislands_route_tickets_total", "Route tickets currently stored by state");
+        type(out, "cloudislands_route_tickets_total", "gauge");
+        for (Map.Entry<String, Long> entry : tickets.countsByState().entrySet()) {
+            out.append("cloudislands_route_tickets_total{state=\"").append(escape(entry.getKey())).append("\"} ").append(entry.getValue()).append('\n');
         }
         eventCounter(out, "cloudislands_island_activation_requested_total", "Island activation requests accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_ACTIVATE_REQUESTED);
         eventCounter(out, "cloudislands_island_activated_total", "Island activations completed by node workers", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_ACTIVATED);
