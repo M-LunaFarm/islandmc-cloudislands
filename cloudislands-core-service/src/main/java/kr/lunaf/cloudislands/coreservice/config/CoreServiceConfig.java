@@ -17,6 +17,9 @@ public record CoreServiceConfig(
     URI storageEndpoint,
     String storageBucket,
     String storageLocalPath,
+    String storageRegion,
+    String storageAccessKey,
+    String storageSecretKey,
     String storageBearerToken,
     String coreToken,
     String adminToken,
@@ -49,6 +52,9 @@ public record CoreServiceConfig(
             URI.create(env("CI_STORAGE_ENDPOINT", "http://minio.internal:9000")),
             env("CI_STORAGE_BUCKET", "cloudislands"),
             env("CI_STORAGE_LOCAL_PATH", "cloudislands-storage"),
+            env("CI_STORAGE_REGION", "us-east-1"),
+            env("CI_STORAGE_ACCESS_KEY", env("S3_ACCESS_KEY", "")),
+            env("CI_STORAGE_SECRET_KEY", env("S3_SECRET_KEY", "")),
             env("CI_STORAGE_BEARER_TOKEN", ""),
             env("CI_CORE_TOKEN", ""),
             env("CI_ADMIN_TOKEN", ""),
@@ -85,7 +91,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue);
     }
 
     private static String env(String key, String fallback) {

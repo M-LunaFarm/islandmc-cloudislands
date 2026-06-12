@@ -1574,7 +1574,7 @@ public final class CloudIslandsCoreApplication {
             return new LocalIslandStorage(Path.of(config.storageLocalPath()));
         }
         if ("S3".equalsIgnoreCase(config.storageType())) {
-            return new S3IslandStorage(config.storageEndpoint(), config.storageBucket(), config.storageBearerToken());
+            return new S3IslandStorage(config.storageEndpoint(), config.storageBucket(), config.storageRegion(), config.storageAccessKey(), config.storageSecretKey(), config.storageBearerToken());
         }
         return null;
     }
