@@ -490,6 +490,11 @@ public final class CloudIslandsVelocityPlugin {
             routingController.showIslandBorder(player, islandId);
             return;
         }
+        if (args[0].equalsIgnoreCase("biome-menu") || args[0].equalsIgnoreCase("biome-info") || args[0].equals("바이옴정보")) {
+            UUID islandId = args.length > 1 && isUuid(args[1]) ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.showBiome(player, islandId);
+            return;
+        }
         if (args[0].equalsIgnoreCase("biome") || args[0].equals("바이옴")) {
             UUID islandId = args.length > 2 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             if (args.length > 1) {
@@ -812,7 +817,12 @@ public final class CloudIslandsVelocityPlugin {
             routingController.sendIslandChat(player, new UUID(0L, 0L), "TEAM", joinArgs(args, 1));
             return;
         }
-        if (args[0].equalsIgnoreCase("limits") || args[0].equalsIgnoreCase("limit") || args[0].equalsIgnoreCase("limit-list") || args[0].equals("제한") || args[0].equals("제한목록")) {
+        if (args[0].equalsIgnoreCase("limit-menu")) {
+            UUID islandId = args.length > 1 && isUuid(args[1]) ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.listLimits(player, islandId);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("limits") || args[0].equalsIgnoreCase("limit") || args[0].equalsIgnoreCase("limit-list") || args[0].equalsIgnoreCase("setlimit") || args[0].equalsIgnoreCase("limit-set") || args[0].equals("제한") || args[0].equals("제한목록") || args[0].equals("제한설정")) {
             UUID islandId = islandIdArgument(args, 1);
             int valueIndex = hasIslandIdArgument(args, 1) ? 3 : 2;
             if (args.length > valueIndex) {
@@ -842,7 +852,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.setLimit(player, islandId, "REDSTONE", parseLongOrZero(argumentAfterIslandId(args, 1, "0")));
             return;
         }
-        if (args[0].equalsIgnoreCase("snapshots") || args[0].equalsIgnoreCase("snapshot-list") || args[0].equals("스냅샷목록")) {
+        if (args[0].equalsIgnoreCase("snapshots") || args[0].equalsIgnoreCase("snapshot-menu") || args[0].equalsIgnoreCase("snapshot-list") || args[0].equals("스냅샷목록")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.listSnapshots(player, islandId);
             return;
@@ -1041,7 +1051,7 @@ public final class CloudIslandsVelocityPlugin {
             if (first.equals("rank") || first.equals("ranking") || first.equals("랭킹")) {
                 addLiteralSuggestions(matches, args[1], List.of("worth", "value", "10", "25", "50"));
             }
-            if (first.equals("limits") || first.equals("limit") || first.equals("제한")) {
+            if (first.equals("limits") || first.equals("limit") || first.equals("limit-list") || first.equals("setlimit") || first.equals("limit-set") || first.equals("제한") || first.equals("제한목록") || first.equals("제한설정")) {
                 addLiteralSuggestions(matches, args[1], List.of("HOPPER", "SPAWNER", "ENTITY", "REDSTONE"));
             }
             if (first.equals("hoppers") || first.equals("호퍼") || first.equals("spawners") || first.equals("스포너") || first.equals("entities") || first.equals("엔티티") || first.equals("redstone") || first.equals("레드스톤")) {
@@ -1053,7 +1063,7 @@ public final class CloudIslandsVelocityPlugin {
             if (first.equals("setflag") || first.equals("flag-set") || first.equals("플래그설정")) {
                 addLiteralSuggestions(matches, args[1], List.of("FLY", "KEEP_INVENTORY", "PVP", "PUBLIC_WARPS"));
             }
-            if (first.equals("biome") || first.equals("바이옴")) {
+            if (first.equals("biome") || first.equals("biome-menu") || first.equals("biome-info") || first.equals("바이옴") || first.equals("바이옴정보")) {
                 addLiteralSuggestions(matches, args[1], List.of("minecraft:plains", "minecraft:forest", "minecraft:desert", "minecraft:taiga"));
             }
             if (first.equals("invite") || first.equals("초대") || first.equals("kick") || first.equals("remove-member") || first.equals("추방") || first.equals("promote") || first.equals("승급") || first.equals("demote") || first.equals("강등") || first.equals("transfer") || first.equals("양도") || first.equals("trust") || first.equals("신뢰") || first.equals("untrust") || first.equals("신뢰해제") || first.equals("ban") || first.equals("밴") || first.equals("unban") || first.equals("pardon") || first.equals("밴해제") || first.equals("kickvisitor") || first.equals("방문자추방")) {
