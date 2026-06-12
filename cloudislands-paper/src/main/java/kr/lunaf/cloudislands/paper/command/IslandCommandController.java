@@ -2787,7 +2787,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         StringBuilder builder = new StringBuilder(label)
             .append(rejected ? " 실패" : " 완료");
         if (targetId != null && !targetId.isBlank()) {
-            builder.append(": target=").append(compactId(targetId));
+            builder.append(": 대상=").append(compactId(targetId));
         }
         if (!code.isBlank()) {
             builder.append(" 사유=").append(code);
