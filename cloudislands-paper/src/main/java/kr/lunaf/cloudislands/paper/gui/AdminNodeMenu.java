@@ -27,6 +27,8 @@ public final class AdminNodeMenu implements Listener {
         inventory.setItem(18, item(Material.IRON_DOOR, "현재 노드 플레이어 로비 이동", "/ciadmin node kickall " + nodeId, "이 노드의 접속자를 로비로 이동합니다.", "Shift+우클릭해야 실행됩니다."));
         inventory.setItem(19, item(Material.BELL, "현재 노드 안전 종료", "/ciadmin node shutdown-safe " + nodeId, "Drain 후 접속자를 로비로 이동합니다.", "Shift+우클릭해야 실행됩니다."));
         inventory.setItem(22, item(Material.BOOK, "관리 명령 도움말", "/ciadmin node list", "/ciadmin island where <uuid>"));
+        inventory.setItem(24, item(Material.CLOCK, "관리 상태", "/ciadmin status"));
+        inventory.setItem(26, item(Material.OAK_DOOR, "닫기", "메뉴를 닫습니다."));
         player.openInventory(inventory);
     }
 
@@ -46,6 +48,9 @@ public final class AdminNodeMenu implements Listener {
         String command = firstCommand(meta);
         String name = meta.getDisplayName();
         player.closeInventory();
+        if (name.equals("닫기")) {
+            return;
+        }
         if ((name.equals("현재 노드 플레이어 로비 이동") || name.equals("현재 노드 안전 종료")) && (!event.isShiftClick() || !event.isRightClick())) {
             player.sendMessage("위험한 노드 작업은 Shift+우클릭해야 실행됩니다.");
             return;
