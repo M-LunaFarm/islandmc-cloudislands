@@ -198,14 +198,17 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_route_ticket_created_total", "counter");
         out.append("cloudislands_route_ticket_created_total ").append(events.countByType(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CREATED.name())).append('\n');
         appendEventFieldCounters(out, "cloudislands_route_ticket_created_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CREATED, "action");
+        appendEventFieldCounters(out, "cloudislands_route_ticket_created_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CREATED, "targetNode");
         help(out, "cloudislands_route_ticket_consumed_total", "Route tickets consumed by Paper nodes");
         type(out, "cloudislands_route_ticket_consumed_total", "counter");
         out.append("cloudislands_route_ticket_consumed_total ").append(events.countByType(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CONSUMED.name())).append('\n');
         appendEventFieldCounters(out, "cloudislands_route_ticket_consumed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CONSUMED, "action");
+        appendEventFieldCounters(out, "cloudislands_route_ticket_consumed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CONSUMED, "targetNode");
         help(out, "cloudislands_route_ticket_failed_total", "Route ticket failures recorded by Core API");
         type(out, "cloudislands_route_ticket_failed_total", "counter");
         out.append("cloudislands_route_ticket_failed_total ").append(events.countByType(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_FAILED.name())).append('\n');
         appendEventFieldCounters(out, "cloudislands_route_ticket_failed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_FAILED, "action");
+        appendEventFieldCounters(out, "cloudislands_route_ticket_failed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_FAILED, "targetNode");
         for (Map.Entry<String, Long> entry : events.countsByField(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_FAILED.name(), "reason").entrySet()) {
             out.append("cloudislands_route_ticket_failed_total{reason=\"").append(escape(entry.getKey())).append("\"} ").append(entry.getValue()).append('\n');
         }
