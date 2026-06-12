@@ -121,7 +121,7 @@ public record NodeLoad(
     }
 
     public double playerPressure() {
-        return ratio(players, hardPlayerCap);
+        return ratio(players, softPlayerCap);
     }
 
     public double activeIslandPressure() {
