@@ -23,6 +23,7 @@ public final class RedisCacheAdmin {
         "ci:island:*:bank",
         "ci:island:*:limits",
         "ci:island:*:missions:*",
+        "ci:island:*:upgrades",
         "ci:rankings:*"
     );
 
