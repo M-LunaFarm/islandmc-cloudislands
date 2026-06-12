@@ -690,10 +690,11 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("setpermission") || args[0].equals("권한설정")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            IslandRole role = args.length > 2 ? parseRole(args[2]) : IslandRole.MEMBER;
-            IslandPermission permission = args.length > 3 ? parsePermission(args[3]) : IslandPermission.BUILD;
-            boolean allowed = args.length > 4 && Boolean.parseBoolean(args[4]);
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            int roleIndex = hasOptionalIslandIdArgument(args, 1) ? 2 : 1;
+            IslandRole role = args.length > roleIndex ? parseRole(args[roleIndex]) : IslandRole.MEMBER;
+            IslandPermission permission = args.length > roleIndex + 1 ? parsePermission(args[roleIndex + 1]) : IslandPermission.BUILD;
+            boolean allowed = args.length > roleIndex + 2 && Boolean.parseBoolean(args[roleIndex + 2]);
             routingController.setPermission(player, islandId, role, permission, allowed);
             return;
         }
