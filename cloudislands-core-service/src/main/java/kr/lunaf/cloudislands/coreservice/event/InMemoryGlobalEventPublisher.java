@@ -38,7 +38,13 @@ public final class InMemoryGlobalEventPublisher implements GlobalEventPublisher 
         }
         int from = sinceSequence > 0L ? firstAfterSequence : Math.max(0, events.size() - safeLimit);
         int to = sinceSequence > 0L ? Math.min(events.size(), from + safeLimit) : events.size();
-        StringBuilder builder = new StringBuilder("{\"events\":[");
+        long oldestSequence = events.isEmpty() ? nextSequence : events.get(0).sequence();
+        long latestSequence = nextSequence - 1L;
+        StringBuilder builder = new StringBuilder("{\"oldestSeq\":")
+            .append(oldestSequence)
+            .append(",\"latestSeq\":")
+            .append(latestSequence)
+            .append(",\"events\":[");
         boolean first = true;
         for (int i = from; i < to; i++) {
             EventRecord event = events.get(i);
