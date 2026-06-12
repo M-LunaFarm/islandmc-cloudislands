@@ -746,14 +746,21 @@ public final class CloudIslandsCoreApplication {
                 ? tickets.findLatestForPlayer(playerUuid).map(RouteTicket::ticketId).orElse(new UUID(0L, 0L))
                 : ticketId;
             boolean clearedTicket = !clearTicketId.equals(new UUID(0L, 0L)) && tickets.clear(clearTicketId);
-            events.publish(CloudIslandEventType.ROUTE_TICKET_CLEARED.name(), Map.of(
-                "playerUuid", playerUuid.toString(),
+            String clearReason = reason == null || reason.isBlank() ? "MANUAL_CLEAR" : reason;
+            audit.log(new UUID(0L, 0L), "MANUAL_CLEAR".equals(clearReason) ? "ADMIN" : "SYSTEM", "ROUTE_CLEAR", "ROUTE", playerUuid.toString(), Map.of(
                 "ticketId", clearTicketId.toString(),
-                "reason", reason == null || reason.isBlank() ? "MANUAL_CLEAR" : reason,
+                "reason", clearReason,
                 "clearedSession", Boolean.toString(clearedSession),
                 "clearedTicket", Boolean.toString(clearedTicket)
             ));
-            write(exchange, 202, "{\"clearedSession\":" + clearedSession + ",\"clearedTicket\":" + clearedTicket + ",\"reason\":\"" + escape(reason == null || reason.isBlank() ? "MANUAL_CLEAR" : reason) + "\"}");
+            events.publish(CloudIslandEventType.ROUTE_TICKET_CLEARED.name(), Map.of(
+                "playerUuid", playerUuid.toString(),
+                "ticketId", clearTicketId.toString(),
+                "reason", clearReason,
+                "clearedSession", Boolean.toString(clearedSession),
+                "clearedTicket", Boolean.toString(clearedTicket)
+            ));
+            write(exchange, 202, "{\"clearedSession\":" + clearedSession + ",\"clearedTicket\":" + clearedTicket + ",\"reason\":\"" + escape(clearReason) + "\"}");
         });
         route("/v1/admin/cache/clear", exchange -> {
             int clearedSessions = sessions.clearAll();
