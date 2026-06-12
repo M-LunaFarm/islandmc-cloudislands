@@ -94,6 +94,16 @@ public interface IslandCommandService {
     CompletableFuture<UpgradePurchaseSnapshot> purchaseUpgradeResult(UUID islandId, UUID actorUuid, String upgradeKey);
     CompletableFuture<Void> completeMission(UUID islandId, UUID actorUuid, String missionKey);
     CompletableFuture<java.util.Optional<IslandMissionSnapshot>> completeMissionResult(UUID islandId, UUID actorUuid, String missionKey);
+    default CompletableFuture<Void> completeMission(UUID islandId, UUID actorUuid, String missionKey, String kind) {
+        return completeMissionResult(islandId, actorUuid, missionKey, kind).thenApply(_result -> null);
+    }
+    CompletableFuture<java.util.Optional<IslandMissionSnapshot>> completeMissionResult(UUID islandId, UUID actorUuid, String missionKey, String kind);
+    default CompletableFuture<Void> completeChallenge(UUID islandId, UUID actorUuid, String challengeKey) {
+        return completeMission(islandId, actorUuid, challengeKey, "CHALLENGE");
+    }
+    default CompletableFuture<java.util.Optional<IslandMissionSnapshot>> completeChallengeResult(UUID islandId, UUID actorUuid, String challengeKey) {
+        return completeMissionResult(islandId, actorUuid, challengeKey, "CHALLENGE");
+    }
     CompletableFuture<Void> sendChat(UUID islandId, UUID actorUuid, String channel, String message);
     CompletableFuture<IslandChatResult> sendChatResult(UUID islandId, UUID actorUuid, String channel, String message);
     CompletableFuture<Void> sendIslandChat(UUID islandId, UUID actorUuid, String message);
