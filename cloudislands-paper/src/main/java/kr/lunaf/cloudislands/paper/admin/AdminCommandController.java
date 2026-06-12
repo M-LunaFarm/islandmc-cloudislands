@@ -368,11 +368,11 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return true;
         }
         if (args[1].equalsIgnoreCase("activate")) {
-            run(sender, "Island activate", coreApiClient.activateIsland(islandId));
+            run(sender, "Island activate", coreApiClient.activateIsland(islandId).thenApply(body -> actionResultMessage("Island activate", islandId.toString(), body)));
             return true;
         }
         if (args[1].equalsIgnoreCase("deactivate")) {
-            run(sender, "Island deactivate", coreApiClient.deactivateIsland(islandId));
+            run(sender, "Island deactivate", coreApiClient.deactivateIsland(islandId).thenApply(body -> actionResultMessage("Island deactivate", islandId.toString(), body)));
             return true;
         }
         if (args[1].equalsIgnoreCase("migrate")) {
@@ -380,12 +380,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 sender.sendMessage("대상 노드를 입력해주세요.");
                 return true;
             }
-            run(sender, "Island migrate", coreApiClient.migrateIsland(islandId, args[3]));
+            run(sender, "Island migrate", coreApiClient.migrateIsland(islandId, args[3]).thenApply(body -> actionResultMessage("Island migrate", islandId.toString(), body)));
             return true;
         }
         if (args[1].equalsIgnoreCase("save") || args[1].equalsIgnoreCase("snapshot")) {
             String reason = args.length > 3 ? joined(args, 3) : "ADMIN_MANUAL";
-            run(sender, "Island snapshot", coreApiClient.requestIslandSnapshotResult(islandId, reason));
+            run(sender, "Island snapshot", coreApiClient.requestIslandSnapshotResult(islandId, reason).thenApply(body -> actionResultMessage("Island snapshot", islandId.toString(), body)));
             return true;
         }
         if (args[1].equalsIgnoreCase("snapshots")) {
@@ -403,19 +403,19 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 sender.sendMessage("스냅샷 번호가 올바르지 않습니다: " + args[3]);
                 return true;
             }
-            run(sender, "Island restore", coreApiClient.restoreIslandSnapshotResult(islandId, snapshotNo));
+            run(sender, "Island restore", coreApiClient.restoreIslandSnapshotResult(islandId, snapshotNo).thenApply(body -> actionResultMessage("Island restore", islandId.toString(), body)));
             return true;
         }
         if (args[1].equalsIgnoreCase("quarantine")) {
-            run(sender, "Island quarantine", coreApiClient.quarantineIsland(islandId, args.length > 3 ? joined(args, 3) : "admin"));
+            run(sender, "Island quarantine", coreApiClient.quarantineIsland(islandId, args.length > 3 ? joined(args, 3) : "admin").thenApply(body -> actionResultMessage("Island quarantine", islandId.toString(), body)));
             return true;
         }
         if (args[1].equalsIgnoreCase("repair")) {
-            run(sender, "Island repair", coreApiClient.repairIsland(islandId, args.length > 3 ? joined(args, 3) : "admin"));
+            run(sender, "Island repair", coreApiClient.repairIsland(islandId, args.length > 3 ? joined(args, 3) : "admin").thenApply(body -> actionResultMessage("Island repair", islandId.toString(), body)));
             return true;
         }
         if (args[1].equalsIgnoreCase("delete")) {
-            run(sender, "Island delete", coreApiClient.adminDeleteIsland(islandId));
+            run(sender, "Island delete", coreApiClient.adminDeleteIsland(islandId).thenApply(body -> actionResultMessage("Island delete", islandId.toString(), body)));
             return true;
         }
         sender.sendMessage("사용법: /ciadmin island info|where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete <islandUuid|islandName> [값]");
@@ -442,12 +442,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 }
                 UUID islandId = uuid(sender, args[3]);
                 if (islandId != null) {
-                    run(sender, "Player setisland", coreApiClient.setPlayerIsland(playerUuid, islandId));
+                    run(sender, "Player setisland", coreApiClient.setPlayerIsland(playerUuid, islandId).thenApply(body -> actionResultMessage("Player setisland", playerUuid.toString(), body)));
                 }
                 return;
             }
             if (args[1].equalsIgnoreCase("clearisland")) {
-                run(sender, "Player clearisland", coreApiClient.clearPlayerIsland(playerUuid));
+                run(sender, "Player clearisland", coreApiClient.clearPlayerIsland(playerUuid).thenApply(body -> actionResultMessage("Player clearisland", playerUuid.toString(), body)));
                 return;
             }
             sender.sendMessage("사용법: /ciadmin player info|setisland|clearisland <playerUuid|playerName> [islandUuid]");
@@ -582,7 +582,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 return true;
             }
             UUID actorUuid = sender instanceof Player player ? player.getUniqueId() : new UUID(0L, 0L);
-            run(sender, "Block value set", coreApiClient.setBlockValueResult(actorUuid, args[2], args[3], number(args[4], 0L), number(args[5], 0L)));
+            run(sender, "Block value set", coreApiClient.setBlockValueResult(actorUuid, args[2], args[3], number(args[4], 0L), number(args[5], 0L)).thenApply(body -> actionResultMessage("Block value set", args[2], body)));
             return true;
         }
         sender.sendMessage("사용법: /ciadmin block-values list|set <materialKey> <worth> <levelPoints> <limit>");
@@ -601,7 +601,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             }
             boolean enabled = args.length < 5 || Boolean.parseBoolean(args[4]);
             String minNodeVersion = args.length > 5 ? args[5] : "";
-            run(sender, "Template upsert", coreApiClient.upsertTemplate(args[2], args[3], enabled, minNodeVersion));
+            run(sender, "Template upsert", coreApiClient.upsertTemplate(args[2], args[3], enabled, minNodeVersion).thenApply(body -> actionResultMessage("Template upsert", args[2], body)));
             return true;
         }
         if (args.length < 3) {
@@ -609,11 +609,11 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return true;
         }
         if (args[1].equalsIgnoreCase("enable")) {
-            run(sender, "Template enable", coreApiClient.enableTemplate(args[2]));
+            run(sender, "Template enable", coreApiClient.enableTemplate(args[2]).thenApply(body -> actionResultMessage("Template enable", args[2], body)));
             return true;
         }
         if (args[1].equalsIgnoreCase("disable")) {
-            run(sender, "Template disable", coreApiClient.disableTemplate(args[2]));
+            run(sender, "Template disable", coreApiClient.disableTemplate(args[2]).thenApply(body -> actionResultMessage("Template disable", args[2], body)));
             return true;
         }
         sender.sendMessage("사용법: /ciadmin template|templates list|upsert|enable|disable");
@@ -1035,6 +1035,42 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return "Job recover: recovered=" + (recoveredText.isBlank() ? Long.toString(recoveredNumber) : recoveredText);
         }
         return "Job " + action + ": " + (boolValue(body, "ok") ? "accepted" : "not applied");
+    }
+
+    private String actionResultMessage(String label, String targetId, String body) {
+        if (body == null || body.isBlank()) {
+            return label + ": accepted target=" + shortId(targetId);
+        }
+        String code = textValue(body, "code");
+        boolean accepted = body.contains("\"accepted\"") ? boolValue(body, "accepted") : !body.contains("\"accepted\":false");
+        StringBuilder builder = new StringBuilder(label)
+            .append(": ")
+            .append(accepted ? "accepted" : "rejected")
+            .append(" target=")
+            .append(compactTarget(targetId));
+        if (!code.isBlank()) {
+            builder.append(" code=").append(code);
+        }
+        String islandId = textValue(body, "islandId");
+        if (!islandId.isBlank() && !islandId.equals(targetId)) {
+            builder.append(" island=").append(shortId(islandId));
+        }
+        String materialKey = textValue(body, "materialKey");
+        if (!materialKey.isBlank()) {
+            builder.append(" material=").append(materialKey);
+        }
+        String worth = textValue(body, "worth");
+        if (!worth.isBlank()) {
+            builder.append(" worth=").append(worth);
+        }
+        if (body.contains("\"snapshotNo\"")) {
+            builder.append(" snapshot=").append(longValue(body, "snapshotNo"));
+        }
+        return builder.toString();
+    }
+
+    private String compactTarget(String targetId) {
+        return targetId != null && targetId.length() == 36 && targetId.indexOf('-') > 0 ? shortId(targetId) : targetId;
     }
 
     private String eventListMessage(String body) {
