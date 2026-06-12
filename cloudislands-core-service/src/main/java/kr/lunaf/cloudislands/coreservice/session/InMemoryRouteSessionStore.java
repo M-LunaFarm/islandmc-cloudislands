@@ -26,8 +26,12 @@ public final class InMemoryRouteSessionStore implements RouteSessionStore {
             ticket.nonce(),
             ticket.expiresAt()
         );
-        byPlayer.put(ticket.playerUuid(), session);
-        return session;
+        return byPlayer.compute(ticket.playerUuid(), (_playerUuid, current) -> {
+            if (current == null || expired(current) || !current.expiresAt().isAfter(session.expiresAt())) {
+                return session;
+            }
+            return current;
+        });
     }
 
     @Override
