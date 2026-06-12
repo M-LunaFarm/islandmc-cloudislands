@@ -1970,17 +1970,28 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("섬 방문자를 추방할 권한이 없습니다.");
                 return;
             }
-            resolvePlayerUuid(target).thenAccept(targetUuid -> plugin.getServer().getScheduler().runTask(plugin, () -> {
-                if (plugin.getServer().getPlayer(targetUuid) == null) {
-                    player.sendMessage("대상 플레이어가 온라인이 아닙니다.");
-                    return;
-                }
-                if (!moveVisitorToFallback(islandId, targetUuid, "섬에서 추방되어 로비로 이동합니다.", "섬에서 추방되어 로비로 이동하지 못했습니다.")) {
-                    player.sendMessage("해당 방문자는 이 섬에 없습니다.");
-                    return;
-                }
-                player.sendMessage("방문자를 섬에서 추방했습니다.");
-            })).exceptionally(error -> {
+            resolvePlayerUuid(target).thenAccept(targetUuid -> {
+                coreApiClient.kickIslandVisitorResult(islandId, player.getUniqueId(), targetUuid)
+                    .thenAccept(body -> plugin.getServer().getScheduler().runTask(plugin, () -> {
+                        if (resultRejected(body)) {
+                            player.sendMessage(actionResultMessage("섬 방문자 추방", targetUuid, body));
+                            return;
+                        }
+                        if (plugin.getServer().getPlayer(targetUuid) == null) {
+                            player.sendMessage("방문자 추방을 기록했습니다. 대상 플레이어는 현재 온라인이 아닙니다.");
+                            return;
+                        }
+                        if (!moveVisitorToFallback(islandId, targetUuid, "섬에서 추방되어 로비로 이동합니다.", "섬에서 추방되어 로비로 이동하지 못했습니다.")) {
+                            player.sendMessage("방문자 추방을 기록했습니다. 대상 플레이어는 현재 이 섬에 없습니다.");
+                            return;
+                        }
+                        player.sendMessage(actionResultMessage("섬 방문자 추방", targetUuid, body));
+                    }))
+                    .exceptionally(error -> {
+                        message(player, "섬 방문자를 추방하지 못했습니다.");
+                        return null;
+                    });
+            }).exceptionally(error -> {
                 message(player, "대상 플레이어를 찾지 못했습니다.");
                 return null;
             });
