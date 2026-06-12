@@ -12,6 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.common.event.CacheInvalidationPlan;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.event.CoreCacheClearEvent;
+import kr.lunaf.cloudislands.paper.event.CoreReloadEvent;
 import kr.lunaf.cloudislands.paper.event.IslandAccessChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandActivationRequestEvent;
 import kr.lunaf.cloudislands.paper.event.IslandActivatedEvent;
@@ -49,6 +51,7 @@ import kr.lunaf.cloudislands.paper.event.IslandWarpChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandWarpCreateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandWarpDeleteEvent;
 import kr.lunaf.cloudislands.paper.event.IslandWorthChangeEvent;
+import kr.lunaf.cloudislands.paper.event.NodeStateChangeEvent;
 import kr.lunaf.cloudislands.paper.event.RouteSessionPublishedEvent;
 import kr.lunaf.cloudislands.paper.event.RouteTicketConsumedEvent;
 import kr.lunaf.cloudislands.paper.event.RouteTicketClearedEvent;
@@ -410,6 +413,33 @@ public final class PermissionEventPoller {
                 booleanField(fields, "enabled"),
                 fields.getOrDefault("operation", ""),
                 fields.getOrDefault("minNodeVersion", ""),
+                fields));
+            return;
+        }
+        if (type.equals(CloudIslandEventType.NODE_STATE_CHANGED.name())) {
+            Bukkit.getPluginManager().callEvent(new NodeStateChangeEvent(
+                fields.getOrDefault("nodeId", ""),
+                fields.getOrDefault("state", ""),
+                fields.getOrDefault("operation", ""),
+                fields.getOrDefault("reason", ""),
+                intField(fields, "recoveryRequired"),
+                fields));
+            return;
+        }
+        if (type.equals(CloudIslandEventType.CORE_CACHE_CLEARED.name())) {
+            Bukkit.getPluginManager().callEvent(new CoreCacheClearEvent(
+                fields.getOrDefault("scope", ""),
+                intField(fields, "sessions"),
+                intField(fields, "tickets"),
+                intField(fields, "redisKeys"),
+                fields));
+            return;
+        }
+        if (type.equals(CloudIslandEventType.CORE_RELOADED.name())) {
+            Bukkit.getPluginManager().callEvent(new CoreReloadEvent(
+                intField(fields, "clearedSessions"),
+                intField(fields, "clearedTickets"),
+                intField(fields, "clearedRedisKeys"),
                 fields));
             return;
         }
