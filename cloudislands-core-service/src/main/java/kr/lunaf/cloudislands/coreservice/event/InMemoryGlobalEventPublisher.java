@@ -89,7 +89,28 @@ public final class InMemoryGlobalEventPublisher implements GlobalEventPublisher 
     }
 
     private String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+        if (value == null) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char current = value.charAt(i);
+            switch (current) {
+                case '\\' -> builder.append("\\\\");
+                case '"' -> builder.append("\\\"");
+                case '\n' -> builder.append("\\n");
+                case '\r' -> builder.append("\\r");
+                case '\t' -> builder.append("\\t");
+                default -> {
+                    if (current < 0x20) {
+                        builder.append(String.format("\\u%04x", (int) current));
+                    } else {
+                        builder.append(current);
+                    }
+                }
+            }
+        }
+        return builder.toString();
     }
 
     public record EventRecord(String type, Map<String, String> fields, Instant occurredAt) {}
