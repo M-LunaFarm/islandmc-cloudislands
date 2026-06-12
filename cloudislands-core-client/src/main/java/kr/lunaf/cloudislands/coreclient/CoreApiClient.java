@@ -92,7 +92,7 @@ public interface CoreApiClient {
     CompletableFuture<String> setIslandLimit(UUID islandId, UUID actorUuid, String limitKey, long value);
     CompletableFuture<String> sendIslandChat(UUID islandId, UUID actorUuid, String channel, String message);
     CompletableFuture<String> listIslandSnapshots(UUID islandId, int limit);
-    CompletableFuture<String> recordIslandSnapshot(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes);
+    CompletableFuture<String> recordIslandSnapshot(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId);
     CompletableFuture<Void> requestIslandSnapshot(UUID islandId, String reason);
     CompletableFuture<String> requestIslandSnapshotResult(UUID islandId, String reason);
     CompletableFuture<Void> restoreIslandSnapshot(UUID islandId, long snapshotNo);

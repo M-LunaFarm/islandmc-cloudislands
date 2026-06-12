@@ -1018,6 +1018,12 @@ public final class CloudIslandsCoreApplication {
             String reason = JsonFields.text(body, "reason", "AUTO");
             String checksum = JsonFields.text(body, "checksum", "");
             long sizeBytes = JsonFields.longValue(body, "sizeBytes", 0L);
+            String nodeId = JsonFields.text(body, "nodeId", "");
+            var runtime = runtimeRepository.find(islandId).orElse(null);
+            if (runtime == null || runtime.activeNode() == null || !runtime.activeNode().equals(nodeId)) {
+                write(exchange, 403, ApiResponses.error("SNAPSHOT_NODE_MISMATCH", "Snapshot must be recorded by the active island node"));
+                return;
+            }
             snapshotRepository.record(islandId, snapshotNo, storagePath, reason, null, checksum, sizeBytes);
             snapshotRepository.prune(islandId, snapshotKeepLatest);
             events.publish(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name(), Map.of("islandId", islandId.toString(), "snapshotNo", Long.toString(snapshotNo), "reason", reason));

@@ -9,17 +9,19 @@ public final class PeriodicIslandSaveTask {
     private final ActiveIslandRegistry activeIslands;
     private final IslandSaveService saveService;
     private final CoreApiClient coreApiClient;
+    private final String nodeId;
     private BukkitTask task;
 
     public PeriodicIslandSaveTask(Plugin plugin, ActiveIslandRegistry activeIslands, IslandSaveService saveService) {
-        this(plugin, activeIslands, saveService, null);
+        this(plugin, activeIslands, saveService, null, "");
     }
 
-    public PeriodicIslandSaveTask(Plugin plugin, ActiveIslandRegistry activeIslands, IslandSaveService saveService, CoreApiClient coreApiClient) {
+    public PeriodicIslandSaveTask(Plugin plugin, ActiveIslandRegistry activeIslands, IslandSaveService saveService, CoreApiClient coreApiClient, String nodeId) {
         this.plugin = plugin;
         this.activeIslands = activeIslands;
         this.saveService = saveService;
         this.coreApiClient = coreApiClient;
+        this.nodeId = nodeId == null ? "" : nodeId;
     }
 
     public void start(long intervalSeconds) {
@@ -54,7 +56,7 @@ public final class PeriodicIslandSaveTask {
             return;
         }
         String storagePath = "islands/" + result.islandId() + "/snapshots/" + String.format("%06d", result.snapshotNo()) + "/bundle.tar.zst";
-        coreApiClient.recordIslandSnapshot(result.islandId(), result.snapshotNo(), storagePath, "AUTO", result.checksum(), result.sizeBytes())
+        coreApiClient.recordIslandSnapshot(result.islandId(), result.snapshotNo(), storagePath, "AUTO", result.checksum(), result.sizeBytes(), nodeId)
             .exceptionally(error -> {
                 plugin.getLogger().warning("Periodic island snapshot record failed for " + result.islandId() + ": " + error.getMessage());
                 return null;

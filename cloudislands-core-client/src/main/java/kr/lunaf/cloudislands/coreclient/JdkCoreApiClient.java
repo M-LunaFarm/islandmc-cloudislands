@@ -409,8 +409,8 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
-    public CompletableFuture<String> recordIslandSnapshot(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes) {
-        return postWithResultBody("/v1/islands/snapshots/record", "{\"islandId\":\"" + islandId + "\",\"snapshotNo\":" + snapshotNo + ",\"storagePath\":\"" + escape(storagePath) + "\",\"reason\":\"" + escape(reason) + "\",\"checksum\":\"" + escape(checksum) + "\",\"sizeBytes\":" + sizeBytes + "}");
+    public CompletableFuture<String> recordIslandSnapshot(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId) {
+        return postWithResultBody("/v1/islands/snapshots/record", "{\"islandId\":\"" + islandId + "\",\"snapshotNo\":" + snapshotNo + ",\"storagePath\":\"" + escape(storagePath) + "\",\"reason\":\"" + escape(reason) + "\",\"checksum\":\"" + escape(checksum) + "\",\"sizeBytes\":" + sizeBytes + ",\"nodeId\":\"" + escape(nodeId) + "\"}");
     }
 
     @Override
