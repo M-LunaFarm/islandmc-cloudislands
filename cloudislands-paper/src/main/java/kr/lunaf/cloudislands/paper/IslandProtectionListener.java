@@ -294,7 +294,11 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onFluid(BlockFromToEvent event) {
-        event.setCancelled(!protection.checkSystemFlag(event.getToBlock(), liquidFlag(event.getBlock().getType())).allowed());
+        boolean allowed = protection.checkSystemFlag(event.getToBlock(), liquidFlag(event.getBlock().getType())).allowed();
+        event.setCancelled(!allowed);
+        if (allowed) {
+            reportBlockReplacement(event.getToBlock(), event.getBlock().getType());
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
