@@ -15,6 +15,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
+import kr.lunaf.cloudislands.paper.event.IslandUpgradeEvent;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -102,6 +103,7 @@ public final class PermissionEventPoller {
         if (!markSeen(key)) {
             return;
         }
+        publishLocalEvents(type, fields);
         if (handlesNodeOperation(type, fields)) {
             return;
         }
@@ -305,6 +307,30 @@ public final class PermissionEventPoller {
             : "섬 점검으로 로비로 이동합니다. 사유: " + reason;
         for (org.bukkit.entity.Player player : Bukkit.getOnlinePlayers()) {
             player.kickPlayer(message);
+        }
+    }
+
+    private void publishLocalEvents(String type, Map<String, String> fields) {
+        if (!type.equals(CloudIslandEventType.ISLAND_UPGRADE.name())) {
+            return;
+        }
+        String islandId = fields.get("islandId");
+        if (islandId == null || islandId.isBlank()) {
+            return;
+        }
+        int level = 0;
+        String levelText = fields.get("level");
+        if (levelText != null && !levelText.isBlank()) {
+            try {
+                level = Integer.parseInt(levelText);
+            } catch (NumberFormatException ignored) {
+                level = 0;
+            }
+        }
+        try {
+            Bukkit.getPluginManager().callEvent(new IslandUpgradeEvent(UUID.fromString(islandId), fields.getOrDefault("upgradeKey", ""), level, fields));
+        } catch (IllegalArgumentException ignored) {
+            // Ignore malformed external event payloads; cache invalidation can still proceed.
         }
     }
 
