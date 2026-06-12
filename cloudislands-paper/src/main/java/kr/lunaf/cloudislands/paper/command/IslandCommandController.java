@@ -907,11 +907,11 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return 0;
         }
         String first = args[0].toLowerCase(Locale.ROOT);
-        if (first.equals("help") || first.equals("도움말") || first.equals("commands") || first.equals("command") || first.equals("command-list") || first.equals("명령어") || first.equals("명령어목록")) {
-            return helpPage(args, 1);
-        }
         if (first.equals("command") && args.length > 1 && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
             return helpPage(args, 2);
+        }
+        if (first.equals("help") || first.equals("도움말") || first.equals("commands") || first.equals("command") || first.equals("command-list") || first.equals("명령어") || first.equals("명령어목록")) {
+            return helpPage(args, 1);
         }
         return 0;
     }
