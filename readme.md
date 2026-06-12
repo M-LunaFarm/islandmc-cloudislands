@@ -137,19 +137,150 @@ Core API 주소와 인증 토큰은 Paper/Velocity 설정에서 지정한다냥.
 
 Velocity의 기본 설정은 `cloudislands-velocity/src/main/resources/config.yaml`에 있다냥. Paper 설정은 플러그인 데이터 폴더에 생성되는 설정 파일을 기준으로 한다냥.
 
-## 관리자 명령
+## 명령어 목록
 
-주요 관리자 명령은 `/ciadmin` 아래에 모여 있다냥.
+인게임에서는 `/섬 command list [page]`와 `/ciadmin command list [page]`로 페이지를 넘겨 볼 수 있다냥. 목록은 `1 line > 1 command` 기준으로 보여준다냥.
+
+### 플레이어 명령
+
+- `/섬 help [page]`
+- `/섬 command list [page]`
+- `/섬`
+- `/섬 생성`
+- `/섬 목록`
+- `/섬 내섬`
+- `/섬 홈`
+- `/섬 홈목록`
+- `/섬 셋홈`
+- `/섬 방문`
+- `/섬 랜덤방문`
+- `/섬 공개섬`
+- `/섬 초대`
+- `/섬 초대목록`
+- `/섬 초대수락`
+- `/섬 초대거절`
+- `/섬 멤버`
+- `/섬 추방`
+- `/섬 승급`
+- `/섬 강등`
+- `/섬 양도`
+- `/섬 신뢰`
+- `/섬 신뢰해제`
+- `/섬 밴`
+- `/섬 밴해제`
+- `/섬 밴목록`
+- `/섬 방문자추방`
+- `/섬 공개`
+- `/섬 비공개`
+- `/섬 잠금`
+- `/섬 잠금해제`
+- `/섬 비행`
+- `/섬 인벤보존`
+- `/섬 피빕`
+- `/섬 공개워프`
+- `/섬 설정`
+- `/섬 권한`
+- `/섬 권한설정`
+- `/섬 플래그`
+- `/섬 워프`
+- `/섬 워프목록`
+- `/섬 공개워프목록`
+- `/섬 워프설정`
+- `/섬 워프삭제`
+- `/섬 워프공개`
+- `/섬 워프비공개`
+- `/섬 레벨`
+- `/섬 레벨계산`
+- `/섬 가치`
+- `/섬 랭킹`
+- `/섬 가치랭킹`
+- `/섬 업그레이드`
+- `/섬 업그레이드목록`
+- `/섬 업그레이드구매`
+- `/섬 크기`
+- `/섬 경계`
+- `/섬 바이옴`
+- `/섬 은행`
+- `/섬 입금`
+- `/섬 출금`
+- `/섬 미션`
+- `/섬 챌린지`
+- `/섬 채팅`
+- `/섬 팀채팅`
+- `/섬 제한`
+- `/섬 호퍼`
+- `/섬 스포너`
+- `/섬 엔티티`
+- `/섬 레드스톤`
+- `/섬 스냅샷`
+- `/섬 스냅샷목록`
+- `/섬 복원`
+- `/섬 로그`
+- `/섬 리셋`
+- `/섬 삭제`
+
+### 관리자 명령
 
 - `/ciadmin status`
-- `/ciadmin node menu|list|info|islands|drain|undrain|sweep|kickall|shutdown-safe`
-- `/ciadmin island info|where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete`
-- `/ciadmin player info <player>|setisland <player> <islandUuid>|clearisland <player>`
-- `/ciadmin jobs list|retry <jobId>|cancel <jobId>|recover [nodeId] [minIdleMillis] [maxJobs]`
-- `/ciadmin route debug [all|player]|ticket <ticket|player>|clear <player> [ticket]`
-- `/ciadmin block-values list|set <materialKey> <worth> <levelPoints> <limit>`
-- `/ciadmin template|templates list|upsert|enable|disable`
-- `/ciadmin migrate-superiorskyblock2 scan|dryrun|dry-run|import|verify|rollback [path]`
+- `/ciadmin help [page]`
+- `/ciadmin command list [page]`
+- `/ciadmin island info <island|player>`
+- `/ciadmin island where <island>`
+- `/ciadmin island tp <island>`
+- `/ciadmin island activate <island>`
+- `/ciadmin island deactivate <island>`
+- `/ciadmin island migrate <island> <node>`
+- `/ciadmin island save <island>`
+- `/ciadmin island snapshot <island> [reason]`
+- `/ciadmin island snapshots <island>`
+- `/ciadmin island rollback <island> <snapshot>`
+- `/ciadmin island quarantine <island>`
+- `/ciadmin island repair <island>`
+- `/ciadmin island delete <island>`
+- `/ciadmin island restore <island> <snapshot>`
+- `/ciadmin player info <player>`
+- `/ciadmin player setisland <player> <islandUuid>`
+- `/ciadmin player clearisland <player>`
+- `/ciadmin node list`
+- `/ciadmin node info`
+- `/ciadmin node islands <node> [limit]`
+- `/ciadmin node drain`
+- `/ciadmin node undrain`
+- `/ciadmin node kickall`
+- `/ciadmin node sweep`
+- `/ciadmin node shutdown-safe`
+- `/ciadmin jobs list`
+- `/ciadmin jobs retry <jobId>`
+- `/ciadmin jobs cancel <jobId>`
+- `/ciadmin jobs recover [nodeId] [minIdleMillis] [maxJobs]`
+- `/ciadmin route debug [all|player]`
+- `/ciadmin route ticket <ticket|player>`
+- `/ciadmin route clear <player> [ticket]`
+- `/ciadmin cache clear`
+- `/ciadmin events`
+- `/ciadmin audit`
+- `/ciadmin metrics`
+- `/ciadmin storage`
+- `/ciadmin rankings level [limit]`
+- `/ciadmin rankings worth [limit]`
+- `/ciadmin block-values list`
+- `/ciadmin block-values set <materialKey> <worth> <levelPoints> <limit>`
+- `/ciadmin upgrade-rules`
+- `/ciadmin template list`
+- `/ciadmin template upsert <id> <name> [enabled] [minNodeVersion]`
+- `/ciadmin template enable <id>`
+- `/ciadmin template disable <id>`
+- `/ciadmin templates list`
+- `/ciadmin templates upsert <id> <name> [enabled] [minNodeVersion]`
+- `/ciadmin templates enable <id>`
+- `/ciadmin templates disable <id>`
+- `/ciadmin reload`
+- `/ciadmin migrate-superiorskyblock2 scan`
+- `/ciadmin migrate-superiorskyblock2 dryrun`
+- `/ciadmin migrate-superiorskyblock2 dry-run`
+- `/ciadmin migrate-superiorskyblock2 import`
+- `/ciadmin migrate-superiorskyblock2 verify`
+- `/ciadmin migrate-superiorskyblock2 rollback`
 
 ## 개발 메모
 
