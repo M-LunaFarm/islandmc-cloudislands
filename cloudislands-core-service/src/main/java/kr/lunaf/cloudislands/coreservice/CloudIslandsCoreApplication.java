@@ -242,11 +242,11 @@ public final class CloudIslandsCoreApplication {
         route("/v1/audit", exchange -> write(exchange, 200, auditJson.get()));
         route("/v1/rankings/level", exchange -> {
             String body = readBody(exchange);
-            write(exchange, 200, rankingsJson(rankingRepository.topByLevel(JsonFields.integer(body, "limit", 10))));
+            write(exchange, 200, rankingsJson(rankingRepository.topByLevel(queryInteger(exchange, "limit", JsonFields.integer(body, "limit", 10), 1, 100))));
         });
         route("/v1/rankings/worth", exchange -> {
             String body = readBody(exchange);
-            write(exchange, 200, rankingsJson(rankingRepository.topByWorth(JsonFields.integer(body, "limit", 10))));
+            write(exchange, 200, rankingsJson(rankingRepository.topByWorth(queryInteger(exchange, "limit", JsonFields.integer(body, "limit", 10), 1, 100))));
         });
         route("/v1/upgrades/rules", exchange -> write(exchange, 200, upgradeRulesJson(upgradePolicy.list())));
         route("/v1/admin/block-values/list", exchange -> write(exchange, 200, blockValuesJson(levelRepository.blockValues())));
@@ -1293,7 +1293,7 @@ public final class CloudIslandsCoreApplication {
         });
         route("/v1/islands/public-warps", exchange -> {
             String body = readBody(exchange);
-            int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 27), 54));
+            int limit = queryInteger(exchange, "limit", JsonFields.integer(body, "limit", 27), 1, 54);
             write(exchange, 200, warpsJson(metadataRepository.publicWarps(limit)));
         });
         route("/v1/islands/homes", exchange -> {
@@ -1383,7 +1383,7 @@ public final class CloudIslandsCoreApplication {
         });
         route("/v1/islands/public", exchange -> {
             String body = readBody(exchange);
-            int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 27), 54));
+            int limit = queryInteger(exchange, "limit", JsonFields.integer(body, "limit", 27), 1, 54);
             java.util.List<IslandSnapshot> islands = metadataRepository.publicIslandIds(limit).stream()
                 .map(islandRepository::findById)
                 .flatMap(java.util.Optional::stream)
@@ -2135,6 +2135,25 @@ public final class CloudIslandsCoreApplication {
 
     private static String readBody(HttpExchange exchange) throws IOException {
         return new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+    }
+
+    private static int queryInteger(HttpExchange exchange, String key, int fallback, int min, int max) {
+        String query = exchange.getRequestURI().getRawQuery();
+        if (query == null || query.isBlank()) {
+            return Math.max(min, Math.min(fallback, max));
+        }
+        for (String part : query.split("&")) {
+            int separator = part.indexOf('=');
+            if (separator <= 0 || !part.substring(0, separator).equals(key)) {
+                continue;
+            }
+            try {
+                return Math.max(min, Math.min(Integer.parseInt(part.substring(separator + 1)), max));
+            } catch (NumberFormatException ignored) {
+                return Math.max(min, Math.min(fallback, max));
+            }
+        }
+        return Math.max(min, Math.min(fallback, max));
     }
 
     private static UUID uuidPath(String value) {
