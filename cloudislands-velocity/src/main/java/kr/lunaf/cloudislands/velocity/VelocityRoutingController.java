@@ -1043,9 +1043,9 @@ public final class VelocityRoutingController {
         String activeWorld = jsonValue(body, "activeWorld");
         return "Island runtime: island=" + shortId(islandId)
             + " state=" + (state.isBlank() ? "UNKNOWN" : state)
-            + (activeNode.isBlank() || hideNodeNames ? "" : " node=" + activeNode)
-            + (activeWorld.isBlank() || hideNodeNames ? "" : " world=" + activeWorld)
-            + (hideNodeNames || body.contains("\"cellX\":null") || body.contains("\"cellZ\":null") ? "" : " cell=" + longValue(body, "cellX") + "," + longValue(body, "cellZ"))
+            + (activeNode.isBlank() ? "" : " node=" + activeNode)
+            + (activeWorld.isBlank() ? "" : " world=" + activeWorld)
+            + (body.contains("\"cellX\":null") || body.contains("\"cellZ\":null") ? "" : " cell=" + longValue(body, "cellX") + "," + longValue(body, "cellZ"))
             + " fence=" + longValue(body, "fencingToken");
     }
 
@@ -1582,7 +1582,7 @@ public final class VelocityRoutingController {
         long active = longValue(body, "activeIslands");
         long max = longValue(body, "maxActiveIslands");
         StringBuilder summary = new StringBuilder("노드 섬 현황");
-        if (!id.isBlank() && !hideNodeNames) {
+        if (!id.isBlank()) {
             summary.append(' ').append(id);
         }
         summary.append(": 활성 섬 ").append(active);
@@ -1592,7 +1592,7 @@ public final class VelocityRoutingController {
         if (!state.isBlank()) {
             summary.append(", 상태=").append(state);
         }
-        if (!server.isBlank() && !hideNodeNames) {
+        if (!server.isBlank()) {
             summary.append(", 서버=").append(server);
         }
         return summary.toString();
@@ -1650,7 +1650,7 @@ public final class VelocityRoutingController {
             String nodeId = jsonValue(object, "nodeId");
             boolean available = boolValue(object, "storageAvailable");
             if (!nodeId.isBlank()) {
-                entries.add((hideNodeNames ? "node-" + (entries.size() + 1) : nodeId) + "=" + (available ? "OK" : "DOWN") + storageMetricSuffix(object));
+                entries.add(nodeId + "=" + (available ? "OK" : "DOWN") + storageMetricSuffix(object));
                 if (!available) {
                     unavailable++;
                 }
@@ -1749,7 +1749,7 @@ public final class VelocityRoutingController {
         long maxActiveIslands = longValue(object, "maxActiveIslands");
         long activationQueue = longValue(object, "activationQueue");
         long maxActivationQueue = longValue(object, "maxActivationQueue");
-        String displayNode = hideNodeNames || id.isBlank() ? "node-" + displayIndex : id;
+        String displayNode = id.isBlank() ? "node-" + displayIndex : id;
         return displayNode
             + " " + (state.isBlank() ? "UNKNOWN" : state)
             + " players=" + players + "/" + softCap + "/" + hardCap + " reserved=" + reservedSlots
@@ -1761,7 +1761,7 @@ public final class VelocityRoutingController {
     }
 
     private String nodeActionSummaryMessage(String label, String nodeId, String body) {
-        String displayNode = hideNodeNames ? "target-node" : nodeId;
+        String displayNode = nodeId == null || nodeId.isBlank() ? "target-node" : nodeId;
         if (body == null || body.isBlank()) {
             return label + ": accepted node=" + displayNode;
         }
@@ -1787,7 +1787,7 @@ public final class VelocityRoutingController {
                 break;
             }
             String nodeId = nodes.substring(valueStart + 1, valueEnd);
-            swept.add(hideNodeNames ? "node-" + (swept.size() + 1) : nodeId);
+            swept.add(nodeId.isBlank() ? "node-" + (swept.size() + 1) : nodeId);
             index = valueEnd + 1;
         }
         return "Node sweep: nodes=" + (swept.isEmpty() ? "none" : String.join(",", swept)) + " recoveryRequired=" + recoveryRequired;
@@ -1858,7 +1858,7 @@ public final class VelocityRoutingController {
             .append(state.isBlank() ? "UNKNOWN" : state)
             .append(" attempts=")
             .append(attempts);
-        if (!targetNode.isBlank() && !hideNodeNames) {
+        if (!targetNode.isBlank()) {
             builder.append(" node=").append(targetNode);
         }
         if (!error.isBlank()) {
@@ -1907,7 +1907,7 @@ public final class VelocityRoutingController {
             String nodeId = jsonValue(fields, "nodeId");
             entries.add((type.isBlank() ? "UNKNOWN_EVENT" : type)
                 + (islandId.isBlank() ? "" : " island=" + islandId)
-                + (nodeId.isBlank() || hideNodeNames ? "" : " node=" + nodeId)
+                + (nodeId.isBlank() ? "" : " node=" + nodeId)
                 + (occurredAt.isBlank() ? "" : " at=" + occurredAt));
             index = objectEnd + 1;
         }
@@ -2023,7 +2023,7 @@ public final class VelocityRoutingController {
             String playerUuid = jsonValue(object, "playerUuid");
             String ticketId = jsonValue(object, "ticketId");
             String nodeId = jsonValue(object, "targetNode");
-            entries.add(shortId(playerUuid) + " ticket=" + shortId(ticketId) + (nodeId.isBlank() || hideNodeNames ? "" : " node=" + nodeId));
+            entries.add(shortId(playerUuid) + " ticket=" + shortId(ticketId) + (nodeId.isBlank() ? "" : " node=" + nodeId));
             index = objectEnd + 1;
         }
     }
@@ -2054,7 +2054,7 @@ public final class VelocityRoutingController {
             + " " + (action.isBlank() ? "UNKNOWN" : action)
             + " " + (state.isBlank() ? "UNKNOWN" : state)
             + (islandId.isBlank() ? "" : " island=" + shortId(islandId))
-            + (nodeId.isBlank() || hideNodeNames ? "" : " node=" + nodeId);
+            + (nodeId.isBlank() ? "" : " node=" + nodeId);
     }
 
     private String shortId(String value) {
@@ -2115,7 +2115,7 @@ public final class VelocityRoutingController {
     }
 
     private String hiddenNodeLabel(String nodeId) {
-        return hideNodeNames || nodeId == null || nodeId.isBlank() ? "" : " " + nodeId;
+        return nodeId == null || nodeId.isBlank() ? "" : " " + nodeId;
     }
 
     private String nodeIslandRuntimeSuffix(String object) {
@@ -2125,10 +2125,10 @@ public final class VelocityRoutingController {
             parts.add(state);
         }
         String world = jsonValue(object, "activeWorld");
-        if (!world.isBlank() && !hideNodeNames) {
+        if (!world.isBlank()) {
             parts.add("world=" + world);
         }
-        if (!hideNodeNames && !object.contains("\"cellX\":null") && !object.contains("\"cellZ\":null")) {
+        if (!object.contains("\"cellX\":null") && !object.contains("\"cellZ\":null")) {
             parts.add("cell=" + longValue(object, "cellX") + "," + longValue(object, "cellZ"));
         }
         return String.join(" ", parts);
