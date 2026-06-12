@@ -140,6 +140,10 @@ public final class PrometheusMetricsRenderer {
         eventCounter(out, "cloudislands_island_recovery_required_total", "Islands marked for recovery after node failure", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_RECOVERY_REQUIRED);
         eventCounter(out, "cloudislands_island_level_updated_total", "Island level recalculations completed by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_LEVEL_UPDATED);
         eventCounter(out, "cloudislands_island_blocks_changed_total", "Island block delta updates received by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_BLOCKS_CHANGED);
+        eventCounter(out, "cloudislands_island_bank_changed_total", "Island bank balance changes accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_BANK_CHANGED);
+        eventCounter(out, "cloudislands_island_upgrade_total", "Island upgrades purchased through Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_UPGRADE);
+        eventCounter(out, "cloudislands_island_limit_changed_total", "Island limit changes accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_LIMIT_CHANGED);
+        eventCounter(out, "cloudislands_island_mission_completed_total", "Island missions completed through Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_MISSION_COMPLETED);
         return out.toString();
     }
 
