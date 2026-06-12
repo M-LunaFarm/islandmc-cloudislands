@@ -33,6 +33,7 @@ public interface NodeRegistry {
     }
 
     static String toJson(NodeLoad node) {
+        java.util.Map<String, String> metadata = node.heartbeatMetadata();
         return new StringBuilder("{")
             .append("\"id\":\"").append(node.nodeId()).append("\",")
             .append("\"pool\":\"").append(node.pool() == null ? "island" : node.pool()).append("\",")
@@ -52,10 +53,25 @@ public interface NodeRegistry {
             .append("\"heapMaxMb\":").append(node.heapMaxMb()).append(',')
             .append("\"recentFailurePenalty\":").append(node.recentFailurePenalty()).append(',')
             .append("\"storageAvailable\":").append(node.storageAvailable()).append(',')
-            .append("\"supportedTemplates\":\"").append(node.supportedTemplates() == null ? "*" : node.supportedTemplates().replace("\"", "'")).append("\",")
+            .append("\"supportedTemplates\":\"").append(node.templateList() == null ? "*" : node.templateList().replace("\"", "'")).append("\",")
+            .append("\"levelScan\":{")
+            .append("\"running\":").append(Boolean.parseBoolean(metadata.getOrDefault("levelScanRunning", "false"))).append(',')
+            .append("\"lastIsland\":\"").append(metadata.getOrDefault("lastLevelScanIsland", "").replace("\"", "'")).append("\",")
+            .append("\"startedAt\":").append(longMetadata(metadata, "lastLevelScanStartedAt")).append(',')
+            .append("\"finishedAt\":").append(longMetadata(metadata, "lastLevelScanFinishedAt")).append(',')
+            .append("\"failedAt\":").append(longMetadata(metadata, "lastLevelScanFailedAt"))
+            .append("},")
             .append("\"lastHeartbeat\":\"").append(node.lastHeartbeat()).append("\",")
             .append("\"score\":").append(node.score())
             .append('}')
             .toString();
+    }
+
+    private static long longMetadata(java.util.Map<String, String> metadata, String key) {
+        try {
+            return Long.parseLong(metadata.getOrDefault(key, "0"));
+        } catch (NumberFormatException ignored) {
+            return 0L;
+        }
     }
 }

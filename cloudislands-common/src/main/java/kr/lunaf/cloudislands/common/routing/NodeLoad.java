@@ -2,6 +2,8 @@ package kr.lunaf.cloudislands.common.routing;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import kr.lunaf.cloudislands.api.model.NodeState;
 
 public record NodeLoad(
@@ -60,7 +62,7 @@ public record NodeLoad(
     }
 
     public boolean supportsTemplate(String templateId) {
-        String templates = templateList(supportedTemplates);
+        String templates = templateList();
         if (templates == null || templates.isBlank() || templates.equals("*")) {
             return true;
         }
@@ -73,12 +75,28 @@ public record NodeLoad(
         return false;
     }
 
-    private static String templateList(String value) {
-        if (value == null) {
+    public String templateList() {
+        if (supportedTemplates == null) {
             return null;
         }
-        int metadata = value.indexOf(';');
-        return metadata < 0 ? value : value.substring(0, metadata);
+        int metadata = supportedTemplates.indexOf(';');
+        return metadata < 0 ? supportedTemplates : supportedTemplates.substring(0, metadata);
+    }
+
+    public Map<String, String> heartbeatMetadata() {
+        Map<String, String> result = new LinkedHashMap<>();
+        if (supportedTemplates == null) {
+            return result;
+        }
+        String[] parts = supportedTemplates.split(";");
+        for (int i = 1; i < parts.length; i++) {
+            int separator = parts[i].indexOf('=');
+            if (separator <= 0) {
+                continue;
+            }
+            result.put(parts[i].substring(0, separator), parts[i].substring(separator + 1));
+        }
+        return result;
     }
 
     public boolean satisfiesMinVersion(String minVersion) {
