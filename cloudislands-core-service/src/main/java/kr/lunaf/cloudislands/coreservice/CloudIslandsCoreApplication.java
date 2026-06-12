@@ -64,6 +64,7 @@ import kr.lunaf.cloudislands.coreservice.mission.JdbcIslandMissionRepository;
 import kr.lunaf.cloudislands.coreservice.permission.InMemoryIslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.permission.IslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.permission.JdbcIslandPermissionRuleRepository;
+import kr.lunaf.cloudislands.coreservice.profile.CachingPlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.profile.InMemoryPlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.profile.JdbcPlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
@@ -171,7 +172,10 @@ public final class CloudIslandsCoreApplication {
             : inMemoryEvents;
         IslandRepository islandRepository = config.jdbcRepositories() ? new JdbcIslandRepository(dataSource) : new InMemoryIslandRepository();
         IslandMetadataRepository metadataRepository = config.jdbcRepositories() ? new JdbcIslandMetadataRepository(dataSource) : new InMemoryIslandMetadataRepository();
-        PlayerProfileRepository playerProfiles = config.jdbcRepositories() ? new JdbcPlayerProfileRepository(dataSource) : new InMemoryPlayerProfileRepository();
+        PlayerProfileRepository basePlayerProfiles = config.jdbcRepositories() ? new JdbcPlayerProfileRepository(dataSource) : new InMemoryPlayerProfileRepository();
+        PlayerProfileRepository playerProfiles = config.redisEvents() || config.redisJobs()
+            ? new CachingPlayerProfileRepository(basePlayerProfiles, config.redisUri())
+            : basePlayerProfiles;
         IslandPermissionRuleRepository permissionRules = config.jdbcRepositories() ? new JdbcIslandPermissionRuleRepository(dataSource) : new InMemoryIslandPermissionRuleRepository();
         IslandRuntimeRepository baseRuntimeRepository = config.jdbcRepositories() ? new JdbcIslandRuntimeRepository(dataSource) : new InMemoryIslandRuntimeRepository();
         IslandRuntimeRepository runtimeRepository = config.redisEvents() || config.redisJobs()
