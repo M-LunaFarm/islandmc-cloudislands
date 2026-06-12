@@ -66,14 +66,22 @@ public final class IslandLimitListener implements Listener {
     }
 
     private boolean isRedstone(Material material) {
-        return material == Material.REDSTONE_WIRE
-            || material == Material.REDSTONE_TORCH
+        String name = material.name();
+        return name.contains("REDSTONE")
+            || name.endsWith("_BUTTON")
+            || name.endsWith("_PRESSURE_PLATE")
+            || name.endsWith("_PISTON")
+            || name.endsWith("_RAIL")
             || material == Material.REPEATER
             || material == Material.COMPARATOR
-            || material == Material.PISTON
-            || material == Material.STICKY_PISTON
+            || material == Material.LEVER
             || material == Material.OBSERVER
             || material == Material.DISPENSER
-            || material == Material.DROPPER;
+            || material == Material.DROPPER
+            || material == Material.DAYLIGHT_DETECTOR
+            || material == Material.TRIPWIRE_HOOK
+            || material == Material.TRAPPED_CHEST
+            || material == Material.TARGET
+            || material == Material.NOTE_BLOCK;
     }
 }
