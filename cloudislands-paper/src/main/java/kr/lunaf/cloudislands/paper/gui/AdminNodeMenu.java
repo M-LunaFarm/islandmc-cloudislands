@@ -26,7 +26,7 @@ public final class AdminNodeMenu implements Listener {
         inventory.setItem(17, item(Material.MINECART, "부하 이동", "/ciadmin island migrate <uuid> <node>", "섬 UUID와 대상 노드를 입력해 이동합니다."));
         inventory.setItem(18, item(Material.IRON_DOOR, "현재 노드 플레이어 로비 이동", "/ciadmin node kickall " + nodeId, "이 노드의 접속자를 로비로 이동합니다.", "Shift+우클릭해야 실행됩니다."));
         inventory.setItem(19, item(Material.BELL, "현재 노드 안전 종료", "/ciadmin node shutdown-safe " + nodeId, "Drain 후 접속자를 로비로 이동합니다.", "Shift+우클릭해야 실행됩니다."));
-        inventory.setItem(22, item(Material.BOOK, "관리 명령 도움말", "/ciadmin node list", "/ciadmin island where <uuid>"));
+        inventory.setItem(22, item(Material.BOOK, "관리 명령 도움말", "/ciadmin status", "/ciadmin node list", "/ciadmin island where <uuid>"));
         inventory.setItem(24, item(Material.CLOCK, "관리 상태", "/ciadmin status"));
         inventory.setItem(26, item(Material.OAK_DOOR, "닫기", "메뉴를 닫습니다."));
         player.openInventory(inventory);
