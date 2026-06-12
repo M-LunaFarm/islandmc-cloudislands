@@ -225,7 +225,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 return literalMatches(List.of("HOPPER", "SPAWNER", "ENTITY", "REDSTONE"), args[1]);
             }
             if (first.equals("setflag") || first.equals("flag-set") || first.equals("플래그설정")) {
-                return literalMatches(List.of("FLY", "KEEP_INVENTORY", "PVP", "PUBLIC_WARPS"), args[1]);
+                return literalMatches(flagNames(), args[1]);
             }
             if (first.equals("hoppers") || first.equals("호퍼") || first.equals("spawners") || first.equals("스포너") || first.equals("entities") || first.equals("엔티티") || first.equals("redstone") || first.equals("레드스톤")) {
                 return literalMatches(List.of("25", "50", "100", "250"), args[1]);
@@ -241,7 +241,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             }
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("setpermission") || args[0].equalsIgnoreCase("permission-set") || args[0].equals("권한설정"))) {
-            return literalMatches(List.of("BUILD", "INTERACT", "MANAGE_MEMBERS", "MANAGE_FLAGS", "MANAGE_WARPS"), args[2]);
+            return literalMatches(permissionNames(), args[2]);
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("setflag") || args[0].equalsIgnoreCase("flag-set") || args[0].equals("플래그설정"))) {
             return literalMatches(List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"), args[2]);
@@ -271,6 +271,14 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             }
         }
         return matches;
+    }
+
+    private List<String> flagNames() {
+        return java.util.Arrays.stream(IslandFlag.values()).map(Enum::name).toList();
+    }
+
+    private List<String> permissionNames() {
+        return java.util.Arrays.stream(IslandPermission.values()).map(Enum::name).toList();
     }
 
     private List<String> onlinePlayerMatches(String typed) {

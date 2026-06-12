@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.gui;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -74,6 +75,7 @@ public final class IslandPermissionMenu implements Listener {
                 }
                 slot += 2;
             }
+            inventory.setItem(30, item(Material.BOOK, "전체 권한 이름", "/섬 권한목록", permissionSummary()));
             inventory.setItem(31, item(Material.PAPER, "권한 목록", "/섬 권한목록"));
             inventory.setItem(32, item(Material.CLOCK, "새로고침", "/섬 권한"));
             inventory.setItem(33, item(Material.COMPARATOR, "설정", "/섬 설정"));
@@ -100,6 +102,21 @@ public final class IslandPermissionMenu implements Listener {
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    private static String permissionSummary() {
+        StringBuilder builder = new StringBuilder();
+        for (IslandPermission permission : IslandPermission.values()) {
+            if (builder.length() > 0) {
+                builder.append(", ");
+            }
+            builder.append(permission.name());
+            if (builder.length() > 120) {
+                builder.append("...");
+                break;
+            }
+        }
+        return builder.toString();
     }
 
     private static Boolean allowed(List<Rule> rules, String role, String permission) {
