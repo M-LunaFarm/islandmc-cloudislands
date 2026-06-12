@@ -77,6 +77,22 @@ public final class NodeAllocator {
         return anyPoolNode ? fallback : "POOL_EMPTY";
     }
 
+    public String nodeBlockReason(NodeLoad node, Instant now, String templateId, String minNodeVersion, String pool) {
+        if (node == null) {
+            return "NODE_NOT_FOUND";
+        }
+        if (!node.inPool(pool)) {
+            return "POOL_MISMATCH";
+        }
+        if (!node.supportsTemplate(templateId)) {
+            return "TEMPLATE_UNSUPPORTED";
+        }
+        if (!node.satisfiesMinVersion(minNodeVersion)) {
+            return "NODE_VERSION_TOO_OLD";
+        }
+        return node.allocationBlockReason(now, heartbeatTimeout);
+    }
+
     public boolean acceptsExistingRoute(NodeLoad node, Instant now, String templateId, String minNodeVersion) {
         return acceptsExistingRoute(node, now, templateId, minNodeVersion, "island");
     }

@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreservice.workflow;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
@@ -58,9 +59,10 @@ public final class IslandLifecycleWorkflow {
             return new Result(false, "ISLAND_BUSY", current);
         }
         String templateId = islands.templateId(islandId).orElse("default");
-        NodeLoad node = allocator.selectReadyNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId), islandPool).orElse(null);
+        List<NodeLoad> nodeSnapshot = nodes.snapshot();
+        NodeLoad node = allocator.selectReadyNode(nodeSnapshot, Instant.now(), templateId, minNodeVersion(templateId), islandPool).orElse(null);
         if (node == null) {
-            return new Result(false, "NODE_UNAVAILABLE", null);
+            return new Result(false, readyNodeUnavailableCode(nodeSnapshot, templateId), null);
         }
         RedisActivationLock.Lease lease = acquireActivationLock(islandId, "activate");
         if (activationLock != null && lease == null) {
@@ -111,7 +113,7 @@ public final class IslandLifecycleWorkflow {
         String templateId = islands.templateId(islandId).orElse("default");
         NodeLoad node = nodes.find(targetNode).orElse(null);
         if (node == null || allocator.selectBestNode(java.util.List.of(node), Instant.now(), templateId, minNodeVersion(templateId), islandPool).isEmpty()) {
-            return new Result(false, "NODE_UNAVAILABLE", null);
+            return new Result(false, targetNodeUnavailableCode(node, templateId), null);
         }
         IslandRuntimeSnapshot runtime = runtimes.markMigrating(islandId, targetNode);
         islands.setState(islandId, IslandState.DEACTIVATING);
@@ -156,9 +158,10 @@ public final class IslandLifecycleWorkflow {
             return new Result(false, "ISLAND_BUSY", current);
         }
         String templateId = islands.templateId(islandId).orElse("default");
-        NodeLoad node = allocator.selectReadyNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId), islandPool).orElse(null);
+        List<NodeLoad> nodeSnapshot = nodes.snapshot();
+        NodeLoad node = allocator.selectReadyNode(nodeSnapshot, Instant.now(), templateId, minNodeVersion(templateId), islandPool).orElse(null);
         if (node == null) {
-            return new Result(false, "NODE_UNAVAILABLE", null);
+            return new Result(false, readyNodeUnavailableCode(nodeSnapshot, templateId), null);
         }
         RedisActivationLock.Lease lease = acquireActivationLock(islandId, "restore");
         if (activationLock != null && lease == null) {
@@ -185,9 +188,10 @@ public final class IslandLifecycleWorkflow {
             return new Result(false, "ISLAND_BUSY", current);
         }
         String templateId = islands.templateId(islandId).orElse("default");
-        NodeLoad node = allocator.selectReadyNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId), islandPool).orElse(null);
+        List<NodeLoad> nodeSnapshot = nodes.snapshot();
+        NodeLoad node = allocator.selectReadyNode(nodeSnapshot, Instant.now(), templateId, minNodeVersion(templateId), islandPool).orElse(null);
         if (node == null) {
-            return new Result(false, "NODE_UNAVAILABLE", null);
+            return new Result(false, readyNodeUnavailableCode(nodeSnapshot, templateId), null);
         }
         RedisActivationLock.Lease lease = acquireActivationLock(islandId, "reset");
         if (activationLock != null && lease == null) {
@@ -268,6 +272,22 @@ public final class IslandLifecycleWorkflow {
             || runtime.state() == IslandState.ERROR_CREATING
             || runtime.state() == IslandState.ERROR_ACTIVATING
             || runtime.state() == IslandState.ERROR_SAVING;
+    }
+
+    private String readyNodeUnavailableCode(List<NodeLoad> nodeSnapshot, String templateId) {
+        String reason = allocator.readyNodeBlockReason(nodeSnapshot, Instant.now(), templateId, minNodeVersion(templateId), islandPool);
+        return "NO_READY_NODE".equals(reason) ? "NO_READY_NODE" : "NO_READY_NODE_" + reason;
+    }
+
+    private String targetNodeUnavailableCode(NodeLoad node, String templateId) {
+        String blockReason = allocator.nodeBlockReason(node, Instant.now(), templateId, minNodeVersion(templateId), islandPool);
+        if ("NODE_NOT_FOUND".equals(blockReason)) {
+            return "TARGET_NODE_NOT_FOUND";
+        }
+        if ("NODE_VERSION_TOO_OLD".equals(blockReason)) {
+            return "TARGET_NODE_VERSION_TOO_OLD";
+        }
+        return blockReason.isBlank() ? "TARGET_NODE_NOT_READY" : "TARGET_NODE_" + blockReason;
     }
 
     public record Result(boolean accepted, String code, IslandRuntimeSnapshot runtime) {}

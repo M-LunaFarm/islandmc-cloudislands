@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.coreservice.workflow;
 
 import java.time.Instant;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
@@ -85,11 +86,13 @@ public final class CreateIslandWorkflow {
             publishTicketFailure(ownerUuid, null, "ALREADY_HAS_ISLAND");
             return new CreateIslandResult(false, "ALREADY_HAS_ISLAND", null, null);
         }
-        NodeLoad node = allocator.selectReadyNode(nodes.snapshot(), Instant.now(), normalizedTemplate, template.minNodeVersion(), islandPool).orElse(null);
+        List<NodeLoad> nodeSnapshot = nodes.snapshot();
+        NodeLoad node = allocator.selectReadyNode(nodeSnapshot, Instant.now(), normalizedTemplate, template.minNodeVersion(), islandPool).orElse(null);
         if (node == null) {
             releaseCreationLock(lease);
-            publishTicketFailure(ownerUuid, null, "NODE_UNAVAILABLE");
-            return new CreateIslandResult(false, "NODE_UNAVAILABLE", null, null);
+            String code = readyNodeUnavailableCode(nodeSnapshot, normalizedTemplate, template.minNodeVersion());
+            publishTicketFailure(ownerUuid, null, code);
+            return new CreateIslandResult(false, code, null, null);
         }
         UUID islandId = UUID.randomUUID();
         IslandSnapshot island = islands.createOwnedIsland(islandId, ownerUuid, normalizedTemplate, "Island");
@@ -132,8 +135,13 @@ public final class CreateIslandWorkflow {
     }
 
     private void releaseCreationLock(RedisPlayerCreationLock.Lease lease) {
-        if (playerCreationLock != null) {
+        if (playerCreationLock != null && lease != null) {
             playerCreationLock.release(lease);
         }
+    }
+
+    private String readyNodeUnavailableCode(List<NodeLoad> nodeSnapshot, String templateId, String minNodeVersion) {
+        String reason = allocator.readyNodeBlockReason(nodeSnapshot, Instant.now(), templateId, minNodeVersion, islandPool);
+        return "NO_READY_NODE".equals(reason) ? "NO_READY_NODE" : "NO_READY_NODE_" + reason;
     }
 }
