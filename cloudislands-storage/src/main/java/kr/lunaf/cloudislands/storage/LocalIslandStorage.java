@@ -163,7 +163,6 @@ public final class LocalIslandStorage implements IslandStorage {
     @Override
     public void deleteLiveState(UUID islandId) throws IOException {
         Path islandRoot = islandRoot(islandId);
-        deleteRecursively(islandRoot.resolve("snapshots"));
         Files.deleteIfExists(islandRoot.resolve("manifest.json"));
         Files.deleteIfExists(islandRoot.resolve("latest"));
     }
