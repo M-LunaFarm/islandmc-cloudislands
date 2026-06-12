@@ -12,10 +12,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.common.event.CacheInvalidationPlan;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.event.IslandBiomeChangeEvent;
+import kr.lunaf.cloudislands.paper.event.IslandFlagChangeEvent;
+import kr.lunaf.cloudislands.paper.event.IslandUpgradeEvent;
+import kr.lunaf.cloudislands.paper.event.IslandWarpChangeEvent;
 import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
-import kr.lunaf.cloudislands.paper.event.IslandUpgradeEvent;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -311,26 +314,42 @@ public final class PermissionEventPoller {
     }
 
     private void publishLocalEvents(String type, Map<String, String> fields) {
-        if (!type.equals(CloudIslandEventType.ISLAND_UPGRADE.name())) {
+        UUID islandId = islandId(fields);
+        if (islandId == null) {
             return;
         }
+        if (type.equals(CloudIslandEventType.ISLAND_UPGRADE.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandUpgradeEvent(islandId, fields.getOrDefault("upgradeKey", ""), intField(fields, "level"), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_FLAG_CHANGED.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandFlagChangeEvent(islandId, firstPresent(fields, "flag", "flagKey"), fields.getOrDefault("value", ""), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_BIOME_CHANGED.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandBiomeChangeEvent(islandId, fields.getOrDefault("biomeKey", ""), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_WARP_CHANGED.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandWarpChangeEvent(islandId, firstPresent(fields, "warpName", "name"), fields.getOrDefault("action", ""), fields));
+        }
+    }
+
+    private UUID islandId(Map<String, String> fields) {
         String islandId = fields.get("islandId");
         if (islandId == null || islandId.isBlank()) {
-            return;
-        }
-        int level = 0;
-        String levelText = fields.get("level");
-        if (levelText != null && !levelText.isBlank()) {
-            try {
-                level = Integer.parseInt(levelText);
-            } catch (NumberFormatException ignored) {
-                level = 0;
-            }
+            return null;
         }
         try {
-            Bukkit.getPluginManager().callEvent(new IslandUpgradeEvent(UUID.fromString(islandId), fields.getOrDefault("upgradeKey", ""), level, fields));
+            return UUID.fromString(islandId);
         } catch (IllegalArgumentException ignored) {
-            // Ignore malformed external event payloads; cache invalidation can still proceed.
+            return null;
+        }
+    }
+
+    private int intField(Map<String, String> fields, String key) {
+        String value = fields.get(key);
+        if (value == null || value.isBlank()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException ignored) {
+            return 0;
         }
     }
 
