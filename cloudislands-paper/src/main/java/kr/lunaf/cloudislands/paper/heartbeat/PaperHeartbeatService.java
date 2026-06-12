@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.heartbeat;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 import java.util.function.IntSupplier;
+import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
@@ -18,6 +19,7 @@ public final class PaperHeartbeatService {
     private final String velocityServerName;
     private final String nodeVersion;
     private final String supportedTemplates;
+    private final Supplier<String> supportedTemplatesSupplier;
     private final BooleanSupplier storageAvailable;
     private final IntSupplier softPlayerCap;
     private final IntSupplier hardPlayerCap;
@@ -42,6 +44,10 @@ public final class PaperHeartbeatService {
     }
 
     public PaperHeartbeatService(Plugin plugin, CoreApiClient coreApiClient, String nodeId, String pool, String velocityServerName, String nodeVersion, String supportedTemplates, BooleanSupplier storageAvailable, IntSupplier softPlayerCap, IntSupplier hardPlayerCap, IntSupplier activeIslandCount, IntSupplier maxActiveIslands, IntSupplier activationQueue, IntSupplier maxActivationQueue, DoubleSupplier chunkLoadPressure, IntSupplier recentFailurePenalty) {
+        this(plugin, coreApiClient, nodeId, pool, velocityServerName, nodeVersion, supportedTemplates, () -> supportedTemplates, storageAvailable, softPlayerCap, hardPlayerCap, activeIslandCount, maxActiveIslands, activationQueue, maxActivationQueue, chunkLoadPressure, recentFailurePenalty);
+    }
+
+    public PaperHeartbeatService(Plugin plugin, CoreApiClient coreApiClient, String nodeId, String pool, String velocityServerName, String nodeVersion, String supportedTemplates, Supplier<String> supportedTemplatesSupplier, BooleanSupplier storageAvailable, IntSupplier softPlayerCap, IntSupplier hardPlayerCap, IntSupplier activeIslandCount, IntSupplier maxActiveIslands, IntSupplier activationQueue, IntSupplier maxActivationQueue, DoubleSupplier chunkLoadPressure, IntSupplier recentFailurePenalty) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.nodeId = nodeId;
@@ -49,6 +55,7 @@ public final class PaperHeartbeatService {
         this.velocityServerName = velocityServerName;
         this.nodeVersion = nodeVersion == null ? "" : nodeVersion;
         this.supportedTemplates = supportedTemplates == null || supportedTemplates.isBlank() ? "*" : supportedTemplates;
+        this.supportedTemplatesSupplier = supportedTemplatesSupplier == null ? () -> this.supportedTemplates : supportedTemplatesSupplier;
         this.storageAvailable = storageAvailable;
         this.softPlayerCap = softPlayerCap;
         this.hardPlayerCap = hardPlayerCap;
@@ -100,7 +107,7 @@ public final class PaperHeartbeatService {
             heapMax,
             Math.max(0, recentFailurePenalty.getAsInt()),
             storageAvailable.getAsBoolean(),
-            supportedTemplates
+            supportedTemplatesSupplier.get()
         );
         coreApiClient.publishHeartbeat(heartbeat);
     }

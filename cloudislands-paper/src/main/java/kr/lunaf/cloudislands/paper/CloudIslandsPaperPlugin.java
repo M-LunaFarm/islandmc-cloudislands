@@ -169,6 +169,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             velocityServerName,
             getDescription().getVersion(),
             supportedTemplates,
+            () -> levelScanStatus(supportedTemplates),
             () -> storageAvailable(storage),
             () -> softPlayerCap,
             () -> hardPlayerCap,
@@ -218,6 +219,20 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
 
     public ActiveIslandRegistry activeIslands() {
         return activeIslands;
+    }
+
+    private String levelScanStatus(String supportedTemplates) {
+        PeriodicIslandLevelScanTask scanner = periodicLevelScanTask;
+        if (scanner == null) {
+            return supportedTemplates;
+        }
+        java.util.UUID lastIsland = scanner.lastScannedIslandId();
+        return supportedTemplates
+            + ";levelScanRunning=" + scanner.running()
+            + ";lastLevelScanIsland=" + (lastIsland == null ? "" : lastIsland)
+            + ";lastLevelScanStartedAt=" + scanner.lastScanStartedAt()
+            + ";lastLevelScanFinishedAt=" + scanner.lastScanFinishedAt()
+            + ";lastLevelScanFailedAt=" + scanner.lastScanFailedAt();
     }
 
     private void startIslandNodeWorker(CoreApiClient client, String nodeId, IslandStorage storage, IslandLimitCache limitCache) {

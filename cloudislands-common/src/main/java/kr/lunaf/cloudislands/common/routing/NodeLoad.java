@@ -60,16 +60,25 @@ public record NodeLoad(
     }
 
     public boolean supportsTemplate(String templateId) {
-        if (supportedTemplates == null || supportedTemplates.isBlank() || supportedTemplates.equals("*")) {
+        String templates = templateList(supportedTemplates);
+        if (templates == null || templates.isBlank() || templates.equals("*")) {
             return true;
         }
         String requested = templateId == null || templateId.isBlank() ? "default" : templateId;
-        for (String supported : supportedTemplates.split(",")) {
+        for (String supported : templates.split(",")) {
             if (supported.trim().equals("*") || supported.trim().equalsIgnoreCase(requested)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private static String templateList(String value) {
+        if (value == null) {
+            return null;
+        }
+        int metadata = value.indexOf(';');
+        return metadata < 0 ? value : value.substring(0, metadata);
     }
 
     public boolean satisfiesMinVersion(String minVersion) {
