@@ -22,6 +22,7 @@ public final class VelocityRoutingController {
     private final CoreApiClient coreApiClient;
     private final String fallbackServer;
     private final int routeWaitSeconds;
+    private final boolean hideNodeNames;
     private final boolean useActionBar;
     private final boolean useBossBarLoading;
 
@@ -34,10 +35,15 @@ public final class VelocityRoutingController {
     }
 
     public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer, int routeWaitSeconds, boolean useActionBar, boolean useBossBarLoading) {
+        this(proxy, coreApiClient, fallbackServer, routeWaitSeconds, useActionBar, useBossBarLoading, true);
+    }
+
+    public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer, int routeWaitSeconds, boolean useActionBar, boolean useBossBarLoading, boolean hideNodeNames) {
         this.proxy = proxy;
         this.coreApiClient = coreApiClient;
         this.fallbackServer = fallbackServer;
         this.routeWaitSeconds = Math.max(1, routeWaitSeconds);
+        this.hideNodeNames = hideNodeNames;
         this.useActionBar = useActionBar;
         this.useBossBarLoading = useBossBarLoading;
     }
@@ -917,7 +923,7 @@ public final class VelocityRoutingController {
         long active = longValue(body, "activeIslands");
         long max = longValue(body, "maxActiveIslands");
         StringBuilder summary = new StringBuilder("노드 섬 현황");
-        if (!id.isBlank()) {
+        if (!id.isBlank() && !hideNodeNames) {
             summary.append(' ').append(id);
         }
         summary.append(": 활성 섬 ").append(active);
@@ -927,7 +933,7 @@ public final class VelocityRoutingController {
         if (!state.isBlank()) {
             summary.append(", 상태=").append(state);
         }
-        if (!server.isBlank()) {
+        if (!server.isBlank() && !hideNodeNames) {
             summary.append(", 서버=").append(server);
         }
         return summary.toString();
@@ -941,7 +947,7 @@ public final class VelocityRoutingController {
         long count = longValue(body, "count");
         String islands = arrayValue(body, "islands");
         if (islands.isBlank() || count == 0L) {
-            return "노드 섬 현황" + (nodeId.isBlank() ? "" : " " + nodeId) + ": 활성 섬 없음";
+            return "노드 섬 현황" + hiddenNodeLabel(nodeId) + ": 활성 섬 없음";
         }
         java.util.List<String> entries = new java.util.ArrayList<>();
         int index = 0;
@@ -961,7 +967,11 @@ public final class VelocityRoutingController {
             }
             index = objectEnd + 1;
         }
-        return "노드 섬 현황" + (nodeId.isBlank() ? "" : " " + nodeId) + ": " + (entries.isEmpty() ? "활성 섬 없음" : String.join(", ", entries));
+        return "노드 섬 현황" + hiddenNodeLabel(nodeId) + ": " + (entries.isEmpty() ? "활성 섬 없음" : String.join(", ", entries));
+    }
+
+    private String hiddenNodeLabel(String nodeId) {
+        return hideNodeNames || nodeId == null || nodeId.isBlank() ? "" : " " + nodeId;
     }
 
     private String nodeIslandRuntimeSuffix(String object) {
