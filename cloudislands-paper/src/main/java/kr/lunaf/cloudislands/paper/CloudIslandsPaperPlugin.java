@@ -90,6 +90,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getServicesManager().register(CloudIslandsApi.class, api, this, ServicePriority.Normal);
         IslandLimitCache limitCache = new IslandLimitCache(client);
         getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection(), new BlockDeltaReporter(this, client)), this);
+        getServer().getPluginManager().registerEvents(new IslandBoundaryListener(agent.protection()), this);
         getServer().getPluginManager().registerEvents(new PaperPlayerProfileListener(client), this);
         getServer().getPluginManager().registerEvents(new IslandGameplayFlagListener(agent.protection()), this);
         getServer().getPluginManager().registerEvents(new IslandLimitListener(agent.protection(), limitCache), this);
