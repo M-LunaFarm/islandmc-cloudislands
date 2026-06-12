@@ -125,33 +125,33 @@ public final class PermissionEventPoller {
             return;
         }
         if (affectsPermissions(type, fields)) {
-            String islandId = fields.get("islandId");
-            if (islandId != null && !islandId.isBlank()) {
-                permissionSync.sync(UUID.fromString(islandId));
+            UUID islandId = islandId(fields);
+            if (islandId != null) {
+                permissionSync.sync(islandId);
             } else if (isGlobalCacheEvent(type)) {
                 permissionSync.invalidateAll();
             }
         }
         if (affectsGenerator(type, fields)) {
-            String islandId = fields.get("islandId");
-            if (islandId != null && !islandId.isBlank()) {
-                generatorLevels.invalidate(UUID.fromString(islandId));
+            UUID islandId = islandId(fields);
+            if (islandId != null) {
+                generatorLevels.invalidate(islandId);
             } else if (isGlobalCacheEvent(type)) {
                 generatorLevels.invalidateAll();
             }
         }
         if (affectsCrop(type, fields)) {
-            String islandId = fields.get("islandId");
-            if (islandId != null && !islandId.isBlank()) {
-                cropGrowthLevels.invalidate(UUID.fromString(islandId));
+            UUID islandId = islandId(fields);
+            if (islandId != null) {
+                cropGrowthLevels.invalidate(islandId);
             } else if (isGlobalCacheEvent(type)) {
                 cropGrowthLevels.invalidateAll();
             }
         }
         if (affectsLimits(type, fields)) {
-            String islandId = fields.get("islandId");
-            if (islandId != null && !islandId.isBlank()) {
-                limits.invalidate(UUID.fromString(islandId));
+            UUID islandId = islandId(fields);
+            if (islandId != null) {
+                limits.invalidate(islandId);
             } else if (isGlobalCacheEvent(type)) {
                 limits.invalidateAll();
             }
