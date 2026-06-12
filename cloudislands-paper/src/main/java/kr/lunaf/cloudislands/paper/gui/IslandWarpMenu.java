@@ -61,6 +61,14 @@ public final class IslandWarpMenu implements Listener {
             player.performCommand("섬 공개워프목록");
             return;
         }
+        if (name.equals("설정")) {
+            player.performCommand("섬 설정");
+            return;
+        }
+        if (name.equals("메인 메뉴")) {
+            player.performCommand("섬 메뉴");
+            return;
+        }
         String warpName = loreValue(meta, "warpName=");
         if (warpName.isBlank()) {
             return;
@@ -92,6 +100,8 @@ public final class IslandWarpMenu implements Listener {
             for (Warp warp : warps.stream().limit(45).toList()) {
                 inventory.setItem(slot++, warpItem(warp, publicMenu));
             }
+            inventory.setItem(49, item(Material.COMPARATOR, "설정", "/섬 설정"));
+            inventory.setItem(53, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
             player.openInventory(inventory);
         });
     }
