@@ -110,6 +110,7 @@ public interface IslandAdminService {
     CompletableFuture<IslandTemplateSnapshot> disableTemplate(String templateId);
     CompletableFuture<MigrationRunSnapshot> scanSuperiorSkyblock2(String path);
     CompletableFuture<MigrationRunSnapshot> dryRunSuperiorSkyblock2(String path);
+    CompletableFuture<MigrationRunSnapshot> extractSuperiorSkyblock2(String outputPath);
     CompletableFuture<MigrationRunSnapshot> importSuperiorSkyblock2(String path);
     CompletableFuture<MigrationRunSnapshot> verifySuperiorSkyblock2(String path);
     CompletableFuture<MigrationRunSnapshot> rollbackSuperiorSkyblock2(String path);

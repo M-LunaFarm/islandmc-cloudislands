@@ -628,6 +628,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
+        public CompletableFuture<MigrationRunSnapshot> extractSuperiorSkyblock2(String outputPath) {
+            return client.migrateSuperiorSkyblock2("extract", outputPath).thenApply(PaperCloudIslandsApi::migrationRun);
+        }
+
+        @Override
         public CompletableFuture<MigrationRunSnapshot> importSuperiorSkyblock2(String path) {
             return client.migrateSuperiorSkyblock2("import", path).thenApply(PaperCloudIslandsApi::migrationRun);
         }
@@ -1376,6 +1381,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             integer(json, "expected", 0),
             bool(json, "rolledBack", false),
             integer(json, "removedIslands", 0),
+            integer(json, "extractedBundles", 0),
+            longValue(json, "extractedFiles", 0L),
+            longValue(json, "extractedBytes", 0L),
             integer(json, "members", 0),
             integer(json, "bannedVisitors", 0),
             integer(json, "homes", 0),
