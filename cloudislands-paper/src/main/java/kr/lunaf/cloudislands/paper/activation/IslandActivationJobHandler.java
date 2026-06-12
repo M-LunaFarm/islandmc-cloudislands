@@ -51,7 +51,7 @@ public final class IslandActivationJobHandler {
     }
 
     public ActivationResult handle(IslandJob job) {
-        if (job.type() != IslandJobType.ACTIVATE_ISLAND && job.type() != IslandJobType.CREATE_ISLAND && job.type() != IslandJobType.RESTORE_ISLAND && job.type() != IslandJobType.RESET_ISLAND) {
+        if (job.type() != IslandJobType.ACTIVATE_ISLAND && job.type() != IslandJobType.CREATE_ISLAND && job.type() != IslandJobType.MIGRATE_ISLAND && job.type() != IslandJobType.RESTORE_ISLAND && job.type() != IslandJobType.RESET_ISLAND) {
             return new ActivationResult(false, "UNSUPPORTED_JOB", null, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L, "", 0L, "", 0L);
         }
         UUID islandId = job.islandId();
