@@ -422,6 +422,26 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 409, ApiResponses.error("RECOVERY_UNAVAILABLE", "Job recovery is only available when CI_JOB_QUEUE_MODE=REDIS or JDBC"));
             }
         });
+        route("/v1/admin/jobs/recover", exchange -> {
+            String body = readBody(exchange);
+            if (jobs instanceof kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue redisJobs) {
+                String recovered = redisJobs.recoverPending(
+                    JsonFields.text(body, "nodeId", "recovery"),
+                    JsonFields.longValue(body, "minIdleMillis", 60000L),
+                    JsonFields.integer(body, "maxJobs", 16)
+                );
+                write(exchange, 202, "{\"recovered\":\"" + recovered.replace("\"", "'") + "\"}");
+            } else if (jobs instanceof JdbcIslandJobQueue jdbcJobs) {
+                String recovered = jdbcJobs.recoverPending(
+                    JsonFields.text(body, "nodeId", "recovery"),
+                    JsonFields.longValue(body, "minIdleMillis", 60000L),
+                    JsonFields.integer(body, "maxJobs", 16)
+                );
+                write(exchange, 202, "{\"recovered\":" + recovered + "}");
+            } else {
+                write(exchange, 409, ApiResponses.error("RECOVERY_UNAVAILABLE", "Job recovery is only available when CI_JOB_QUEUE_MODE=REDIS or JDBC"));
+            }
+        });
         route("/v1/admin/jobs/list", exchange -> write(exchange, 200, jobsJson(jobs)));
         route("/v1/admin/jobs/retry", exchange -> {
             String body = readBody(exchange);

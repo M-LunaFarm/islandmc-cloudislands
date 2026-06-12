@@ -773,7 +773,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> recoverJobsResult(String nodeId, long minIdleMillis, int maxJobs) {
-        return postWithResultBody("/v1/jobs/recover", "{\"nodeId\":\"" + escape(nodeId) + "\",\"minIdleMillis\":" + minIdleMillis + ",\"maxJobs\":" + maxJobs + "}");
+        return postWithResultBody("/v1/admin/jobs/recover", "{\"nodeId\":\"" + escape(nodeId) + "\",\"minIdleMillis\":" + minIdleMillis + ",\"maxJobs\":" + maxJobs + "}");
     }
 
     @Override
