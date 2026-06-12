@@ -61,6 +61,14 @@ public final class IslandBiomeMenu implements Listener {
             player.performCommand("섬 바이옴");
             return;
         }
+        if ("설정".equals(displayName)) {
+            player.performCommand("섬 설정");
+            return;
+        }
+        if ("메인 메뉴".equals(displayName)) {
+            player.performCommand("섬 메뉴");
+            return;
+        }
         String biomeKey = loreValue(meta, "biomeKey=");
         if (biomeKey.isBlank()) {
             return;
@@ -77,6 +85,8 @@ public final class IslandBiomeMenu implements Listener {
             }
             inventory.setItem(4, item(Material.GRASS_BLOCK, "현재 바이옴", currentBiome.isBlank() ? "설정 없음" : currentBiome));
             inventory.setItem(22, item(Material.CLOCK, "새로고침", "/섬 바이옴"));
+            inventory.setItem(24, item(Material.COMPARATOR, "설정", "/섬 설정"));
+            inventory.setItem(26, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
             player.openInventory(inventory);
         });
     }
