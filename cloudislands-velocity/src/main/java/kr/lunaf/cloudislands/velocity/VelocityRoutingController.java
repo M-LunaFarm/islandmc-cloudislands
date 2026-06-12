@@ -958,7 +958,7 @@ public final class VelocityRoutingController {
         }
         String islandId = jsonValue(body, "islandId");
         if (!islandId.isBlank() && !islandId.equals(targetId)) {
-            builder.append(" island=").append(shortId(islandId));
+            builder.append(" 섬=").append(shortId(islandId));
         }
         String materialKey = jsonValue(body, "materialKey");
         if (!materialKey.isBlank()) {
@@ -999,10 +999,10 @@ public final class VelocityRoutingController {
     private String inviteCreateMessage(String body) {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
-            return "초대: 실패 code=" + code;
+            return "초대: 실패 사유=" + code;
         }
         return "초대: 생성됨 invite=" + shortId(jsonValue(body, "inviteId"))
-            + " island=" + shortId(jsonValue(body, "islandId"))
+            + " 섬=" + shortId(jsonValue(body, "islandId"))
             + " target=" + shortId(jsonValue(body, "targetUuid"))
             + " state=" + jsonValue(body, "state");
     }
@@ -1045,7 +1045,7 @@ public final class VelocityRoutingController {
         }
         String islandId = jsonValue(body, "islandId");
         String value = field.equals("worth") ? jsonValue(body, field) : Long.toString(longValue(body, field));
-        return label + ": island=" + shortId(islandId) + " " + field + "=" + value;
+        return label + ": 섬=" + shortId(islandId) + " " + field + "=" + value;
     }
 
     private String biomeInfoMessage(String body) {
@@ -1053,7 +1053,7 @@ public final class VelocityRoutingController {
         if (!code.isBlank()) {
             return "Biome: failed code=" + code;
         }
-        return "Biome: island=" + shortId(jsonValue(body, "islandId"))
+        return "Biome: 섬=" + shortId(jsonValue(body, "islandId"))
             + " biome=" + jsonValue(body, "biomeKey")
             + " updatedBy=" + shortId(jsonValue(body, "updatedBy"));
     }
@@ -1067,7 +1067,7 @@ public final class VelocityRoutingController {
         String state = jsonValue(body, "state");
         String activeNode = jsonValue(body, "activeNode");
         String activeWorld = jsonValue(body, "activeWorld");
-        return "Island runtime: island=" + shortId(islandId)
+        return "Island runtime: 섬=" + shortId(islandId)
             + " state=" + (state.isBlank() ? "UNKNOWN" : state)
             + (activeNode.isBlank() ? "" : " node=" + activeNode)
             + (activeWorld.isBlank() ? "" : " world=" + activeWorld)
@@ -1085,7 +1085,7 @@ public final class VelocityRoutingController {
         String islandId = jsonValue(body, "primaryIslandId");
         return "Player: uuid=" + shortId(playerUuid)
             + (lastName.isBlank() ? "" : " name=" + lastName)
-            + (islandId.isBlank() ? " island=none" : " island=" + shortId(islandId));
+            + (islandId.isBlank() ? " 섬=none" : " 섬=" + shortId(islandId));
     }
 
     private String rankingListMessage(String label, String body) {
@@ -1185,7 +1185,7 @@ public final class VelocityRoutingController {
     private String warpListMessage(String label, String body) {
         return namedObjectListMessage(label, body, "warps", object -> jsonValue(object, "name")
             + (boolValue(object, "publicAccess") ? "(public)" : "")
-            + " island=" + shortId(jsonValue(object, "islandId"))
+            + " 섬=" + shortId(jsonValue(object, "islandId"))
             + " at=" + seconds(doubleValue(object, "localX")) + "," + seconds(doubleValue(object, "localY")) + "," + seconds(doubleValue(object, "localZ")));
     }
 
@@ -1219,9 +1219,9 @@ public final class VelocityRoutingController {
     private String bankInfoMessage(String body) {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
-            return "섬 은행: 실패 code=" + code;
+            return "섬 은행: 실패 사유=" + code;
         }
-        return "섬 은행: island=" + shortId(jsonValue(body, "islandId"))
+        return "섬 은행: 섬=" + shortId(jsonValue(body, "islandId"))
             + " balance=" + jsonValue(body, "balance");
     }
 
@@ -1233,17 +1233,17 @@ public final class VelocityRoutingController {
         }
         boolean accepted = !body.contains("\"accepted\":false");
         return label + ": " + (accepted ? "accepted" : "rejected")
-            + (code.isBlank() ? "" : " code=" + code)
-            + " island=" + shortId(jsonValue(bank, "islandId"))
+            + (code.isBlank() ? "" : " 사유=" + code)
+            + " 섬=" + shortId(jsonValue(bank, "islandId"))
             + " balance=" + jsonValue(bank, "balance");
     }
 
     private String levelRecalculationMessage(String body) {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
-            return "레벨 계산: 실패 code=" + code;
+            return "레벨 계산: 실패 사유=" + code;
         }
-        return "레벨 계산: island=" + shortId(jsonValue(body, "islandId"))
+        return "레벨 계산: 섬=" + shortId(jsonValue(body, "islandId"))
             + " level=" + longValue(body, "level")
             + " worth=" + jsonValue(body, "worth");
     }
@@ -1258,8 +1258,8 @@ public final class VelocityRoutingController {
         String code = jsonValue(body, "code");
         String upgrade = objectValue(body, "upgrade");
         boolean accepted = boolValue(body, "accepted");
-        return "업그레이드 구매: " + (accepted ? "accepted" : "rejected")
-            + (code.isBlank() ? "" : " code=" + code)
+        return "업그레이드 구매: " + (accepted ? "접수됨" : "거부됨")
+            + (code.isBlank() ? "" : " 사유=" + code)
             + " cost=" + jsonValue(body, "cost")
             + (upgrade.isBlank() ? "" : " upgrade=" + jsonValue(upgrade, "upgradeKey") + " level=" + longValue(upgrade, "level"));
     }
@@ -1291,7 +1291,7 @@ public final class VelocityRoutingController {
         }
         return "Limit set: " + jsonValue(body, "limitKey")
             + "=" + longValue(body, "value")
-            + " island=" + shortId(jsonValue(body, "islandId"));
+            + " 섬=" + shortId(jsonValue(body, "islandId"));
     }
 
     private String flagListMessage(String body) {
@@ -1962,7 +1962,7 @@ public final class VelocityRoutingController {
                 nodeId = jsonValue(fields, "targetNode");
             }
             entries.add((type.isBlank() ? "UNKNOWN_EVENT" : type)
-                + (islandId.isBlank() ? "" : " island=" + islandId)
+                + (islandId.isBlank() ? "" : " 섬=" + islandId)
                 + (ticketId.isBlank() ? "" : " ticket=" + shortId(ticketId))
                 + (playerUuid.isBlank() ? "" : " player=" + shortId(playerUuid))
                 + (action.isBlank() ? "" : " action=" + action)
@@ -2123,7 +2123,7 @@ public final class VelocityRoutingController {
         return shortId(ticketId)
             + " " + (action.isBlank() ? "UNKNOWN" : action)
             + " " + (state.isBlank() ? "UNKNOWN" : state)
-            + (islandId.isBlank() ? "" : " island=" + shortId(islandId))
+            + (islandId.isBlank() ? "" : " 섬=" + shortId(islandId))
             + (nodeId.isBlank() ? "" : " node=" + nodeId);
     }
 
@@ -2438,7 +2438,7 @@ public final class VelocityRoutingController {
             if (!inviteId.isBlank()) {
                 String islandId = jsonValue(object, "islandId");
                 String inviterUuid = jsonValue(object, "inviterUuid");
-                entries.add(inviteId + (islandId.isBlank() ? "" : " island=" + islandId) + (inviterUuid.isBlank() ? "" : " inviter=" + inviterUuid));
+                entries.add(inviteId + (islandId.isBlank() ? "" : " 섬=" + islandId) + (inviterUuid.isBlank() ? "" : " inviter=" + inviterUuid));
             }
             index = objectEnd + 1;
         }
