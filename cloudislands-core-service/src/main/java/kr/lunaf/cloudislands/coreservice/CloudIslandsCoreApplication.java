@@ -161,7 +161,10 @@ public final class CloudIslandsCoreApplication {
         this.deleteStorage = migrationRollbackStorage(config);
         MeteredDataSource meteredDataSource = new MeteredDataSource(new DriverManagerDataSource(config.jdbcUrl(), config.databaseUsername(), config.databasePassword()));
         DataSource dataSource = meteredDataSource;
-        NodeRegistry nodes = config.jdbcRepositories() ? new JdbcNodeRegistry(dataSource) : new InMemoryNodeRegistry();
+        NodeRegistry baseNodes = config.jdbcRepositories() ? new JdbcNodeRegistry(dataSource) : new InMemoryNodeRegistry();
+        NodeRegistry nodes = config.redisEvents() || config.redisJobs()
+            ? new CachingNodeRegistry(baseNodes, config.redisUri(), config.heartbeatTimeout())
+            : baseNodes;
         NodeAllocator allocator = new NodeAllocator(config.heartbeatTimeout());
         RouteTicketStore baseTickets = config.jdbcRepositories() ? new JdbcRouteTicketStore(dataSource, clock) : new InMemoryRouteTicketStore(clock);
         RouteTicketStore tickets = config.redisEvents() || config.redisJobs()
@@ -170,7 +173,6 @@ public final class CloudIslandsCoreApplication {
         RouteSessionStore sessions = config.redisEvents() || config.redisJobs()
             ? new RedisRouteSessionStore(config.redisUri())
             : new InMemoryRouteSessionStore(clock);
-        RedisNodeHeartbeatCache nodeHeartbeatCache = new RedisNodeHeartbeatCache(config.redisUri(), config.heartbeatTimeout(), config.redisEvents() || config.redisJobs());
         IslandJobQueue jobs = config.jdbcJobs() ? new JdbcIslandJobQueue(dataSource, clock, config.leaseDuration()) : config.redisJobs() ? new RedisIslandJobQueue(config.redisUri()) : new InMemoryIslandJobPublisher();
         InMemoryGlobalEventPublisher inMemoryEvents = new InMemoryGlobalEventPublisher();
         RedisStreamWriterAdapter redisEventWriter = config.redisEvents() ? new RedisStreamWriterAdapter(config.redisUri()) : null;
@@ -806,7 +808,6 @@ public final class CloudIslandsCoreApplication {
         route("/v1/nodes/heartbeat", exchange -> {
             NodeHeartbeatRequest heartbeat = heartbeat(readBody(exchange));
             nodes.heartbeat(heartbeat);
-            nodeHeartbeatCache.record(heartbeat);
             write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/admin/nodes/drain", exchange -> {
