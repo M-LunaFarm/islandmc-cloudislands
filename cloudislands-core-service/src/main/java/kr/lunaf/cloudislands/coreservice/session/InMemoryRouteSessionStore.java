@@ -33,7 +33,14 @@ public final class InMemoryRouteSessionStore implements RouteSessionStore {
     @Override
     public Optional<PlayerRouteSession> find(UUID playerUuid, String nodeId) {
         PlayerRouteSession session = byPlayer.get(playerUuid);
-        if (session == null || session.expiresAt().isBefore(clock.instant()) || !session.targetNode().equals(nodeId)) {
+        if (session == null) {
+            return Optional.empty();
+        }
+        if (expired(session)) {
+            byPlayer.remove(playerUuid, session);
+            return Optional.empty();
+        }
+        if (!session.targetNode().equals(nodeId)) {
             return Optional.empty();
         }
         return Optional.of(session);
@@ -57,7 +64,11 @@ public final class InMemoryRouteSessionStore implements RouteSessionStore {
 
     public Optional<PlayerRouteSession> findAny(UUID playerUuid) {
         PlayerRouteSession session = byPlayer.get(playerUuid);
-        if (session == null || session.expiresAt().isBefore(clock.instant())) {
+        if (session == null) {
+            return Optional.empty();
+        }
+        if (expired(session)) {
+            byPlayer.remove(playerUuid, session);
             return Optional.empty();
         }
         return Optional.of(session);
@@ -77,6 +88,10 @@ public final class InMemoryRouteSessionStore implements RouteSessionStore {
         StringBuilder builder = new StringBuilder("{\"sessions\":[");
         boolean first = true;
         for (PlayerRouteSession session : byPlayer.values()) {
+            if (expired(session)) {
+                byPlayer.remove(session.playerUuid(), session);
+                continue;
+            }
             if (!first) {
                 builder.append(',');
             }
@@ -89,5 +104,9 @@ public final class InMemoryRouteSessionStore implements RouteSessionStore {
                 .append("\"}");
         }
         return builder.append("]}").toString();
+    }
+
+    private boolean expired(PlayerRouteSession session) {
+        return session.expiresAt().isBefore(clock.instant());
     }
 }
