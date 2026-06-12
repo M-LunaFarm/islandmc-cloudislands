@@ -18,6 +18,7 @@ import javax.sql.DataSource;
 public final class MeteredDataSource implements DataSource {
     private final DataSource delegate;
     private volatile double lastQuerySeconds;
+    private final AtomicLong connectionFailures = new AtomicLong();
     private final AtomicLong queryFailures = new AtomicLong();
 
     public MeteredDataSource(DataSource delegate) {
@@ -32,14 +33,28 @@ public final class MeteredDataSource implements DataSource {
         return queryFailures.get();
     }
 
+    public long connectionFailures() {
+        return connectionFailures.get();
+    }
+
     @Override
     public Connection getConnection() throws SQLException {
-        return wrapConnection(delegate.getConnection());
+        try {
+            return wrapConnection(delegate.getConnection());
+        } catch (SQLException exception) {
+            connectionFailures.incrementAndGet();
+            throw exception;
+        }
     }
 
     @Override
     public Connection getConnection(String username, String password) throws SQLException {
-        return wrapConnection(delegate.getConnection(username, password));
+        try {
+            return wrapConnection(delegate.getConnection(username, password));
+        } catch (SQLException exception) {
+            connectionFailures.incrementAndGet();
+            throw exception;
+        }
     }
 
     @Override
