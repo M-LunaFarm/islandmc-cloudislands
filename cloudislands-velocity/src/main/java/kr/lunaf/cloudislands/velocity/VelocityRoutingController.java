@@ -550,7 +550,12 @@ public final class VelocityRoutingController {
     }
 
     public void sendIslandChat(Player player, UUID islandId, String channel, String message) {
-        sendPlayerPayloadFuture(player, coreApiClient.sendIslandChat(islandId, player.getUniqueId(), channel, message), "섬 채팅을 전송하지 못했습니다.", "섬 채팅을 전송했습니다.");
+        if (message == null || message.isBlank()) {
+            player.sendMessage(Component.text("보낼 메시지를 입력해주세요."));
+            return;
+        }
+        String label = channel.equalsIgnoreCase("TEAM") ? "팀 채팅" : "섬 채팅";
+        sendPlayerPayloadFuture(player, coreApiClient.sendIslandChat(islandId, player.getUniqueId(), channel, message.strip()), label + "을 전송하지 못했습니다.", label + "을 전송했습니다.");
     }
 
     public void listSnapshots(Player player, UUID islandId) {
