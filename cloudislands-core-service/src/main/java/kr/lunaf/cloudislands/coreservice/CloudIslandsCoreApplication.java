@@ -1016,6 +1016,14 @@ public final class CloudIslandsCoreApplication {
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
             java.util.Optional<kr.lunaf.cloudislands.api.model.IslandInviteSnapshot> invite = metadataRepository.pendingInvites(playerUuid).stream().filter(value -> value.inviteId().equals(inviteId)).findFirst();
             String islandId = invite.map(value -> value.islandId().toString()).orElse("");
+            if (invite.isPresent()) {
+                UUID inviteIslandId = invite.get().islandId();
+                boolean existingMember = metadataRepository.members(inviteIslandId).stream().anyMatch(member -> member.playerUuid().equals(playerUuid));
+                if (!existingMember && metadataRepository.members(inviteIslandId).size() >= limitValue(limitRepository, inviteIslandId, "MEMBERS", 3L)) {
+                    write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
+                    return;
+                }
+            }
             boolean accepted = metadataRepository.acceptInvite(inviteId, playerUuid);
             audit.log(playerUuid, "PLAYER", "ISLAND_INVITE_ACCEPT", "INVITE", inviteId.toString(), Map.of("accepted", Boolean.toString(accepted)));
             events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "accepted", Boolean.toString(accepted)));
