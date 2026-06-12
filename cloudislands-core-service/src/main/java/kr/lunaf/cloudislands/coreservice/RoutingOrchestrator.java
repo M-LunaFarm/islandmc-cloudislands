@@ -232,8 +232,9 @@ public final class RoutingOrchestrator {
     }
 
     private RoutePreparationResult prepareTicket(UUID playerUuid, IslandSnapshot island, RouteAction action, Map<String, String> extraPayload) {
+        IslandRuntimeSnapshot runtime = null;
         try {
-            IslandRuntimeSnapshot runtime = runtimes.find(island.islandId()).orElse(null);
+            runtime = runtimes.find(island.islandId()).orElse(null);
             RoutePreparationResult unavailable = unavailableRuntime(runtime, playerUuid, island.islandId(), action);
             if (unavailable != null) {
                 return unavailable;
@@ -258,7 +259,7 @@ public final class RoutingOrchestrator {
                 return rejectRoute(409, "ACTIVATION_LOCKED", "Island activation is already in progress", playerUuid, island.islandId(), action);
             }
             if (exception.getMessage() != null && exception.getMessage().startsWith("ACTIVE_NODE_")) {
-                return rejectRoute(409, exception.getMessage(), "The active island node cannot accept this route", playerUuid, island.islandId(), action);
+                return rejectRoute(409, exception.getMessage(), "The active island node cannot accept this route", playerUuid, island.islandId(), action, runtime == null ? "" : runtime.activeNode());
             }
             if ("NO_READY_NODE".equals(exception.getMessage()) || (exception.getMessage() != null && exception.getMessage().startsWith("NO_READY_NODE_"))) {
                 return rejectRoute(409, exception.getMessage(), "No ready island node is available", playerUuid, island.islandId(), action);
@@ -300,15 +301,25 @@ public final class RoutingOrchestrator {
     }
 
     private RoutePreparationResult rejectRoute(int status, String reason, String message, UUID playerUuid, UUID islandId, RouteAction action) {
-        publishTicketFailure(playerUuid, islandId, action, reason);
+        publishTicketFailure(playerUuid, islandId, action, reason, "");
+        return RoutePreparationResult.rejected(status, ApiResponses.error(reason, message));
+    }
+
+    private RoutePreparationResult rejectRoute(int status, String reason, String message, UUID playerUuid, UUID islandId, RouteAction action, String targetNode) {
+        publishTicketFailure(playerUuid, islandId, action, reason, targetNode);
         return RoutePreparationResult.rejected(status, ApiResponses.error(reason, message));
     }
 
     private void publishTicketFailure(UUID playerUuid, UUID islandId, RouteAction action, String reason) {
+        publishTicketFailure(playerUuid, islandId, action, reason, "");
+    }
+
+    private void publishTicketFailure(UUID playerUuid, UUID islandId, RouteAction action, String reason, String targetNode) {
         events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
             "playerUuid", playerUuid == null ? "" : playerUuid.toString(),
             "islandId", islandId == null ? "" : islandId.toString(),
             "action", action == null ? "" : action.name(),
+            "targetNode", targetNode == null ? "" : targetNode,
             "reason", reason
         ));
     }
