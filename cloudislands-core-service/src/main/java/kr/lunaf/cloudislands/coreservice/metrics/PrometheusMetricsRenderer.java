@@ -87,6 +87,20 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_node_activation_eligible", "gauge");
         help(out, "cloudislands_node_state", "Node state marker by state label");
         type(out, "cloudislands_node_state", "gauge");
+        help(out, "cloudislands_cluster_nodes_online", "Total CloudIslands nodes with fresh heartbeat");
+        type(out, "cloudislands_cluster_nodes_online", "gauge");
+        help(out, "cloudislands_cluster_players", "Total players across fresh CloudIslands nodes");
+        type(out, "cloudislands_cluster_players", "gauge");
+        help(out, "cloudislands_cluster_active_islands", "Total active islands across fresh CloudIslands nodes");
+        type(out, "cloudislands_cluster_active_islands", "gauge");
+        help(out, "cloudislands_cluster_activation_queue", "Total activation queue depth across fresh CloudIslands nodes");
+        type(out, "cloudislands_cluster_activation_queue", "gauge");
+        help(out, "cloudislands_cluster_storage_available_nodes", "Fresh nodes reporting object storage availability");
+        type(out, "cloudislands_cluster_storage_available_nodes", "gauge");
+        help(out, "cloudislands_cluster_activation_eligible_nodes", "Fresh nodes currently eligible for island activation");
+        type(out, "cloudislands_cluster_activation_eligible_nodes", "gauge");
+        help(out, "cloudislands_cluster_max_mspt", "Highest MSPT reported by fresh CloudIslands nodes");
+        type(out, "cloudislands_cluster_max_mspt", "gauge");
         help(out, "cloudislands_permission_cache_hit_ratio", "Paper local permission cache hit ratio reported by heartbeat");
         type(out, "cloudislands_permission_cache_hit_ratio", "gauge");
         help(out, "cloudislands_permission_checks_total", "Paper local island permission checks reported by heartbeat");
@@ -104,8 +118,25 @@ public final class PrometheusMetricsRenderer {
         help(out, "cloudislands_island_snapshot_seconds", "Last island snapshot bundle upload duration reported by Paper heartbeat");
         type(out, "cloudislands_island_snapshot_seconds", "gauge");
         Instant now = Instant.now();
+        long onlineNodes = 0L;
+        long totalPlayers = 0L;
+        long totalActiveIslands = 0L;
+        long totalActivationQueue = 0L;
+        long storageAvailableNodes = 0L;
+        long activationEligibleNodes = 0L;
+        double maxMspt = 0.0D;
         for (NodeLoad node : nodes.snapshot()) {
             boolean fresh = Duration.between(node.lastHeartbeat(), now).compareTo(heartbeatTimeout) <= 0;
+            if (fresh && node.state() != NodeState.DOWN) {
+                onlineNodes++;
+                totalPlayers += node.players();
+                totalActiveIslands += node.activeIslands();
+                totalActivationQueue += node.activationQueue();
+                if (node.storageAvailable()) {
+                    storageAvailableNodes++;
+                }
+                maxMspt = Math.max(maxMspt, node.mspt());
+            }
             labels(out, "cloudislands_nodes_online", node, null).append(fresh && node.state() != NodeState.DOWN ? 1 : 0).append('\n');
             labels(out, "cloudislands_node_players", node, null).append(node.players()).append('\n');
             labels(out, "cloudislands_node_soft_player_cap", node, null).append(node.softPlayerCap()).append('\n');
@@ -124,6 +155,9 @@ public final class PrometheusMetricsRenderer {
             labels(out, "cloudislands_node_storage_available", node, null).append(node.storageAvailable() ? 1 : 0).append('\n');
             labels(out, "cloudislands_node_routing_score", node, null).append(node.score()).append('\n');
             String allocationBlockReason = node.allocationBlockReason(now, heartbeatTimeout);
+            if (fresh && allocationBlockReason.isBlank()) {
+                activationEligibleNodes++;
+            }
             labels(out, "cloudislands_node_activation_eligible", node, "reason=\"" + escape(allocationBlockReason.isBlank() ? "OK" : allocationBlockReason) + "\"").append(allocationBlockReason.isBlank() ? 1 : 0).append('\n');
             for (NodeState state : NodeState.values()) {
                 labels(out, "cloudislands_node_state", node, "state=\"" + state.name() + "\"").append(node.state() == state ? 1 : 0).append('\n');
@@ -143,6 +177,13 @@ public final class PrometheusMetricsRenderer {
             appendMetadataGauge(out, "cloudislands_island_activation_seconds", node, "storageDownloadSeconds");
             appendMetadataGauge(out, "cloudislands_island_snapshot_seconds", node, "storageUploadSeconds");
         }
+        out.append("cloudislands_cluster_nodes_online ").append(onlineNodes).append('\n');
+        out.append("cloudislands_cluster_players ").append(totalPlayers).append('\n');
+        out.append("cloudislands_cluster_active_islands ").append(totalActiveIslands).append('\n');
+        out.append("cloudislands_cluster_activation_queue ").append(totalActivationQueue).append('\n');
+        out.append("cloudislands_cluster_storage_available_nodes ").append(storageAvailableNodes).append('\n');
+        out.append("cloudislands_cluster_activation_eligible_nodes ").append(activationEligibleNodes).append('\n');
+        out.append("cloudislands_cluster_max_mspt ").append(maxMspt).append('\n');
         help(out, "cloudislands_jobs_total", "Island jobs by in-memory state or backend mode");
         type(out, "cloudislands_jobs_total", "gauge");
         Map<String, Long> jobCounts;
