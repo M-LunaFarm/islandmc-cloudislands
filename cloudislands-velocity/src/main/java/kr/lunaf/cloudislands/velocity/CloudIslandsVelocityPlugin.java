@@ -895,6 +895,10 @@ public final class CloudIslandsVelocityPlugin {
             routingController.createIsland(player, templateId);
             return;
         }
+        if (args[0].equalsIgnoreCase("danger") || args[0].equals("위험작업")) {
+            sendCommandList(player, "섬 위험 작업", List.of("섬 리셋 [reason]", "섬 삭제"), 1, "섬 command list");
+            return;
+        }
         if (args[0].equalsIgnoreCase("reset") || args[0].equals("리셋")) {
             boolean hasIslandId = args.length > 1 && isUuid(args[1]);
             UUID islandId = hasIslandId ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);

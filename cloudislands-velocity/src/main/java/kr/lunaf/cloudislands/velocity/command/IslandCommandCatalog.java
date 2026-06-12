@@ -85,6 +85,7 @@ public final class IslandCommandCatalog {
             "섬 스냅샷목록",
             "섬 복원 <snapshotNo>",
             "섬 로그",
+            "섬 위험작업",
             "섬 리셋 [reason]",
             "섬 삭제"
         );
