@@ -54,6 +54,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerLeashEntityEvent;
 import org.bukkit.event.player.PlayerShearEntityEvent;
 import org.bukkit.event.player.PlayerUnleashEntityEvent;
+import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 
 public final class IslandProtectionListener implements Listener {
@@ -241,6 +242,11 @@ public final class IslandProtectionListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onUnleash(PlayerUnleashEntityEvent event) {
         event.setCancelled(denied(event.getPlayer(), event.getEntity().getLocation().getBlock(), IslandPermission.INTERACT));
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onVehicleCreate(VehicleCreateEvent event) {
+        protection.islandAt(event.getVehicle().getLocation().getBlock()).ifPresent(islandId -> blockDeltas.entityPlaced(islandId, event.getVehicle().getType()));
     }
 
     @EventHandler(ignoreCancelled = true)
