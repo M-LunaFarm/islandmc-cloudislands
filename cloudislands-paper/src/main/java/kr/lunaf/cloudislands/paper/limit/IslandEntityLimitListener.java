@@ -145,7 +145,7 @@ public final class IslandEntityLimitListener implements Listener {
             return;
         }
         lastLimitNotice.put(islandId, now);
-        String message = "섬 엔티티 제한에 도달했습니다. 현재 " + current + "/" + limit + " (limitKey=ENTITY)";
+        String message = "섬 엔티티 제한에 도달했습니다. 현재 " + current + "/" + limit;
         location.getWorld().getPlayers().stream()
             .filter(player -> player.getLocation().getWorld().equals(location.getWorld()))
             .filter(player -> player.getLocation().distanceSquared(location) <= 256.0D)

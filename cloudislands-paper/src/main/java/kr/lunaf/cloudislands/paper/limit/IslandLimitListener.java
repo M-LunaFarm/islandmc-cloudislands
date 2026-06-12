@@ -39,7 +39,7 @@ public final class IslandLimitListener implements Listener {
             long current = count(islandId, key);
             if (current >= limit) {
                 event.setCancelled(true);
-                event.getPlayer().sendMessage("섬 " + limitName(key) + " 제한에 도달했습니다. 현재 " + current + "/" + limit + " (limitKey=" + key + ")");
+                event.getPlayer().sendMessage("섬 " + limitName(key) + " 제한에 도달했습니다. 현재 " + current + "/" + limit);
                 return;
             }
             observed.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>()).merge(key, 1L, Long::sum);
