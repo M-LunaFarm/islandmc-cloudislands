@@ -3,11 +3,13 @@ package kr.lunaf.cloudislands.paper;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import org.bukkit.GameMode;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Ambient;
 import org.bukkit.entity.Animals;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.entity.WaterMob;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -92,7 +94,7 @@ public final class IslandGameplayFlagListener implements Listener {
         if (event.getEntity() instanceof Monster) {
             return IslandFlag.MONSTER_SPAWN;
         }
-        if (event.getEntity() instanceof Animals) {
+        if (event.getEntity() instanceof Animals || event.getEntity() instanceof WaterMob || event.getEntity() instanceof Ambient) {
             return IslandFlag.ANIMAL_SPAWN;
         }
         return null;
