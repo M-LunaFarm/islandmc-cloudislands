@@ -11,6 +11,8 @@ public interface NodeRegistry {
 
     boolean drain(String nodeId);
 
+    boolean shutdownSafe(String nodeId);
+
     boolean undrain(String nodeId);
 
     List<String> markStaleDown(Duration heartbeatTimeout);

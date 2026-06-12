@@ -28,7 +28,7 @@ public final class JdbcNodeRegistry implements NodeRegistry {
     @Override
     public void heartbeat(NodeHeartbeatRequest request) {
         NodeLoad current = find(request.nodeId()).orElse(null);
-        NodeState nextState = current != null && current.state() == NodeState.DRAINING ? NodeState.DRAINING : request.state();
+        NodeState nextState = current != null && manualLifecycleState(current.state()) ? current.state() : request.state();
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("INSERT INTO server_nodes(id, pool, velocity_server_name, node_version, state, soft_player_cap, hard_player_cap, max_active_islands, players, active_islands, mspt, heap_used_mb, heap_max_mb, activation_queue, max_activation_queue, chunk_load_pressure, recent_failure_penalty, object_storage_available, supported_templates, last_heartbeat, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), now()) ON CONFLICT (id) DO UPDATE SET pool = EXCLUDED.pool, velocity_server_name = EXCLUDED.velocity_server_name, node_version = EXCLUDED.node_version, state = EXCLUDED.state, players = EXCLUDED.players, active_islands = EXCLUDED.active_islands, mspt = EXCLUDED.mspt, heap_used_mb = EXCLUDED.heap_used_mb, heap_max_mb = EXCLUDED.heap_max_mb, activation_queue = EXCLUDED.activation_queue, max_activation_queue = EXCLUDED.max_activation_queue, chunk_load_pressure = EXCLUDED.chunk_load_pressure, recent_failure_penalty = EXCLUDED.recent_failure_penalty, object_storage_available = EXCLUDED.object_storage_available, supported_templates = EXCLUDED.supported_templates, last_heartbeat = now(), updated_at = now()")) {
             statement.setString(1, request.nodeId());
@@ -62,8 +62,17 @@ public final class JdbcNodeRegistry implements NodeRegistry {
     }
 
     @Override
+    public boolean shutdownSafe(String nodeId) {
+        return setState(nodeId, NodeState.SHUTTING_DOWN);
+    }
+
+    @Override
     public boolean undrain(String nodeId) {
         return setState(nodeId, NodeState.READY);
+    }
+
+    private boolean manualLifecycleState(NodeState state) {
+        return state == NodeState.DRAINING || state == NodeState.SHUTTING_DOWN;
     }
 
     @Override

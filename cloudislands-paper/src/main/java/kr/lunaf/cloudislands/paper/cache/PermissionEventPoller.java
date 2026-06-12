@@ -194,11 +194,12 @@ public final class PermissionEventPoller {
         }
         String reason = fields.getOrDefault("reason", "admin-request");
         String state = fields.getOrDefault("state", "");
+        String operation = fields.getOrDefault("operation", "");
         if ((type.equals(CloudIslandEventType.NODE_STATE_CHANGED.name()) && state.equals("KICKALL")) || type.equals("NODE_KICKALL")) {
             Bukkit.getScheduler().runTask(plugin, () -> kickPlayers(reason));
             return true;
         }
-        if ((type.equals(CloudIslandEventType.NODE_STATE_CHANGED.name()) && state.equals("SHUTDOWN_SAFE")) || type.equals("NODE_SHUTDOWN_SAFE")) {
+        if ((type.equals(CloudIslandEventType.NODE_STATE_CHANGED.name()) && (state.equals("SHUTDOWN_SAFE") || operation.equals("SHUTDOWN_SAFE"))) || type.equals("NODE_SHUTDOWN_SAFE")) {
             Bukkit.getScheduler().runTask(plugin, () -> {
                 kickPlayers(reason);
                 Bukkit.shutdown();

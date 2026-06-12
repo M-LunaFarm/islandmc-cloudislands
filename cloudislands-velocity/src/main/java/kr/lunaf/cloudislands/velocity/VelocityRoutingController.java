@@ -1509,7 +1509,8 @@ public final class VelocityRoutingController {
             return;
         }
         String state = fields.getOrDefault("state", "");
-        if (!state.equals("KICKALL") && !state.equals("SHUTDOWN_SAFE")) {
+        String operation = fields.getOrDefault("operation", "");
+        if (!state.equals("KICKALL") && !state.equals("SHUTDOWN_SAFE") && !operation.equals("SHUTDOWN_SAFE")) {
             return;
         }
         String nodeId = fields.getOrDefault("nodeId", "");
