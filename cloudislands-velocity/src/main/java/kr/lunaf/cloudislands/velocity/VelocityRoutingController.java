@@ -1091,7 +1091,7 @@ public final class VelocityRoutingController {
     private String rankingListMessage(String label, String body) {
         String rankings = arrayValue(body, "rankings");
         if (rankings.isBlank()) {
-            return label + ": empty";
+            return label + ": 기록이 없습니다.";
         }
         java.util.List<String> entries = new java.util.ArrayList<>();
         int total = 0;
@@ -1108,14 +1108,17 @@ public final class VelocityRoutingController {
             total++;
             if (entries.size() < 10) {
                 String object = rankings.substring(objectStart, objectEnd + 1);
+                String islandId = jsonValue(object, "islandId");
+                String name = jsonValue(object, "name");
                 entries.add("#" + total
-                    + " " + shortId(jsonValue(object, "islandId"))
-                    + " level=" + longValue(object, "level")
-            + " worth=" + jsonValue(object, "worth"));
+                    + " " + (name.isBlank() ? "이름 없는 섬" : name)
+                    + " (ID=" + shortId(islandId)
+                    + ", 레벨=" + longValue(object, "level")
+                    + ", 가치=" + jsonValue(object, "worth") + ")");
             }
             index = objectEnd + 1;
         }
-        return label + ": total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+        return label + ": 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     private String blockValueListMessage(String body) {
