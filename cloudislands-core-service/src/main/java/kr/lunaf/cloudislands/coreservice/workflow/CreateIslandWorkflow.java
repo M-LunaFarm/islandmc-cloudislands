@@ -71,7 +71,7 @@ public final class CreateIslandWorkflow {
             publishTicketFailure(ownerUuid, null, "ALREADY_HAS_ISLAND");
             return new CreateIslandResult(false, "ALREADY_HAS_ISLAND", null, null);
         }
-        NodeLoad node = allocator.selectBestNode(nodes.snapshot(), Instant.now(), normalizedTemplate, template.minNodeVersion(), islandPool).orElse(null);
+        NodeLoad node = allocator.selectReadyNode(nodes.snapshot(), Instant.now(), normalizedTemplate, template.minNodeVersion(), islandPool).orElse(null);
         if (node == null) {
             publishTicketFailure(ownerUuid, null, "NODE_UNAVAILABLE");
             return new CreateIslandResult(false, "NODE_UNAVAILABLE", null, null);

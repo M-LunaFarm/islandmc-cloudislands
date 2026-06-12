@@ -39,6 +39,16 @@ public final class NodeAllocator {
         return ready.isPresent() ? ready : eligible.stream().min(Comparator.comparingDouble(NodeLoad::score));
     }
 
+    public Optional<NodeLoad> selectReadyNode(List<NodeLoad> nodes, Instant now, String templateId, String minNodeVersion, String pool) {
+        return nodes.stream()
+            .filter(node -> node.inPool(pool))
+            .filter(node -> node.eligible(now, heartbeatTimeout))
+            .filter(node -> node.state() == NodeState.READY)
+            .filter(node -> node.supportsTemplate(templateId))
+            .filter(node -> node.satisfiesMinVersion(minNodeVersion))
+            .min(Comparator.comparingDouble(NodeLoad::score));
+    }
+
     public boolean acceptsExistingRoute(NodeLoad node, Instant now, String templateId, String minNodeVersion) {
         return acceptsExistingRoute(node, now, templateId, minNodeVersion, "island");
     }
