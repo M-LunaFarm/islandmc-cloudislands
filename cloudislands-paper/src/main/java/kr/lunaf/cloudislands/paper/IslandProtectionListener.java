@@ -118,12 +118,21 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onBucketEmpty(PlayerBucketEmptyEvent event) {
-        event.setCancelled(denied(event.getPlayer(), event.getBlock(), IslandPermission.PLACE_LIQUID));
+        boolean blocked = denied(event.getPlayer(), event.getBlock(), IslandPermission.PLACE_LIQUID);
+        event.setCancelled(blocked);
+        Material liquid = bucketLiquid(event.getBucket());
+        if (!blocked && liquid != null) {
+            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.placed(islandId, liquid));
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onBucketFill(PlayerBucketFillEvent event) {
-        event.setCancelled(denied(event.getPlayer(), event.getBlock(), IslandPermission.BREAK_LIQUID));
+        boolean blocked = denied(event.getPlayer(), event.getBlock(), IslandPermission.BREAK_LIQUID);
+        event.setCancelled(blocked);
+        if (!blocked && (event.getBlock().getType() == Material.WATER || event.getBlock().getType() == Material.LAVA)) {
+            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.broken(islandId, event.getBlock()));
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -355,6 +364,14 @@ public final class IslandProtectionListener implements Listener {
                 blockDeltas.placed(islandId, newType);
             }
         });
+    }
+
+    private Material bucketLiquid(Material bucket) {
+        return switch (bucket) {
+            case WATER_BUCKET -> Material.WATER;
+            case LAVA_BUCKET -> Material.LAVA;
+            default -> null;
+        };
     }
 
     private void sendDenyMessage(Player player, IslandPermission permission) {
