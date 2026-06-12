@@ -3,6 +3,8 @@ package kr.lunaf.cloudislands.paper.cache;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -20,6 +22,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
 public final class PermissionEventPoller {
+    private static final int MAX_SEEN_EVENTS = 8192;
     private final Plugin plugin;
     private final CoreApiClient client;
     private final PermissionCacheSyncService permissionSync;
@@ -30,6 +33,7 @@ public final class PermissionEventPoller {
     private final String nodeId;
     private final String fallbackServerName;
     private final Set<String> seen = ConcurrentHashMap.newKeySet();
+    private final Deque<String> seenOrder = new ArrayDeque<>();
     private BukkitTask task;
 
     public PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, GeneratorLevelCache generatorLevels, CropGrowthLevelCache cropGrowthLevels, IslandLimitCache limits, ProtectionController protection, String nodeId, String fallbackServerName) {
@@ -63,7 +67,7 @@ public final class PermissionEventPoller {
                 String type = event.type();
                 Map<String, String> fields = fields(event.fields());
                 String key = eventKey(type, fields, event.occurredAt());
-                if (!seen.add(key)) {
+                if (!markSeen(key)) {
                     continue;
                 }
                 if (handlesNodeOperation(type, fields)) {
@@ -108,12 +112,21 @@ public final class PermissionEventPoller {
                     }
                 }
             }
-            if (seen.size() > 2048) {
-                seen.clear();
-            }
         } catch (RuntimeException exception) {
             plugin.getLogger().warning("Failed to poll permission cache events: " + exception.getMessage());
         }
+    }
+
+    private synchronized boolean markSeen(String key) {
+        if (!seen.add(key)) {
+            return false;
+        }
+        seenOrder.addLast(key);
+        while (seenOrder.size() > MAX_SEEN_EVENTS) {
+            String oldest = seenOrder.removeFirst();
+            seen.remove(oldest);
+        }
+        return true;
     }
 
     private String eventKey(String type, Map<String, String> fields, String occurredAt) {
