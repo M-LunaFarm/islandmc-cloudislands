@@ -22,7 +22,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public final class AdminCommandController implements CommandExecutor, TabCompleter {
-    private static final List<String> ROOT_COMMANDS = List.of("help", "status", "cache", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
+    private static final List<String> ROOT_COMMANDS = List.of("help", "status", "cache", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "islands", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
@@ -75,6 +75,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         "ciadmin rankings worth [limit]",
         "ciadmin events",
         "ciadmin audit",
+        "ciadmin metrics",
         "ciadmin block-values list",
         "ciadmin block-values set <materialKey> <worth> <levelPoints> <limit>",
         "ciadmin upgrade-rules",
@@ -153,6 +154,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args[0].equalsIgnoreCase("audit")) {
             run(sender, "Audit logs", coreApiClient.listAuditLogs());
+            return true;
+        }
+        if (args[0].equalsIgnoreCase("metrics")) {
+            run(sender, "Core metrics", coreApiClient.metrics());
             return true;
         }
         if (args[0].equalsIgnoreCase("block-values")) {

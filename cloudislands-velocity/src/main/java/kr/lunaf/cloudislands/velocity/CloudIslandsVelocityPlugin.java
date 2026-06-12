@@ -322,6 +322,10 @@ public final class CloudIslandsVelocityPlugin {
             routingController.listAuditLogs(player);
             return;
         }
+        if (args.length >= 1 && args[0].equalsIgnoreCase("metrics")) {
+            routingController.metrics(player);
+            return;
+        }
         if (args.length >= 2 && args[0].equalsIgnoreCase("block-values") && args[1].equalsIgnoreCase("list")) {
             routingController.listBlockValues(player);
             return;

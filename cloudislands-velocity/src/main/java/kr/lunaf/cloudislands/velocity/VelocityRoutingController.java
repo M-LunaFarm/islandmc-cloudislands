@@ -836,6 +836,10 @@ public final class VelocityRoutingController {
         sendBodyResult(player, coreApiClient.listAuditLogs(), "감사 로그를 불러오지 못했습니다.");
     }
 
+    public void metrics(Player player) {
+        sendBodyResult(player, coreApiClient.metrics(), "Core metrics를 불러오지 못했습니다.");
+    }
+
     public void listBlockValues(Player player) {
         sendBodyResult(player, coreApiClient.listBlockValues(), "블록 가치 목록을 불러오지 못했습니다.");
     }

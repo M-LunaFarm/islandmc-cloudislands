@@ -659,6 +659,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> metrics() {
+        return postWithResultBody("/metrics", "{}");
+    }
+
+    @Override
     public CompletableFuture<String> clearCache() {
         return clearCacheResult();
     }
@@ -870,6 +875,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         return path.startsWith("/v1/admin")
             || path.equals("/v1/audit")
             || path.equals("/v1/events")
+            || path.equals("/metrics")
             || path.equals("/v1/jobs")
             || path.equals("/v1/jobs/claim")
             || path.equals("/v1/jobs/complete")
