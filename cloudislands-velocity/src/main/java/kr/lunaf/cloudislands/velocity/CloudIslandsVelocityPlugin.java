@@ -421,11 +421,11 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("kickall")) {
-            routingController.kickAllNode(player, args[2]);
+            routingController.kickAllNode(player, args[2], args.length > 3 ? joinArgs(args, 3) : "admin-request");
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("shutdown-safe")) {
-            routingController.shutdownSafeNode(player, args[2]);
+            routingController.shutdownSafeNode(player, args[2], args.length > 3 ? joinArgs(args, 3) : "admin-request");
             return;
         }
         if (args.length >= 1 && args[0].equalsIgnoreCase("jobs") && (args.length == 1 || args[1].equalsIgnoreCase("list"))) {

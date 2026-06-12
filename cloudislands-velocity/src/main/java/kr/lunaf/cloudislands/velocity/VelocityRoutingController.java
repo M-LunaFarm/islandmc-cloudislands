@@ -645,8 +645,8 @@ public final class VelocityRoutingController {
         sendBodyResult(player, coreApiClient.sweepNode(nodeId).thenApply(this::nodeSweepMessage), "노드 장애 스윕을 요청하지 못했습니다.");
     }
 
-    public void kickAllNode(Player player, String nodeId) {
-        coreApiClient.kickAllNode(nodeId, "admin-request").thenAccept(body -> {
+    public void kickAllNode(Player player, String nodeId, String reason) {
+        coreApiClient.kickAllNode(nodeId, reason).thenAccept(body -> {
             int moved = moveNodePlayersToFallback(nodeId);
             player.sendMessage(Component.text(nodeActionSummaryMessage("Node kickall", nodeId, body) + " lobbyMoved=" + moved));
         }).exceptionally(error -> {
@@ -655,8 +655,8 @@ public final class VelocityRoutingController {
         });
     }
 
-    public void shutdownSafeNode(Player player, String nodeId) {
-        coreApiClient.shutdownNodeSafely(nodeId, "admin-request").thenAccept(body -> {
+    public void shutdownSafeNode(Player player, String nodeId, String reason) {
+        coreApiClient.shutdownNodeSafely(nodeId, reason).thenAccept(body -> {
             int moved = moveNodePlayersToFallback(nodeId);
             player.sendMessage(Component.text(nodeActionSummaryMessage("Node shutdown-safe", nodeId, body) + " lobbyMoved=" + moved));
         }).exceptionally(error -> {
