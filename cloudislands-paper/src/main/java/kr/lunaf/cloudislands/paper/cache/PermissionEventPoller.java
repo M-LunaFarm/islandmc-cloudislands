@@ -7,8 +7,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import kr.lunaf.cloudislands.common.event.CacheInvalidationPlan;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
@@ -22,8 +20,6 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
 public final class PermissionEventPoller {
-    private static final Pattern EVENT = Pattern.compile("\\{[^}]*\"type\":\"([^\"]+)\"[^}]*\"fields\":\\{([^}]*)}[^}]*\"occurredAt\":\"([^\"]+)\"[^}]*}");
-
     private final Plugin plugin;
     private final CoreApiClient client;
     private final PermissionCacheSyncService permissionSync;
@@ -63,11 +59,10 @@ public final class PermissionEventPoller {
     private void poll() {
         try {
             String json = client.listEvents().join();
-            Matcher matcher = EVENT.matcher(json == null ? "" : json);
-            while (matcher.find()) {
-                String type = matcher.group(1);
-                Map<String, String> fields = fields(matcher.group(2));
-                String key = eventKey(type, fields, matcher.group(3));
+            for (ParsedEvent event : events(json)) {
+                String type = event.type();
+                Map<String, String> fields = fields(event.fields());
+                String key = eventKey(type, fields, event.occurredAt());
                 if (!seen.add(key)) {
                     continue;
                 }
@@ -338,6 +333,89 @@ public final class PermissionEventPoller {
         return result;
     }
 
+    private java.util.List<ParsedEvent> events(String json) {
+        java.util.List<ParsedEvent> result = new java.util.ArrayList<>();
+        String source = json == null ? "" : json;
+        int arrayStart = source.indexOf("\"events\":[");
+        if (arrayStart < 0) {
+            return result;
+        }
+        int index = source.indexOf('{', arrayStart);
+        while (index >= 0 && index < source.length()) {
+            int objectEnd = matchingObjectEnd(source, index);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = source.substring(index, objectEnd + 1);
+            String type = textField(object, "type");
+            String fields = objectField(object, "fields");
+            String occurredAt = textField(object, "occurredAt");
+            if (!type.isBlank() && !occurredAt.isBlank()) {
+                result.add(new ParsedEvent(type, fields, occurredAt));
+            }
+            index = source.indexOf('{', objectEnd + 1);
+        }
+        return result;
+    }
+
+    private int matchingObjectEnd(String source, int objectStart) {
+        int depth = 0;
+        boolean inString = false;
+        boolean escaped = false;
+        for (int i = objectStart; i < source.length(); i++) {
+            char current = source.charAt(i);
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (current == '\\') {
+                escaped = inString;
+                continue;
+            }
+            if (current == '"') {
+                inString = !inString;
+                continue;
+            }
+            if (inString) {
+                continue;
+            }
+            if (current == '{') {
+                depth++;
+            } else if (current == '}') {
+                depth--;
+                if (depth == 0) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    private String textField(String object, String key) {
+        String needle = "\"" + key + "\":\"";
+        int start = object.indexOf(needle);
+        if (start < 0) {
+            return "";
+        }
+        int valueStart = start + needle.length();
+        int valueEnd = jsonStringEnd(object, valueStart);
+        return valueEnd < 0 ? "" : unescape(object.substring(valueStart, valueEnd));
+    }
+
+    private String objectField(String object, String key) {
+        String needle = "\"" + key + "\":";
+        int start = object.indexOf(needle);
+        if (start < 0) {
+            return "";
+        }
+        int objectStart = object.indexOf('{', start + needle.length());
+        if (objectStart < 0) {
+            return "";
+        }
+        int objectEnd = matchingObjectEnd(object, objectStart);
+        return objectEnd < 0 ? "" : object.substring(objectStart + 1, objectEnd);
+    }
+
     private int jsonStringEnd(String source, int start) {
         boolean escaped = false;
         for (int i = start; i < source.length(); i++) {
@@ -378,4 +456,6 @@ public final class PermissionEventPoller {
         }
         return builder.toString();
     }
+
+    private record ParsedEvent(String type, String fields, String occurredAt) {}
 }
