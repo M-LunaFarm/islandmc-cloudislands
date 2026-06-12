@@ -302,6 +302,7 @@ public final class CloudIslandsCoreApplication {
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
         route("/health", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));
         route("/metrics", exchange -> write(exchange, 200, metrics.render(), "text/plain; version=0.0.4; charset=utf-8"));
+        route("/v1/admin/config", exchange -> write(exchange, 200, configSummaryJson(config)));
         route("/v1/nodes", exchange -> write(exchange, 200, nodes.toJson(config.heartbeatTimeout())));
         route("/v1/nodes/info", exchange -> {
             String body = readBody(exchange);
@@ -1860,6 +1861,27 @@ public final class CloudIslandsCoreApplication {
             return new S3IslandStorage(config.storageEndpoint(), config.storageBucket(), config.storageRegion(), config.storageAccessKey(), config.storageSecretKey(), config.storageBearerToken());
         }
         return null;
+    }
+
+    private static String configSummaryJson(CoreServiceConfig config) {
+        return "{"
+            + "\"repositoryMode\":\"" + escape(config.repositoryMode()) + "\","
+            + "\"jobQueueMode\":\"" + escape(config.jobQueueMode()) + "\","
+            + "\"eventBusMode\":\"" + escape(config.eventBusMode()) + "\","
+            + "\"databasePoolSize\":" + config.databasePoolSize() + ","
+            + "\"storageType\":\"" + escape(config.storageType()) + "\","
+            + "\"islandPool\":\"" + escape(config.islandPool()) + "\","
+            + "\"softFullPolicy\":\"" + escape(config.softFullPolicy()) + "\","
+            + "\"hardFullPolicy\":\"" + escape(config.hardFullPolicy()) + "\","
+            + "\"migrationPolicy\":\"" + escape(config.migrationPolicy()) + "\","
+            + "\"routeTicketTtlSeconds\":" + config.routeTicketTtl().toSeconds() + ","
+            + "\"routePreparingTicketTtlSeconds\":" + config.routePreparingTicketTtl().toSeconds() + ","
+            + "\"heartbeatTimeoutSeconds\":" + config.heartbeatTimeout().toSeconds() + ","
+            + "\"leaseDurationSeconds\":" + config.leaseDuration().toSeconds() + ","
+            + "\"snapshotKeepLatest\":" + config.snapshotKeepLatest() + ","
+            + "\"adminApiEnabled\":" + config.adminApiEnabled() + ","
+            + "\"requireMtls\":" + config.requireMtls()
+            + "}";
     }
 
     public void start() {
