@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
@@ -205,10 +206,14 @@ public final class RoutingOrchestrator {
         if (metadata.isLocked(island.islandId()) && !member) {
             return rejectRoute(423, "ISLAND_LOCKED", "Island is locked", playerUuid, island.islandId(), RouteAction.WARP);
         }
-        if (!warp.publicAccess() && !member) {
+        if (!member && (!warp.publicAccess() || !islandFlagEnabled(island.islandId(), IslandFlag.PUBLIC_WARPS))) {
             return rejectRoute(403, "WARP_PRIVATE", "Island warp is private", playerUuid, island.islandId(), RouteAction.WARP);
         }
         return prepareTicket(playerUuid, island, RouteAction.WARP, warpPayload(warp));
+    }
+
+    private boolean islandFlagEnabled(UUID islandId, IslandFlag flag) {
+        return Boolean.parseBoolean(metadata.flags(islandId).values().getOrDefault(flag, "false"));
     }
 
     private RoutePreparationResult prepareTicket(UUID playerUuid, IslandSnapshot island, RouteAction action) {
