@@ -1379,6 +1379,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " softFull=" + textValue(body, "softFullPolicy")
             + " hardFull=" + textValue(body, "hardFullPolicy")
             + " migration=" + textValue(body, "migrationPolicy")
+            + " ticketTtl=" + longValue(body, "routeTicketTtlSeconds") + "s"
+            + " prepTtl=" + longValue(body, "routePreparingTicketTtlSeconds") + "s"
             + " mtls=" + boolValue(body, "requireMtls")
             + " ipAllowlist=" + boolValue(body, "ipAllowlistEnabled");
     }

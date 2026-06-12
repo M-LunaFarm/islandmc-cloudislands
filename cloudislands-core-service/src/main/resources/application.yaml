@@ -18,6 +18,8 @@ storage:
 routing:
   heartbeat-timeout-seconds: 5
   lease-duration-seconds: 30
+  route-ticket-ttl-seconds: 30
+  route-preparing-ticket-ttl-seconds: 120
   soft-full-policy: "AVOID_NEW_ACTIVATIONS"
   hard-full-policy: "DENY_OR_QUEUE"
   migration-policy: "INACTIVE_ONLY_AUTOMATIC"
