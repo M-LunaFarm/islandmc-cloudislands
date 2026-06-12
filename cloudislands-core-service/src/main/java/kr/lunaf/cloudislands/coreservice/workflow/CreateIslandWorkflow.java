@@ -99,7 +99,7 @@ public final class CreateIslandWorkflow {
         metadata.upsertMember(islandId, ownerUuid, IslandRole.OWNER);
         playerProfiles.setPrimaryIsland(ownerUuid, islandId);
         try {
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.CREATE_ISLAND, islandId, node.nodeId(), 0, Map.of("templateId", normalizedTemplate), Instant.now()));
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.CREATE_ISLAND, islandId, node.nodeId(), 0, Map.of("templateId", normalizedTemplate, "ownerUuid", ownerUuid.toString(), "islandSize", Integer.toString(island.size())), Instant.now()));
         } catch (RuntimeException exception) {
             releaseCreationLock(lease);
             islands.setState(islandId, IslandState.ERROR_CREATING);
