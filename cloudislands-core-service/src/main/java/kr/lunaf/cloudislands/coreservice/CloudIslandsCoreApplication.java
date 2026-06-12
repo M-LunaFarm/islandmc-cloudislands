@@ -135,6 +135,7 @@ public final class CloudIslandsCoreApplication {
     private final GlobalEventPublisher events;
     private final IslandSnapshotRepository snapshotRepository;
     private final DirtyRankingRecalculationTask rankingRecalculationTask;
+    private final int snapshotKeepLatest;
 
     public CloudIslandsCoreApplication(int port) throws IOException {
         this(CoreServiceConfig.fromEnvironment().withPort(port));
@@ -170,6 +171,7 @@ public final class CloudIslandsCoreApplication {
         this.events = events;
         IslandSnapshotRepository snapshotRepository = config.jdbcRepositories() ? new JdbcIslandSnapshotRepository(dataSource) : new InMemoryIslandSnapshotRepository();
         this.snapshotRepository = snapshotRepository;
+        this.snapshotKeepLatest = Math.max(1, config.snapshotKeepLatest());
         RankingRepository rankingRepository = config.jdbcRepositories() ? new JdbcRankingRepository(dataSource) : new InMemoryRankingRepository();
         IslandLevelRepository levelRepository = config.jdbcRepositories() ? new JdbcIslandLevelRepository(dataSource) : new InMemoryIslandLevelRepository();
         kr.lunaf.cloudislands.coreservice.ranking.ConfigBlockValues.load(config.blockValuesFile()).forEach(levelRepository::putBlockValue);
@@ -1635,6 +1637,7 @@ public final class CloudIslandsCoreApplication {
             long snapshotNo = System.currentTimeMillis();
             IslandStorage.StoredBundle storedBundle = deleteStorage.writeDeleteBackupFromLatest(islandId, snapshotNo);
             snapshotRepository.record(islandId, snapshotNo, "islands/" + islandId + "/backups/delete-" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", reason, null, storedBundle.checksum(), storedBundle.sizeBytes());
+            snapshotRepository.prune(islandId, snapshotKeepLatest);
             deleteStorage.deleteLiveState(islandId);
         } catch (IOException exception) {
             events.publish("ISLAND_DELETE_BACKUP_FAILED", Map.of("islandId", islandId.toString(), "reason", reason, "error", exception.getMessage() == null ? "" : exception.getMessage()));

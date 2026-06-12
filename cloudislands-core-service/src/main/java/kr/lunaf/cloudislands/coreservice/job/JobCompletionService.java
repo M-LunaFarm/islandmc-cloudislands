@@ -88,6 +88,7 @@ public final class JobCompletionService {
             long snapshotNo = longValue(job.payload().get("snapshotNo"));
             if (snapshotNo > 0L) {
                 snapshots.record(job.islandId(), snapshotNo, "islands/" + job.islandId() + "/backups/delete-" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", job.payload().getOrDefault("reason", "DELETE_ISLAND"), null, job.payload().getOrDefault("checksum", ""), longValue(job.payload().get("sizeBytes")));
+                snapshots.prune(job.islandId(), snapshotKeepLatest);
             }
             runtimes.setState(job.islandId(), IslandState.DELETED);
             setIslandState(job.islandId(), IslandState.DELETED);
@@ -161,6 +162,7 @@ public final class JobCompletionService {
             return;
         }
         snapshots.record(job.islandId(), snapshotNo, "islands/" + job.islandId() + "/snapshots/" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", job.payload().getOrDefault("preMutationReason", "BEFORE_MUTATION"), null, job.payload().getOrDefault("preMutationChecksum", ""), longValue(job.payload().get("preMutationSizeBytes")));
+        snapshots.prune(job.islandId(), snapshotKeepLatest);
     }
 
     private long recordCompletedSnapshot(IslandJob job, String fallbackReason, boolean prune) {
