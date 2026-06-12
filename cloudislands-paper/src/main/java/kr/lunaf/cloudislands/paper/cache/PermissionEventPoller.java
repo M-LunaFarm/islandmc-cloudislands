@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.paper.event.IslandFlagChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandLevelRecalculateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMemberJoinEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMemberLeaveEvent;
+import kr.lunaf.cloudislands.paper.event.IslandPermissionChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandRoleChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandUpgradeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandWarpChangeEvent;
@@ -329,6 +330,8 @@ public final class PermissionEventPoller {
             Bukkit.getPluginManager().callEvent(new IslandUpgradeEvent(islandId, fields.getOrDefault("upgradeKey", ""), intField(fields, "level"), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_FLAG_CHANGED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandFlagChangeEvent(islandId, firstPresent(fields, "flag", "flagKey"), fields.getOrDefault("value", ""), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_PERMISSION_CHANGED.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandPermissionChangeEvent(islandId, fields.getOrDefault("role", ""), fields.getOrDefault("permission", ""), booleanField(fields, "allowed"), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_BIOME_CHANGED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandBiomeChangeEvent(islandId, fields.getOrDefault("biomeKey", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_WARP_CHANGED.name())) {
@@ -414,6 +417,20 @@ public final class PermissionEventPoller {
         } catch (NumberFormatException ignored) {
             return 0L;
         }
+    }
+
+    private Boolean booleanField(Map<String, String> fields, String key) {
+        String value = fields.get(key);
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("허용") || value.equals("1")) {
+            return true;
+        }
+        if (value.equalsIgnoreCase("false") || value.equalsIgnoreCase("거부") || value.equals("0")) {
+            return false;
+        }
+        return null;
     }
 
     private UUID uuidField(Map<String, String> fields, String... keys) {
