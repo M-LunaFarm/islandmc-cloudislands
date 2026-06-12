@@ -1376,6 +1376,19 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             integer(json, "expected", 0),
             bool(json, "rolledBack", false),
             integer(json, "removedIslands", 0),
+            integer(json, "members", 0),
+            integer(json, "bannedVisitors", 0),
+            integer(json, "homes", 0),
+            integer(json, "warps", 0),
+            integer(json, "flags", 0),
+            integer(json, "permissions", 0),
+            integer(json, "upgrades", 0),
+            integer(json, "limits", 0),
+            integer(json, "completedMissions", 0),
+            integer(json, "blockValues", 0),
+            integer(json, "blockCounts", 0),
+            integer(json, "blockingIssues", 0),
+            integer(json, "warningIssues", 0),
             migrationIssues(json)
         );
     }

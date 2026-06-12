@@ -23,6 +23,8 @@ import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.UpgradePolicy;
 import kr.lunaf.cloudislands.migration.MigrationIssue;
 import kr.lunaf.cloudislands.migration.MigrationManifest;
+import kr.lunaf.cloudislands.migration.MigrationReport;
+import kr.lunaf.cloudislands.migration.MigrationReportBuilder;
 import kr.lunaf.cloudislands.migration.SuperiorSkyblock2MigrationScanner;
 import kr.lunaf.cloudislands.migration.importer.CloudIslandsMigrationImporter;
 import kr.lunaf.cloudislands.migration.importer.MigrationImportPlan;
@@ -68,18 +70,19 @@ public final class MigrationAdminService {
         String sourcePath = path == null || path.isBlank() ? "plugins/SuperiorSkyblock2" : path;
         lastScan = scanner.scan(Path.of(sourcePath));
         lastPlan = new MigrationImportPlan(lastScan.manifests(), lastScan.issues());
-        return "{\"state\":\"" + MigrationRunState.SCANNED + "\",\"path\":\"" + escape(sourcePath) + "\",\"manifests\":" + lastScan.manifests().size() + ",\"issues\":" + issuesJson(lastScan.issues()) + "}";
+        return "{\"state\":\"" + MigrationRunState.SCANNED + "\",\"path\":\"" + escape(sourcePath) + "\",\"manifests\":" + lastScan.manifests().size() + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastScan.issues()) + "}";
     }
 
     public synchronized String dryRun() {
         lastPlan = importer.dryRun(lastScan.manifests());
         MigrationRunState state = lastPlan.canImport() ? MigrationRunState.DRY_RUN_PASSED : MigrationRunState.DRY_RUN_FAILED;
-        return "{\"state\":\"" + state + "\",\"manifests\":" + lastPlan.manifests().size() + ",\"canImport\":" + lastPlan.canImport() + ",\"issues\":" + issuesJson(lastPlan.issues()) + "}";
+        return "{\"state\":\"" + state + "\",\"manifests\":" + lastPlan.manifests().size() + ",\"canImport\":" + lastPlan.canImport() + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastPlan.issues()) + "}";
     }
 
     public synchronized String importLastPlan() {
         if (lastPlan.manifests().isEmpty()) {
-            return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\",\"imported\":false,\"importedIslands\":0,\"issues\":" + issuesJson(List.of(new MigrationIssue("MIGRATION_PLAN_EMPTY", "run scan and dryrun before import", true))) + "}";
+            List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_PLAN_EMPTY", "run scan and dryrun before import", true));
+            return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\",\"imported\":false,\"importedIslands\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
         }
         CloudIslandsMigrationImporter.ImportResult result = importer.importPlan(lastPlan, manifest -> {
             islands.createOwnedIsland(manifest.islandId(), manifest.ownerUuid(), "superiorskyblock2", "Migrated Island");
@@ -138,7 +141,7 @@ public final class MigrationAdminService {
         });
         lastRollbackPlan = result.rollbackPlan();
         MigrationRunState state = result.imported() ? MigrationRunState.IMPORTED : MigrationRunState.DRY_RUN_FAILED;
-        return "{\"state\":\"" + state + "\",\"imported\":" + result.imported() + ",\"importedIslands\":" + result.importedIslands() + ",\"issues\":" + issuesJson(result.issues()) + ",\"rollbackPlan\":" + rollbackPlanJson(result.rollbackPlan()) + "}";
+        return "{\"state\":\"" + state + "\",\"imported\":" + result.imported() + ",\"importedIslands\":" + result.importedIslands() + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), result.issues())) + ",\"issues\":" + issuesJson(result.issues()) + ",\"rollbackPlan\":" + rollbackPlanJson(result.rollbackPlan()) + "}";
     }
 
     public synchronized String verify() {
@@ -179,7 +182,7 @@ public final class MigrationAdminService {
         issues.addAll(result.issues());
         boolean passed = issues.isEmpty();
         MigrationRunState state = passed ? MigrationRunState.VERIFIED : MigrationRunState.VERIFYING;
-        return "{\"state\":\"" + state + "\",\"passed\":" + passed + ",\"expected\":" + lastScan.manifests().size() + ",\"imported\":" + imported.size() + ",\"issues\":" + issuesJson(issues) + "}";
+        return "{\"state\":\"" + state + "\",\"passed\":" + passed + ",\"expected\":" + lastScan.manifests().size() + ",\"imported\":" + imported.size() + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
     }
 
     public synchronized String rollbackLastImport() {
@@ -198,6 +201,22 @@ public final class MigrationAdminService {
                 .ifPresent(_current -> playerProfiles.clearPrimaryIsland(island.ownerUuid()));
         });
         return "{\"state\":\"" + MigrationRunState.ROLLED_BACK + "\",\"rolledBack\":" + result.rolledBack() + ",\"removedIslands\":" + result.removedIslands() + ",\"issues\":" + issuesJson(result.issues()) + "}";
+    }
+
+    private String reportFields(MigrationReport report) {
+        return ",\"members\":" + report.members()
+            + ",\"bannedVisitors\":" + report.bannedVisitors()
+            + ",\"homes\":" + report.homes()
+            + ",\"warps\":" + report.warps()
+            + ",\"flags\":" + report.flags()
+            + ",\"permissions\":" + report.permissions()
+            + ",\"upgrades\":" + report.upgrades()
+            + ",\"limits\":" + report.limits()
+            + ",\"completedMissions\":" + report.completedMissions()
+            + ",\"blockValues\":" + report.blockValues()
+            + ",\"blockCounts\":" + report.blockCounts()
+            + ",\"blockingIssues\":" + report.blockingIssues()
+            + ",\"warningIssues\":" + report.warningIssues();
     }
 
     private boolean permissionsMatch(MigrationManifest manifest) {

@@ -900,6 +900,16 @@ public final class VelocityRoutingController {
                 .append(" removed=")
                 .append(removedIslands);
         }
+        if (body.contains("\"members\"")) {
+            builder.append(" members=").append(longValue(body, "members"))
+                .append(" homes=").append(longValue(body, "homes"))
+                .append(" warps=").append(longValue(body, "warps"))
+                .append(" perms=").append(longValue(body, "permissions"));
+        }
+        if (body.contains("\"blockingIssues\"")) {
+            builder.append(" blocking=").append(longValue(body, "blockingIssues"))
+                .append(" warnings=").append(longValue(body, "warningIssues"));
+        }
         builder.append(migrationIssuesSuffix(issues));
         return builder.toString();
     }
