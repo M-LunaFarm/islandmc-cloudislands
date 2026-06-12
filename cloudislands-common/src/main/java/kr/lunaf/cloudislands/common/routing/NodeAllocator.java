@@ -9,9 +9,18 @@ import kr.lunaf.cloudislands.api.model.NodeState;
 
 public final class NodeAllocator {
     private final Duration heartbeatTimeout;
+    private final boolean avoidSoftFullNewActivations;
 
     public NodeAllocator(Duration heartbeatTimeout) {
+        this(heartbeatTimeout, "AVOID_NEW_ACTIVATIONS");
+    }
+
+    public NodeAllocator(Duration heartbeatTimeout, String softFullPolicy) {
         this.heartbeatTimeout = heartbeatTimeout;
+        this.avoidSoftFullNewActivations = softFullPolicy == null
+            || softFullPolicy.isBlank()
+            || softFullPolicy.equalsIgnoreCase("AVOID_NEW_ACTIVATIONS")
+            || softFullPolicy.equalsIgnoreCase("READY_ONLY");
     }
 
     public Optional<NodeLoad> selectBestNode(List<NodeLoad> nodes, Instant now) {
@@ -43,7 +52,7 @@ public final class NodeAllocator {
         return nodes.stream()
             .filter(node -> node.inPool(pool))
             .filter(node -> node.eligible(now, heartbeatTimeout))
-            .filter(node -> node.state() == NodeState.READY)
+            .filter(this::acceptsNewActivationState)
             .filter(node -> node.supportsTemplate(templateId))
             .filter(node -> node.satisfiesMinVersion(minNodeVersion))
             .min(Comparator.comparingDouble(NodeLoad::score));
@@ -66,7 +75,7 @@ public final class NodeAllocator {
                 continue;
             }
             String blockReason = node.allocationBlockReason(now, heartbeatTimeout);
-            if (blockReason.isBlank() && node.state() == NodeState.READY) {
+            if (blockReason.isBlank() && acceptsNewActivationState(node)) {
                 return "";
             }
             if (blockReason.isBlank()) {
@@ -75,6 +84,10 @@ public final class NodeAllocator {
             fallback = fallback.equals("NO_READY_NODE") ? blockReason : fallback;
         }
         return anyPoolNode ? fallback : "POOL_EMPTY";
+    }
+
+    private boolean acceptsNewActivationState(NodeLoad node) {
+        return node.state() == NodeState.READY || (!avoidSoftFullNewActivations && node.state() == NodeState.SOFT_FULL);
     }
 
     public String nodeBlockReason(NodeLoad node, Instant now, String templateId, String minNodeVersion, String pool) {
