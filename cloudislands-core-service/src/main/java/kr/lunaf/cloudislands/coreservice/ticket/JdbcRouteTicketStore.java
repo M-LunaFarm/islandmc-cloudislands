@@ -150,7 +150,7 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
     @Override
     public Optional<RouteTicket> findLatestForPlayer(UUID playerUuid) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT * FROM route_tickets WHERE player_uuid = ? ORDER BY created_at DESC LIMIT 1")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT * FROM route_tickets WHERE player_uuid = ? ORDER BY CASE WHEN state IN ('READY', 'PREPARING') AND expires_at >= now() THEN 0 ELSE 1 END, created_at DESC LIMIT 1")) {
             statement.setObject(1, playerUuid);
             try (ResultSet rs = statement.executeQuery()) {
                 return rs.next() ? Optional.of(map(rs)) : Optional.empty();

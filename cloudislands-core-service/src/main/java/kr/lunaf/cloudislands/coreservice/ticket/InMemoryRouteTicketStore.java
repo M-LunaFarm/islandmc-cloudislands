@@ -109,6 +109,14 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
 
     @Override
     public Optional<RouteTicket> findLatestForPlayer(UUID playerUuid) {
+        Instant now = clock.instant();
+        Optional<RouteTicket> active = tickets.values().stream()
+            .filter(ticket -> ticket.playerUuid().equals(playerUuid))
+            .filter(ticket -> (ticket.state() == RouteTicketState.READY || ticket.state() == RouteTicketState.PREPARING) && !ticket.expiresAt().isBefore(now))
+            .max((left, right) -> left.expiresAt().compareTo(right.expiresAt()));
+        if (active.isPresent()) {
+            return active;
+        }
         return tickets.values().stream()
             .filter(ticket -> ticket.playerUuid().equals(playerUuid))
             .max((left, right) -> left.expiresAt().compareTo(right.expiresAt()));
