@@ -19,6 +19,7 @@ public final class RedisCacheAdmin {
         "ci:lock:player-create:*",
         "ci:island:*:summary",
         "ci:island:*:runtime",
+        "ci:island-runtime-counts",
         "ci:island:*:members",
         "ci:island:*:bans",
         "ci:island:*:permissions",
