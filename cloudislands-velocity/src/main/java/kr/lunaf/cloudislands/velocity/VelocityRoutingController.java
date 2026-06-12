@@ -754,7 +754,7 @@ public final class VelocityRoutingController {
     }
 
     public void debugRoutes(Player player, UUID playerUuid) {
-        sendBodyResult(player, coreApiClient.debugRoutes(playerUuid), "라우트 정보를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.debugRoutes(playerUuid).thenApply(this::routeDebugMessage), "라우트 정보를 불러오지 못했습니다.");
     }
 
     public void debugRoutesTarget(Player player, String target) {
@@ -771,7 +771,7 @@ public final class VelocityRoutingController {
     }
 
     public void routeTicket(Player player, UUID ticketId) {
-        sendBodyResult(player, coreApiClient.routeTicket(ticketId), "티켓 정보를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.routeTicket(ticketId).thenApply(this::routeTicketMessage), "티켓 정보를 불러오지 못했습니다.");
     }
 
     public void routeTicketTarget(Player player, String target) {
@@ -785,7 +785,7 @@ public final class VelocityRoutingController {
                 player.sendMessage(Component.text("플레이어를 찾지 못했습니다."));
                 return;
             }
-            sendBodyResult(player, coreApiClient.routeTicketForPlayer(playerUuid), "티켓 정보를 불러오지 못했습니다.");
+            sendBodyResult(player, coreApiClient.routeTicketForPlayer(playerUuid).thenApply(this::routeTicketMessage), "티켓 정보를 불러오지 못했습니다.");
         }).exceptionally(error -> {
             player.sendMessage(Component.text("플레이어를 찾지 못했습니다."));
             return null;
@@ -793,7 +793,7 @@ public final class VelocityRoutingController {
     }
 
     public void clearRoute(Player player, UUID playerUuid, UUID ticketId) {
-        sendBodyResult(player, coreApiClient.clearRoute(playerUuid, ticketId), "라우트 정리를 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.clearRoute(playerUuid, ticketId).thenApply(this::routeClearMessage), "라우트 정리를 요청하지 못했습니다.");
     }
 
     public void clearRouteTarget(Player player, String target, UUID ticketId) {
@@ -1311,6 +1311,111 @@ public final class VelocityRoutingController {
             index = objectEnd + 1;
         }
         return entries.isEmpty() ? "Audit: empty" : "Audit: " + String.join(" | ", entries);
+    }
+
+    private String routeDebugMessage(String body) {
+        String sessions = arrayValue(body, "sessions");
+        String tickets = arrayValue(body, "tickets");
+        java.util.List<String> sessionEntries = new java.util.ArrayList<>();
+        java.util.List<String> ticketEntries = new java.util.ArrayList<>();
+        collectSessionSummaries(sessions, sessionEntries, 5);
+        collectTicketSummaries(tickets, ticketEntries, 5);
+        return "Routes: sessions=" + countObjects(sessions)
+            + (sessionEntries.isEmpty() ? "" : " [" + String.join(" | ", sessionEntries) + "]")
+            + " tickets=" + countObjects(tickets)
+            + (ticketEntries.isEmpty() ? "" : " [" + String.join(" | ", ticketEntries) + "]");
+    }
+
+    private String routeTicketMessage(String body) {
+        if (body == null || body.isBlank()) {
+            return "Route ticket: not found";
+        }
+        String code = jsonValue(body, "code");
+        if (!code.isBlank()) {
+            return "Route ticket: failed code=" + code;
+        }
+        return "Route ticket: " + ticketSummary(body);
+    }
+
+    private String routeClearMessage(String body) {
+        if (body == null || body.isBlank()) {
+            return "Route clear: no response";
+        }
+        return "Route clear: session=" + boolValue(body, "clearedSession") + " ticket=" + boolValue(body, "clearedTicket");
+    }
+
+    private void collectSessionSummaries(String sessions, java.util.List<String> entries, int limit) {
+        int index = 0;
+        while (index < sessions.length() && entries.size() < limit) {
+            int objectStart = sessions.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(sessions, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = sessions.substring(objectStart, objectEnd + 1);
+            String playerUuid = jsonValue(object, "playerUuid");
+            String ticketId = jsonValue(object, "ticketId");
+            String nodeId = jsonValue(object, "targetNode");
+            entries.add(shortId(playerUuid) + " ticket=" + shortId(ticketId) + (nodeId.isBlank() || hideNodeNames ? "" : " node=" + nodeId));
+            index = objectEnd + 1;
+        }
+    }
+
+    private void collectTicketSummaries(String tickets, java.util.List<String> entries, int limit) {
+        int index = 0;
+        while (index < tickets.length() && entries.size() < limit) {
+            int objectStart = tickets.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(tickets, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            entries.add(ticketSummary(tickets.substring(objectStart, objectEnd + 1)));
+            index = objectEnd + 1;
+        }
+    }
+
+    private String ticketSummary(String object) {
+        String ticketId = jsonValue(object, "ticketId");
+        String action = jsonValue(object, "action");
+        String state = jsonValue(object, "state");
+        String islandId = jsonValue(object, "islandId");
+        String nodeId = jsonValue(object, "targetNode");
+        return shortId(ticketId)
+            + " " + (action.isBlank() ? "UNKNOWN" : action)
+            + " " + (state.isBlank() ? "UNKNOWN" : state)
+            + (islandId.isBlank() ? "" : " island=" + shortId(islandId))
+            + (nodeId.isBlank() || hideNodeNames ? "" : " node=" + nodeId);
+    }
+
+    private String shortId(String value) {
+        if (value == null || value.isBlank()) {
+            return "-";
+        }
+        return value.length() > 8 ? value.substring(0, 8) : value;
+    }
+
+    private int countObjects(String array) {
+        int count = 0;
+        int index = 0;
+        while (index < array.length()) {
+            int objectStart = array.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(array, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            count++;
+            index = objectEnd + 1;
+        }
+        return count;
     }
 
     private String publicIslandListMessage(String body) {

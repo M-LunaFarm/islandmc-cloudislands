@@ -512,14 +512,14 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args[1].equalsIgnoreCase("debug")) {
             if (args.length < 3 || args[2].equalsIgnoreCase("all")) {
-                run(sender, "Route debug", coreApiClient.debugRoutes(new UUID(0L, 0L)));
+                run(sender, "Route debug", coreApiClient.debugRoutes(new UUID(0L, 0L)).thenApply(this::routeDebugMessage));
                 return true;
             }
             resolvePlayerUuid(sender, args[2]).thenAccept(playerUuid -> {
                 if (playerUuid == null) {
                     return;
                 }
-                run(sender, "Route debug", coreApiClient.debugRoutes(playerUuid));
+                run(sender, "Route debug", coreApiClient.debugRoutes(playerUuid).thenApply(this::routeDebugMessage));
             }).exceptionally(error -> {
                 sender.sendMessage("플레이어를 찾지 못했습니다: " + args[2]);
                 return null;
@@ -533,13 +533,13 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             }
             UUID ticketId = uuidOrNull(args[2]);
             if (ticketId != null) {
-                run(sender, "Route ticket", coreApiClient.routeTicket(ticketId));
+                run(sender, "Route ticket", coreApiClient.routeTicket(ticketId).thenApply(this::routeTicketMessage));
             } else {
                 resolvePlayerUuid(sender, args[2]).thenAccept(playerUuid -> {
                     if (playerUuid == null) {
                         return;
                     }
-                    run(sender, "Route ticket", coreApiClient.routeTicketForPlayer(playerUuid));
+                    run(sender, "Route ticket", coreApiClient.routeTicketForPlayer(playerUuid).thenApply(this::routeTicketMessage));
                 }).exceptionally(error -> {
                     sender.sendMessage("플레이어를 찾지 못했습니다: " + args[2]);
                     return null;
@@ -560,7 +560,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 if (playerUuid == null) {
                     return;
                 }
-                run(sender, "Route clear", coreApiClient.clearRoute(playerUuid, ticketId));
+                run(sender, "Route clear", coreApiClient.clearRoute(playerUuid, ticketId).thenApply(this::routeClearMessage));
             }).exceptionally(error -> {
                 sender.sendMessage("플레이어를 찾지 못했습니다: " + args[2]);
                 return null;
@@ -1020,6 +1020,111 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             index = objectEnd + 1;
         }
         return entries.isEmpty() ? "Audit: empty" : "Audit: " + String.join(" | ", entries);
+    }
+
+    private String routeDebugMessage(String body) {
+        String sessions = arrayValue(body, "sessions");
+        String tickets = arrayValue(body, "tickets");
+        List<String> sessionEntries = new ArrayList<>();
+        List<String> ticketEntries = new ArrayList<>();
+        collectSessionSummaries(sessions, sessionEntries, 5);
+        collectTicketSummaries(tickets, ticketEntries, 5);
+        return "Routes: sessions=" + countObjects(sessions)
+            + (sessionEntries.isEmpty() ? "" : " [" + String.join(" | ", sessionEntries) + "]")
+            + " tickets=" + countObjects(tickets)
+            + (ticketEntries.isEmpty() ? "" : " [" + String.join(" | ", ticketEntries) + "]");
+    }
+
+    private String routeTicketMessage(String body) {
+        if (body == null || body.isBlank()) {
+            return "Route ticket: not found";
+        }
+        String code = textValue(body, "code");
+        if (!code.isBlank()) {
+            return "Route ticket: failed code=" + code;
+        }
+        return "Route ticket: " + ticketSummary(body);
+    }
+
+    private String routeClearMessage(String body) {
+        if (body == null || body.isBlank()) {
+            return "Route clear: no response";
+        }
+        return "Route clear: session=" + boolValue(body, "clearedSession") + " ticket=" + boolValue(body, "clearedTicket");
+    }
+
+    private void collectSessionSummaries(String sessions, List<String> entries, int limit) {
+        int index = 0;
+        while (index < sessions.length() && entries.size() < limit) {
+            int objectStart = sessions.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(sessions, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = sessions.substring(objectStart, objectEnd + 1);
+            String playerUuid = textValue(object, "playerUuid");
+            String ticketId = textValue(object, "ticketId");
+            String nodeId = textValue(object, "targetNode");
+            entries.add(shortId(playerUuid) + " ticket=" + shortId(ticketId) + (nodeId.isBlank() ? "" : " node=" + nodeId));
+            index = objectEnd + 1;
+        }
+    }
+
+    private void collectTicketSummaries(String tickets, List<String> entries, int limit) {
+        int index = 0;
+        while (index < tickets.length() && entries.size() < limit) {
+            int objectStart = tickets.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(tickets, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            entries.add(ticketSummary(tickets.substring(objectStart, objectEnd + 1)));
+            index = objectEnd + 1;
+        }
+    }
+
+    private String ticketSummary(String object) {
+        String ticketId = textValue(object, "ticketId");
+        String action = textValue(object, "action");
+        String state = textValue(object, "state");
+        String islandId = textValue(object, "islandId");
+        String nodeId = textValue(object, "targetNode");
+        return shortId(ticketId)
+            + " " + (action.isBlank() ? "UNKNOWN" : action)
+            + " " + (state.isBlank() ? "UNKNOWN" : state)
+            + (islandId.isBlank() ? "" : " island=" + shortId(islandId))
+            + (nodeId.isBlank() ? "" : " node=" + nodeId);
+    }
+
+    private String shortId(String value) {
+        if (value == null || value.isBlank()) {
+            return "-";
+        }
+        return value.length() > 8 ? value.substring(0, 8) : value;
+    }
+
+    private int countObjects(String array) {
+        int count = 0;
+        int index = 0;
+        while (index < array.length()) {
+            int objectStart = array.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(array, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            count++;
+            index = objectEnd + 1;
+        }
+        return count;
     }
 
     private String nodeIslandRuntimeSuffix(String object) {
