@@ -159,11 +159,11 @@ public final class RoutingOrchestrator {
         if (ticket == null) {
             return "TICKET_NOT_FOUND";
         }
-        if (ticket.state() != RouteTicketState.READY) {
-            return "TICKET_NOT_READY";
-        }
         if (ticket.expiresAt().isBefore(Instant.now())) {
             return "TICKET_EXPIRED";
+        }
+        if (ticket.state() != RouteTicketState.READY) {
+            return "TICKET_NOT_READY";
         }
         if (!ticket.playerUuid().equals(playerUuid)) {
             return "PLAYER_MISMATCH";

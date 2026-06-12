@@ -84,7 +84,11 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
             return Optional.empty();
         }
         Instant now = clock.instant();
-        if (ticket.expiresAt().isBefore(now) || !ticket.playerUuid().equals(playerUuid) || !ticket.targetNode().equals(nodeId) || !ticket.nonce().equals(nonce)) {
+        if (ticket.expiresAt().isBefore(now)) {
+            tickets.put(ticketId, new RouteTicket(ticket.ticketId(), ticket.playerUuid(), ticket.action(), ticket.islandId(), ticket.targetNode(), ticket.targetWorld(), RouteTicketState.EXPIRED, ticket.expiresAt(), ticket.nonce(), ticket.payload()));
+            return Optional.empty();
+        }
+        if (!ticket.playerUuid().equals(playerUuid) || !ticket.targetNode().equals(nodeId) || !ticket.nonce().equals(nonce)) {
             return Optional.empty();
         }
         RouteTicket consumed = new RouteTicket(ticket.ticketId(), ticket.playerUuid(), ticket.action(), ticket.islandId(), ticket.targetNode(), ticket.targetWorld(), RouteTicketState.CONSUMED, ticket.expiresAt(), ticket.nonce(), ticket.payload());

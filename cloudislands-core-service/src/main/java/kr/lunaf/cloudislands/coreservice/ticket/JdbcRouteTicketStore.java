@@ -108,7 +108,20 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
     @Override
     public Optional<RouteTicket> consume(UUID ticketId, UUID playerUuid, String nodeId, String nonce) {
         RouteTicket ticket = find(ticketId).orElse(null);
-        if (ticket == null || ticket.state() != RouteTicketState.READY || ticket.expiresAt().isBefore(clock.instant()) || !ticket.playerUuid().equals(playerUuid) || !ticket.targetNode().equals(nodeId) || !ticket.nonce().equals(nonce)) {
+        if (ticket == null || ticket.state() != RouteTicketState.READY) {
+            return Optional.empty();
+        }
+        if (ticket.expiresAt().isBefore(clock.instant())) {
+            try (Connection connection = dataSource.getConnection();
+                 PreparedStatement statement = connection.prepareStatement("UPDATE route_tickets SET state = 'EXPIRED' WHERE id = ? AND state = 'READY'")) {
+                statement.setObject(1, ticketId);
+                statement.executeUpdate();
+                return Optional.empty();
+            } catch (SQLException exception) {
+                throw new IllegalStateException("failed to expire route ticket", exception);
+            }
+        }
+        if (!ticket.playerUuid().equals(playerUuid) || !ticket.targetNode().equals(nodeId) || !ticket.nonce().equals(nonce)) {
             return Optional.empty();
         }
         RouteTicket consumed = new RouteTicket(ticket.ticketId(), ticket.playerUuid(), ticket.action(), ticket.islandId(), ticket.targetNode(), ticket.targetWorld(), RouteTicketState.CONSUMED, ticket.expiresAt(), ticket.nonce(), ticket.payload());
