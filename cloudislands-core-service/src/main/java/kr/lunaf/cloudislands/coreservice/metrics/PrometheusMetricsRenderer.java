@@ -70,6 +70,12 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_storage_upload_seconds", "gauge");
         help(out, "cloudislands_storage_download_seconds", "Last island storage download duration reported by Paper heartbeat");
         type(out, "cloudislands_storage_download_seconds", "gauge");
+        help(out, "cloudislands_island_save_seconds", "Last island save bundle upload duration reported by Paper heartbeat");
+        type(out, "cloudislands_island_save_seconds", "gauge");
+        help(out, "cloudislands_island_activation_seconds", "Last island activation bundle download duration reported by Paper heartbeat");
+        type(out, "cloudislands_island_activation_seconds", "gauge");
+        help(out, "cloudislands_island_snapshot_seconds", "Last island snapshot bundle upload duration reported by Paper heartbeat");
+        type(out, "cloudislands_island_snapshot_seconds", "gauge");
         Instant now = Instant.now();
         for (NodeLoad node : nodes.snapshot()) {
             boolean fresh = Duration.between(node.lastHeartbeat(), now).compareTo(heartbeatTimeout) <= 0;
@@ -98,6 +104,9 @@ public final class PrometheusMetricsRenderer {
             }
             appendMetadataGauge(out, "cloudislands_storage_upload_seconds", node, "storageUploadSeconds");
             appendMetadataGauge(out, "cloudislands_storage_download_seconds", node, "storageDownloadSeconds");
+            appendMetadataGauge(out, "cloudislands_island_save_seconds", node, "storageUploadSeconds");
+            appendMetadataGauge(out, "cloudislands_island_activation_seconds", node, "storageDownloadSeconds");
+            appendMetadataGauge(out, "cloudislands_island_snapshot_seconds", node, "storageUploadSeconds");
         }
         help(out, "cloudislands_jobs_total", "Island jobs by in-memory state or backend mode");
         type(out, "cloudislands_jobs_total", "gauge");
