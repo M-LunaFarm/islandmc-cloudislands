@@ -94,7 +94,8 @@ public final class IslandProtectionListener implements Listener {
         boolean blocked = event.getReplacedBlockStates().stream().anyMatch(state -> denied(event.getPlayer(), state.getBlock(), IslandPermission.BUILD));
         event.setCancelled(blocked);
         if (!blocked) {
-            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.placed(islandId, event.getBlock()));
+            event.getReplacedBlockStates().forEach(state ->
+                protection.islandAt(state.getBlock()).ifPresent(islandId -> blockDeltas.placed(islandId, state.getBlock())));
         }
     }
 
