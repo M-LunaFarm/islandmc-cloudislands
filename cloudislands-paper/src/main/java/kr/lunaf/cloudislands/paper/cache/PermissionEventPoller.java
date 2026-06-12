@@ -21,7 +21,12 @@ import kr.lunaf.cloudislands.paper.event.IslandMemberJoinEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMemberLeaveEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMissionCompleteEvent;
 import kr.lunaf.cloudislands.paper.event.IslandPermissionChangeEvent;
+import kr.lunaf.cloudislands.paper.event.IslandRecoveryRequiredEvent;
+import kr.lunaf.cloudislands.paper.event.IslandRepairedEvent;
+import kr.lunaf.cloudislands.paper.event.IslandResetEvent;
+import kr.lunaf.cloudislands.paper.event.IslandRestoredEvent;
 import kr.lunaf.cloudislands.paper.event.IslandRoleChangeEvent;
+import kr.lunaf.cloudislands.paper.event.IslandRuntimeChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandSnapshotCreateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandSnapshotRequestEvent;
 import kr.lunaf.cloudislands.paper.event.IslandUpgradeEvent;
@@ -379,6 +384,16 @@ public final class PermissionEventPoller {
         }
         if (type.equals(CloudIslandEventType.ISLAND_UPGRADE.name())) {
             Bukkit.getPluginManager().callEvent(new IslandUpgradeEvent(islandId, fields.getOrDefault("upgradeKey", ""), intField(fields, "level"), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandRuntimeChangeEvent(islandId, fields.getOrDefault("state", ""), fields.getOrDefault("targetNode", ""), fields.getOrDefault("reason", ""), fields.getOrDefault("error", ""), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_RECOVERY_REQUIRED.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandRecoveryRequiredEvent(islandId, firstPresent(fields, "nodeId", "activeNode", "targetNode"), fields.getOrDefault("reason", ""), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_REPAIRED.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandRepairedEvent(islandId, fields.getOrDefault("reason", ""), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_RESTORED.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandRestoredEvent(islandId, longField(fields, "snapshotNo"), fields.getOrDefault("state", ""), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_RESET_REQUESTED.name()) || type.equals(CloudIslandEventType.ISLAND_RESET.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandResetEvent(islandId, type.equals(CloudIslandEventType.ISLAND_RESET_REQUESTED.name()), fields.getOrDefault("state", ""), fields.getOrDefault("targetNode", ""), fields.getOrDefault("reason", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_ACCESS_CHANGED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandAccessChangeEvent(islandId, booleanField(fields, "publicAccess"), booleanField(fields, "locked"), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_FLAG_CHANGED.name())) {
