@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
@@ -118,6 +119,7 @@ public final class IslandLifecycleWorkflow {
 
     public Result quarantine(UUID islandId, String reason) {
         IslandRuntimeSnapshot runtime = runtimes.markQuarantined(islandId, reason);
+        islands.setState(islandId, IslandState.QUARANTINED);
         events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", runtime.state().name(), "reason", reason));
         return new Result(true, "QUARANTINED", runtime);
     }
