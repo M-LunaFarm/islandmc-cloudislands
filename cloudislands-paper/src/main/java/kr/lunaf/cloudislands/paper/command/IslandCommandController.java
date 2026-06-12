@@ -1255,7 +1255,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private void clearFailedRoute(RouteTicket ticket) {
-        coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId()).exceptionally(error -> null);
+        coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), "PLUGIN_MESSAGE_FAILED").exceptionally(error -> null);
     }
 
     private void connectPlayerToServer(Player player, String targetServerName, String successMessage, String failureMessage) {

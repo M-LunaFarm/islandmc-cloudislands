@@ -740,11 +740,19 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
             UUID ticketId = JsonFields.uuid(body, "ticketId", new UUID(0L, 0L));
+            String reason = JsonFields.text(body, "reason", "MANUAL_CLEAR");
             boolean clearedSession = !playerUuid.equals(new UUID(0L, 0L)) && sessions.clear(playerUuid);
             UUID clearTicketId = ticketId.equals(new UUID(0L, 0L)) && !playerUuid.equals(new UUID(0L, 0L))
                 ? tickets.findLatestForPlayer(playerUuid).map(RouteTicket::ticketId).orElse(new UUID(0L, 0L))
                 : ticketId;
             boolean clearedTicket = !clearTicketId.equals(new UUID(0L, 0L)) && tickets.clear(clearTicketId);
+            events.publish(CloudIslandEventType.ROUTE_TICKET_CLEARED.name(), Map.of(
+                "playerUuid", playerUuid.toString(),
+                "ticketId", clearTicketId.toString(),
+                "reason", reason == null || reason.isBlank() ? "MANUAL_CLEAR" : reason,
+                "clearedSession", Boolean.toString(clearedSession),
+                "clearedTicket", Boolean.toString(clearedTicket)
+            ));
             write(exchange, 202, "{\"clearedSession\":" + clearedSession + ",\"clearedTicket\":" + clearedTicket + "}");
         });
         route("/v1/admin/cache/clear", exchange -> {

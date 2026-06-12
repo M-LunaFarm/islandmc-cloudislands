@@ -790,7 +790,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private void clearFailedRoute(RouteTicket ticket) {
-        coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId()).exceptionally(error -> null);
+        coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), "PLUGIN_MESSAGE_FAILED").exceptionally(error -> null);
     }
 
     private void run(CommandSender sender, String action, CompletableFuture<String> future) {
@@ -1355,6 +1355,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             String occurredAt = textValue(object, "occurredAt");
             String fields = objectValue(object, "fields");
             String islandId = textValue(fields, "islandId");
+            String ticketId = textValue(fields, "ticketId");
             String playerUuid = textValue(fields, "playerUuid");
             String action = textValue(fields, "action");
             String reason = textValue(fields, "reason");
@@ -1364,6 +1365,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             }
             entries.add((type.isBlank() ? "UNKNOWN_EVENT" : type)
                 + (islandId.isBlank() ? "" : " island=" + islandId)
+                + (ticketId.isBlank() ? "" : " ticket=" + shortId(ticketId))
                 + (playerUuid.isBlank() ? "" : " player=" + shortId(playerUuid))
                 + (action.isBlank() ? "" : " action=" + action)
                 + (reason.isBlank() ? "" : " reason=" + reason)

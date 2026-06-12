@@ -1950,6 +1950,7 @@ public final class VelocityRoutingController {
             String occurredAt = jsonValue(object, "occurredAt");
             String fields = objectValue(object, "fields");
             String islandId = jsonValue(fields, "islandId");
+            String ticketId = jsonValue(fields, "ticketId");
             String playerUuid = jsonValue(fields, "playerUuid");
             String action = jsonValue(fields, "action");
             String reason = jsonValue(fields, "reason");
@@ -1959,6 +1960,7 @@ public final class VelocityRoutingController {
             }
             entries.add((type.isBlank() ? "UNKNOWN_EVENT" : type)
                 + (islandId.isBlank() ? "" : " island=" + islandId)
+                + (ticketId.isBlank() ? "" : " ticket=" + shortId(ticketId))
                 + (playerUuid.isBlank() ? "" : " player=" + shortId(playerUuid))
                 + (action.isBlank() ? "" : " action=" + action)
                 + (reason.isBlank() ? "" : " reason=" + reason)
@@ -2612,7 +2614,7 @@ public final class VelocityRoutingController {
     }
 
     private void clearFailedRoute(RouteTicket ticket) {
-        coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId()).exceptionally(error -> null);
+        coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), "CONNECT_FAILED").exceptionally(error -> null);
     }
 
     private void fallback(Player player, String message) {

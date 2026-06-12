@@ -671,7 +671,17 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> clearRouteResult(UUID playerUuid, UUID ticketId) {
-        return postWithResultBody("/v1/admin/routes/clear", "{\"playerUuid\":\"" + playerUuid + "\",\"ticketId\":\"" + ticketId + "\"}");
+        return clearRouteResult(playerUuid, ticketId, "MANUAL_CLEAR");
+    }
+
+    @Override
+    public CompletableFuture<String> clearRoute(UUID playerUuid, UUID ticketId, String reason) {
+        return clearRouteResult(playerUuid, ticketId, reason);
+    }
+
+    @Override
+    public CompletableFuture<String> clearRouteResult(UUID playerUuid, UUID ticketId, String reason) {
+        return postWithResultBody("/v1/admin/routes/clear", "{\"playerUuid\":\"" + playerUuid + "\",\"ticketId\":\"" + ticketId + "\",\"reason\":\"" + escape(reason == null || reason.isBlank() ? "MANUAL_CLEAR" : reason) + "\"}");
     }
 
     @Override

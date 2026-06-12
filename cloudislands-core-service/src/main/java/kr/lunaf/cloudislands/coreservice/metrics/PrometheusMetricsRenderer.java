@@ -235,6 +235,10 @@ public final class PrometheusMetricsRenderer {
         help(out, "cloudislands_route_ticket_expired_total", "Route tickets that expired before being consumed");
         type(out, "cloudislands_route_ticket_expired_total", "counter");
         out.append("cloudislands_route_ticket_expired_total ").append(events.countsByField(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_FAILED.name(), "reason").getOrDefault("TICKET_EXPIRED", 0L)).append('\n');
+        help(out, "cloudislands_route_ticket_cleared_total", "Route tickets or sessions cleared by admin or failed connection cleanup");
+        type(out, "cloudislands_route_ticket_cleared_total", "counter");
+        out.append("cloudislands_route_ticket_cleared_total ").append(events.countByType(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CLEARED.name())).append('\n');
+        appendEventFieldCounters(out, "cloudislands_route_ticket_cleared_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CLEARED, "reason");
         help(out, "cloudislands_route_tickets_total", "Route tickets currently stored by state");
         type(out, "cloudislands_route_tickets_total", "gauge");
         for (Map.Entry<String, Long> entry : tickets.countsByState().entrySet()) {
