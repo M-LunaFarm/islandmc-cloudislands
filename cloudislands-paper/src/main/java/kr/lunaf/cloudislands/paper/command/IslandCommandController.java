@@ -1446,18 +1446,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                         message(player, label + "을 전송하지 못했습니다.");
                         return;
                     }
-                    String acceptedChannel = text(body, "channel");
-                    String acceptedMessage = text(body, "message");
-                    if (acceptedChannel.equalsIgnoreCase("TEAM")) {
-                        coreApiClient.listIslandMembers(islandId)
-                            .thenAccept(membersBody -> plugin.getServer().getScheduler().runTask(plugin, () -> broadcastIslandChat(player, islandId, acceptedChannel, acceptedMessage, memberUuids(membersBody))))
-                            .exceptionally(error -> {
-                                message(player, label + " 수신자를 불러오지 못했습니다.");
-                                return null;
-                            });
-                        return;
-                    }
-                    plugin.getServer().getScheduler().runTask(plugin, () -> broadcastIslandChat(player, islandId, acceptedChannel, acceptedMessage, Set.of()));
+                    message(player, label + "을 전송했습니다.");
                 })
                 .exceptionally(error -> {
                     message(player, label + "을 전송하지 못했습니다.");

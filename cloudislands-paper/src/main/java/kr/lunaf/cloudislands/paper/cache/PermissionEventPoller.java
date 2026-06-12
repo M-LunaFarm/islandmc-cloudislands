@@ -171,10 +171,6 @@ public final class PermissionEventPoller {
         if (islandIdValue.isBlank() || actorUuidValue.isBlank() || message.isBlank()) {
             return true;
         }
-        UUID actorUuid = UUID.fromString(actorUuidValue);
-        if (Bukkit.getPlayer(actorUuid) != null) {
-            return true;
-        }
         UUID islandId = UUID.fromString(islandIdValue);
         String channel = fields.getOrDefault("channel", "ISLAND");
         String actorName = fields.getOrDefault("actorName", actorUuidValue);
