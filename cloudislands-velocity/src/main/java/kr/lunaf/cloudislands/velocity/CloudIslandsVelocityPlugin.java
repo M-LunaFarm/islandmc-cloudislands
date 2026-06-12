@@ -222,8 +222,8 @@ public final class CloudIslandsVelocityPlugin {
             player.sendMessage(Component.text(routingController.statusSummary()));
             return;
         }
-        if (args[0].equalsIgnoreCase("help")) {
-            sendCommandList(player, "CloudIslands 관리자 명령어 목록", IslandCommandCatalog.adminCommands(), args.length > 1 ? (int) parseLongOrZero(args[1]) : 1, "ciadmin help");
+        if (isCommandListRequest(args)) {
+            sendCommandList(player, "CloudIslands 관리자 명령어 목록", IslandCommandCatalog.adminCommands(), commandListPage(args), "ciadmin help");
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("info")) {
@@ -432,8 +432,8 @@ public final class CloudIslandsVelocityPlugin {
     }
 
     private void dispatch(Player player, String[] args) {
-        if (args.length > 0 && (args[0].equalsIgnoreCase("help") || args[0].equals("도움말") || args[0].equalsIgnoreCase("commands") || args[0].equals("명령어"))) {
-            sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands(), args.length > 1 ? (int) parseLongOrZero(args[1]) : 1, "섬 help");
+        if (isCommandListRequest(args)) {
+            sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands(), commandListPage(args), "섬 help");
             return;
         }
         if (args.length == 0 || args[0].equalsIgnoreCase("home") || args[0].equals("홈")) {
@@ -851,6 +851,27 @@ public final class CloudIslandsVelocityPlugin {
         if (safePage < maxPage) {
             player.sendMessage(Component.text("> /" + nextCommand + " " + (safePage + 1)));
         }
+    }
+
+    private boolean isCommandListRequest(String[] args) {
+        if (args.length == 0) {
+            return false;
+        }
+        String first = args[0].toLowerCase(java.util.Locale.ROOT);
+        if (first.equals("help") || first.equals("도움말") || first.equals("commands") || first.equals("command-list") || first.equals("명령어") || first.equals("명령어목록")) {
+            return true;
+        }
+        return first.equals("command") && args.length > 1 && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"));
+    }
+
+    private int commandListPage(String[] args) {
+        if (args.length > 2 && args[0].equalsIgnoreCase("command") && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
+            return (int) parseLongOrZero(args[2]);
+        }
+        if (args.length > 1) {
+            return (int) parseLongOrZero(args[1]);
+        }
+        return 1;
     }
 
     private UUID parseUuidOrNil(String value) {

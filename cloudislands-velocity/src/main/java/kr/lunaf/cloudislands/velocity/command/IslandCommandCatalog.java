@@ -7,7 +7,7 @@ public final class IslandCommandCatalog {
 
     public static List<String> playerCommands() {
         return List.of(
-            "섬 help [page]", "섬", "섬 생성", "섬 목록", "섬 내섬", "섬 홈", "섬 홈목록", "섬 셋홈", "섬 방문", "섬 랜덤방문", "섬 공개섬",
+            "섬 help [page]", "섬 command list [page]", "섬", "섬 생성", "섬 목록", "섬 내섬", "섬 홈", "섬 홈목록", "섬 셋홈", "섬 방문", "섬 랜덤방문", "섬 공개섬",
             "섬 초대", "섬 초대목록", "섬 초대수락", "섬 초대거절", "섬 멤버", "섬 추방",
             "섬 승급", "섬 강등", "섬 양도", "섬 신뢰", "섬 신뢰해제",
             "섬 밴", "섬 밴해제", "섬 밴목록", "섬 방문자추방", "섬 공개", "섬 비공개",
@@ -26,6 +26,7 @@ public final class IslandCommandCatalog {
         return List.of(
             "ciadmin status",
             "ciadmin help [page]",
+            "ciadmin command list [page]",
             "ciadmin island info <island|player>", "ciadmin island where <island>", "ciadmin island tp <island>",
             "ciadmin island activate <island>", "ciadmin island deactivate <island>", "ciadmin island migrate <island> <node>",
             "ciadmin island save <island>", "ciadmin island snapshot <island> [reason]", "ciadmin island snapshots <island>", "ciadmin island rollback <island> <snapshot>",

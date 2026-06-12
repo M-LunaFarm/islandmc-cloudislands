@@ -60,7 +60,7 @@ import org.jetbrains.annotations.NotNull;
 
 public final class IslandCommandController implements CommandExecutor, TabCompleter {
     private static final List<String> SUBCOMMANDS = List.of(
-        "help", "도움말", "commands", "명령어", "menu", "메뉴",
+        "help", "도움말", "commands", "command", "command-list", "명령어", "명령어목록", "menu", "메뉴",
         "create-menu", "templates", "생성메뉴", "템플릿",
         "info", "정보", "list", "my", "my-islands", "목록", "내섬", "create", "생성", "delete", "삭제", "reset", "리셋", "danger", "위험작업",
         "sethome", "셋홈", "homes", "home-menu", "home-list", "홈관리", "홈목록", "home", "홈",
@@ -90,6 +90,8 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "permissions", "permission-menu", "permission-list", "permission", "perms", "setpermission", "permission-set", "권한", "권한설정", "권한목록"
     );
     private static final List<String> HELP_COMMANDS = List.of(
+        "섬 help [page]",
+        "섬 command list [page]",
         "섬 메뉴",
         "섬 생성 [template]",
         "섬 목록",
@@ -195,9 +197,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             IslandMainMenu.open(player);
             return true;
         }
-        String subcommand = args[0].toLowerCase();
-        if (subcommand.equals("help") || subcommand.equals("도움말") || subcommand.equals("commands") || subcommand.equals("명령어")) {
-            sendCommandList(player, "섬 명령어 목록", HELP_COMMANDS, helpPage(args, 1));
+        String subcommand = args[0].toLowerCase(Locale.ROOT);
+        int commandListPage = commandListPage(args);
+        if (commandListPage > 0) {
+            sendCommandList(player, "섬 명령어 목록", HELP_COMMANDS, commandListPage);
             return true;
         }
         if (subcommand.equals("menu") || subcommand.equals("메뉴")) {
@@ -800,6 +803,20 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return 1;
         }
         return (int) number(args[index], 1L);
+    }
+
+    private int commandListPage(String[] args) {
+        if (args.length == 0) {
+            return 0;
+        }
+        String first = args[0].toLowerCase(Locale.ROOT);
+        if (first.equals("help") || first.equals("도움말") || first.equals("commands") || first.equals("command-list") || first.equals("명령어") || first.equals("명령어목록")) {
+            return helpPage(args, 1);
+        }
+        if (first.equals("command") && args.length > 1 && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
+            return helpPage(args, 2);
+        }
+        return 0;
     }
 
     private void createIsland(Player player, String templateId) {

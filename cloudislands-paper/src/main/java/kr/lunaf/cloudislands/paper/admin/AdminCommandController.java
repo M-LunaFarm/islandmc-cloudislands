@@ -22,7 +22,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public final class AdminCommandController implements CommandExecutor, TabCompleter {
-    private static final List<String> ROOT_COMMANDS = List.of("help", "status", "cache", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
+    private static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "cache", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "islands", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
@@ -118,8 +118,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             sender.sendMessage("CloudIslands onlinePlayers=" + agent.plugin().getServer().getOnlinePlayers().size() + " routeWaitSeconds=" + routeWaitSeconds);
             return true;
         }
-        if (args[0].equalsIgnoreCase("help")) {
-            usage(sender, label, args.length > 1 ? (int) number(args[1], 1L) : 1);
+        if (isHelpRequest(args)) {
+            usage(sender, label, helpPage(args));
             return true;
         }
         if (args[0].equalsIgnoreCase("cache") && args.length > 1 && args[1].equalsIgnoreCase("clear")) {
@@ -1699,6 +1699,27 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (safePage < maxPage) {
             sender.sendMessage("> /" + label + " help " + (safePage + 1));
         }
+    }
+
+    private boolean isHelpRequest(String[] args) {
+        if (args.length == 0) {
+            return false;
+        }
+        String first = args[0].toLowerCase(java.util.Locale.ROOT);
+        if (first.equals("help") || first.equals("commands") || first.equals("command-list") || first.equals("명령어") || first.equals("명령어목록")) {
+            return true;
+        }
+        return first.equals("command") && args.length > 1 && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"));
+    }
+
+    private int helpPage(String[] args) {
+        if (args.length > 2 && args[0].equalsIgnoreCase("command") && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
+            return (int) number(args[2], 1L);
+        }
+        if (args.length > 1) {
+            return (int) number(args[1], 1L);
+        }
+        return 1;
     }
 
     private UUID uuid(CommandSender sender, String value) {
