@@ -612,14 +612,22 @@ public final class VelocityRoutingController {
     }
 
     public void kickAllNode(Player player, String nodeId) {
-        int moved = moveNodePlayersToFallback(nodeId);
-        player.sendMessage(Component.text("노드 플레이어 " + moved + "명을 로비로 이동시켰습니다."));
+        coreApiClient.kickAllNode(nodeId, "admin-request").thenAccept(body -> {
+            int moved = moveNodePlayersToFallback(nodeId);
+            player.sendMessage(Component.text((body == null || body.isBlank() ? "노드 kickall을 요청했습니다." : body) + " 로비 이동=" + moved));
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("노드 kickall을 요청하지 못했습니다."));
+            return null;
+        });
     }
 
     public void shutdownSafeNode(Player player, String nodeId) {
-        coreApiClient.drainNode(nodeId).thenAccept(body -> {
+        coreApiClient.shutdownNodeSafely(nodeId, "admin-request").thenAccept(body -> {
             int moved = moveNodePlayersToFallback(nodeId);
-            player.sendMessage(Component.text("노드를 drain 처리하고 플레이어 " + moved + "명을 로비로 이동시켰습니다."));
+            player.sendMessage(Component.text((body == null || body.isBlank() ? "노드 shutdown-safe를 요청했습니다." : body) + " 로비 이동=" + moved));
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("노드 shutdown-safe를 요청하지 못했습니다."));
+            return null;
         });
     }
 
