@@ -11,6 +11,7 @@ public final class RedisKeys {
     public static String playerProfile(UUID uuid) { return "ci:player:" + uuid + ":profile"; }
     public static String playerNameProfile(String name) { return "ci:player-name:" + name.toLowerCase() + ":profile"; }
     public static String playerRouteTicket(UUID uuid) { return "ci:player:" + uuid + ":route-ticket"; }
+    public static String routeTicket(UUID ticketId) { return "ci:route-ticket:" + ticketId; }
     public static String playerRouteSession(UUID uuid) { return "ci:player:" + uuid + ":route-session"; }
     public static String islandSummary(UUID islandId) { return "ci:island:" + islandId + ":summary"; }
     public static String islandRuntime(UUID islandId) { return "ci:island:" + islandId + ":runtime"; }

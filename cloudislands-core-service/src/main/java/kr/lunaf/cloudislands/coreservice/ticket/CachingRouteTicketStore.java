@@ -55,6 +55,10 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
 
     @Override
     public Optional<RouteTicket> find(UUID ticketId) {
+        Optional<RouteTicket> cached = cachedTicket(ticketId);
+        if (cached.isPresent()) {
+            return cached;
+        }
         Optional<RouteTicket> ticket = delegate.find(ticketId);
         ticket.ifPresent(this::cache);
         return ticket;
@@ -89,6 +93,7 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
         boolean cleared = delegate.clear(ticketId);
         if (cleared) {
             ticket.map(RouteTicket::playerUuid).ifPresent(this::deletePlayerTicket);
+            deleteTicket(ticketId);
         }
         return cleared;
     }
@@ -111,6 +116,7 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
         long ttlMillis = Math.max(1_000L, ticket.expiresAt().toEpochMilli() - Instant.now().toEpochMilli());
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             redis.command("SET", RedisKeys.playerRouteTicket(ticket.playerUuid()), ticketJson(ticket), "PX", Long.toString(ttlMillis));
+            redis.command("SET", RedisKeys.routeTicket(ticket.ticketId()), ticketJson(ticket), "PX", Long.toString(ttlMillis));
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
         }
@@ -120,6 +126,14 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
     private void deletePlayerTicket(UUID playerUuid) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             redis.command("DEL", RedisKeys.playerRouteTicket(playerUuid));
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+        }
+    }
+
+    private void deleteTicket(UUID ticketId) {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            redis.command("DEL", RedisKeys.routeTicket(ticketId));
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
         }
@@ -159,6 +173,25 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
             RouteTicket ticket = ticketFromJson(json);
             if (ticket.expiresAt().isBefore(Instant.now())) {
                 deletePlayerTicket(playerUuid);
+                return Optional.empty();
+            }
+            return Optional.of(ticket);
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+            return Optional.empty();
+        }
+    }
+
+    private Optional<RouteTicket> cachedTicket(UUID ticketId) {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            String json = redis.command("GET", RedisKeys.routeTicket(ticketId));
+            if (json == null || json.isBlank()) {
+                return Optional.empty();
+            }
+            RouteTicket ticket = ticketFromJson(json);
+            if (ticket.expiresAt().isBefore(Instant.now())) {
+                deleteTicket(ticketId);
+                deletePlayerTicket(ticket.playerUuid());
                 return Optional.empty();
             }
             return Optional.of(ticket);
