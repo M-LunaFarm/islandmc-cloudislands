@@ -683,6 +683,13 @@ public final class CloudIslandsCoreApplication {
                 return;
             }
             sessions.put(ticket);
+            events.publish(CloudIslandEventType.ROUTE_SESSION_PUBLISHED.name(), Map.of(
+                "ticketId", ticket.ticketId().toString(),
+                "playerUuid", ticket.playerUuid().toString(),
+                "islandId", ticket.islandId().toString(),
+                "action", ticket.action().name(),
+                "targetNode", ticket.targetNode()
+            ));
             write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/routes/session/find", exchange -> {
