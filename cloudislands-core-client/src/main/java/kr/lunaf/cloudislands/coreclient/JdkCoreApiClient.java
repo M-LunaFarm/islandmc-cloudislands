@@ -31,6 +31,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final URI baseUri;
     private final String authToken;
     private final String adminToken;
+    private final Duration timeout;
     private final HttpClient httpClient;
 
     public JdkCoreApiClient(URI baseUri, String authToken, Duration timeout) {
@@ -41,7 +42,8 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.baseUri = baseUri;
         this.authToken = authToken;
         this.adminToken = adminToken == null ? "" : adminToken;
-        this.httpClient = HttpClient.newBuilder().connectTimeout(timeout).build();
+        this.timeout = timeout == null || timeout.isNegative() || timeout.isZero() ? Duration.ofSeconds(5) : timeout;
+        this.httpClient = HttpClient.newBuilder().connectTimeout(this.timeout).build();
     }
 
     @Override
@@ -855,7 +857,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     private CompletableFuture<String> post(String path, String body) {
         HttpRequest.Builder builder = HttpRequest.newBuilder(baseUri.resolve(path))
-            .timeout(Duration.ofSeconds(5))
+            .timeout(timeout)
             .header("Authorization", "Bearer " + authToken)
             .header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(body));
@@ -869,7 +871,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     private CompletableFuture<String> postWithResultBody(String path, String body) {
         HttpRequest.Builder builder = HttpRequest.newBuilder(baseUri.resolve(path))
-            .timeout(Duration.ofSeconds(5))
+            .timeout(timeout)
             .header("Authorization", "Bearer " + authToken)
             .header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(body));
