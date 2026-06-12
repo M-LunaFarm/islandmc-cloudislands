@@ -946,6 +946,11 @@ public final class CloudIslandsCoreApplication {
             if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
                 return;
             }
+            boolean existingMember = metadataRepository.members(islandId).stream().anyMatch(member -> member.playerUuid().equals(playerUuid));
+            if (!existingMember && metadataRepository.members(islandId).size() >= limitValue(limitRepository, islandId, "MEMBERS", 3L)) {
+                write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
+                return;
+            }
             metadataRepository.upsertMember(islandId, playerUuid, role);
             audit.log(actorUuid, "PLAYER", "ISLAND_MEMBER_SET", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString(), "role", role.name()));
             islandLogs.append(islandId, actorUuid, "ISLAND_MEMBER_SET", Map.of("playerUuid", playerUuid.toString(), "role", role.name()));
@@ -1148,6 +1153,11 @@ public final class CloudIslandsCoreApplication {
             boolean publicAccess = JsonFields.bool(body, "publicAccess", false);
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
             if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
+            boolean existingWarp = metadataRepository.warps(islandId).stream().anyMatch(warp -> warp.name().equalsIgnoreCase(name));
+            if (!existingWarp && metadataRepository.warps(islandId).size() >= limitValue(limitRepository, islandId, "WARPS", 1L)) {
+                write(exchange, 409, ApiResponses.error("WARP_LIMIT", "Island warp limit was reached"));
                 return;
             }
             metadataRepository.upsertWarp(islandId, name, location(body), publicAccess, actorUuid);
