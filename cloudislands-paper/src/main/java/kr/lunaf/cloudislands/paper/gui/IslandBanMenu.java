@@ -46,6 +46,10 @@ public final class IslandBanMenu implements Listener {
             player.performCommand("섬 밴목록");
             return;
         }
+        if (name.equals("설정")) {
+            player.performCommand("섬 설정");
+            return;
+        }
         String bannedUuid = loreValue(meta, "bannedUuid=");
         if (bannedUuid.isBlank()) {
             return;
@@ -73,6 +77,7 @@ public final class IslandBanMenu implements Listener {
                 }
             }
             inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 밴목록"));
+            inventory.setItem(53, item(Material.COMPARATOR, "설정", "/섬 설정"));
             player.openInventory(inventory);
         });
     }
