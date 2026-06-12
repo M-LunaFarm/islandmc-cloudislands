@@ -358,6 +358,15 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, island.isPresent() ? 200 : 404, island.map(CloudIslandsCoreApplication::islandJson).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
                 return;
             }
+            if (method.equalsIgnoreCase("GET") && tail.endsWith("/islands")) {
+                UUID playerUuid = uuidPath(tail.substring(0, tail.length() - "/islands".length()));
+                java.util.ArrayList<IslandSnapshot> islands = new java.util.ArrayList<>();
+                for (kr.lunaf.cloudislands.api.model.IslandMemberSnapshot member : metadataRepository.islandsForMember(playerUuid)) {
+                    islandRepository.findById(member.islandId()).ifPresent(islands::add);
+                }
+                write(exchange, 200, islandsJson(islands));
+                return;
+            }
             write(exchange, 404, ApiResponses.error("ROUTE_NOT_FOUND", "Route was not found"));
         });
         route("/v1/islands/permissions", exchange -> {
