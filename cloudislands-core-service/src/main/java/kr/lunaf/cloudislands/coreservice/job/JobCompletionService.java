@@ -64,6 +64,7 @@ public final class JobCompletionService {
             }
             String worldName = job.payload().getOrDefault("worldName", "ci_shard_001");
             runtimes.markActive(job.islandId(), job.targetNode(), worldName, integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), longValue(job.payload().get("fencingToken")));
+            setIslandState(job.islandId(), IslandState.ACTIVE);
             int readyTickets = tickets.markReadyForIsland(job.islandId(), job.targetNode(), worldName, Instant.now().plus(routeTicketTtl), Map.of());
             events.publish(job.type() == IslandJobType.RESET_ISLAND ? CloudIslandEventType.ISLAND_RESET.name() : CloudIslandEventType.ISLAND_ACTIVATED.name(), Map.of("islandId", job.islandId().toString(), "nodeId", job.targetNode() == null ? "" : job.targetNode(), "readyTickets", Integer.toString(readyTickets)));
             return;
@@ -71,6 +72,7 @@ public final class JobCompletionService {
         if (job.type() == IslandJobType.DEACTIVATE_ISLAND) {
             long snapshotNo = recordCompletedSnapshot(job, job.type().name(), true);
             runtimes.markInactive(job.islandId());
+            setIslandState(job.islandId(), IslandState.INACTIVE_READY);
             publishMigrationActivation(job);
             events.publish(CloudIslandEventType.ISLAND_DEACTIVATED.name(), Map.of("islandId", job.islandId().toString()));
             return;
@@ -88,6 +90,7 @@ public final class JobCompletionService {
                 snapshots.record(job.islandId(), snapshotNo, "islands/" + job.islandId() + "/backups/delete-" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", job.payload().getOrDefault("reason", "DELETE_ISLAND"), null, job.payload().getOrDefault("checksum", ""), longValue(job.payload().get("sizeBytes")));
             }
             runtimes.setState(job.islandId(), IslandState.DELETED);
+            setIslandState(job.islandId(), IslandState.DELETED);
             events.publish(CloudIslandEventType.ISLAND_DELETED.name(), Map.of("islandId", job.islandId().toString(), "snapshotNo", Long.toString(snapshotNo)));
             return;
         }
@@ -95,6 +98,7 @@ public final class JobCompletionService {
             recordPreMutationSnapshot(job);
             restoreDeletedIslandRecord(job);
             runtimes.markActive(job.islandId(), job.targetNode(), job.payload().getOrDefault("worldName", "ci_shard_001"), integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), longValue(job.payload().get("fencingToken")));
+            setIslandState(job.islandId(), IslandState.ACTIVE);
             events.publish(CloudIslandEventType.ISLAND_RESTORED.name(), Map.of("islandId", job.islandId().toString(), "state", "RESTORED", "snapshotNo", job.payload().getOrDefault("snapshotNo", "")));
             return;
         }
@@ -102,6 +106,7 @@ public final class JobCompletionService {
             recordPreMutationSnapshot(job);
             String worldName = job.payload().getOrDefault("worldName", "ci_shard_001");
             runtimes.markActive(job.islandId(), job.targetNode(), worldName, integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), longValue(job.payload().get("fencingToken")));
+            setIslandState(job.islandId(), IslandState.ACTIVE);
             events.publish(CloudIslandEventType.ISLAND_MIGRATED.name(), Map.of("islandId", job.islandId().toString(), "targetNode", job.targetNode() == null ? "" : job.targetNode(), "worldName", worldName));
         }
     }
@@ -114,8 +119,15 @@ public final class JobCompletionService {
             default -> IslandState.RECOVERY_REQUIRED;
         };
         runtimes.setState(job.islandId(), state);
+        setIslandState(job.islandId(), state);
         failPreparingRouteTickets(job, errorMessage);
         events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", job.islandId().toString(), "state", state.name(), "error", errorMessage == null ? "" : errorMessage));
+    }
+
+    private void setIslandState(UUID islandId, IslandState state) {
+        if (islands != null) {
+            islands.setState(islandId, state);
+        }
     }
 
     private void failPreparingRouteTickets(IslandJob job, String errorMessage) {
