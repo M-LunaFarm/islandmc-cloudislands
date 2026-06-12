@@ -161,6 +161,7 @@ public final class CloudIslandsCoreApplication {
         RouteSessionStore sessions = config.redisEvents() || config.redisJobs()
             ? new RedisRouteSessionStore(config.redisUri())
             : new InMemoryRouteSessionStore(clock);
+        RedisNodeHeartbeatCache nodeHeartbeatCache = new RedisNodeHeartbeatCache(config.redisUri(), config.heartbeatTimeout(), config.redisEvents() || config.redisJobs());
         IslandJobQueue jobs = config.jdbcJobs() ? new JdbcIslandJobQueue(dataSource, clock, config.leaseDuration()) : config.redisJobs() ? new RedisIslandJobQueue(config.redisUri()) : new InMemoryIslandJobPublisher();
         InMemoryGlobalEventPublisher inMemoryEvents = new InMemoryGlobalEventPublisher();
         RedisStreamWriterAdapter redisEventWriter = config.redisEvents() ? new RedisStreamWriterAdapter(config.redisUri()) : null;
@@ -779,7 +780,9 @@ public final class CloudIslandsCoreApplication {
             write(exchange, changed ? 202 : 404, changed ? templateRepository.find(templateId).map(CloudIslandsCoreApplication::templateJson).orElseGet(() -> ApiResponses.ok(true)) : ApiResponses.error("TEMPLATE_NOT_FOUND", "Island template was not found"));
         });
         route("/v1/nodes/heartbeat", exchange -> {
-            nodes.heartbeat(heartbeat(readBody(exchange)));
+            NodeHeartbeatRequest heartbeat = heartbeat(readBody(exchange));
+            nodes.heartbeat(heartbeat);
+            nodeHeartbeatCache.record(heartbeat);
             write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/admin/nodes/drain", exchange -> {
