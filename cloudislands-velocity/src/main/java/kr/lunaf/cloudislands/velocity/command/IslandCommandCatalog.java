@@ -37,7 +37,9 @@ public final class IslandCommandCatalog {
             "ciadmin route clear <player> [ticket]", "ciadmin cache clear", "ciadmin events", "ciadmin audit",
             "ciadmin block-values list", "ciadmin block-values set", "ciadmin upgrade-rules", "ciadmin template list",
             "ciadmin template upsert <id> <name> [enabled] [minNodeVersion]", "ciadmin template enable <id>",
-            "ciadmin template disable <id>", "ciadmin reload",
+            "ciadmin template disable <id>", "ciadmin templates list",
+            "ciadmin templates upsert <id> <name> [enabled] [minNodeVersion]", "ciadmin templates enable <id>",
+            "ciadmin templates disable <id>", "ciadmin reload",
             "ciadmin migrate-superiorskyblock2 scan", "ciadmin migrate-superiorskyblock2 dryrun",
             "ciadmin migrate-superiorskyblock2 import", "ciadmin migrate-superiorskyblock2 verify",
             "ciadmin migrate-superiorskyblock2 rollback"
