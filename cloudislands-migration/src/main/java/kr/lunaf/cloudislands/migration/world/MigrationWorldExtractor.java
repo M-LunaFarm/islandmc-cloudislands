@@ -12,6 +12,7 @@ import java.util.HexFormat;
 import java.util.UUID;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 import kr.lunaf.cloudislands.migration.MigrationManifest;
 
@@ -38,6 +39,22 @@ public final class MigrationWorldExtractor {
         long sizeBytes = Files.size(plan.targetBundlePath());
         Files.writeString(plan.targetBundlePath().resolveSibling("checksums.sha256"), checksum + "  " + plan.targetBundlePath().getFileName() + "\n");
         return new MigrationWorldBundle(plan.islandId(), plan.sourcePath(), plan.targetBundlePath(), checksum, sizeBytes, fileCount);
+    }
+
+    public MigrationWorldBundle verify(MigrationWorldExtractionPlan plan) throws IOException {
+        if (!Files.isRegularFile(plan.targetBundlePath())) {
+            throw new IOException("migration bundle does not exist: " + plan.targetBundlePath());
+        }
+        Path checksumFile = plan.targetBundlePath().resolveSibling("checksums.sha256");
+        if (!Files.isRegularFile(checksumFile)) {
+            throw new IOException("migration checksum file does not exist: " + checksumFile);
+        }
+        String expected = Files.readString(checksumFile).trim().split("\\s+")[0];
+        String actual = sha256(plan.targetBundlePath());
+        if (!expected.equalsIgnoreCase(actual)) {
+            throw new IOException("migration bundle checksum mismatch for " + plan.islandId());
+        }
+        return new MigrationWorldBundle(plan.islandId(), plan.sourcePath(), plan.targetBundlePath(), actual, Files.size(plan.targetBundlePath()), countZipEntries(plan.targetBundlePath()));
     }
 
     private long writeZip(Path source, Path target) throws IOException {
@@ -88,6 +105,17 @@ public final class MigrationWorldExtractor {
         } catch (NoSuchAlgorithmException exception) {
             throw new IOException("SHA-256 is not available", exception);
         }
+    }
+
+    private long countZipEntries(Path path) throws IOException {
+        long count = 0L;
+        try (ZipInputStream input = new ZipInputStream(Files.newInputStream(path))) {
+            while (input.getNextEntry() != null) {
+                count++;
+                input.closeEntry();
+            }
+        }
+        return count;
     }
 
     public MigrationWorldBundle extract(UUID islandId, Path sourcePath, Path targetRoot) throws IOException {

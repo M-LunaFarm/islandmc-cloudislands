@@ -180,6 +180,9 @@ public final class MigrationAdminService {
     public synchronized String verify() {
         List<MigrationManifest> imported = new ArrayList<>();
         List<MigrationIssue> issues = new ArrayList<>();
+        int extractedBundles = 0;
+        long extractedFiles = 0L;
+        long extractedBytes = 0L;
         for (MigrationManifest manifest : lastScan.manifests()) {
             IslandSnapshot island = islands.findById(manifest.islandId()).orElse(null);
             if (island == null) {
@@ -207,6 +210,18 @@ public final class MigrationAdminService {
             matched &= expect(issues, decimal(bank.balance(manifest.islandId()).balance()).compareTo(decimal(manifest.bankBalance())) == 0, "BANK_MISMATCH", "bank mismatch " + manifest.islandId());
             matched &= expect(issues, metadata.isPublicAccess(manifest.islandId()) == manifest.publicAccess(), "PUBLIC_ACCESS_MISMATCH", "public access mismatch " + manifest.islandId());
             matched &= expect(issues, metadata.isLocked(manifest.islandId()) == manifest.locked(), "LOCKED_MISMATCH", "locked mismatch " + manifest.islandId());
+            if (manifest.sourceWorldPath() == null || manifest.sourceWorldPath().isBlank()) {
+                issues.add(new MigrationIssue("WORLD_SOURCE_NOT_FOUND", "missing world source for " + manifest.islandId(), false));
+            } else {
+                try {
+                    MigrationWorldBundle bundle = worldExtractor.verify(worldExtractor.plan(manifest, migrationBundleRoot));
+                    extractedBundles++;
+                    extractedFiles += bundle.fileCount();
+                    extractedBytes += bundle.sizeBytes();
+                } catch (RuntimeException | java.io.IOException exception) {
+                    issues.add(new MigrationIssue("WORLD_CHECKSUM_FAILED", manifest.islandId() + ": " + exception.getMessage(), true));
+                }
+            }
             if (matched) {
                 imported.add(manifest);
             }
@@ -215,7 +230,7 @@ public final class MigrationAdminService {
         issues.addAll(result.issues());
         boolean passed = issues.isEmpty();
         MigrationRunState state = passed ? MigrationRunState.VERIFIED : MigrationRunState.VERIFYING;
-        return "{\"state\":\"" + state + "\",\"passed\":" + passed + ",\"expected\":" + lastScan.manifests().size() + ",\"imported\":" + imported.size() + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+        return "{\"state\":\"" + state + "\",\"passed\":" + passed + ",\"expected\":" + lastScan.manifests().size() + ",\"imported\":" + imported.size() + ",\"extractedBundles\":" + extractedBundles + ",\"extractedFiles\":" + extractedFiles + ",\"extractedBytes\":" + extractedBytes + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
     }
 
     public synchronized String rollbackLastImport() {
