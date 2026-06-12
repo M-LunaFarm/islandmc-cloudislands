@@ -903,6 +903,12 @@ public final class CloudIslandsVelocityPlugin {
         if (args.length == 3 && args[0].equalsIgnoreCase("player")) {
             addOnlinePlayerSuggestions(matches, args[2]);
         }
+        if (args.length == 4 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("islands")) {
+            addLiteralSuggestions(matches, args[3], List.of("25", "50", "100"));
+        }
+        if (args.length == 4 && args[0].equalsIgnoreCase("node") && (args[1].equalsIgnoreCase("kickall") || args[1].equalsIgnoreCase("shutdown-safe"))) {
+            addLiteralSuggestions(matches, args[3], List.of("maintenance", "restart", "drain"));
+        }
         if (args.length == 3 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("debug")) {
             if ("all".startsWith(args[2].toLowerCase(Locale.ROOT))) {
                 matches.add("all");
@@ -913,6 +919,15 @@ public final class CloudIslandsVelocityPlugin {
             addOnlinePlayerSuggestions(matches, args[2]);
         }
         return matches;
+    }
+
+    private void addLiteralSuggestions(List<String> matches, String typed, List<String> values) {
+        String normalized = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
+        for (String value : values) {
+            if ((normalized.isBlank() || value.toLowerCase(Locale.ROOT).startsWith(normalized)) && !matches.contains(value)) {
+                matches.add(value);
+            }
+        }
     }
 
     private void addOnlinePlayerSuggestions(List<String> matches, String typed) {
