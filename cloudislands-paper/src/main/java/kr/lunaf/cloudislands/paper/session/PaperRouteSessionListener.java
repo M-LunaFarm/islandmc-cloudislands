@@ -95,6 +95,9 @@ public final class PaperRouteSessionListener implements Listener {
     }
 
     private void consumeSession(java.util.UUID playerUuid, int attempt) {
+        if (attempt == 0 || attempt == 3) {
+            showPreparing(playerUuid);
+        }
         coreApiClient.consumeRouteSession(playerUuid, nodeId, attempt >= 6).thenAccept(session -> {
             if (session.isPresent()) {
                 var value = session.get();
@@ -120,6 +123,15 @@ public final class PaperRouteSessionListener implements Listener {
                 });
             }
             return null;
+        });
+    }
+
+    private void showPreparing(java.util.UUID playerUuid) {
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            var player = Bukkit.getPlayer(playerUuid);
+            if (player != null) {
+                player.sendActionBar(Component.text("섬 입장을 준비하는 중입니다..."));
+            }
         });
     }
 
