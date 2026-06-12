@@ -1705,7 +1705,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return;
         }
         coreApiClient.acceptIslandInviteResult(inviteId, player.getUniqueId())
-            .thenAccept(body -> message(player, body.contains("\"error\"") || body.contains("\"accepted\":false") ? "섬 초대를 수락하지 못했습니다." : "섬 초대를 수락했습니다."))
+            .thenAccept(body -> message(player, inviteActionMessage("섬 초대 수락", inviteId, body)))
             .exceptionally(error -> {
                 message(player, "섬 초대를 수락하지 못했습니다.");
                 return null;
@@ -1731,7 +1731,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return;
         }
         coreApiClient.declineIslandInviteResult(inviteId, player.getUniqueId())
-            .thenAccept(body -> message(player, body.contains("\"error\"") || body.contains("\"accepted\":false") ? "섬 초대를 거절하지 못했습니다." : "섬 초대를 거절했습니다."))
+            .thenAccept(body -> message(player, inviteActionMessage("섬 초대 거절", inviteId, body)))
             .exceptionally(error -> {
                 message(player, "섬 초대를 거절하지 못했습니다.");
                 return null;
@@ -1799,7 +1799,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
                 coreApiClient.removeIslandMemberResult(islandId, player.getUniqueId(), targetUuid)
-                    .thenAccept(body -> message(player, "섬 멤버를 제거했습니다."))
+                    .thenAccept(body -> message(player, actionResultMessage("섬 멤버 제거", targetUuid, body)))
                     .exceptionally(error -> {
                         message(player, "섬 멤버를 제거하지 못했습니다.");
                         return null;
@@ -1816,7 +1816,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
                 coreApiClient.setIslandMemberResult(islandId, player.getUniqueId(), targetUuid, role)
-                    .thenAccept(body -> message(player, successMessage))
+                    .thenAccept(body -> message(player, actionResultMessage(successMessage, targetUuid, body)))
                     .exceptionally(error -> {
                         message(player, "섬 멤버 역할을 변경하지 못했습니다.");
                         return null;
@@ -1829,7 +1829,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         currentIsland(player, "섬 안에서만 소유권을 양도할 수 있습니다.").ifPresent(islandId -> {
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
                 coreApiClient.transferIslandOwnershipResult(islandId, player.getUniqueId(), targetUuid)
-                    .thenAccept(body -> message(player, "섬 소유권을 양도했습니다."))
+                    .thenAccept(body -> message(player, actionResultMessage("섬 소유권 양도", targetUuid, body)))
                     .exceptionally(error -> {
                         message(player, "섬 소유권을 양도하지 못했습니다.");
                         return null;
@@ -1847,8 +1847,12 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
                 coreApiClient.banIslandVisitorResult(islandId, player.getUniqueId(), targetUuid, reason)
                     .thenAccept(body -> plugin.getServer().getScheduler().runTask(plugin, () -> {
+                        if (resultRejected(body)) {
+                            player.sendMessage(actionResultMessage("섬 방문자 밴", targetUuid, body));
+                            return;
+                        }
                         moveVisitorToFallback(islandId, targetUuid, "섬에서 밴되어 로비로 이동합니다.", "섬에서 밴되어 로비로 이동하지 못했습니다.");
-                        player.sendMessage("섬 방문자를 밴했습니다.");
+                        player.sendMessage(actionResultMessage("섬 방문자 밴", targetUuid, body));
                     }))
                     .exceptionally(error -> {
                         message(player, "섬 방문자를 밴하지 못했습니다.");
@@ -1866,7 +1870,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
                 coreApiClient.pardonIslandVisitorResult(islandId, player.getUniqueId(), targetUuid)
-                    .thenAccept(body -> message(player, "섬 방문자 밴을 해제했습니다."))
+                    .thenAccept(body -> message(player, actionResultMessage("섬 방문자 밴 해제", targetUuid, body)))
                     .exceptionally(error -> {
                         message(player, "섬 방문자 밴을 해제하지 못했습니다.");
                         return null;
@@ -1967,7 +1971,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 return;
             }
             coreApiClient.setIslandFlagResult(islandId, player.getUniqueId(), flag, value)
-                .thenAccept(body -> message(player, "섬 플래그를 변경했습니다: " + flag.name() + " = " + value))
+                .thenAccept(body -> message(player, actionResultMessage("섬 플래그 변경 " + flag.name() + "=" + value, flag.name(), body)))
                 .exceptionally(error -> {
                     message(player, "섬 플래그를 변경하지 못했습니다.");
                     return null;
@@ -2004,7 +2008,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             }
             boolean allowed = booleanValue(allowedValue);
             coreApiClient.setIslandPermissionResult(islandId, player.getUniqueId(), role, permission, allowed)
-                .thenAccept(body -> message(player, "섬 권한을 변경했습니다: " + role.name() + " " + permission.name() + " = " + allowed))
+                .thenAccept(body -> message(player, actionResultMessage("섬 권한 변경 " + role.name() + ":" + permission.name() + "=" + allowed, role.name(), body)))
                 .exceptionally(error -> {
                     message(player, "섬 권한을 변경하지 못했습니다.");
                     return null;
@@ -2552,6 +2556,36 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         int valueStart = start + needle.length();
         return json.startsWith("true", valueStart);
+    }
+
+    private String inviteActionMessage(String label, UUID inviteId, String body) {
+        return actionResultMessage(label, inviteId, body);
+    }
+
+    private String actionResultMessage(String label, UUID targetId, String body) {
+        return actionResultMessage(label, targetId == null ? "" : targetId.toString(), body);
+    }
+
+    private String actionResultMessage(String label, String targetId, String body) {
+        boolean rejected = resultRejected(body);
+        String code = text(body == null ? "" : body, "code");
+        StringBuilder builder = new StringBuilder(label)
+            .append(rejected ? " 실패" : " 완료");
+        if (targetId != null && !targetId.isBlank()) {
+            builder.append(": target=").append(compactId(targetId));
+        }
+        if (!code.isBlank()) {
+            builder.append(" code=").append(code);
+        }
+        return builder.toString();
+    }
+
+    private boolean resultRejected(String body) {
+        return body == null || body.contains("\"error\"") || body.contains("\"accepted\":false") || body.contains("\"applied\":false");
+    }
+
+    private String compactId(String value) {
+        return value != null && value.length() == 36 && value.indexOf('-') > 0 ? value.substring(0, 8) : value;
     }
 
     private List<String> names(String body) {
