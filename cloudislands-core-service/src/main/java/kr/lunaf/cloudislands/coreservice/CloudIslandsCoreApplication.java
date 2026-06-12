@@ -104,6 +104,7 @@ import kr.lunaf.cloudislands.coreservice.template.InMemoryIslandTemplateReposito
 import kr.lunaf.cloudislands.coreservice.template.IslandTemplateRepository;
 import kr.lunaf.cloudislands.coreservice.template.IslandTemplateSnapshot;
 import kr.lunaf.cloudislands.coreservice.template.JdbcIslandTemplateRepository;
+import kr.lunaf.cloudislands.coreservice.ticket.CachingRouteTicketStore;
 import kr.lunaf.cloudislands.coreservice.ticket.InMemoryRouteTicketStore;
 import kr.lunaf.cloudislands.coreservice.ticket.JdbcRouteTicketStore;
 import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
@@ -161,7 +162,10 @@ public final class CloudIslandsCoreApplication {
         DataSource dataSource = meteredDataSource;
         NodeRegistry nodes = config.jdbcRepositories() ? new JdbcNodeRegistry(dataSource) : new InMemoryNodeRegistry();
         NodeAllocator allocator = new NodeAllocator(config.heartbeatTimeout());
-        RouteTicketStore tickets = config.jdbcRepositories() ? new JdbcRouteTicketStore(dataSource, clock) : new InMemoryRouteTicketStore(clock);
+        RouteTicketStore baseTickets = config.jdbcRepositories() ? new JdbcRouteTicketStore(dataSource, clock) : new InMemoryRouteTicketStore(clock);
+        RouteTicketStore tickets = config.redisEvents() || config.redisJobs()
+            ? new CachingRouteTicketStore(baseTickets, config.redisUri())
+            : baseTickets;
         RouteSessionStore sessions = config.redisEvents() || config.redisJobs()
             ? new RedisRouteSessionStore(config.redisUri())
             : new InMemoryRouteSessionStore(clock);
