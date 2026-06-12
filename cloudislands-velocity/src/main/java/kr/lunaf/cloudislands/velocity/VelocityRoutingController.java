@@ -1125,7 +1125,9 @@ public final class VelocityRoutingController {
         player.createConnectionRequest(server).connectWithIndication().thenAccept(success -> {
             if (!success) {
                 fallback(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.");
+                return;
             }
+            actionBar(player, "섬에 도착했습니다.");
         }).exceptionally(error -> {
             fallback(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.");
             return null;
