@@ -8,6 +8,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
+import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 
@@ -52,9 +54,26 @@ public final class NodeFailureMonitor {
     private void runSweep() {
         List<String> downNodes = nodes.markStaleDown(heartbeatTimeout);
         for (String nodeId : downNodes) {
+            List<IslandRuntimeSnapshot> affectedIslands = runtimes.listByNode(nodeId, Integer.MAX_VALUE).stream()
+                .filter(NodeFailureMonitor::requiresRecovery)
+                .toList();
             int affected = runtimes.markRecoveryRequiredForNode(nodeId);
             events.publish(kr.lunaf.cloudislands.common.event.CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "DOWN", "recoveryRequired", Integer.toString(affected)));
+            for (IslandRuntimeSnapshot runtime : affectedIslands) {
+                events.publish(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_RECOVERY_REQUIRED.name(), Map.of(
+                    "islandId", runtime.islandId().toString(),
+                    "nodeId", nodeId,
+                    "reason", "NODE_DOWN"
+                ));
+            }
         }
+    }
+
+    private static boolean requiresRecovery(IslandRuntimeSnapshot runtime) {
+        return runtime.state() == IslandState.ACTIVE
+            || runtime.state() == IslandState.ACTIVATING
+            || runtime.state() == IslandState.SAVING
+            || runtime.state() == IslandState.DEACTIVATING;
     }
 
     private void logSweepFailure(RuntimeException exception) {
