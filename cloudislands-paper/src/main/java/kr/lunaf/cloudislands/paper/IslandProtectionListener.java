@@ -1,12 +1,15 @@
 package kr.lunaf.cloudislands.paper;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
 import kr.lunaf.cloudislands.paper.event.IslandPermissionCheckEvent;
 import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -39,7 +42,6 @@ import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerLeashEntityEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerShearEntityEvent;
 import org.bukkit.event.player.PlayerUnleashEntityEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
@@ -47,10 +49,17 @@ import org.bukkit.event.vehicle.VehicleDestroyEvent;
 public final class IslandProtectionListener implements Listener {
     private final ProtectionController protection;
     private final BlockDeltaReporter blockDeltas;
+    private final long denyMessageCooldownMs;
+    private final Map<UUID, Long> denyMessageTimes = new ConcurrentHashMap<>();
 
     public IslandProtectionListener(ProtectionController protection, BlockDeltaReporter blockDeltas) {
+        this(protection, blockDeltas, 1000L);
+    }
+
+    public IslandProtectionListener(ProtectionController protection, BlockDeltaReporter blockDeltas, long denyMessageCooldownMs) {
         this.protection = protection;
         this.blockDeltas = blockDeltas;
+        this.denyMessageCooldownMs = Math.max(0L, denyMessageCooldownMs);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -221,7 +230,31 @@ public final class IslandProtectionListener implements Listener {
     private boolean denied(Player player, Block block, IslandPermission permission) {
         PermissionResult result = protection.checkBlock(player.getUniqueId(), block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), permission, player.hasPermission("cloudislands.admin.bypass"));
         protection.islandAt(block).ifPresent(islandId -> Bukkit.getPluginManager().callEvent(new IslandPermissionCheckEvent(islandId, player.getUniqueId(), player, block, permission, result)));
-        return !result.allowed();
+        boolean denied = !result.allowed();
+        if (denied) {
+            sendDenyMessage(player, permission);
+        }
+        return denied;
+    }
+
+    private void sendDenyMessage(Player player, IslandPermission permission) {
+        long now = System.currentTimeMillis();
+        Long last = denyMessageTimes.get(player.getUniqueId());
+        if (last != null && now - last < denyMessageCooldownMs) {
+            return;
+        }
+        denyMessageTimes.put(player.getUniqueId(), now);
+        player.sendActionBar(Component.text(denyMessage(permission)));
+    }
+
+    private String denyMessage(IslandPermission permission) {
+        return switch (permission) {
+            case BUILD, BREAK, PLACE_LIQUID, BREAK_LIQUID -> "이 섬에서 블록을 변경할 권한이 없습니다.";
+            case OPEN_CONTAINER -> "이 섬에서 보관함을 열 권한이 없습니다.";
+            case ATTACK_PLAYER, ATTACK_MOB -> "이 섬에서 대상을 공격할 권한이 없습니다.";
+            case PICKUP_ITEM, DROP_ITEM -> "이 섬에서 아이템을 옮길 권한이 없습니다.";
+            default -> "이 섬에서 사용할 권한이 없습니다.";
+        };
     }
 
     private Player attackingPlayer(org.bukkit.entity.Entity damager) {

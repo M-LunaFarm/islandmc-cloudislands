@@ -94,7 +94,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         this.api = new PaperCloudIslandsApi(client, agent);
         getServer().getServicesManager().register(CloudIslandsApi.class, api, this, ServicePriority.Normal);
         IslandLimitCache limitCache = new IslandLimitCache(client);
-        getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection(), new BlockDeltaReporter(this, client)), this);
+        long denyMessageCooldownMs = getConfig().getLong("protection.deny-message-cooldown-ms", 1000L);
+        getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection(), new BlockDeltaReporter(this, client), denyMessageCooldownMs), this);
         getServer().getPluginManager().registerEvents(new IslandBoundaryListener(agent.protection()), this);
         getServer().getPluginManager().registerEvents(new PaperPlayerProfileListener(client), this);
         getServer().getPluginManager().registerEvents(new PaperBrandingListener(getConfig().getString("plugin.service-name", "CloudIslands")), this);
