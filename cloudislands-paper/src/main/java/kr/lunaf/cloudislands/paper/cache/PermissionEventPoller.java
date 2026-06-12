@@ -15,6 +15,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.event.IslandBiomeChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandFlagChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandLevelRecalculateEvent;
+import kr.lunaf.cloudislands.paper.event.IslandLimitChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMemberJoinEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMemberLeaveEvent;
 import kr.lunaf.cloudislands.paper.event.IslandPermissionChangeEvent;
@@ -332,6 +333,8 @@ public final class PermissionEventPoller {
             Bukkit.getPluginManager().callEvent(new IslandFlagChangeEvent(islandId, firstPresent(fields, "flag", "flagKey"), fields.getOrDefault("value", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_PERMISSION_CHANGED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandPermissionChangeEvent(islandId, fields.getOrDefault("role", ""), fields.getOrDefault("permission", ""), booleanField(fields, "allowed"), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_LIMIT_CHANGED.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandLimitChangeEvent(islandId, fields.getOrDefault("limitKey", ""), longField(fields, "value"), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_BIOME_CHANGED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandBiomeChangeEvent(islandId, fields.getOrDefault("biomeKey", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_WARP_CHANGED.name())) {
