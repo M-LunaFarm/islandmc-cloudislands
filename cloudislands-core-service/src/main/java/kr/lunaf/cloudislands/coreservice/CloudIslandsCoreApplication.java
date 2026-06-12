@@ -221,6 +221,22 @@ public final class CloudIslandsCoreApplication {
             }
             write(exchange, 200, nodeIslandsJson(nodeId, runtimeRepository.listByNode(nodeId, limit)));
         });
+        route("/v1/admin/nodes/list", exchange -> write(exchange, 200, nodes.toJson()));
+        route("/v1/admin/nodes/info", exchange -> {
+            String body = readBody(exchange);
+            String nodeId = JsonFields.text(body, "nodeId", "");
+            write(exchange, nodes.find(nodeId).isPresent() ? 200 : 404, nodes.find(nodeId).map(NodeRegistry::toJson).orElseGet(() -> ApiResponses.error("NODE_NOT_FOUND", "Node was not found")));
+        });
+        route("/v1/admin/nodes/islands", exchange -> {
+            String body = readBody(exchange);
+            String nodeId = JsonFields.text(body, "nodeId", "");
+            int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 50), 200));
+            if (nodes.find(nodeId).isEmpty()) {
+                write(exchange, 404, ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
+                return;
+            }
+            write(exchange, 200, nodeIslandsJson(nodeId, runtimeRepository.listByNode(nodeId, limit)));
+        });
         route("/v1/jobs", exchange -> write(exchange, 200, jobsJson(jobs)));
         route("/v1/events", exchange -> write(exchange, 200, inMemoryEvents.toJson()));
         route("/v1/audit", exchange -> write(exchange, 200, auditJson.get()));

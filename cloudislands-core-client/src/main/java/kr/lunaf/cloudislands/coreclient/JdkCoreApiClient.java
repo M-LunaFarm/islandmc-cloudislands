@@ -485,17 +485,17 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> listNodes() {
-        return post("/v1/nodes", "{}");
+        return postWithResultBody("/v1/admin/nodes/list", "{}");
     }
 
     @Override
     public CompletableFuture<String> nodeInfo(String nodeId) {
-        return post("/v1/nodes/info", "{\"nodeId\":\"" + escape(nodeId) + "\"}");
+        return postWithResultBody("/v1/admin/nodes/info", "{\"nodeId\":\"" + escape(nodeId) + "\"}");
     }
 
     @Override
     public CompletableFuture<String> nodeIslands(String nodeId, int limit) {
-        return post("/v1/nodes/islands", "{\"nodeId\":\"" + escape(nodeId) + "\",\"limit\":" + Math.max(1, Math.min(limit, 200)) + "}");
+        return postWithResultBody("/v1/admin/nodes/islands", "{\"nodeId\":\"" + escape(nodeId) + "\",\"limit\":" + Math.max(1, Math.min(limit, 200)) + "}");
     }
 
     @Override
