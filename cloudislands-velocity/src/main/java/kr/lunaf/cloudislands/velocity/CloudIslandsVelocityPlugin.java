@@ -819,8 +819,8 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("restore") || args[0].equals("복원")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            long snapshotNo = args.length > 2 ? parseLongOrZero(args[2]) : 0L;
+            UUID islandId = args.length > 2 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            long snapshotNo = args.length > 2 ? parseLongOrZero(args[2]) : (args.length > 1 ? parseLongOrZero(args[1]) : 0L);
             routingController.restore(player, islandId, snapshotNo);
             return;
         }
