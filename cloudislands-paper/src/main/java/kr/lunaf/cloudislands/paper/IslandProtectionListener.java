@@ -32,8 +32,10 @@ import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.block.FluidLevelChangeEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.entity.EntityPlaceEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -145,14 +147,39 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onHangingPlace(HangingPlaceEvent event) {
-        event.setCancelled(denied(event.getPlayer(), event.getBlock(), IslandPermission.BUILD));
+        boolean blocked = denied(event.getPlayer(), event.getBlock(), IslandPermission.BUILD);
+        event.setCancelled(blocked);
+        if (!blocked) {
+            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.entityPlaced(islandId, event.getEntity().getType()));
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onHangingBreak(HangingBreakByEntityEvent event) {
         if (event.getRemover() instanceof Player player) {
-            event.setCancelled(denied(player, event.getEntity().getLocation().getBlock(), IslandPermission.BREAK));
+            boolean blocked = denied(player, event.getEntity().getLocation().getBlock(), IslandPermission.BREAK);
+            event.setCancelled(blocked);
+            if (!blocked) {
+                protection.islandAt(event.getEntity().getLocation().getBlock()).ifPresent(islandId -> blockDeltas.entityRemoved(islandId, event.getEntity().getType()));
+            }
         }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onEntityPlace(EntityPlaceEvent event) {
+        if (event.getPlayer() == null) {
+            return;
+        }
+        boolean blocked = denied(event.getPlayer(), event.getBlock(), IslandPermission.BUILD);
+        event.setCancelled(blocked);
+        if (!blocked) {
+            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.entityPlaced(islandId, event.getEntity().getType()));
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onEntityDeath(EntityDeathEvent event) {
+        protection.islandAt(event.getEntity().getLocation().getBlock()).ifPresent(islandId -> blockDeltas.entityRemoved(islandId, event.getEntity().getType()));
     }
 
     @EventHandler(ignoreCancelled = true)
