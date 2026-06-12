@@ -49,6 +49,12 @@ public final class IslandInfoMenu implements Listener {
             player.performCommand("섬 로그");
         } else if (name.equals("설정")) {
             player.performCommand("섬 설정");
+        } else if (name.equals("새로고침")) {
+            player.performCommand("섬 정보");
+        } else if (name.equals("메인 메뉴")) {
+            player.performCommand("섬 메뉴");
+        } else if (name.equals("닫기")) {
+            return;
         }
     }
 
@@ -64,6 +70,9 @@ public final class IslandInfoMenu implements Listener {
             inventory.setItem(21, item(Material.GOLD_BLOCK, "섬 랭킹", "/섬 랭킹"));
             inventory.setItem(22, item(Material.CLOCK, "섬 로그", "/섬 로그"));
             inventory.setItem(23, item(Material.ANVIL, "레벨 다시 계산", "/섬 레벨계산"));
+            inventory.setItem(24, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
+            inventory.setItem(25, item(Material.CLOCK, "새로고침", "/섬 정보"));
+            inventory.setItem(26, item(Material.OAK_DOOR, "닫기", "메뉴를 닫습니다."));
             player.openInventory(inventory);
         });
     }
