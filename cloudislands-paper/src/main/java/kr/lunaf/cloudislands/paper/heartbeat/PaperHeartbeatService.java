@@ -30,6 +30,7 @@ public final class PaperHeartbeatService {
     private final DoubleSupplier chunkLoadPressure;
     private final IntSupplier recentFailurePenalty;
     private BukkitTask task;
+    private volatile long lastFailureLogMillis;
 
     public PaperHeartbeatService(Plugin plugin, CoreApiClient coreApiClient, String nodeId, String pool, String velocityServerName) {
         this(plugin, coreApiClient, nodeId, pool, velocityServerName, "", "*", () -> true);
@@ -115,7 +116,20 @@ public final class PaperHeartbeatService {
             storageOk,
             supportedTemplatesSupplier.get()
         );
-        coreApiClient.publishHeartbeat(heartbeat);
+        try {
+            coreApiClient.publishHeartbeat(heartbeat);
+        } catch (RuntimeException exception) {
+            logHeartbeatFailure(exception);
+        }
+    }
+
+    private void logHeartbeatFailure(RuntimeException exception) {
+        long now = System.currentTimeMillis();
+        if (now - lastFailureLogMillis < 30_000L) {
+            return;
+        }
+        lastFailureLogMillis = now;
+        plugin.getLogger().warning("CloudIslands heartbeat failed: " + exception.getMessage());
     }
 
     private NodeState nodeState(int players, int softCap, int hardCap, int activeIslands, int maxActive, boolean storageOk) {
