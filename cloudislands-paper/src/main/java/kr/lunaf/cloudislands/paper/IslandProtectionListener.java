@@ -39,6 +39,7 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.EntityPlaceEvent;
+import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -198,6 +199,14 @@ public final class IslandProtectionListener implements Listener {
                 protection.islandAt(event.getEntity().getLocation().getBlock()).ifPresent(islandId -> blockDeltas.entityRemoved(islandId, event.getEntity().getType()));
             }
         }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onHangingBreakAny(HangingBreakEvent event) {
+        if (event instanceof HangingBreakByEntityEvent) {
+            return;
+        }
+        protection.islandAt(event.getEntity().getLocation().getBlock()).ifPresent(islandId -> blockDeltas.entityRemoved(islandId, event.getEntity().getType()));
     }
 
     @EventHandler(ignoreCancelled = true)
