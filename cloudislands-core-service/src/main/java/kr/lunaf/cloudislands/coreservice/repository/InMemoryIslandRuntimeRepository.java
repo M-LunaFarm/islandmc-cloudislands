@@ -61,7 +61,7 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
         if (current.fencingToken() > fencingToken) {
             return current;
         }
-        return put(new IslandRuntimeSnapshot(islandId, IslandState.INACTIVE_READY, null, null, null, null, null, current.fencingToken(), null, Instant.now()));
+        return put(new IslandRuntimeSnapshot(islandId, IslandState.INACTIVE_READY, null, null, null, null, null, fencingToken, null, Instant.now()));
     }
 
     @Override

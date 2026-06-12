@@ -105,7 +105,7 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
                 connection.commit();
                 return current;
             }
-            IslandRuntimeSnapshot runtime = upsert(connection, islandId, IslandState.INACTIVE_READY, null, null, null, null, null, current.fencingToken(), null);
+            IslandRuntimeSnapshot runtime = upsert(connection, islandId, IslandState.INACTIVE_READY, null, null, null, null, null, fencingToken, null);
             connection.commit();
             return runtime;
         } catch (SQLException exception) {
