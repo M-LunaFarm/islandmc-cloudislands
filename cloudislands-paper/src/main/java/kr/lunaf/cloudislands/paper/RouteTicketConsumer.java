@@ -36,6 +36,9 @@ public final class RouteTicketConsumer {
     }
 
     private void consumeAndTeleport(UUID ticketId, UUID playerUuid, String nonce, int attempt) {
+        if (attempt == 0 || attempt % 5 == 0) {
+            Bukkit.getScheduler().runTask(plugin, () -> notifyPreparing(playerUuid));
+        }
         coreApiClient.consumeTicket(ticketId, playerUuid, nodeId, nonce).thenAccept(ticket -> {
             if (ticket.isPresent()) {
                 Bukkit.getScheduler().runTask(plugin, () -> teleport(playerUuid, ticket.get(), 0));
@@ -61,6 +64,9 @@ public final class RouteTicketConsumer {
         String worldName = ticket.targetWorld();
         World world = worldName == null ? null : Bukkit.getWorld(worldName);
         if (player == null || world == null) {
+            if (attempt == 0 || attempt % 5 == 0) {
+                notifyPreparing(playerUuid);
+            }
             if (attempt < 20) {
                 Bukkit.getScheduler().runTaskLater(plugin, () -> teleport(playerUuid, ticket, attempt + 1), 20L);
             } else {
@@ -121,10 +127,17 @@ public final class RouteTicketConsumer {
         };
     }
 
+    private void notifyPreparing(UUID playerUuid) {
+        Player player = Bukkit.getPlayer(playerUuid);
+        if (player != null) {
+            player.sendActionBar(Component.text("섬을 준비하는 중입니다..."));
+        }
+    }
+
     private void notifyRouteFailed(UUID playerUuid) {
         Player player = Bukkit.getPlayer(playerUuid);
         if (player != null) {
-            player.sendActionBar(Component.text("섬 이동 정보를 확인하지 못했습니다."));
+            player.sendActionBar(Component.text("섬 이동 준비가 완료되지 않았습니다. 다시 시도해주세요."));
         }
     }
 
