@@ -23,6 +23,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
     private final Map<UUID, kr.lunaf.cloudislands.protocol.job.IslandJob> claimedJobs = new ConcurrentHashMap<>();
     private final AtomicLong failedJobsTotal = new AtomicLong();
     private final AtomicLong retryAttemptsTotal = new AtomicLong();
+    private final AtomicLong redisFailuresTotal = new AtomicLong();
 
     public RedisIslandJobQueue(URI redisUri) {
         this.redisUri = redisUri;
@@ -40,6 +41,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             redis.command("XADD", RedisKeys.jobsStream(), "*", "jobId", job.jobId().toString(), "type", job.type().name(), "islandId", job.islandId().toString(), "targetNode", job.targetNode() == null ? "" : job.targetNode(), "priority", Integer.toString(job.priority()), "createdAt", job.createdAt().toString(), "payload", encodePayload(job.payload()));
         } catch (IOException exception) {
+            recordRedisFailure();
             throw new IllegalStateException("failed to publish redis island job", exception);
         }
     }
@@ -50,6 +52,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             String reply = redis.command("XREADGROUP", "GROUP", GROUP, nodeId, "COUNT", Integer.toString(maxJobs), "STREAMS", RedisKeys.jobsStream(), ">");
             return parseJobs(reply, nodeId, supportedTypes);
         } catch (IOException exception) {
+            recordRedisFailure();
             throw new IllegalStateException("failed to claim redis island jobs", exception);
         }
     }
@@ -88,6 +91,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_RETRIED", "jobId", jobId.toString(), "streamId", streamId == null ? "" : streamId, "error", "");
             return true;
         } catch (IOException exception) {
+            recordRedisFailure();
             throw new IllegalStateException("failed to retry redis island job", exception);
         }
     }
@@ -108,6 +112,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_CANCELED", "jobId", jobId.toString(), "streamId", streamId == null ? "" : streamId, "error", "");
             return true;
         } catch (IOException exception) {
+            recordRedisFailure();
             throw new IllegalStateException("failed to cancel redis island job", exception);
         }
     }
@@ -124,6 +129,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             counts.put("PENDING", parseGroupLong(groups, "lag"));
             counts.put("CLAIMED", parseGroupLong(groups, "pending"));
         } catch (IOException ignored) {
+            recordRedisFailure();
             // Keep metrics available from local state when Redis is temporarily unavailable.
         }
         return Map.copyOf(counts);
@@ -133,12 +139,17 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
         return retryAttemptsTotal.get();
     }
 
+    public long redisFailuresTotal() {
+        return redisFailuresTotal.get();
+    }
+
     public double latencySeconds() {
         long start = System.nanoTime();
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             redis.command("PING");
             return (System.nanoTime() - start) / 1_000_000_000.0D;
         } catch (IOException ignored) {
+            recordRedisFailure();
             return -1.0D;
         }
     }
@@ -160,8 +171,13 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             }
             redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_" + state.toUpperCase(), "jobId", jobId.toString(), "streamId", streamId == null ? "" : streamId, "error", errorMessage == null ? "" : errorMessage);
         } catch (IOException exception) {
+            recordRedisFailure();
             throw new IllegalStateException("failed to ack redis island job", exception);
         }
+    }
+
+    private void recordRedisFailure() {
+        redisFailuresTotal.incrementAndGet();
     }
 
     private List<IslandJob> parseJobs(String reply, String nodeId, List<IslandJobType> supportedTypes) {

@@ -126,6 +126,7 @@ public final class PrometheusMetricsRenderer {
         String jobBackend;
         long jobRetries;
         double redisLatencySeconds = Double.NaN;
+        long redisFailures = -1L;
         if (jobs instanceof InMemoryIslandJobPublisher memoryJobs) {
             jobCounts = memoryJobs.countsByState();
             jobBackend = "memory";
@@ -139,6 +140,7 @@ public final class PrometheusMetricsRenderer {
             jobBackend = "redis";
             jobRetries = redisJobs.retryAttemptsTotal();
             redisLatencySeconds = redisJobs.latencySeconds();
+            redisFailures = redisJobs.redisFailuresTotal();
         } else {
             jobCounts = Map.of("PENDING", 0L, "CLAIMED", 0L, "COMPLETED", 0L, "FAILED", 0L, "CANCELED", 0L);
             jobBackend = "external";
@@ -166,6 +168,11 @@ public final class PrometheusMetricsRenderer {
             help(out, "cloudislands_redis_latency_seconds", "Redis PING latency observed by Core API");
             type(out, "cloudislands_redis_latency_seconds", "gauge");
             out.append("cloudislands_redis_latency_seconds ").append(redisLatencySeconds).append('\n');
+        }
+        if (redisFailures >= 0L) {
+            help(out, "cloudislands_redis_failures_total", "Redis command failures observed by Core API");
+            type(out, "cloudislands_redis_failures_total", "counter");
+            out.append("cloudislands_redis_failures_total ").append(redisFailures).append('\n');
         }
         help(out, "cloudislands_route_ticket_created_total", "Route tickets created by Core API");
         type(out, "cloudislands_route_ticket_created_total", "counter");
