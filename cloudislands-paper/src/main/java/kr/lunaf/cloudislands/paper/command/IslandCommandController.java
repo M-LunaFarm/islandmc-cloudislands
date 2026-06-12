@@ -5,8 +5,10 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.UUID;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
@@ -1246,7 +1248,18 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                         message(player, label + "을 전송하지 못했습니다.");
                         return;
                     }
-                    plugin.getServer().getScheduler().runTask(plugin, () -> broadcastIslandChat(player, islandId, text(body, "channel"), text(body, "message")));
+                    String acceptedChannel = text(body, "channel");
+                    String acceptedMessage = text(body, "message");
+                    if (acceptedChannel.equalsIgnoreCase("TEAM")) {
+                        coreApiClient.listIslandMembers(islandId)
+                            .thenAccept(membersBody -> plugin.getServer().getScheduler().runTask(plugin, () -> broadcastIslandChat(player, islandId, acceptedChannel, acceptedMessage, memberUuids(membersBody))))
+                            .exceptionally(error -> {
+                                message(player, label + " 수신자를 불러오지 못했습니다.");
+                                return null;
+                            });
+                        return;
+                    }
+                    plugin.getServer().getScheduler().runTask(plugin, () -> broadcastIslandChat(player, islandId, acceptedChannel, acceptedMessage, Set.of()));
                 })
                 .exceptionally(error -> {
                     message(player, label + "을 전송하지 못했습니다.");
@@ -1255,11 +1268,19 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         });
     }
 
-    private void broadcastIslandChat(Player sender, UUID islandId, String channel, String chatMessage) {
-        String normalizedChannel = channel.equalsIgnoreCase("TEAM") ? "팀" : "섬";
+    private void broadcastIslandChat(Player sender, UUID islandId, String channel, String chatMessage, Set<UUID> teamRecipients) {
+        boolean teamChannel = channel.equalsIgnoreCase("TEAM");
+        String normalizedChannel = teamChannel ? "팀" : "섬";
         String message = "[" + normalizedChannel + "] " + sender.getName() + ": " + chatMessage;
         boolean delivered = false;
         for (Player online : plugin.getServer().getOnlinePlayers()) {
+            if (teamChannel) {
+                if (teamRecipients.contains(online.getUniqueId())) {
+                    online.sendMessage(message);
+                    delivered = true;
+                }
+                continue;
+            }
             UUID currentIslandId = protection.islandAt(online.getLocation().getBlock()).orElse(null);
             if (islandId.equals(currentIslandId)) {
                 online.sendMessage(message);
@@ -1269,6 +1290,31 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         if (!delivered) {
             sender.sendMessage(message);
         }
+    }
+
+    private Set<UUID> memberUuids(String body) {
+        Set<UUID> members = new HashSet<>();
+        int index = 0;
+        while (body != null && index < body.length()) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String playerUuid = text(body.substring(objectStart, objectEnd + 1), "playerUuid");
+            if (!playerUuid.isBlank()) {
+                try {
+                    members.add(UUID.fromString(playerUuid));
+                } catch (IllegalArgumentException ignored) {
+                    // Ignore malformed member entries from stale or partial responses.
+                }
+            }
+            index = objectEnd + 1;
+        }
+        return members;
     }
 
     private void listIslandLogs(Player player, int limit) {
