@@ -8,8 +8,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
@@ -43,6 +45,8 @@ import kr.lunaf.cloudislands.paper.gui.IslandSnapshotMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandUpgradeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
+import net.kyori.adventure.bossbar.BossBar;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -89,6 +93,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private final ProtectionController protection;
     private final int routeWaitSeconds;
     private final String fallbackServerName;
+    private final Map<UUID, BossBar> routeBossBars = new ConcurrentHashMap<>();
 
     public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection) {
         this(plugin, coreApiClient, protection, 20);
@@ -965,6 +970,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void routeTicket(Player player, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {
         ticketFuture.thenAccept(ticket -> routeTicket(player, ticket, failureMessage, 0)).exceptionally(error -> {
+            clearRouteLoading(player);
             message(player, routeFailureMessage(error, failureMessage));
             return null;
         });
@@ -993,33 +999,59 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void routeTicket(Player player, RouteTicket ticket, String failureMessage, int attempt) {
         if (ticket.state().name().equals("READY")) {
-            player.sendActionBar(net.kyori.adventure.text.Component.text("잠시 후 섬으로 이동합니다."));
+            showRouteLoading(player, 1.0f, "섬 로딩 완료");
+            player.sendActionBar(Component.text("잠시 후 섬으로 이동합니다."));
             publishAndConnect(player, ticket, failureMessage);
             return;
         }
         if (attempt >= routeWaitSeconds) {
+            clearRouteLoading(player);
             message(player, failureMessage);
             return;
         }
         int progress = Math.min(95, 20 + (attempt * 4));
-        player.sendActionBar(net.kyori.adventure.text.Component.text("섬을 준비하는 중입니다... " + progress + "%"));
+        showRouteLoading(player, progress / 100.0f, "섬 로딩 중 " + progress + "%");
+        player.sendActionBar(Component.text("섬을 준비하는 중입니다... " + progress + "%"));
         CompletableFuture.runAsync(() -> coreApiClient.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
             if (status.isPresent()) {
                 routeTicket(player, status.get(), failureMessage, attempt + 1);
             } else {
+                clearRouteLoading(player);
                 message(player, failureMessage);
             }
         }).exceptionally(error -> {
+            clearRouteLoading(player);
             message(player, failureMessage);
             return null;
         }), CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS));
     }
 
     private void publishAndConnect(Player player, RouteTicket ticket, String failureMessage) {
-        coreApiClient.publishRouteSession(ticket).thenRun(() -> connectWithTicket(player, ticket.payload().getOrDefault("targetServerName", ticket.targetNode()))).exceptionally(error -> {
+        coreApiClient.publishRouteSession(ticket).thenRun(() -> {
+            clearRouteLoading(player);
+            connectWithTicket(player, ticket.payload().getOrDefault("targetServerName", ticket.targetNode()));
+        }).exceptionally(error -> {
+            clearRouteLoading(player);
             message(player, failureMessage);
             return null;
         });
+    }
+
+    private void showRouteLoading(Player player, float progress, String title) {
+        BossBar bossBar = routeBossBars.computeIfAbsent(player.getUniqueId(), ignored -> {
+            BossBar created = BossBar.bossBar(Component.text(title), progress, BossBar.Color.GREEN, BossBar.Overlay.PROGRESS);
+            player.showBossBar(created);
+            return created;
+        });
+        bossBar.name(Component.text(title));
+        bossBar.progress(Math.max(0.0f, Math.min(1.0f, progress)));
+    }
+
+    private void clearRouteLoading(Player player) {
+        BossBar bossBar = routeBossBars.remove(player.getUniqueId());
+        if (bossBar != null) {
+            player.hideBossBar(bossBar);
+        }
     }
 
     private void connectWithTicket(Player player, String targetServerName) {
