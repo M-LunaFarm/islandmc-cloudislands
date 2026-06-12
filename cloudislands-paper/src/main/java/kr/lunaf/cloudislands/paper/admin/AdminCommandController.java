@@ -124,11 +124,11 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args[0].equalsIgnoreCase("cache") && args.length > 1 && args[1].equalsIgnoreCase("clear")) {
             agent.permissionCache().invalidateAll();
-            run(sender, "CloudIslands local cache cleared. Core cache clear", coreApiClient.clearCache());
+            run(sender, "CloudIslands local cache cleared. Core cache clear", coreApiClient.clearCache().thenApply(body -> maintenanceMessage("Cache clear", body)));
             return true;
         }
         if (args[0].equalsIgnoreCase("reload")) {
-            run(sender, "Core reload", coreApiClient.reload());
+            run(sender, "Core reload", coreApiClient.reload().thenApply(body -> maintenanceMessage("Core reload", body)));
             return true;
         }
         if (args[0].equalsIgnoreCase("node")) {
@@ -158,7 +158,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return true;
         }
         if (args[0].equalsIgnoreCase("metrics")) {
-            run(sender, "Core metrics", coreApiClient.metrics());
+            run(sender, "Core metrics", coreApiClient.metrics().thenApply(this::metricsMessage));
             return true;
         }
         if (args[0].equalsIgnoreCase("storage")) {
@@ -169,7 +169,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return handleBlockValues(sender, args);
         }
         if (args[0].equalsIgnoreCase("upgrade-rules")) {
-            run(sender, "Upgrade rules", coreApiClient.listUpgradeRules());
+            run(sender, "Upgrade rules", coreApiClient.listUpgradeRules().thenApply(this::upgradeRulesMessage));
             return true;
         }
         if (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) {
@@ -1214,6 +1214,69 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             index = objectEnd + 1;
         }
         return "Templates: total=" + total + " enabled=" + enabled + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String upgradeRulesMessage(String body) {
+        String rules = arrayValue(body, "rules");
+        if (rules.isBlank()) {
+            return "Upgrade rules: empty";
+        }
+        List<String> entries = new ArrayList<>();
+        int total = 0;
+        int index = 0;
+        while (index < rules.length()) {
+            int objectStart = rules.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(rules, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            total++;
+            if (entries.size() < 10) {
+                String object = rules.substring(objectStart, objectEnd + 1);
+                entries.add(textValue(object, "upgradeKey")
+                    + " type=" + textValue(object, "type")
+                    + " max=" + longValue(object, "maxLevel")
+                    + " base=" + textValue(object, "baseCost"));
+            }
+            index = objectEnd + 1;
+        }
+        return "Upgrade rules: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String maintenanceMessage(String label, String body) {
+        String code = textValue(body, "code");
+        if (!code.isBlank()) {
+            return label + ": failed code=" + code;
+        }
+        return label + ": accepted sessions=" + longValue(body, "clearedSessions") + " tickets=" + longValue(body, "clearedTickets");
+    }
+
+    private String metricsMessage(String body) {
+        if (body == null || body.isBlank()) {
+            return "Core metrics: empty";
+        }
+        int samples = 0;
+        List<String> names = new ArrayList<>();
+        for (String line : body.split("\\R")) {
+            String trimmed = line.trim();
+            if (trimmed.isBlank() || trimmed.startsWith("#")) {
+                continue;
+            }
+            samples++;
+            if (names.size() < 6) {
+                int brace = trimmed.indexOf('{');
+                int space = trimmed.indexOf(' ');
+                int end = brace > 0 ? brace : space > 0 ? space : trimmed.length();
+                String name = trimmed.substring(0, end);
+                if (!names.contains(name)) {
+                    names.add(name);
+                }
+            }
+        }
+        return "Core metrics: samples=" + samples + (names.isEmpty() ? "" : " / " + String.join(", ", names));
     }
 
     private String eventListMessage(String body) {

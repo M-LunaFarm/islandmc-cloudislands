@@ -548,7 +548,7 @@ public final class VelocityRoutingController {
     }
 
     public void listUpgradeRules(Player player) {
-        sendPlayerPayloadFuture(player, coreApiClient.listUpgradeRules(), "업그레이드 목록을 불러오지 못했습니다.", "업그레이드 목록을 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.listUpgradeRules().thenApply(this::upgradeRulesMessage), "업그레이드 목록을 불러오지 못했습니다.");
     }
 
     public void listUpgrades(Player player, UUID islandId) {
@@ -810,7 +810,7 @@ public final class VelocityRoutingController {
     }
 
     public void clearCache(Player player) {
-        sendBodyResult(player, coreApiClient.clearCache(), "캐시 정리를 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.clearCache().thenApply(body -> maintenanceMessage("Cache clear", body)), "캐시 정리를 요청하지 못했습니다.");
     }
 
     public void startEventPolling(Object plugin) {
@@ -837,7 +837,7 @@ public final class VelocityRoutingController {
     }
 
     public void metrics(Player player) {
-        sendBodyResult(player, coreApiClient.metrics(), "Core metrics를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.metrics().thenApply(this::metricsMessage), "Core metrics를 불러오지 못했습니다.");
     }
 
     public void storageStatus(Player player) {
@@ -853,7 +853,7 @@ public final class VelocityRoutingController {
     }
 
     public void reload(Player player) {
-        sendBodyResult(player, coreApiClient.reload(), "reload를 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.reload().thenApply(body -> maintenanceMessage("Core reload", body)), "reload를 요청하지 못했습니다.");
     }
 
     public void migrateSuperiorSkyblock2(Player player, String action, String path) {
@@ -1114,6 +1114,69 @@ public final class VelocityRoutingController {
             index = objectEnd + 1;
         }
         return "Templates: total=" + total + " enabled=" + enabled + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String upgradeRulesMessage(String body) {
+        String rules = arrayValue(body, "rules");
+        if (rules.isBlank()) {
+            return "Upgrade rules: empty";
+        }
+        java.util.List<String> entries = new java.util.ArrayList<>();
+        int total = 0;
+        int index = 0;
+        while (index < rules.length()) {
+            int objectStart = rules.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(rules, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            total++;
+            if (entries.size() < 10) {
+                String object = rules.substring(objectStart, objectEnd + 1);
+                entries.add(jsonValue(object, "upgradeKey")
+                    + " type=" + jsonValue(object, "type")
+                    + " max=" + longValue(object, "maxLevel")
+                    + " base=" + jsonValue(object, "baseCost"));
+            }
+            index = objectEnd + 1;
+        }
+        return "Upgrade rules: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String maintenanceMessage(String label, String body) {
+        String code = jsonValue(body, "code");
+        if (!code.isBlank()) {
+            return label + ": failed code=" + code;
+        }
+        return label + ": accepted sessions=" + longValue(body, "clearedSessions") + " tickets=" + longValue(body, "clearedTickets");
+    }
+
+    private String metricsMessage(String body) {
+        if (body == null || body.isBlank()) {
+            return "Core metrics: empty";
+        }
+        int samples = 0;
+        java.util.List<String> names = new java.util.ArrayList<>();
+        for (String line : body.split("\\R")) {
+            String trimmed = line.trim();
+            if (trimmed.isBlank() || trimmed.startsWith("#")) {
+                continue;
+            }
+            samples++;
+            if (names.size() < 6) {
+                int brace = trimmed.indexOf('{');
+                int space = trimmed.indexOf(' ');
+                int end = brace > 0 ? brace : space > 0 ? space : trimmed.length();
+                String name = trimmed.substring(0, end);
+                if (!names.contains(name)) {
+                    names.add(name);
+                }
+            }
+        }
+        return "Core metrics: samples=" + samples + (names.isEmpty() ? "" : " / " + String.join(", ", names));
     }
 
     public void playerInfo(Player player, UUID playerUuid) {
