@@ -42,11 +42,24 @@ public final class IslandRankingMenu implements Listener {
         if (meta == null || meta.getLore() == null) {
             return;
         }
+        String displayName = meta.getDisplayName();
+        player.closeInventory();
+        if ("공개 섬".equals(displayName)) {
+            player.performCommand("섬 방문");
+            return;
+        }
+        if ("랜덤 방문".equals(displayName)) {
+            player.performCommand("섬 랜덤방문");
+            return;
+        }
+        if ("새로고침".equals(displayName)) {
+            player.performCommand("섬 랭킹");
+            return;
+        }
         String islandId = loreValue(meta, "islandId=");
         if (islandId.isBlank()) {
             return;
         }
-        player.closeInventory();
         player.performCommand("섬 방문 " + islandId);
     }
 
@@ -62,6 +75,9 @@ public final class IslandRankingMenu implements Listener {
             for (Ranking ranking : worths) {
                 inventory.setItem(slot++, rankingItem(Material.EMERALD, ranking));
             }
+            inventory.setItem(45, item(Material.COMPASS, "공개 섬", "/섬 방문"));
+            inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 랭킹"));
+            inventory.setItem(53, item(Material.ENDER_PEARL, "랜덤 방문", "/섬 랜덤방문"));
             player.openInventory(inventory);
         });
     }
