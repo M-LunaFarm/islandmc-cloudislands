@@ -232,12 +232,12 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 return literalMatches(List.of("25", "50", "100", "250"), args[1]);
             }
             if (first.equals("setpermission") || first.equals("permission-set") || first.equals("권한설정")) {
-                return literalMatches(List.of("MEMBER", "TRUSTED", "MODERATOR", "VISITOR"), args[1]);
+                return literalMatches(List.of("MEMBER", "TRUSTED", "MODERATOR", "VISITOR", "CUSTOM_1", "CUSTOM_2", "CUSTOM_3", "CUSTOM_4", "CUSTOM_5"), args[1]);
             }
             if (first.equals("biome") || first.equals("바이옴")) {
                 return literalMatches(List.of("minecraft:plains", "minecraft:forest", "minecraft:desert", "minecraft:taiga"), args[1]);
             }
-            if (first.equals("invite") || first.equals("초대") || first.equals("kick") || first.equals("remove-member") || first.equals("추방") || first.equals("promote") || first.equals("승급") || first.equals("demote") || first.equals("강등") || first.equals("transfer") || first.equals("양도") || first.equals("trust") || first.equals("신뢰") || first.equals("untrust") || first.equals("신뢰해제") || first.equals("ban") || first.equals("밴") || first.equals("unban") || first.equals("pardon") || first.equals("밴해제") || first.equals("kickvisitor") || first.equals("방문자추방")) {
+            if (first.equals("invite") || first.equals("초대") || first.equals("kick") || first.equals("remove-member") || first.equals("추방") || first.equals("promote") || first.equals("승급") || first.equals("demote") || first.equals("강등") || first.equals("setrole") || first.equals("role-set") || first.equals("역할설정") || first.equals("transfer") || first.equals("양도") || first.equals("trust") || first.equals("신뢰") || first.equals("untrust") || first.equals("신뢰해제") || first.equals("ban") || first.equals("밴") || first.equals("unban") || first.equals("pardon") || first.equals("밴해제") || first.equals("kickvisitor") || first.equals("방문자추방")) {
                 return onlinePlayerMatches(args[1]);
             }
         }

@@ -1091,7 +1091,7 @@ public final class CloudIslandsVelocityPlugin {
                 addLiteralSuggestions(matches, args[1], List.of("25", "50", "100", "250"));
             }
             if (first.equals("setpermission") || first.equals("permission-set") || first.equals("권한설정")) {
-                addLiteralSuggestions(matches, args[1], List.of("MEMBER", "TRUSTED", "MODERATOR", "VISITOR"));
+                addLiteralSuggestions(matches, args[1], List.of("MEMBER", "TRUSTED", "MODERATOR", "VISITOR", "CUSTOM_1", "CUSTOM_2", "CUSTOM_3", "CUSTOM_4", "CUSTOM_5"));
             }
             if (first.equals("setflag") || first.equals("flag-set") || first.equals("플래그설정")) {
                 addLiteralSuggestions(matches, args[1], List.of("FLY", "KEEP_INVENTORY", "PVP", "PUBLIC_WARPS"));
