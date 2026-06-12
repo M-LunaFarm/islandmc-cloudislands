@@ -228,7 +228,8 @@ public final class RoutingOrchestrator {
                 return unavailable;
             }
             String templateId = islands.templateId(island.islandId()).orElse("default");
-            RouteTicket saved = tickets.save(ticket(playerUuid, island.islandId(), action, extraPayload, routeTarget(runtime, templateId, templates.find(templateId).map(kr.lunaf.cloudislands.coreservice.template.IslandTemplateSnapshot::minNodeVersion).orElse(""), action)));
+            boolean visitorRoute = action == RouteAction.VISIT || (action == RouteAction.WARP && !metadata.isMember(island.islandId(), playerUuid));
+            RouteTicket saved = tickets.save(ticket(playerUuid, island.islandId(), action, extraPayload, routeTarget(runtime, templateId, templates.find(templateId).map(kr.lunaf.cloudislands.coreservice.template.IslandTemplateSnapshot::minNodeVersion).orElse(""), visitorRoute)));
             events.publish(CloudIslandEventType.ROUTE_TICKET_CREATED.name(), Map.of(
                 "ticketId", saved.ticketId().toString(),
                 "playerUuid", saved.playerUuid().toString(),
@@ -289,7 +290,7 @@ public final class RoutingOrchestrator {
         ));
     }
 
-    private RouteTarget routeTarget(IslandRuntimeSnapshot runtime, String templateId, String minNodeVersion, RouteAction action) {
+    private RouteTarget routeTarget(IslandRuntimeSnapshot runtime, String templateId, String minNodeVersion, boolean visitorRoute) {
         if (runtime.state() == IslandState.ACTIVE) {
             if (runtime.activeNode() == null || runtime.activeNode().isBlank()) {
                 markActiveRouteRecoveryRequired(runtime, "missing_active_node");
@@ -304,7 +305,7 @@ public final class RoutingOrchestrator {
                 markActiveRouteRecoveryRequired(runtime, "active_node_unhealthy");
                 throw new IllegalStateException("active node is unavailable");
             }
-            if (action == RouteAction.VISIT && activeNode.state() == NodeState.SOFT_FULL) {
+            if (visitorRoute && activeNode.state() == NodeState.SOFT_FULL) {
                 throw new IllegalStateException("visitor route denied on soft-full active node");
             }
             String worldName = runtime.activeWorld() == null || runtime.activeWorld().isBlank() ? "ci_shard_001" : runtime.activeWorld();
