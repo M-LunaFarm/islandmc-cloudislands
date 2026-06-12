@@ -495,8 +495,9 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("sethome") || args[0].equals("셋홈")) {
-            UUID islandId = optionalIslandIdArgument(args, 1);
-            String name = argumentAfterOptionalIsland(args, 1, "default");
+            boolean hasIslandId = args.length > 1 && isUuid(args[1]);
+            UUID islandId = hasIslandId ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            String name = args.length > (hasIslandId ? 2 : 1) ? args[hasIslandId ? 2 : 1] : "default";
             routingController.setHome(player, islandId, name);
             return;
         }
@@ -533,26 +534,30 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("setwarp") || args[0].equals("워프설정")) {
-            UUID islandId = optionalIslandIdArgument(args, 1);
-            String warpName = argumentAfterOptionalIsland(args, 1, "default");
+            boolean hasIslandId = args.length > 1 && isUuid(args[1]);
+            UUID islandId = hasIslandId ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            String warpName = args.length > (hasIslandId ? 2 : 1) ? args[hasIslandId ? 2 : 1] : "default";
             routingController.setWarp(player, islandId, warpName, false);
             return;
         }
         if (args[0].equalsIgnoreCase("deletewarp") || args[0].equals("워프삭제")) {
-            UUID islandId = optionalIslandIdArgument(args, 1);
-            String warpName = argumentAfterOptionalIsland(args, 1, "default");
+            boolean hasIslandId = args.length > 1 && isUuid(args[1]);
+            UUID islandId = hasIslandId ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            String warpName = args.length > (hasIslandId ? 2 : 1) ? args[hasIslandId ? 2 : 1] : "default";
             routingController.deleteWarp(player, islandId, warpName);
             return;
         }
         if (args[0].equalsIgnoreCase("publicwarp") || args[0].equals("워프공개")) {
-            UUID islandId = optionalIslandIdArgument(args, 1);
-            String warpName = argumentAfterOptionalIsland(args, 1, "default");
+            boolean hasIslandId = args.length > 1 && isUuid(args[1]);
+            UUID islandId = hasIslandId ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            String warpName = args.length > (hasIslandId ? 2 : 1) ? args[hasIslandId ? 2 : 1] : "default";
             routingController.setWarpPublicAccess(player, islandId, warpName, true);
             return;
         }
         if (args[0].equalsIgnoreCase("privatewarp") || args[0].equals("워프비공개")) {
-            UUID islandId = optionalIslandIdArgument(args, 1);
-            String warpName = argumentAfterOptionalIsland(args, 1, "default");
+            boolean hasIslandId = args.length > 1 && isUuid(args[1]);
+            UUID islandId = hasIslandId ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            String warpName = args.length > (hasIslandId ? 2 : 1) ? args[hasIslandId ? 2 : 1] : "default";
             routingController.setWarpPublicAccess(player, islandId, warpName, false);
             return;
         }
