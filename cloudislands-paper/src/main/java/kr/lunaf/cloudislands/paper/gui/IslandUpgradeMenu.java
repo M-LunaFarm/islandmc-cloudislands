@@ -40,11 +40,24 @@ public final class IslandUpgradeMenu implements Listener {
         if (meta == null || meta.getLore() == null) {
             return;
         }
+        String displayName = meta.getDisplayName();
+        player.closeInventory();
+        if ("섬 은행".equals(displayName)) {
+            player.performCommand("섬 은행");
+            return;
+        }
+        if ("새로고침".equals(displayName)) {
+            player.performCommand("섬 업그레이드");
+            return;
+        }
+        if ("설정".equals(displayName)) {
+            player.performCommand("섬 설정");
+            return;
+        }
         String key = loreValue(meta, "upgradeKey=");
         if (key.isBlank()) {
             return;
         }
-        player.closeInventory();
         player.performCommand("섬 업그레이드 " + key);
     }
 
@@ -58,6 +71,9 @@ public final class IslandUpgradeMenu implements Listener {
             if (upgrades.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, "업그레이드 없음", "Core API에 등록된 섬 업그레이드가 없습니다."));
             }
+            inventory.setItem(45, item(Material.GOLD_BLOCK, "섬 은행", "/섬 은행"));
+            inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 업그레이드"));
+            inventory.setItem(53, item(Material.COMPARATOR, "설정", "/섬 설정"));
             player.openInventory(inventory);
         });
     }
