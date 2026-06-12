@@ -190,6 +190,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (args.length == 1) {
             return matches(ROOT_COMMANDS, args[0]);
         }
+        if (args.length == 2 && args[0].equalsIgnoreCase("command")) {
+            return matches(List.of("list", "목록"), args[1]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("command") && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
+            return matches(List.of("1", "2", "3", "4", "5"), args[2]);
+        }
         if (args.length == 2 && args[0].equalsIgnoreCase("cache")) {
             return matches(CACHE_COMMANDS, args[1]);
         }

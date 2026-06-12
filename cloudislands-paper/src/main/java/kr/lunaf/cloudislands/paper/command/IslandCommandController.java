@@ -182,6 +182,12 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        if (args.length == 2 && args[0].equalsIgnoreCase("command")) {
+            return literalMatches(List.of("list", "목록"), args[1]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("command") && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
+            return literalMatches(List.of("1", "2", "3", "4", "5"), args[2]);
+        }
         if (args.length != 1) {
             return List.of();
         }
@@ -190,6 +196,17 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         for (String subcommand : SUBCOMMANDS) {
             if (typed.isBlank() || subcommand.toLowerCase(Locale.ROOT).startsWith(typed)) {
                 matches.add(subcommand);
+            }
+        }
+        return matches;
+    }
+
+    private List<String> literalMatches(List<String> values, String typed) {
+        String lower = typed.toLowerCase(Locale.ROOT);
+        List<String> matches = new ArrayList<>();
+        for (String value : values) {
+            if (lower.isBlank() || value.toLowerCase(Locale.ROOT).startsWith(lower)) {
+                matches.add(value);
             }
         }
         return matches;
