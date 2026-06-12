@@ -1951,6 +1951,9 @@ public final class VelocityRoutingController {
             String fields = objectValue(object, "fields");
             String islandId = jsonValue(fields, "islandId");
             String nodeId = jsonValue(fields, "nodeId");
+            if (nodeId.isBlank()) {
+                nodeId = jsonValue(fields, "targetNode");
+            }
             entries.add((type.isBlank() ? "UNKNOWN_EVENT" : type)
                 + (islandId.isBlank() ? "" : " island=" + islandId)
                 + (nodeId.isBlank() ? "" : " node=" + nodeId)

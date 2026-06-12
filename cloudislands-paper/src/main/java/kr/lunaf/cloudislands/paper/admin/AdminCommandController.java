@@ -1350,6 +1350,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             String fields = objectValue(object, "fields");
             String islandId = textValue(fields, "islandId");
             String nodeId = textValue(fields, "nodeId");
+            if (nodeId.isBlank()) {
+                nodeId = textValue(fields, "targetNode");
+            }
             entries.add((type.isBlank() ? "UNKNOWN_EVENT" : type)
                 + (islandId.isBlank() ? "" : " island=" + islandId)
                 + (nodeId.isBlank() ? "" : " node=" + nodeId)
