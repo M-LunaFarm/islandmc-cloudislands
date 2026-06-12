@@ -91,6 +91,8 @@ import kr.lunaf.cloudislands.coreservice.security.AdminEndpointGuard;
 import kr.lunaf.cloudislands.coreservice.security.IpAllowlist;
 import kr.lunaf.cloudislands.coreservice.security.MtlsHeaderGuard;
 import kr.lunaf.cloudislands.coreservice.session.InMemoryRouteSessionStore;
+import kr.lunaf.cloudislands.coreservice.session.RedisRouteSessionStore;
+import kr.lunaf.cloudislands.coreservice.session.RouteSessionStore;
 import kr.lunaf.cloudislands.coreservice.snapshot.InMemoryIslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.snapshot.JdbcIslandSnapshotRepository;
@@ -156,7 +158,9 @@ public final class CloudIslandsCoreApplication {
         NodeRegistry nodes = config.jdbcRepositories() ? new JdbcNodeRegistry(dataSource) : new InMemoryNodeRegistry();
         NodeAllocator allocator = new NodeAllocator(config.heartbeatTimeout());
         RouteTicketStore tickets = config.jdbcRepositories() ? new JdbcRouteTicketStore(dataSource, clock) : new InMemoryRouteTicketStore(clock);
-        InMemoryRouteSessionStore sessions = new InMemoryRouteSessionStore(clock);
+        RouteSessionStore sessions = config.redisEvents() || config.redisJobs()
+            ? new RedisRouteSessionStore(config.redisUri())
+            : new InMemoryRouteSessionStore(clock);
         IslandJobQueue jobs = config.jdbcJobs() ? new JdbcIslandJobQueue(dataSource, clock, config.leaseDuration()) : config.redisJobs() ? new RedisIslandJobQueue(config.redisUri()) : new InMemoryIslandJobPublisher();
         InMemoryGlobalEventPublisher inMemoryEvents = new InMemoryGlobalEventPublisher();
         RedisStreamWriterAdapter redisEventWriter = config.redisEvents() ? new RedisStreamWriterAdapter(config.redisUri()) : null;
@@ -645,9 +649,9 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
             if (playerUuid.equals(new UUID(0L, 0L))) {
-                write(exchange, 200, "{\"sessions\":" + sessions.toJson() + ",\"tickets\":" + tickets.toJson() + "}");
+                write(exchange, 200, "{\"sessions\":" + routeSessionsJson(sessions) + ",\"tickets\":" + tickets.toJson() + "}");
             } else {
-                PlayerRouteSession session = sessions.findAny(playerUuid).orElse(null);
+                PlayerRouteSession session = findAnyRouteSession(sessions, playerUuid).orElse(null);
                 RouteTicket ticket = tickets.findLatestForPlayer(playerUuid).orElse(null);
                 boolean found = session != null || ticket != null;
                 write(exchange, found ? 200 : 404, found ? routeDebugJson(playerUuid, session, ticket) : ApiResponses.error("ROUTE_ROUTE_NOT_FOUND", "Route session or ticket was not found"));
@@ -1834,6 +1838,26 @@ public final class CloudIslandsCoreApplication {
             + "\",\"session\":" + (session == null ? "null" : sessionJson(session))
             + ",\"ticket\":" + (ticket == null ? "null" : RoutingOrchestrator.toJson(ticket))
             + "}";
+    }
+
+    private static String routeSessionsJson(RouteSessionStore sessions) {
+        if (sessions instanceof InMemoryRouteSessionStore memorySessions) {
+            return memorySessions.toJson();
+        }
+        if (sessions instanceof RedisRouteSessionStore redisSessions) {
+            return redisSessions.toJson();
+        }
+        return "{\"sessions\":[]}";
+    }
+
+    private static java.util.Optional<PlayerRouteSession> findAnyRouteSession(RouteSessionStore sessions, UUID playerUuid) {
+        if (sessions instanceof InMemoryRouteSessionStore memorySessions) {
+            return memorySessions.findAny(playerUuid);
+        }
+        if (sessions instanceof RedisRouteSessionStore redisSessions) {
+            return redisSessions.findAny(playerUuid);
+        }
+        return java.util.Optional.empty();
     }
 
     private static String sessionJson(PlayerRouteSession session) {
