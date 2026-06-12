@@ -18,8 +18,10 @@ import kr.lunaf.cloudislands.paper.event.IslandLevelRecalculateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandLimitChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMemberJoinEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMemberLeaveEvent;
+import kr.lunaf.cloudislands.paper.event.IslandMissionCompleteEvent;
 import kr.lunaf.cloudislands.paper.event.IslandPermissionChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandRoleChangeEvent;
+import kr.lunaf.cloudislands.paper.event.IslandSnapshotCreateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandUpgradeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandWarpChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandWarpCreateEvent;
@@ -335,6 +337,10 @@ public final class PermissionEventPoller {
             Bukkit.getPluginManager().callEvent(new IslandPermissionChangeEvent(islandId, fields.getOrDefault("role", ""), fields.getOrDefault("permission", ""), booleanField(fields, "allowed"), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_LIMIT_CHANGED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandLimitChangeEvent(islandId, fields.getOrDefault("limitKey", ""), longField(fields, "value"), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandMissionCompleteEvent(islandId, fields.getOrDefault("missionKey", ""), fields.getOrDefault("kind", ""), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandSnapshotCreateEvent(islandId, longField(fields, "snapshotNo"), fields.getOrDefault("reason", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_BIOME_CHANGED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandBiomeChangeEvent(islandId, fields.getOrDefault("biomeKey", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_WARP_CHANGED.name())) {
