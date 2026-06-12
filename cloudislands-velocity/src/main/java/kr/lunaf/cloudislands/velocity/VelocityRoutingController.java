@@ -233,7 +233,7 @@ public final class VelocityRoutingController {
                 String name = islandText(object, "name");
                 String role = islandText(object, "role");
                 long level = islandNumber(object, "level");
-                entries.add((name.isBlank() ? islandId : name) + " [" + (role.isBlank() ? "MEMBER" : role) + ", Lv." + level + "]");
+                entries.add((name.isBlank() ? "이름 없는 섬" : name) + " (ID=" + shortId(islandId) + ", 역할=" + (role.isBlank() ? "MEMBER" : role) + ", 레벨=" + level + ")");
             }
             index = objectEnd + 1;
         }
