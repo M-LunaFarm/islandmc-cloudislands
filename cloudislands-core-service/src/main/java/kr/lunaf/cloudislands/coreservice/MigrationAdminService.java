@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreservice;
 
 import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -323,8 +324,28 @@ public final class MigrationAdminService {
             playerProfiles.find(island.ownerUuid()).primaryIslandId()
                 .filter(islandId::equals)
                 .ifPresent(_current -> playerProfiles.clearPrimaryIsland(island.ownerUuid()));
+            removeMigrationExtraction(islandId);
         });
         return "{\"state\":\"" + MigrationRunState.ROLLED_BACK + "\",\"rolledBack\":" + result.rolledBack() + ",\"removedIslands\":" + result.removedIslands() + ",\"issues\":" + issuesJson(result.issues()) + "}";
+    }
+
+    private void removeMigrationExtraction(java.util.UUID islandId) {
+        Path root = lastExtractionRoot == null ? migrationBundleRoot : lastExtractionRoot;
+        Path migrationDir = root.resolve("islands").resolve(islandId.toString()).resolve("migration");
+        if (!Files.exists(migrationDir)) {
+            return;
+        }
+        try (java.util.stream.Stream<Path> paths = Files.walk(migrationDir)) {
+            paths.sorted((left, right) -> right.compareTo(left)).forEach(path -> {
+                try {
+                    Files.deleteIfExists(path);
+                } catch (java.io.IOException exception) {
+                    throw new IllegalStateException("failed to delete migration extraction " + path, exception);
+                }
+            });
+        } catch (java.io.IOException exception) {
+            throw new IllegalStateException("failed to delete migration extraction " + migrationDir, exception);
+        }
     }
 
     private String reportFields(MigrationReport report) {
