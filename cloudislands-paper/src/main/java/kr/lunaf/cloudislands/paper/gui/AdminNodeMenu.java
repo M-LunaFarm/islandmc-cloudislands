@@ -55,6 +55,10 @@ public final class AdminNodeMenu implements Listener {
             player.sendMessage("위험한 노드 작업은 Shift+우클릭해야 실행됩니다.");
             return;
         }
+        if (command != null && command.contains("<")) {
+            player.sendMessage("직접 입력이 필요한 명령입니다: " + command);
+            return;
+        }
         if (command != null) {
             player.performCommand(command.substring(1));
         } else if (name.equals("관리 명령 도움말")) {
