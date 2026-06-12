@@ -290,7 +290,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return true;
         }
         if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
-            run(sender, "Node list", coreApiClient.listNodes());
+            run(sender, "Node list", coreApiClient.listNodes().thenApply(this::nodeListSummaryMessage));
             return true;
         }
         String targetNode = args.length > 2 ? args[2] : nodeId;
@@ -303,11 +303,11 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return true;
         }
         if (args[1].equalsIgnoreCase("drain")) {
-            run(sender, "Node drain", coreApiClient.drainNode(targetNode));
+            run(sender, "Node drain", coreApiClient.drainNode(targetNode).thenApply(body -> nodeActionSummaryMessage("Node drain", targetNode, body)));
             return true;
         }
         if (args[1].equalsIgnoreCase("undrain")) {
-            run(sender, "Node undrain", coreApiClient.undrainNode(targetNode));
+            run(sender, "Node undrain", coreApiClient.undrainNode(targetNode).thenApply(body -> nodeActionSummaryMessage("Node undrain", targetNode, body)));
             return true;
         }
         if (args[1].equalsIgnoreCase("sweep")) {
@@ -315,11 +315,11 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return true;
         }
         if (args[1].equalsIgnoreCase("kickall")) {
-            run(sender, "Node kickall", coreApiClient.kickAllNode(targetNode, args.length > 3 ? joined(args, 3) : "admin"));
+            run(sender, "Node kickall", coreApiClient.kickAllNode(targetNode, args.length > 3 ? joined(args, 3) : "admin").thenApply(body -> nodeActionSummaryMessage("Node kickall", targetNode, body)));
             return true;
         }
         if (args[1].equalsIgnoreCase("shutdown-safe")) {
-            run(sender, "Node shutdown-safe", coreApiClient.shutdownNodeSafely(targetNode, args.length > 3 ? joined(args, 3) : "admin"));
+            run(sender, "Node shutdown-safe", coreApiClient.shutdownNodeSafely(targetNode, args.length > 3 ? joined(args, 3) : "admin").thenApply(body -> nodeActionSummaryMessage("Node shutdown-safe", targetNode, body)));
             return true;
         }
         sender.sendMessage("사용법: /ciadmin node menu|list|info|islands|drain|undrain|sweep|kickall|shutdown-safe [node] [limit]");
@@ -1254,6 +1254,74 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
 
     private int nodeIslandLimit(String[] args) {
         return args.length > 3 ? (int) Math.max(1L, Math.min(number(args[3], 50L), 200L)) : 50;
+    }
+
+    private String nodeListSummaryMessage(String body) {
+        String nodes = arrayValue(body, "nodes");
+        if (nodes.isBlank()) {
+            return "Nodes: empty";
+        }
+        int total = 0;
+        int up = 0;
+        int draining = 0;
+        int down = 0;
+        List<String> entries = new ArrayList<>();
+        int index = 0;
+        while (index < nodes.length()) {
+            int objectStart = nodes.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(nodes, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = nodes.substring(objectStart, objectEnd + 1);
+            String state = textValue(object, "state");
+            total++;
+            if (state.equalsIgnoreCase("UP")) {
+                up++;
+            } else if (state.equalsIgnoreCase("DRAINING")) {
+                draining++;
+            } else if (state.equalsIgnoreCase("DOWN")) {
+                down++;
+            }
+            if (entries.size() < 10) {
+                entries.add(nodeSummary(object));
+            }
+            index = objectEnd + 1;
+        }
+        return "Nodes: total=" + total
+            + " up=" + up
+            + " draining=" + draining
+            + " down=" + down
+            + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String nodeSummary(String object) {
+        String id = textValue(object, "id");
+        String state = textValue(object, "state");
+        long players = longValue(object, "players");
+        long hardCap = longValue(object, "hardPlayerCap");
+        long activeIslands = longValue(object, "activeIslands");
+        long maxActiveIslands = longValue(object, "maxActiveIslands");
+        return (id.isBlank() ? "node" : id)
+            + " " + (state.isBlank() ? "UNKNOWN" : state)
+            + " players=" + players + "/" + hardCap
+            + " islands=" + activeIslands + "/" + maxActiveIslands
+            + " mspt=" + seconds(doubleValue(object, "mspt"))
+            + " storage=" + (boolValue(object, "storageAvailable") ? "ok" : "down");
+    }
+
+    private String nodeActionSummaryMessage(String label, String nodeId, String body) {
+        if (body == null || body.isBlank()) {
+            return label + ": accepted node=" + nodeId;
+        }
+        String code = textValue(body, "code");
+        if (!code.isBlank()) {
+            return label + ": " + (boolValue(body, "accepted") ? "accepted" : "rejected") + " node=" + nodeId + " code=" + code;
+        }
+        return label + ": " + (boolValue(body, "accepted") ? "accepted" : "requested") + " node=" + nodeId;
     }
 
     private String arrayValue(String body, String field) {

@@ -621,7 +621,7 @@ public final class VelocityRoutingController {
     }
 
     public void listNodes(Player player) {
-        sendBodyResult(player, coreApiClient.listNodes(), "노드 목록을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listNodes().thenApply(this::nodeListSummaryMessage), "노드 목록을 불러오지 못했습니다.");
     }
 
     public void nodeInfo(Player player, String nodeId) {
@@ -633,11 +633,11 @@ public final class VelocityRoutingController {
     }
 
     public void drainNode(Player player, String nodeId) {
-        sendBodyResult(player, coreApiClient.drainNode(nodeId), "노드 drain을 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.drainNode(nodeId).thenApply(body -> nodeActionSummaryMessage("Node drain", nodeId, body)), "노드 drain을 요청하지 못했습니다.");
     }
 
     public void undrainNode(Player player, String nodeId) {
-        sendBodyResult(player, coreApiClient.undrainNode(nodeId), "노드 undrain을 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.undrainNode(nodeId).thenApply(body -> nodeActionSummaryMessage("Node undrain", nodeId, body)), "노드 undrain을 요청하지 못했습니다.");
     }
 
     public void sweepNode(Player player, String nodeId) {
@@ -647,7 +647,7 @@ public final class VelocityRoutingController {
     public void kickAllNode(Player player, String nodeId) {
         coreApiClient.kickAllNode(nodeId, "admin-request").thenAccept(body -> {
             int moved = moveNodePlayersToFallback(nodeId);
-            player.sendMessage(Component.text((body == null || body.isBlank() ? "노드 kickall을 요청했습니다." : body) + " 로비 이동=" + moved));
+            player.sendMessage(Component.text(nodeActionSummaryMessage("Node kickall", nodeId, body) + " lobbyMoved=" + moved));
         }).exceptionally(error -> {
             player.sendMessage(Component.text("노드 kickall을 요청하지 못했습니다."));
             return null;
@@ -657,7 +657,7 @@ public final class VelocityRoutingController {
     public void shutdownSafeNode(Player player, String nodeId) {
         coreApiClient.shutdownNodeSafely(nodeId, "admin-request").thenAccept(body -> {
             int moved = moveNodePlayersToFallback(nodeId);
-            player.sendMessage(Component.text((body == null || body.isBlank() ? "노드 shutdown-safe를 요청했습니다." : body) + " 로비 이동=" + moved));
+            player.sendMessage(Component.text(nodeActionSummaryMessage("Node shutdown-safe", nodeId, body) + " lobbyMoved=" + moved));
         }).exceptionally(error -> {
             player.sendMessage(Component.text("노드 shutdown-safe를 요청하지 못했습니다."));
             return null;
@@ -1215,6 +1215,76 @@ public final class VelocityRoutingController {
         return "(failures=" + failures
             + ", up=" + seconds(doubleValue(storage, "uploadSeconds")) + "s"
             + ", down=" + seconds(doubleValue(storage, "downloadSeconds")) + "s)";
+    }
+
+    private String nodeListSummaryMessage(String body) {
+        String nodes = arrayValue(body, "nodes");
+        if (nodes.isBlank()) {
+            return "Nodes: empty";
+        }
+        int total = 0;
+        int up = 0;
+        int draining = 0;
+        int down = 0;
+        java.util.List<String> entries = new java.util.ArrayList<>();
+        int index = 0;
+        while (index < nodes.length()) {
+            int objectStart = nodes.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(nodes, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = nodes.substring(objectStart, objectEnd + 1);
+            String state = jsonValue(object, "state");
+            total++;
+            if (state.equalsIgnoreCase("UP")) {
+                up++;
+            } else if (state.equalsIgnoreCase("DRAINING")) {
+                draining++;
+            } else if (state.equalsIgnoreCase("DOWN")) {
+                down++;
+            }
+            if (entries.size() < 10) {
+                entries.add(nodeSummary(object, entries.size() + 1));
+            }
+            index = objectEnd + 1;
+        }
+        return "Nodes: total=" + total
+            + " up=" + up
+            + " draining=" + draining
+            + " down=" + down
+            + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String nodeSummary(String object, int displayIndex) {
+        String id = jsonValue(object, "id");
+        String state = jsonValue(object, "state");
+        long players = longValue(object, "players");
+        long hardCap = longValue(object, "hardPlayerCap");
+        long activeIslands = longValue(object, "activeIslands");
+        long maxActiveIslands = longValue(object, "maxActiveIslands");
+        String displayNode = hideNodeNames || id.isBlank() ? "node-" + displayIndex : id;
+        return displayNode
+            + " " + (state.isBlank() ? "UNKNOWN" : state)
+            + " players=" + players + "/" + hardCap
+            + " islands=" + activeIslands + "/" + maxActiveIslands
+            + " mspt=" + seconds(doubleValue(object, "mspt"))
+            + " storage=" + (boolValue(object, "storageAvailable") ? "ok" : "down");
+    }
+
+    private String nodeActionSummaryMessage(String label, String nodeId, String body) {
+        String displayNode = hideNodeNames ? "target-node" : nodeId;
+        if (body == null || body.isBlank()) {
+            return label + ": accepted node=" + displayNode;
+        }
+        String code = jsonValue(body, "code");
+        if (!code.isBlank()) {
+            return label + ": " + (boolValue(body, "accepted") ? "accepted" : "rejected") + " node=" + displayNode + " code=" + code;
+        }
+        return label + ": " + (boolValue(body, "accepted") ? "accepted" : "requested") + " node=" + displayNode;
     }
 
     private String nodeSweepMessage(String body) {
