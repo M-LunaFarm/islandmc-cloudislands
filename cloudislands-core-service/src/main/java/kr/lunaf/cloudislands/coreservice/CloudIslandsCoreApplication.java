@@ -1242,6 +1242,10 @@ public final class CloudIslandsCoreApplication {
                 return;
             }
             boolean existingMember = metadataRepository.members(islandId).stream().anyMatch(member -> member.playerUuid().equals(targetUuid));
+            if (existingMember) {
+                write(exchange, 409, ApiResponses.error("ALREADY_MEMBER", "Player is already an island member"));
+                return;
+            }
             if (!existingMember && metadataRepository.members(islandId).size() >= limitValue(limitRepository, islandId, "MEMBERS", 3L)) {
                 write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
                 return;

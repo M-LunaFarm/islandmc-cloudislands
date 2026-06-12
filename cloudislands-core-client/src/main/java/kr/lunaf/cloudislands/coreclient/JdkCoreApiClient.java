@@ -120,7 +120,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> createIslandInvite(UUID islandId, UUID inviterUuid, UUID targetUuid) {
-        return post("/v1/islands/invites", "{\"islandId\":\"" + islandId + "\",\"inviterUuid\":\"" + inviterUuid + "\",\"targetUuid\":\"" + targetUuid + "\"}");
+        return postWithResultBody("/v1/islands/invites", "{\"islandId\":\"" + islandId + "\",\"inviterUuid\":\"" + inviterUuid + "\",\"targetUuid\":\"" + targetUuid + "\"}");
     }
 
     @Override

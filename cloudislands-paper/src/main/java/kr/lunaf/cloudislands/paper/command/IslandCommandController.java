@@ -1137,6 +1137,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             case "ISLAND_LOADING_FAILED" -> "섬을 준비하지 못했습니다. 잠시 후 다시 시도해주세요.";
             case "ISLAND_PERMISSION_DENIED" -> "섬 권한이 없습니다.";
             case "MEMBER_LIMIT" -> "섬 멤버 한도에 도달했습니다.";
+            case "ALREADY_MEMBER" -> "이미 섬 멤버입니다.";
             case "BANK_LIMIT" -> "섬 은행 한도에 도달했습니다.";
             case "INVALID_AMOUNT" -> "올바른 금액을 입력해주세요.";
             case "INSUFFICIENT_FUNDS" -> "잔액이 부족합니다.";
@@ -1768,7 +1769,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void sendIslandInvite(Player player, UUID islandId, UUID targetUuid) {
         coreApiClient.createIslandInvite(islandId, player.getUniqueId(), targetUuid)
-            .thenAccept(body -> message(player, "섬 초대를 보냈습니다: " + text(body, "inviteId")))
+            .thenAccept(body -> message(player, actionResultMessage("섬 초대", text(body, "inviteId"), body)))
             .exceptionally(error -> {
                 message(player, "섬 초대를 보내지 못했습니다.");
                 return null;
