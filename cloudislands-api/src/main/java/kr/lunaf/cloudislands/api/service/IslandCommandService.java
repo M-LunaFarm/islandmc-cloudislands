@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandMissionSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
+import kr.lunaf.cloudislands.api.model.IslandRoleSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradePurchaseSnapshot;
 
 public interface IslandCommandService {
@@ -57,6 +58,8 @@ public interface IslandCommandService {
     CompletableFuture<IslandActionResult> setFlagResult(UUID islandId, UUID actorUuid, IslandFlag flag, String value);
     CompletableFuture<Void> setPermission(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed);
     CompletableFuture<IslandActionResult> setPermissionResult(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed);
+    CompletableFuture<Void> upsertRole(UUID islandId, UUID actorUuid, IslandRole role, int weight, String displayName);
+    CompletableFuture<IslandRoleSnapshot> upsertRoleResult(UUID islandId, UUID actorUuid, IslandRole role, int weight, String displayName);
     CompletableFuture<Void> setLocked(UUID islandId, UUID actorUuid, boolean locked);
     CompletableFuture<IslandActionResult> setLockedResult(UUID islandId, UUID actorUuid, boolean locked);
     CompletableFuture<Void> lockIsland(UUID islandId, UUID actorUuid);

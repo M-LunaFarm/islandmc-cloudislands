@@ -42,6 +42,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRole;
+import kr.lunaf.cloudislands.api.model.IslandRoleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeJobType;
 import kr.lunaf.cloudislands.api.model.IslandSizeSnapshot;
@@ -192,6 +193,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<List<IslandPermissionRuleSnapshot>> getPermissionRules(UUID islandId) {
             return client.listIslandPermissions(islandId).thenApply(PaperCloudIslandsApi::permissionRules);
+        }
+
+        @Override
+        public CompletableFuture<List<IslandRoleSnapshot>> getRoles(UUID islandId) {
+            return client.listIslandRoles(islandId).thenApply(PaperCloudIslandsApi::roles);
         }
 
         @Override
@@ -731,6 +737,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<IslandActionResult> setFlagResult(UUID islandId, UUID actorUuid, IslandFlag flag, String value) { return client.setIslandFlagResult(islandId, actorUuid, flag, value).thenApply(body -> action(body, "FLAG_SET")); }
         @Override public CompletableFuture<Void> setPermission(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed) { return setPermissionResult(islandId, actorUuid, role, permission, allowed).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> setPermissionResult(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed) { return client.setIslandPermissionResult(islandId, actorUuid, role, permission, allowed).thenApply(body -> action(body, "PERMISSION_SET")); }
+        @Override public CompletableFuture<Void> upsertRole(UUID islandId, UUID actorUuid, IslandRole role, int weight, String displayName) { return upsertRoleResult(islandId, actorUuid, role, weight, displayName).thenApply(_result -> null); }
+        @Override public CompletableFuture<IslandRoleSnapshot> upsertRoleResult(UUID islandId, UUID actorUuid, IslandRole role, int weight, String displayName) { return client.upsertIslandRole(islandId, actorUuid, role, weight, displayName).thenApply(PaperCloudIslandsApi::role); }
         @Override public CompletableFuture<Void> setLocked(UUID islandId, UUID actorUuid, boolean locked) { return setLockedResult(islandId, actorUuid, locked).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> setLockedResult(UUID islandId, UUID actorUuid, boolean locked) { return client.setIslandLockedResult(islandId, actorUuid, locked).thenApply(body -> action(body, locked ? "ISLAND_LOCKED" : "ISLAND_UNLOCKED")); }
         @Override public CompletableFuture<Void> lockIsland(UUID islandId, UUID actorUuid) { return lockIslandResult(islandId, actorUuid).thenApply(_result -> null); }
@@ -1017,6 +1025,23 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             ));
         }
         return rules;
+    }
+
+    private static List<IslandRoleSnapshot> roles(String json) {
+        List<IslandRoleSnapshot> roles = new ArrayList<>();
+        for (String object : objects(json, "roles")) {
+            roles.add(role(object));
+        }
+        return roles;
+    }
+
+    private static IslandRoleSnapshot role(String json) {
+        return new IslandRoleSnapshot(
+            uuid(json, "islandId", new UUID(0L, 0L)),
+            enumValue(IslandRole.class, text(json, "role", "MEMBER"), IslandRole.MEMBER),
+            integer(json, "weight", 0),
+            text(json, "displayName", "")
+        );
     }
 
     private static IslandBiomeSnapshot biome(String json) {

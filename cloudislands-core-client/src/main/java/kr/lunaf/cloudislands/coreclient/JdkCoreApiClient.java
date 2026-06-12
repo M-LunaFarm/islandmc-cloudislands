@@ -249,6 +249,16 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> listIslandRoles(UUID islandId) {
+        return post("/v1/islands/roles", "{\"islandId\":\"" + islandId + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> upsertIslandRole(UUID islandId, UUID actorUuid, IslandRole role, int weight, String displayName) {
+        return postWithResultBody("/v1/islands/roles/upsert", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"" + role.name() + "\",\"weight\":" + weight + ",\"displayName\":\"" + escape(displayName) + "\"}");
+    }
+
+    @Override
     public CompletableFuture<String> listIslandWarps(UUID islandId) {
         return post("/v1/islands/warps", "{\"islandId\":\"" + islandId + "\"}");
     }
