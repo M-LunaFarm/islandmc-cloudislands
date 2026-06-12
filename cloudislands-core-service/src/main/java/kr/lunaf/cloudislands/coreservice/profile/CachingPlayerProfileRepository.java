@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
+import kr.lunaf.cloudislands.common.cache.RedisTtls;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 
 public final class CachingPlayerProfileRepository implements PlayerProfileRepository {
@@ -63,12 +64,12 @@ public final class CachingPlayerProfileRepository implements PlayerProfileReposi
 
     private PlayerIslandProfile cache(PlayerIslandProfile profile) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            redis.command("SET", RedisKeys.playerProfile(profile.playerUuid()), profileJson(profile));
+            redis.command("SET", RedisKeys.playerProfile(profile.playerUuid()), profileJson(profile), "PX", Long.toString(RedisTtls.PLAYER_PROFILE_MILLIS));
             if (profile.lastName() != null && !profile.lastName().isBlank()) {
-                redis.command("SET", RedisKeys.playerNameProfile(profile.lastName()), profile.playerUuid().toString());
+                redis.command("SET", RedisKeys.playerNameProfile(profile.lastName()), profile.playerUuid().toString(), "PX", Long.toString(RedisTtls.PLAYER_PROFILE_MILLIS));
             }
             if (profile.primaryIslandId().isPresent()) {
-                redis.command("SET", RedisKeys.playerIsland(profile.playerUuid()), profile.primaryIslandId().get().toString());
+                redis.command("SET", RedisKeys.playerIsland(profile.playerUuid()), profile.primaryIslandId().get().toString(), "PX", Long.toString(RedisTtls.PLAYER_ISLAND_MILLIS));
             } else {
                 redis.command("DEL", RedisKeys.playerIsland(profile.playerUuid()));
             }

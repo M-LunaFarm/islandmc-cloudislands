@@ -7,6 +7,7 @@ public final class RedisKeys {
 
     public static String serverHeartbeat(String nodeId) { return "ci:server:" + nodeId + ":heartbeat"; }
     public static String serverState(String nodeId) { return "ci:server:" + nodeId + ":state"; }
+    public static String serverMetrics(String nodeId) { return "ci:server:" + nodeId + ":metrics"; }
     public static String nodeIslandRuntimes(String nodeId, int limit) { return "ci:node:" + nodeId + ":island-runtimes:" + limit; }
     public static String playerIsland(UUID uuid) { return "ci:player:" + uuid + ":island"; }
     public static String playerProfile(UUID uuid) { return "ci:player:" + uuid + ":profile"; }
@@ -35,6 +36,7 @@ public final class RedisKeys {
     public static String templates() { return "ci:templates"; }
     public static String rankingVersion() { return "ci:rankings:version"; }
     public static String rankingTop(String metric, int limit, long version) { return "ci:rankings:" + metric + ":" + limit + ":v" + version; }
+    public static String islandLock(UUID islandId) { return "ci:lock:island:" + islandId; }
     public static String activationLock(UUID islandId) { return "ci:lock:activation:" + islandId; }
     public static String playerCreateLock(UUID playerUuid) { return "ci:lock:player-create:" + playerUuid; }
     public static String jobsStream() { return "ci:stream:jobs"; }

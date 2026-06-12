@@ -21,6 +21,7 @@ import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
+import kr.lunaf.cloudislands.common.cache.RedisTtls;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 
@@ -258,7 +259,7 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
 
     private void cacheMembers(UUID islandId, List<IslandMemberSnapshot> members) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            redis.command("SET", RedisKeys.islandMembers(islandId), membersJson(members));
+            redis.command("SET", RedisKeys.islandMembers(islandId), membersJson(members), "PX", Long.toString(RedisTtls.ISLAND_METADATA_MILLIS));
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
         }
@@ -288,7 +289,7 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
 
     private void cacheBans(UUID islandId, List<IslandBanSnapshot> bans) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            redis.command("SET", RedisKeys.islandBans(islandId), bansJson(bans));
+            redis.command("SET", RedisKeys.islandBans(islandId), bansJson(bans), "PX", Long.toString(RedisTtls.ISLAND_METADATA_MILLIS));
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
         }
@@ -337,7 +338,7 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
 
     private void cacheFlags(IslandFlagsSnapshot flags) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            redis.command("SET", RedisKeys.islandFlags(flags.islandId()), flagsJson(flags));
+            redis.command("SET", RedisKeys.islandFlags(flags.islandId()), flagsJson(flags), "PX", Long.toString(RedisTtls.ISLAND_PERMISSIONS_MILLIS));
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
         }
@@ -345,7 +346,7 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
 
     private void cacheHomes(UUID islandId, List<IslandHomeSnapshot> homes) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            redis.command("SET", RedisKeys.islandHomes(islandId), homesJson(homes));
+            redis.command("SET", RedisKeys.islandHomes(islandId), homesJson(homes), "PX", Long.toString(RedisTtls.ISLAND_METADATA_MILLIS));
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
         }
@@ -384,7 +385,7 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
 
     private void cacheWarps(UUID islandId, List<IslandWarpSnapshot> warps) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            redis.command("SET", RedisKeys.islandWarps(islandId), warpsJson(warps));
+            redis.command("SET", RedisKeys.islandWarps(islandId), warpsJson(warps), "PX", Long.toString(RedisTtls.ISLAND_METADATA_MILLIS));
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
         }

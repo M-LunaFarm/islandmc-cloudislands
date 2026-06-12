@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
+import kr.lunaf.cloudislands.common.cache.RedisTtls;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 
@@ -122,8 +123,8 @@ public final class CachingIslandRepository implements IslandRepository {
 
     private IslandSnapshot cache(IslandSnapshot island) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            redis.command("SET", RedisKeys.islandSummary(island.islandId()), islandJson(island));
-            redis.command("SET", RedisKeys.playerIsland(island.ownerUuid()), island.islandId().toString());
+            redis.command("SET", RedisKeys.islandSummary(island.islandId()), islandJson(island), "PX", Long.toString(RedisTtls.ISLAND_SUMMARY_MILLIS));
+            redis.command("SET", RedisKeys.playerIsland(island.ownerUuid()), island.islandId().toString(), "PX", Long.toString(RedisTtls.PLAYER_ISLAND_MILLIS));
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
         }
