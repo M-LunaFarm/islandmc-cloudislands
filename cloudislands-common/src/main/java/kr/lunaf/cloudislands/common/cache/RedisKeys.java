@@ -13,6 +13,7 @@ public final class RedisKeys {
     public static String islandSummary(UUID islandId) { return "ci:island:" + islandId + ":summary"; }
     public static String islandRuntime(UUID islandId) { return "ci:island:" + islandId + ":runtime"; }
     public static String islandMembers(UUID islandId) { return "ci:island:" + islandId + ":members"; }
+    public static String islandBans(UUID islandId) { return "ci:island:" + islandId + ":bans"; }
     public static String islandPermissions(UUID islandId) { return "ci:island:" + islandId + ":permissions"; }
     public static String islandFlags(UUID islandId) { return "ci:island:" + islandId + ":flags"; }
     public static String islandHomes(UUID islandId) { return "ci:island:" + islandId + ":homes"; }

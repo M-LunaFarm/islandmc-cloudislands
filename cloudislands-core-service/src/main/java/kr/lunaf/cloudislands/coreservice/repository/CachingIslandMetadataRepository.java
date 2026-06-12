@@ -95,22 +95,36 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
 
     @Override
     public boolean isBanned(UUID islandId, UUID playerUuid) {
-        return delegate.isBanned(islandId, playerUuid);
+        Optional<List<IslandBanSnapshot>> cached = cachedBans(islandId);
+        if (cached.isPresent()) {
+            return cached.get().stream().anyMatch(ban -> ban.bannedUuid().equals(playerUuid));
+        }
+        boolean banned = delegate.isBanned(islandId, playerUuid);
+        cacheBans(islandId, delegate.bans(islandId));
+        return banned;
     }
 
     @Override
     public List<IslandBanSnapshot> bans(UUID islandId) {
-        return delegate.bans(islandId);
+        Optional<List<IslandBanSnapshot>> cached = cachedBans(islandId);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
+        List<IslandBanSnapshot> bans = delegate.bans(islandId);
+        cacheBans(islandId, bans);
+        return bans;
     }
 
     @Override
     public void banVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason) {
         delegate.banVisitor(islandId, actorUuid, playerUuid, reason);
+        cacheBans(islandId, delegate.bans(islandId));
     }
 
     @Override
     public void pardonVisitor(UUID islandId, UUID playerUuid) {
         delegate.pardonVisitor(islandId, playerUuid);
+        cacheBans(islandId, delegate.bans(islandId));
     }
 
     @Override
@@ -272,6 +286,38 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
         }
     }
 
+    private void cacheBans(UUID islandId, List<IslandBanSnapshot> bans) {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            redis.command("SET", RedisKeys.islandBans(islandId), bansJson(bans));
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+        }
+    }
+
+    private Optional<List<IslandBanSnapshot>> cachedBans(UUID islandId) {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            String json = redis.command("GET", RedisKeys.islandBans(islandId));
+            if (json == null || json.isBlank()) {
+                return Optional.empty();
+            }
+            List<IslandBanSnapshot> bans = new ArrayList<>();
+            for (String object : objects(json)) {
+                bans.add(new IslandBanSnapshot(
+                    JsonFields.uuid(object, "islandId", islandId),
+                    JsonFields.uuid(object, "bannedUuid", new UUID(0L, 0L)),
+                    JsonFields.uuid(object, "actorUuid", new UUID(0L, 0L)),
+                    JsonFields.text(object, "reason", ""),
+                    instant(JsonFields.text(object, "createdAt", "")),
+                    nullableInstant(JsonFields.text(object, "expiresAt", ""))
+                ));
+            }
+            return Optional.of(List.copyOf(bans));
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+            return Optional.empty();
+        }
+    }
+
     private Optional<IslandFlagsSnapshot> cachedFlags(UUID islandId) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             String json = redis.command("GET", RedisKeys.islandFlags(islandId));
@@ -389,6 +435,26 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
                 .append("\"playerUuid\":\"").append(member.playerUuid()).append("\",")
                 .append("\"role\":\"").append(member.role().name()).append("\",")
                 .append("\"joinedAt\":\"").append(member.joinedAt()).append("\"")
+                .append('}');
+        }
+        return builder.append(']').toString();
+    }
+
+    private static String bansJson(List<IslandBanSnapshot> bans) {
+        StringBuilder builder = new StringBuilder("[");
+        boolean first = true;
+        for (IslandBanSnapshot ban : bans) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('{')
+                .append("\"islandId\":\"").append(ban.islandId()).append("\",")
+                .append("\"bannedUuid\":\"").append(ban.bannedUuid()).append("\",")
+                .append("\"actorUuid\":\"").append(ban.actorUuid()).append("\",")
+                .append("\"reason\":\"").append(escape(ban.reason())).append("\",")
+                .append("\"createdAt\":\"").append(ban.createdAt()).append("\",")
+                .append("\"expiresAt\":\"").append(ban.expiresAt() == null ? "" : ban.expiresAt()).append("\"")
                 .append('}');
         }
         return builder.append(']').toString();
@@ -521,6 +587,17 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
             return Instant.parse(value);
         } catch (RuntimeException ignored) {
             return Instant.EPOCH;
+        }
+    }
+
+    private static Instant nullableInstant(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Instant.parse(value);
+        } catch (RuntimeException ignored) {
+            return null;
         }
     }
 }
