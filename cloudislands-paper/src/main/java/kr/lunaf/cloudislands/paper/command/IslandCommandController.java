@@ -1208,7 +1208,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void publishAndConnect(Player player, RouteTicket ticket, String failureMessage) {
         coreApiClient.publishRouteSession(ticket).thenRun(() -> {
             clearRouteLoading(player);
-            connectWithTicket(player, ticket.payload().getOrDefault("targetServerName", ticket.targetNode()));
+            connectWithTicket(player, ticket, ticket.payload().getOrDefault("targetServerName", ticket.targetNode()));
         }).exceptionally(error -> {
             clearRouteLoading(player);
             message(player, failureMessage);
@@ -1233,8 +1233,29 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
     }
 
-    private void connectWithTicket(Player player, String targetServerName) {
-        connectPlayerToServer(player, targetServerName, "섬으로 이동합니다.", "섬으로 이동하지 못했습니다.");
+    private void connectWithTicket(Player player, RouteTicket ticket, String targetServerName) {
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            if (targetServerName == null || targetServerName.isBlank()) {
+                clearFailedRoute(ticket);
+                player.sendMessage("섬으로 이동하지 못했습니다.");
+                return;
+            }
+            try {
+                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                DataOutputStream output = new DataOutputStream(bytes);
+                output.writeUTF("Connect");
+                output.writeUTF(targetServerName);
+                player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
+                player.sendMessage("섬으로 이동합니다.");
+            } catch (IOException exception) {
+                clearFailedRoute(ticket);
+                player.sendMessage("섬으로 이동하지 못했습니다.");
+            }
+        });
+    }
+
+    private void clearFailedRoute(RouteTicket ticket) {
+        coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId()).exceptionally(error -> null);
     }
 
     private void connectPlayerToServer(Player player, String targetServerName, String successMessage, String failureMessage) {

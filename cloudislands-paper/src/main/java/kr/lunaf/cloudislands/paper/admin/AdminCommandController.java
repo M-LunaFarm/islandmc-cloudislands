@@ -761,16 +761,17 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
 
     private void publishAndConnect(Player player, RouteTicket ticket, String failureMessage) {
         coreApiClient.publishRouteSession(ticket)
-            .thenRun(() -> connectWithTicket(player, ticket.payload().getOrDefault("targetServerName", ticket.targetNode())))
+            .thenRun(() -> connectWithTicket(player, ticket, ticket.payload().getOrDefault("targetServerName", ticket.targetNode())))
             .exceptionally(error -> {
                 message(player, failureMessage);
                 return null;
             });
     }
 
-    private void connectWithTicket(Player player, String targetServerName) {
+    private void connectWithTicket(Player player, RouteTicket ticket, String targetServerName) {
         agent.plugin().getServer().getScheduler().runTask(agent.plugin(), () -> {
             if (targetServerName == null || targetServerName.isBlank()) {
+                clearFailedRoute(ticket);
                 player.sendMessage("섬 이동 경로를 찾을 수 없습니다.");
                 return;
             }
@@ -782,9 +783,14 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 player.sendPluginMessage(agent.plugin(), "BungeeCord", bytes.toByteArray());
                 player.sendMessage("섬으로 이동합니다.");
             } catch (IOException exception) {
+                clearFailedRoute(ticket);
                 player.sendMessage("섬 이동 요청을 만들 수 없습니다.");
             }
         });
+    }
+
+    private void clearFailedRoute(RouteTicket ticket) {
+        coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId()).exceptionally(error -> null);
     }
 
     private void run(CommandSender sender, String action, CompletableFuture<String> future) {
