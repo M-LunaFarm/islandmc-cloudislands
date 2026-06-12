@@ -76,6 +76,8 @@ import kr.lunaf.cloudislands.coreservice.ranking.JdbcIslandLevelRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.JdbcRankingRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService;
 import kr.lunaf.cloudislands.coreservice.ranking.RankingRepository;
+import kr.lunaf.cloudislands.coreservice.repository.CachingIslandMetadataRepository;
+import kr.lunaf.cloudislands.coreservice.repository.CachingIslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRuntimeRepository;
@@ -85,7 +87,6 @@ import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandRuntimeRepository;
-import kr.lunaf.cloudislands.coreservice.repository.CachingIslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.redis.RedisStreamWriterAdapter;
 import kr.lunaf.cloudislands.coreservice.security.ApiTokenGuard;
 import kr.lunaf.cloudislands.coreservice.security.FixedWindowRateLimiter;
@@ -171,7 +172,10 @@ public final class CloudIslandsCoreApplication {
             ? new CompositeGlobalEventPublisher(java.util.List.of(inMemoryEvents, new RedisStreamEventPublisher(redisEventWriter)))
             : inMemoryEvents;
         IslandRepository islandRepository = config.jdbcRepositories() ? new JdbcIslandRepository(dataSource) : new InMemoryIslandRepository();
-        IslandMetadataRepository metadataRepository = config.jdbcRepositories() ? new JdbcIslandMetadataRepository(dataSource) : new InMemoryIslandMetadataRepository();
+        IslandMetadataRepository baseMetadataRepository = config.jdbcRepositories() ? new JdbcIslandMetadataRepository(dataSource) : new InMemoryIslandMetadataRepository();
+        IslandMetadataRepository metadataRepository = config.redisEvents() || config.redisJobs()
+            ? new CachingIslandMetadataRepository(baseMetadataRepository, config.redisUri())
+            : baseMetadataRepository;
         PlayerProfileRepository basePlayerProfiles = config.jdbcRepositories() ? new JdbcPlayerProfileRepository(dataSource) : new InMemoryPlayerProfileRepository();
         PlayerProfileRepository playerProfiles = config.redisEvents() || config.redisJobs()
             ? new CachingPlayerProfileRepository(basePlayerProfiles, config.redisUri())
