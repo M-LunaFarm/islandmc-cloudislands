@@ -56,6 +56,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args.length == 0 || args[0].equalsIgnoreCase("status")) {
             sender.sendMessage("CloudIslands agent role=" + agent.role() + " node=" + nodeId);
+            sender.sendMessage("CloudIslands onlinePlayers=" + agent.plugin().getServer().getOnlinePlayers().size() + " routeWaitSeconds=" + routeWaitSeconds);
             return true;
         }
         if (args[0].equalsIgnoreCase("cache") && args.length > 1 && args[1].equalsIgnoreCase("clear")) {
