@@ -15,6 +15,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 import net.kyori.adventure.text.Component;
 
@@ -78,6 +79,11 @@ public final class PaperRouteSessionListener implements Listener {
             return;
         }
         consumeSession(playerUuid, 0);
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        verifiedSessions.remove(event.getPlayer().getUniqueId());
     }
 
     private void scheduleVerifiedSessionExpiry(UUID playerUuid, PlayerRouteSession session) {
