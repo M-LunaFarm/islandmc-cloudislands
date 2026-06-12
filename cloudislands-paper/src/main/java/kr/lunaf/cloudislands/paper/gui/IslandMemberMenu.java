@@ -56,10 +56,19 @@ public final class IslandMemberMenu implements Listener {
         }
         String playerUuid = loreValue(meta, "playerUuid=");
         if (!playerUuid.isBlank()) {
-            player.sendMessage("멤버 관리: /섬 승급 " + playerUuid);
-            player.sendMessage("멤버 관리: /섬 강등 " + playerUuid);
-            player.sendMessage("멤버 관리: /섬 추방 " + playerUuid);
-            player.sendMessage("소유권 이전: /섬 양도 " + playerUuid);
+            if (event.isShiftClick() && event.isRightClick()) {
+                player.performCommand("섬 추방 " + playerUuid);
+                return;
+            }
+            if (event.isRightClick()) {
+                player.performCommand("섬 강등 " + playerUuid);
+                return;
+            }
+            if (event.isLeftClick()) {
+                player.performCommand("섬 승급 " + playerUuid);
+                return;
+            }
+            player.sendMessage("소유권 이전은 명령어로 직접 확인해주세요: /섬 양도 " + playerUuid);
         }
     }
 
@@ -85,7 +94,7 @@ public final class IslandMemberMenu implements Listener {
             case "TRUSTED" -> Material.EMERALD;
             default -> Material.PLAYER_HEAD;
         };
-        return item(material, member.role() + " " + shortUuid(member.playerUuid()), "playerUuid=" + member.playerUuid(), "joinedAt=" + member.joinedAt(), "클릭하면 관리 명령을 안내합니다.");
+        return item(material, member.role() + " " + shortUuid(member.playerUuid()), "playerUuid=" + member.playerUuid(), "joinedAt=" + member.joinedAt(), "좌클릭: 승급", "우클릭: 강등", "Shift+우클릭: 추방", "양도: /섬 양도 " + member.playerUuid());
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
