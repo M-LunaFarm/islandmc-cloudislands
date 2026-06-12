@@ -287,7 +287,7 @@ public final class CloudIslandsCoreApplication {
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
         route("/health", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));
         route("/metrics", exchange -> write(exchange, 200, metrics.render(), "text/plain; version=0.0.4; charset=utf-8"));
-        route("/v1/nodes", exchange -> write(exchange, 200, nodes.toJson()));
+        route("/v1/nodes", exchange -> write(exchange, 200, nodes.toJson(config.heartbeatTimeout())));
         route("/v1/nodes/info", exchange -> {
             String body = readBody(exchange);
             String nodeId = JsonFields.text(body, "nodeId", "");
@@ -303,7 +303,7 @@ public final class CloudIslandsCoreApplication {
             }
             write(exchange, 200, nodeIslandsJson(nodeId, runtimeRepository.listByNode(nodeId, limit)));
         });
-        route("/v1/admin/nodes/list", exchange -> write(exchange, 200, nodes.toJson()));
+        route("/v1/admin/nodes/list", exchange -> write(exchange, 200, nodes.toJson(config.heartbeatTimeout())));
         route("/v1/admin/nodes/info", exchange -> {
             String body = readBody(exchange);
             String nodeId = JsonFields.text(body, "nodeId", "");

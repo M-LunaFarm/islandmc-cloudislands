@@ -37,16 +37,32 @@ public record NodeLoad(
     }
 
     public boolean eligible(Instant now, Duration heartbeatTimeout) {
+        return allocationBlockReason(now, heartbeatTimeout).isBlank();
+    }
+
+    public String allocationBlockReason(Instant now, Duration heartbeatTimeout) {
         if (state != NodeState.READY && state != NodeState.SOFT_FULL) {
-            return false;
+            return "STATE_" + state.name();
         }
         if (!storageAvailable) {
-            return false;
+            return "STORAGE_UNAVAILABLE";
         }
-        if (lastHeartbeat == null || lastHeartbeat.plus(heartbeatTimeout).isBefore(now)) {
-            return false;
+        if (lastHeartbeat == null) {
+            return "HEARTBEAT_MISSING";
         }
-        return players < hardPlayerCap && activeIslands < maxActiveIslands && activationQueue < maxActivationQueue;
+        if (lastHeartbeat.plus(heartbeatTimeout).isBefore(now)) {
+            return "HEARTBEAT_STALE";
+        }
+        if (hardPlayerCap > 0 && players >= hardPlayerCap) {
+            return "HARD_PLAYER_CAP";
+        }
+        if (maxActiveIslands > 0 && activeIslands >= maxActiveIslands) {
+            return "MAX_ACTIVE_ISLANDS";
+        }
+        if (maxActivationQueue > 0 && activationQueue >= maxActivationQueue) {
+            return "MAX_ACTIVATION_QUEUE";
+        }
+        return "";
     }
 
     public boolean acceptsExistingRoute(Instant now, Duration heartbeatTimeout, String templateId, String minVersion) {

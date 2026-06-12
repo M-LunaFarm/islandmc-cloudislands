@@ -46,6 +46,10 @@ public interface NodeRegistry {
     }
 
     default String toJson() {
+        return toJson(Duration.ofSeconds(5));
+    }
+
+    default String toJson(Duration heartbeatTimeout) {
         StringBuilder builder = new StringBuilder("{\"nodes\":[");
         boolean first = true;
         for (NodeLoad node : snapshot()) {
@@ -53,13 +57,18 @@ public interface NodeRegistry {
                 builder.append(',');
             }
             first = false;
-            builder.append(toJson(node));
+            builder.append(toJson(node, heartbeatTimeout));
         }
         return builder.append("]}").toString();
     }
 
     static String toJson(NodeLoad node) {
+        return toJson(node, Duration.ofSeconds(5));
+    }
+
+    static String toJson(NodeLoad node, Duration heartbeatTimeout) {
         java.util.Map<String, String> metadata = node.heartbeatMetadata();
+        String allocationBlockReason = node.allocationBlockReason(java.time.Instant.now(), heartbeatTimeout == null ? Duration.ofSeconds(5) : heartbeatTimeout);
         return new StringBuilder("{")
             .append("\"id\":\"").append(node.nodeId()).append("\",")
             .append("\"pool\":\"").append(node.pool() == null ? "island" : node.pool()).append("\",")
@@ -97,6 +106,8 @@ public interface NodeRegistry {
             .append("\"operationFailures\":").append(longMetadata(metadata, "storageOperationFailures"))
             .append("},")
             .append("\"lastHeartbeat\":\"").append(node.lastHeartbeat()).append("\",")
+            .append("\"eligibleForNewActivation\":").append(allocationBlockReason.isBlank()).append(',')
+            .append("\"allocationBlockReason\":\"").append(allocationBlockReason).append("\",")
             .append("\"score\":").append(node.score())
             .append(",\"scoreBreakdown\":{")
             .append("\"playerPressure\":").append(node.playerPressure()).append(',')
