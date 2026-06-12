@@ -627,8 +627,85 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return true;
         }
         String path = args.length > 2 ? joined(args, 2) : "plugins/SuperiorSkyblock2";
-        run(sender, "SuperiorSkyblock2 migration " + action, coreApiClient.migrateSuperiorSkyblock2(action, path));
+        run(sender, "SuperiorSkyblock2 migration " + action, coreApiClient.migrateSuperiorSkyblock2(action, path).thenApply(this::migrationMessage));
         return true;
+    }
+
+    private String migrationMessage(String body) {
+        if (body == null || body.isBlank()) {
+            return "Migration: no response";
+        }
+        String code = textValue(body, "code");
+        if (!code.isBlank()) {
+            return "Migration: failed code=" + code;
+        }
+        String state = textValue(body, "state");
+        String path = textValue(body, "path");
+        String issues = arrayValue(body, "issues");
+        long manifests = longValue(body, "manifests");
+        long importedIslands = longValue(body, "importedIslands");
+        long removedIslands = longValue(body, "removedIslands");
+        StringBuilder builder = new StringBuilder("Migration: state=")
+            .append(state.isBlank() ? "UNKNOWN" : state)
+            .append(" manifests=")
+            .append(manifests);
+        if (!path.isBlank()) {
+            builder.append(" path=").append(path);
+        }
+        if (body.contains("\"canImport\"")) {
+            builder.append(" canImport=").append(boolValue(body, "canImport"));
+        }
+        if (body.contains("\"imported\"")) {
+            builder.append(" imported=").append(boolValue(body, "imported"))
+                .append(" islands=")
+                .append(importedIslands);
+        }
+        if (body.contains("\"passed\"")) {
+            builder.append(" passed=").append(boolValue(body, "passed"))
+                .append(" expected=")
+                .append(longValue(body, "expected"));
+        }
+        if (body.contains("\"rolledBack\"")) {
+            builder.append(" rolledBack=").append(boolValue(body, "rolledBack"))
+                .append(" removed=")
+                .append(removedIslands);
+        }
+        builder.append(migrationIssuesSuffix(issues));
+        return builder.toString();
+    }
+
+    private String migrationIssuesSuffix(String issues) {
+        if (issues.isBlank()) {
+            return " issues=0";
+        }
+        int total = 0;
+        int blocking = 0;
+        List<String> samples = new ArrayList<>();
+        int index = 0;
+        while (index < issues.length()) {
+            int objectStart = issues.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(issues, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = issues.substring(objectStart, objectEnd + 1);
+            total++;
+            boolean blocked = boolValue(object, "blocking");
+            if (blocked) {
+                blocking++;
+            }
+            if (samples.size() < 5) {
+                String issueCode = textValue(object, "code");
+                samples.add((issueCode.isBlank() ? "UNKNOWN" : issueCode) + (blocked ? "(blocking)" : ""));
+            }
+            index = objectEnd + 1;
+        }
+        return " issues=" + total
+            + " blocking=" + blocking
+            + (samples.isEmpty() ? "" : " [" + String.join(", ", samples) + "]");
     }
 
     private void routeAdminTeleport(Player player, UUID islandId) {
