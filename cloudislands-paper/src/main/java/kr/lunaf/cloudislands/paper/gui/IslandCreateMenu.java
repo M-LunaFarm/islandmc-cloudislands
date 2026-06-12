@@ -44,6 +44,11 @@ public final class IslandCreateMenu implements Listener {
             player.performCommand("섬 생성메뉴");
             return;
         }
+        if ("메인 메뉴".equals(meta.getDisplayName())) {
+            player.closeInventory();
+            player.performCommand("섬 메뉴");
+            return;
+        }
         String templateId = "";
         for (String line : meta.getLore()) {
             if (line.startsWith("templateId=")) {
@@ -65,14 +70,11 @@ public final class IslandCreateMenu implements Listener {
             if (enabled.isEmpty()) {
                 enabled = List.of(new Template("default", "기본 섬", true, ""));
             }
-            int slot = 10;
-            for (Template template : enabled) {
-                inventory.setItem(slot, item(template));
-                slot++;
-                if (slot == 17) {
-                    slot = 19;
-                }
+            int[] templateSlots = {9, 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 23, 24, 25};
+            for (int index = 0; index < enabled.size() && index < templateSlots.length; index++) {
+                inventory.setItem(templateSlots[index], item(enabled.get(index)));
             }
+            inventory.setItem(18, button(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
             inventory.setItem(22, button(Material.CLOCK, "템플릿 새로고침", "/섬 생성메뉴"));
             player.openInventory(inventory);
         });
