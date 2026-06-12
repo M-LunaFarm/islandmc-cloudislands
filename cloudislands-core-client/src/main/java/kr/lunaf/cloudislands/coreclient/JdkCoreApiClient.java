@@ -664,6 +664,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> listEvents(int limit) {
+        return postWithResultBody("/v1/events", "{\"limit\":" + Math.max(1, Math.min(limit, 4096)) + "}");
+    }
+
+    @Override
     public CompletableFuture<String> listAuditLogs() {
         return postWithResultBody("/v1/audit", "{}");
     }

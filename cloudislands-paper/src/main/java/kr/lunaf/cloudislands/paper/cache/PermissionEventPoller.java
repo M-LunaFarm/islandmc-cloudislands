@@ -62,7 +62,7 @@ public final class PermissionEventPoller {
 
     private void poll() {
         try {
-            String json = client.listEvents().join();
+            String json = client.listEvents(512).join();
             for (ParsedEvent event : events(json)) {
                 String type = event.type();
                 Map<String, String> fields = fields(event.fields());

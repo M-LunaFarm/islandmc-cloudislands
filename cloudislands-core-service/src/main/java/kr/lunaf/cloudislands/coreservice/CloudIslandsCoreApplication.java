@@ -240,7 +240,11 @@ public final class CloudIslandsCoreApplication {
             write(exchange, 200, nodeIslandsJson(nodeId, runtimeRepository.listByNode(nodeId, limit)));
         });
         route("/v1/jobs", exchange -> write(exchange, 200, jobsJson(jobs)));
-        route("/v1/events", exchange -> write(exchange, 200, inMemoryEvents.toJson()));
+        route("/v1/events", exchange -> {
+            String body = readBody(exchange);
+            int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 512), 4096));
+            write(exchange, 200, inMemoryEvents.toJson(limit));
+        });
         route("/v1/audit", exchange -> write(exchange, 200, auditJson.get()));
         route("/v1/rankings/level", exchange -> {
             String body = readBody(exchange);

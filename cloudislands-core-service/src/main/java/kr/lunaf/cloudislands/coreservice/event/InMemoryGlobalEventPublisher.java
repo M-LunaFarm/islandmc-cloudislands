@@ -22,9 +22,16 @@ public final class InMemoryGlobalEventPublisher implements GlobalEventPublisher 
     }
 
     public synchronized String toJson() {
+        return toJson(MAX_EVENTS);
+    }
+
+    public synchronized String toJson(int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, MAX_EVENTS));
+        int from = Math.max(0, events.size() - safeLimit);
         StringBuilder builder = new StringBuilder("{\"events\":[");
         boolean first = true;
-        for (EventRecord event : events) {
+        for (int i = from; i < events.size(); i++) {
+            EventRecord event = events.get(i);
             if (!first) {
                 builder.append(',');
             }
