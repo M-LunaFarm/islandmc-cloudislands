@@ -664,24 +664,24 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("fly") || args[0].equals("비행")) {
-            UUID islandId = optionalIslandIdArgument(args, 1);
-            boolean enabled = parseToggle(args, hasOptionalIslandIdArgument(args, 1) ? 2 : 1, true);
+            UUID islandId = islandIdArgument(args, 1);
+            boolean enabled = parseToggle(args, hasIslandIdArgument(args, 1) ? 2 : 1, true);
             routingController.setFlyFlag(player, islandId, enabled);
             return;
         }
         if (args[0].equalsIgnoreCase("keepinventory") || args[0].equalsIgnoreCase("keepinv") || args[0].equals("인벤보존")) {
-            UUID islandId = optionalIslandIdArgument(args, 1);
-            routingController.setBooleanFlag(player, islandId, kr.lunaf.cloudislands.api.model.IslandFlag.KEEP_INVENTORY, parseToggle(args, hasOptionalIslandIdArgument(args, 1) ? 2 : 1, true), "인벤토리 보존");
+            UUID islandId = islandIdArgument(args, 1);
+            routingController.setBooleanFlag(player, islandId, kr.lunaf.cloudislands.api.model.IslandFlag.KEEP_INVENTORY, parseToggle(args, hasIslandIdArgument(args, 1) ? 2 : 1, true), "인벤토리 보존");
             return;
         }
         if (args[0].equalsIgnoreCase("pvp") || args[0].equals("피빕")) {
-            UUID islandId = optionalIslandIdArgument(args, 1);
-            routingController.setBooleanFlag(player, islandId, kr.lunaf.cloudislands.api.model.IslandFlag.PVP, parseToggle(args, hasOptionalIslandIdArgument(args, 1) ? 2 : 1, true), "PVP");
+            UUID islandId = islandIdArgument(args, 1);
+            routingController.setBooleanFlag(player, islandId, kr.lunaf.cloudislands.api.model.IslandFlag.PVP, parseToggle(args, hasIslandIdArgument(args, 1) ? 2 : 1, true), "PVP");
             return;
         }
         if (args[0].equalsIgnoreCase("publicwarps") || args[0].equals("공개워프")) {
-            UUID islandId = optionalIslandIdArgument(args, 1);
-            routingController.setBooleanFlag(player, islandId, kr.lunaf.cloudislands.api.model.IslandFlag.PUBLIC_WARPS, parseToggle(args, hasOptionalIslandIdArgument(args, 1) ? 2 : 1, true), "공개 워프");
+            UUID islandId = islandIdArgument(args, 1);
+            routingController.setBooleanFlag(player, islandId, kr.lunaf.cloudislands.api.model.IslandFlag.PUBLIC_WARPS, parseToggle(args, hasIslandIdArgument(args, 1) ? 2 : 1, true), "공개 워프");
             return;
         }
         if (args[0].equalsIgnoreCase("flags") || args[0].equals("플래그")) {
@@ -785,8 +785,8 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("limits") || args[0].equals("제한")) {
-            UUID islandId = optionalIslandIdArgument(args, 1);
-            int valueIndex = hasOptionalIslandIdArgument(args, 1) ? 3 : 2;
+            UUID islandId = islandIdArgument(args, 1);
+            int valueIndex = hasIslandIdArgument(args, 1) ? 3 : 2;
             if (args.length > valueIndex) {
                 routingController.setLimit(player, islandId, args[valueIndex - 1], parseLongOrZero(args[valueIndex]));
             } else {
@@ -795,23 +795,23 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("hoppers") || args[0].equals("호퍼")) {
-            UUID islandId = optionalIslandIdArgument(args, 1);
-            routingController.setLimit(player, islandId, "HOPPER", parseLongOrZero(argumentAfterOptionalIsland(args, 1, "0")));
+            UUID islandId = islandIdArgument(args, 1);
+            routingController.setLimit(player, islandId, "HOPPER", parseLongOrZero(argumentAfterIslandId(args, 1, "0")));
             return;
         }
         if (args[0].equalsIgnoreCase("spawners") || args[0].equals("스포너")) {
-            UUID islandId = optionalIslandIdArgument(args, 1);
-            routingController.setLimit(player, islandId, "SPAWNER", parseLongOrZero(argumentAfterOptionalIsland(args, 1, "0")));
+            UUID islandId = islandIdArgument(args, 1);
+            routingController.setLimit(player, islandId, "SPAWNER", parseLongOrZero(argumentAfterIslandId(args, 1, "0")));
             return;
         }
         if (args[0].equalsIgnoreCase("entities") || args[0].equals("엔티티")) {
-            UUID islandId = optionalIslandIdArgument(args, 1);
-            routingController.setLimit(player, islandId, "ENTITY", parseLongOrZero(argumentAfterOptionalIsland(args, 1, "0")));
+            UUID islandId = islandIdArgument(args, 1);
+            routingController.setLimit(player, islandId, "ENTITY", parseLongOrZero(argumentAfterIslandId(args, 1, "0")));
             return;
         }
         if (args[0].equalsIgnoreCase("redstone") || args[0].equals("레드스톤")) {
-            UUID islandId = optionalIslandIdArgument(args, 1);
-            routingController.setLimit(player, islandId, "REDSTONE", parseLongOrZero(argumentAfterOptionalIsland(args, 1, "0")));
+            UUID islandId = islandIdArgument(args, 1);
+            routingController.setLimit(player, islandId, "REDSTONE", parseLongOrZero(argumentAfterIslandId(args, 1, "0")));
             return;
         }
         if (args[0].equalsIgnoreCase("snapshots") || args[0].equals("스냅샷목록")) {
@@ -908,8 +908,23 @@ public final class CloudIslandsVelocityPlugin {
         return hasOptionalIslandIdArgument(args, index) ? parseUuidOrNil(args[index]) : new UUID(0L, 0L);
     }
 
+    private boolean hasIslandIdArgument(String[] args, int index) {
+        return args.length > index && isUuid(args[index]);
+    }
+
+    private UUID islandIdArgument(String[] args, int index) {
+        return hasIslandIdArgument(args, index) ? parseUuidOrNil(args[index]) : new UUID(0L, 0L);
+    }
+
     private String argumentAfterOptionalIsland(String[] args, int index, String fallback) {
         if (hasOptionalIslandIdArgument(args, index)) {
+            return args.length > index + 1 ? args[index + 1] : fallback;
+        }
+        return args.length > index ? args[index] : fallback;
+    }
+
+    private String argumentAfterIslandId(String[] args, int index, String fallback) {
+        if (hasIslandIdArgument(args, index)) {
             return args.length > index + 1 ? args[index + 1] : fallback;
         }
         return args.length > index ? args[index] : fallback;
