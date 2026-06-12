@@ -26,6 +26,8 @@ permissions:
     default: op
   cloudislands.admin.status:
     default: op
+  cloudislands.admin.config:
+    default: op
   cloudislands.admin.cache:
     default: op
   cloudislands.admin.node:

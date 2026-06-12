@@ -934,6 +934,10 @@ public final class VelocityRoutingController {
         sendBodyResult(player, coreApiClient.metrics().thenApply(this::metricsMessage), "Core metrics를 불러오지 못했습니다.");
     }
 
+    public void coreConfig(Player player) {
+        sendBodyResult(player, coreApiClient.coreConfig().thenApply(this::coreConfigMessage), "Core config를 불러오지 못했습니다.");
+    }
+
     public void storageStatus(Player player) {
         sendBodyResult(player, coreApiClient.listNodes().thenApply(this::storageStatusMessage), "Storage 상태를 불러오지 못했습니다.");
     }
@@ -1572,6 +1576,24 @@ public final class VelocityRoutingController {
             }
         }
         return "Core metrics: samples=" + samples + (names.isEmpty() ? "" : " / " + String.join(", ", names));
+    }
+
+    private String coreConfigMessage(String body) {
+        String code = jsonValue(body, "code");
+        if (!code.isBlank()) {
+            return "Core config: failed code=" + code;
+        }
+        return "Core config: repo=" + jsonValue(body, "repositoryMode")
+            + " jobs=" + jsonValue(body, "jobQueueMode")
+            + " events=" + jsonValue(body, "eventBusMode")
+            + " storage=" + jsonValue(body, "storageType")
+            + " pool=" + jsonValue(body, "islandPool")
+            + " dbPool=" + longValue(body, "databasePoolSize")
+            + " softFull=" + jsonValue(body, "softFullPolicy")
+            + " hardFull=" + jsonValue(body, "hardFullPolicy")
+            + " migration=" + jsonValue(body, "migrationPolicy")
+            + " mtls=" + boolValue(body, "requireMtls")
+            + " ipAllowlist=" + boolValue(body, "ipAllowlistEnabled");
     }
 
     public void playerInfo(Player player, UUID playerUuid) {

@@ -157,6 +157,7 @@ public interface CoreApiClient {
     CompletableFuture<String> listEventsSince(long sinceSeq, int limit);
     CompletableFuture<String> listAuditLogs();
     CompletableFuture<String> metrics();
+    CompletableFuture<String> coreConfig();
     CompletableFuture<String> clearCache();
     CompletableFuture<String> clearCacheResult();
     CompletableFuture<String> reload();

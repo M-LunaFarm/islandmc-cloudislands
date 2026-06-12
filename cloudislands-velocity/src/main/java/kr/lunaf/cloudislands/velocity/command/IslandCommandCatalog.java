@@ -98,6 +98,7 @@ public final class IslandCommandCatalog {
     public static List<String> adminCommands() {
         return List.of(
             "ciadmin status",
+            "ciadmin config",
             "ciadmin help [page]",
             "ciadmin command list [page]",
             "ciadmin island info <island|player>",

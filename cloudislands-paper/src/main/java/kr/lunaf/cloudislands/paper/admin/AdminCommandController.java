@@ -22,7 +22,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public final class AdminCommandController implements CommandExecutor, TabCompleter {
-    private static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "cache", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
+    private static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "config", "cache", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "islands", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
@@ -37,6 +37,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private static final List<String> NODE_DANGER_REASONS = List.of("maintenance", "restart", "drain");
     private static final List<String> HELP_COMMANDS = List.of(
         "ciadmin status",
+        "ciadmin config",
         "ciadmin help [page]",
         "ciadmin command list [page]",
         "ciadmin cache clear",
@@ -167,6 +168,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args[0].equalsIgnoreCase("metrics")) {
             run(sender, "Core metrics", coreApiClient.metrics().thenApply(this::metricsMessage));
+            return true;
+        }
+        if (args[0].equalsIgnoreCase("config")) {
+            run(sender, "Core config", coreApiClient.coreConfig().thenApply(this::coreConfigMessage));
             return true;
         }
         if (args[0].equalsIgnoreCase("storage")) {
@@ -1360,6 +1365,24 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         return "Core metrics: samples=" + samples + (names.isEmpty() ? "" : " / " + String.join(", ", names));
     }
 
+    private String coreConfigMessage(String body) {
+        String code = textValue(body, "code");
+        if (!code.isBlank()) {
+            return "Core config: failed code=" + code;
+        }
+        return "Core config: repo=" + textValue(body, "repositoryMode")
+            + " jobs=" + textValue(body, "jobQueueMode")
+            + " events=" + textValue(body, "eventBusMode")
+            + " storage=" + textValue(body, "storageType")
+            + " pool=" + textValue(body, "islandPool")
+            + " dbPool=" + longValue(body, "databasePoolSize")
+            + " softFull=" + textValue(body, "softFullPolicy")
+            + " hardFull=" + textValue(body, "hardFullPolicy")
+            + " migration=" + textValue(body, "migrationPolicy")
+            + " mtls=" + boolValue(body, "requireMtls")
+            + " ipAllowlist=" + boolValue(body, "ipAllowlistEnabled");
+    }
+
     private String eventListMessage(String body) {
         String events = arrayValue(body, "events");
         if (events.isBlank()) {
@@ -1869,7 +1892,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             root = "templates";
         }
         return switch (root) {
-            case "status", "cache", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
+            case "status", "config", "cache", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
     }

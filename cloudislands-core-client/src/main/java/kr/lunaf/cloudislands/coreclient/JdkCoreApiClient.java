@@ -735,6 +735,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> coreConfig() {
+        return postWithResultBody("/v1/admin/config", "{}");
+    }
+
+    @Override
     public CompletableFuture<String> clearCache() {
         return clearCacheResult();
     }
