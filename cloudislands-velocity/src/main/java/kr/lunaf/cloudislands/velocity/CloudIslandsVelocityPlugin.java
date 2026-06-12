@@ -915,6 +915,9 @@ public final class CloudIslandsVelocityPlugin {
         if (args.length == 6 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("upsert")) {
             addLiteralSuggestions(matches, args[5], List.of("1.0.0", "1.21.0", "1.21.4"));
         }
+        if (args.length == 3 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
+            addLiteralSuggestions(matches, args[2], List.of("plugins/SuperiorSkyblock2"));
+        }
         if (args.length == 3 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("debug")) {
             if ("all".startsWith(args[2].toLowerCase(Locale.ROOT))) {
                 matches.add("all");

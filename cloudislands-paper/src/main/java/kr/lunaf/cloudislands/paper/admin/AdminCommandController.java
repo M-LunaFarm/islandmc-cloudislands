@@ -150,6 +150,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (args.length == 2 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
             return matches(MIGRATION_COMMANDS, args[1]);
         }
+        if (args.length == 3 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
+            return matches(List.of("plugins/SuperiorSkyblock2"), args[2]);
+        }
         if (args.length == 3 && args[0].equalsIgnoreCase("node")) {
             return matches(List.of(nodeId), args[2]);
         }
