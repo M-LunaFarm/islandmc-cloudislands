@@ -88,12 +88,13 @@ public final class PaperHeartbeatService {
         int softCap = Math.max(1, softPlayerCap.getAsInt());
         int hardCap = Math.max(softCap, hardPlayerCap.getAsInt());
         int maxActive = Math.max(1, maxActiveIslands.getAsInt());
+        boolean storageOk = storageAvailable.getAsBoolean();
         NodeHeartbeatRequest heartbeat = new NodeHeartbeatRequest(
             nodeId,
             pool,
             velocityServerName,
             nodeVersion,
-            nodeState(players, softCap, hardCap, activeIslands, maxActive),
+            nodeState(players, softCap, hardCap, activeIslands, maxActive, storageOk),
             players,
             softCap,
             hardCap,
@@ -106,13 +107,16 @@ public final class PaperHeartbeatService {
             heapUsed,
             heapMax,
             Math.max(0, recentFailurePenalty.getAsInt()),
-            storageAvailable.getAsBoolean(),
+            storageOk,
             supportedTemplatesSupplier.get()
         );
         coreApiClient.publishHeartbeat(heartbeat);
     }
 
-    private NodeState nodeState(int players, int softCap, int hardCap, int activeIslands, int maxActive) {
+    private NodeState nodeState(int players, int softCap, int hardCap, int activeIslands, int maxActive, boolean storageOk) {
+        if (!storageOk) {
+            return NodeState.WARMING;
+        }
         if (players >= hardCap) {
             return NodeState.HARD_FULL;
         }
