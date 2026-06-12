@@ -16,10 +16,12 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 
 public final class IslandLimitListener implements Listener {
+    private static final long NOTICE_COOLDOWN_MILLIS = 3_000L;
     private final ProtectionController protection;
     private final IslandLimitCache limits;
     private final Map<UUID, Map<String, Long>> observed = new ConcurrentHashMap<>();
     private final Map<UUID, Set<String>> seeded = new ConcurrentHashMap<>();
+    private final Map<String, Long> lastLimitNotice = new ConcurrentHashMap<>();
 
     public IslandLimitListener(ProtectionController protection, IslandLimitCache limits) {
         this.protection = protection;
@@ -39,7 +41,7 @@ public final class IslandLimitListener implements Listener {
             long current = count(islandId, key);
             if (current >= limit) {
                 event.setCancelled(true);
-                event.getPlayer().sendMessage("섬 " + limitName(key) + " 제한에 도달했습니다. 현재 " + current + "/" + limit);
+                notifyLimit(event.getPlayer(), islandId, key, current, limit);
                 return;
             }
             observed.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>()).merge(key, 1L, Long::sum);
@@ -60,6 +62,17 @@ public final class IslandLimitListener implements Listener {
 
     private long count(UUID islandId, String key) {
         return observed.getOrDefault(islandId, Map.of()).getOrDefault(key, 0L);
+    }
+
+    private void notifyLimit(org.bukkit.entity.Player player, UUID islandId, String key, long current, long limit) {
+        String noticeKey = islandId + ":" + key;
+        long now = System.currentTimeMillis();
+        long previous = lastLimitNotice.getOrDefault(noticeKey, 0L);
+        if (now - previous < NOTICE_COOLDOWN_MILLIS) {
+            return;
+        }
+        lastLimitNotice.put(noticeKey, now);
+        player.sendMessage("섬 " + limitName(key) + " 제한에 도달했습니다. 현재 " + current + "/" + limit);
     }
 
     private void seedObserved(World world, IslandRegion region, String key, Block excludedBlock) {
