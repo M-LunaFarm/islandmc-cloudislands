@@ -894,7 +894,7 @@ public final class CloudIslandsVelocityPlugin {
             return false;
         }
         String first = args[0].toLowerCase(java.util.Locale.ROOT);
-        if (first.equals("help") || first.equals("도움말") || first.equals("commands") || first.equals("command-list") || first.equals("명령어") || first.equals("명령어목록")) {
+        if (first.equals("help") || first.equals("도움말") || first.equals("commands") || first.equals("command") || first.equals("command-list") || first.equals("명령어") || first.equals("명령어목록")) {
             return true;
         }
         return first.equals("command") && args.length > 1 && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"));
