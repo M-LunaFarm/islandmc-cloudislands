@@ -147,7 +147,17 @@ public final class CloudIslandsVelocityPlugin {
     }
 
     private static boolean bool(String value, boolean fallback) {
-        return value == null || value.isBlank() ? fallback : Boolean.parseBoolean(value);
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        String normalized = value.toLowerCase(Locale.ROOT);
+        if (normalized.equals("true") || normalized.equals("yes") || normalized.equals("on") || normalized.equals("1") || normalized.equals("enable") || normalized.equals("enabled")) {
+            return true;
+        }
+        if (normalized.equals("false") || normalized.equals("no") || normalized.equals("off") || normalized.equals("0") || normalized.equals("disable") || normalized.equals("disabled")) {
+            return false;
+        }
+        return fallback;
     }
 
     private static String[] commandAliasArray(List<String> aliases) {
