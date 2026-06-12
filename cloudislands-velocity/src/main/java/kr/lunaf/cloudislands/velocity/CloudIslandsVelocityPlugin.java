@@ -694,6 +694,14 @@ public final class CloudIslandsVelocityPlugin {
             routingController.setBooleanFlag(player, islandId, kr.lunaf.cloudislands.api.model.IslandFlag.PUBLIC_WARPS, parseToggle(args, hasIslandIdArgument(args, 1) ? 2 : 1, true), "공개 워프");
             return;
         }
+        if (args[0].equalsIgnoreCase("setflag") || args[0].equalsIgnoreCase("flag-set") || args[0].equals("플래그설정")) {
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            int flagIndex = hasOptionalIslandIdArgument(args, 1) ? 2 : 1;
+            kr.lunaf.cloudislands.api.model.IslandFlag flag = args.length > flagIndex ? parseFlag(args[flagIndex]) : kr.lunaf.cloudislands.api.model.IslandFlag.FLY;
+            boolean enabled = parseToggle(args, flagIndex + 1, true);
+            routingController.setBooleanFlag(player, islandId, flag, enabled, flag.name());
+            return;
+        }
         if (args[0].equalsIgnoreCase("flags") || args[0].equals("플래그")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.listFlags(player, islandId);
@@ -1032,6 +1040,9 @@ public final class CloudIslandsVelocityPlugin {
             if (first.equals("setpermission") || first.equals("permission-set") || first.equals("권한설정")) {
                 addLiteralSuggestions(matches, args[1], List.of("MEMBER", "TRUSTED", "MODERATOR", "VISITOR"));
             }
+            if (first.equals("setflag") || first.equals("flag-set") || first.equals("플래그설정")) {
+                addLiteralSuggestions(matches, args[1], List.of("FLY", "KEEP_INVENTORY", "PVP", "PUBLIC_WARPS"));
+            }
             if (first.equals("biome") || first.equals("바이옴")) {
                 addLiteralSuggestions(matches, args[1], List.of("minecraft:plains", "minecraft:forest", "minecraft:desert", "minecraft:taiga"));
             }
@@ -1044,6 +1055,9 @@ public final class CloudIslandsVelocityPlugin {
         }
         if (args.length == 4 && (args[0].equalsIgnoreCase("setpermission") || args[0].equalsIgnoreCase("permission-set") || args[0].equals("권한설정"))) {
             addLiteralSuggestions(matches, args[3], List.of("true", "false", "on", "off", "허용", "거부"));
+        }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("setflag") || args[0].equalsIgnoreCase("flag-set") || args[0].equals("플래그설정"))) {
+            addLiteralSuggestions(matches, args[2], List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"));
         }
         return matches;
     }
@@ -1181,6 +1195,14 @@ public final class CloudIslandsVelocityPlugin {
             return IslandPermission.valueOf(value.toUpperCase());
         } catch (IllegalArgumentException ignored) {
             return IslandPermission.BUILD;
+        }
+    }
+
+    private kr.lunaf.cloudislands.api.model.IslandFlag parseFlag(String value) {
+        try {
+            return kr.lunaf.cloudislands.api.model.IslandFlag.valueOf(value.toUpperCase().replace('-', '_'));
+        } catch (IllegalArgumentException ignored) {
+            return kr.lunaf.cloudislands.api.model.IslandFlag.FLY;
         }
     }
 }
