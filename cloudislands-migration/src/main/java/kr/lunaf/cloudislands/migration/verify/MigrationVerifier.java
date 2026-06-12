@@ -7,6 +7,8 @@ import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.migration.MigrationIssue;
 import kr.lunaf.cloudislands.migration.MigrationManifest;
+import kr.lunaf.cloudislands.migration.MigrationReport;
+import kr.lunaf.cloudislands.migration.MigrationReportBuilder;
 
 public final class MigrationVerifier {
     public VerificationResult verify(List<MigrationManifest> expected, List<MigrationManifest> imported) {
@@ -27,8 +29,12 @@ public final class MigrationVerifier {
         if (importedIds.size() != imported.size()) {
             issues.add(new MigrationIssue("DUPLICATE_IMPORTED_ID", "imported island ids contain duplicates", true));
         }
-        return new VerificationResult(issues.isEmpty(), issues);
+        return new VerificationResult(issues.isEmpty(), issues, MigrationReportBuilder.build(imported, issues));
     }
 
-    public record VerificationResult(boolean passed, List<MigrationIssue> issues) {}
+    public record VerificationResult(boolean passed, List<MigrationIssue> issues, MigrationReport report) {
+        public VerificationResult(boolean passed, List<MigrationIssue> issues) {
+            this(passed, issues, MigrationReportBuilder.build(List.of(), issues));
+        }
+    }
 }

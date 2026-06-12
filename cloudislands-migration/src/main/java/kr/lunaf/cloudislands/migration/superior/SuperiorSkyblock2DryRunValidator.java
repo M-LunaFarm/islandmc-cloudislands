@@ -8,10 +8,20 @@ import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.migration.MigrationIssue;
 import kr.lunaf.cloudislands.migration.MigrationManifest;
+import kr.lunaf.cloudislands.migration.MigrationReport;
+import kr.lunaf.cloudislands.migration.MigrationReportBuilder;
 
 public final class SuperiorSkyblock2DryRunValidator {
+    public MigrationReport report(List<MigrationManifest> manifests) {
+        return MigrationReportBuilder.build(manifests, validate(manifests));
+    }
+
     public List<MigrationIssue> validate(List<MigrationManifest> manifests) {
         List<MigrationIssue> issues = new ArrayList<>();
+        if (manifests == null || manifests.isEmpty()) {
+            issues.add(new MigrationIssue("NO_ISLANDS_FOUND", "no SuperiorSkyblock2 islands were found to migrate", true));
+            return issues;
+        }
         Set<UUID> owners = new HashSet<>();
         Set<UUID> islands = new HashSet<>();
         for (MigrationManifest manifest : manifests) {
