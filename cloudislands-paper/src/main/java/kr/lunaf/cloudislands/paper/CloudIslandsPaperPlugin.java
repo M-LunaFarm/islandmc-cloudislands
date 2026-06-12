@@ -113,7 +113,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getServicesManager().register(EconomyBridge.class, economyBridge, this, ServicePriority.Normal);
         IslandLimitCache limitCache = new IslandLimitCache(client);
         long denyMessageCooldownMs = getConfig().getLong("protection.deny-message-cooldown-ms", 1000L);
-        getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection(), new BlockDeltaReporter(this, client), denyMessageCooldownMs), this);
+        BlockDeltaReporter blockDeltas = new BlockDeltaReporter(this, client);
+        getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection(), blockDeltas, denyMessageCooldownMs), this);
         getServer().getPluginManager().registerEvents(new IslandBoundaryListener(agent.protection()), this);
         getServer().getPluginManager().registerEvents(new PaperPlayerProfileListener(client), this);
         getServer().getPluginManager().registerEvents(new PaperBrandingListener(getConfig().getString("plugin.service-name", "CloudIslands")), this);
@@ -148,7 +149,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandWarpMenu(), this);
         this.generatorLevels = new GeneratorLevelCache(client);
         CropGrowthLevelCache cropGrowthLevels = new CropGrowthLevelCache(client);
-        getServer().getPluginManager().registerEvents(new IslandGeneratorListener(agent.protection(), ConfigGeneratorRules.load(this), generatorLevels), this);
+        getServer().getPluginManager().registerEvents(new IslandGeneratorListener(agent.protection(), ConfigGeneratorRules.load(this), generatorLevels, blockDeltas), this);
         getServer().getPluginManager().registerEvents(new IslandCropGrowthListener(agent.protection(), cropGrowthLevels), this);
         String fallbackServerName = getConfig().getString("routing.fallback-on-failure", "Lobby");
         boolean requireRouteSession = role == AgentRole.ISLAND_NODE && configBoolean("routing.require-route-session", true);
