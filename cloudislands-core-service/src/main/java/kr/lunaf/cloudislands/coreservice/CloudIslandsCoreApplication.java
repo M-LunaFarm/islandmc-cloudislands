@@ -326,6 +326,16 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 200, flagsJson(metadataRepository.flags(islandId)));
                 return;
             }
+            if (method.equalsIgnoreCase("GET") && tail.endsWith("/homes")) {
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/homes".length()));
+                write(exchange, 200, homesJson(metadataRepository.homes(islandId)));
+                return;
+            }
+            if (method.equalsIgnoreCase("GET") && tail.endsWith("/warps")) {
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/warps".length()));
+                write(exchange, 200, warpsJson(metadataRepository.warps(islandId)));
+                return;
+            }
             if (method.equalsIgnoreCase("GET") && !tail.contains("/")) {
                 UUID islandId = uuidPath(tail);
                 java.util.Optional<IslandSnapshot> island = islandRepository.findById(islandId);
