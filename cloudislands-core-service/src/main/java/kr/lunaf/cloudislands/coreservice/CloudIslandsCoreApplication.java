@@ -27,6 +27,7 @@ import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.permission.CachedPermissionSet;
 import kr.lunaf.cloudislands.common.permission.defaults.DefaultIslandPermissions;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
@@ -282,7 +283,7 @@ public final class CloudIslandsCoreApplication {
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
             String limitKey = JsonFields.text(body, "limitKey", "HOPPER");
             long value = JsonFields.longValue(body, "value", 0L);
-            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.MANAGE_UPGRADES)) {
                 return;
             }
             kr.lunaf.cloudislands.api.model.IslandLimitSnapshot snapshot = limitRepository.set(islandId, limitKey, value, actorUuid);
@@ -436,7 +437,7 @@ public final class CloudIslandsCoreApplication {
             IslandPermission permission = JsonFields.enumValue(IslandPermission.class, body, "permission", IslandPermission.BUILD);
             boolean allowed = JsonFields.bool(body, "allowed", false);
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.MANAGE_ROLES)) {
                 return;
             }
             permissionRules.put(islandId, role, permission, allowed);
@@ -964,7 +965,7 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.START_LEVEL_CALC)) {
                 return;
             }
             var snapshot = levelRecalculation.recalculate(islandId, levelRepository.blockCounts(islandId), levelRepository.blockValues(), metadataRepository.members(islandId).size());
@@ -979,7 +980,7 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
             String upgradeKey = JsonFields.text(body, "upgradeKey", "size").toLowerCase();
-            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.MANAGE_UPGRADES)) {
                 return;
             }
             UpgradePurchaseResult result = upgradeService.purchase(islandId, upgradeKey);
@@ -1047,7 +1048,7 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
             BigDecimal amount = amount(body);
-            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.WITHDRAW_BANK)) {
                 return;
             }
             var result = bankRepository.withdraw(islandId, amount);
@@ -1081,7 +1082,7 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
             String reason = JsonFields.text(body, "reason", "player-reset");
-            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.MANAGE_MEMBERS)) {
                 return;
             }
             IslandLifecycleWorkflow.Result result = lifecycle.reset(islandId, reason);
@@ -1109,7 +1110,7 @@ public final class CloudIslandsCoreApplication {
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
             IslandRole role = JsonFields.enumValue(IslandRole.class, body, "role", IslandRole.MEMBER);
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.MANAGE_ROLES)) {
                 return;
             }
             boolean existingMember = metadataRepository.members(islandId).stream().anyMatch(member -> member.playerUuid().equals(playerUuid));
@@ -1148,7 +1149,7 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.MANAGE_MEMBERS)) {
                 return;
             }
             metadataRepository.removeMember(islandId, playerUuid);
@@ -1162,7 +1163,7 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID inviterUuid = JsonFields.uuid(body, "inviterUuid", new UUID(0L, 0L));
             UUID targetUuid = JsonFields.uuid(body, "targetUuid", new UUID(0L, 0L));
-            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, inviterUuid)) {
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, inviterUuid, IslandPermission.MANAGE_MEMBERS)) {
                 return;
             }
             boolean existingMember = metadataRepository.members(islandId).stream().anyMatch(member -> member.playerUuid().equals(targetUuid));
@@ -1219,7 +1220,7 @@ public final class CloudIslandsCoreApplication {
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
             String reason = JsonFields.text(body, "reason", "island ban");
-            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.BAN_VISITOR)) {
                 return;
             }
             metadataRepository.banVisitor(islandId, actorUuid, playerUuid, reason);
@@ -1238,7 +1239,7 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.BAN_VISITOR)) {
                 return;
             }
             metadataRepository.pardonVisitor(islandId, playerUuid);
@@ -1252,7 +1253,7 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             boolean locked = JsonFields.bool(body, "locked", false);
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.MANAGE_FLAGS)) {
                 return;
             }
             metadataRepository.setLocked(islandId, locked);
@@ -1274,7 +1275,7 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
             String biomeKey = JsonFields.text(body, "biomeKey", "minecraft:plains").toLowerCase();
-            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.SET_BIOME)) {
                 return;
             }
             metadataRepository.setBiome(islandId, biomeKey, actorUuid);
@@ -1289,7 +1290,7 @@ public final class CloudIslandsCoreApplication {
             IslandFlag flag = JsonFields.enumValue(IslandFlag.class, body, "flag", IslandFlag.VISITOR_INTERACT);
             String value = JsonFields.text(body, "value", "false");
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.MANAGE_FLAGS)) {
                 return;
             }
             metadataRepository.setFlag(islandId, flag, value);
@@ -1316,7 +1317,7 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             String name = JsonFields.text(body, "name", "default").toLowerCase();
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.SET_HOME)) {
                 return;
             }
             metadataRepository.upsertHome(islandId, name, location(body), actorUuid);
@@ -1331,7 +1332,7 @@ public final class CloudIslandsCoreApplication {
             String name = JsonFields.text(body, "name", "default").toLowerCase();
             boolean publicAccess = JsonFields.bool(body, "publicAccess", false);
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.MANAGE_WARPS)) {
                 return;
             }
             boolean existingWarp = metadataRepository.warps(islandId).stream().anyMatch(warp -> warp.name().equalsIgnoreCase(name));
@@ -1350,7 +1351,7 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             String name = JsonFields.text(body, "name", "default").toLowerCase();
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.MANAGE_WARPS)) {
                 return;
             }
             metadataRepository.deleteWarp(islandId, name);
@@ -1365,7 +1366,7 @@ public final class CloudIslandsCoreApplication {
             String name = JsonFields.text(body, "name", "default").toLowerCase();
             boolean publicAccess = JsonFields.bool(body, "publicAccess", false);
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.MANAGE_WARPS)) {
                 return;
             }
             if (metadataRepository.warp(islandId, name).isEmpty()) {
@@ -1383,7 +1384,7 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             boolean publicAccess = JsonFields.bool(body, "publicAccess", false);
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireManager(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.MANAGE_FLAGS)) {
                 return;
             }
             metadataRepository.setPublicAccess(islandId, publicAccess);
@@ -1877,16 +1878,20 @@ public final class CloudIslandsCoreApplication {
             + "\"}";
     }
 
-    private static boolean requireManager(HttpExchange exchange, IslandRepository islandRepository, IslandMetadataRepository metadataRepository, UUID islandId, UUID actorUuid) throws IOException {
+    private static boolean requireIslandPermission(HttpExchange exchange, IslandRepository islandRepository, IslandMetadataRepository metadataRepository, IslandPermissionRuleRepository permissionRules, UUID islandId, UUID actorUuid, IslandPermission permission) throws IOException {
         boolean owner = islandRepository.findById(islandId)
             .map(island -> island.ownerUuid().equals(actorUuid))
             .orElse(false);
+        CachedPermissionSet permissions = DefaultIslandPermissions.create();
+        for (var rule : permissionRules.list(islandId)) {
+            permissions.put(rule.role(), rule.permission(), rule.allowed());
+        }
         boolean allowed = metadataRepository.members(islandId).stream()
-            .anyMatch(member -> member.playerUuid().equals(actorUuid) && DefaultIslandPermissions.create().allowed(member.role(), IslandPermission.MANAGE_MEMBERS));
+            .anyMatch(member -> member.playerUuid().equals(actorUuid) && permissions.allowed(member.role(), permission));
         if (owner || allowed) {
             return true;
         }
-        write(exchange, 403, ApiResponses.error("ISLAND_PERMISSION_DENIED", "Island manager permission is required"));
+        write(exchange, 403, ApiResponses.error("ISLAND_PERMISSION_DENIED", "Island permission " + permission.name() + " is required"));
         return false;
     }
 
