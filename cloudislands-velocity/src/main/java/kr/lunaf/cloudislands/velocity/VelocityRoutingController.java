@@ -1043,8 +1043,8 @@ public final class VelocityRoutingController {
         return "Island runtime: island=" + shortId(islandId)
             + " state=" + (state.isBlank() ? "UNKNOWN" : state)
             + (activeNode.isBlank() || hideNodeNames ? "" : " node=" + activeNode)
-            + (activeWorld.isBlank() ? "" : " world=" + activeWorld)
-            + (body.contains("\"cellX\":null") || body.contains("\"cellZ\":null") ? "" : " cell=" + longValue(body, "cellX") + "," + longValue(body, "cellZ"))
+            + (activeWorld.isBlank() || hideNodeNames ? "" : " world=" + activeWorld)
+            + (hideNodeNames || body.contains("\"cellX\":null") || body.contains("\"cellZ\":null") ? "" : " cell=" + longValue(body, "cellX") + "," + longValue(body, "cellZ"))
             + " fence=" + longValue(body, "fencingToken");
     }
 
