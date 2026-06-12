@@ -26,6 +26,8 @@ public final class RedisCacheAdmin {
         "ci:island:*:upgrades",
         "ci:island:*:snapshots",
         "ci:island:*:logs",
+        "ci:island:*:block-counts",
+        "ci:block-values",
         "ci:templates",
         "ci:rankings:*"
     );

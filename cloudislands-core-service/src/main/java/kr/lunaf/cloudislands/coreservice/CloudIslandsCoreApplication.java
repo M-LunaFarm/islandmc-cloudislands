@@ -78,6 +78,7 @@ import kr.lunaf.cloudislands.coreservice.profile.JdbcPlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.CachingRankingRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.DirtyRankingRecalculationTask;
+import kr.lunaf.cloudislands.coreservice.ranking.CachingIslandLevelRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.InMemoryIslandLevelRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.InMemoryRankingRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.IslandLevelRepository;
@@ -224,7 +225,10 @@ public final class CloudIslandsCoreApplication {
         RankingRepository rankingRepository = config.redisEvents() || config.redisJobs()
             ? new CachingRankingRepository(baseRankingRepository, config.redisUri())
             : baseRankingRepository;
-        IslandLevelRepository levelRepository = config.jdbcRepositories() ? new JdbcIslandLevelRepository(dataSource) : new InMemoryIslandLevelRepository();
+        IslandLevelRepository baseLevelRepository = config.jdbcRepositories() ? new JdbcIslandLevelRepository(dataSource) : new InMemoryIslandLevelRepository();
+        IslandLevelRepository levelRepository = config.redisEvents() || config.redisJobs()
+            ? new CachingIslandLevelRepository(baseLevelRepository, config.redisUri())
+            : baseLevelRepository;
         kr.lunaf.cloudislands.coreservice.ranking.ConfigBlockValues.load(config.blockValuesFile()).forEach(levelRepository::putBlockValue);
         RankingRecalculationService levelRecalculation = new RankingRecalculationService(rankingRepository, events);
         this.rankingRecalculationTask = new DirtyRankingRecalculationTask(rankingRepository, levelRepository, metadataRepository, levelRecalculation);
@@ -274,7 +278,7 @@ public final class CloudIslandsCoreApplication {
             migrationRollbackTarget(config, dataSource)
         );
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotKeepLatest());
-        PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, tickets, runtimeRepository, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::activeConnections, meteredDataSource::openedConnections, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventWriter == null ? 0L : redisEventWriter.failuresTotal(), () -> redisCacheFailures(nodes, tickets, islandRepository, metadataRepository, playerProfiles, permissionRules, runtimeRepository, rankingRepository, bankRepository, limitRepository, missionRepository, upgradeRepository, templateRepository, snapshotRepository, islandLogs, redisCacheAdmin, audit));
+        PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, tickets, runtimeRepository, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::activeConnections, meteredDataSource::openedConnections, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventWriter == null ? 0L : redisEventWriter.failuresTotal(), () -> redisCacheFailures(nodes, tickets, islandRepository, metadataRepository, playerProfiles, permissionRules, runtimeRepository, rankingRepository, levelRepository, bankRepository, limitRepository, missionRepository, upgradeRepository, templateRepository, snapshotRepository, islandLogs, redisCacheAdmin, audit));
         this.nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, islandRepository, events, config.heartbeatTimeout());
         this.routeTicketExpiryMonitor = new RouteTicketExpiryMonitor(tickets, events, config.routeTicketTtl());
         this.jobRecoveryMonitor = new JobRecoveryMonitor(jobs, Duration.ofSeconds(60), config.leaseDuration().toMillis(), 16);
@@ -1626,7 +1630,7 @@ public final class CloudIslandsCoreApplication {
         });
     }
 
-    private static long redisCacheFailures(NodeRegistry nodes, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandRuntimeRepository runtimes, RankingRepository rankings, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandUpgradeRepository upgrades, IslandTemplateRepository templates, IslandSnapshotRepository snapshots, IslandLogRepository islandLogs, RedisCacheAdmin redisCacheAdmin, AuditLogger audit) {
+    private static long redisCacheFailures(NodeRegistry nodes, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandRuntimeRepository runtimes, RankingRepository rankings, IslandLevelRepository levels, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandUpgradeRepository upgrades, IslandTemplateRepository templates, IslandSnapshotRepository snapshots, IslandLogRepository islandLogs, RedisCacheAdmin redisCacheAdmin, AuditLogger audit) {
         long failures = 0L;
         if (nodes instanceof CachingNodeRegistry cachingNodes) {
             failures += cachingNodes.failuresTotal();
@@ -1651,6 +1655,9 @@ public final class CloudIslandsCoreApplication {
         }
         if (rankings instanceof CachingRankingRepository cachingRankings) {
             failures += cachingRankings.failuresTotal();
+        }
+        if (levels instanceof CachingIslandLevelRepository cachingLevels) {
+            failures += cachingLevels.failuresTotal();
         }
         if (bank instanceof CachingIslandBankRepository cachingBank) {
             failures += cachingBank.failuresTotal();
