@@ -1137,6 +1137,9 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         if (code == null || code.isBlank()) {
             return fallback;
         }
+        if (code.startsWith("NO_READY_NODE") || code.startsWith("TARGET_NODE")) {
+            return "현재 섬 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.";
+        }
         return switch (code) {
             case "ALREADY_HAS_ISLAND" -> "이미 섬을 보유하고 있습니다.";
             case "TEMPLATE_UNAVAILABLE" -> "사용할 수 없는 섬 템플릿입니다.";
@@ -1145,6 +1148,8 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             case "ISLAND_PRIVATE" -> "해당 섬은 비공개 상태입니다.";
             case "ISLAND_LOCKED" -> "해당 섬은 현재 잠겨 있습니다.";
             case "VISITOR_BANNED" -> "해당 섬에 방문할 수 없습니다.";
+            case "VISITOR_SOFT_FULL" -> "해당 섬은 지금 멤버 입장 슬롯을 우선 사용 중입니다. 잠시 후 다시 시도해주세요.";
+            case "ACTIVATION_LOCKED" -> "섬을 준비하는 중입니다. 잠시 후 다시 시도해주세요.";
             case "NODE_UNAVAILABLE" -> "현재 섬 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.";
             case "TARGET_OFFLINE_NO_ISLAND" -> "대상 플레이어의 섬을 찾을 수 없습니다.";
             case "PUBLIC_ISLAND_NOT_FOUND" -> "방문 가능한 공개 섬을 찾지 못했습니다.";
