@@ -144,7 +144,7 @@ public final class VelocityRoutingController {
     }
 
     public void routeVisit(Player player, UUID targetIslandId) {
-        routeFuture(player, coreApiClient.createVisitTicket(player.getUniqueId(), targetIslandId), "현재 섬 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.");
+        routeFuture(player, coreApiClient.createVisitTicket(player.getUniqueId(), targetIslandId), "현재 섬 서비스가 혼잡합니다. 잠시 후 다시 시도해주세요.");
     }
 
     public void routeVisitOwner(Player player, UUID ownerUuid) {
