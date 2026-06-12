@@ -598,15 +598,21 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             String nodeId = JsonFields.text(body, "nodeId", "");
             boolean changed = nodes.drain(nodeId);
+            if (changed) {
+                events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "DRAINING"));
+            }
             audit.log(new UUID(0L, 0L), "ADMIN", "NODE_DRAIN", "NODE", nodeId, Map.of());
-            write(exchange, changed ? 202 : 404, ApiResponses.ok(changed));
+            write(exchange, changed ? 202 : 404, changed ? ApiResponses.ok(true) : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
         });
         route("/v1/admin/nodes/undrain", exchange -> {
             String body = readBody(exchange);
             String nodeId = JsonFields.text(body, "nodeId", "");
             boolean changed = nodes.undrain(nodeId);
+            if (changed) {
+                events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "READY"));
+            }
             audit.log(new UUID(0L, 0L), "ADMIN", "NODE_UNDRAIN", "NODE", nodeId, Map.of());
-            write(exchange, changed ? 202 : 404, ApiResponses.ok(changed));
+            write(exchange, changed ? 202 : 404, changed ? ApiResponses.ok(true) : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
         });
         route("/v1/admin/nodes/kickall", exchange -> {
             String body = readBody(exchange);
@@ -641,15 +647,21 @@ public final class CloudIslandsCoreApplication {
             if (tail.endsWith("/drain")) {
                 String nodeId = tail.substring(0, tail.length() - "/drain".length());
                 boolean changed = nodes.drain(nodeId);
+                if (changed) {
+                    events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "DRAINING"));
+                }
                 audit.log(new UUID(0L, 0L), "ADMIN", "NODE_DRAIN", "NODE", nodeId, Map.of());
-                write(exchange, changed ? 202 : 404, ApiResponses.ok(changed));
+                write(exchange, changed ? 202 : 404, changed ? ApiResponses.ok(true) : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
                 return;
             }
             if (tail.endsWith("/undrain")) {
                 String nodeId = tail.substring(0, tail.length() - "/undrain".length());
                 boolean changed = nodes.undrain(nodeId);
+                if (changed) {
+                    events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "READY"));
+                }
                 audit.log(new UUID(0L, 0L), "ADMIN", "NODE_UNDRAIN", "NODE", nodeId, Map.of());
-                write(exchange, changed ? 202 : 404, ApiResponses.ok(changed));
+                write(exchange, changed ? 202 : 404, changed ? ApiResponses.ok(true) : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
                 return;
             }
             if (tail.endsWith("/kickall")) {
