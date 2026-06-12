@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreservice.repository;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,8 @@ import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 
 public final class CachingIslandRuntimeRepository implements IslandRuntimeRepository {
     private static final long COUNTS_CACHE_TTL_MILLIS = 5_000L;
+    private static final long NODE_LIST_CACHE_TTL_MILLIS = 5_000L;
+    private static final int MAX_CACHED_NODE_LIST_LIMIT = 500;
     private final IslandRuntimeRepository delegate;
     private final URI redisUri;
     private final AtomicLong failures = new AtomicLong();
@@ -39,7 +42,16 @@ public final class CachingIslandRuntimeRepository implements IslandRuntimeReposi
 
     @Override
     public List<IslandRuntimeSnapshot> listByNode(String nodeId, int limit) {
-        return delegate.listByNode(nodeId, limit);
+        if (limit > MAX_CACHED_NODE_LIST_LIMIT) {
+            return delegate.listByNode(nodeId, limit);
+        }
+        Optional<List<IslandRuntimeSnapshot>> cached = cachedNodeRuntimes(nodeId, limit);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
+        List<IslandRuntimeSnapshot> runtimes = delegate.listByNode(nodeId, limit);
+        cacheNodeRuntimes(nodeId, limit, runtimes);
+        return runtimes;
     }
 
     @Override
@@ -133,7 +145,29 @@ public final class CachingIslandRuntimeRepository implements IslandRuntimeReposi
     private IslandRuntimeSnapshot cacheChanged(IslandRuntimeSnapshot runtime) {
         cache(runtime);
         invalidateRuntimeCounts();
+        invalidateNodeRuntimes();
         return runtime;
+    }
+
+    private Optional<List<IslandRuntimeSnapshot>> cachedNodeRuntimes(String nodeId, int limit) {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            String json = redis.command("GET", RedisKeys.nodeIslandRuntimes(nodeId, limit));
+            if (json == null || json.isBlank()) {
+                return Optional.empty();
+            }
+            return Optional.of(runtimesFromJson(json));
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+            return Optional.empty();
+        }
+    }
+
+    private void cacheNodeRuntimes(String nodeId, int limit, List<IslandRuntimeSnapshot> runtimes) {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            redis.command("SET", RedisKeys.nodeIslandRuntimes(nodeId, limit), runtimesJson(runtimes), "PX", Long.toString(NODE_LIST_CACHE_TTL_MILLIS));
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+        }
     }
 
     private Optional<Map<String, Long>> cachedCountsByState() {
@@ -163,6 +197,41 @@ public final class CachingIslandRuntimeRepository implements IslandRuntimeReposi
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
         }
+    }
+
+    private void invalidateNodeRuntimes() {
+        deletePattern("ci:node:*:island-runtimes:*");
+    }
+
+    private void deletePattern(String pattern) {
+        for (String key : keys(pattern)) {
+            try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+                redis.command("DEL", key);
+            } catch (IOException | RuntimeException ignored) {
+                failures.incrementAndGet();
+            }
+        }
+    }
+
+    private List<String> keys(String pattern) {
+        List<String> keys = new ArrayList<>();
+        String cursor = "0";
+        do {
+            try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+                String response = redis.command("SCAN", cursor, "MATCH", pattern, "COUNT", "100");
+                String[] lines = response.split("\\n");
+                cursor = lines.length == 0 || lines[0].isBlank() ? "0" : lines[0];
+                for (int i = 1; i < lines.length; i++) {
+                    if (!lines[i].isBlank()) {
+                        keys.add(lines[i]);
+                    }
+                }
+            } catch (IOException | RuntimeException ignored) {
+                failures.incrementAndGet();
+                return keys;
+            }
+        } while (!"0".equals(cursor));
+        return keys;
     }
 
     private Optional<IslandRuntimeSnapshot> cachedRuntime(UUID islandId) {
@@ -205,6 +274,19 @@ public final class CachingIslandRuntimeRepository implements IslandRuntimeReposi
             .toString();
     }
 
+    private static String runtimesJson(List<IslandRuntimeSnapshot> runtimes) {
+        StringBuilder builder = new StringBuilder("{\"runtimes\":[");
+        boolean first = true;
+        for (IslandRuntimeSnapshot runtime : runtimes) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append(runtimeJson(runtime));
+        }
+        return builder.append("]}").toString();
+    }
+
     private static String nullable(Integer value) {
         return value == null ? "null" : Integer.toString(value);
     }
@@ -225,6 +307,75 @@ public final class CachingIslandRuntimeRepository implements IslandRuntimeReposi
         } catch (RuntimeException ignored) {
             return null;
         }
+    }
+
+    private static List<IslandRuntimeSnapshot> runtimesFromJson(String json) {
+        List<IslandRuntimeSnapshot> runtimes = new ArrayList<>();
+        int arrayField = json.indexOf("\"runtimes\":[");
+        int index = arrayField < 0 ? 0 : json.indexOf('[', arrayField) + 1;
+        while (true) {
+            int objectStart = json.indexOf('{', index);
+            if (objectStart < 0) {
+                return List.copyOf(runtimes);
+            }
+            int objectEnd = matchingObjectEnd(json, objectStart);
+            if (objectEnd < 0) {
+                return List.copyOf(runtimes);
+            }
+            String object = json.substring(objectStart, objectEnd + 1);
+            if (object.contains("\"islandId\"")) {
+                runtimes.add(runtimeFromJson(object));
+            }
+            index = objectEnd + 1;
+        }
+    }
+
+    private static IslandRuntimeSnapshot runtimeFromJson(String json) {
+        return new IslandRuntimeSnapshot(
+            JsonFields.uuid(json, "islandId", new UUID(0L, 0L)),
+            JsonFields.enumValue(IslandState.class, json, "state", IslandState.INACTIVE_READY),
+            nullableText(JsonFields.text(json, "activeNode", "")),
+            nullableText(JsonFields.text(json, "activeWorld", "")),
+            nullableInteger(json, "cellX"),
+            nullableInteger(json, "cellZ"),
+            nullableText(JsonFields.text(json, "leaseOwner", "")),
+            JsonFields.longValue(json, "fencingToken", 0L),
+            nullableInstant(JsonFields.text(json, "activatedAt", "")),
+            nullableInstant(JsonFields.text(json, "lastHeartbeat", ""))
+        );
+    }
+
+    private static int matchingObjectEnd(String json, int objectStart) {
+        int depth = 0;
+        boolean inString = false;
+        boolean escaped = false;
+        for (int i = objectStart; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (c == '"') {
+                inString = !inString;
+                continue;
+            }
+            if (inString) {
+                continue;
+            }
+            if (c == '{') {
+                depth++;
+            } else if (c == '}') {
+                depth--;
+                if (depth == 0) {
+                    return i;
+                }
+            }
+        }
+        return -1;
     }
 
     private static Map<String, Long> countsFromJson(String json) {
