@@ -877,6 +877,10 @@ public final class CloudIslandsVelocityPlugin {
             routingController.restore(player, islandId, snapshotNo);
             return;
         }
+        if (args[0].equalsIgnoreCase("create-menu") || args[0].equalsIgnoreCase("templates") || args[0].equals("생성메뉴") || args[0].equals("템플릿")) {
+            routingController.listTemplates(player);
+            return;
+        }
         if (args[0].equalsIgnoreCase("create") || args[0].equals("생성")) {
             String templateId = args.length > 1 ? args[1] : "default";
             player.sendActionBar(Component.text("섬 생성 요청을 접수했습니다."));
