@@ -48,7 +48,11 @@ public final class MeteredIslandStorage implements IslandStorage {
     @Override
     public boolean available() throws IOException {
         try {
-            return delegate.available();
+            boolean available = delegate.available();
+            if (!available) {
+                healthCheckFailures.incrementAndGet();
+            }
+            return available;
         } catch (IOException exception) {
             healthCheckFailures.incrementAndGet();
             throw exception;
