@@ -43,6 +43,13 @@ public final class IslandLifecycleWorkflow {
     }
 
     public Result activate(UUID islandId) {
+        IslandRuntimeSnapshot current = runtimes.find(islandId).orElse(null);
+        if (current != null && current.state() == IslandState.ACTIVE) {
+            return new Result(true, "ACTIVE", current);
+        }
+        if (!canStartActivation(current)) {
+            return new Result(false, "ISLAND_BUSY", current);
+        }
         String templateId = islands.templateId(islandId).orElse("default");
         NodeLoad node = allocator.selectReadyNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId), islandPool).orElse(null);
         if (node == null) {
@@ -60,6 +67,16 @@ public final class IslandLifecycleWorkflow {
     }
 
     public Result deactivate(UUID islandId) {
+        IslandRuntimeSnapshot current = runtimes.find(islandId).orElse(null);
+        if (current == null || current.activeNode() == null || current.activeNode().isBlank()) {
+            return new Result(false, "ISLAND_NOT_ACTIVE", current);
+        }
+        if (current.state() == IslandState.SAVING || current.state() == IslandState.DEACTIVATING) {
+            return new Result(true, current.state().name(), current);
+        }
+        if (current.state() != IslandState.ACTIVE) {
+            return new Result(false, "ISLAND_BUSY", current);
+        }
         IslandRuntimeSnapshot runtime = runtimes.markSaving(islandId);
         islands.setState(islandId, IslandState.SAVING);
         try {
@@ -72,12 +89,18 @@ public final class IslandLifecycleWorkflow {
     }
 
     public Result migrate(UUID islandId, String targetNode) {
+        IslandRuntimeSnapshot current = runtimes.find(islandId).orElse(null);
+        if (current != null && current.state() == IslandState.ACTIVE && targetNode != null && targetNode.equals(current.activeNode())) {
+            return new Result(true, "ALREADY_ON_NODE", current);
+        }
+        if (!canStartActivation(current) && (current == null || current.state() != IslandState.ACTIVE)) {
+            return new Result(false, "ISLAND_BUSY", current);
+        }
         String templateId = islands.templateId(islandId).orElse("default");
         NodeLoad node = nodes.find(targetNode).orElse(null);
         if (node == null || allocator.selectBestNode(java.util.List.of(node), Instant.now(), templateId, minNodeVersion(templateId), islandPool).isEmpty()) {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
-        IslandRuntimeSnapshot current = runtimes.find(islandId).orElse(null);
         IslandRuntimeSnapshot runtime = runtimes.markMigrating(islandId, targetNode);
         islands.setState(islandId, IslandState.DEACTIVATING);
         String sourceNode = current == null ? "" : current.activeNode();
@@ -113,6 +136,10 @@ public final class IslandLifecycleWorkflow {
     }
 
     public Result restore(UUID islandId, long snapshotNo, String storagePath) {
+        IslandRuntimeSnapshot current = runtimes.find(islandId).orElse(null);
+        if (!canStartActivation(current)) {
+            return new Result(false, "ISLAND_BUSY", current);
+        }
         String templateId = islands.templateId(islandId).orElse("default");
         NodeLoad node = allocator.selectReadyNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId), islandPool).orElse(null);
         if (node == null) {
@@ -130,6 +157,10 @@ public final class IslandLifecycleWorkflow {
     }
 
     public Result reset(UUID islandId, String reason) {
+        IslandRuntimeSnapshot current = runtimes.find(islandId).orElse(null);
+        if (!canStartActivation(current)) {
+            return new Result(false, "ISLAND_BUSY", current);
+        }
         String templateId = islands.templateId(islandId).orElse("default");
         NodeLoad node = allocator.selectReadyNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion(templateId), islandPool).orElse(null);
         if (node == null) {
@@ -151,6 +182,19 @@ public final class IslandLifecycleWorkflow {
         islands.setState(islandId, IslandState.QUARANTINED);
         events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", runtime.state().name(), "reason", reason));
         return new Result(true, "QUARANTINED", runtime);
+    }
+
+    private boolean canStartActivation(IslandRuntimeSnapshot runtime) {
+        if (runtime == null) {
+            return true;
+        }
+        if (runtime.activeNode() != null && !runtime.activeNode().isBlank()) {
+            return false;
+        }
+        return runtime.state() == IslandState.INACTIVE_READY
+            || runtime.state() == IslandState.ERROR_CREATING
+            || runtime.state() == IslandState.ERROR_ACTIVATING
+            || runtime.state() == IslandState.ERROR_SAVING;
     }
 
     public record Result(boolean accepted, String code, IslandRuntimeSnapshot runtime) {}
