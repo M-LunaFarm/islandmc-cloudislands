@@ -73,12 +73,7 @@ public final class VelocityRoutingController {
     }
 
     public void resetIsland(Player player, UUID islandId, String reason) {
-        coreApiClient.resetIsland(islandId, player.getUniqueId(), reason)
-            .thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? "섬 리셋을 요청했습니다." : body)))
-            .exceptionally(error -> {
-                player.sendMessage(Component.text("섬 리셋을 요청하지 못했습니다."));
-                return null;
-            });
+        sendPlayerPayloadFuture(player, coreApiClient.resetIsland(islandId, player.getUniqueId(), reason), "섬 리셋을 요청하지 못했습니다.", "섬 리셋을 요청했습니다.");
     }
 
     public void showMyIsland(Player player) {
