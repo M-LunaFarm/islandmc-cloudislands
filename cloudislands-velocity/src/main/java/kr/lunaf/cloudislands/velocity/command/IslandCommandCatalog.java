@@ -44,10 +44,10 @@ public final class IslandCommandCatalog {
             "ciadmin template disable <id>", "ciadmin templates list",
             "ciadmin templates upsert <id> <name> [enabled|disabled] [minNodeVersion]", "ciadmin templates enable <id>",
             "ciadmin templates disable <id>", "ciadmin reload",
-            "ciadmin migrate-superiorskyblock2 scan", "ciadmin migrate-superiorskyblock2 dryrun",
-            "ciadmin migrate-superiorskyblock2 dry-run",
-            "ciadmin migrate-superiorskyblock2 import", "ciadmin migrate-superiorskyblock2 verify",
-            "ciadmin migrate-superiorskyblock2 rollback"
+            "ciadmin migrate-superiorskyblock2 scan [path]", "ciadmin migrate-superiorskyblock2 dryrun [path]",
+            "ciadmin migrate-superiorskyblock2 dry-run [path]",
+            "ciadmin migrate-superiorskyblock2 import [path]", "ciadmin migrate-superiorskyblock2 verify [path]",
+            "ciadmin migrate-superiorskyblock2 rollback [path]"
         );
     }
 }
