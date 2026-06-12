@@ -398,7 +398,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "Job cancel", coreApiClient.cancelJob(jobId));
             return true;
         }
-        sender.sendMessage("사용법: /ciadmin jobs list|retry|cancel|recover");
+        sender.sendMessage("사용법: /ciadmin jobs list|retry <jobId>|cancel <jobId>|recover [nodeId] [minIdleMillis] [maxJobs]");
         return true;
     }
 
@@ -819,7 +819,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private void usage(CommandSender sender, String label) {
-        sender.sendMessage("사용법: /" + label + " status, cache clear, node menu|list|info|islands|drain|undrain|sweep|kickall|shutdown-safe, island info|where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete, player info|setisland|clearisland, jobs list|retry|cancel|recover, route debug [all|player]|ticket <ticket|player>|clear <player> [ticket], events, audit, block-values list|set <materialKey> <worth> <levelPoints> <limit>, upgrade-rules, template|templates list|upsert|enable|disable, migrate-superiorskyblock2 scan|dryrun|dry-run|import|verify|rollback [path], reload");
+        sender.sendMessage("사용법: /" + label + " status, cache clear, node menu|list|info|islands|drain|undrain|sweep|kickall|shutdown-safe, island info|where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete, player info|setisland|clearisland, jobs list|retry <jobId>|cancel <jobId>|recover [nodeId] [minIdleMillis] [maxJobs], route debug [all|player]|ticket <ticket|player>|clear <player> [ticket], events, audit, block-values list|set <materialKey> <worth> <levelPoints> <limit>, upgrade-rules, template|templates list|upsert|enable|disable, migrate-superiorskyblock2 scan|dryrun|dry-run|import|verify|rollback [path], reload");
     }
 
     private UUID uuid(CommandSender sender, String value) {
