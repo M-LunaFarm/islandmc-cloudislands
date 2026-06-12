@@ -279,6 +279,7 @@ public final class CloudIslandsCoreApplication {
             levelRepository,
             snapshotRepository,
             migrationRollbackTarget(config, dataSource),
+            runtimeRepository,
             Path.of(config.storageLocalPath()),
             lifecycle
         );

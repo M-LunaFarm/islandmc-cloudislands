@@ -23,6 +23,7 @@ import kr.lunaf.cloudislands.coreservice.ranking.IslandLevelRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
+import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.UpgradePolicy;
@@ -54,6 +55,7 @@ public final class MigrationAdminService {
     private final IslandLevelRepository levels;
     private final IslandSnapshotRepository snapshots;
     private final RollbackTarget hardRollbackTarget;
+    private final IslandRuntimeRepository runtimes;
     private final Path migrationBundleRoot;
     private final IslandLifecycleWorkflow activationTester;
     private final SuperiorSkyblock2MigrationScanner scanner = new SuperiorSkyblock2MigrationScanner();
@@ -75,6 +77,10 @@ public final class MigrationAdminService {
     }
 
     public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandLevelRepository levels, IslandSnapshotRepository snapshots, RollbackTarget hardRollbackTarget, Path migrationBundleRoot, IslandLifecycleWorkflow activationTester) {
+        this(islands, metadata, playerProfiles, permissionRules, upgrades, bank, limits, missions, levels, snapshots, hardRollbackTarget, null, migrationBundleRoot, activationTester);
+    }
+
+    public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandLevelRepository levels, IslandSnapshotRepository snapshots, RollbackTarget hardRollbackTarget, IslandRuntimeRepository runtimes, Path migrationBundleRoot, IslandLifecycleWorkflow activationTester) {
         this.islands = islands;
         this.metadata = metadata;
         this.playerProfiles = playerProfiles;
@@ -86,6 +92,7 @@ public final class MigrationAdminService {
         this.levels = levels;
         this.snapshots = snapshots;
         this.hardRollbackTarget = hardRollbackTarget;
+        this.runtimes = runtimes;
         this.migrationBundleRoot = migrationBundleRoot == null ? Path.of("cloudislands-storage") : migrationBundleRoot;
         this.activationTester = activationTester;
         this.lastExtractionRoot = this.migrationBundleRoot;
@@ -216,6 +223,9 @@ public final class MigrationAdminService {
                 throw new IllegalStateException("migration bundle preflight missing for " + manifest.islandId());
             }
             islands.createOwnedIsland(manifest.islandId(), manifest.ownerUuid(), "superiorskyblock2", "Migrated Island");
+            if (runtimes != null) {
+                runtimes.markInactive(manifest.islandId());
+            }
             islands.updateStats(manifest.islandId(), manifest.size(), manifest.level(), manifest.worth());
             metadata.upsertMember(manifest.islandId(), manifest.ownerUuid(), IslandRole.OWNER);
             for (java.util.UUID memberUuid : manifest.members()) {
