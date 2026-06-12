@@ -901,6 +901,14 @@ public final class VelocityRoutingController {
                 .append(" removed=")
                 .append(removedIslands);
         }
+        if (body.contains("\"extractedBundles\"")) {
+            builder.append(" extracted=")
+                .append(longValue(body, "extractedBundles"))
+                .append(" files=")
+                .append(longValue(body, "extractedFiles"))
+                .append(" bytes=")
+                .append(longValue(body, "extractedBytes"));
+        }
         if (body.contains("\"members\"")) {
             builder.append(" members=").append(longValue(body, "members"))
                 .append(" homes=").append(longValue(body, "homes"))

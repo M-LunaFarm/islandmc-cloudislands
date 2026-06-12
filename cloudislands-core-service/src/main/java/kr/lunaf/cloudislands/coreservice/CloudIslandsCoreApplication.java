@@ -277,7 +277,8 @@ public final class CloudIslandsCoreApplication {
             limitRepository,
             missionRepository,
             levelRepository,
-            migrationRollbackTarget(config, dataSource)
+            migrationRollbackTarget(config, dataSource),
+            Path.of(config.storageLocalPath())
         );
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotKeepLatest());
         PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, tickets, runtimeRepository, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::activeConnections, meteredDataSource::openedConnections, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventWriter == null ? 0L : redisEventWriter.failuresTotal(), () -> redisCacheFailures(nodes, tickets, islandRepository, metadataRepository, playerProfiles, permissionRules, runtimeRepository, rankingRepository, levelRepository, bankRepository, limitRepository, missionRepository, upgradeRepository, templateRepository, snapshotRepository, islandLogs, redisCacheAdmin, activationLock, playerCreationLock, audit));
@@ -830,6 +831,11 @@ public final class CloudIslandsCoreApplication {
         route("/v1/admin/migrations/superiorskyblock2/dryrun", exchange -> {
             audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_DRYRUN", "MIGRATION", "superiorskyblock2", Map.of());
             write(exchange, 202, migrationAdmin.dryRun());
+        });
+        route("/v1/admin/migrations/superiorskyblock2/extract", exchange -> {
+            String body = readBody(exchange);
+            audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_EXTRACT", "MIGRATION", "superiorskyblock2", Map.of());
+            write(exchange, 202, migrationAdmin.extractWorldBundles(JsonFields.text(body, "path", "")));
         });
         route("/v1/admin/migrations/superiorskyblock2/import", exchange -> {
             audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_IMPORT", "MIGRATION", "superiorskyblock2", Map.of());

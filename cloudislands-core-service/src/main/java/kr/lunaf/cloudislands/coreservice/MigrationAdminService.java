@@ -33,6 +33,8 @@ import kr.lunaf.cloudislands.migration.rollback.MigrationRollbackService;
 import kr.lunaf.cloudislands.migration.rollback.MigrationRollbackService.RollbackTarget;
 import kr.lunaf.cloudislands.migration.superior.MigrationRunState;
 import kr.lunaf.cloudislands.migration.verify.MigrationVerifier;
+import kr.lunaf.cloudislands.migration.world.MigrationWorldBundle;
+import kr.lunaf.cloudislands.migration.world.MigrationWorldExtractor;
 
 public final class MigrationAdminService {
     private final IslandRepository islands;
@@ -45,15 +47,21 @@ public final class MigrationAdminService {
     private final IslandMissionRepository missions;
     private final IslandLevelRepository levels;
     private final RollbackTarget hardRollbackTarget;
+    private final Path migrationBundleRoot;
     private final SuperiorSkyblock2MigrationScanner scanner = new SuperiorSkyblock2MigrationScanner();
     private final CloudIslandsMigrationImporter importer = new CloudIslandsMigrationImporter();
     private final MigrationVerifier verifier = new MigrationVerifier();
+    private final MigrationWorldExtractor worldExtractor = new MigrationWorldExtractor();
     private final MigrationRollbackService rollback = new MigrationRollbackService();
     private SuperiorSkyblock2MigrationScanner.ScanResult lastScan = new SuperiorSkyblock2MigrationScanner.ScanResult(List.of(), List.of());
     private MigrationImportPlan lastPlan = new MigrationImportPlan(List.of(), List.of());
     private MigrationRollbackPlan lastRollbackPlan;
 
     public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandLevelRepository levels, RollbackTarget hardRollbackTarget) {
+        this(islands, metadata, playerProfiles, permissionRules, upgrades, bank, limits, missions, levels, hardRollbackTarget, Path.of("cloudislands-storage"));
+    }
+
+    public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandLevelRepository levels, RollbackTarget hardRollbackTarget, Path migrationBundleRoot) {
         this.islands = islands;
         this.metadata = metadata;
         this.playerProfiles = playerProfiles;
@@ -64,6 +72,7 @@ public final class MigrationAdminService {
         this.missions = missions;
         this.levels = levels;
         this.hardRollbackTarget = hardRollbackTarget;
+        this.migrationBundleRoot = migrationBundleRoot == null ? Path.of("cloudislands-storage") : migrationBundleRoot;
     }
 
     public synchronized String scan(String path) {
@@ -77,6 +86,30 @@ public final class MigrationAdminService {
         lastPlan = importer.dryRun(lastScan.manifests());
         MigrationRunState state = lastPlan.canImport() ? MigrationRunState.DRY_RUN_PASSED : MigrationRunState.DRY_RUN_FAILED;
         return "{\"state\":\"" + state + "\",\"manifests\":" + lastPlan.manifests().size() + ",\"canImport\":" + lastPlan.canImport() + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastPlan.issues()) + "}";
+    }
+
+    public synchronized String extractWorldBundles(String outputPath) {
+        Path targetRoot = outputPath == null || outputPath.isBlank() ? migrationBundleRoot : Path.of(outputPath);
+        List<MigrationIssue> issues = new ArrayList<>();
+        int extractedBundles = 0;
+        long extractedFiles = 0L;
+        long extractedBytes = 0L;
+        for (MigrationManifest manifest : lastScan.manifests()) {
+            if (manifest.sourceWorldPath() == null || manifest.sourceWorldPath().isBlank()) {
+                issues.add(new MigrationIssue("WORLD_SOURCE_NOT_FOUND", "missing world source for " + manifest.islandId(), false));
+                continue;
+            }
+            try {
+                MigrationWorldBundle bundle = worldExtractor.extract(worldExtractor.plan(manifest, targetRoot));
+                extractedBundles++;
+                extractedFiles += bundle.fileCount();
+                extractedBytes += bundle.sizeBytes();
+            } catch (RuntimeException | java.io.IOException exception) {
+                issues.add(new MigrationIssue("WORLD_EXTRACT_FAILED", manifest.islandId() + ": " + exception.getMessage(), true));
+            }
+        }
+        MigrationRunState state = issues.stream().anyMatch(MigrationIssue::blocking) ? MigrationRunState.EXTRACT_FAILED : MigrationRunState.EXTRACTED;
+        return "{\"state\":\"" + state + "\",\"path\":\"" + escape(targetRoot.toString()) + "\",\"manifests\":" + lastScan.manifests().size() + ",\"extractedBundles\":" + extractedBundles + ",\"extractedFiles\":" + extractedFiles + ",\"extractedBytes\":" + extractedBytes + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
     }
 
     public synchronized String importLastPlan() {

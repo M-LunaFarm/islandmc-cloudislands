@@ -4,6 +4,8 @@ public enum MigrationRunState {
     SCANNED,
     DRY_RUN_FAILED,
     DRY_RUN_PASSED,
+    EXTRACT_FAILED,
+    EXTRACTED,
     IMPORTING,
     IMPORTED,
     VERIFYING,

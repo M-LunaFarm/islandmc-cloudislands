@@ -33,7 +33,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private static final List<String> BLOCK_VALUE_COMMANDS = List.of("list", "set");
     private static final List<String> BLOCK_VALUE_MATERIALS = List.of("minecraft:stone", "minecraft:diamond_block", "minecraft:emerald_block", "minecraft:spawner");
     private static final List<String> TEMPLATE_COMMANDS = List.of("list", "upsert", "enable", "disable");
-    private static final List<String> MIGRATION_COMMANDS = List.of("scan", "dryrun", "dry-run", "import", "verify", "rollback");
+    private static final List<String> MIGRATION_COMMANDS = List.of("scan", "dryrun", "dry-run", "extract", "extract-worlds", "world-extract", "import", "verify", "rollback");
     private static final List<String> NODE_DANGER_REASONS = List.of("maintenance", "restart", "drain");
     private static final List<String> HELP_COMMANDS = List.of(
         "ciadmin status",
@@ -91,6 +91,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         "ciadmin migrate-superiorskyblock2 scan [path]",
         "ciadmin migrate-superiorskyblock2 dryrun [path]",
         "ciadmin migrate-superiorskyblock2 dry-run [path]",
+        "ciadmin migrate-superiorskyblock2 extract [outputPath]",
         "ciadmin migrate-superiorskyblock2 import [path]",
         "ciadmin migrate-superiorskyblock2 verify [path]",
         "ciadmin migrate-superiorskyblock2 rollback [path]",
@@ -634,7 +635,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private boolean handleSuperiorSkyblock2Migration(CommandSender sender, String[] args) {
         String action = args.length > 1 ? args[1] : "scan";
         if (!MIGRATION_COMMANDS.contains(action.toLowerCase(Locale.ROOT))) {
-            sender.sendMessage("사용법: /ciadmin migrate-superiorskyblock2 scan|dryrun|dry-run|import|verify|rollback [path]");
+            sender.sendMessage("사용법: /ciadmin migrate-superiorskyblock2 scan|dryrun|dry-run|extract|import|verify|rollback [path]");
             return true;
         }
         String path = args.length > 2 ? joined(args, 2) : "plugins/SuperiorSkyblock2";
@@ -680,6 +681,14 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             builder.append(" rolledBack=").append(boolValue(body, "rolledBack"))
                 .append(" removed=")
                 .append(removedIslands);
+        }
+        if (body.contains("\"extractedBundles\"")) {
+            builder.append(" extracted=")
+                .append(longValue(body, "extractedBundles"))
+                .append(" files=")
+                .append(longValue(body, "extractedFiles"))
+                .append(" bytes=")
+                .append(longValue(body, "extractedBytes"));
         }
         if (body.contains("\"members\"")) {
             builder.append(" members=").append(longValue(body, "members"))

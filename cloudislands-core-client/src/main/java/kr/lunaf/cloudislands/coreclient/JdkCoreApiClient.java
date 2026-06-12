@@ -738,6 +738,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     public CompletableFuture<String> migrateSuperiorSkyblock2(String action, String path) {
         String endpoint = switch (action.toLowerCase()) {
             case "dryrun", "dry-run" -> "dryrun";
+            case "extract", "extract-worlds", "world-extract" -> "extract";
             case "import" -> "import";
             case "verify" -> "verify";
             case "rollback" -> "rollback";
