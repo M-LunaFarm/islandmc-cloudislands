@@ -48,7 +48,7 @@ public final class LocalIslandStorage implements IslandStorage {
 
     @Override
     public InputStream openBundle(String storagePath) throws IOException {
-        return Files.newInputStream(root.resolve(storagePath));
+        return Files.newInputStream(resolveStoragePath(storagePath));
     }
 
     @Override
@@ -89,7 +89,7 @@ public final class LocalIslandStorage implements IslandStorage {
     public void promoteBundle(UUID islandId, long snapshotNo, String storagePath) throws IOException {
         Path islandRoot = islandRoot(islandId);
         String snapshot = String.format("%06d", snapshotNo);
-        Path sourceBundle = root.resolve(storagePath);
+        Path sourceBundle = resolveStoragePath(storagePath);
         Path sourceManifest = sourceBundle.resolveSibling("manifest.json");
         if (!Files.exists(sourceBundle) || !Files.exists(sourceManifest)) {
             throw new IOException("missing stored bundle: " + storagePath);
@@ -185,5 +185,17 @@ public final class LocalIslandStorage implements IslandStorage {
 
     private Path islandRoot(UUID islandId) {
         return root.resolve("islands").resolve(islandId.toString());
+    }
+
+    private Path resolveStoragePath(String storagePath) throws IOException {
+        if (storagePath == null || storagePath.isBlank()) {
+            throw new IOException("missing storage path");
+        }
+        Path normalizedRoot = root.toAbsolutePath().normalize();
+        Path resolved = normalizedRoot.resolve(storagePath).normalize();
+        if (!resolved.startsWith(normalizedRoot)) {
+            throw new IOException("storage path escapes root: " + storagePath);
+        }
+        return resolved;
     }
 }
