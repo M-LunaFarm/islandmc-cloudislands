@@ -216,6 +216,7 @@ public final class PrometheusMetricsRenderer {
         for (Map.Entry<String, Long> entry : events.countsByField(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_FAILED.name(), "reason").entrySet()) {
             out.append("cloudislands_route_ticket_failed_total{reason=\"").append(escape(entry.getKey())).append("\"} ").append(entry.getValue()).append('\n');
         }
+        tickets.expireStale();
         help(out, "cloudislands_route_tickets_total", "Route tickets currently stored by state");
         type(out, "cloudislands_route_tickets_total", "gauge");
         for (Map.Entry<String, Long> entry : tickets.countsByState().entrySet()) {

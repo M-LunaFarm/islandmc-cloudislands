@@ -179,6 +179,16 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
     }
 
     @Override
+    public int expireStale() {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("UPDATE route_tickets SET state = 'EXPIRED' WHERE state IN ('READY', 'PREPARING') AND expires_at < now()")) {
+            return statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to expire stale route tickets", exception);
+        }
+    }
+
+    @Override
     public boolean clear(UUID ticketId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("DELETE FROM route_tickets WHERE id = ?")) {

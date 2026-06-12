@@ -21,6 +21,8 @@ public interface RouteTicketStore {
 
     Map<String, Long> countsByState();
 
+    int expireStale();
+
     boolean clear(UUID ticketId);
 
     int clearAll();

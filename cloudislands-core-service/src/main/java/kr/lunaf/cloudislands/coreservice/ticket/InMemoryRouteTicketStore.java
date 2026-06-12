@@ -119,6 +119,20 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
         return Map.copyOf(counts);
     }
 
+    @Override
+    public int expireStale() {
+        Instant now = clock.instant();
+        int expired = 0;
+        for (RouteTicket ticket : tickets.values()) {
+            if ((ticket.state() != RouteTicketState.READY && ticket.state() != RouteTicketState.PREPARING) || !ticket.expiresAt().isBefore(now)) {
+                continue;
+            }
+            tickets.put(ticket.ticketId(), new RouteTicket(ticket.ticketId(), ticket.playerUuid(), ticket.action(), ticket.islandId(), ticket.targetNode(), ticket.targetWorld(), RouteTicketState.EXPIRED, ticket.expiresAt(), ticket.nonce(), ticket.payload()));
+            expired++;
+        }
+        return expired;
+    }
+
     public boolean clear(UUID ticketId) {
         return tickets.remove(ticketId) != null;
     }
