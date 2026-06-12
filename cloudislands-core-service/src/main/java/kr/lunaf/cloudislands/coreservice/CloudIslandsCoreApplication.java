@@ -61,6 +61,7 @@ import kr.lunaf.cloudislands.coreservice.metrics.PrometheusMetricsRenderer;
 import kr.lunaf.cloudislands.coreservice.mission.InMemoryIslandMissionRepository;
 import kr.lunaf.cloudislands.coreservice.mission.IslandMissionRepository;
 import kr.lunaf.cloudislands.coreservice.mission.JdbcIslandMissionRepository;
+import kr.lunaf.cloudislands.coreservice.permission.CachingIslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.permission.InMemoryIslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.permission.IslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.permission.JdbcIslandPermissionRuleRepository;
@@ -188,7 +189,10 @@ public final class CloudIslandsCoreApplication {
         PlayerProfileRepository playerProfiles = config.redisEvents() || config.redisJobs()
             ? new CachingPlayerProfileRepository(basePlayerProfiles, config.redisUri())
             : basePlayerProfiles;
-        IslandPermissionRuleRepository permissionRules = config.jdbcRepositories() ? new JdbcIslandPermissionRuleRepository(dataSource) : new InMemoryIslandPermissionRuleRepository();
+        IslandPermissionRuleRepository basePermissionRules = config.jdbcRepositories() ? new JdbcIslandPermissionRuleRepository(dataSource) : new InMemoryIslandPermissionRuleRepository();
+        IslandPermissionRuleRepository permissionRules = config.redisEvents() || config.redisJobs()
+            ? new CachingIslandPermissionRuleRepository(basePermissionRules, config.redisUri())
+            : basePermissionRules;
         IslandRuntimeRepository baseRuntimeRepository = config.jdbcRepositories() ? new JdbcIslandRuntimeRepository(dataSource) : new InMemoryIslandRuntimeRepository();
         IslandRuntimeRepository runtimeRepository = config.redisEvents() || config.redisJobs()
             ? new CachingIslandRuntimeRepository(baseRuntimeRepository, config.redisUri())
