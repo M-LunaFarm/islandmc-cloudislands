@@ -772,13 +772,11 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("chat") || args[0].equals("채팅")) {
-            UUID islandId = optionalIslandIdArgument(args, 1);
-            routingController.sendIslandChat(player, islandId, "ISLAND", joinArgs(args, hasOptionalIslandIdArgument(args, 1) ? 2 : 1));
+            routingController.sendIslandChat(player, new UUID(0L, 0L), "ISLAND", joinArgs(args, 1));
             return;
         }
         if (args[0].equalsIgnoreCase("teamchat") || args[0].equals("팀채팅")) {
-            UUID islandId = optionalIslandIdArgument(args, 1);
-            routingController.sendIslandChat(player, islandId, "TEAM", joinArgs(args, hasOptionalIslandIdArgument(args, 1) ? 2 : 1));
+            routingController.sendIslandChat(player, new UUID(0L, 0L), "TEAM", joinArgs(args, 1));
             return;
         }
         if (args[0].equalsIgnoreCase("limits") || args[0].equals("제한")) {
