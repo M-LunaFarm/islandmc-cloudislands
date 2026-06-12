@@ -507,7 +507,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private boolean handleSuperiorSkyblock2Migration(CommandSender sender, String[] args) {
         String action = args.length > 1 ? args[1] : "scan";
         if (!MIGRATION_COMMANDS.contains(action.toLowerCase(Locale.ROOT))) {
-            sender.sendMessage("사용법: /ciadmin migrate-superiorskyblock2 scan [path] | dryrun|dry-run | import | verify | rollback");
+            sender.sendMessage("사용법: /ciadmin migrate-superiorskyblock2 scan|dryrun|dry-run|import|verify|rollback [path]");
             return true;
         }
         String path = args.length > 2 ? joined(args, 2) : "plugins/SuperiorSkyblock2";
@@ -806,7 +806,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private void usage(CommandSender sender, String label) {
-        sender.sendMessage("사용법: /" + label + " status, cache clear, node menu, node list, node islands <node>, island tp <uuid>, player info <uuid>, jobs list, route debug [all|player], route ticket <ticket|player>, route clear <player> [ticket], events, audit, block-values list, upgrade-rules, template|templates list|upsert|enable|disable, migrate-superiorskyblock2 scan|dryrun|dry-run|import|verify|rollback, reload");
+        sender.sendMessage("사용법: /" + label + " status, cache clear, node menu, node list, node islands <node>, island tp <uuid>, player info <uuid>, jobs list, route debug [all|player], route ticket <ticket|player>, route clear <player> [ticket], events, audit, block-values list, upgrade-rules, template|templates list|upsert|enable|disable, migrate-superiorskyblock2 scan|dryrun|dry-run|import|verify|rollback [path], reload");
     }
 
     private UUID uuid(CommandSender sender, String value) {
