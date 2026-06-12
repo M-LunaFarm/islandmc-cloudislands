@@ -336,7 +336,7 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("islands")) {
-            routingController.nodeIslands(player, args[2]);
+            routingController.nodeIslands(player, args[2], args.length > 3 ? (int) parseLongOrZero(args[3]) : 50);
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("drain")) {
@@ -375,7 +375,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.recoverJobs(player, args.length > 2 ? args[2] : "recovery", args.length > 3 ? parseLongOrZero(args[3]) : 60000L, args.length > 4 ? (int) parseLongOrZero(args[4]) : 16);
             return;
         }
-        player.sendMessage(Component.text("사용법: /ciadmin island info <섬|플레이어>, /ciadmin island where <섬>, /ciadmin events, /ciadmin audit, /ciadmin block-values list, /ciadmin template list, /ciadmin node list"));
+        player.sendMessage(Component.text("사용법: /ciadmin island info <섬|플레이어>, /ciadmin island where <섬>, /ciadmin events, /ciadmin audit, /ciadmin block-values list, /ciadmin template list, /ciadmin node list, /ciadmin node islands <node> [limit]"));
     }
 
     private void dispatch(Player player, String[] args) {

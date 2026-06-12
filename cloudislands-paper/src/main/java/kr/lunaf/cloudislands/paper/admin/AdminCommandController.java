@@ -173,7 +173,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return true;
         }
         if (args[1].equalsIgnoreCase("islands")) {
-            run(sender, "Node islands", coreApiClient.nodeIslands(targetNode, 50).thenApply(this::nodeIslandListMessage));
+            run(sender, "Node islands", coreApiClient.nodeIslands(targetNode, nodeIslandLimit(args)).thenApply(this::nodeIslandListMessage));
             return true;
         }
         if (args[1].equalsIgnoreCase("drain")) {
@@ -196,7 +196,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "Node shutdown-safe", coreApiClient.shutdownNodeSafely(targetNode, args.length > 3 ? joined(args, 3) : "admin"));
             return true;
         }
-        sender.sendMessage("사용법: /ciadmin node list|info|islands|drain|undrain|sweep|kickall|shutdown-safe [node]");
+        sender.sendMessage("사용법: /ciadmin node list|info|islands|drain|undrain|sweep|kickall|shutdown-safe [node] [limit]");
         return true;
     }
 
@@ -640,6 +640,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             index = objectEnd + 1;
         }
         return "노드 섬 현황" + (nodeId.isBlank() ? "" : " " + nodeId) + ": " + (entries.isEmpty() ? "활성 섬 없음" : String.join(", ", entries));
+    }
+
+    private int nodeIslandLimit(String[] args) {
+        return args.length > 3 ? (int) Math.max(1L, Math.min(number(args[3], 50L), 200L)) : 50;
     }
 
     private String arrayValue(String body, String field) {

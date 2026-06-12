@@ -594,8 +594,8 @@ public final class VelocityRoutingController {
         sendBodyResult(player, coreApiClient.nodeInfo(nodeId).thenApply(this::appendLevelScanSummary), "노드 정보를 불러오지 못했습니다.");
     }
 
-    public void nodeIslands(Player player, String nodeId) {
-        sendBodyResult(player, coreApiClient.nodeIslands(nodeId, 50).thenApply(this::nodeIslandListMessage), "노드 섬 현황을 불러오지 못했습니다.");
+    public void nodeIslands(Player player, String nodeId, int limit) {
+        sendBodyResult(player, coreApiClient.nodeIslands(nodeId, Math.max(1, Math.min(limit, 200))).thenApply(this::nodeIslandListMessage), "노드 섬 현황을 불러오지 못했습니다.");
     }
 
     public void drainNode(Player player, String nodeId) {
