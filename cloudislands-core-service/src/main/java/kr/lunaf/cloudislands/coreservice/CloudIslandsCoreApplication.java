@@ -189,6 +189,7 @@ public final class CloudIslandsCoreApplication {
         InMemoryGlobalEventPublisher inMemoryEvents = new InMemoryGlobalEventPublisher();
         RedisStreamWriterAdapter redisEventWriter = config.redisEvents() ? new RedisStreamWriterAdapter(config.redisUri()) : null;
         RedisCacheAdmin redisCacheAdmin = config.redisEvents() || config.redisJobs() ? new RedisCacheAdmin(config.redisUri()) : null;
+        RedisActivationLock activationLock = config.redisEvents() || config.redisJobs() ? new RedisActivationLock(config.redisUri(), config.routePreparingTicketTtl()) : null;
         GlobalEventPublisher events = config.redisEvents()
             ? new CompositeGlobalEventPublisher(java.util.List.of(inMemoryEvents, new RedisStreamEventPublisher(redisEventWriter)))
             : inMemoryEvents;
@@ -262,9 +263,9 @@ public final class CloudIslandsCoreApplication {
             : baseIslandLogs;
         InMemoryAuditLogger inMemoryAudit = baseAudit instanceof InMemoryAuditLogger logger ? logger : new InMemoryAuditLogger();
         java.util.function.Supplier<String> auditJson = baseAudit instanceof JdbcAuditLogger jdbcAudit ? () -> jdbcAudit.toJson(100) : inMemoryAudit::toJson;
-        RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets, islandRepository, metadataRepository, runtimeRepository, templateRepository, jobs, events, config.islandPool(), config.routeTicketTtl(), config.routePreparingTicketTtl());
+        RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets, islandRepository, metadataRepository, runtimeRepository, templateRepository, jobs, events, config.islandPool(), config.routeTicketTtl(), config.routePreparingTicketTtl(), activationLock);
         CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, metadataRepository, playerProfiles, templateRepository, nodes, allocator, jobs, events, tickets, config.islandPool(), config.routePreparingTicketTtl());
-        IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(runtimeRepository, islandRepository, templateRepository, nodes, allocator, jobs, events, config.islandPool());
+        IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(runtimeRepository, islandRepository, templateRepository, nodes, allocator, jobs, events, config.islandPool(), activationLock);
         MigrationAdminService migrationAdmin = new MigrationAdminService(
             islandRepository,
             metadataRepository,
@@ -278,7 +279,7 @@ public final class CloudIslandsCoreApplication {
             migrationRollbackTarget(config, dataSource)
         );
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotKeepLatest());
-        PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, tickets, runtimeRepository, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::activeConnections, meteredDataSource::openedConnections, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventWriter == null ? 0L : redisEventWriter.failuresTotal(), () -> redisCacheFailures(nodes, tickets, islandRepository, metadataRepository, playerProfiles, permissionRules, runtimeRepository, rankingRepository, levelRepository, bankRepository, limitRepository, missionRepository, upgradeRepository, templateRepository, snapshotRepository, islandLogs, redisCacheAdmin, audit));
+        PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, tickets, runtimeRepository, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::activeConnections, meteredDataSource::openedConnections, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventWriter == null ? 0L : redisEventWriter.failuresTotal(), () -> redisCacheFailures(nodes, tickets, islandRepository, metadataRepository, playerProfiles, permissionRules, runtimeRepository, rankingRepository, levelRepository, bankRepository, limitRepository, missionRepository, upgradeRepository, templateRepository, snapshotRepository, islandLogs, redisCacheAdmin, activationLock, audit));
         this.nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, islandRepository, events, config.heartbeatTimeout());
         this.routeTicketExpiryMonitor = new RouteTicketExpiryMonitor(tickets, events, config.routeTicketTtl());
         this.jobRecoveryMonitor = new JobRecoveryMonitor(jobs, Duration.ofSeconds(60), config.leaseDuration().toMillis(), 16);
@@ -1630,7 +1631,7 @@ public final class CloudIslandsCoreApplication {
         });
     }
 
-    private static long redisCacheFailures(NodeRegistry nodes, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandRuntimeRepository runtimes, RankingRepository rankings, IslandLevelRepository levels, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandUpgradeRepository upgrades, IslandTemplateRepository templates, IslandSnapshotRepository snapshots, IslandLogRepository islandLogs, RedisCacheAdmin redisCacheAdmin, AuditLogger audit) {
+    private static long redisCacheFailures(NodeRegistry nodes, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandRuntimeRepository runtimes, RankingRepository rankings, IslandLevelRepository levels, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandUpgradeRepository upgrades, IslandTemplateRepository templates, IslandSnapshotRepository snapshots, IslandLogRepository islandLogs, RedisCacheAdmin redisCacheAdmin, RedisActivationLock activationLock, AuditLogger audit) {
         long failures = 0L;
         if (nodes instanceof CachingNodeRegistry cachingNodes) {
             failures += cachingNodes.failuresTotal();
@@ -1682,6 +1683,9 @@ public final class CloudIslandsCoreApplication {
         }
         if (redisCacheAdmin != null) {
             failures += redisCacheAdmin.failuresTotal();
+        }
+        if (activationLock != null) {
+            failures += activationLock.failuresTotal();
         }
         if (audit instanceof RedisAuditLogger redisAudit) {
             failures += redisAudit.failuresTotal();

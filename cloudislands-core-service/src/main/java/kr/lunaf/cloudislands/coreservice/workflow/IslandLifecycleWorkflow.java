@@ -9,6 +9,7 @@ import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
 import kr.lunaf.cloudislands.coreservice.NodeRegistry;
+import kr.lunaf.cloudislands.coreservice.RedisActivationLock;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
@@ -26,12 +27,17 @@ public final class IslandLifecycleWorkflow {
     private final IslandJobPublisher jobs;
     private final GlobalEventPublisher events;
     private final String islandPool;
+    private final RedisActivationLock activationLock;
 
     public IslandLifecycleWorkflow(IslandRuntimeRepository runtimes, IslandRepository islands, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events) {
         this(runtimes, islands, templates, nodes, allocator, jobs, events, "island");
     }
 
     public IslandLifecycleWorkflow(IslandRuntimeRepository runtimes, IslandRepository islands, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events, String islandPool) {
+        this(runtimes, islands, templates, nodes, allocator, jobs, events, islandPool, null);
+    }
+
+    public IslandLifecycleWorkflow(IslandRuntimeRepository runtimes, IslandRepository islands, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events, String islandPool, RedisActivationLock activationLock) {
         this.runtimes = runtimes;
         this.islands = islands;
         this.templates = templates;
@@ -40,6 +46,7 @@ public final class IslandLifecycleWorkflow {
         this.jobs = jobs;
         this.events = events;
         this.islandPool = islandPool == null || islandPool.isBlank() ? "island" : islandPool;
+        this.activationLock = activationLock;
     }
 
     public Result activate(UUID islandId) {
@@ -55,11 +62,16 @@ public final class IslandLifecycleWorkflow {
         if (node == null) {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
+        RedisActivationLock.Lease lease = acquireActivationLock(islandId, "activate");
+        if (activationLock != null && lease == null) {
+            return new Result(false, "ACTIVATION_LOCKED", current);
+        }
         IslandRuntimeSnapshot runtime = runtimes.markActivating(islandId, node.nodeId(), "ci_shard_001", 0, 0);
         islands.setState(islandId, IslandState.ACTIVATING);
         try {
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.ACTIVATE_ISLAND, islandId, node.nodeId(), 0, Map.of("fencingToken", Long.toString(runtime.fencingToken()), "worldName", runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld(), "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()), "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ())), Instant.now()));
         } catch (RuntimeException exception) {
+            releaseActivationLock(lease);
             return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
         }
         events.publish(CloudIslandEventType.ISLAND_ACTIVATE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "state", runtime.state().name(), "targetNode", node.nodeId()));
@@ -148,11 +160,16 @@ public final class IslandLifecycleWorkflow {
         if (node == null) {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
+        RedisActivationLock.Lease lease = acquireActivationLock(islandId, "restore");
+        if (activationLock != null && lease == null) {
+            return new Result(false, "ACTIVATION_LOCKED", current);
+        }
         IslandRuntimeSnapshot runtime = runtimes.markActivating(islandId, node.nodeId(), "ci_shard_001", 0, 0);
         islands.setState(islandId, IslandState.ACTIVATING);
         try {
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, node.nodeId(), 30, Map.of("snapshotNo", Long.toString(snapshotNo), "storagePath", storagePath == null ? "" : storagePath, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
         } catch (RuntimeException exception) {
+            releaseActivationLock(lease);
             return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
         }
         events.publish(CloudIslandEventType.ISLAND_RESTORE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "state", "RESTORING", "snapshotNo", Long.toString(snapshotNo)));
@@ -172,11 +189,16 @@ public final class IslandLifecycleWorkflow {
         if (node == null) {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
+        RedisActivationLock.Lease lease = acquireActivationLock(islandId, "reset");
+        if (activationLock != null && lease == null) {
+            return new Result(false, "ACTIVATION_LOCKED", current);
+        }
         IslandRuntimeSnapshot runtime = runtimes.markActivating(islandId, node.nodeId(), "ci_shard_001", 0, 0);
         islands.setState(islandId, IslandState.ACTIVATING);
         try {
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESET_ISLAND, islandId, node.nodeId(), 40, Map.of("templateId", templateId, "reason", reason, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
         } catch (RuntimeException exception) {
+            releaseActivationLock(lease);
             return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
         }
         events.publish(CloudIslandEventType.ISLAND_RESET_REQUESTED.name(), Map.of("islandId", islandId.toString(), "state", "RESETTING", "targetNode", node.nodeId(), "reason", reason));
@@ -259,5 +281,15 @@ public final class IslandLifecycleWorkflow {
 
     private String minNodeVersion(String templateId) {
         return templates.find(templateId).map(kr.lunaf.cloudislands.coreservice.template.IslandTemplateSnapshot::minNodeVersion).orElse("");
+    }
+
+    private RedisActivationLock.Lease acquireActivationLock(UUID islandId, String owner) {
+        return activationLock == null ? null : activationLock.acquire(islandId, owner).orElse(null);
+    }
+
+    private void releaseActivationLock(RedisActivationLock.Lease lease) {
+        if (activationLock != null) {
+            activationLock.release(lease);
+        }
     }
 }

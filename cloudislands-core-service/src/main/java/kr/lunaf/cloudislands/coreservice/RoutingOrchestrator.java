@@ -46,6 +46,7 @@ public final class RoutingOrchestrator {
     private final String islandPool;
     private final Duration routeTicketTtl;
     private final Duration routePreparingTicketTtl;
+    private final RedisActivationLock activationLock;
 
     public RoutingOrchestrator(NodeRegistry nodes, NodeAllocator allocator, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, IslandRuntimeRepository runtimes, IslandTemplateRepository templates, IslandJobPublisher jobs, GlobalEventPublisher events) {
         this(nodes, allocator, tickets, islands, metadata, runtimes, templates, jobs, events, "island");
@@ -56,6 +57,10 @@ public final class RoutingOrchestrator {
     }
 
     public RoutingOrchestrator(NodeRegistry nodes, NodeAllocator allocator, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, IslandRuntimeRepository runtimes, IslandTemplateRepository templates, IslandJobPublisher jobs, GlobalEventPublisher events, String islandPool, Duration routeTicketTtl, Duration routePreparingTicketTtl) {
+        this(nodes, allocator, tickets, islands, metadata, runtimes, templates, jobs, events, islandPool, routeTicketTtl, routePreparingTicketTtl, null);
+    }
+
+    public RoutingOrchestrator(NodeRegistry nodes, NodeAllocator allocator, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, IslandRuntimeRepository runtimes, IslandTemplateRepository templates, IslandJobPublisher jobs, GlobalEventPublisher events, String islandPool, Duration routeTicketTtl, Duration routePreparingTicketTtl, RedisActivationLock activationLock) {
         this.nodes = nodes;
         this.allocator = allocator;
         this.tickets = tickets;
@@ -68,6 +73,7 @@ public final class RoutingOrchestrator {
         this.islandPool = islandPool == null || islandPool.isBlank() ? "island" : islandPool;
         this.routeTicketTtl = routeTicketTtl == null || routeTicketTtl.isNegative() || routeTicketTtl.isZero() ? Duration.ofSeconds(30) : routeTicketTtl;
         this.routePreparingTicketTtl = routePreparingTicketTtl == null || routePreparingTicketTtl.isNegative() || routePreparingTicketTtl.isZero() ? Duration.ofSeconds(120) : routePreparingTicketTtl;
+        this.activationLock = activationLock;
     }
 
     public RoutePreparationResult prepareHomeRoute(UUID playerUuid) {
@@ -318,21 +324,32 @@ public final class RoutingOrchestrator {
         }
         NodeLoad selected = allocator.selectReadyNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion, islandPool)
             .orElseThrow(() -> new IllegalStateException("no eligible island node"));
+        RedisActivationLock.Lease lease = null;
+        if (activationLock != null) {
+            lease = activationLock.acquire(runtime.islandId(), "route").orElseThrow(() -> new IllegalStateException("island activation is already locked"));
+        }
         IslandRuntimeSnapshot activating = runtimes.markActivating(runtime.islandId(), selected.nodeId(), "ci_shard_001", 0, 0);
-        jobs.publish(new IslandJob(
-            UUID.randomUUID(),
-            IslandJobType.ACTIVATE_ISLAND,
-            runtime.islandId(),
-            selected.nodeId(),
-            0,
-            Map.of(
-                "fencingToken", Long.toString(activating.fencingToken()),
-                "worldName", activating.activeWorld() == null ? "ci_shard_001" : activating.activeWorld(),
-                "cellX", activating.cellX() == null ? "0" : Integer.toString(activating.cellX()),
-                "cellZ", activating.cellZ() == null ? "0" : Integer.toString(activating.cellZ())
-            ),
-            Instant.now()
-        ));
+        try {
+            jobs.publish(new IslandJob(
+                UUID.randomUUID(),
+                IslandJobType.ACTIVATE_ISLAND,
+                runtime.islandId(),
+                selected.nodeId(),
+                0,
+                Map.of(
+                    "fencingToken", Long.toString(activating.fencingToken()),
+                    "worldName", activating.activeWorld() == null ? "ci_shard_001" : activating.activeWorld(),
+                    "cellX", activating.cellX() == null ? "0" : Integer.toString(activating.cellX()),
+                    "cellZ", activating.cellZ() == null ? "0" : Integer.toString(activating.cellZ())
+                ),
+                Instant.now()
+            ));
+        } catch (RuntimeException exception) {
+            if (activationLock != null) {
+                activationLock.release(lease);
+            }
+            throw exception;
+        }
         events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", runtime.islandId().toString(), "state", activating.state().name(), "targetNode", selected.nodeId()));
         return new RouteTarget(selected, activating.activeWorld() == null ? "ci_shard_001" : activating.activeWorld(), RouteTicketState.PREPARING);
     }
