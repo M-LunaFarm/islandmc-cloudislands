@@ -29,6 +29,7 @@ public record CoreServiceConfig(
     Duration heartbeatTimeout,
     Duration leaseDuration,
     int snapshotKeepLatest,
+    boolean adminApiEnabled,
     boolean requireMtls,
     String mtlsVerifiedHeader,
     String mtlsVerifiedValue
@@ -60,6 +61,7 @@ public record CoreServiceConfig(
             Duration.ofSeconds(integer("CI_HEARTBEAT_TIMEOUT_SECONDS", 5)),
             Duration.ofSeconds(integer("CI_LEASE_SECONDS", 30)),
             integer("CI_SNAPSHOT_KEEP_LATEST", 85),
+            bool("CI_ADMIN_API_ENABLED", true),
             bool("CI_REQUIRE_MTLS", true),
             env("CI_MTLS_VERIFIED_HEADER", "X-SSL-Client-Verify"),
             env("CI_MTLS_VERIFIED_VALUE", "SUCCESS")
@@ -83,7 +85,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue);
     }
 
     private static String env(String key, String fallback) {

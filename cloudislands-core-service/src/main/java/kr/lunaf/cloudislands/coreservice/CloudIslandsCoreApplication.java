@@ -145,7 +145,7 @@ public final class CloudIslandsCoreApplication {
         Clock clock = Clock.systemUTC();
         this.tokenGuard = new ApiTokenGuard(config.coreToken());
         this.rateLimiter = new FixedWindowRateLimiter(clock, 240, 60_000L);
-        this.adminGuard = new AdminEndpointGuard(config.adminToken());
+        this.adminGuard = new AdminEndpointGuard(config.adminToken(), config.adminApiEnabled());
         this.ipAllowlist = new IpAllowlist(config.ipAllowlist());
         this.mtlsGuard = new MtlsHeaderGuard(config.requireMtls(), config.mtlsVerifiedHeader(), config.mtlsVerifiedValue());
         this.deleteStorage = migrationRollbackStorage(config);

@@ -8,15 +8,24 @@ import kr.lunaf.cloudislands.coreservice.security.permission.AdminPermissionPoli
 
 public final class AdminEndpointGuard {
     private final String adminToken;
+    private final boolean adminApiEnabled;
 
     public AdminEndpointGuard(String adminToken) {
+        this(adminToken, true);
+    }
+
+    public AdminEndpointGuard(String adminToken, boolean adminApiEnabled) {
         this.adminToken = adminToken == null ? "" : adminToken;
+        this.adminApiEnabled = adminApiEnabled;
     }
 
     public boolean allowed(String path, HttpExchange exchange) {
         AdminPermission required = permissionFor(path);
         if (required == null) {
             return true;
+        }
+        if (!adminApiEnabled && path.startsWith("/v1/admin")) {
+            return false;
         }
         if (!tokenAllowed(exchange)) {
             return false;
