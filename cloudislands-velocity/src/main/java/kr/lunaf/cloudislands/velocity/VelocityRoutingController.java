@@ -1320,6 +1320,10 @@ public final class VelocityRoutingController {
             String code = jsonValue(trimmed, "code");
             return playerErrorMessage(code, emptyMessage);
         }
+        if (trimmed.startsWith("{") && trimmed.contains("\"accepted\":false")) {
+            String code = jsonValue(trimmed, "code");
+            return playerErrorMessage(code, emptyMessage);
+        }
         if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
             return successMessage;
         }
@@ -1346,6 +1350,10 @@ public final class VelocityRoutingController {
             case "ISLAND_PERMISSION_DENIED" -> "섬 권한이 없습니다.";
             case "MEMBER_LIMIT" -> "섬 멤버 한도에 도달했습니다.";
             case "BANK_LIMIT" -> "섬 은행 한도에 도달했습니다.";
+            case "INVALID_AMOUNT" -> "올바른 금액을 입력해주세요.";
+            case "INSUFFICIENT_FUNDS" -> "잔액이 부족합니다.";
+            case "UNKNOWN_UPGRADE" -> "알 수 없는 업그레이드입니다.";
+            case "MAX_LEVEL" -> "이미 최대 업그레이드 레벨입니다.";
             case "INVITE_UNAVAILABLE" -> "사용할 수 없는 초대입니다.";
             case "OWNERSHIP_TRANSFER_DENIED" -> "섬 소유권을 양도할 수 없습니다.";
             case "UNAUTHORIZED", "ADMIN_PERMISSION_DENIED" -> "이 명령을 사용할 권한이 없습니다.";
