@@ -2144,10 +2144,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return "true";
         }
         String value = args[index].toLowerCase(Locale.ROOT);
-        if (value.equals("on") || value.equals("true") || value.equals("yes") || value.equals("켜기")) {
+        if (value.equals("on") || value.equals("true") || value.equals("yes") || value.equals("1") || value.equals("enable") || value.equals("enabled") || value.equals("켜기") || value.equals("허용") || value.equals("활성")) {
             return "true";
         }
-        if (value.equals("off") || value.equals("false") || value.equals("no") || value.equals("끄기")) {
+        if (value.equals("off") || value.equals("false") || value.equals("no") || value.equals("0") || value.equals("disable") || value.equals("disabled") || value.equals("끄기") || value.equals("거부") || value.equals("비활성")) {
             return "false";
         }
         return args[index];
