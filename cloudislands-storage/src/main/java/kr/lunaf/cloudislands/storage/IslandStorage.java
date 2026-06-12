@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.storage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
+import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 
 public interface IslandStorage {
     boolean available() throws IOException;
@@ -16,6 +17,9 @@ public interface IslandStorage {
     void promoteSnapshot(UUID islandId, long snapshotNo) throws IOException;
     void promoteBundle(UUID islandId, long snapshotNo, String storagePath) throws IOException;
     int pruneSnapshots(UUID islandId, int keepLatest) throws IOException;
+    default int pruneSnapshots(UUID islandId, SnapshotRetentionPolicy policy) throws IOException {
+        return pruneSnapshots(islandId, policy.retainedSnapshotCount());
+    }
     void deleteLiveState(UUID islandId) throws IOException;
     void deleteIsland(UUID islandId) throws IOException;
 
