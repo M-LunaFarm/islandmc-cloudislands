@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.function.DoubleSupplier;
+import java.util.function.LongSupplier;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
 import kr.lunaf.cloudislands.coreservice.NodeRegistry;
@@ -19,13 +20,15 @@ public final class PrometheusMetricsRenderer {
     private final InMemoryGlobalEventPublisher events;
     private final Duration heartbeatTimeout;
     private final DoubleSupplier databaseQuerySeconds;
+    private final LongSupplier databaseQueryFailures;
 
-    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds) {
+    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseQueryFailures) {
         this.nodes = nodes;
         this.jobs = jobs;
         this.events = events;
         this.heartbeatTimeout = heartbeatTimeout;
         this.databaseQuerySeconds = databaseQuerySeconds;
+        this.databaseQueryFailures = databaseQueryFailures;
     }
 
     public String render() {
@@ -156,6 +159,9 @@ public final class PrometheusMetricsRenderer {
         help(out, "cloudislands_database_query_seconds", "Last JDBC query duration observed by Core API");
         type(out, "cloudislands_database_query_seconds", "gauge");
         out.append("cloudislands_database_query_seconds ").append(databaseQuerySeconds.getAsDouble()).append('\n');
+        help(out, "cloudislands_database_query_failures_total", "JDBC statement execution failures observed by Core API");
+        type(out, "cloudislands_database_query_failures_total", "counter");
+        out.append("cloudislands_database_query_failures_total ").append(databaseQueryFailures.getAsLong()).append('\n');
         if (!Double.isNaN(redisLatencySeconds)) {
             help(out, "cloudislands_redis_latency_seconds", "Redis PING latency observed by Core API");
             type(out, "cloudislands_redis_latency_seconds", "gauge");

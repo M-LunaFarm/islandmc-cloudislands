@@ -11,12 +11,14 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 import javax.sql.DataSource;
 
 public final class MeteredDataSource implements DataSource {
     private final DataSource delegate;
     private volatile double lastQuerySeconds;
+    private final AtomicLong queryFailures = new AtomicLong();
 
     public MeteredDataSource(DataSource delegate) {
         this.delegate = delegate;
@@ -24,6 +26,10 @@ public final class MeteredDataSource implements DataSource {
 
     public double lastQuerySeconds() {
         return lastQuerySeconds;
+    }
+
+    public long queryFailures() {
+        return queryFailures.get();
     }
 
     @Override
@@ -99,6 +105,9 @@ public final class MeteredDataSource implements DataSource {
             long started = System.nanoTime();
             try {
                 return invoke(statement, method, args);
+            } catch (Throwable exception) {
+                queryFailures.incrementAndGet();
+                throw exception;
             } finally {
                 lastQuerySeconds = (System.nanoTime() - started) / 1_000_000_000.0D;
             }
