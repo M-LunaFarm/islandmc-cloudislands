@@ -93,6 +93,7 @@ public final class VelocityRoutingController {
     public String statusSummary() {
         return "CloudIslands Velocity router online, fallback=" + fallbackServer
             + ", routeWaitSeconds=" + routeWaitSeconds
+            + ", onlinePlayers=" + proxy.getPlayerCount()
             + ", actionbar=" + useActionBar
             + ", bossbarLoading=" + useBossBarLoading
             + ", hideNodeNames=" + hideNodeNames;
