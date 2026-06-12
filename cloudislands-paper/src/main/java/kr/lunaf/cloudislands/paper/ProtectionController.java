@@ -63,11 +63,7 @@ public final class ProtectionController {
 
     public boolean memberOrTrusted(UUID islandId, UUID playerUuid) {
         IslandRole role = role(islandId, playerUuid);
-        return role == IslandRole.OWNER
-            || role == IslandRole.CO_OWNER
-            || role == IslandRole.MODERATOR
-            || role == IslandRole.MEMBER
-            || role == IslandRole.TRUSTED;
+        return role.islandMemberRole();
     }
 
     public PermissionResult checkBlock(UUID playerUuid, String world, int blockX, int blockY, int blockZ, IslandPermission permission) {

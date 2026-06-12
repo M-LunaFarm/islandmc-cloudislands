@@ -633,6 +633,18 @@ public final class CloudIslandsVelocityPlugin {
             routingController.setRoleTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""), IslandRole.MEMBER);
             return;
         }
+        if (args[0].equalsIgnoreCase("setrole") || args[0].equalsIgnoreCase("role-set") || args[0].equals("역할설정")) {
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            String target = argumentAfterOptionalIsland(args, 1, "");
+            int roleIndex = indexAfterOptionalIslandValue(args, 1);
+            IslandRole role = args.length > roleIndex ? parseRoleOrNull(args[roleIndex]) : null;
+            if (role == null || !role.islandMemberRole() || role == IslandRole.OWNER) {
+                player.sendMessage(Component.text("올바른 멤버 역할을 입력해주세요. 예: MEMBER, MODERATOR, CUSTOM_1"));
+                return;
+            }
+            routingController.setRoleTarget(player, islandId, target, role);
+            return;
+        }
         if (args[0].equalsIgnoreCase("transfer") || args[0].equals("양도")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             routingController.transferOwnershipTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""));
@@ -1231,10 +1243,15 @@ public final class CloudIslandsVelocityPlugin {
     }
 
     private IslandRole parseRole(String value) {
+        IslandRole role = parseRoleOrNull(value);
+        return role == null ? IslandRole.MEMBER : role;
+    }
+
+    private IslandRole parseRoleOrNull(String value) {
         try {
-            return IslandRole.valueOf(value.toUpperCase());
+            return IslandRole.valueOf(value.toUpperCase(Locale.ROOT).replace('-', '_'));
         } catch (IllegalArgumentException ignored) {
-            return IslandRole.MEMBER;
+            return null;
         }
     }
 

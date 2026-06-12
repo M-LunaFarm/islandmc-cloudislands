@@ -12,6 +12,11 @@ public final class DefaultIslandPermissions {
         allowMember(set, IslandRole.MEMBER);
         allowMember(set, IslandRole.MODERATOR);
         allowMember(set, IslandRole.CO_OWNER);
+        allowMember(set, IslandRole.CUSTOM_1);
+        allowMember(set, IslandRole.CUSTOM_2);
+        allowMember(set, IslandRole.CUSTOM_3);
+        allowMember(set, IslandRole.CUSTOM_4);
+        allowMember(set, IslandRole.CUSTOM_5);
         allowTrusted(set);
         allowVisitor(set);
         allowManagement(set, IslandRole.MODERATOR);

@@ -85,7 +85,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "members", "member-menu", "member-list", "멤버", "멤버관리", "멤버목록", "invite", "초대", "invites", "invite-menu", "invite-list", "초대목록",
         "accept", "invite-accept", "초대수락", "decline", "invite-decline", "초대거절",
         "kick", "remove-member", "추방", "trust", "신뢰", "untrust", "신뢰해제",
-        "promote", "승급", "demote", "강등", "transfer", "양도",
+        "promote", "승급", "demote", "강등", "setrole", "role-set", "역할설정", "transfer", "양도",
         "ban", "밴", "unban", "pardon", "밴해제", "kickvisitor", "방문자추방", "bans", "ban-menu", "ban-list", "banlist", "밴목록",
         "settings", "setting", "설정",
         "flags", "flag-menu", "flag-list", "flag", "setflag", "flag-set", "플래그", "플래그설정", "플래그목록",
@@ -156,6 +156,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "섬 추방 <player>",
         "섬 승급 <player>",
         "섬 강등 <player>",
+        "섬 역할설정 <player> <role>",
         "섬 양도 <player>",
         "섬 신뢰 <player>",
         "섬 신뢰해제 <player>",
@@ -783,6 +784,19 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 return true;
             }
             setIslandMemberRole(player, args[1], IslandRole.MEMBER, "섬 멤버를 강등했습니다.");
+            return true;
+        }
+        if (subcommand.equals("setrole") || subcommand.equals("role-set") || subcommand.equals("역할설정")) {
+            if (args.length < 3) {
+                player.sendMessage("역할을 바꿀 플레이어와 역할을 입력해주세요.");
+                return true;
+            }
+            IslandRole role = islandRole(args[2]);
+            if (role == null || !role.islandMemberRole() || role == IslandRole.OWNER) {
+                player.sendMessage("올바른 멤버 역할을 입력해주세요. 예: MEMBER, MODERATOR, CUSTOM_1");
+                return true;
+            }
+            setIslandMemberRole(player, args[1], role, "섬 멤버 역할을 " + role.name() + "(으)로 변경했습니다.");
             return true;
         }
         if (subcommand.equals("transfer") || subcommand.equals("양도")) {
