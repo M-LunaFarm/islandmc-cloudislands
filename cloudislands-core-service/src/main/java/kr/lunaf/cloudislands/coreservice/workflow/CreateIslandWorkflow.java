@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
@@ -80,7 +81,14 @@ public final class CreateIslandWorkflow {
         IslandSnapshot island = islands.createOwnedIsland(islandId, ownerUuid, normalizedTemplate, "Island");
         metadata.upsertMember(islandId, ownerUuid, IslandRole.OWNER);
         playerProfiles.setPrimaryIsland(ownerUuid, islandId);
-        jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.CREATE_ISLAND, islandId, node.nodeId(), 0, Map.of("templateId", normalizedTemplate), Instant.now()));
+        try {
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.CREATE_ISLAND, islandId, node.nodeId(), 0, Map.of("templateId", normalizedTemplate), Instant.now()));
+        } catch (RuntimeException exception) {
+            islands.setState(islandId, IslandState.ERROR_CREATING);
+            publishTicketFailure(ownerUuid, islandId, "JOB_QUEUE_UNAVAILABLE");
+            events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", IslandState.ERROR_CREATING.name(), "reason", "JOB_QUEUE_UNAVAILABLE", "targetNode", node.nodeId()));
+            return new CreateIslandResult(false, "JOB_QUEUE_UNAVAILABLE", islands.findById(islandId).orElse(island), null);
+        }
         events.publish(CloudIslandEventType.ISLAND_CREATED.name(), Map.of("islandId", islandId.toString(), "ownerUuid", ownerUuid.toString(), "targetNode", node.nodeId()));
         RouteTicket ticket = tickets.save(new RouteTicket(UUID.randomUUID(), ownerUuid, RouteAction.HOME, islandId, node.nodeId(), "ci_shard_001", RouteTicketState.PREPARING, Instant.now().plus(routePreparingTicketTtl), UUID.randomUUID().toString(), Map.of(
             "targetServerName", node.velocityServerName(),

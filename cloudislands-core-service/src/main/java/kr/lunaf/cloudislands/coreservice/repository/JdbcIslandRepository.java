@@ -102,6 +102,28 @@ public final class JdbcIslandRepository implements IslandRepository {
     }
 
     @Override
+    public void setState(UUID islandId, IslandState state) {
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement island = connection.prepareStatement("UPDATE islands SET state = ?, updated_at = now() WHERE id = ? AND deleted_at IS NULL")) {
+                island.setString(1, state.name());
+                island.setObject(2, islandId);
+                if (island.executeUpdate() == 0) {
+                    throw new IllegalStateException("island not found");
+                }
+            }
+            try (PreparedStatement runtime = connection.prepareStatement("UPDATE island_runtime SET state = ?, updated_at = now() WHERE island_id = ?")) {
+                runtime.setString(1, state.name());
+                runtime.setObject(2, islandId);
+                runtime.executeUpdate();
+            }
+            connection.commit();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to update island state", exception);
+        }
+    }
+
+    @Override
     public void updateStats(UUID islandId, int size, long level, String worth) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("UPDATE islands SET size = ?, level = ?, worth = ?, updated_at = now() WHERE id = ? AND deleted_at IS NULL")) {
