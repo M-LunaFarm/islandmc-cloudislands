@@ -50,7 +50,7 @@ public final class IslandBanMenu implements Listener {
             player.performCommand("섬 설정");
             return;
         }
-        String bannedUuid = loreValue(meta, "bannedUuid=");
+        String bannedUuid = loreValue(meta, "대상=");
         if (bannedUuid.isBlank()) {
             return;
         }
@@ -83,7 +83,14 @@ public final class IslandBanMenu implements Listener {
     }
 
     private static ItemStack banItem(Ban ban) {
-        return item(Material.BARRIER, "밴 " + shortUuid(ban.bannedUuid()), "bannedUuid=" + ban.bannedUuid(), "actorUuid=" + ban.actorUuid(), "reason=" + ban.reason(), "createdAt=" + ban.createdAt(), "expiresAt=" + (ban.expiresAt().isBlank() ? "none" : ban.expiresAt()), "좌클릭: 상세 보기", "우클릭: 밴 해제");
+        return item(Material.BARRIER, "밴 " + shortUuid(ban.bannedUuid()),
+            "대상=" + ban.bannedUuid(),
+            "처리자: " + shortUuid(ban.actorUuid()),
+            "사유: " + (ban.reason().isBlank() ? "없음" : ban.reason()),
+            ban.createdAt().isBlank() ? "생성 정보 없음" : "생성 시각: " + ban.createdAt(),
+            ban.expiresAt().isBlank() ? "만료 없음" : "만료 시각: " + ban.expiresAt(),
+            "좌클릭: 상세 보기",
+            "우클릭: 밴 해제");
     }
 
     private static List<Ban> bans(String body) {

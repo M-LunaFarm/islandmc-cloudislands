@@ -66,7 +66,7 @@ public final class IslandMemberMenu implements Listener {
             player.performCommand("섬 메뉴");
             return;
         }
-        String playerUuid = loreValue(meta, "playerUuid=");
+        String playerUuid = loreValue(meta, "플레이어=");
         if (!playerUuid.isBlank()) {
             if (event.isShiftClick() && event.isRightClick()) {
                 player.performCommand("섬 추방 " + playerUuid);
@@ -109,7 +109,13 @@ public final class IslandMemberMenu implements Listener {
             case "TRUSTED" -> Material.EMERALD;
             default -> Material.PLAYER_HEAD;
         };
-        return item(material, member.role() + " " + shortUuid(member.playerUuid()), "playerUuid=" + member.playerUuid(), "joinedAt=" + member.joinedAt(), "좌클릭: 승급", "우클릭: 강등", "Shift+우클릭: 추방", "양도: /섬 양도 " + member.playerUuid());
+        return item(material, member.role() + " " + shortUuid(member.playerUuid()),
+            "플레이어=" + member.playerUuid(),
+            member.joinedAt().isBlank() ? "가입 정보 없음" : "가입 시각: " + member.joinedAt(),
+            "좌클릭: 승급",
+            "우클릭: 강등",
+            "Shift+우클릭: 추방",
+            "양도: /섬 양도 " + member.playerUuid());
     }
 
     private static ItemStack item(Material material, String name, String... lore) {

@@ -53,7 +53,7 @@ public final class IslandInviteMenu implements Listener {
             player.performCommand("섬 메뉴");
             return;
         }
-        String inviteId = loreValue(meta, "inviteId=");
+        String inviteId = loreValue(meta, "초대 ID=");
         if (inviteId.isBlank()) {
             return;
         }
@@ -79,7 +79,14 @@ public final class IslandInviteMenu implements Listener {
     }
 
     private static ItemStack inviteItem(Invite invite) {
-        return item(Material.WRITABLE_BOOK, "섬 초대 " + shortUuid(invite.islandId()), "inviteId=" + invite.inviteId(), "islandId=" + invite.islandId(), "inviterUuid=" + invite.inviterUuid(), "createdAt=" + invite.createdAt(), "expiresAt=" + invite.expiresAt(), "좌클릭: 초대 수락", "우클릭: 초대 거절");
+        return item(Material.WRITABLE_BOOK, "섬 초대 " + shortUuid(invite.islandId()),
+            "초대 ID=" + invite.inviteId(),
+            "섬 ID: " + shortUuid(invite.islandId()),
+            "초대한 사람: " + shortUuid(invite.inviterUuid()),
+            invite.createdAt().isBlank() ? "생성 정보 없음" : "생성 시각: " + invite.createdAt(),
+            invite.expiresAt().isBlank() ? "만료 정보 없음" : "만료 시각: " + invite.expiresAt(),
+            "좌클릭: 초대 수락",
+            "우클릭: 초대 거절");
     }
 
     private static List<Invite> invites(String body) {
