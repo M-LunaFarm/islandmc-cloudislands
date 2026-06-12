@@ -42,11 +42,24 @@ public final class IslandMissionMenu implements Listener {
         if (meta == null || meta.getLore() == null) {
             return;
         }
+        String displayName = meta.getDisplayName();
+        player.closeInventory();
+        if ("미션 보기".equals(displayName)) {
+            player.performCommand("섬 미션");
+            return;
+        }
+        if ("챌린지 보기".equals(displayName)) {
+            player.performCommand("섬 챌린지");
+            return;
+        }
+        if ("새로고침".equals(displayName)) {
+            player.performCommand(MISSION_TITLE.equals(title) ? "섬 미션" : "섬 챌린지");
+            return;
+        }
         String missionKey = loreValue(meta, "missionKey=");
         if (missionKey.isBlank()) {
             return;
         }
-        player.closeInventory();
         player.performCommand((MISSION_TITLE.equals(title) ? "섬 미션 " : "섬 챌린지 ") + missionKey);
     }
 
@@ -60,6 +73,10 @@ public final class IslandMissionMenu implements Listener {
             if (missions.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, "과제 없음", "현재 표시할 섬 과제가 없습니다."));
             }
+            boolean challenge = "CHALLENGE".equalsIgnoreCase(kind);
+            inventory.setItem(45, item(Material.BOOK, "미션 보기", "/섬 미션"));
+            inventory.setItem(49, item(Material.CLOCK, "새로고침", challenge ? "/섬 챌린지" : "/섬 미션"));
+            inventory.setItem(53, item(Material.WRITABLE_BOOK, "챌린지 보기", "/섬 챌린지"));
             player.openInventory(inventory);
         });
     }
