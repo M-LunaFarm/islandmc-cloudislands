@@ -14,6 +14,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
+import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.limit.IslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.mission.IslandMissionRepository;
@@ -226,6 +227,7 @@ public final class MigrationAdminService {
             if (runtimes != null) {
                 runtimes.markInactive(manifest.islandId());
             }
+            islands.setState(manifest.islandId(), IslandState.INACTIVE_READY);
             islands.updateStats(manifest.islandId(), manifest.size(), manifest.level(), manifest.worth());
             metadata.upsertMember(manifest.islandId(), manifest.ownerUuid(), IslandRole.OWNER);
             for (java.util.UUID memberUuid : manifest.members()) {
