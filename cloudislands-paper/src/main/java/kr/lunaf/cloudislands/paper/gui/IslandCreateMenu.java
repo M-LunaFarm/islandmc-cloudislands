@@ -39,6 +39,11 @@ public final class IslandCreateMenu implements Listener {
         if (meta == null || meta.getLore() == null) {
             return;
         }
+        if ("템플릿 새로고침".equals(meta.getDisplayName())) {
+            player.closeInventory();
+            player.performCommand("섬 생성메뉴");
+            return;
+        }
         String templateId = "";
         for (String line : meta.getLore()) {
             if (line.startsWith("templateId=")) {
@@ -50,7 +55,7 @@ public final class IslandCreateMenu implements Listener {
             return;
         }
         player.closeInventory();
-        player.performCommand("island create " + templateId);
+        player.performCommand("섬 생성 " + templateId);
     }
 
     private static void openSync(Plugin plugin, Player player, List<Template> templates) {
@@ -68,6 +73,7 @@ public final class IslandCreateMenu implements Listener {
                     slot = 19;
                 }
             }
+            inventory.setItem(22, button(Material.CLOCK, "템플릿 새로고침", "/섬 생성메뉴"));
             player.openInventory(inventory);
         });
     }
@@ -84,6 +90,17 @@ public final class IslandCreateMenu implements Listener {
             }
             lore.add("클릭하면 이 템플릿으로 섬을 생성합니다.");
             meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private static ItemStack button(Material material, String name, String... lore) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            meta.setLore(List.of(lore));
             item.setItemMeta(meta);
         }
         return item;
