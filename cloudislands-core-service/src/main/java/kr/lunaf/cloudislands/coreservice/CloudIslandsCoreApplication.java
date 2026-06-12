@@ -19,11 +19,13 @@ import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
+import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
+import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
@@ -819,6 +821,7 @@ public final class CloudIslandsCoreApplication {
             islandLogs.append(islandId, actorUuid, "ISLAND_UPGRADE_PURCHASE", Map.of("upgradeKey", upgradeKey, "code", result.code(), "cost", result.cost().toPlainString()));
             if (result.accepted()) {
                 events.publish(CloudIslandEventType.ISLAND_UPGRADE.name(), Map.of("islandId", islandId.toString(), "upgradeKey", upgradeKey, "level", Integer.toString(result.snapshot().level())));
+                applyUpgradeLimit(limitRepository, events, islandId, actorUuid, result.snapshot().type(), result.snapshot().level());
                 if (result.cost().signum() > 0) {
                     String balance = bankRepository.balance(islandId).balance();
                     events.publish(CloudIslandEventType.ISLAND_BANK_CHANGED.name(), Map.of("islandId", islandId.toString(), "operation", "UPGRADE_PURCHASE", "amount", result.cost().toPlainString(), "balance", balance));
@@ -1663,6 +1666,22 @@ public final class CloudIslandsCoreApplication {
             (float) JsonFields.decimal(body, "yaw", 0.0D),
             (float) JsonFields.decimal(body, "pitch", 0.0D)
         );
+    }
+
+    private static void applyUpgradeLimit(IslandLimitRepository limits, GlobalEventPublisher events, UUID islandId, UUID actorUuid, UpgradeType type, int level) {
+        IslandLimitSnapshot snapshot = switch (type) {
+            case ISLAND_SIZE -> limits.set(islandId, "SIZE", 100L + Math.max(0L, level - 1L) * 50L, actorUuid);
+            case MAX_MEMBERS -> limits.set(islandId, "MEMBERS", 3L + Math.max(0L, level - 1L) * 2L, actorUuid);
+            case MAX_WARPS -> limits.set(islandId, "WARPS", Math.max(1L, level), actorUuid);
+            case HOPPER_LIMIT -> limits.set(islandId, "HOPPER", Math.max(1L, level) * 50L, actorUuid);
+            case SPAWNER_LIMIT -> limits.set(islandId, "SPAWNER", Math.max(1L, level) * 25L, actorUuid);
+            case MOB_LIMIT -> limits.set(islandId, "ENTITY", Math.max(1L, level) * 200L, actorUuid);
+            case BANK_LIMIT -> limits.set(islandId, "BANK", Math.max(1L, level) * 100000L, actorUuid);
+            case GENERATOR_LEVEL, CROP_GROWTH, FLY_ACCESS -> null;
+        };
+        if (snapshot != null) {
+            events.publish(CloudIslandEventType.ISLAND_LIMIT_CHANGED.name(), Map.of("islandId", islandId.toString(), "limitKey", snapshot.limitKey(), "value", Long.toString(snapshot.value())));
+        }
     }
 
     private static String membersJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandMemberSnapshot> members) {
