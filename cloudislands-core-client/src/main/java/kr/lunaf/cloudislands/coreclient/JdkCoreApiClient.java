@@ -738,7 +738,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs) {
         String types = supportedTypes.stream().map(Enum::name).collect(Collectors.joining(","));
-        return post("/v1/jobs/claim", "{\"nodeId\":\"" + nodeId + "\",\"supportedTypes\":\"" + types + "\",\"maxJobs\":" + maxJobs + "}").thenApply(IslandJobJson::readArray);
+        return postWithResultBody("/v1/jobs/claim", "{\"nodeId\":\"" + nodeId + "\",\"supportedTypes\":\"" + types + "\",\"maxJobs\":" + maxJobs + "}").thenApply(IslandJobJson::readArray);
     }
 
     @Override
