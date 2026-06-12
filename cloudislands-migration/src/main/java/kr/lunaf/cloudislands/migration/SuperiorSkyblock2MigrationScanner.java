@@ -79,16 +79,44 @@ public final class SuperiorSkyblock2MigrationScanner {
             String bankBalance = parseString(content, "bankBalance", parseString(content, "balance", parseString(content, "islandBank", "0.00")));
             boolean publicAccess = parseBoolean(content, "public", parseBoolean(content, "isPublic", parseBoolean(content, "publicAccess", false)));
             boolean locked = parseBoolean(content, "locked", parseBoolean(content, "isLocked", false));
+            String sourceWorldPath = resolveSourceWorldPath(file, content, islandId);
             LinkedHashSet<UUID> allMembers = new LinkedHashSet<>();
             allMembers.add(ownerUuid);
             allMembers.addAll(members);
             for (MigrationMemberRole memberRole : memberRoles) {
                 allMembers.add(memberRole.playerUuid());
             }
-            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), memberRoles, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, blockValues, blockCounts, biomeKey, bankBalance, publicAccess, locked, size, level, worth));
+            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), memberRoles, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, blockValues, blockCounts, biomeKey, bankBalance, publicAccess, locked, size, level, worth, sourceWorldPath));
         } catch (RuntimeException | IOException exception) {
             issues.add(new MigrationIssue("ISLAND_FILE_PARSE_FAILED", file + ": " + exception.getMessage(), true));
         }
+    }
+
+    private String resolveSourceWorldPath(Path file, String content, UUID islandId) {
+        String configured = parseString(content, "worldPath", parseString(content, "islandWorldPath", parseString(content, "schematicPath", "")));
+        if (!configured.isBlank()) {
+            Path configuredPath = Path.of(configured);
+            if (configuredPath.isAbsolute()) {
+                return configuredPath.normalize().toString();
+            }
+            return file.getParent().resolve(configuredPath).normalize().toString();
+        }
+        String worldName = parseString(content, "worldName", parseString(content, "world", ""));
+        Path root = file.getParent() == null ? Path.of(".") : file.getParent();
+        List<Path> candidates = new ArrayList<>();
+        if (!worldName.isBlank()) {
+            candidates.add(root.resolve(worldName));
+            candidates.add(root.getParent() == null ? root.resolve(worldName) : root.getParent().resolve(worldName));
+        }
+        candidates.add(root.resolve("world"));
+        candidates.add(root.resolve("worlds").resolve(islandId.toString()));
+        candidates.add(root.resolve("schematics").resolve(islandId + ".schem"));
+        candidates.add(root.resolve("schematics").resolve(islandId + ".schematic"));
+        return candidates.stream()
+            .filter(Files::exists)
+            .findFirst()
+            .map(path -> path.normalize().toString())
+            .orElse("");
     }
 
     private UUID uuidFromFilename(Path file) {
