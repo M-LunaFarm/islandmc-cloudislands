@@ -20,16 +20,20 @@ public final class PrometheusMetricsRenderer {
     private final InMemoryGlobalEventPublisher events;
     private final Duration heartbeatTimeout;
     private final DoubleSupplier databaseQuerySeconds;
+    private final LongSupplier databaseActiveConnections;
+    private final LongSupplier databaseOpenedConnections;
     private final LongSupplier databaseConnectionFailures;
     private final LongSupplier databaseQueryFailures;
     private final LongSupplier redisEventFailures;
 
-    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures) {
+    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures) {
         this.nodes = nodes;
         this.jobs = jobs;
         this.events = events;
         this.heartbeatTimeout = heartbeatTimeout;
         this.databaseQuerySeconds = databaseQuerySeconds;
+        this.databaseActiveConnections = databaseActiveConnections;
+        this.databaseOpenedConnections = databaseOpenedConnections;
         this.databaseConnectionFailures = databaseConnectionFailures;
         this.databaseQueryFailures = databaseQueryFailures;
         this.redisEventFailures = redisEventFailures;
@@ -165,6 +169,12 @@ public final class PrometheusMetricsRenderer {
         help(out, "cloudislands_database_query_seconds", "Last JDBC query duration observed by Core API");
         type(out, "cloudislands_database_query_seconds", "gauge");
         out.append("cloudislands_database_query_seconds ").append(databaseQuerySeconds.getAsDouble()).append('\n');
+        help(out, "cloudislands_database_connections_active", "Active JDBC connections currently open in Core API");
+        type(out, "cloudislands_database_connections_active", "gauge");
+        out.append("cloudislands_database_connections_active ").append(databaseActiveConnections.getAsLong()).append('\n');
+        help(out, "cloudislands_database_connections_opened_total", "JDBC connections opened by Core API");
+        type(out, "cloudislands_database_connections_opened_total", "counter");
+        out.append("cloudislands_database_connections_opened_total ").append(databaseOpenedConnections.getAsLong()).append('\n');
         help(out, "cloudislands_database_query_failures_total", "JDBC statement execution failures observed by Core API");
         type(out, "cloudislands_database_query_failures_total", "counter");
         out.append("cloudislands_database_query_failures_total ").append(databaseQueryFailures.getAsLong()).append('\n');

@@ -11,6 +11,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 import javax.sql.DataSource;
@@ -18,6 +19,8 @@ import javax.sql.DataSource;
 public final class MeteredDataSource implements DataSource {
     private final DataSource delegate;
     private volatile double lastQuerySeconds;
+    private final AtomicLong activeConnections = new AtomicLong();
+    private final AtomicLong openedConnections = new AtomicLong();
     private final AtomicLong connectionFailures = new AtomicLong();
     private final AtomicLong queryFailures = new AtomicLong();
 
@@ -35,6 +38,14 @@ public final class MeteredDataSource implements DataSource {
 
     public long connectionFailures() {
         return connectionFailures.get();
+    }
+
+    public long activeConnections() {
+        return activeConnections.get();
+    }
+
+    public long openedConnections() {
+        return openedConnections.get();
     }
 
     @Override
@@ -96,7 +107,13 @@ public final class MeteredDataSource implements DataSource {
     }
 
     private Connection wrapConnection(Connection connection) {
+        openedConnections.incrementAndGet();
+        activeConnections.incrementAndGet();
+        AtomicBoolean closed = new AtomicBoolean();
         InvocationHandler handler = (proxy, method, args) -> {
+            if ("close".equals(method.getName())) {
+                return closeConnection(connection, method, args, closed);
+            }
             Object result = invoke(connection, method, args);
             if (result instanceof CallableStatement callableStatement) {
                 return wrapStatement(callableStatement, CallableStatement.class);
@@ -110,6 +127,16 @@ public final class MeteredDataSource implements DataSource {
             return result;
         };
         return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(), new Class<?>[] { Connection.class }, handler);
+    }
+
+    private Object closeConnection(Connection connection, Method method, Object[] args, AtomicBoolean closed) throws Throwable {
+        try {
+            return invoke(connection, method, args);
+        } finally {
+            if (closed.compareAndSet(false, true)) {
+                activeConnections.updateAndGet(value -> value <= 0L ? 0L : value - 1L);
+            }
+        }
     }
 
     private Object wrapStatement(Statement statement, Class<?> statementInterface) {

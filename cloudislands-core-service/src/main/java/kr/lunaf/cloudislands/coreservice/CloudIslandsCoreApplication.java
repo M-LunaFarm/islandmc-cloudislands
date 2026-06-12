@@ -200,7 +200,7 @@ public final class CloudIslandsCoreApplication {
             migrationRollbackTarget(config, dataSource)
         );
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets, jobs, islandRepository, playerProfiles);
-        PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventWriter == null ? 0L : redisEventWriter.failuresTotal());
+        PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::activeConnections, meteredDataSource::openedConnections, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventWriter == null ? 0L : redisEventWriter.failuresTotal());
         this.nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, events, config.heartbeatTimeout());
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
         route("/health", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));
