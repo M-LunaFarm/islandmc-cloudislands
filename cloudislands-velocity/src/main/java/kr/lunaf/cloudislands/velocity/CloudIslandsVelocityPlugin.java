@@ -346,7 +346,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.storageStatus(player);
             return;
         }
-        if (args.length >= 2 && args[0].equalsIgnoreCase("block-values") && args[1].equalsIgnoreCase("list")) {
+        if (args.length >= 1 && args[0].equalsIgnoreCase("block-values") && (args.length == 1 || args[1].equalsIgnoreCase("list"))) {
             routingController.listBlockValues(player);
             return;
         }
@@ -380,7 +380,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.clearPlayerIslandTarget(player, args[2]);
             return;
         }
-        if (args.length >= 2 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("list")) {
+        if (args.length >= 1 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && (args.length == 1 || args[1].equalsIgnoreCase("list"))) {
             routingController.listTemplates(player);
             return;
         }
