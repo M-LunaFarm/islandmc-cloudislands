@@ -22,7 +22,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public final class AdminCommandController implements CommandExecutor, TabCompleter {
-    private static final List<String> ROOT_COMMANDS = List.of("status", "cache", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
+    private static final List<String> ROOT_COMMANDS = List.of("help", "status", "cache", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "islands", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
@@ -116,6 +116,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             sender.sendMessage("CloudIslands onlinePlayers=" + agent.plugin().getServer().getOnlinePlayers().size() + " routeWaitSeconds=" + routeWaitSeconds);
             return true;
         }
+        if (args[0].equalsIgnoreCase("help")) {
+            usage(sender, label, args.length > 1 ? (int) number(args[1], 1L) : 1);
+            return true;
+        }
         if (args[0].equalsIgnoreCase("cache") && args.length > 1 && args[1].equalsIgnoreCase("clear")) {
             agent.permissionCache().invalidateAll();
             run(sender, "CloudIslands local cache cleared. Core cache clear", coreApiClient.clearCache());
@@ -164,7 +168,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
             return handleSuperiorSkyblock2Migration(sender, args);
         }
-        usage(sender, label);
+        usage(sender, label, 1);
         return true;
     }
 
@@ -907,10 +911,18 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         agent.plugin().getServer().getScheduler().runTask(agent.plugin(), () -> sender.sendMessage(text));
     }
 
-    private void usage(CommandSender sender, String label) {
-        sender.sendMessage("CloudIslands 관리자 명령어 목록");
-        for (String command : HELP_COMMANDS) {
+    private void usage(CommandSender sender, String label, int page) {
+        int pageSize = 12;
+        int maxPage = Math.max(1, (HELP_COMMANDS.size() + pageSize - 1) / pageSize);
+        int safePage = Math.max(1, Math.min(page, maxPage));
+        int from = (safePage - 1) * pageSize;
+        int to = Math.min(HELP_COMMANDS.size(), from + pageSize);
+        sender.sendMessage("CloudIslands 관리자 명령어 목록 " + safePage + "/" + maxPage);
+        for (String command : HELP_COMMANDS.subList(from, to)) {
             sender.sendMessage("> /" + command.replaceFirst("^ciadmin", label));
+        }
+        if (safePage < maxPage) {
+            sender.sendMessage("> /" + label + " help " + (safePage + 1));
         }
     }
 

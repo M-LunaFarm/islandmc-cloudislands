@@ -222,6 +222,10 @@ public final class CloudIslandsVelocityPlugin {
             player.sendMessage(Component.text(routingController.statusSummary()));
             return;
         }
+        if (args[0].equalsIgnoreCase("help")) {
+            sendCommandList(player, "CloudIslands 관리자 명령어 목록", IslandCommandCatalog.adminCommands(), args.length > 1 ? (int) parseLongOrZero(args[1]) : 1, "ciadmin help");
+            return;
+        }
         if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("info")) {
             routingController.adminIslandInfoTarget(player, args[2]);
             return;
@@ -416,10 +420,14 @@ public final class CloudIslandsVelocityPlugin {
             routingController.recoverJobs(player, args.length > 2 ? args[2] : "recovery", args.length > 3 ? parseLongOrZero(args[3]) : 60000L, args.length > 4 ? (int) parseLongOrZero(args[4]) : 16);
             return;
         }
-        sendCommandList(player, "CloudIslands 관리자 명령어 목록", IslandCommandCatalog.adminCommands());
+        sendCommandList(player, "CloudIslands 관리자 명령어 목록", IslandCommandCatalog.adminCommands(), 1, "ciadmin help");
     }
 
     private void dispatch(Player player, String[] args) {
+        if (args.length > 0 && (args[0].equalsIgnoreCase("help") || args[0].equals("도움말") || args[0].equalsIgnoreCase("commands") || args[0].equals("명령어"))) {
+            sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands(), args.length > 1 ? (int) parseLongOrZero(args[1]) : 1, "섬 help");
+            return;
+        }
         if (args.length == 0 || args[0].equalsIgnoreCase("home") || args[0].equals("홈")) {
             player.sendActionBar(Component.text("섬을 준비하는 중입니다."));
             routingController.routeHome(player, args.length > 1 ? args[1] : "default");
@@ -819,13 +827,21 @@ public final class CloudIslandsVelocityPlugin {
             routingController.deleteIsland(player, islandId);
             return;
         }
-        sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands());
+        sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands(), 1, "섬 help");
     }
 
-    private void sendCommandList(Player player, String title, List<String> commands) {
-        player.sendMessage(Component.text(title));
-        for (String command : commands) {
+    private void sendCommandList(Player player, String title, List<String> commands, int page, String nextCommand) {
+        int pageSize = 12;
+        int maxPage = Math.max(1, (commands.size() + pageSize - 1) / pageSize);
+        int safePage = Math.max(1, Math.min(page, maxPage));
+        int from = (safePage - 1) * pageSize;
+        int to = Math.min(commands.size(), from + pageSize);
+        player.sendMessage(Component.text(title + " " + safePage + "/" + maxPage));
+        for (String command : commands.subList(from, to)) {
             player.sendMessage(Component.text("> /" + command));
+        }
+        if (safePage < maxPage) {
+            player.sendMessage(Component.text("> /" + nextCommand + " " + (safePage + 1)));
         }
     }
 

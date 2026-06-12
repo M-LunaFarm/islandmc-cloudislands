@@ -197,7 +197,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         String subcommand = args[0].toLowerCase();
         if (subcommand.equals("help") || subcommand.equals("도움말") || subcommand.equals("commands") || subcommand.equals("명령어")) {
-            sendCommandList(player, "섬 명령어 목록", HELP_COMMANDS);
+            sendCommandList(player, "섬 명령어 목록", HELP_COMMANDS, helpPage(args, 1));
             return true;
         }
         if (subcommand.equals("menu") || subcommand.equals("메뉴")) {
@@ -776,15 +776,30 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             setIslandPermission(player, args[1], args[2], args[3]);
             return true;
         }
-        sendCommandList(player, "섬 명령어 목록", HELP_COMMANDS);
+        sendCommandList(player, "섬 명령어 목록", HELP_COMMANDS, 1);
         return true;
     }
 
-    private void sendCommandList(Player player, String title, List<String> commands) {
-        player.sendMessage(title);
-        for (String command : commands) {
+    private void sendCommandList(Player player, String title, List<String> commands, int page) {
+        int pageSize = 12;
+        int maxPage = Math.max(1, (commands.size() + pageSize - 1) / pageSize);
+        int safePage = Math.max(1, Math.min(page, maxPage));
+        int from = (safePage - 1) * pageSize;
+        int to = Math.min(commands.size(), from + pageSize);
+        player.sendMessage(title + " " + safePage + "/" + maxPage);
+        for (String command : commands.subList(from, to)) {
             player.sendMessage("> /" + command);
         }
+        if (safePage < maxPage) {
+            player.sendMessage("> /섬 help " + (safePage + 1));
+        }
+    }
+
+    private int helpPage(String[] args, int index) {
+        if (args.length <= index) {
+            return 1;
+        }
+        return (int) number(args[index], 1L);
     }
 
     private void createIsland(Player player, String templateId) {
