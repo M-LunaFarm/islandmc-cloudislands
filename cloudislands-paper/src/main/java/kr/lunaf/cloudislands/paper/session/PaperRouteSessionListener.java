@@ -52,7 +52,9 @@ public final class PaperRouteSessionListener implements Listener {
         try {
             var session = coreApiClient.consumeRouteSession(event.getUniqueId(), nodeId).get(3L, TimeUnit.SECONDS);
             if (session.isPresent()) {
-                verifiedSessions.put(event.getUniqueId(), session.get());
+                PlayerRouteSession verified = session.get();
+                verifiedSessions.put(event.getUniqueId(), verified);
+                scheduleVerifiedSessionExpiry(event.getUniqueId(), verified);
                 return;
             }
         } catch (Exception exception) {
@@ -66,10 +68,22 @@ public final class PaperRouteSessionListener implements Listener {
         UUID playerUuid = event.getPlayer().getUniqueId();
         PlayerRouteSession verified = verifiedSessions.remove(playerUuid);
         if (verified != null) {
-            ticketConsumer.consumeAndTeleport(verified.ticketId(), verified.playerUuid(), verified.nonce());
+            if (verified.expiresAt().isAfter(java.time.Instant.now())) {
+                ticketConsumer.consumeAndTeleport(verified.ticketId(), verified.playerUuid(), verified.nonce());
+            } else if (requireRouteSession) {
+                rejectDirectJoin(playerUuid);
+            } else {
+                consumeSession(playerUuid, 0);
+            }
             return;
         }
         consumeSession(playerUuid, 0);
+    }
+
+    private void scheduleVerifiedSessionExpiry(UUID playerUuid, PlayerRouteSession session) {
+        long delayMillis = Math.max(50L, session.expiresAt().toEpochMilli() - System.currentTimeMillis());
+        long delayTicks = Math.max(1L, (delayMillis + 49L) / 50L);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> verifiedSessions.remove(playerUuid, session), delayTicks);
     }
 
     private void consumeSession(java.util.UUID playerUuid, int attempt) {
