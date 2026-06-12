@@ -771,7 +771,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private void usage(CommandSender sender, String label) {
-        sender.sendMessage("사용법: /" + label + " status, cache clear, node list, island tp <uuid>, player info <uuid>, jobs list, route debug <uuid>, events, audit, block-values list, upgrade-rules, template list, migrate-superiorskyblock2 scan, reload");
+        sender.sendMessage("사용법: /" + label + " status, cache clear, node list, node islands <node>, island tp <uuid>, player info <uuid>, jobs list, route debug <player>, route ticket <ticket|player>, events, audit, block-values list, upgrade-rules, template list, migrate-superiorskyblock2 scan, reload");
     }
 
     private UUID uuid(CommandSender sender, String value) {
