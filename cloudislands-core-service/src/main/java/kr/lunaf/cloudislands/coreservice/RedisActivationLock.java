@@ -48,6 +48,21 @@ public final class RedisActivationLock {
         }
     }
 
+    public void releaseIfOwner(UUID islandId, String owner) {
+        if (islandId == null) {
+            return;
+        }
+        String prefix = (owner == null || owner.isBlank() ? "core" : owner) + ":";
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            String current = redis.command("GET", RedisKeys.activationLock(islandId));
+            if (current != null && current.startsWith(prefix)) {
+                redis.command("DEL", RedisKeys.activationLock(islandId));
+            }
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+        }
+    }
+
     public long failuresTotal() {
         return failures.get();
     }

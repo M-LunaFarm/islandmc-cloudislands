@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.coreservice.RedisActivationLock;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
@@ -25,6 +26,7 @@ public final class JobCompletionService {
     private final PlayerProfileRepository playerProfiles;
     private final Duration routeTicketTtl;
     private final int snapshotKeepLatest;
+    private final RedisActivationLock activationLock;
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets) {
         this(runtimes, events, snapshots, tickets, null);
@@ -43,6 +45,10 @@ public final class JobCompletionService {
     }
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl, int snapshotKeepLatest) {
+        this(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, snapshotKeepLatest, null);
+    }
+
+    public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl, int snapshotKeepLatest, RedisActivationLock activationLock) {
         this.runtimes = runtimes;
         this.events = events;
         this.snapshots = snapshots;
@@ -52,6 +58,7 @@ public final class JobCompletionService {
         this.playerProfiles = playerProfiles;
         this.routeTicketTtl = routeTicketTtl == null || routeTicketTtl.isNegative() || routeTicketTtl.isZero() ? Duration.ofSeconds(30) : routeTicketTtl;
         this.snapshotKeepLatest = Math.max(1, snapshotKeepLatest);
+        this.activationLock = activationLock;
     }
 
     public void completed(IslandJob job) {
@@ -122,6 +129,7 @@ public final class JobCompletionService {
             recordPreMutationSnapshot(job);
             setIslandState(job.islandId(), IslandState.ACTIVE);
             events.publish(CloudIslandEventType.ISLAND_MIGRATED.name(), Map.of("islandId", job.islandId().toString(), "targetNode", job.targetNode() == null ? "" : job.targetNode(), "worldName", worldName));
+            releaseMigrationLock(job);
         }
     }
 
@@ -136,6 +144,15 @@ public final class JobCompletionService {
         setIslandState(job.islandId(), state);
         failPreparingRouteTickets(job, errorMessage);
         events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", job.islandId().toString(), "state", state.name(), "error", errorMessage == null ? "" : errorMessage));
+        if (job.type() == IslandJobType.MIGRATE_ISLAND || (job.type() == IslandJobType.DEACTIVATE_ISLAND && job.payload().containsKey("migrateTargetNode"))) {
+            releaseMigrationLock(job);
+        }
+    }
+
+    private void releaseMigrationLock(IslandJob job) {
+        if (activationLock != null) {
+            activationLock.releaseIfOwner(job.islandId(), "migrate");
+        }
     }
 
     private void setIslandState(UUID islandId, IslandState state) {
