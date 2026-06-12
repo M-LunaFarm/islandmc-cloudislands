@@ -206,7 +206,7 @@ public final class CloudIslandsCoreApplication {
         );
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotKeepLatest());
         PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, tickets, runtimeRepository, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::activeConnections, meteredDataSource::openedConnections, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventWriter == null ? 0L : redisEventWriter.failuresTotal());
-        this.nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, events, config.heartbeatTimeout());
+        this.nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, islandRepository, events, config.heartbeatTimeout());
         this.routeTicketExpiryMonitor = new RouteTicketExpiryMonitor(tickets, events, config.routeTicketTtl());
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
         route("/health", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));
@@ -864,7 +864,7 @@ public final class CloudIslandsCoreApplication {
             int affected = 0;
             java.util.List<String> downNodes = nodeId.isBlank() ? nodes.markStaleDown(config.heartbeatTimeout()) : java.util.List.of(nodeId);
             for (String downNode : downNodes) {
-                affected += runtimeRepository.markRecoveryRequiredForNode(downNode);
+                affected += nodeFailureMonitor.markRecoveryRequiredForNode(downNode);
             }
             String nodesJson = "[\"" + String.join("\",\"", downNodes.stream().map(value -> value.replace("\"", "'")).toList()) + "\"]";
             audit.log(new UUID(0L, 0L), "ADMIN", "NODE_SWEEP", "NODE", nodeId.isBlank() ? "*" : nodeId, Map.of("recoveryRequired", Integer.toString(affected), "nodes", String.join(",", downNodes)));

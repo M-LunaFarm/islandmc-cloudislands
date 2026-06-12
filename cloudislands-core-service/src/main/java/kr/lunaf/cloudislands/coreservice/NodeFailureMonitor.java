@@ -11,21 +11,24 @@ import java.util.logging.Logger;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
+import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 
 public final class NodeFailureMonitor {
     private static final Logger LOGGER = Logger.getLogger(NodeFailureMonitor.class.getName());
     private final NodeRegistry nodes;
     private final IslandRuntimeRepository runtimes;
+    private final IslandRepository islands;
     private final GlobalEventPublisher events;
     private final Duration heartbeatTimeout;
     private final ScheduledExecutorService executor;
     private final AtomicBoolean started = new AtomicBoolean(false);
     private volatile long lastFailureLogMillis;
 
-    public NodeFailureMonitor(NodeRegistry nodes, IslandRuntimeRepository runtimes, GlobalEventPublisher events, Duration heartbeatTimeout) {
+    public NodeFailureMonitor(NodeRegistry nodes, IslandRuntimeRepository runtimes, IslandRepository islands, GlobalEventPublisher events, Duration heartbeatTimeout) {
         this.nodes = nodes;
         this.runtimes = runtimes;
+        this.islands = islands;
         this.events = events;
         this.heartbeatTimeout = heartbeatTimeout;
         this.executor = Executors.newSingleThreadScheduledExecutor(task -> {
@@ -54,23 +57,29 @@ public final class NodeFailureMonitor {
     private void runSweep() {
         List<String> downNodes = nodes.markStaleDown(heartbeatTimeout);
         for (String nodeId : downNodes) {
-            List<IslandRuntimeSnapshot> affectedIslands = runtimes.listByNode(nodeId, Integer.MAX_VALUE).stream()
-                .filter(NodeFailureMonitor::requiresRecovery)
-                .toList();
-            int affected = runtimes.markRecoveryRequiredForNode(nodeId);
+            int affected = markRecoveryRequiredForNode(nodeId);
             events.publish(kr.lunaf.cloudislands.common.event.CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "DOWN", "recoveryRequired", Integer.toString(affected)));
-            for (IslandRuntimeSnapshot runtime : affectedIslands) {
-                events.publish(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_RECOVERY_REQUIRED.name(), Map.of(
-                    "islandId", runtime.islandId().toString(),
-                    "nodeId", nodeId,
-                    "previousState", runtime.state().name(),
-                    "activeWorld", runtime.activeWorld() == null ? "" : runtime.activeWorld(),
-                    "cellX", runtime.cellX() == null ? "" : runtime.cellX().toString(),
-                    "cellZ", runtime.cellZ() == null ? "" : runtime.cellZ().toString(),
-                    "reason", "NODE_DOWN"
-                ));
-            }
         }
+    }
+
+    public int markRecoveryRequiredForNode(String nodeId) {
+        List<IslandRuntimeSnapshot> affectedIslands = runtimes.listByNode(nodeId, Integer.MAX_VALUE).stream()
+            .filter(NodeFailureMonitor::requiresRecovery)
+            .toList();
+        int affected = runtimes.markRecoveryRequiredForNode(nodeId);
+        for (IslandRuntimeSnapshot runtime : affectedIslands) {
+            islands.setState(runtime.islandId(), IslandState.RECOVERY_REQUIRED);
+            events.publish(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_RECOVERY_REQUIRED.name(), Map.of(
+                "islandId", runtime.islandId().toString(),
+                "nodeId", nodeId,
+                "previousState", runtime.state().name(),
+                "activeWorld", runtime.activeWorld() == null ? "" : runtime.activeWorld(),
+                "cellX", runtime.cellX() == null ? "" : runtime.cellX().toString(),
+                "cellZ", runtime.cellZ() == null ? "" : runtime.cellZ().toString(),
+                "reason", "NODE_DOWN"
+            ));
+        }
+        return affected;
     }
 
     private static boolean requiresRecovery(IslandRuntimeSnapshot runtime) {
