@@ -6,7 +6,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import javax.sql.DataSource;
@@ -106,6 +108,24 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
     public IslandRuntimeSnapshot setState(UUID islandId, IslandState state) {
         IslandRuntimeSnapshot current = find(islandId).orElse(defaultRuntime(islandId));
         return update(islandId, state, current.activeNode(), current.activeWorld(), current.cellX(), current.cellZ(), current.leaseOwner(), current.fencingToken(), current.activatedAt());
+    }
+
+    @Override
+    public Map<String, Long> countsByState() {
+        Map<String, Long> counts = new LinkedHashMap<>();
+        for (IslandState state : IslandState.values()) {
+            counts.put(state.name(), 0L);
+        }
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT state, count(*) AS total FROM island_runtime GROUP BY state");
+             ResultSet rs = statement.executeQuery()) {
+            while (rs.next()) {
+                counts.put(rs.getString("state"), rs.getLong("total"));
+            }
+            return counts;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to count island runtimes by state", exception);
+        }
     }
 
     @Override

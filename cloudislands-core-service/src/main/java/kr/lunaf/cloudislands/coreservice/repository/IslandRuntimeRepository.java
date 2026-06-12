@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreservice.repository;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
@@ -16,5 +17,6 @@ public interface IslandRuntimeRepository {
     IslandRuntimeSnapshot markMigrating(UUID islandId, String targetNode);
     IslandRuntimeSnapshot markQuarantined(UUID islandId, String reason);
     IslandRuntimeSnapshot setState(UUID islandId, IslandState state);
+    Map<String, Long> countsByState();
     int markRecoveryRequiredForNode(String nodeId);
 }

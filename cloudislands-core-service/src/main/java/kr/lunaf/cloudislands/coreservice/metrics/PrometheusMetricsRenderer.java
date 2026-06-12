@@ -13,12 +13,14 @@ import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.JdbcIslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue;
+import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
 
 public final class PrometheusMetricsRenderer {
     private final NodeRegistry nodes;
     private final IslandJobQueue jobs;
     private final RouteTicketStore tickets;
+    private final IslandRuntimeRepository runtimes;
     private final InMemoryGlobalEventPublisher events;
     private final Duration heartbeatTimeout;
     private final DoubleSupplier databaseQuerySeconds;
@@ -28,10 +30,11 @@ public final class PrometheusMetricsRenderer {
     private final LongSupplier databaseQueryFailures;
     private final LongSupplier redisEventFailures;
 
-    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures) {
+    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures) {
         this.nodes = nodes;
         this.jobs = jobs;
         this.tickets = tickets;
+        this.runtimes = runtimes;
         this.events = events;
         this.heartbeatTimeout = heartbeatTimeout;
         this.databaseQuerySeconds = databaseQuerySeconds;
@@ -221,6 +224,11 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_route_tickets_total", "gauge");
         for (Map.Entry<String, Long> entry : tickets.countsByState().entrySet()) {
             out.append("cloudislands_route_tickets_total{state=\"").append(escape(entry.getKey())).append("\"} ").append(entry.getValue()).append('\n');
+        }
+        help(out, "cloudislands_island_runtimes_total", "Island runtimes currently stored by lifecycle state");
+        type(out, "cloudislands_island_runtimes_total", "gauge");
+        for (Map.Entry<String, Long> entry : runtimes.countsByState().entrySet()) {
+            out.append("cloudislands_island_runtimes_total{state=\"").append(escape(entry.getKey())).append("\"} ").append(entry.getValue()).append('\n');
         }
         eventCounter(out, "cloudislands_island_activation_requested_total", "Island activation requests accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_ACTIVATE_REQUESTED);
         eventCounter(out, "cloudislands_island_created_total", "Islands created by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_CREATED);

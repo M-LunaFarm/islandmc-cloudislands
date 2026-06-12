@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreservice.repository;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -66,6 +67,18 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
     public IslandRuntimeSnapshot setState(UUID islandId, IslandState state) {
         IslandRuntimeSnapshot current = find(islandId).orElse(defaultRuntime(islandId));
         return put(new IslandRuntimeSnapshot(islandId, state, current.activeNode(), current.activeWorld(), current.cellX(), current.cellZ(), current.leaseOwner(), current.fencingToken(), current.activatedAt(), Instant.now()));
+    }
+
+    @Override
+    public Map<String, Long> countsByState() {
+        Map<String, Long> counts = new LinkedHashMap<>();
+        for (IslandState state : IslandState.values()) {
+            counts.put(state.name(), 0L);
+        }
+        for (IslandRuntimeSnapshot runtime : runtimes.values()) {
+            counts.compute(runtime.state().name(), (state, total) -> total == null ? 1L : total + 1L);
+        }
+        return counts;
     }
 
     @Override
