@@ -55,6 +55,10 @@ public final class IslandBankMenu implements Listener {
             player.performCommand("섬 출금 10000");
         } else if (name.equals("잔액 새로고침")) {
             player.performCommand("섬 은행");
+        } else if (name.equals("메인 메뉴")) {
+            player.performCommand("섬 메뉴");
+        } else if (name.equals("설정")) {
+            player.performCommand("섬 설정");
         }
     }
 
@@ -68,7 +72,9 @@ public final class IslandBankMenu implements Listener {
             inventory.setItem(15, item(Material.REDSTONE, "1,000 출금", "/섬 출금 1000"));
             inventory.setItem(16, item(Material.REDSTONE_BLOCK, "10,000 출금", "/섬 출금 10000"));
             inventory.setItem(17, item(Material.PAPER, "출금", "사용법: /섬 출금 <금액>"));
+            inventory.setItem(18, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
             inventory.setItem(22, item(Material.CLOCK, "잔액 새로고침", "/섬 은행"));
+            inventory.setItem(26, item(Material.COMPARATOR, "설정", "/섬 설정"));
             player.openInventory(inventory);
         });
     }
