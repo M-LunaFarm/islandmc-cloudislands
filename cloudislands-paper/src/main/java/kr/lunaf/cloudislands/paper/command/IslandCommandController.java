@@ -68,7 +68,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "delwarp", "deletewarp", "워프삭제", "warp-public", "publicwarp", "워프공개", "warp-private", "privatewarp", "워프비공개",
         "public", "공개", "private", "비공개", "lock", "잠금", "unlock", "잠금해제",
         "fly", "비행", "keepinventory", "keepinv", "인벤보존", "pvp", "피빕", "publicwarps", "공개워프",
-        "visit", "randomvisit", "random-visit", "방문", "랜덤방문",
+        "visit", "randomvisit", "random-visit", "public-islands", "publicislands", "visit-list", "방문", "랜덤방문", "공개섬", "방문목록",
         "level", "레벨", "worth", "value", "가치", "rank", "ranking", "rank-list", "worthrank", "valuerank", "랭킹", "랭킹목록", "가치랭킹", "levelcalc", "recalculate", "레벨계산",
         "bank", "bank-balance", "은행", "은행잔액", "deposit", "bank-deposit", "입금", "withdraw", "bank-withdraw", "출금",
         "upgrade", "upgrades", "upgrade-menu", "upgrade-list", "buyupgrade", "upgrade-buy", "업그레이드", "업그레이드목록", "업그레이드구매",
@@ -99,6 +99,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "섬 셋홈 [name]",
         "섬 방문 <섬|플레이어|random>",
         "섬 랜덤방문",
+        "섬 공개섬 [limit]",
         "섬 공개",
         "섬 비공개",
         "섬 잠금",
@@ -369,6 +370,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("randomvisit") || subcommand.equals("random-visit") || subcommand.equals("랜덤방문")) {
             routeRandomVisit(player);
+            return true;
+        }
+        if (subcommand.equals("public-islands") || subcommand.equals("publicislands") || subcommand.equals("visit-list") || subcommand.equals("공개섬") || subcommand.equals("방문목록")) {
+            listPublicIslands(player, rankingLimit(args, 1));
             return true;
         }
         if (subcommand.equals("level") || subcommand.equals("레벨")) {
@@ -1036,6 +1041,16 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void routeRandomVisit(Player player) {
         routeTicket(player, coreApiClient.createRandomVisitTicket(player.getUniqueId()), "방문 가능한 공개 섬을 찾지 못했습니다.");
+    }
+
+    private void listPublicIslands(Player player, int limit) {
+        int cappedLimit = Math.max(1, Math.min(limit, 100));
+        coreApiClient.listPublicIslands(cappedLimit)
+            .thenAccept(body -> message(player, body == null || body.isBlank() ? "공개 섬이 없습니다." : body))
+            .exceptionally(error -> {
+                message(player, "공개 섬 목록을 불러오지 못했습니다.");
+                return null;
+            });
     }
 
     private void routeTicket(Player player, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {

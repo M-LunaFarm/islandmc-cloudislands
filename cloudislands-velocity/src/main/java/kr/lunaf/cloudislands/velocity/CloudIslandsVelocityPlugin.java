@@ -497,6 +497,10 @@ public final class CloudIslandsVelocityPlugin {
             routingController.routeRandomVisit(player);
             return;
         }
+        if (args[0].equalsIgnoreCase("public-islands") || args[0].equalsIgnoreCase("publicislands") || args[0].equalsIgnoreCase("visit-list") || args[0].equals("공개섬") || args[0].equals("방문목록")) {
+            routingController.listPublicIslands(player, args.length > 1 ? (int) parseLongOrZero(args[1]) : 10);
+            return;
+        }
         if (args[0].equalsIgnoreCase("warps") || args[0].equals("워프목록")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.listWarps(player, islandId);

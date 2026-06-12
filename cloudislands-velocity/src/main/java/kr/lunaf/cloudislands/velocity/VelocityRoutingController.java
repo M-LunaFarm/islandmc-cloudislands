@@ -273,6 +273,10 @@ public final class VelocityRoutingController {
         routeFuture(player, coreApiClient.createRandomVisitTicket(player.getUniqueId()), "방문 가능한 공개 섬을 찾지 못했습니다.");
     }
 
+    public void listPublicIslands(Player player, int limit) {
+        sendBodyResult(player, coreApiClient.listPublicIslands(Math.max(1, Math.min(limit, 100))), "공개 섬 목록을 불러오지 못했습니다.");
+    }
+
     public void routeWarp(Player player, UUID targetIslandId, String warpName) {
         routeFuture(player, coreApiClient.createWarpTicket(player.getUniqueId(), targetIslandId, warpName), "해당 워프로 이동할 수 없습니다.");
     }
