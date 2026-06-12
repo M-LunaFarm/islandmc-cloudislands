@@ -39,7 +39,7 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
     }
 
     @Override
-    public int markReadyForIsland(UUID islandId, String targetNode, String targetWorld, Map<String, String> payload) {
+    public int markReadyForIsland(UUID islandId, String targetNode, String targetWorld, Instant expiresAt, Map<String, String> payload) {
         int updated = 0;
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT * FROM route_tickets WHERE island_id = ? AND target_node = ? AND state = 'PREPARING' AND expires_at >= now()")) {
@@ -58,7 +58,7 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
                         ticket.targetNode(),
                         targetWorld == null || targetWorld.isBlank() ? ticket.targetWorld() : targetWorld,
                         RouteTicketState.READY,
-                        ticket.expiresAt(),
+                        expiresAt == null ? ticket.expiresAt() : expiresAt,
                         ticket.nonce(),
                         Map.copyOf(mergedPayload)
                     ));

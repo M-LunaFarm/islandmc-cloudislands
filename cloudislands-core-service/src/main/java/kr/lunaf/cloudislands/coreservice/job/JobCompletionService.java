@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreservice.job;
 
 import java.time.Instant;
+import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandState;
@@ -22,6 +23,7 @@ public final class JobCompletionService {
     private final IslandJobPublisher jobs;
     private final IslandRepository islands;
     private final PlayerProfileRepository playerProfiles;
+    private final Duration routeTicketTtl;
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets) {
         this(runtimes, events, snapshots, tickets, null);
@@ -32,6 +34,10 @@ public final class JobCompletionService {
     }
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles) {
+        this(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles, Duration.ofSeconds(30));
+    }
+
+    public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl) {
         this.runtimes = runtimes;
         this.events = events;
         this.snapshots = snapshots;
@@ -39,6 +45,7 @@ public final class JobCompletionService {
         this.jobs = jobs;
         this.islands = islands;
         this.playerProfiles = playerProfiles;
+        this.routeTicketTtl = routeTicketTtl == null || routeTicketTtl.isNegative() || routeTicketTtl.isZero() ? Duration.ofSeconds(30) : routeTicketTtl;
     }
 
     public void completed(IslandJob job) {
@@ -48,7 +55,7 @@ public final class JobCompletionService {
             }
             String worldName = job.payload().getOrDefault("worldName", "ci_shard_001");
             runtimes.markActive(job.islandId(), job.targetNode(), worldName, integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), longValue(job.payload().get("fencingToken")));
-            int readyTickets = tickets.markReadyForIsland(job.islandId(), job.targetNode(), worldName, Map.of());
+            int readyTickets = tickets.markReadyForIsland(job.islandId(), job.targetNode(), worldName, Instant.now().plus(routeTicketTtl), Map.of());
             events.publish(job.type() == IslandJobType.RESET_ISLAND ? CloudIslandEventType.ISLAND_RESET.name() : CloudIslandEventType.ISLAND_ACTIVATED.name(), Map.of("islandId", job.islandId().toString(), "nodeId", job.targetNode() == null ? "" : job.targetNode(), "readyTickets", Integer.toString(readyTickets)));
             return;
         }

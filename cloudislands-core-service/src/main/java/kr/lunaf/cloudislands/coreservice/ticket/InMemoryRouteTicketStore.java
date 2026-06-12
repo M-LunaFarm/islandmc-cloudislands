@@ -25,10 +25,15 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
     }
 
     @Override
-    public int markReadyForIsland(UUID islandId, String targetNode, String targetWorld, Map<String, String> payload) {
+    public int markReadyForIsland(UUID islandId, String targetNode, String targetWorld, Instant expiresAt, Map<String, String> payload) {
         int updated = 0;
+        Instant now = clock.instant();
         for (RouteTicket ticket : tickets.values()) {
             if (ticket.state() != RouteTicketState.PREPARING || !ticket.islandId().equals(islandId) || !ticket.targetNode().equals(targetNode)) {
+                continue;
+            }
+            if (ticket.expiresAt().isBefore(now)) {
+                tickets.put(ticket.ticketId(), new RouteTicket(ticket.ticketId(), ticket.playerUuid(), ticket.action(), ticket.islandId(), ticket.targetNode(), ticket.targetWorld(), RouteTicketState.EXPIRED, ticket.expiresAt(), ticket.nonce(), ticket.payload()));
                 continue;
             }
             java.util.LinkedHashMap<String, String> mergedPayload = new java.util.LinkedHashMap<>(ticket.payload());
@@ -41,7 +46,7 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
                 ticket.targetNode(),
                 targetWorld == null || targetWorld.isBlank() ? ticket.targetWorld() : targetWorld,
                 RouteTicketState.READY,
-                ticket.expiresAt(),
+                expiresAt == null ? ticket.expiresAt() : expiresAt,
                 ticket.nonce(),
                 Map.copyOf(mergedPayload)
             );
