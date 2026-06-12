@@ -522,6 +522,10 @@ public final class CloudIslandsVelocityPlugin {
                 routingController.routeRandomVisit(player);
                 return;
             }
+            if (args[1].equalsIgnoreCase("random") || args[1].equals("랜덤")) {
+                routingController.routeRandomVisit(player);
+                return;
+            }
             UUID targetIslandId = parseUuidOrNil(args[1]);
             if (!targetIslandId.equals(new UUID(0L, 0L))) {
                 routingController.routeVisit(player, targetIslandId);
@@ -530,7 +534,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.routeVisitNamedTarget(player, args[1]);
             return;
         }
-        if (args[0].equalsIgnoreCase("randomvisit") || args[0].equals("랜덤방문")) {
+        if (args[0].equalsIgnoreCase("randomvisit") || args[0].equalsIgnoreCase("random-visit") || args[0].equals("랜덤방문")) {
             player.sendActionBar(Component.text("방문 가능한 공개 섬을 찾는 중입니다."));
             routingController.routeRandomVisit(player);
             return;
