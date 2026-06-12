@@ -167,7 +167,13 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
 
     @Override
     public List<IslandWarpSnapshot> warps(UUID islandId) {
-        return delegate.warps(islandId);
+        Optional<List<IslandWarpSnapshot>> cached = cachedWarps(islandId);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
+        List<IslandWarpSnapshot> warps = delegate.warps(islandId);
+        cacheWarps(islandId, warps);
+        return warps;
     }
 
     @Override
@@ -177,22 +183,31 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
 
     @Override
     public Optional<IslandWarpSnapshot> warp(UUID islandId, String name) {
-        return delegate.warp(islandId, name);
+        Optional<List<IslandWarpSnapshot>> cached = cachedWarps(islandId);
+        if (cached.isPresent()) {
+            return cached.get().stream().filter(warp -> warp.name().equalsIgnoreCase(name)).findFirst();
+        }
+        Optional<IslandWarpSnapshot> warp = delegate.warp(islandId, name);
+        cacheWarps(islandId, delegate.warps(islandId));
+        return warp;
     }
 
     @Override
     public void upsertWarp(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy) {
         delegate.upsertWarp(islandId, name, location, publicAccess, createdBy);
+        cacheWarps(islandId, delegate.warps(islandId));
     }
 
     @Override
     public void setWarpPublicAccess(UUID islandId, String name, boolean publicAccess) {
         delegate.setWarpPublicAccess(islandId, name, publicAccess);
+        cacheWarps(islandId, delegate.warps(islandId));
     }
 
     @Override
     public void deleteWarp(UUID islandId, String name) {
         delegate.deleteWarp(islandId, name);
+        cacheWarps(islandId, delegate.warps(islandId));
     }
 
     @Override
@@ -269,6 +284,46 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
         }
     }
 
+    private void cacheWarps(UUID islandId, List<IslandWarpSnapshot> warps) {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            redis.command("SET", RedisKeys.islandWarps(islandId), warpsJson(warps));
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+        }
+    }
+
+    private Optional<List<IslandWarpSnapshot>> cachedWarps(UUID islandId) {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            String json = redis.command("GET", RedisKeys.islandWarps(islandId));
+            if (json == null || json.isBlank()) {
+                return Optional.empty();
+            }
+            List<IslandWarpSnapshot> warps = new ArrayList<>();
+            for (String object : objects(json)) {
+                IslandLocation location = new IslandLocation(
+                    JsonFields.text(object, "worldName", ""),
+                    JsonFields.decimal(object, "localX", 0.0D),
+                    JsonFields.decimal(object, "localY", 0.0D),
+                    JsonFields.decimal(object, "localZ", 0.0D),
+                    (float) JsonFields.decimal(object, "yaw", 0.0D),
+                    (float) JsonFields.decimal(object, "pitch", 0.0D)
+                );
+                warps.add(new IslandWarpSnapshot(
+                    JsonFields.uuid(object, "islandId", islandId),
+                    JsonFields.text(object, "name", "default"),
+                    location,
+                    JsonFields.bool(object, "publicAccess", false),
+                    JsonFields.uuid(object, "createdBy", new UUID(0L, 0L)),
+                    instant(JsonFields.text(object, "createdAt", ""))
+                ));
+            }
+            return Optional.of(List.copyOf(warps));
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+            return Optional.empty();
+        }
+    }
+
     private static String membersJson(List<IslandMemberSnapshot> members) {
         StringBuilder builder = new StringBuilder("[");
         boolean first = true;
@@ -300,6 +355,31 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
             builder.append('"').append(entry.getKey().name()).append("\":\"").append(escape(entry.getValue())).append('"');
         }
         return builder.append("}}").toString();
+    }
+
+    private static String warpsJson(List<IslandWarpSnapshot> warps) {
+        StringBuilder builder = new StringBuilder("[");
+        boolean first = true;
+        for (IslandWarpSnapshot warp : warps) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('{')
+                .append("\"islandId\":\"").append(warp.islandId()).append("\",")
+                .append("\"name\":\"").append(escape(warp.name())).append("\",")
+                .append("\"worldName\":\"").append(escape(warp.location().worldName())).append("\",")
+                .append("\"localX\":").append(warp.location().localX()).append(',')
+                .append("\"localY\":").append(warp.location().localY()).append(',')
+                .append("\"localZ\":").append(warp.location().localZ()).append(',')
+                .append("\"yaw\":").append(warp.location().yaw()).append(',')
+                .append("\"pitch\":").append(warp.location().pitch()).append(',')
+                .append("\"publicAccess\":").append(warp.publicAccess()).append(',')
+                .append("\"createdBy\":\"").append(warp.createdBy()).append("\",")
+                .append("\"createdAt\":\"").append(warp.createdAt()).append("\"")
+                .append('}');
+        }
+        return builder.append(']').toString();
     }
 
     private static String escape(String value) {
