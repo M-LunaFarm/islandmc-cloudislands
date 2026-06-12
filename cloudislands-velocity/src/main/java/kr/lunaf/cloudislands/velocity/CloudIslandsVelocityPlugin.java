@@ -659,24 +659,24 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("fly") || args[0].equals("비행")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            boolean enabled = parseToggle(args, 2, true);
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            boolean enabled = parseToggle(args, hasOptionalIslandIdArgument(args, 1) ? 2 : 1, true);
             routingController.setFlyFlag(player, islandId, enabled);
             return;
         }
         if (args[0].equalsIgnoreCase("keepinventory") || args[0].equalsIgnoreCase("keepinv") || args[0].equals("인벤보존")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            routingController.setBooleanFlag(player, islandId, kr.lunaf.cloudislands.api.model.IslandFlag.KEEP_INVENTORY, parseToggle(args, 2, true), "인벤토리 보존");
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            routingController.setBooleanFlag(player, islandId, kr.lunaf.cloudislands.api.model.IslandFlag.KEEP_INVENTORY, parseToggle(args, hasOptionalIslandIdArgument(args, 1) ? 2 : 1, true), "인벤토리 보존");
             return;
         }
         if (args[0].equalsIgnoreCase("pvp") || args[0].equals("피빕")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            routingController.setBooleanFlag(player, islandId, kr.lunaf.cloudislands.api.model.IslandFlag.PVP, parseToggle(args, 2, true), "PVP");
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            routingController.setBooleanFlag(player, islandId, kr.lunaf.cloudislands.api.model.IslandFlag.PVP, parseToggle(args, hasOptionalIslandIdArgument(args, 1) ? 2 : 1, true), "PVP");
             return;
         }
         if (args[0].equalsIgnoreCase("publicwarps") || args[0].equals("공개워프")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            routingController.setBooleanFlag(player, islandId, kr.lunaf.cloudislands.api.model.IslandFlag.PUBLIC_WARPS, parseToggle(args, 2, true), "공개 워프");
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            routingController.setBooleanFlag(player, islandId, kr.lunaf.cloudislands.api.model.IslandFlag.PUBLIC_WARPS, parseToggle(args, hasOptionalIslandIdArgument(args, 1) ? 2 : 1, true), "공개 워프");
             return;
         }
         if (args[0].equalsIgnoreCase("flags") || args[0].equals("플래그")) {
