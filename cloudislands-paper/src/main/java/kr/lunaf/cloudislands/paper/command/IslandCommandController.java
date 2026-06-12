@@ -2473,7 +2473,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             String playerUuid = text(object, "playerUuid");
             String role = text(object, "role");
             if (!playerUuid.isBlank()) {
-                entries.add(playerUuid + (role.isBlank() ? "" : " " + role));
+                entries.add(compactId(playerUuid) + (role.isBlank() ? "" : " 역할=" + role));
             }
             index = objectEnd + 1;
         }
@@ -2497,7 +2497,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             String islandId = text(object, "islandId");
             String inviterUuid = text(object, "inviterUuid");
             if (!inviteId.isBlank()) {
-                entries.add(inviteId + (islandId.isBlank() ? "" : " 섬=" + islandId) + (inviterUuid.isBlank() ? "" : " 초대한사람=" + inviterUuid));
+                entries.add(compactId(inviteId) + (islandId.isBlank() ? "" : " 섬=" + compactId(islandId)) + (inviterUuid.isBlank() ? "" : " 초대한사람=" + compactId(inviterUuid)));
             }
             index = objectEnd + 1;
         }
