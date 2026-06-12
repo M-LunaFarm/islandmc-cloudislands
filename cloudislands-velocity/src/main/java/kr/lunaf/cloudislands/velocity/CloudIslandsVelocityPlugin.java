@@ -159,7 +159,11 @@ public final class CloudIslandsVelocityPlugin {
                     invocation.source().sendMessage(Component.text("플레이어만 사용할 수 있습니다."));
                     return;
                 }
-                dispatch(player, invocation.arguments());
+                if (!player.hasPermission("cloudislands.player")) {
+            player.sendMessage(Component.text("권한이 없습니다."));
+            return;
+        }
+        dispatch(player, invocation.arguments());
             }
 
             @Override
