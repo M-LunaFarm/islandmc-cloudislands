@@ -8,6 +8,8 @@ public final class RedisKeys {
     public static String serverHeartbeat(String nodeId) { return "ci:server:" + nodeId + ":heartbeat"; }
     public static String serverState(String nodeId) { return "ci:server:" + nodeId + ":state"; }
     public static String playerIsland(UUID uuid) { return "ci:player:" + uuid + ":island"; }
+    public static String playerProfile(UUID uuid) { return "ci:player:" + uuid + ":profile"; }
+    public static String playerNameProfile(String name) { return "ci:player-name:" + name.toLowerCase() + ":profile"; }
     public static String playerRouteTicket(UUID uuid) { return "ci:player:" + uuid + ":route-ticket"; }
     public static String playerRouteSession(UUID uuid) { return "ci:player:" + uuid + ":route-session"; }
     public static String islandSummary(UUID islandId) { return "ci:island:" + islandId + ":summary"; }

@@ -10,6 +10,8 @@ import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 public final class RedisCacheAdmin {
     private static final List<String> CACHE_PATTERNS = List.of(
         "ci:player:*:island",
+        "ci:player:*:profile",
+        "ci:player-name:*:profile",
         "ci:player:*:route-ticket",
         "ci:player:*:route-session",
         "ci:island:*:summary",
