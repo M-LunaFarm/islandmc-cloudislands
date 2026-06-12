@@ -109,6 +109,7 @@ public final class PrometheusMetricsRenderer {
             appendMetadataGauge(out, "cloudislands_permission_checks_total", node, "permissionChecks");
             appendMetadataGauge(out, "cloudislands_storage_upload_seconds", node, "storageUploadSeconds");
             appendMetadataGauge(out, "cloudislands_storage_download_seconds", node, "storageDownloadSeconds");
+            appendMetadataGauge(out, "cloudislands_storage_failures_total", node, "storageHealthCheckFailures", "operation=\"healthcheck\"");
             appendMetadataGauge(out, "cloudislands_storage_failures_total", node, "storageUploadFailures", "operation=\"upload\"");
             appendMetadataGauge(out, "cloudislands_storage_failures_total", node, "storageDownloadFailures", "operation=\"download\"");
             appendMetadataGauge(out, "cloudislands_storage_failures_total", node, "storageOperationFailures", "operation=\"maintenance\"");

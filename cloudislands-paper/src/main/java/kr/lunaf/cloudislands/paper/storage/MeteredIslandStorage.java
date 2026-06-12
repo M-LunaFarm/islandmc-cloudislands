@@ -12,6 +12,7 @@ public final class MeteredIslandStorage implements IslandStorage {
     private final IslandStorage delegate;
     private volatile double lastUploadSeconds;
     private volatile double lastDownloadSeconds;
+    private final AtomicLong healthCheckFailures = new AtomicLong();
     private final AtomicLong uploadFailures = new AtomicLong();
     private final AtomicLong downloadFailures = new AtomicLong();
     private final AtomicLong operationFailures = new AtomicLong();
@@ -32,6 +33,10 @@ public final class MeteredIslandStorage implements IslandStorage {
         return uploadFailures.get();
     }
 
+    public long healthCheckFailures() {
+        return healthCheckFailures.get();
+    }
+
     public long downloadFailures() {
         return downloadFailures.get();
     }
@@ -42,7 +47,12 @@ public final class MeteredIslandStorage implements IslandStorage {
 
     @Override
     public boolean available() throws IOException {
-        return delegate.available();
+        try {
+            return delegate.available();
+        } catch (IOException exception) {
+            healthCheckFailures.incrementAndGet();
+            throw exception;
+        }
     }
 
     @Override

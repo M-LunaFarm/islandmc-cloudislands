@@ -258,6 +258,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";permissionChecks=" + agent.permissionCache().lookupCount()
             + ";storageUploadSeconds=" + (storage == null ? 0.0D : storage.lastUploadSeconds())
             + ";storageDownloadSeconds=" + (storage == null ? 0.0D : storage.lastDownloadSeconds())
+            + ";storageHealthCheckFailures=" + (storage == null ? 0L : storage.healthCheckFailures())
             + ";storageUploadFailures=" + (storage == null ? 0L : storage.uploadFailures())
             + ";storageDownloadFailures=" + (storage == null ? 0L : storage.downloadFailures())
             + ";storageOperationFailures=" + (storage == null ? 0L : storage.operationFailures());
