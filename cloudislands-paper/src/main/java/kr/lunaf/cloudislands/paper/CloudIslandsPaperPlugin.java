@@ -97,7 +97,12 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         String pool = getConfig().getString("node.pool", "island");
         String velocityServerName = getConfig().getString("node.velocity-server-name", nodeId);
         AgentRole role = AgentRole.valueOf(getConfig().getString("node.role", "ISLAND_NODE"));
-        CoreApiClient client = new JdkCoreApiClient(URI.create(getConfig().getString("core-api.base-url", "https://core-api.internal:8443")), coreApiToken(), coreAdminToken(), Duration.ofSeconds(3));
+        CoreApiClient client = new JdkCoreApiClient(
+            URI.create(getConfig().getString("core-api.base-url", "https://core-api.internal:8443")),
+            coreApiToken(),
+            coreAdminToken(),
+            Duration.ofMillis(Math.max(1L, getConfig().getLong("core-api.timeout-ms", 3000L)))
+        );
         this.agent = new CloudIslandsPaperAgent(this, role, client, nodeId);
         this.api = new PaperCloudIslandsApi(client, agent);
         CloudIslandsProvider.set(api);

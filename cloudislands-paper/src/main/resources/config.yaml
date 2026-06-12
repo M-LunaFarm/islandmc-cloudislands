@@ -14,6 +14,7 @@ core-api:
   base-url: "https://core-api.internal:8443"
   auth-token: "${CI_CORE_TOKEN}"
   admin-token: "${CI_ADMIN_TOKEN}"
+  timeout-ms: 3000
 
 redis:
   uri: "redis://redis.internal:6379"
