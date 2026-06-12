@@ -72,6 +72,7 @@ import kr.lunaf.cloudislands.paper.world.ShardWorldPreloader;
 import kr.lunaf.cloudislands.paper.world.cell.FileBackedCellTransfer;
 import kr.lunaf.cloudislands.paper.world.export.ExternalTarIslandBundleExporter;
 import kr.lunaf.cloudislands.storage.IslandStorage;
+import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -277,7 +278,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         );
         this.activeIslands = new ActiveIslandRegistry();
         agent.routeTickets().setActiveIslands(activeIslands);
-        IslandSaveService saveService = new IslandSaveService(storage, new ExternalTarIslandBundleExporter(getServer().getWorldContainer().toPath()), getDataFolder().toPath().resolve("exports"), retainedSnapshots());
+        IslandSaveService saveService = new IslandSaveService(storage, new ExternalTarIslandBundleExporter(getServer().getWorldContainer().toPath()), getDataFolder().toPath().resolve("exports"), snapshotRetentionPolicy());
         IslandActivationJobHandler activationHandler = new IslandActivationJobHandler(storage, shardWorldManager, agent.protection(), new IslandWorldRestorer(storage, getDataFolder().toPath().resolve("staging"), new BundleRestorePlanner(new ExternalTarBundleExtractor())), new ShardWorldPreloader(this), getConfig().getInt("island-node.activation.preload-radius", 4), new FileBackedCellTransfer(getServer().getWorldContainer().toPath()), activeIslands, saveService);
         IslandDeactivationHandler deactivationHandler = new IslandDeactivationHandler(activeIslands, shardWorldManager, agent.protection(), saveService);
         PermissionCacheSyncService permissionSync = new PermissionCacheSyncService(this, client, agent.permissionCache());
@@ -332,11 +333,13 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         }
     }
 
-    private int retainedSnapshots() {
+    private SnapshotRetentionPolicy snapshotRetentionPolicy() {
         int hourly = getConfig().getInt("snapshots.keep-hourly", 24);
         int daily = getConfig().getInt("snapshots.keep-daily", 7);
         int weekly = getConfig().getInt("snapshots.keep-weekly", 4);
         int manual = getConfig().getInt("snapshots.keep-manual", 50);
-        return Math.max(1, hourly + daily + weekly + manual);
+        boolean compress = getConfig().getBoolean("snapshots.compress", true);
+        String checksum = getConfig().getString("snapshots.checksum", "SHA-256");
+        return new SnapshotRetentionPolicy(hourly, daily, weekly, manual, compress, checksum == null || checksum.isBlank() ? "SHA-256" : checksum);
     }
 }

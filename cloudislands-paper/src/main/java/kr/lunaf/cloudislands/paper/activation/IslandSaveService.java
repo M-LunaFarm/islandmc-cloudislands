@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.paper.world.export.IslandBundleExporter;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
+import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 
 public final class IslandSaveService {
     private static final int RETAINED_SNAPSHOTS = 50;
@@ -17,17 +18,21 @@ public final class IslandSaveService {
     private final IslandStorage storage;
     private final IslandBundleExporter exporter;
     private final Path exportRoot;
-    private final int retainedSnapshots;
+    private final SnapshotRetentionPolicy retentionPolicy;
 
     public IslandSaveService(IslandStorage storage, IslandBundleExporter exporter, Path exportRoot) {
         this(storage, exporter, exportRoot, RETAINED_SNAPSHOTS);
     }
 
     public IslandSaveService(IslandStorage storage, IslandBundleExporter exporter, Path exportRoot, int retainedSnapshots) {
+        this(storage, exporter, exportRoot, new SnapshotRetentionPolicy(retainedSnapshots, 0, 0, 0, true, "SHA-256"));
+    }
+
+    public IslandSaveService(IslandStorage storage, IslandBundleExporter exporter, Path exportRoot, SnapshotRetentionPolicy retentionPolicy) {
         this.storage = storage;
         this.exporter = exporter;
         this.exportRoot = exportRoot;
-        this.retainedSnapshots = Math.max(1, retainedSnapshots);
+        this.retentionPolicy = retentionPolicy == null ? SnapshotRetentionPolicy.defaultPolicy() : retentionPolicy;
     }
 
     public SaveResult save(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland) throws IOException {
@@ -53,6 +58,9 @@ public final class IslandSaveService {
     }
 
     private SaveResult save(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland, boolean deleteBackup, boolean pruneAfterSave) throws IOException {
+        if (!retentionPolicy.checksumAlgorithm().equalsIgnoreCase("SHA-256")) {
+            throw new IOException("unsupported snapshot checksum algorithm: " + retentionPolicy.checksumAlgorithm());
+        }
         IslandBundleExporter.ExportedIslandBundle exported = exporter.export(islandId, activeIsland, exportRoot.resolve(islandId.toString()));
         IslandBundleManifest previous = storage.readManifest(islandId);
         long sizeBytes = Files.size(exported.bundleFile());
@@ -80,7 +88,7 @@ public final class IslandSaveService {
             }
         }
         if (pruneAfterSave) {
-            storage.pruneSnapshots(islandId, retainedSnapshots);
+            storage.pruneSnapshots(islandId, retentionPolicy);
         }
         return new SaveResult(islandId, exported.snapshotNo(), exported.bundleFile(), checksum, sizeBytes);
     }
