@@ -11,3 +11,27 @@ values:
     worth: 5000
     level: 50
     limit: 200
+  entity:minecraft:villager:
+    worth: 2500
+    level: 20
+    limit: 100
+  entity:minecraft:iron_golem:
+    worth: 1500
+    level: 12
+    limit: 100
+  entity:minecraft:cow:
+    worth: 100
+    level: 1
+    limit: 200
+  entity:minecraft:sheep:
+    worth: 100
+    level: 1
+    limit: 200
+  entity:minecraft:pig:
+    worth: 100
+    level: 1
+    limit: 200
+  entity:minecraft:chicken:
+    worth: 80
+    level: 1
+    limit: 200

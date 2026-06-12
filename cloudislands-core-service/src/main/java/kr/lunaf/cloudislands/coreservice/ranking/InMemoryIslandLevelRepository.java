@@ -13,6 +13,12 @@ public final class InMemoryIslandLevelRepository implements IslandLevelRepositor
         values.put("minecraft:diamond_block", new RankingRecalculationService.BlockValue(new BigDecimal("1000.00"), 10L, 5000L));
         values.put("minecraft:emerald_block", new RankingRecalculationService.BlockValue(new BigDecimal("800.00"), 8L, 5000L));
         values.put("minecraft:spawner", new RankingRecalculationService.BlockValue(new BigDecimal("5000.00"), 50L, 200L));
+        values.put("entity:minecraft:villager", new RankingRecalculationService.BlockValue(new BigDecimal("2500.00"), 20L, 100L));
+        values.put("entity:minecraft:iron_golem", new RankingRecalculationService.BlockValue(new BigDecimal("1500.00"), 12L, 100L));
+        values.put("entity:minecraft:cow", new RankingRecalculationService.BlockValue(new BigDecimal("100.00"), 1L, 200L));
+        values.put("entity:minecraft:sheep", new RankingRecalculationService.BlockValue(new BigDecimal("100.00"), 1L, 200L));
+        values.put("entity:minecraft:pig", new RankingRecalculationService.BlockValue(new BigDecimal("100.00"), 1L, 200L));
+        values.put("entity:minecraft:chicken", new RankingRecalculationService.BlockValue(new BigDecimal("80.00"), 1L, 200L));
     }
 
     @Override
