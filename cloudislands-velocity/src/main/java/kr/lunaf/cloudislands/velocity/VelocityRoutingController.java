@@ -112,19 +112,19 @@ public final class VelocityRoutingController {
     }
 
     public void showIslandLevel(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandStatMessage("Island level", "level", body)), "섬 레벨을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandStatMessage("섬 레벨", "level", body)), "섬 레벨을 불러오지 못했습니다.");
     }
 
     public void showIslandWorth(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandStatMessage("Island worth", "worth", body)), "섬 가치를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandStatMessage("섬 가치", "worth", body)), "섬 가치를 불러오지 못했습니다.");
     }
 
     public void showIslandSize(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandStatMessage("Island size", "size", body)), "섬 크기를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandStatMessage("섬 크기", "size", body)), "섬 크기를 불러오지 못했습니다.");
     }
 
     public void showIslandBorder(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandStatMessage("Island border", "border", body)), "섬 경계를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandStatMessage("섬 경계", "border", body)), "섬 경계를 불러오지 못했습니다.");
     }
 
     public void showBiome(Player player, UUID islandId) {
@@ -282,11 +282,11 @@ public final class VelocityRoutingController {
     }
 
     public void listWarps(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.listIslandWarps(islandId).thenApply(body -> warpListMessage("Warps", body)), "섬 워프를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listIslandWarps(islandId).thenApply(body -> warpListMessage("섬 워프", body)), "섬 워프를 불러오지 못했습니다.");
     }
 
     public void listPublicWarps(Player player) {
-        sendBodyResult(player, coreApiClient.listPublicWarps(27).thenApply(body -> warpListMessage("Public warps", body)), "공개 워프를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listPublicWarps(27).thenApply(body -> warpListMessage("공개 워프", body)), "공개 워프를 불러오지 못했습니다.");
     }
 
     public void setWarp(Player player, UUID islandId, String name, boolean publicAccess) {
@@ -533,7 +533,7 @@ public final class VelocityRoutingController {
     }
 
     public void showLevelRanking(Player player, int limit) {
-        sendBodyResult(player, coreApiClient.topIslandsByLevel(Math.max(1, Math.min(limit, 100))).thenApply(body -> rankingListMessage("Level rankings", body)), "랭킹을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.topIslandsByLevel(Math.max(1, Math.min(limit, 100))).thenApply(body -> rankingListMessage("섬 랭킹", body)), "랭킹을 불러오지 못했습니다.");
     }
 
     public void showWorthRanking(Player player) {
@@ -541,7 +541,7 @@ public final class VelocityRoutingController {
     }
 
     public void showWorthRanking(Player player, int limit) {
-        sendBodyResult(player, coreApiClient.topIslandsByWorth(Math.max(1, Math.min(limit, 100))).thenApply(body -> rankingListMessage("Worth rankings", body)), "가치 랭킹을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.topIslandsByWorth(Math.max(1, Math.min(limit, 100))).thenApply(body -> rankingListMessage("가치 랭킹", body)), "가치 랭킹을 불러오지 못했습니다.");
     }
 
     public void recalculateLevel(Player player, UUID islandId) {
@@ -561,19 +561,19 @@ public final class VelocityRoutingController {
     }
 
     public void listMissions(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.listIslandMissions(islandId, "MISSION").thenApply(body -> missionListMessage("Missions", body)), "미션 목록을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listIslandMissions(islandId, "MISSION").thenApply(body -> missionListMessage("섬 미션", body)), "미션 목록을 불러오지 못했습니다.");
     }
 
     public void listChallenges(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.listIslandMissions(islandId, "CHALLENGE").thenApply(body -> missionListMessage("Challenges", body)), "챌린지 목록을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listIslandMissions(islandId, "CHALLENGE").thenApply(body -> missionListMessage("섬 챌린지", body)), "챌린지 목록을 불러오지 못했습니다.");
     }
 
     public void completeMission(Player player, UUID islandId, String missionKey) {
-        sendBodyResult(player, coreApiClient.completeIslandMission(islandId, player.getUniqueId(), missionKey, "MISSION").thenApply(body -> missionResultMessage("Mission", body)), "미션을 완료하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.completeIslandMission(islandId, player.getUniqueId(), missionKey, "MISSION").thenApply(body -> missionResultMessage("섬 미션", body)), "미션을 완료하지 못했습니다.");
     }
 
     public void completeChallenge(Player player, UUID islandId, String missionKey) {
-        sendBodyResult(player, coreApiClient.completeIslandMission(islandId, player.getUniqueId(), missionKey, "CHALLENGE").thenApply(body -> missionResultMessage("Challenge", body)), "챌린지를 완료하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.completeIslandMission(islandId, player.getUniqueId(), missionKey, "CHALLENGE").thenApply(body -> missionResultMessage("섬 챌린지", body)), "챌린지를 완료하지 못했습니다.");
     }
 
     public void listLimits(Player player, UUID islandId) {
