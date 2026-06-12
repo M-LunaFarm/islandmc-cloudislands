@@ -916,8 +916,63 @@ public final class JdkCoreApiClient implements CoreApiClient {
             return fallback;
         }
         int valueStart = start + needle.length();
-        int end = json.indexOf('"', valueStart);
-        return end < 0 ? fallback : json.substring(valueStart, end);
+        int end = jsonStringEnd(json, valueStart);
+        return end < 0 ? fallback : unescape(json.substring(valueStart, end));
+    }
+
+    private static int jsonStringEnd(String json, int start) {
+        boolean escaped = false;
+        for (int i = start; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (c == '"') {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static String unescape(String value) {
+        StringBuilder builder = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c != '\\' || i + 1 >= value.length()) {
+                builder.append(c);
+                continue;
+            }
+            char next = value.charAt(++i);
+            switch (next) {
+                case '"' -> builder.append('"');
+                case '\\' -> builder.append('\\');
+                case '/' -> builder.append('/');
+                case 'b' -> builder.append('\b');
+                case 'f' -> builder.append('\f');
+                case 'n' -> builder.append('\n');
+                case 'r' -> builder.append('\r');
+                case 't' -> builder.append('\t');
+                case 'u' -> {
+                    if (i + 4 < value.length()) {
+                        try {
+                            builder.append((char) Integer.parseInt(value.substring(i + 1, i + 5), 16));
+                            i += 4;
+                        } catch (NumberFormatException ignored) {
+                            builder.append("\\u");
+                        }
+                    } else {
+                        builder.append("\\u");
+                    }
+                }
+                default -> builder.append(next);
+            }
+        }
+        return builder.toString();
     }
 
     private static String escape(String value) {
