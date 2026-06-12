@@ -1338,7 +1338,13 @@ public final class CloudIslandsCoreApplication {
         route("/v1/islands/public-warps", exchange -> {
             String body = readBody(exchange);
             int limit = queryInteger(exchange, "limit", JsonFields.integer(body, "limit", 27), 1, 54);
-            write(exchange, 200, warpsJson(metadataRepository.publicWarps(limit)));
+            var visibleWarps = metadataRepository.publicWarps(500).stream()
+                .filter(warp -> metadataRepository.isPublicAccess(warp.islandId()))
+                .filter(warp -> !metadataRepository.isLocked(warp.islandId()))
+                .filter(warp -> islandFlagEnabled(metadataRepository, warp.islandId(), IslandFlag.PUBLIC_WARPS))
+                .limit(limit)
+                .toList();
+            write(exchange, 200, warpsJson(visibleWarps));
         });
         route("/v1/islands/homes", exchange -> {
             String body = readBody(exchange);
@@ -1938,6 +1944,15 @@ public final class CloudIslandsCoreApplication {
         }
         write(exchange, 403, ApiResponses.error("ISLAND_PERMISSION_DENIED", "Island member permission is required"));
         return false;
+    }
+
+    private static boolean islandFlagEnabled(IslandMetadataRepository metadataRepository, UUID islandId, IslandFlag flag) {
+        String value = metadataRepository.flags(islandId).values().getOrDefault(flag, "false");
+        return value.equalsIgnoreCase("true")
+            || value.equalsIgnoreCase("allow")
+            || value.equalsIgnoreCase("allowed")
+            || value.equalsIgnoreCase("enabled")
+            || value.equalsIgnoreCase("on");
     }
 
     private static IslandLocation location(String body) {
