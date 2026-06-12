@@ -20,9 +20,15 @@ public final class GeneratorLevelCache {
         if (cached != null && cached.expiresAtMillis() > now) {
             return cached.level();
         }
-        cache.put(islandId, new CachedLevel(cached == null ? 1 : cached.level(), now + 5_000L));
-        client.listIslandUpgrades(islandId).thenAccept(body -> cache.put(islandId, new CachedLevel(parseGeneratorLevel(body), System.currentTimeMillis() + TTL_MILLIS)));
-        return cached == null ? 1 : cached.level();
+        int fallback = cached == null ? 1 : cached.level();
+        cache.put(islandId, new CachedLevel(fallback, now + 5_000L));
+        client.listIslandUpgrades(islandId)
+            .thenAccept(body -> cache.put(islandId, new CachedLevel(parseGeneratorLevel(body), System.currentTimeMillis() + TTL_MILLIS)))
+            .exceptionally(exception -> {
+                cache.put(islandId, new CachedLevel(fallback, System.currentTimeMillis() + TTL_MILLIS));
+                return null;
+            });
+        return fallback;
     }
 
     public void invalidate(UUID islandId) {
