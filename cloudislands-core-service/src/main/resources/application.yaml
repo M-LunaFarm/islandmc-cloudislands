@@ -33,6 +33,8 @@ snapshots:
 
 security:
   require-mtls: true
+  mtls-verified-header: "X-SSL-Client-Verify"
+  mtls-verified-value: "SUCCESS"
   admin-api-enabled: true
   core-token: "${CI_CORE_TOKEN}"
   admin-token: "${CI_ADMIN_TOKEN}"
