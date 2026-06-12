@@ -1,5 +1,8 @@
 package kr.lunaf.cloudislands.paper.activation;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
@@ -10,6 +13,7 @@ public final class PeriodicIslandSaveTask {
     private final IslandSaveService saveService;
     private final CoreApiClient coreApiClient;
     private final String nodeId;
+    private final Map<UUID, Integer> retryQueue = new ConcurrentHashMap<>();
     private BukkitTask task;
 
     public PeriodicIslandSaveTask(Plugin plugin, ActiveIslandRegistry activeIslands, IslandSaveService saveService) {
@@ -44,9 +48,11 @@ public final class PeriodicIslandSaveTask {
         for (ActiveIslandRegistry.ActiveIsland activeIsland : activeIslands.snapshot()) {
             try {
                 IslandSaveService.SaveResult result = saveService.save(activeIsland.islandId(), activeIsland);
+                retryQueue.remove(activeIsland.islandId());
                 recordSnapshot(result);
             } catch (java.io.IOException exception) {
-                plugin.getLogger().warning("Periodic island save failed for " + activeIsland.islandId() + ": " + exception.getMessage());
+                int attempts = retryQueue.merge(activeIsland.islandId(), 1, Integer::sum);
+                plugin.getLogger().warning("Periodic island save failed for " + activeIsland.islandId() + " retry=" + attempts + " queued=" + retryQueue.size() + ": " + exception.getMessage());
             }
         }
     }
