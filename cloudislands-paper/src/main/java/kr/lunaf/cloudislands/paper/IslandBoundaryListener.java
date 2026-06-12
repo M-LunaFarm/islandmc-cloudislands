@@ -33,7 +33,9 @@ public final class IslandBoundaryListener implements Listener {
         Location target = member ? memberSpawn(from, region) : visitorSpawn(from, region);
         event.setCancelled(true);
         event.getPlayer().teleport(target);
-        event.getPlayer().sendActionBar(net.kyori.adventure.text.Component.text("섬 경계 밖으로 이동할 수 없습니다."));
+        event.getPlayer().sendActionBar(net.kyori.adventure.text.Component.text(member
+            ? "섬 경계 밖으로 이동할 수 없어 섬 스폰으로 돌려보냈습니다."
+            : "섬 경계 밖으로 이동할 수 없어 방문자 위치로 돌려보냈습니다."));
     }
 
     private Location memberSpawn(Location from, IslandRegion region) {
