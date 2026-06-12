@@ -74,6 +74,7 @@ public final class RedisRouteSessionStore implements RouteSessionStore {
         }
     }
 
+    @Override
     public Optional<PlayerRouteSession> findAny(UUID playerUuid) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             String value = redis.command("GET", key(playerUuid));

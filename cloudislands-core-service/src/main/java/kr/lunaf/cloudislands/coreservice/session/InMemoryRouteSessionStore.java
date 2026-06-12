@@ -66,6 +66,7 @@ public final class InMemoryRouteSessionStore implements RouteSessionStore {
         return Optional.ofNullable(consumed.get());
     }
 
+    @Override
     public Optional<PlayerRouteSession> findAny(UUID playerUuid) {
         PlayerRouteSession session = byPlayer.get(playerUuid);
         if (session == null) {

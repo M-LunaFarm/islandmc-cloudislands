@@ -698,11 +698,20 @@ public final class CloudIslandsCoreApplication {
             String nodeId = JsonFields.text(body, "nodeId", "");
             PlayerRouteSession session = sessions.find(playerUuid, nodeId).orElse(null);
             if (session == null) {
-                events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
-                    "playerUuid", playerUuid.toString(),
-                    "targetNode", nodeId,
-                    "reason", "SESSION_LOOKUP_NOT_FOUND"
-                ));
+                PlayerRouteSession existing = sessions.findAny(playerUuid).orElse(null);
+                events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), existing == null
+                    ? Map.of(
+                        "playerUuid", playerUuid.toString(),
+                        "targetNode", nodeId,
+                        "reason", "SESSION_LOOKUP_NOT_FOUND"
+                    )
+                    : Map.of(
+                        "playerUuid", playerUuid.toString(),
+                        "ticketId", existing.ticketId().toString(),
+                        "targetNode", existing.targetNode(),
+                        "requestedNode", nodeId,
+                        "reason", "SESSION_LOOKUP_NODE_MISMATCH"
+                    ));
             }
             write(exchange, session == null ? 404 : 200, session == null ? "" : sessionJson(session));
         });
@@ -713,11 +722,20 @@ public final class CloudIslandsCoreApplication {
             boolean reportMissing = JsonFields.bool(body, "reportMissing", true);
             PlayerRouteSession session = sessions.consume(playerUuid, nodeId).orElse(null);
             if (session == null && reportMissing) {
-                events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
-                    "playerUuid", playerUuid.toString(),
-                    "targetNode", nodeId,
-                    "reason", "SESSION_NOT_FOUND"
-                ));
+                PlayerRouteSession existing = sessions.findAny(playerUuid).orElse(null);
+                events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), existing == null
+                    ? Map.of(
+                        "playerUuid", playerUuid.toString(),
+                        "targetNode", nodeId,
+                        "reason", "SESSION_NOT_FOUND"
+                    )
+                    : Map.of(
+                        "playerUuid", playerUuid.toString(),
+                        "ticketId", existing.ticketId().toString(),
+                        "targetNode", existing.targetNode(),
+                        "requestedNode", nodeId,
+                        "reason", "SESSION_NODE_MISMATCH"
+                    ));
             }
             write(exchange, session == null ? 404 : 200, session == null ? "" : sessionJson(session));
         });

@@ -1954,6 +1954,7 @@ public final class VelocityRoutingController {
             String playerUuid = jsonValue(fields, "playerUuid");
             String action = jsonValue(fields, "action");
             String reason = jsonValue(fields, "reason");
+            String requestedNode = jsonValue(fields, "requestedNode");
             String clearedSession = jsonValue(fields, "clearedSession");
             String clearedTicket = jsonValue(fields, "clearedTicket");
             String nodeId = jsonValue(fields, "nodeId");
@@ -1966,6 +1967,7 @@ public final class VelocityRoutingController {
                 + (playerUuid.isBlank() ? "" : " player=" + shortId(playerUuid))
                 + (action.isBlank() ? "" : " action=" + action)
                 + (reason.isBlank() ? "" : " reason=" + reason)
+                + (requestedNode.isBlank() ? "" : " requestedNode=" + requestedNode)
                 + (clearedSession.isBlank() ? "" : " session=" + clearedSession)
                 + (clearedTicket.isBlank() ? "" : " ticketCleared=" + clearedTicket)
                 + (nodeId.isBlank() ? "" : " node=" + nodeId)

@@ -1359,6 +1359,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             String playerUuid = textValue(fields, "playerUuid");
             String action = textValue(fields, "action");
             String reason = textValue(fields, "reason");
+            String requestedNode = textValue(fields, "requestedNode");
             String clearedSession = textValue(fields, "clearedSession");
             String clearedTicket = textValue(fields, "clearedTicket");
             String nodeId = textValue(fields, "nodeId");
@@ -1371,6 +1372,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 + (playerUuid.isBlank() ? "" : " player=" + shortId(playerUuid))
                 + (action.isBlank() ? "" : " action=" + action)
                 + (reason.isBlank() ? "" : " reason=" + reason)
+                + (requestedNode.isBlank() ? "" : " requestedNode=" + requestedNode)
                 + (clearedSession.isBlank() ? "" : " session=" + clearedSession)
                 + (clearedTicket.isBlank() ? "" : " ticketCleared=" + clearedTicket)
                 + (nodeId.isBlank() ? "" : " node=" + nodeId)
