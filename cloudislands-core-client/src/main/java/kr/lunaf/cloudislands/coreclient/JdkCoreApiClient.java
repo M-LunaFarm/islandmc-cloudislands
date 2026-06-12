@@ -769,7 +769,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs) {
         String types = supportedTypes.stream().map(Enum::name).collect(Collectors.joining(","));
-        return postWithResultBody("/v1/jobs/claim", "{\"nodeId\":\"" + nodeId + "\",\"supportedTypes\":\"" + types + "\",\"maxJobs\":" + maxJobs + "}").thenApply(IslandJobJson::readArray);
+        return postWithResultBody("/v1/jobs/claim", "{\"nodeId\":\"" + escape(nodeId) + "\",\"supportedTypes\":\"" + escape(types) + "\",\"maxJobs\":" + maxJobs + "}").thenApply(IslandJobJson::readArray);
     }
 
     @Override
@@ -819,7 +819,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> completeJobResult(String nodeId, UUID jobId, Map<String, String> payload) {
-        return postWithResultBody("/v1/jobs/complete", "{\"nodeId\":\"" + nodeId + "\",\"jobId\":\"" + jobId + "\",\"payload\":" + mapJson(payload) + "}");
+        return postWithResultBody("/v1/jobs/complete", "{\"nodeId\":\"" + escape(nodeId) + "\",\"jobId\":\"" + jobId + "\",\"payload\":" + mapJson(payload) + "}");
     }
 
     @Override
@@ -829,7 +829,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> failJobResult(String nodeId, UUID jobId, String errorMessage) {
-        return postWithResultBody("/v1/jobs/fail", "{\"nodeId\":\"" + nodeId + "\",\"jobId\":\"" + jobId + "\",\"error\":\"" + escape(errorMessage) + "\"}");
+        return postWithResultBody("/v1/jobs/fail", "{\"nodeId\":\"" + escape(nodeId) + "\",\"jobId\":\"" + jobId + "\",\"error\":\"" + escape(errorMessage) + "\"}");
     }
 
     @Override
@@ -839,7 +839,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> publishHeartbeatResult(NodeHeartbeatRequest request) {
-        return postWithResultBody("/v1/nodes/heartbeat", "{\"nodeId\":\"" + request.nodeId() + "\",\"pool\":\"" + request.pool() + "\",\"velocityServerName\":\"" + request.velocityServerName() + "\",\"nodeVersion\":\"" + escape(request.nodeVersion()) + "\",\"state\":\"" + request.state() + "\",\"players\":" + request.players() + ",\"softPlayerCap\":" + request.softPlayerCap() + ",\"hardPlayerCap\":" + request.hardPlayerCap() + ",\"activeIslands\":" + request.activeIslands() + ",\"maxActiveIslands\":" + request.maxActiveIslands() + ",\"mspt\":" + request.mspt() + ",\"activationQueue\":" + request.activationQueue() + ",\"maxActivationQueue\":" + request.maxActivationQueue() + ",\"chunkLoadPressure\":" + request.chunkLoadPressure() + ",\"heapUsedMb\":" + request.heapUsedMb() + ",\"heapMaxMb\":" + request.heapMaxMb() + ",\"recentFailurePenalty\":" + request.recentFailurePenalty() + ",\"storageAvailable\":" + request.storageAvailable() + ",\"supportedTemplates\":\"" + escape(request.supportedTemplates()) + "\"}");
+        return postWithResultBody("/v1/nodes/heartbeat", "{\"nodeId\":\"" + escape(request.nodeId()) + "\",\"pool\":\"" + escape(request.pool()) + "\",\"velocityServerName\":\"" + escape(request.velocityServerName()) + "\",\"nodeVersion\":\"" + escape(request.nodeVersion()) + "\",\"state\":\"" + request.state() + "\",\"players\":" + request.players() + ",\"softPlayerCap\":" + request.softPlayerCap() + ",\"hardPlayerCap\":" + request.hardPlayerCap() + ",\"activeIslands\":" + request.activeIslands() + ",\"maxActiveIslands\":" + request.maxActiveIslands() + ",\"mspt\":" + request.mspt() + ",\"activationQueue\":" + request.activationQueue() + ",\"maxActivationQueue\":" + request.maxActivationQueue() + ",\"chunkLoadPressure\":" + request.chunkLoadPressure() + ",\"heapUsedMb\":" + request.heapUsedMb() + ",\"heapMaxMb\":" + request.heapMaxMb() + ",\"recentFailurePenalty\":" + request.recentFailurePenalty() + ",\"storageAvailable\":" + request.storageAvailable() + ",\"supportedTemplates\":\"" + escape(request.supportedTemplates()) + "\"}");
     }
 
     private String mapJson(Map<String, String> payload) {
