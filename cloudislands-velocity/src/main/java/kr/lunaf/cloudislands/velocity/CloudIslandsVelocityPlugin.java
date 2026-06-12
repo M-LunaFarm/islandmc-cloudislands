@@ -161,7 +161,7 @@ public final class CloudIslandsVelocityPlugin {
                     return;
                 }
                 if (!player.hasPermission("cloudislands.player")) {
-            player.sendMessage(Component.text("권한이 없습니다."));
+            player.sendMessage(Component.text("섬 명령을 사용할 권한이 없습니다."));
             return;
         }
         dispatch(player, invocation.arguments());
@@ -181,7 +181,7 @@ public final class CloudIslandsVelocityPlugin {
                     return;
                 }
                 if (!player.hasPermission("cloudislands.admin")) {
-                    player.sendMessage(Component.text("권한이 없습니다."));
+                    player.sendMessage(Component.text("섬 관리 명령을 사용할 권한이 없습니다."));
                     return;
                 }
                 dispatchAdmin(player, invocation.arguments());
