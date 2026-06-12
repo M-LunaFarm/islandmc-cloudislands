@@ -99,6 +99,9 @@ import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandMetadataRepository
 import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.redis.RedisStreamWriterAdapter;
+import kr.lunaf.cloudislands.coreservice.role.InMemoryIslandRoleRepository;
+import kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository;
+import kr.lunaf.cloudislands.coreservice.role.JdbcIslandRoleRepository;
 import kr.lunaf.cloudislands.coreservice.security.ApiTokenGuard;
 import kr.lunaf.cloudislands.coreservice.security.FixedWindowRateLimiter;
 import kr.lunaf.cloudislands.coreservice.security.AdminEndpointGuard;
@@ -212,6 +215,7 @@ public final class CloudIslandsCoreApplication {
         IslandPermissionRuleRepository permissionRules = config.redisEvents() || config.redisJobs()
             ? new CachingIslandPermissionRuleRepository(basePermissionRules, config.redisUri())
             : basePermissionRules;
+        IslandRoleRepository roleRepository = config.jdbcRepositories() ? new JdbcIslandRoleRepository(dataSource) : new InMemoryIslandRoleRepository();
         IslandRuntimeRepository baseRuntimeRepository = config.jdbcRepositories() ? new JdbcIslandRuntimeRepository(dataSource) : new InMemoryIslandRuntimeRepository();
         IslandRuntimeRepository runtimeRepository = config.redisEvents() || config.redisJobs()
             ? new CachingIslandRuntimeRepository(baseRuntimeRepository, config.redisUri())
@@ -424,6 +428,11 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 200, permissionsJson(permissionRules.list(islandId)));
                 return;
             }
+            if (method.equalsIgnoreCase("GET") && tail.endsWith("/roles")) {
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/roles".length()));
+                write(exchange, 200, rolesJson(roleRepository.list(islandId)));
+                return;
+            }
             if (method.equalsIgnoreCase("GET") && tail.endsWith("/bans")) {
                 UUID islandId = uuidPath(tail.substring(0, tail.length() - "/bans".length()));
                 write(exchange, 200, bansJson(metadataRepository.bans(islandId)));
@@ -530,6 +539,30 @@ public final class CloudIslandsCoreApplication {
             islandLogs.append(islandId, actorUuid, "ISLAND_PERMISSION_SET", Map.of("role", role.name(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
             events.publish(CloudIslandEventType.ISLAND_PERMISSION_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", role.name(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
             write(exchange, 202, ApiResponses.ok(true));
+        });
+        route("/v1/islands/roles", exchange -> {
+            String body = readBody(exchange);
+            write(exchange, 200, rolesJson(roleRepository.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
+        });
+        route("/v1/islands/roles/upsert", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            IslandRole role = JsonFields.enumValue(IslandRole.class, body, "role", IslandRole.CUSTOM_1);
+            if (role == IslandRole.OWNER || !role.islandMemberRole()) {
+                write(exchange, 409, ApiResponses.error("ROLE_NOT_EDITABLE", "Only island member roles can be customized"));
+                return;
+            }
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.MANAGE_ROLES)) {
+                return;
+            }
+            int weight = JsonFields.integer(body, "weight", role.ordinal());
+            String displayName = JsonFields.text(body, "displayName", role.name());
+            kr.lunaf.cloudislands.api.model.IslandRoleSnapshot snapshot = roleRepository.upsert(islandId, role, weight, displayName);
+            audit.log(actorUuid, "PLAYER", "ISLAND_ROLE_UPSERT", "ISLAND", islandId.toString(), Map.of("role", role.name(), "weight", Integer.toString(weight), "displayName", displayName));
+            islandLogs.append(islandId, actorUuid, "ISLAND_ROLE_UPSERT", Map.of("role", role.name(), "weight", Integer.toString(weight), "displayName", displayName));
+            events.publish(CloudIslandEventType.ISLAND_PERMISSION_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", role.name(), "operation", "ROLE_UPSERT"));
+            write(exchange, 202, roleJson(snapshot));
         });
         route("/v1/jobs/claim", exchange -> {
             String body = readBody(exchange);
@@ -2509,6 +2542,27 @@ public final class CloudIslandsCoreApplication {
                 .append('}');
         }
         return builder.append("]}").toString();
+    }
+
+    private static String rolesJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandRoleSnapshot> roles) {
+        StringBuilder builder = new StringBuilder("{\"roles\":[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.api.model.IslandRoleSnapshot role : roles) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append(roleJson(role));
+        }
+        return builder.append("]}").toString();
+    }
+
+    private static String roleJson(kr.lunaf.cloudislands.api.model.IslandRoleSnapshot role) {
+        return "{\"islandId\":\"" + role.islandId()
+            + "\",\"role\":\"" + role.role().name()
+            + "\",\"weight\":" + role.weight()
+            + ",\"displayName\":\"" + escape(role.displayName())
+            + "\"}";
     }
 
     private static String flagsJson(kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot flags) {
