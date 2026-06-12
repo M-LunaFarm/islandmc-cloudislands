@@ -99,6 +99,19 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
     }
 
     @Override
+    public Optional<RouteTicket> findLatestForPlayer(UUID playerUuid) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT * FROM route_tickets WHERE player_uuid = ? ORDER BY created_at DESC LIMIT 1")) {
+            statement.setObject(1, playerUuid);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? Optional.of(map(rs)) : Optional.empty();
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read player route ticket", exception);
+        }
+    }
+
+    @Override
     public boolean clear(UUID ticketId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("DELETE FROM route_tickets WHERE id = ?")) {

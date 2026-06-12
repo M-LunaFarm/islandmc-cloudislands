@@ -467,7 +467,10 @@ public final class CloudIslandsCoreApplication {
         route("/v1/admin/routes/ticket", exchange -> {
             String body = readBody(exchange);
             UUID ticketId = JsonFields.uuid(body, "ticketId", new UUID(0L, 0L));
-            RouteTicket ticket = tickets.find(ticketId).orElse(null);
+            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            RouteTicket ticket = ticketId.equals(new UUID(0L, 0L))
+                ? tickets.findLatestForPlayer(playerUuid).orElse(null)
+                : tickets.find(ticketId).orElse(null);
             write(exchange, ticket == null ? 404 : 200, ticket == null ? ApiResponses.error("ROUTE_TICKET_NOT_FOUND", "Route ticket was not found") : RoutingOrchestrator.toJson(ticket));
         });
         route("/v1/admin/routes/clear", exchange -> {

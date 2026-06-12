@@ -389,7 +389,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                     if (playerUuid == null) {
                         return;
                     }
-                    run(sender, "Route ticket", coreApiClient.debugRoutes(playerUuid));
+                    run(sender, "Route ticket", coreApiClient.routeTicketForPlayer(playerUuid));
                 }).exceptionally(error -> {
                     sender.sendMessage("플레이어를 찾지 못했습니다: " + args[2]);
                     return null;

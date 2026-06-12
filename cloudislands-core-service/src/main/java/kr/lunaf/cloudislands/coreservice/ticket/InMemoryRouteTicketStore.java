@@ -67,6 +67,13 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
         return Optional.ofNullable(tickets.get(ticketId));
     }
 
+    @Override
+    public Optional<RouteTicket> findLatestForPlayer(UUID playerUuid) {
+        return tickets.values().stream()
+            .filter(ticket -> ticket.playerUuid().equals(playerUuid))
+            .max((left, right) -> left.expiresAt().compareTo(right.expiresAt()));
+    }
+
     public boolean clear(UUID ticketId) {
         return tickets.remove(ticketId) != null;
     }

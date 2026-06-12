@@ -634,6 +634,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> routeTicketForPlayer(UUID playerUuid) {
+        return post("/v1/admin/routes/ticket", "{\"playerUuid\":\"" + playerUuid + "\"}");
+    }
+
+    @Override
     public CompletableFuture<String> clearRoute(UUID playerUuid, UUID ticketId) {
         return clearRouteResult(playerUuid, ticketId);
     }

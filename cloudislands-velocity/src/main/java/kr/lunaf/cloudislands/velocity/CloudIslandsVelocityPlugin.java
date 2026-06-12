@@ -261,12 +261,7 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("ticket")) {
-            UUID ticketId = parseUuidOrNil(args[2]);
-            if (ticketId.equals(new UUID(0L, 0L))) {
-                routingController.debugRoutesTarget(player, args[2]);
-            } else {
-                routingController.routeTicket(player, ticketId);
-            }
+            routingController.routeTicketTarget(player, args[2]);
             return;
         }
         if (args.length >= 2 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("clear")) {

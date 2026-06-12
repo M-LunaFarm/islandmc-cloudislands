@@ -138,6 +138,7 @@ public interface CoreApiClient {
     CompletableFuture<String> repairIslandResult(UUID islandId, String reason);
     CompletableFuture<String> debugRoutes(UUID playerUuid);
     CompletableFuture<String> routeTicket(UUID ticketId);
+    CompletableFuture<String> routeTicketForPlayer(UUID playerUuid);
     CompletableFuture<String> clearRoute(UUID playerUuid, UUID ticketId);
     CompletableFuture<String> clearRouteResult(UUID playerUuid, UUID ticketId);
     CompletableFuture<String> listEvents();

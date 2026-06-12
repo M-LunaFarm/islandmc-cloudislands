@@ -14,6 +14,8 @@ public interface RouteTicketStore {
 
     Optional<RouteTicket> find(UUID ticketId);
 
+    Optional<RouteTicket> findLatestForPlayer(UUID playerUuid);
+
     boolean clear(UUID ticketId);
 
     int clearAll();

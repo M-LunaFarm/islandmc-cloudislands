@@ -732,6 +732,24 @@ public final class VelocityRoutingController {
         sendBodyResult(player, coreApiClient.routeTicket(ticketId), "티켓 정보를 불러오지 못했습니다.");
     }
 
+    public void routeTicketTarget(Player player, String target) {
+        UUID ticketId = parseUuid(target);
+        if (!ticketId.equals(new UUID(0L, 0L))) {
+            routeTicket(player, ticketId);
+            return;
+        }
+        resolvePlayerUuid(target).thenAccept(playerUuid -> {
+            if (playerUuid.equals(new UUID(0L, 0L))) {
+                player.sendMessage(Component.text("플레이어를 찾지 못했습니다."));
+                return;
+            }
+            sendBodyResult(player, coreApiClient.routeTicketForPlayer(playerUuid), "티켓 정보를 불러오지 못했습니다.");
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("플레이어를 찾지 못했습니다."));
+            return null;
+        });
+    }
+
     public void clearRoute(Player player, UUID playerUuid, UUID ticketId) {
         sendBodyResult(player, coreApiClient.clearRoute(playerUuid, ticketId), "라우트 정리를 요청하지 못했습니다.");
     }
