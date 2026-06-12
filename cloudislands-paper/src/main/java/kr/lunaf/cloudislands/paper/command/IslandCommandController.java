@@ -232,6 +232,9 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             if (first.equals("biome") || first.equals("바이옴")) {
                 return literalMatches(List.of("minecraft:plains", "minecraft:forest", "minecraft:desert", "minecraft:taiga"), args[1]);
             }
+            if (first.equals("invite") || first.equals("초대") || first.equals("kick") || first.equals("추방") || first.equals("promote") || first.equals("승급") || first.equals("demote") || first.equals("강등") || first.equals("transfer") || first.equals("양도") || first.equals("trust") || first.equals("신뢰") || first.equals("untrust") || first.equals("신뢰해제") || first.equals("ban") || first.equals("밴") || first.equals("unban") || first.equals("밴해제") || first.equals("kickvisitor") || first.equals("방문자추방")) {
+                return onlinePlayerMatches(args[1]);
+            }
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("setpermission") || args[0].equalsIgnoreCase("permission-set") || args[0].equals("권한설정"))) {
             return literalMatches(List.of("BUILD", "INTERACT", "MANAGE_MEMBERS", "MANAGE_FLAGS", "MANAGE_WARPS"), args[2]);
@@ -258,6 +261,18 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         for (String value : values) {
             if (lower.isBlank() || value.toLowerCase(Locale.ROOT).startsWith(lower)) {
                 matches.add(value);
+            }
+        }
+        return matches;
+    }
+
+    private List<String> onlinePlayerMatches(String typed) {
+        String lower = typed.toLowerCase(Locale.ROOT);
+        List<String> matches = new ArrayList<>();
+        for (Player online : plugin.getServer().getOnlinePlayers()) {
+            String name = online.getName();
+            if (lower.isBlank() || name.toLowerCase(Locale.ROOT).startsWith(lower)) {
+                matches.add(name);
             }
         }
         return matches;
