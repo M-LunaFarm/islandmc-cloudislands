@@ -115,6 +115,10 @@ public final class IslandLifecycleWorkflow {
         if (node == null || allocator.selectBestNode(java.util.List.of(node), Instant.now(), templateId, minNodeVersion(templateId), islandPool).isEmpty()) {
             return new Result(false, targetNodeUnavailableCode(node, templateId), null);
         }
+        RedisActivationLock.Lease lease = acquireActivationLock(islandId, "migrate");
+        if (activationLock != null && lease == null) {
+            return new Result(false, "ACTIVATION_LOCKED", current);
+        }
         IslandRuntimeSnapshot runtime = runtimes.markMigrating(islandId, targetNode);
         islands.setState(islandId, IslandState.DEACTIVATING);
         String sourceNode = current == null ? "" : current.activeNode();
@@ -125,6 +129,7 @@ public final class IslandLifecycleWorkflow {
                 jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.MIGRATE_ISLAND, islandId, targetNode, 10, Map.of("fencingToken", Long.toString(runtime.fencingToken()), "worldName", runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld(), "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()), "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ())), Instant.now()));
             }
         } catch (RuntimeException exception) {
+            releaseActivationLock(lease);
             return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
         }
         events.publish(CloudIslandEventType.ISLAND_MIGRATE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "targetNode", targetNode, "fencingToken", Long.toString(runtime.fencingToken())));
