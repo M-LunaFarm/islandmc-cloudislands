@@ -31,9 +31,14 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
     }
 
     public String recoverPending(String nodeId, long minIdleMillis, int maxJobs) {
-        String recovered = new RedisPendingJobRecovery(redisUri, minIdleMillis).claimStale(nodeId, maxJobs);
-        retryAttemptsTotal.addAndGet(countStreamIds(recovered));
-        return recovered;
+        try {
+            String recovered = new RedisPendingJobRecovery(redisUri, minIdleMillis).claimStale(nodeId, maxJobs);
+            retryAttemptsTotal.addAndGet(countStreamIds(recovered));
+            return recovered;
+        } catch (RuntimeException exception) {
+            recordRedisFailure();
+            throw exception;
+        }
     }
 
     @Override
