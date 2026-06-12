@@ -24,6 +24,8 @@ public final class AdminNodeMenu implements Listener {
         inventory.setItem(15, item(Material.HOPPER, "장애 스윕", "/ciadmin node sweep " + nodeId));
         inventory.setItem(16, item(Material.MAP, "활성 섬 조회", "/ciadmin island where <uuid>", "섬 UUID로 현재 위치 노드를 확인합니다."));
         inventory.setItem(17, item(Material.MINECART, "부하 이동", "/ciadmin island migrate <uuid> <node>", "섬 UUID와 대상 노드를 입력해 이동합니다."));
+        inventory.setItem(18, item(Material.IRON_DOOR, "현재 노드 플레이어 로비 이동", "/ciadmin node kickall " + nodeId, "이 노드의 접속자를 로비로 이동합니다."));
+        inventory.setItem(19, item(Material.BELL, "현재 노드 안전 종료", "/ciadmin node shutdown-safe " + nodeId, "Drain 후 접속자를 로비로 이동합니다."));
         inventory.setItem(22, item(Material.BOOK, "관리 명령 도움말", "/ciadmin node list", "/ciadmin island where <uuid>"));
         player.openInventory(inventory);
     }
@@ -47,7 +49,7 @@ public final class AdminNodeMenu implements Listener {
         if (command != null) {
             player.performCommand(command.substring(1));
         } else if (name.equals("관리 명령 도움말")) {
-            player.sendMessage("사용법: /ciadmin node list, /ciadmin node info [node], /ciadmin node islands [node] [limit], /ciadmin island where <uuid>");
+            player.sendMessage("사용법: /ciadmin node list, /ciadmin node info [node], /ciadmin node islands [node] [limit], /ciadmin node kickall [node], /ciadmin node shutdown-safe [node], /ciadmin island where <uuid>");
         }
     }
 
