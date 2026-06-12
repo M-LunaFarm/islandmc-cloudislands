@@ -97,6 +97,23 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
     }
 
     @Override
+    public IslandRuntimeSnapshot markInactive(UUID islandId, long fencingToken) {
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            IslandRuntimeSnapshot current = findForUpdate(connection, islandId).orElse(defaultRuntime(islandId));
+            if (current.fencingToken() > fencingToken) {
+                connection.commit();
+                return current;
+            }
+            IslandRuntimeSnapshot runtime = upsert(connection, islandId, IslandState.INACTIVE_READY, null, null, null, null, null, current.fencingToken(), null);
+            connection.commit();
+            return runtime;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to mark island inactive", exception);
+        }
+    }
+
+    @Override
     public IslandRuntimeSnapshot markMigrating(UUID islandId, String targetNode) {
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);

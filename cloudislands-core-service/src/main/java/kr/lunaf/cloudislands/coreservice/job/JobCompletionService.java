@@ -72,8 +72,10 @@ public final class JobCompletionService {
             return;
         }
         if (job.type() == IslandJobType.DEACTIVATE_ISLAND) {
+            if (!markInactiveFromJob(job)) {
+                return;
+            }
             long snapshotNo = recordCompletedSnapshot(job, job.type().name(), true);
-            runtimes.markInactive(job.islandId());
             setIslandState(job.islandId(), IslandState.INACTIVE_READY);
             publishMigrationActivation(job);
             events.publish(CloudIslandEventType.ISLAND_DEACTIVATED.name(), Map.of("islandId", job.islandId().toString()));
@@ -141,6 +143,23 @@ public final class JobCompletionService {
         long fencingToken = longValue(job.payload().get("fencingToken"));
         kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime = runtimes.markActive(job.islandId(), job.targetNode(), worldName, integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), fencingToken);
         if (runtime.fencingToken() == fencingToken) {
+            return true;
+        }
+        failPreparingRouteTickets(job, "STALE_FENCING_TOKEN");
+        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
+            "islandId", job.islandId().toString(),
+            "state", runtime.state().name(),
+            "ignoredJob", job.jobId().toString(),
+            "jobFencingToken", Long.toString(fencingToken),
+            "currentFencingToken", Long.toString(runtime.fencingToken())
+        ));
+        return false;
+    }
+
+    private boolean markInactiveFromJob(IslandJob job) {
+        long fencingToken = longValue(job.payload().get("fencingToken"));
+        kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime = runtimes.markInactive(job.islandId(), fencingToken);
+        if (runtime.fencingToken() == fencingToken && runtime.state() == IslandState.INACTIVE_READY) {
             return true;
         }
         failPreparingRouteTickets(job, "STALE_FENCING_TOKEN");

@@ -61,7 +61,7 @@ public final class IslandLifecycleWorkflow {
     public Result deactivate(UUID islandId) {
         IslandRuntimeSnapshot runtime = runtimes.markSaving(islandId);
         try {
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DEACTIVATE_ISLAND, islandId, runtime.activeNode(), 0, Map.of(), Instant.now()));
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DEACTIVATE_ISLAND, islandId, runtime.activeNode(), 0, Map.of("fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
         } catch (RuntimeException exception) {
             return jobQueueFailed(islandId, IslandState.ERROR_SAVING);
         }
@@ -80,7 +80,7 @@ public final class IslandLifecycleWorkflow {
         String sourceNode = current == null ? "" : current.activeNode();
         try {
             if (sourceNode != null && !sourceNode.isBlank() && !sourceNode.equals(targetNode)) {
-                jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DEACTIVATE_ISLAND, islandId, sourceNode, 10, Map.of("reason", "BEFORE_MIGRATION", "migrateTargetNode", targetNode, "migrationFencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
+                jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DEACTIVATE_ISLAND, islandId, sourceNode, 10, Map.of("reason", "BEFORE_MIGRATION", "migrateTargetNode", targetNode, "fencingToken", Long.toString(runtime.fencingToken()), "migrationFencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
             } else {
                 jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.MIGRATE_ISLAND, islandId, targetNode, 10, Map.of("fencingToken", Long.toString(runtime.fencingToken()), "worldName", runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld(), "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()), "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ())), Instant.now()));
             }
