@@ -631,7 +631,26 @@ public final class VelocityRoutingController {
             return;
         }
         String label = channel.equalsIgnoreCase("TEAM") ? "팀 채팅" : "섬 채팅";
-        sendBodyResult(player, coreApiClient.sendIslandChat(islandId, player.getUniqueId(), channel, message.strip()).thenApply(body -> chatResultMessage(label, body)), label + "을 전송하지 못했습니다.");
+        String stripped = message.strip();
+        if (islandId.equals(new UUID(0L, 0L))) {
+            coreApiClient.islandInfoByOwner(player.getUniqueId()).thenAccept(body -> {
+                UUID resolvedIslandId = parseUuid(jsonValue(body, "islandId"));
+                if (resolvedIslandId.equals(new UUID(0L, 0L))) {
+                    player.sendMessage(Component.text("채팅을 보낼 섬을 찾지 못했습니다."));
+                    return;
+                }
+                sendIslandChatResolved(player, resolvedIslandId, channel, stripped, label);
+            }).exceptionally(error -> {
+                player.sendMessage(Component.text(label + "을 전송하지 못했습니다."));
+                return null;
+            });
+            return;
+        }
+        sendIslandChatResolved(player, islandId, channel, stripped, label);
+    }
+
+    private void sendIslandChatResolved(Player player, UUID islandId, String channel, String message, String label) {
+        sendBodyResult(player, coreApiClient.sendIslandChat(islandId, player.getUniqueId(), channel, message).thenApply(body -> chatResultMessage(label, body)), label + "을 전송하지 못했습니다.");
     }
 
     public void listSnapshots(Player player, UUID islandId) {
