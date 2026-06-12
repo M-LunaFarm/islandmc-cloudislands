@@ -609,15 +609,15 @@ public final class VelocityRoutingController {
     }
 
     public void retryJob(Player player, UUID jobId) {
-        sendBodyResult(player, coreApiClient.retryJob(jobId), "작업 재시도를 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.retryJob(jobId).thenApply(body -> jobActionMessage("retry", body)), "작업 재시도를 요청하지 못했습니다.");
     }
 
     public void cancelJob(Player player, UUID jobId) {
-        sendBodyResult(player, coreApiClient.cancelJob(jobId), "작업 취소를 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.cancelJob(jobId).thenApply(body -> jobActionMessage("cancel", body)), "작업 취소를 요청하지 못했습니다.");
     }
 
     public void recoverJobs(Player player, String nodeId, long minIdleMillis, int maxJobs) {
-        sendBodyResult(player, coreApiClient.recoverJobs(nodeId, minIdleMillis, maxJobs), "작업 복구를 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.recoverJobs(nodeId, minIdleMillis, maxJobs).thenApply(body -> jobActionMessage("recover", body)), "작업 복구를 요청하지 못했습니다.");
     }
 
     public void listNodes(Player player) {
@@ -1233,6 +1233,22 @@ public final class VelocityRoutingController {
             builder.append(" error=").append(error);
         }
         return builder.toString();
+    }
+
+    private String jobActionMessage(String action, String body) {
+        if (body == null || body.isBlank()) {
+            return "Job " + action + ": no response";
+        }
+        String code = jsonValue(body, "code");
+        if (!code.isBlank()) {
+            return "Job " + action + ": failed code=" + code;
+        }
+        if (body.contains("\"recovered\"")) {
+            String recoveredText = jsonValue(body, "recovered");
+            long recoveredNumber = longValue(body, "recovered");
+            return "Job recover: recovered=" + (recoveredText.isBlank() ? Long.toString(recoveredNumber) : recoveredText);
+        }
+        return "Job " + action + ": " + (boolValue(body, "ok") ? "accepted" : "not applied");
     }
 
     private String publicIslandListMessage(String body) {

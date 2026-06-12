@@ -467,7 +467,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             String recoverNodeId = args.length > 2 ? args[2] : nodeId;
             long minIdleMillis = args.length > 3 ? number(args[3], 60000L) : 60000L;
             int maxJobs = args.length > 4 ? (int) number(args[4], 20L) : 20;
-            run(sender, "Jobs recover", coreApiClient.recoverJobs(recoverNodeId, minIdleMillis, maxJobs));
+            run(sender, "Jobs recover", coreApiClient.recoverJobs(recoverNodeId, minIdleMillis, maxJobs).thenApply(body -> jobActionMessage("recover", body)));
             return true;
         }
         if (args.length < 3) {
@@ -479,11 +479,11 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return true;
         }
         if (args[1].equalsIgnoreCase("retry")) {
-            run(sender, "Job retry", coreApiClient.retryJob(jobId));
+            run(sender, "Job retry", coreApiClient.retryJob(jobId).thenApply(body -> jobActionMessage("retry", body)));
             return true;
         }
         if (args[1].equalsIgnoreCase("cancel")) {
-            run(sender, "Job cancel", coreApiClient.cancelJob(jobId));
+            run(sender, "Job cancel", coreApiClient.cancelJob(jobId).thenApply(body -> jobActionMessage("cancel", body)));
             return true;
         }
         sender.sendMessage("사용법: /ciadmin jobs list|retry <jobId>|cancel <jobId>|recover [nodeId] [minIdleMillis] [maxJobs]");
@@ -942,6 +942,22 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             builder.append(" error=").append(error);
         }
         return builder.toString();
+    }
+
+    private String jobActionMessage(String action, String body) {
+        if (body == null || body.isBlank()) {
+            return "Job " + action + ": no response";
+        }
+        String code = textValue(body, "code");
+        if (!code.isBlank()) {
+            return "Job " + action + ": failed code=" + code;
+        }
+        if (body.contains("\"recovered\"")) {
+            String recoveredText = textValue(body, "recovered");
+            long recoveredNumber = longValue(body, "recovered");
+            return "Job recover: recovered=" + (recoveredText.isBlank() ? Long.toString(recoveredNumber) : recoveredText);
+        }
+        return "Job " + action + ": " + (boolValue(body, "ok") ? "accepted" : "not applied");
     }
 
     private String nodeIslandRuntimeSuffix(String object) {
