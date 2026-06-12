@@ -2,7 +2,11 @@ package kr.lunaf.cloudislands.coreservice.repository;
 
 import java.io.IOException;
 import java.net.URI;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -17,6 +21,7 @@ import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
+import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 
 public final class CachingIslandMetadataRepository implements IslandMetadataRepository {
@@ -31,6 +36,10 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
 
     @Override
     public List<IslandMemberSnapshot> members(UUID islandId) {
+        Optional<List<IslandMemberSnapshot>> cached = cachedMembers(islandId);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
         List<IslandMemberSnapshot> members = delegate.members(islandId);
         cacheMembers(islandId, members);
         return members;
@@ -116,6 +125,10 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
 
     @Override
     public IslandFlagsSnapshot flags(UUID islandId) {
+        Optional<IslandFlagsSnapshot> cached = cachedFlags(islandId);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
         IslandFlagsSnapshot flags = delegate.flags(islandId);
         cacheFlags(flags);
         return flags;
@@ -209,6 +222,45 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
         }
     }
 
+    private Optional<List<IslandMemberSnapshot>> cachedMembers(UUID islandId) {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            String json = redis.command("GET", RedisKeys.islandMembers(islandId));
+            if (json == null || json.isBlank()) {
+                return Optional.empty();
+            }
+            List<IslandMemberSnapshot> members = new ArrayList<>();
+            for (String object : objects(json)) {
+                members.add(new IslandMemberSnapshot(
+                    JsonFields.uuid(object, "islandId", islandId),
+                    JsonFields.uuid(object, "playerUuid", new UUID(0L, 0L)),
+                    JsonFields.enumValue(IslandRole.class, object, "role", IslandRole.VISITOR),
+                    instant(JsonFields.text(object, "joinedAt", ""))
+                ));
+            }
+            return Optional.of(List.copyOf(members));
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+            return Optional.empty();
+        }
+    }
+
+    private Optional<IslandFlagsSnapshot> cachedFlags(UUID islandId) {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            String json = redis.command("GET", RedisKeys.islandFlags(islandId));
+            if (json == null || json.isBlank()) {
+                return Optional.empty();
+            }
+            Map<IslandFlag, String> values = new LinkedHashMap<>();
+            for (Map.Entry<String, String> entry : JsonFields.object(json, "values").entrySet()) {
+                values.put(IslandFlag.valueOf(entry.getKey()), entry.getValue());
+            }
+            return Optional.of(new IslandFlagsSnapshot(JsonFields.uuid(json, "islandId", islandId), Map.copyOf(values)));
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+            return Optional.empty();
+        }
+    }
+
     private void cacheFlags(IslandFlagsSnapshot flags) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             redis.command("SET", RedisKeys.islandFlags(flags.islandId()), flagsJson(flags));
@@ -255,5 +307,64 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
             return "";
         }
         return value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private static List<String> objects(String json) {
+        List<String> result = new ArrayList<>();
+        int index = 0;
+        while (index < json.length()) {
+            int start = json.indexOf('{', index);
+            if (start < 0) {
+                return result;
+            }
+            int end = matchingObjectEnd(json, start);
+            if (end < 0) {
+                return result;
+            }
+            result.add(json.substring(start, end + 1));
+            index = end + 1;
+        }
+        return result;
+    }
+
+    private static int matchingObjectEnd(String json, int objectStart) {
+        int depth = 0;
+        boolean inString = false;
+        boolean escaped = false;
+        for (int i = objectStart; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (c == '"') {
+                inString = !inString;
+                continue;
+            }
+            if (inString) {
+                continue;
+            }
+            if (c == '{') {
+                depth++;
+            } else if (c == '}') {
+                depth--;
+                if (depth == 0) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    private static Instant instant(String value) {
+        try {
+            return Instant.parse(value);
+        } catch (RuntimeException ignored) {
+            return Instant.EPOCH;
+        }
     }
 }
