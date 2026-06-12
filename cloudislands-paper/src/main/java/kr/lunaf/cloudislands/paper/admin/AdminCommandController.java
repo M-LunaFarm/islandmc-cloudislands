@@ -1490,7 +1490,13 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             String playerUuid = textValue(object, "playerUuid");
             String ticketId = textValue(object, "ticketId");
             String nodeId = textValue(object, "targetNode");
-            entries.add(shortId(playerUuid) + " ticket=" + shortId(ticketId) + (nodeId.isBlank() ? "" : " node=" + nodeId));
+            String serverName = textValue(object, "targetServerName");
+            String expiresAt = textValue(object, "expiresAt");
+            entries.add(shortId(playerUuid)
+                + " ticket=" + shortId(ticketId)
+                + (nodeId.isBlank() ? "" : " node=" + nodeId)
+                + (serverName.isBlank() ? "" : " server=" + serverName)
+                + (expiresAt.isBlank() ? "" : " expires=" + expiresAt));
             index = objectEnd + 1;
         }
     }

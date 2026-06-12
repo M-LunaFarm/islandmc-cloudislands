@@ -2085,7 +2085,13 @@ public final class VelocityRoutingController {
             String playerUuid = jsonValue(object, "playerUuid");
             String ticketId = jsonValue(object, "ticketId");
             String nodeId = jsonValue(object, "targetNode");
-            entries.add(shortId(playerUuid) + " ticket=" + shortId(ticketId) + (nodeId.isBlank() ? "" : " node=" + nodeId));
+            String serverName = jsonValue(object, "targetServerName");
+            String expiresAt = jsonValue(object, "expiresAt");
+            entries.add(shortId(playerUuid)
+                + " ticket=" + shortId(ticketId)
+                + (nodeId.isBlank() ? "" : " node=" + nodeId)
+                + (serverName.isBlank() ? "" : " server=" + serverName)
+                + (expiresAt.isBlank() ? "" : " expires=" + expiresAt));
             index = objectEnd + 1;
         }
     }
