@@ -1114,7 +1114,7 @@ public final class VelocityRoutingController {
             String nodeId = jsonValue(object, "nodeId");
             boolean available = boolValue(object, "storageAvailable");
             if (!nodeId.isBlank()) {
-                entries.add((hideNodeNames ? "node-" + (entries.size() + 1) : nodeId) + "=" + (available ? "OK" : "DOWN"));
+                entries.add((hideNodeNames ? "node-" + (entries.size() + 1) : nodeId) + "=" + (available ? "OK" : "DOWN") + storageMetricSuffix(object));
                 if (!available) {
                     unavailable++;
                 }
@@ -1124,6 +1124,20 @@ public final class VelocityRoutingController {
         return entries.isEmpty()
             ? "Storage status: registered node 없음"
             : "Storage status: " + String.join(", ", entries) + " / unavailable=" + unavailable;
+    }
+
+    private String storageMetricSuffix(String nodeObject) {
+        String storage = objectValue(nodeObject, "storage");
+        if (storage.isBlank()) {
+            return "";
+        }
+        long failures = longValue(storage, "healthCheckFailures")
+            + longValue(storage, "uploadFailures")
+            + longValue(storage, "downloadFailures")
+            + longValue(storage, "operationFailures");
+        return "(failures=" + failures
+            + ", up=" + seconds(doubleValue(storage, "uploadSeconds")) + "s"
+            + ", down=" + seconds(doubleValue(storage, "downloadSeconds")) + "s)";
     }
 
     private String nodeSweepMessage(String body) {
@@ -1297,6 +1311,28 @@ public final class VelocityRoutingController {
         } catch (NumberFormatException exception) {
             return 0L;
         }
+    }
+
+    private double doubleValue(String body, String field) {
+        String needle = "\"" + field + "\":";
+        int start = body == null ? -1 : body.indexOf(needle);
+        if (start < 0) {
+            return 0.0D;
+        }
+        start += needle.length();
+        int end = start;
+        while (end < body.length() && (body.charAt(end) == '-' || body.charAt(end) == '+' || body.charAt(end) == '.' || Character.isDigit(body.charAt(end)))) {
+            end++;
+        }
+        try {
+            return Double.parseDouble(body.substring(start, end));
+        } catch (RuntimeException ignored) {
+            return 0.0D;
+        }
+    }
+
+    private String seconds(double value) {
+        return String.format(java.util.Locale.ROOT, "%.3f", value);
     }
 
     private void sendInviteActionResult(Player player, CompletableFuture<String> future, String successMessage, String failureMessage) {

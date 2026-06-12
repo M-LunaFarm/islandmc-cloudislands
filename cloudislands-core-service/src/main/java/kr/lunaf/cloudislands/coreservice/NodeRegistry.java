@@ -61,6 +61,14 @@ public interface NodeRegistry {
             .append("\"finishedAt\":").append(longMetadata(metadata, "lastLevelScanFinishedAt")).append(',')
             .append("\"failedAt\":").append(longMetadata(metadata, "lastLevelScanFailedAt"))
             .append("},")
+            .append("\"storage\":{")
+            .append("\"uploadSeconds\":").append(doubleMetadata(metadata, "storageUploadSeconds")).append(',')
+            .append("\"downloadSeconds\":").append(doubleMetadata(metadata, "storageDownloadSeconds")).append(',')
+            .append("\"healthCheckFailures\":").append(longMetadata(metadata, "storageHealthCheckFailures")).append(',')
+            .append("\"uploadFailures\":").append(longMetadata(metadata, "storageUploadFailures")).append(',')
+            .append("\"downloadFailures\":").append(longMetadata(metadata, "storageDownloadFailures")).append(',')
+            .append("\"operationFailures\":").append(longMetadata(metadata, "storageOperationFailures"))
+            .append("},")
             .append("\"lastHeartbeat\":\"").append(node.lastHeartbeat()).append("\",")
             .append("\"score\":").append(node.score())
             .append(",\"scoreBreakdown\":{")
@@ -81,6 +89,14 @@ public interface NodeRegistry {
             return Long.parseLong(metadata.getOrDefault(key, "0"));
         } catch (NumberFormatException ignored) {
             return 0L;
+        }
+    }
+
+    private static double doubleMetadata(java.util.Map<String, String> metadata, String key) {
+        try {
+            return Double.parseDouble(metadata.getOrDefault(key, "0.0"));
+        } catch (NumberFormatException ignored) {
+            return 0.0D;
         }
     }
 }
