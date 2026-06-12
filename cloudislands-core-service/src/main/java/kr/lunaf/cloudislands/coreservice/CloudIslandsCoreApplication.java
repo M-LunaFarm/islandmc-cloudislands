@@ -1675,19 +1675,27 @@ public final class CloudIslandsCoreApplication {
         java.util.Optional<kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot> runtime = runtimeRepository.find(islandId);
         String targetNode = runtime.map(kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot::activeNode).orElse("");
         if (targetNode != null && !targetNode.isBlank()) {
-            runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETE_REQUESTED);
+            islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DEACTIVATING);
+            runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DEACTIVATING);
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DELETE_ISLAND, islandId, targetNode, 50, Map.of("reason", reason, "ownerUuid", ownerUuid.toString()), java.time.Instant.now()));
             events.publish(CloudIslandEventType.ISLAND_DELETE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "targetNode", targetNode, "reason", reason));
             return false;
         }
-        backupInactiveStorageBeforeDelete(islandId, reason);
-        runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETED);
+        islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.BACKUP_BEFORE_DELETE);
+        runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.BACKUP_BEFORE_DELETE);
+        if (!backupInactiveStorageBeforeDelete(islandId, reason)) {
+            islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.RECOVERY_REQUIRED);
+            runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.RECOVERY_REQUIRED);
+            return false;
+        }
+        islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETING);
+        runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETING);
         return islandRepository.markDeleted(islandId, ownerUuid);
     }
 
-    private void backupInactiveStorageBeforeDelete(UUID islandId, String reason) {
+    private boolean backupInactiveStorageBeforeDelete(UUID islandId, String reason) {
         if (deleteStorage == null) {
-            return;
+            return true;
         }
         try {
             long snapshotNo = System.currentTimeMillis();
@@ -1695,8 +1703,10 @@ public final class CloudIslandsCoreApplication {
             snapshotRepository.record(islandId, snapshotNo, "islands/" + islandId + "/backups/delete-" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", reason, null, storedBundle.checksum(), storedBundle.sizeBytes());
             snapshotRepository.prune(islandId, snapshotKeepLatest);
             deleteStorage.deleteLiveState(islandId);
+            return true;
         } catch (IOException exception) {
             events.publish("ISLAND_DELETE_BACKUP_FAILED", Map.of("islandId", islandId.toString(), "reason", reason, "error", exception.getMessage() == null ? "" : exception.getMessage()));
+            return false;
         }
     }
 

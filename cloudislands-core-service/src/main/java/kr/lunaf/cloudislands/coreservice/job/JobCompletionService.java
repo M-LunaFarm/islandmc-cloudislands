@@ -90,10 +90,14 @@ public final class JobCompletionService {
         }
         if (job.type() == IslandJobType.DELETE_ISLAND) {
             long snapshotNo = longValue(job.payload().get("snapshotNo"));
+            runtimes.setState(job.islandId(), IslandState.BACKUP_BEFORE_DELETE);
+            setIslandState(job.islandId(), IslandState.BACKUP_BEFORE_DELETE);
             if (snapshotNo > 0L) {
                 snapshots.record(job.islandId(), snapshotNo, "islands/" + job.islandId() + "/backups/delete-" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", job.payload().getOrDefault("reason", "DELETE_ISLAND"), null, job.payload().getOrDefault("checksum", ""), longValue(job.payload().get("sizeBytes")));
                 snapshots.prune(job.islandId(), snapshotKeepLatest);
             }
+            runtimes.setState(job.islandId(), IslandState.DELETING);
+            setIslandState(job.islandId(), IslandState.DELETING);
             runtimes.setState(job.islandId(), IslandState.DELETED);
             markIslandDeleted(job);
             clearOwnerPrimaryIsland(job);
