@@ -213,7 +213,12 @@ public final class RoutingOrchestrator {
     }
 
     private boolean islandFlagEnabled(UUID islandId, IslandFlag flag) {
-        return Boolean.parseBoolean(metadata.flags(islandId).values().getOrDefault(flag, "false"));
+        String value = metadata.flags(islandId).values().getOrDefault(flag, "false");
+        return value.equalsIgnoreCase("true")
+            || value.equalsIgnoreCase("allow")
+            || value.equalsIgnoreCase("allowed")
+            || value.equalsIgnoreCase("enabled")
+            || value.equalsIgnoreCase("on");
     }
 
     private RoutePreparationResult prepareTicket(UUID playerUuid, IslandSnapshot island, RouteAction action) {
