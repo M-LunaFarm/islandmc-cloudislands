@@ -22,6 +22,8 @@ permissions:
     default: true
   cloudislands.admin:
     default: op
+  cloudislands.admin.bypass:
+    default: op
   cloudislands.admin.status:
     default: op
   cloudislands.admin.cache:

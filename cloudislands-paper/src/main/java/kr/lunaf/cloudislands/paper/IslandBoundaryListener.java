@@ -17,7 +17,7 @@ public final class IslandBoundaryListener implements Listener {
     public void onMove(PlayerMoveEvent event) {
         Location from = event.getFrom();
         Location to = event.getTo();
-        if (to == null || event.getPlayer().isOp() || sameBlock(from, to)) {
+        if (to == null || event.getPlayer().hasPermission("cloudislands.admin.bypass") || sameBlock(from, to)) {
             return;
         }
         java.util.Optional<IslandRegion> fromRegion = protection.regionAt(from.getBlock());
