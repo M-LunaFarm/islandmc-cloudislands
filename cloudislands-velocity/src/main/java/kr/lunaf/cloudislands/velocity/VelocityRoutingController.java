@@ -641,7 +641,7 @@ public final class VelocityRoutingController {
     }
 
     public void sweepNode(Player player, String nodeId) {
-        sendBodyResult(player, coreApiClient.sweepNode(nodeId), "노드 장애 스윕을 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.sweepNode(nodeId).thenApply(this::nodeSweepMessage), "노드 장애 스윕을 요청하지 못했습니다.");
     }
 
     public void kickAllNode(Player player, String nodeId) {
@@ -1124,6 +1124,27 @@ public final class VelocityRoutingController {
         return entries.isEmpty()
             ? "Storage status: registered node 없음"
             : "Storage status: " + String.join(", ", entries) + " / unavailable=" + unavailable;
+    }
+
+    private String nodeSweepMessage(String body) {
+        String nodes = arrayValue(body, "nodes");
+        long recoveryRequired = longValue(body, "recoveryRequired");
+        java.util.List<String> swept = new java.util.ArrayList<>();
+        int index = 0;
+        while (index < nodes.length()) {
+            int valueStart = nodes.indexOf('"', index);
+            if (valueStart < 0) {
+                break;
+            }
+            int valueEnd = nodes.indexOf('"', valueStart + 1);
+            if (valueEnd < 0) {
+                break;
+            }
+            String nodeId = nodes.substring(valueStart + 1, valueEnd);
+            swept.add(hideNodeNames ? "node-" + (swept.size() + 1) : nodeId);
+            index = valueEnd + 1;
+        }
+        return "Node sweep: nodes=" + (swept.isEmpty() ? "none" : String.join(",", swept)) + " recoveryRequired=" + recoveryRequired;
     }
 
     private String publicIslandListMessage(String body) {

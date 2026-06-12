@@ -311,7 +311,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return true;
         }
         if (args[1].equalsIgnoreCase("sweep")) {
-            run(sender, "Node sweep", coreApiClient.sweepNode(targetNode));
+            run(sender, "Node sweep", coreApiClient.sweepNode(targetNode).thenApply(this::nodeSweepMessage));
             return true;
         }
         if (args[1].equalsIgnoreCase("kickall")) {
@@ -834,6 +834,26 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         return entries.isEmpty()
             ? "Storage status: registered node 없음"
             : "Storage status: " + String.join(", ", entries) + " / unavailable=" + unavailable;
+    }
+
+    private String nodeSweepMessage(String body) {
+        String nodes = arrayValue(body, "nodes");
+        long recoveryRequired = longValue(body, "recoveryRequired");
+        List<String> swept = new ArrayList<>();
+        int index = 0;
+        while (index < nodes.length()) {
+            int valueStart = nodes.indexOf('"', index);
+            if (valueStart < 0) {
+                break;
+            }
+            int valueEnd = nodes.indexOf('"', valueStart + 1);
+            if (valueEnd < 0) {
+                break;
+            }
+            swept.add(nodes.substring(valueStart + 1, valueEnd));
+            index = valueEnd + 1;
+        }
+        return "Node sweep: nodes=" + (swept.isEmpty() ? "none" : String.join(",", swept)) + " recoveryRequired=" + recoveryRequired;
     }
 
     private String nodeIslandRuntimeSuffix(String object) {
