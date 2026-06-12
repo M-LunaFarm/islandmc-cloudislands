@@ -25,6 +25,8 @@ import org.bukkit.event.block.BlockFadeEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockMultiPlaceEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.block.FluidLevelChangeEvent;
@@ -35,6 +37,7 @@ import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
@@ -180,6 +183,23 @@ public final class IslandProtectionListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true)
+    public void onPistonExtend(BlockPistonExtendEvent event) {
+        event.setCancelled(event.getBlocks().stream().anyMatch(block -> !sameIsland(block, block.getRelative(event.getDirection()))));
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onPistonRetract(BlockPistonRetractEvent event) {
+        event.setCancelled(event.getBlocks().stream().anyMatch(block -> !sameIsland(block, block.getRelative(event.getDirection().getOppositeFace()))));
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onInventoryMove(InventoryMoveItemEvent event) {
+        if (event.getSource().getLocation() != null && event.getDestination().getLocation() != null) {
+            event.setCancelled(!sameIsland(event.getSource().getLocation().getBlock(), event.getDestination().getLocation().getBlock()));
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
     public void onEntityExplode(EntityExplodeEvent event) {
         IslandFlag flag = explosionFlag(event.getEntityType());
         event.blockList().removeIf(block -> !explosionAllowed(block, flag));
@@ -312,6 +332,12 @@ public final class IslandProtectionListener implements Listener {
     private boolean explosionAllowed(Block block, IslandFlag detailFlag) {
         return protection.checkSystemFlag(block, IslandFlag.EXPLOSION).allowed()
             && protection.checkSystemFlag(block, detailFlag).allowed();
+    }
+
+    private boolean sameIsland(Block source, Block target) {
+        Optional<UUID> sourceIsland = protection.islandAt(source);
+        Optional<UUID> targetIsland = protection.islandAt(target);
+        return sourceIsland.equals(targetIsland);
     }
 
     private IslandFlag liquidFlag(Material type) {
