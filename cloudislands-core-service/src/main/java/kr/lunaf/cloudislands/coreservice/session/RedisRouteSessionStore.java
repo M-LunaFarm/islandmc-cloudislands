@@ -3,6 +3,8 @@ package kr.lunaf.cloudislands.coreservice.session;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
@@ -91,12 +93,73 @@ public final class RedisRouteSessionStore implements RouteSessionStore {
         }
     }
 
+    public int clearAll() {
+        int cleared = 0;
+        for (String key : sessionKeys()) {
+            try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+                if (!"0".equals(redis.command("DEL", key))) {
+                    cleared++;
+                }
+            } catch (IOException exception) {
+                throw new IllegalStateException("failed to clear redis route sessions", exception);
+            }
+        }
+        return cleared;
+    }
+
     public String toJson() {
-        return "{\"sessions\":[]}";
+        StringBuilder builder = new StringBuilder("{\"sessions\":[");
+        boolean first = true;
+        for (String key : sessionKeys()) {
+            try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+                String value = redis.command("GET", key);
+                if (value == null || value.isBlank()) {
+                    continue;
+                }
+                PlayerRouteSession session = decode(value);
+                if (session.expiresAt().isBefore(Instant.now())) {
+                    redis.command("DEL", key);
+                    continue;
+                }
+                if (!first) {
+                    builder.append(',');
+                }
+                first = false;
+                builder.append("{\"playerUuid\":\"").append(session.playerUuid())
+                    .append("\",\"ticketId\":\"").append(session.ticketId())
+                    .append("\",\"targetNode\":\"").append(escape(session.targetNode()))
+                    .append("\",\"targetServerName\":\"").append(escape(session.targetServerName()))
+                    .append("\",\"expiresAt\":\"").append(session.expiresAt())
+                    .append("\"}");
+            } catch (IOException exception) {
+                throw new IllegalStateException("failed to render redis route sessions", exception);
+            }
+        }
+        return builder.append("]}").toString();
     }
 
     private String key(UUID playerUuid) {
         return RedisKeys.playerRouteSession(playerUuid);
+    }
+
+    private List<String> sessionKeys() {
+        List<String> keys = new ArrayList<>();
+        String cursor = "0";
+        do {
+            try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+                String response = redis.command("SCAN", cursor, "MATCH", "ci:player:*:route-session", "COUNT", "100");
+                String[] lines = response.split("\\n");
+                cursor = lines.length == 0 || lines[0].isBlank() ? "0" : lines[0];
+                for (int i = 1; i < lines.length; i++) {
+                    if (!lines[i].isBlank()) {
+                        keys.add(lines[i]);
+                    }
+                }
+            } catch (IOException exception) {
+                throw new IllegalStateException("failed to scan redis route sessions", exception);
+            }
+        } while (!"0".equals(cursor));
+        return keys;
     }
 
     private String encode(PlayerRouteSession session) {
@@ -118,5 +181,9 @@ public final class RedisRouteSessionStore implements RouteSessionStore {
             parts.length > 4 ? parts[4] : "",
             Instant.parse(parts.length > 5 ? parts[5] : Instant.EPOCH.toString())
         );
+    }
+
+    private String escape(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }
