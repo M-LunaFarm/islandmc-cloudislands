@@ -1880,7 +1880,8 @@ public final class CloudIslandsCoreApplication {
             + "\"leaseDurationSeconds\":" + config.leaseDuration().toSeconds() + ","
             + "\"snapshotKeepLatest\":" + config.snapshotKeepLatest() + ","
             + "\"adminApiEnabled\":" + config.adminApiEnabled() + ","
-            + "\"requireMtls\":" + config.requireMtls()
+            + "\"requireMtls\":" + config.requireMtls() + ","
+            + "\"ipAllowlistEnabled\":" + (config.ipAllowlist() != null && !config.ipAllowlist().isBlank())
             + "}";
     }
 

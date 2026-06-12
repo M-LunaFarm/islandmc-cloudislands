@@ -72,7 +72,7 @@ public record CoreServiceConfig(
             env("CI_STORAGE_BEARER_TOKEN", setting(config, "storage.auth-token", env("S3_BEARER_TOKEN", ""))),
             env("CI_CORE_TOKEN", setting(config, "security.core-token", "")),
             env("CI_ADMIN_TOKEN", setting(config, "security.admin-token", "")),
-            env("CI_IP_ALLOWLIST", ""),
+            env("CI_IP_ALLOWLIST", setting(config, "security.ip-allowlist", "")),
             env("CI_UPGRADES_FILE", setting(config, "upgrades.file", "")),
             env("CI_BLOCK_VALUES_FILE", setting(config, "block-values.file", "")),
             env("CI_ISLAND_POOL", "island"),
