@@ -105,7 +105,7 @@ public final class PermissionEventPoller {
         if (handlesNodeOperation(type, fields)) {
             return;
         }
-        if (handlesVisitorKick(type, fields)) {
+        if (handlesVisitorRemoval(type, fields)) {
             return;
         }
         if (handlesIslandChat(type, fields)) {
@@ -258,8 +258,13 @@ public final class PermissionEventPoller {
         return false;
     }
 
-    private boolean handlesVisitorKick(String type, Map<String, String> fields) {
-        if (!type.equals(CloudIslandEventType.ISLAND_VISITOR_KICKED.name())) {
+    private boolean handlesVisitorRemoval(String type, Map<String, String> fields) {
+        if (!type.equals(CloudIslandEventType.ISLAND_VISITOR_KICKED.name())
+            && !type.equals(CloudIslandEventType.ISLAND_VISITOR_BAN_CHANGED.name())) {
+            return false;
+        }
+        if (type.equals(CloudIslandEventType.ISLAND_VISITOR_BAN_CHANGED.name())
+            && !Boolean.parseBoolean(fields.getOrDefault("banned", "false"))) {
             return false;
         }
         String islandIdValue = fields.getOrDefault("islandId", "");
