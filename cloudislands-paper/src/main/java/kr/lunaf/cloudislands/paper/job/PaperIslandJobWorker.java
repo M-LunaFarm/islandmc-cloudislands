@@ -156,12 +156,15 @@ public final class PaperIslandJobWorker {
             if (job.type() == IslandJobType.DELETE_ISLAND) {
                 Bukkit.getPluginManager().callEvent(new IslandDeleteEvent(result.islandId(), job.jobId(), nodeId, result.snapshotNo()));
             }
-            jobSource.complete(nodeId, job.jobId(), Map.of(
-                "snapshotNo", Long.toString(result.snapshotNo()),
-                "reason", job.payload().getOrDefault("reason", job.type().name()),
-                "checksum", result.checksum(),
-                "sizeBytes", Long.toString(result.sizeBytes())
-            ));
+            java.util.Map<String, String> payload = new java.util.HashMap<>();
+            payload.put("snapshotNo", Long.toString(result.snapshotNo()));
+            payload.put("reason", job.payload().getOrDefault("reason", job.type().name()));
+            payload.put("checksum", result.checksum());
+            payload.put("sizeBytes", Long.toString(result.sizeBytes()));
+            if (job.type() == IslandJobType.DELETE_ISLAND && job.payload().containsKey("ownerUuid")) {
+                payload.put("ownerUuid", job.payload().get("ownerUuid"));
+            }
+            jobSource.complete(nodeId, job.jobId(), payload);
         } else {
             jobSource.fail(nodeId, job.jobId(), result.errorMessage());
         }

@@ -29,6 +29,12 @@ public final class IslandDeactivationHandler {
         try {
             IslandSaveService.SaveResult saveResult = null;
             ActiveIslandRegistry.ActiveIsland active = activeIslands.find(islandId).orElse(null);
+            if (deleteBackup && active == null) {
+                return new DeactivationResult(false, islandId, 0L, "", 0L, "ISLAND_NOT_ACTIVE");
+            }
+            if (deleteBackup && saveService == null) {
+                return new DeactivationResult(false, islandId, 0L, "", 0L, "SAVE_UNAVAILABLE");
+            }
             if (active != null && saveService != null) {
                 saveResult = deleteBackup ? saveService.backupBeforeDelete(islandId, active) : saveService.save(islandId, active);
             }
