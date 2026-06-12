@@ -297,6 +297,9 @@ public final class RoutingOrchestrator {
         if (state == IslandState.DELETED || state == IslandState.DELETE_REQUESTED || state == IslandState.BACKUP_BEFORE_DELETE || state == IslandState.DELETING) {
             return rejectRoute(404, "ISLAND_NOT_FOUND", "Island was not found", playerUuid, islandId, action);
         }
+        if (state == IslandState.DEACTIVATING) {
+            return rejectRoute(409, "ISLAND_MIGRATING", "Island is migrating to another node", playerUuid, islandId, action);
+        }
         return rejectRoute(409, "ISLAND_LOADING_FAILED", "Island is not ready for routing", playerUuid, islandId, action);
     }
 
