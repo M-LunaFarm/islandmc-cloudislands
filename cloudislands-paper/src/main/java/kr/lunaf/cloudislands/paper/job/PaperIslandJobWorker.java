@@ -130,6 +130,12 @@ public final class PaperIslandJobWorker {
                     payload.put("preMutationSizeBytes", Long.toString(result.preMutationSizeBytes()));
                     payload.put("preMutationReason", result.preMutationReason());
                 }
+                if (result.creationSnapshotNo() > 0L) {
+                    payload.put("snapshotNo", Long.toString(result.creationSnapshotNo()));
+                    payload.put("checksum", result.creationSnapshotChecksum());
+                    payload.put("sizeBytes", Long.toString(result.creationSnapshotSizeBytes()));
+                    payload.put("reason", "CREATED");
+                }
                 jobSource.complete(nodeId, job.jobId(), payload);
             } else {
                 jobSource.fail(nodeId, job.jobId(), result.state());

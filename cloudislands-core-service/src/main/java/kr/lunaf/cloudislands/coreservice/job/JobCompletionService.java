@@ -59,6 +59,9 @@ public final class JobCompletionService {
             if (job.type() == IslandJobType.RESET_ISLAND) {
                 recordPreMutationSnapshot(job);
             }
+            if (job.type() == IslandJobType.CREATE_ISLAND) {
+                recordCompletedSnapshot(job, "CREATED", true);
+            }
             String worldName = job.payload().getOrDefault("worldName", "ci_shard_001");
             runtimes.markActive(job.islandId(), job.targetNode(), worldName, integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), longValue(job.payload().get("fencingToken")));
             int readyTickets = tickets.markReadyForIsland(job.islandId(), job.targetNode(), worldName, Instant.now().plus(routeTicketTtl), Map.of());
@@ -66,21 +69,15 @@ public final class JobCompletionService {
             return;
         }
         if (job.type() == IslandJobType.DEACTIVATE_ISLAND) {
-            long snapshotNo = longValue(job.payload().get("snapshotNo"));
-            if (snapshotNo > 0L) {
-                snapshots.record(job.islandId(), snapshotNo, "islands/" + job.islandId() + "/snapshots/" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", job.payload().getOrDefault("reason", job.type().name()), null, job.payload().getOrDefault("checksum", ""), longValue(job.payload().get("sizeBytes")));
-                snapshots.prune(job.islandId(), snapshotKeepLatest);
-            }
+            long snapshotNo = recordCompletedSnapshot(job, job.type().name(), true);
             runtimes.markInactive(job.islandId());
             publishMigrationActivation(job);
             events.publish(CloudIslandEventType.ISLAND_DEACTIVATED.name(), Map.of("islandId", job.islandId().toString()));
             return;
         }
         if (job.type() == IslandJobType.SAVE_ISLAND || job.type() == IslandJobType.SNAPSHOT_ISLAND) {
-            long snapshotNo = longValue(job.payload().get("snapshotNo"));
+            long snapshotNo = recordCompletedSnapshot(job, job.type().name(), true);
             if (snapshotNo > 0L) {
-                snapshots.record(job.islandId(), snapshotNo, "islands/" + job.islandId() + "/snapshots/" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", job.payload().getOrDefault("reason", job.type().name()), null, job.payload().getOrDefault("checksum", ""), longValue(job.payload().get("sizeBytes")));
-                snapshots.prune(job.islandId(), snapshotKeepLatest);
                 events.publish(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name(), Map.of("islandId", job.islandId().toString(), "snapshotNo", Long.toString(snapshotNo), "reason", job.payload().getOrDefault("reason", "")));
             }
             return;
@@ -152,6 +149,18 @@ public final class JobCompletionService {
             return;
         }
         snapshots.record(job.islandId(), snapshotNo, "islands/" + job.islandId() + "/snapshots/" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", job.payload().getOrDefault("preMutationReason", "BEFORE_MUTATION"), null, job.payload().getOrDefault("preMutationChecksum", ""), longValue(job.payload().get("preMutationSizeBytes")));
+    }
+
+    private long recordCompletedSnapshot(IslandJob job, String fallbackReason, boolean prune) {
+        long snapshotNo = longValue(job.payload().get("snapshotNo"));
+        if (snapshotNo <= 0L) {
+            return 0L;
+        }
+        snapshots.record(job.islandId(), snapshotNo, "islands/" + job.islandId() + "/snapshots/" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", job.payload().getOrDefault("reason", fallbackReason), null, job.payload().getOrDefault("checksum", ""), longValue(job.payload().get("sizeBytes")));
+        if (prune) {
+            snapshots.prune(job.islandId(), snapshotKeepLatest);
+        }
+        return snapshotNo;
     }
 
     private void restoreDeletedIslandRecord(IslandJob job) {

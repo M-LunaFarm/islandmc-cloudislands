@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.activation;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.UUID;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.world.IslandWorldRestorer;
@@ -51,7 +52,7 @@ public final class IslandActivationJobHandler {
 
     public ActivationResult handle(IslandJob job) {
         if (job.type() != IslandJobType.ACTIVATE_ISLAND && job.type() != IslandJobType.CREATE_ISLAND && job.type() != IslandJobType.RESTORE_ISLAND && job.type() != IslandJobType.RESET_ISLAND) {
-            return new ActivationResult(false, "UNSUPPORTED_JOB", null, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L, "");
+            return new ActivationResult(false, "UNSUPPORTED_JOB", null, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L, "", 0L, "", 0L);
         }
         UUID islandId = job.islandId();
         try {
@@ -76,10 +77,19 @@ public final class IslandActivationJobHandler {
                 preloader.preload(cell.worldName(), cell.originX(), cell.originZ(), preloadRadius);
             }
             protectionController.registerIsland(islandId, cell.worldName(), cell.originX(), cell.originZ(), manifest.size(), cell.cellX(), cell.cellZ());
-            return new ActivationResult(true, "ACTIVE", islandId, cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), manifest.size(), manifest.schemaVersion(), longValue(job.payload().get("fencingToken")), restorePlan == null ? null : restorePlan.extractedRoot().toString(), preMutationSnapshot == null ? 0L : preMutationSnapshot.snapshotNo(), preMutationSnapshot == null ? "" : preMutationSnapshot.checksum(), preMutationSnapshot == null ? 0L : preMutationSnapshot.sizeBytes(), preMutationReason(job));
+            IslandSaveService.SaveResult creationSnapshot = snapshotAfterCreate(job, cell, manifest);
+            return new ActivationResult(true, "ACTIVE", islandId, cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), manifest.size(), manifest.schemaVersion(), longValue(job.payload().get("fencingToken")), restorePlan == null ? null : restorePlan.extractedRoot().toString(), preMutationSnapshot == null ? 0L : preMutationSnapshot.snapshotNo(), preMutationSnapshot == null ? "" : preMutationSnapshot.checksum(), preMutationSnapshot == null ? 0L : preMutationSnapshot.sizeBytes(), preMutationReason(job), creationSnapshot == null ? 0L : creationSnapshot.snapshotNo(), creationSnapshot == null ? "" : creationSnapshot.checksum(), creationSnapshot == null ? 0L : creationSnapshot.sizeBytes());
         } catch (Exception exception) {
-            return new ActivationResult(false, "ERROR_ACTIVATING", islandId, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L, "");
+            return new ActivationResult(false, "ERROR_ACTIVATING", islandId, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L, "", 0L, "", 0L);
         }
+    }
+
+    private IslandSaveService.SaveResult snapshotAfterCreate(IslandJob job, ShardWorldManager.CellAssignment cell, IslandBundleManifest manifest) throws IOException {
+        if (job.type() != IslandJobType.CREATE_ISLAND || saveService == null) {
+            return null;
+        }
+        ActiveIslandRegistry.ActiveIsland activeIsland = new ActiveIslandRegistry.ActiveIsland(job.islandId(), cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), manifest.size(), manifest.schemaVersion(), Instant.now());
+        return saveService.save(job.islandId(), activeIsland);
     }
 
     private IslandSaveService.SaveResult snapshotBeforeMutation(IslandJob job) throws IOException {
@@ -127,5 +137,5 @@ public final class IslandActivationJobHandler {
         }
     }
 
-    public record ActivationResult(boolean success, String state, UUID islandId, String worldName, int cellX, int cellZ, int originX, int originZ, int islandSize, long schemaVersion, long fencingToken, String extractedRoot, long preMutationSnapshotNo, String preMutationChecksum, long preMutationSizeBytes, String preMutationReason) {}
+    public record ActivationResult(boolean success, String state, UUID islandId, String worldName, int cellX, int cellZ, int originX, int originZ, int islandSize, long schemaVersion, long fencingToken, String extractedRoot, long preMutationSnapshotNo, String preMutationChecksum, long preMutationSizeBytes, String preMutationReason, long creationSnapshotNo, String creationSnapshotChecksum, long creationSnapshotSizeBytes) {}
 }
