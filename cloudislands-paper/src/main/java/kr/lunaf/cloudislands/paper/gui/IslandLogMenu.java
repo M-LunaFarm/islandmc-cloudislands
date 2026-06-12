@@ -48,6 +48,16 @@ public final class IslandLogMenu implements Listener {
             player.performCommand("섬 로그");
             return;
         }
+        if (name.equals("메인 메뉴")) {
+            player.closeInventory();
+            player.performCommand("섬 메뉴");
+            return;
+        }
+        if (name.equals("설정")) {
+            player.closeInventory();
+            player.performCommand("섬 설정");
+            return;
+        }
         if (name.equals("닫기")) {
             player.closeInventory();
             return;
@@ -72,7 +82,9 @@ public final class IslandLogMenu implements Listener {
                     inventory.setItem(index, item(material(entry.action()), (index + 1) + ". " + entry.action(), lore(entry)));
                 }
             }
+            inventory.setItem(30, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
             inventory.setItem(31, item(Material.CLOCK, "새로고침", "/섬 로그"));
+            inventory.setItem(32, item(Material.COMPARATOR, "설정", "/섬 설정"));
             inventory.setItem(35, item(Material.OAK_DOOR, "닫기", "메뉴를 닫습니다."));
             player.openInventory(inventory);
         });
