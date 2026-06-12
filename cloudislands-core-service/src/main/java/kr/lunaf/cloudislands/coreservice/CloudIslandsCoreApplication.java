@@ -130,6 +130,7 @@ public final class CloudIslandsCoreApplication {
     private final MtlsHeaderGuard mtlsGuard;
     private final NodeFailureMonitor nodeFailureMonitor;
     private final RouteTicketExpiryMonitor routeTicketExpiryMonitor;
+    private final JobRecoveryMonitor jobRecoveryMonitor;
     private final IslandStorage deleteStorage;
     private final IslandRuntimeRepository runtimeRepository;
     private final IslandJobQueue jobs;
@@ -208,6 +209,7 @@ public final class CloudIslandsCoreApplication {
         PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, tickets, runtimeRepository, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::activeConnections, meteredDataSource::openedConnections, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventWriter == null ? 0L : redisEventWriter.failuresTotal());
         this.nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, islandRepository, events, config.heartbeatTimeout());
         this.routeTicketExpiryMonitor = new RouteTicketExpiryMonitor(tickets, events, config.routeTicketTtl());
+        this.jobRecoveryMonitor = new JobRecoveryMonitor(jobs, Duration.ofSeconds(60), config.leaseDuration().toMillis(), 16);
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
         route("/health", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));
         route("/metrics", exchange -> write(exchange, 200, metrics.render(), "text/plain; version=0.0.4; charset=utf-8"));
@@ -1568,6 +1570,7 @@ public final class CloudIslandsCoreApplication {
         server.start();
         nodeFailureMonitor.start();
         routeTicketExpiryMonitor.start();
+        jobRecoveryMonitor.start();
         rankingRecalculationTask.start();
     }
 
