@@ -974,10 +974,10 @@ public final class CloudIslandsVelocityPlugin {
             return fallback;
         }
         String value = args[index].toLowerCase(Locale.ROOT);
-        if (value.equals("on") || value.equals("true") || value.equals("yes") || value.equals("1") || value.equals("켜기") || value.equals("허용")) {
+        if (value.equals("on") || value.equals("true") || value.equals("yes") || value.equals("1") || value.equals("enable") || value.equals("enabled") || value.equals("켜기") || value.equals("허용") || value.equals("활성")) {
             return true;
         }
-        if (value.equals("off") || value.equals("false") || value.equals("no") || value.equals("0") || value.equals("끄기") || value.equals("거부")) {
+        if (value.equals("off") || value.equals("false") || value.equals("no") || value.equals("0") || value.equals("disable") || value.equals("disabled") || value.equals("끄기") || value.equals("거부") || value.equals("비활성")) {
             return false;
         }
         return Boolean.parseBoolean(args[index]);
@@ -1015,7 +1015,7 @@ public final class CloudIslandsVelocityPlugin {
             addLiteralSuggestions(matches, args[3], List.of("maintenance", "restart", "drain"));
         }
         if (args.length == 5 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("upsert")) {
-            addLiteralSuggestions(matches, args[4], List.of("true", "false"));
+            addLiteralSuggestions(matches, args[4], List.of("true", "false", "enabled", "disabled", "on", "off"));
         }
         if (args.length == 6 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("upsert")) {
             addLiteralSuggestions(matches, args[5], List.of("1.0.0", "1.21.0", "1.21.4"));

@@ -81,7 +81,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         "ciadmin block-values set <materialKey> <worth> <levelPoints> <limit>",
         "ciadmin upgrade-rules",
         "ciadmin template list",
-        "ciadmin template upsert <id> <name> [enabled] [minNodeVersion]",
+        "ciadmin template upsert <id> <name> [enabled|disabled] [minNodeVersion]",
         "ciadmin template enable <id>",
         "ciadmin template disable <id>",
         "ciadmin migrate-superiorskyblock2 scan [path]",
@@ -602,7 +602,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args[1].equalsIgnoreCase("upsert")) {
             if (args.length < 4) {
-                sender.sendMessage("사용법: /ciadmin template|templates upsert <id> <name> [enabled] [minNodeVersion]");
+                sender.sendMessage("사용법: /ciadmin template|templates upsert <id> <name> [enabled|disabled] [minNodeVersion]");
                 return true;
             }
             boolean enabled = args.length < 5 || booleanArgument(args[4], false);
