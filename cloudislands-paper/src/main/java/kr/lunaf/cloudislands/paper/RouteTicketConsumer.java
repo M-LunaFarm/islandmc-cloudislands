@@ -38,7 +38,7 @@ public final class RouteTicketConsumer {
     private void consumeAndTeleport(UUID ticketId, UUID playerUuid, String nonce, int attempt) {
         coreApiClient.consumeTicket(ticketId, playerUuid, nodeId, nonce).thenAccept(ticket -> {
             if (ticket.isPresent()) {
-                Bukkit.getScheduler().runTask(plugin, () -> teleport(playerUuid, ticket.get()));
+                Bukkit.getScheduler().runTask(plugin, () -> teleport(playerUuid, ticket.get(), 0));
                 return;
             }
             if (attempt < 20) {
@@ -56,11 +56,16 @@ public final class RouteTicketConsumer {
         });
     }
 
-    private void teleport(UUID playerUuid, RouteTicket ticket) {
+    private void teleport(UUID playerUuid, RouteTicket ticket, int attempt) {
         Player player = Bukkit.getPlayer(playerUuid);
         String worldName = ticket.targetWorld();
         World world = worldName == null ? null : Bukkit.getWorld(worldName);
         if (player == null || world == null) {
+            if (attempt < 20) {
+                Bukkit.getScheduler().runTaskLater(plugin, () -> teleport(playerUuid, ticket, attempt + 1), 20L);
+            } else {
+                notifyRouteFailed(playerUuid);
+            }
             return;
         }
         if (ticket.action() == RouteAction.VISIT) {
@@ -79,6 +84,8 @@ public final class RouteTicketConsumer {
             if (ticket.action() == RouteAction.VISIT) {
                 Bukkit.getPluginManager().callEvent(new IslandVisitEvent(ticket.islandId(), playerUuid, player, worldName));
             }
+        } else {
+            notifyRouteFailed(playerUuid);
         }
     }
 
