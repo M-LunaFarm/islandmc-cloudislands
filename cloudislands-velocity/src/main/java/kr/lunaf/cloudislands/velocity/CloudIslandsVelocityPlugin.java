@@ -815,8 +815,9 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("snapshot") || args[0].equals("스냅샷")) {
-            UUID islandId = optionalIslandIdArgument(args, 1);
-            String reason = joinArgs(args, hasOptionalIslandIdArgument(args, 1) ? 2 : 1);
+            boolean hasIslandId = args.length > 1 && isUuid(args[1]);
+            UUID islandId = hasIslandId ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            String reason = joinArgs(args, hasIslandId ? 2 : 1);
             if (reason.isBlank()) {
                 reason = "MANUAL";
             }
@@ -836,8 +837,9 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("reset") || args[0].equals("리셋")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            String reason = args.length > 2 ? joinArgs(args, 2) : "PLAYER_RESET";
+            boolean hasIslandId = args.length > 1 && isUuid(args[1]);
+            UUID islandId = hasIslandId ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            String reason = args.length > (hasIslandId ? 2 : 1) ? joinArgs(args, hasIslandId ? 2 : 1) : "PLAYER_RESET";
             routingController.resetIsland(player, islandId, reason);
             return;
         }
