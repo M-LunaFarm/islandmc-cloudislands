@@ -864,6 +864,12 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 409, "{\"accepted\":false,\"code\":\"INVALID_AMOUNT\",\"bank\":" + bankJson(bankRepository.balance(islandId)) + "}");
                 return;
             }
+            var currentBank = bankRepository.balance(islandId);
+            long bankLimit = limitValue(limitRepository, islandId, "BANK", Long.MAX_VALUE);
+            if (bankLimit != Long.MAX_VALUE && decimal(currentBank.balance()).add(amount).compareTo(BigDecimal.valueOf(bankLimit)) > 0) {
+                write(exchange, 409, "{\"accepted\":false,\"code\":\"BANK_LIMIT\",\"bank\":" + bankJson(currentBank) + "}");
+                return;
+            }
             var snapshot = bankRepository.deposit(islandId, amount);
             audit.log(actorUuid, "PLAYER", "ISLAND_BANK_DEPOSIT", "ISLAND", islandId.toString(), Map.of("amount", amount.toPlainString(), "balance", snapshot.balance()));
             islandLogs.append(islandId, actorUuid, "ISLAND_BANK_DEPOSIT", Map.of("amount", amount.toPlainString(), "balance", snapshot.balance()));
@@ -1691,6 +1697,22 @@ public final class CloudIslandsCoreApplication {
         }
         metadata.setFlag(islandId, IslandFlag.FLY, "true");
         events.publish(CloudIslandEventType.ISLAND_FLAG_CHANGED.name(), Map.of("islandId", islandId.toString(), "flag", IslandFlag.FLY.name(), "value", "true"));
+    }
+
+    private static long limitValue(IslandLimitRepository limits, UUID islandId, String limitKey, long fallback) {
+        return limits.list(islandId).stream()
+            .filter(limit -> limit.limitKey().equalsIgnoreCase(limitKey))
+            .findFirst()
+            .map(IslandLimitSnapshot::value)
+            .orElse(fallback);
+    }
+
+    private static BigDecimal decimal(String value) {
+        try {
+            return new BigDecimal(value == null || value.isBlank() ? "0" : value);
+        } catch (RuntimeException ignored) {
+            return BigDecimal.ZERO;
+        }
     }
 
     private static String membersJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandMemberSnapshot> members) {
