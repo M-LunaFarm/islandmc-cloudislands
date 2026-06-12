@@ -582,6 +582,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
+        public CompletableFuture<List<IslandRuntimeSnapshot>> listNodeIslands(String nodeId, int limit) {
+            return client.nodeIslands(nodeId, limit).thenApply(PaperCloudIslandsApi::nodeIslands);
+        }
+
+        @Override
         public CompletableFuture<List<IslandTemplateSnapshot>> listTemplates() {
             return client.listTemplates().thenApply(PaperCloudIslandsApi::templates);
         }
@@ -851,6 +856,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return Optional.empty();
         }
         return Optional.of(runtime(json));
+    }
+
+    private static List<IslandRuntimeSnapshot> nodeIslands(String json) {
+        List<IslandRuntimeSnapshot> runtimes = new ArrayList<>();
+        for (String object : objects(json, "islands")) {
+            runtimes.add(runtime(object));
+        }
+        return runtimes;
     }
 
     private static RoutePlan plan(RouteTicket ticket) {
