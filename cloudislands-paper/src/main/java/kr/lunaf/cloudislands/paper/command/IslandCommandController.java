@@ -585,7 +585,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("신뢰 해제할 플레이어를 입력해주세요.");
                 return true;
             }
-            removeIslandMember(player, args[1]);
+            setIslandMemberRole(player, args[1], IslandRole.MEMBER, "섬 신뢰를 해제했습니다.");
             return true;
         }
         if (subcommand.equals("promote") || subcommand.equals("승급")) {

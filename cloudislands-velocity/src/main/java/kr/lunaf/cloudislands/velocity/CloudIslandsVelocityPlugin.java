@@ -541,7 +541,7 @@ public final class CloudIslandsVelocityPlugin {
         }
         if (args[0].equalsIgnoreCase("untrust") || args[0].equals("신뢰해제")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
-            routingController.kickMemberTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""));
+            routingController.setRoleTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""), IslandRole.MEMBER);
             return;
         }
         if (args[0].equalsIgnoreCase("ban") || args[0].equals("밴")) {
