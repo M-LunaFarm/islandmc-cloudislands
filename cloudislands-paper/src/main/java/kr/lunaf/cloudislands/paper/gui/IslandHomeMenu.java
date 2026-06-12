@@ -43,11 +43,19 @@ public final class IslandHomeMenu implements Listener {
         String displayName = meta.getDisplayName();
         player.closeInventory();
         if (displayName.equals("현재 위치를 홈으로 설정")) {
-            player.sendMessage("사용법: /섬 셋홈 <이름>");
+            if (event.isRightClick()) {
+                player.sendMessage("사용법: /섬 셋홈 <이름>");
+                return;
+            }
+            player.performCommand("섬 셋홈 default");
             return;
         }
         String homeName = loreValue(meta, "homeName=");
         if (!homeName.isBlank()) {
+            if (event.isRightClick()) {
+                player.performCommand("섬 셋홈 " + homeName);
+                return;
+            }
             player.performCommand("섬 home " + homeName);
         }
     }
@@ -55,7 +63,7 @@ public final class IslandHomeMenu implements Listener {
     private static void openSync(Plugin plugin, Player player, List<Home> homes) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
-            inventory.setItem(45, item(Material.RED_BED, "현재 위치를 홈으로 설정", "사용법: /섬 셋홈 <이름>"));
+            inventory.setItem(45, item(Material.RED_BED, "현재 위치를 홈으로 설정", "좌클릭: default 홈으로 설정", "우클릭: 사용법 보기"));
             int slot = 0;
             for (Home home : homes.stream().limit(45).toList()) {
                 inventory.setItem(slot++, homeItem(home));
@@ -68,7 +76,7 @@ public final class IslandHomeMenu implements Listener {
     }
 
     private static ItemStack homeItem(Home home) {
-        return item(Material.GREEN_BED, home.name(), "homeName=" + home.name(), "위치: " + (long) home.x() + ", " + (long) home.y() + ", " + (long) home.z(), home.createdAt().isBlank() ? "생성 정보 없음" : "createdAt=" + home.createdAt(), "클릭하면 이 홈으로 이동합니다.");
+        return item(Material.GREEN_BED, home.name(), "homeName=" + home.name(), "위치: " + (long) home.x() + ", " + (long) home.y() + ", " + (long) home.z(), home.createdAt().isBlank() ? "생성 정보 없음" : "createdAt=" + home.createdAt(), "좌클릭: 이 홈으로 이동", "우클릭: 현재 위치로 갱신");
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
