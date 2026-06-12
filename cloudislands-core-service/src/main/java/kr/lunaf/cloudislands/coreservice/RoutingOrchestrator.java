@@ -251,6 +251,9 @@ public final class RoutingOrchestrator {
             ));
             return RoutePreparationResult.accepted(toJson(saved));
         } catch (IllegalStateException exception) {
+            if ("VISITOR_SOFT_FULL".equals(exception.getMessage())) {
+                return rejectRoute(429, "VISITOR_SOFT_FULL", "The island node is reserving slots for members", playerUuid, island.islandId(), action);
+            }
             return rejectRoute(409, "NODE_UNAVAILABLE", "No eligible island node is available", playerUuid, island.islandId(), action);
         }
     }
@@ -317,7 +320,7 @@ public final class RoutingOrchestrator {
                 throw new IllegalStateException("active node is unavailable");
             }
             if (visitorRoute && activeNode.state() == NodeState.SOFT_FULL) {
-                throw new IllegalStateException("visitor route denied on soft-full active node");
+                throw new IllegalStateException("VISITOR_SOFT_FULL");
             }
             String worldName = runtime.activeWorld() == null || runtime.activeWorld().isBlank() ? "ci_shard_001" : runtime.activeWorld();
             return new RouteTarget(activeNode, worldName, RouteTicketState.READY);
