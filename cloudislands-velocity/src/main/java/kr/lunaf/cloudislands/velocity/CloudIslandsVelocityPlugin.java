@@ -416,7 +416,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.recoverJobs(player, args.length > 2 ? args[2] : "recovery", args.length > 3 ? parseLongOrZero(args[3]) : 60000L, args.length > 4 ? (int) parseLongOrZero(args[4]) : 16);
             return;
         }
-        player.sendMessage(Component.text("사용법: /ciadmin status, /ciadmin island info|where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete, /ciadmin player info <player>|setisland <player> <islandUuid>|clearisland <player>, /ciadmin jobs list|retry <jobId>|cancel <jobId>|recover [nodeId] [minIdleMillis] [maxJobs], /ciadmin route debug [all|player]|ticket <ticket|player>|clear <player> [ticket], /ciadmin rankings level|worth [limit], /ciadmin events, /ciadmin audit, /ciadmin block-values list|set <materialKey> <worth> <levelPoints> <limit>, /ciadmin upgrade-rules, /ciadmin template|templates list|upsert <id> <name> [enabled] [minNodeVersion]|enable|disable, /ciadmin node list|info|islands|drain|undrain|sweep|kickall|shutdown-safe, /ciadmin migrate-superiorskyblock2 scan|dryrun|dry-run|import|verify|rollback [path]"));
+        sendCommandList(player, "CloudIslands 관리자 명령어 목록", IslandCommandCatalog.adminCommands());
     }
 
     private void dispatch(Player player, String[] args) {
@@ -815,7 +815,14 @@ public final class CloudIslandsVelocityPlugin {
             routingController.deleteIsland(player, islandId);
             return;
         }
-        player.sendMessage(Component.text("사용법: /섬 홈, /섬 생성, /섬 삭제 <섬>, /섬 은행 <섬>, /섬 입금 <섬> <금액>, /섬 방문 <섬>, /섬 랭킹"));
+        sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands());
+    }
+
+    private void sendCommandList(Player player, String title, List<String> commands) {
+        player.sendMessage(Component.text(title));
+        for (String command : commands) {
+            player.sendMessage(Component.text("> /" + command));
+        }
     }
 
     private UUID parseUuidOrNil(String value) {

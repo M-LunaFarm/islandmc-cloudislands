@@ -60,7 +60,7 @@ import org.jetbrains.annotations.NotNull;
 
 public final class IslandCommandController implements CommandExecutor, TabCompleter {
     private static final List<String> SUBCOMMANDS = List.of(
-        "menu", "메뉴",
+        "help", "도움말", "commands", "명령어", "menu", "메뉴",
         "create-menu", "templates", "생성메뉴", "템플릿",
         "info", "정보", "list", "my", "my-islands", "목록", "내섬", "create", "생성", "delete", "삭제", "reset", "리셋", "danger", "위험작업",
         "sethome", "셋홈", "homes", "home-menu", "home-list", "홈관리", "홈목록", "home", "홈",
@@ -88,6 +88,57 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "settings", "setting", "설정",
         "flags", "flag-menu", "flag-list", "flag", "setflag", "flag-set", "플래그", "플래그설정", "플래그목록",
         "permissions", "permission-menu", "permission-list", "permission", "perms", "setpermission", "permission-set", "권한", "권한설정", "권한목록"
+    );
+    private static final List<String> HELP_COMMANDS = List.of(
+        "섬 메뉴",
+        "섬 생성 [template]",
+        "섬 목록",
+        "섬 내섬",
+        "섬 홈 [name]",
+        "섬 홈목록",
+        "섬 셋홈 [name]",
+        "섬 방문 <섬|플레이어|random>",
+        "섬 랜덤방문",
+        "섬 공개",
+        "섬 비공개",
+        "섬 잠금",
+        "섬 잠금해제",
+        "섬 워프목록",
+        "섬 워프 <name>",
+        "섬 워프설정 <name>",
+        "섬 워프삭제 <name>",
+        "섬 공개워프목록",
+        "섬 랭킹 [limit]",
+        "섬 랭킹 worth [limit]",
+        "섬 가치랭킹 [limit]",
+        "섬 레벨",
+        "섬 레벨계산",
+        "섬 가치",
+        "섬 은행",
+        "섬 입금 <amount>",
+        "섬 출금 <amount>",
+        "섬 업그레이드",
+        "섬 미션",
+        "섬 챌린지",
+        "섬 채팅 <message>",
+        "섬 팀채팅 <message>",
+        "섬 설정",
+        "섬 권한",
+        "섬 플래그",
+        "섬 멤버",
+        "섬 초대 <player>",
+        "섬 초대목록",
+        "섬 초대수락 <inviteId>",
+        "섬 초대거절 <inviteId>",
+        "섬 밴 <player>",
+        "섬 밴해제 <player>",
+        "섬 밴목록",
+        "섬 스냅샷",
+        "섬 스냅샷목록",
+        "섬 복원 <snapshotNo>",
+        "섬 로그",
+        "섬 리셋",
+        "섬 삭제"
     );
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
@@ -144,6 +195,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return true;
         }
         String subcommand = args[0].toLowerCase();
+        if (subcommand.equals("help") || subcommand.equals("도움말") || subcommand.equals("commands") || subcommand.equals("명령어")) {
+            sendCommandList(player, "섬 명령어 목록", HELP_COMMANDS);
+            return true;
+        }
         if (subcommand.equals("menu") || subcommand.equals("메뉴")) {
             IslandMainMenu.open(player);
             return true;
@@ -716,7 +771,15 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             setIslandPermission(player, args[1], args[2], args[3]);
             return true;
         }
-        return false;
+        sendCommandList(player, "섬 명령어 목록", HELP_COMMANDS);
+        return true;
+    }
+
+    private void sendCommandList(Player player, String title, List<String> commands) {
+        player.sendMessage(title);
+        for (String command : commands) {
+            player.sendMessage("> /" + command);
+        }
     }
 
     private void createIsland(Player player, String templateId) {

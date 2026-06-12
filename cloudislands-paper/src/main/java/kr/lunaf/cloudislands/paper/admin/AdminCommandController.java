@@ -35,6 +35,60 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private static final List<String> TEMPLATE_COMMANDS = List.of("list", "upsert", "enable", "disable");
     private static final List<String> MIGRATION_COMMANDS = List.of("scan", "dryrun", "dry-run", "import", "verify", "rollback");
     private static final List<String> NODE_DANGER_REASONS = List.of("maintenance", "restart", "drain");
+    private static final List<String> HELP_COMMANDS = List.of(
+        "ciadmin status",
+        "ciadmin cache clear",
+        "ciadmin node menu",
+        "ciadmin node list",
+        "ciadmin node info <node>",
+        "ciadmin node islands <node> [limit]",
+        "ciadmin node drain <node>",
+        "ciadmin node undrain <node>",
+        "ciadmin node sweep <node>",
+        "ciadmin node kickall <node> [reason]",
+        "ciadmin node shutdown-safe <node> [reason]",
+        "ciadmin island info <island>",
+        "ciadmin island where <island>",
+        "ciadmin island tp <island>",
+        "ciadmin island activate <island>",
+        "ciadmin island deactivate <island>",
+        "ciadmin island migrate <island> <node>",
+        "ciadmin island save <island>",
+        "ciadmin island snapshot <island> [reason]",
+        "ciadmin island snapshots <island>",
+        "ciadmin island restore <island> <snapshot>",
+        "ciadmin island rollback <island> <snapshot>",
+        "ciadmin island quarantine <island> [reason]",
+        "ciadmin island repair <island> [reason]",
+        "ciadmin island delete <island>",
+        "ciadmin player info <player>",
+        "ciadmin player setisland <player> <islandUuid>",
+        "ciadmin player clearisland <player>",
+        "ciadmin jobs list",
+        "ciadmin jobs retry <jobId>",
+        "ciadmin jobs cancel <jobId>",
+        "ciadmin jobs recover [nodeId] [minIdleMillis] [maxJobs]",
+        "ciadmin route debug [all|player]",
+        "ciadmin route ticket <ticket|player>",
+        "ciadmin route clear <player> [ticket]",
+        "ciadmin rankings level [limit]",
+        "ciadmin rankings worth [limit]",
+        "ciadmin events",
+        "ciadmin audit",
+        "ciadmin block-values list",
+        "ciadmin block-values set <materialKey> <worth> <levelPoints> <limit>",
+        "ciadmin upgrade-rules",
+        "ciadmin template list",
+        "ciadmin template upsert <id> <name> [enabled] [minNodeVersion]",
+        "ciadmin template enable <id>",
+        "ciadmin template disable <id>",
+        "ciadmin migrate-superiorskyblock2 scan [path]",
+        "ciadmin migrate-superiorskyblock2 dryrun [path]",
+        "ciadmin migrate-superiorskyblock2 import [path]",
+        "ciadmin migrate-superiorskyblock2 verify [path]",
+        "ciadmin migrate-superiorskyblock2 rollback [path]",
+        "ciadmin reload"
+    );
     private final CloudIslandsPaperAgent agent;
     private final CoreApiClient coreApiClient;
     private final String nodeId;
@@ -854,7 +908,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private void usage(CommandSender sender, String label) {
-        sender.sendMessage("사용법: /" + label + " status, cache clear, node menu|list|info|islands|drain|undrain|sweep|kickall|shutdown-safe, island info|where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete, player info <player>|setisland <player> <islandUuid>|clearisland <player>, jobs list|retry <jobId>|cancel <jobId>|recover [nodeId] [minIdleMillis] [maxJobs], route debug [all|player]|ticket <ticket|player>|clear <player> [ticket], rankings level|worth [limit], events, audit, block-values list|set <materialKey> <worth> <levelPoints> <limit>, upgrade-rules, template|templates list|upsert|enable|disable, migrate-superiorskyblock2 scan|dryrun|dry-run|import|verify|rollback [path], reload");
+        sender.sendMessage("CloudIslands 관리자 명령어 목록");
+        for (String command : HELP_COMMANDS) {
+            sender.sendMessage("> /" + command.replaceFirst("^ciadmin", label));
+        }
     }
 
     private UUID uuid(CommandSender sender, String value) {
