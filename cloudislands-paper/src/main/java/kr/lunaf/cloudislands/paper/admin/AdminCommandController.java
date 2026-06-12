@@ -169,7 +169,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         String targetNode = args.length > 2 ? args[2] : nodeId;
         if (args[1].equalsIgnoreCase("info")) {
-            run(sender, "Node info", coreApiClient.nodeInfo(targetNode));
+            run(sender, "Node info", coreApiClient.nodeInfo(targetNode).thenApply(this::appendLevelScanSummary));
             return true;
         }
         if (args[1].equalsIgnoreCase("drain")) {
@@ -544,7 +544,97 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             .exceptionally(error -> {
                 message(sender, action + " 실패");
                 return null;
-            });
+        });
+    }
+
+    private String appendLevelScanSummary(String body) {
+        String summary = levelScanSummary(body);
+        if (summary.isBlank()) {
+            return body;
+        }
+        return (body == null || body.isBlank() ? "" : body + " | ") + summary;
+    }
+
+    private String levelScanSummary(String body) {
+        String scan = objectValue(body, "levelScan");
+        if (scan.isBlank()) {
+            return "";
+        }
+        List<String> parts = new ArrayList<>();
+        parts.add("레벨 스캔=" + (boolValue(scan, "running") ? "실행 중" : "대기"));
+        String lastIsland = textValue(scan, "lastIsland");
+        if (!lastIsland.isBlank()) {
+            parts.add("마지막 섬=" + lastIsland);
+        }
+        long startedAt = longValue(scan, "startedAt");
+        if (startedAt > 0L) {
+            parts.add("시작=" + startedAt);
+        }
+        long finishedAt = longValue(scan, "finishedAt");
+        if (finishedAt > 0L) {
+            parts.add("완료=" + finishedAt);
+        }
+        long failedAt = longValue(scan, "failedAt");
+        if (failedAt > 0L) {
+            parts.add("실패=" + failedAt);
+        }
+        return String.join(", ", parts);
+    }
+
+    private String objectValue(String body, String field) {
+        String needle = "\"" + field + "\":{";
+        int start = body == null ? -1 : body.indexOf(needle);
+        if (start < 0) {
+            return "";
+        }
+        start += needle.length() - 1;
+        int depth = 0;
+        for (int i = start; i < body.length(); i++) {
+            char current = body.charAt(i);
+            if (current == '{') {
+                depth++;
+            } else if (current == '}') {
+                depth--;
+                if (depth == 0) {
+                    return body.substring(start, i + 1);
+                }
+            }
+        }
+        return "";
+    }
+
+    private boolean boolValue(String body, String field) {
+        String needle = "\"" + field + "\":";
+        int start = body == null ? -1 : body.indexOf(needle);
+        if (start < 0) {
+            return false;
+        }
+        start += needle.length();
+        while (start < body.length() && Character.isWhitespace(body.charAt(start))) {
+            start++;
+        }
+        return body.startsWith("true", start);
+    }
+
+    private long longValue(String body, String field) {
+        String needle = "\"" + field + "\":";
+        int start = body == null ? -1 : body.indexOf(needle);
+        if (start < 0) {
+            return 0L;
+        }
+        start += needle.length();
+        int end = start;
+        while (end < body.length() && (body.charAt(end) == '-' || Character.isDigit(body.charAt(end)))) {
+            end++;
+        }
+        if (end == start) {
+            return 0L;
+        }
+        try {
+            return Long.parseLong(body.substring(start, end));
+        } catch (NumberFormatException exception) {
+            return 0L;
+        }
     }
 
     private void message(CommandSender sender, String text) {
