@@ -1316,6 +1316,11 @@ public final class CloudIslandsCoreApplication {
             if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.BAN_VISITOR)) {
                 return;
             }
+            IslandRole targetRole = memberRole(metadataRepository.members(islandId), playerUuid);
+            if (targetRole != null && targetRole != IslandRole.VISITOR && targetRole != IslandRole.BANNED) {
+                write(exchange, 409, ApiResponses.error("VISITOR_BAN_DENIED", "Island members cannot be handled through visitor bans"));
+                return;
+            }
             metadataRepository.banVisitor(islandId, actorUuid, playerUuid, reason);
             metadataRepository.removeMember(islandId, playerUuid);
             audit.log(actorUuid, "PLAYER", "ISLAND_VISITOR_BAN", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString(), "reason", reason));
