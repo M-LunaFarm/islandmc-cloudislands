@@ -1600,6 +1600,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         long maxActiveIslands = longValue(object, "maxActiveIslands");
         long activationQueue = longValue(object, "activationQueue");
         long maxActivationQueue = longValue(object, "maxActivationQueue");
+        boolean activationEligible = boolValue(object, "eligibleForNewActivation");
+        String allocationBlockReason = textValue(object, "allocationBlockReason");
         return (id.isBlank() ? "node" : id)
             + " " + (state.isBlank() ? "UNKNOWN" : state)
             + " players=" + players + "/" + softCap + "/" + hardCap + " reserved=" + reservedSlots
@@ -1607,6 +1609,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " queue=" + activationQueue + "/" + maxActivationQueue
             + " mspt=" + seconds(doubleValue(object, "mspt"))
             + " score=" + seconds(doubleValue(object, "score"))
+            + " activation=" + (activationEligible ? "ok" : "blocked:" + (allocationBlockReason.isBlank() ? "UNKNOWN" : allocationBlockReason))
             + " storage=" + (boolValue(object, "storageAvailable") ? "ok" : "down");
     }
 
