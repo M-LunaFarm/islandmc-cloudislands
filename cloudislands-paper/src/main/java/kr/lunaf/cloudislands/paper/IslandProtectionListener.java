@@ -247,7 +247,11 @@ public final class IslandProtectionListener implements Listener {
     public void onVehicleDestroy(VehicleDestroyEvent event) {
         Player player = attackingPlayer(event.getAttacker());
         if (player != null) {
-            event.setCancelled(denied(player, event.getVehicle().getLocation().getBlock(), IslandPermission.BREAK));
+            boolean blocked = denied(player, event.getVehicle().getLocation().getBlock(), IslandPermission.BREAK);
+            event.setCancelled(blocked);
+            if (!blocked) {
+                protection.islandAt(event.getVehicle().getLocation().getBlock()).ifPresent(islandId -> blockDeltas.entityRemoved(islandId, event.getVehicle().getType()));
+            }
         }
     }
 
