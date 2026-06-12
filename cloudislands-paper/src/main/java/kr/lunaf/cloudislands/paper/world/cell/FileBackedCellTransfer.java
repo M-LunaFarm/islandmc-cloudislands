@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper.world.cell;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
@@ -13,15 +14,27 @@ public final class FileBackedCellTransfer {
     }
 
     public void place(CellPlacementPlan plan) throws IOException {
-        Path worldRegion = worldContainer.resolve(plan.worldName()).resolve("region");
+        Path worldRegion = worldRegion(plan.worldName());
         Files.createDirectories(worldRegion);
         copyRegionFiles(plan.chunksDirectory(), worldRegion, plan.minChunkX(), plan.maxChunkX(), plan.minChunkZ(), plan.maxChunkZ());
     }
 
     public void extract(CellExtractionPlan plan) throws IOException {
-        Path worldRegion = worldContainer.resolve(plan.worldName()).resolve("region");
+        Path worldRegion = worldRegion(plan.worldName());
         Files.createDirectories(plan.targetChunksDirectory());
         copyRegionFiles(worldRegion, plan.targetChunksDirectory(), plan.minChunkX(), plan.maxChunkX(), plan.minChunkZ(), plan.maxChunkZ());
+    }
+
+    private Path worldRegion(String worldName) throws IOException {
+        if (worldName == null || worldName.isBlank() || worldName.contains("/") || worldName.contains("\\") || worldName.contains("..")) {
+            throw new IOException("invalid world name: " + worldName);
+        }
+        Path root = worldContainer.toAbsolutePath().normalize();
+        Path region = root.resolve(worldName).resolve("region").normalize();
+        if (!region.startsWith(root)) {
+            throw new IOException("world region escapes container: " + worldName);
+        }
+        return region;
     }
 
     private void copyRegionFiles(Path source, Path target, int minChunkX, int maxChunkX, int minChunkZ, int maxChunkZ) throws IOException {
@@ -33,13 +46,20 @@ public final class FileBackedCellTransfer {
         int minRegionZ = Math.floorDiv(minChunkZ, 32);
         int maxRegionZ = Math.floorDiv(maxChunkZ, 32);
         try (java.util.stream.Stream<Path> paths = Files.walk(source)) {
-            for (Path path : paths.filter(Files::isRegularFile).toList()) {
+            Path normalizedTarget = target.toAbsolutePath().normalize();
+            for (Path path : paths.filter(candidate -> Files.isRegularFile(candidate, LinkOption.NOFOLLOW_LINKS)).toList()) {
+                if (Files.isSymbolicLink(path)) {
+                    throw new IOException("symbolic links are not allowed in island region bundles: " + path);
+                }
                 RegionCoordinate coordinate = parseRegionCoordinate(path.getFileName().toString());
                 if (coordinate == null || !coordinate.inside(minRegionX, maxRegionX, minRegionZ, maxRegionZ)) {
                     continue;
                 }
                 Path relative = source.relativize(path);
-                Path destination = target.resolve(relative);
+                Path destination = normalizedTarget.resolve(relative).normalize();
+                if (!destination.startsWith(normalizedTarget)) {
+                    throw new IOException("region copy target escapes directory: " + relative);
+                }
                 Files.createDirectories(destination.getParent());
                 Files.copy(path, destination, StandardCopyOption.REPLACE_EXISTING);
             }
