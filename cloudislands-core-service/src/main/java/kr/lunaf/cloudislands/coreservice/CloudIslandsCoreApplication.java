@@ -732,6 +732,12 @@ public final class CloudIslandsCoreApplication {
             }
             write(exchange, session == null ? 404 : 200, session == null ? "" : sessionJson(session));
         });
+        route("/v1/routes/session/find-any", exchange -> {
+            String body = readBody(exchange);
+            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            PlayerRouteSession session = sessions.findAny(playerUuid).orElse(null);
+            write(exchange, session == null ? 404 : 200, session == null ? "" : sessionJson(session));
+        });
         route("/v1/routes/session/consume", exchange -> {
             String body = readBody(exchange);
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));

@@ -231,6 +231,7 @@ public final class CloudIslandsVelocityPlugin {
     @Subscribe
     public void onPostLogin(PostLoginEvent event) {
         routingController.recordPlayerProfile(event.getPlayer());
+        routingController.routePendingSession(event.getPlayer());
     }
 
     private void dispatchAdmin(Player player, String[] args) {

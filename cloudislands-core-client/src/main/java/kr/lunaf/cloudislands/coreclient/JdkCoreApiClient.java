@@ -500,6 +500,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<Optional<PlayerRouteSession>> findAnyRouteSession(UUID playerUuid) {
+        return post("/v1/routes/session/find-any", "{\"playerUuid\":\"" + playerUuid + "\"}").thenApply(body -> body.isBlank() ? Optional.empty() : Optional.of(RouteSessionJson.parse(body)));
+    }
+
+    @Override
     public CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId) {
         return consumeRouteSession(playerUuid, nodeId, true);
     }

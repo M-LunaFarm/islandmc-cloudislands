@@ -22,6 +22,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 
@@ -205,6 +206,33 @@ public final class VelocityRoutingController {
     public void recordPlayerProfile(Player player) {
         coreApiClient.touchPlayerProfile(player.getUniqueId(), player.getUsername())
             .exceptionally(error -> null);
+    }
+
+    public void routePendingSession(Player player) {
+        coreApiClient.findAnyRouteSession(player.getUniqueId()).thenAccept(session ->
+            session.ifPresent(value -> connectPendingSession(player, value))
+        ).exceptionally(error -> null);
+    }
+
+    private void connectPendingSession(Player player, PlayerRouteSession session) {
+        String targetServerName = session.targetServerName() == null || session.targetServerName().isBlank() ? session.targetNode() : session.targetServerName();
+        RegisteredServer server = findServer(targetServerName);
+        if (server == null) {
+            coreApiClient.clearRoute(session.playerUuid(), session.ticketId(), "PENDING_TARGET_NOT_FOUND").exceptionally(error -> null);
+            fallback(player, "이전 섬 이동 경로를 찾을 수 없어 로비로 이동합니다.");
+            return;
+        }
+        actionBar(player, "이전 섬 이동을 이어갑니다.");
+        player.createConnectionRequest(server).connectWithIndication().thenAccept(success -> {
+            if (!success) {
+                coreApiClient.clearRoute(session.playerUuid(), session.ticketId(), "PENDING_CONNECT_FAILED").exceptionally(error -> null);
+                fallback(player, "이전 섬 이동을 이어가지 못해 로비로 이동합니다.");
+            }
+        }).exceptionally(error -> {
+            coreApiClient.clearRoute(session.playerUuid(), session.ticketId(), "PENDING_CONNECT_EXCEPTION").exceptionally(ignored -> null);
+            fallback(player, "이전 섬 이동을 이어가지 못해 로비로 이동합니다.");
+            return null;
+        });
     }
 
     public void listMyIslands(Player player) {

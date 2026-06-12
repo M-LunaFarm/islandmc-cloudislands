@@ -110,6 +110,7 @@ public interface CoreApiClient {
     CompletableFuture<Void> publishRouteSession(RouteTicket ticket);
     CompletableFuture<String> publishRouteSessionResult(RouteTicket ticket);
     CompletableFuture<Optional<PlayerRouteSession>> findRouteSession(UUID playerUuid, String nodeId);
+    CompletableFuture<Optional<PlayerRouteSession>> findAnyRouteSession(UUID playerUuid);
     CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId);
     CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId, boolean reportMissing);
     CompletableFuture<Optional<RouteTicket>> routeTicketStatus(UUID ticketId, UUID playerUuid, String nonce);
