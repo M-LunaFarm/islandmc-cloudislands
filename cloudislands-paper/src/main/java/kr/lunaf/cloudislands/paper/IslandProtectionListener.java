@@ -223,12 +223,19 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onCreatureSpawn(CreatureSpawnEvent event) {
+        if (protection.migrating(event.getLocation().getBlock())) {
+            event.setCancelled(true);
+            return;
+        }
         protection.islandAt(event.getLocation().getBlock()).ifPresent(islandId -> blockDeltas.entityPlaced(islandId, event.getEntity().getType()));
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onEntityDeath(EntityDeathEvent event) {
         if (event.getEntity() instanceof Player) {
+            return;
+        }
+        if (protection.migrating(event.getEntity().getLocation().getBlock())) {
             return;
         }
         protection.islandAt(event.getEntity().getLocation().getBlock()).ifPresent(islandId -> blockDeltas.entityRemoved(islandId, event.getEntity().getType()));
@@ -485,6 +492,9 @@ public final class IslandProtectionListener implements Listener {
     }
 
     private boolean sameIsland(Block source, Block target) {
+        if (protection.migrating(source) || protection.migrating(target)) {
+            return false;
+        }
         Optional<UUID> sourceIsland = protection.islandAt(source);
         Optional<UUID> targetIsland = protection.islandAt(target);
         return sourceIsland.equals(targetIsland);

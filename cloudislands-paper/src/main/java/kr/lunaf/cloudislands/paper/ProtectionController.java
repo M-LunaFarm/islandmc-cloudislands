@@ -1,6 +1,8 @@
 package kr.lunaf.cloudislands.paper;
 
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
@@ -13,6 +15,7 @@ import org.bukkit.block.Block;
 public final class ProtectionController {
     private final RegionIndex regionIndex;
     private final LocalIslandPermissionCache permissionCache;
+    private final Set<UUID> migratingIslands = ConcurrentHashMap.newKeySet();
 
     public ProtectionController(RegionIndex regionIndex, LocalIslandPermissionCache permissionCache) {
         this.regionIndex = regionIndex;
@@ -27,6 +30,23 @@ public final class ProtectionController {
     public void unregisterIsland(UUID islandId) {
         regionIndex.removeIsland(islandId);
         permissionCache.invalidate(islandId);
+        migratingIslands.remove(islandId);
+    }
+
+    public void markMigrating(UUID islandId) {
+        if (islandId != null) {
+            migratingIslands.add(islandId);
+        }
+    }
+
+    public void clearMigrating(UUID islandId) {
+        if (islandId != null) {
+            migratingIslands.remove(islandId);
+        }
+    }
+
+    public boolean migrating(Block block) {
+        return islandAt(block).map(migratingIslands::contains).orElse(false);
     }
 
     public java.util.Optional<UUID> islandAt(Block block) {
@@ -57,6 +77,9 @@ public final class ProtectionController {
     public PermissionResult checkBlock(UUID playerUuid, String world, int blockX, int blockY, int blockZ, IslandPermission permission, boolean adminBypass) {
         return regionIndex.find(world, blockX, blockZ)
             .map(region -> {
+                if (migratingIslands.contains(region.islandId())) {
+                    return PermissionResult.deny("ISLAND_MIGRATING", IslandRole.VISITOR);
+                }
                 if (permissionCache.allowed(region.islandId(), playerUuid, permission, adminBypass)) {
                     return PermissionResult.allow(IslandRole.MEMBER);
                 }
@@ -71,15 +94,22 @@ public final class ProtectionController {
 
     public PermissionResult checkSystem(Block block, IslandPermission permission) {
         return regionIndex.find(block.getWorld().getName(), block.getX(), block.getZ())
-            .map(region -> PermissionResult.deny("SYSTEM_PROTECTED", IslandRole.VISITOR))
+            .map(region -> migratingIslands.contains(region.islandId())
+                ? PermissionResult.deny("ISLAND_MIGRATING", IslandRole.VISITOR)
+                : PermissionResult.deny("SYSTEM_PROTECTED", IslandRole.VISITOR))
             .orElseGet(() -> PermissionResult.allow(IslandRole.OWNER));
     }
 
     public PermissionResult checkSystemFlag(Block block, IslandFlag flag) {
         return regionIndex.find(block.getWorld().getName(), block.getX(), block.getZ())
-            .map(region -> permissionCache.flagAllowed(region.islandId(), flag)
-                ? PermissionResult.allow(IslandRole.OWNER)
-                : PermissionResult.deny(flag.name() + "_DISABLED", IslandRole.VISITOR))
+            .map(region -> {
+                if (migratingIslands.contains(region.islandId())) {
+                    return PermissionResult.deny("ISLAND_MIGRATING", IslandRole.VISITOR);
+                }
+                return permissionCache.flagAllowed(region.islandId(), flag)
+                    ? PermissionResult.allow(IslandRole.OWNER)
+                    : PermissionResult.deny(flag.name() + "_DISABLED", IslandRole.VISITOR);
+            })
             .orElseGet(() -> PermissionResult.allow(IslandRole.OWNER));
     }
 

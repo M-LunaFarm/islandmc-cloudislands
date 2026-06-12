@@ -156,6 +156,7 @@ public final class PermissionEventPoller {
             return;
         }
         publishLocalEvents(type, fields);
+        handleMigrationLockState(type, fields);
         handleMigrationNotice(type, fields);
         if (handlesNodeOperation(type, fields)) {
             return;
@@ -296,6 +297,29 @@ public final class PermissionEventPoller {
             UUID currentIslandId = protection.islandAt(online.getLocation().getBlock()).orElse(null);
             if (islandId.equals(currentIslandId)) {
                 online.sendMessage(message);
+            }
+        }
+    }
+
+    private void handleMigrationLockState(String type, Map<String, String> fields) {
+        UUID islandId = islandId(fields);
+        if (islandId == null) {
+            return;
+        }
+        if (type.equals(CloudIslandEventType.ISLAND_MIGRATE_REQUESTED.name())) {
+            protection.markMigrating(islandId);
+            return;
+        }
+        if (type.equals(CloudIslandEventType.ISLAND_MIGRATED.name())
+            || type.equals(CloudIslandEventType.ISLAND_DEACTIVATED.name())
+            || type.equals(CloudIslandEventType.ISLAND_DELETED.name())) {
+            protection.clearMigrating(islandId);
+            return;
+        }
+        if (type.equals(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name())) {
+            String state = fields.getOrDefault("state", "");
+            if (!state.equals("DEACTIVATING")) {
+                protection.clearMigrating(islandId);
             }
         }
     }
