@@ -49,6 +49,7 @@ public final class IslandLifecycleWorkflow {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
         IslandRuntimeSnapshot runtime = runtimes.markActivating(islandId, node.nodeId(), "ci_shard_001", 0, 0);
+        islands.setState(islandId, IslandState.ACTIVATING);
         try {
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.ACTIVATE_ISLAND, islandId, node.nodeId(), 0, Map.of("fencingToken", Long.toString(runtime.fencingToken()), "worldName", runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld(), "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()), "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ())), Instant.now()));
         } catch (RuntimeException exception) {
@@ -60,6 +61,7 @@ public final class IslandLifecycleWorkflow {
 
     public Result deactivate(UUID islandId) {
         IslandRuntimeSnapshot runtime = runtimes.markSaving(islandId);
+        islands.setState(islandId, IslandState.SAVING);
         try {
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DEACTIVATE_ISLAND, islandId, runtime.activeNode(), 0, Map.of("fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
         } catch (RuntimeException exception) {
@@ -77,6 +79,7 @@ public final class IslandLifecycleWorkflow {
         }
         IslandRuntimeSnapshot current = runtimes.find(islandId).orElse(null);
         IslandRuntimeSnapshot runtime = runtimes.markMigrating(islandId, targetNode);
+        islands.setState(islandId, IslandState.DEACTIVATING);
         String sourceNode = current == null ? "" : current.activeNode();
         try {
             if (sourceNode != null && !sourceNode.isBlank() && !sourceNode.equals(targetNode)) {
@@ -116,6 +119,7 @@ public final class IslandLifecycleWorkflow {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
         IslandRuntimeSnapshot runtime = runtimes.markActivating(islandId, node.nodeId(), "ci_shard_001", 0, 0);
+        islands.setState(islandId, IslandState.ACTIVATING);
         try {
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, node.nodeId(), 30, Map.of("snapshotNo", Long.toString(snapshotNo), "storagePath", storagePath == null ? "" : storagePath, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
         } catch (RuntimeException exception) {
@@ -132,6 +136,7 @@ public final class IslandLifecycleWorkflow {
             return new Result(false, "NODE_UNAVAILABLE", null);
         }
         IslandRuntimeSnapshot runtime = runtimes.markActivating(islandId, node.nodeId(), "ci_shard_001", 0, 0);
+        islands.setState(islandId, IslandState.ACTIVATING);
         try {
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESET_ISLAND, islandId, node.nodeId(), 40, Map.of("templateId", templateId, "reason", reason, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
         } catch (RuntimeException exception) {
