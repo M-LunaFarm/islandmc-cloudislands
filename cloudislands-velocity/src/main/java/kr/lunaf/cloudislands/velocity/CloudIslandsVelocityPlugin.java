@@ -583,7 +583,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.inviteTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""));
             return;
         }
-        if (args[0].equalsIgnoreCase("invites") || args[0].equals("초대목록")) {
+        if (args[0].equalsIgnoreCase("invites") || args[0].equalsIgnoreCase("invite-list") || args[0].equalsIgnoreCase("invite-menu") || args[0].equals("초대목록")) {
             routingController.listInvites(player);
             return;
         }
@@ -595,7 +595,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.declineInviteTarget(player, args.length > 1 ? args[1] : "");
             return;
         }
-        if (args[0].equalsIgnoreCase("members") || args[0].equals("멤버")) {
+        if (args[0].equalsIgnoreCase("members") || args[0].equalsIgnoreCase("member-list") || args[0].equalsIgnoreCase("member-menu") || args[0].equals("멤버") || args[0].equals("멤버목록") || args[0].equals("멤버관리")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.listMembers(player, islandId);
             return;
@@ -648,7 +648,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.kickVisitorTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""));
             return;
         }
-        if (args[0].equalsIgnoreCase("banlist") || args[0].equals("밴목록")) {
+        if (args[0].equalsIgnoreCase("banlist") || args[0].equalsIgnoreCase("bans") || args[0].equalsIgnoreCase("ban-list") || args[0].equalsIgnoreCase("ban-menu") || args[0].equals("밴목록")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.listBans(player, islandId);
             return;
@@ -702,12 +702,12 @@ public final class CloudIslandsVelocityPlugin {
             routingController.setBooleanFlag(player, islandId, flag, enabled, flag.name());
             return;
         }
-        if (args[0].equalsIgnoreCase("flags") || args[0].equals("플래그")) {
+        if (args[0].equalsIgnoreCase("flags") || args[0].equalsIgnoreCase("flag-list") || args[0].equalsIgnoreCase("flag-menu") || args[0].equals("플래그") || args[0].equals("플래그목록")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.listFlags(player, islandId);
             return;
         }
-        if (args[0].equalsIgnoreCase("permissions") || args[0].equals("권한")) {
+        if (args[0].equalsIgnoreCase("permissions") || args[0].equalsIgnoreCase("permission-list") || args[0].equalsIgnoreCase("permission-menu") || args[0].equalsIgnoreCase("permission") || args[0].equalsIgnoreCase("perms") || args[0].equals("권한") || args[0].equals("권한목록")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.listPermissions(player, islandId);
             return;
