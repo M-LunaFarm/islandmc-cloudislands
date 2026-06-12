@@ -50,6 +50,7 @@ heartbeat:
 routing:
   fallback-on-failure: "Lobby"
   wait-for-activation-timeout-seconds: 20
+  require-route-session: true
 
 snapshots:
   keep-hourly: 24
