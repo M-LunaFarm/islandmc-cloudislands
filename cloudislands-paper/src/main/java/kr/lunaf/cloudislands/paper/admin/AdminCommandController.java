@@ -1692,7 +1692,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         int safePage = Math.max(1, Math.min(page, maxPage));
         int from = (safePage - 1) * pageSize;
         int to = Math.min(HELP_COMMANDS.size(), from + pageSize);
-        sender.sendMessage("CloudIslands 관리자 명령어 목록 " + safePage + "/" + maxPage);
+        sender.sendMessage("CloudIslands 관리자 명령어 목록 " + safePage + "/" + maxPage + " - 한 줄당 명령어 하나");
         for (String command : HELP_COMMANDS.subList(from, to)) {
             sender.sendMessage("> /" + command.replaceFirst("^ciadmin", label));
         }
