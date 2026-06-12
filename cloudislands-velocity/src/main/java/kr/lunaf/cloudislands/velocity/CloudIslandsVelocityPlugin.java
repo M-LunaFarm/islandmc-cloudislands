@@ -128,10 +128,14 @@ public final class CloudIslandsVelocityPlugin {
     }
 
     private static String resolveEnv(String value) {
-        if (value.startsWith("${") && value.endsWith("}")) {
-            return System.getenv().getOrDefault(value.substring(2, value.length() - 1), "");
+        if (value == null) {
+            return "";
         }
-        return value;
+        String trimmed = value.trim();
+        if (trimmed.startsWith("${") && trimmed.endsWith("}")) {
+            return System.getenv().getOrDefault(trimmed.substring(2, trimmed.length() - 1), "");
+        }
+        return trimmed;
     }
 
     private static int integer(String value, int fallback) {
