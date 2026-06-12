@@ -611,6 +611,11 @@ public final class CloudIslandsCoreApplication {
             sessions.put(ticket);
             write(exchange, 202, ApiResponses.ok(true));
         });
+        route("/v1/routes/session/find", exchange -> {
+            String body = readBody(exchange);
+            PlayerRouteSession session = sessions.find(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), JsonFields.text(body, "nodeId", "")).orElse(null);
+            write(exchange, session == null ? 404 : 200, session == null ? "" : sessionJson(session));
+        });
         route("/v1/routes/session/consume", exchange -> {
             String body = readBody(exchange);
             PlayerRouteSession session = sessions.consume(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), JsonFields.text(body, "nodeId", "")).orElse(null);

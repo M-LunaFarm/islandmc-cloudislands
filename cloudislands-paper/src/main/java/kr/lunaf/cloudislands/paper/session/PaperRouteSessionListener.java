@@ -51,7 +51,7 @@ public final class PaperRouteSessionListener implements Listener {
             return;
         }
         try {
-            var session = coreApiClient.consumeRouteSession(event.getUniqueId(), nodeId).get(3L, TimeUnit.SECONDS);
+            var session = coreApiClient.findRouteSession(event.getUniqueId(), nodeId).get(3L, TimeUnit.SECONDS);
             if (session.isPresent()) {
                 PlayerRouteSession verified = session.get();
                 verifiedSessions.put(event.getUniqueId(), verified);
@@ -70,7 +70,7 @@ public final class PaperRouteSessionListener implements Listener {
         PlayerRouteSession verified = verifiedSessions.remove(playerUuid);
         if (verified != null) {
             if (verified.expiresAt().isAfter(java.time.Instant.now())) {
-                ticketConsumer.consumeAndTeleport(verified.ticketId(), verified.playerUuid(), verified.nonce());
+                consumeSession(playerUuid, 0);
             } else if (requireRouteSession) {
                 rejectDirectJoin(playerUuid);
             } else {
