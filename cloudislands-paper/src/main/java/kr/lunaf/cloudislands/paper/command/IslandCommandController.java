@@ -1758,7 +1758,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private IslandLocation location(Location location) {
         java.util.Optional<IslandRegion> region = protection.regionAt(location.getBlock());
         return new IslandLocation(
-            location.getWorld().getName(),
+            "",
             region.map(value -> location.getX() - value.originX()).orElse(location.getX()),
             location.getY(),
             region.map(value -> location.getZ() - value.originZ()).orElse(location.getZ()),
@@ -2177,13 +2177,13 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage(missingMessage);
                 return;
             }
-            World world = plugin.getServer().getWorld(point.worldName());
+            java.util.Optional<IslandRegion> region = protection.regionAt(player.getLocation().getBlock());
+            String worldName = region.map(IslandRegion::world).orElse(point.worldName());
+            World world = plugin.getServer().getWorld(worldName);
             if (world == null) {
                 player.sendMessage("대상 월드를 찾을 수 없습니다.");
                 return;
             }
-            java.util.Optional<IslandRegion> region = protection.regionAt(player.getLocation().getBlock())
-                .filter(value -> value.world().equals(point.worldName()));
             double targetX = region.map(value -> value.originX() + point.x()).orElse(point.x());
             double targetZ = region.map(value -> value.originZ() + point.z()).orElse(point.z());
             player.teleport(new Location(world, targetX, point.y(), targetZ, point.yaw(), point.pitch()));
