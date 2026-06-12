@@ -1010,6 +1010,10 @@ public final class CloudIslandsCoreApplication {
             if (!requireMember(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
                 return;
             }
+            if (message.isBlank()) {
+                write(exchange, 400, ApiResponses.error("EMPTY_CHAT_MESSAGE", "Chat message is empty"));
+                return;
+            }
             String normalizedChannel = channel.equals("TEAM") ? "TEAM" : "ISLAND";
             islandLogs.append(islandId, actorUuid, "ISLAND_CHAT", Map.of("channel", normalizedChannel, "message", message));
             events.publish(CloudIslandEventType.ISLAND_CHAT_SENT.name(), Map.of("islandId", islandId.toString(), "actorUuid", actorUuid.toString(), "channel", normalizedChannel, "message", message));
