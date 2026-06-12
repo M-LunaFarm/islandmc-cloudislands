@@ -184,7 +184,7 @@ public final class CloudIslandsCoreApplication {
         NodeRegistry nodes = config.redisEvents() || config.redisJobs()
             ? new CachingNodeRegistry(baseNodes, config.redisUri(), config.heartbeatTimeout())
             : baseNodes;
-        NodeAllocator allocator = new NodeAllocator(config.heartbeatTimeout(), config.softFullPolicy());
+        NodeAllocator allocator = new NodeAllocator(config.heartbeatTimeout(), config.softFullPolicy(), config.hardFullPolicy());
         RouteTicketStore baseTickets = config.jdbcRepositories() ? new JdbcRouteTicketStore(dataSource, clock) : new InMemoryRouteTicketStore(clock);
         RouteTicketStore tickets = config.redisEvents() || config.redisJobs()
             ? new CachingRouteTicketStore(baseTickets, config.redisUri())
