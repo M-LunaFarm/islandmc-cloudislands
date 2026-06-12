@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.paper.activation;
 
+import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -7,12 +8,18 @@ public final class PeriodicIslandSaveTask {
     private final Plugin plugin;
     private final ActiveIslandRegistry activeIslands;
     private final IslandSaveService saveService;
+    private final CoreApiClient coreApiClient;
     private BukkitTask task;
 
     public PeriodicIslandSaveTask(Plugin plugin, ActiveIslandRegistry activeIslands, IslandSaveService saveService) {
+        this(plugin, activeIslands, saveService, null);
+    }
+
+    public PeriodicIslandSaveTask(Plugin plugin, ActiveIslandRegistry activeIslands, IslandSaveService saveService, CoreApiClient coreApiClient) {
         this.plugin = plugin;
         this.activeIslands = activeIslands;
         this.saveService = saveService;
+        this.coreApiClient = coreApiClient;
     }
 
     public void start(long intervalSeconds) {
@@ -34,10 +41,23 @@ public final class PeriodicIslandSaveTask {
     private void saveAll() {
         for (ActiveIslandRegistry.ActiveIsland activeIsland : activeIslands.snapshot()) {
             try {
-                saveService.save(activeIsland.islandId(), activeIsland);
+                IslandSaveService.SaveResult result = saveService.save(activeIsland.islandId(), activeIsland);
+                recordSnapshot(result);
             } catch (java.io.IOException exception) {
                 plugin.getLogger().warning("Periodic island save failed for " + activeIsland.islandId() + ": " + exception.getMessage());
             }
         }
+    }
+
+    private void recordSnapshot(IslandSaveService.SaveResult result) {
+        if (coreApiClient == null || result.snapshotNo() <= 0L) {
+            return;
+        }
+        String storagePath = "islands/" + result.islandId() + "/snapshots/" + String.format("%06d", result.snapshotNo()) + "/bundle.tar.zst";
+        coreApiClient.recordIslandSnapshot(result.islandId(), result.snapshotNo(), storagePath, "AUTO", result.checksum(), result.sizeBytes())
+            .exceptionally(error -> {
+                plugin.getLogger().warning("Periodic island snapshot record failed for " + result.islandId() + ": " + error.getMessage());
+                return null;
+            });
     }
 }

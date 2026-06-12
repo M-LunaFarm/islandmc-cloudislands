@@ -285,7 +285,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         PermissionCacheSyncService permissionSync = new PermissionCacheSyncService(this, client, agent.permissionCache());
         this.jobWorker = new PaperIslandJobWorker(this, new CoreBackedIslandJobSource(client), activationHandler, deactivationHandler, activeIslands, permissionSync, nodeId);
         this.permissionEventPoller = new PermissionEventPoller(this, client, permissionSync, generatorLevels, cropGrowthLevels, limitCache, agent.protection(), nodeId, fallbackServerName);
-        this.periodicSaveTask = new PeriodicIslandSaveTask(this, activeIslands, saveService);
+        this.periodicSaveTask = new PeriodicIslandSaveTask(this, activeIslands, saveService, client);
         this.emptyIslandSaveTask = new EmptyIslandSaveTask(this, activeIslands, agent.protection(), saveService, client);
         this.periodicLevelScanTask = new PeriodicIslandLevelScanTask(this, activeIslands, new IslandLevelScanService(this, () -> activeIslands, client));
         permissionEventPoller.start(getConfig().getLong("protection.cache-event-poll-ticks", 100L));

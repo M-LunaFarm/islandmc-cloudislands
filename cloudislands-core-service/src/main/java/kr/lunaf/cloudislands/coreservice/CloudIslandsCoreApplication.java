@@ -995,6 +995,23 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             write(exchange, 200, snapshotsJson(snapshotRepository.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.integer(body, "limit", 20))));
         });
+        route("/v1/islands/snapshots/record", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            long snapshotNo = JsonFields.longValue(body, "snapshotNo", 0L);
+            if (snapshotNo <= 0L) {
+                write(exchange, 409, ApiResponses.error("INVALID_SNAPSHOT", "Snapshot number is required"));
+                return;
+            }
+            String storagePath = JsonFields.text(body, "storagePath", "islands/" + islandId + "/snapshots/" + String.format("%06d", snapshotNo) + "/bundle.tar.zst");
+            String reason = JsonFields.text(body, "reason", "AUTO");
+            String checksum = JsonFields.text(body, "checksum", "");
+            long sizeBytes = JsonFields.longValue(body, "sizeBytes", 0L);
+            snapshotRepository.record(islandId, snapshotNo, storagePath, reason, null, checksum, sizeBytes);
+            snapshotRepository.prune(islandId, snapshotKeepLatest);
+            events.publish(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name(), Map.of("islandId", islandId.toString(), "snapshotNo", Long.toString(snapshotNo), "reason", reason));
+            write(exchange, 202, "{\"accepted\":true,\"snapshotNo\":" + snapshotNo + "}");
+        });
         route("/v1/admin/block-values", exchange -> {
             String body = readBody(exchange);
             String materialKey = JsonFields.text(body, "materialKey", "minecraft:stone");
