@@ -759,16 +759,16 @@ public final class CloudIslandsVelocityPlugin {
             routingController.recalculateLevel(player, islandId);
             return;
         }
-        if (args[0].equalsIgnoreCase("upgrade") || args[0].equals("업그레이드")) {
+        if (args[0].equalsIgnoreCase("upgrade") || args[0].equalsIgnoreCase("upgrade-menu") || args[0].equals("업그레이드")) {
             routingController.listUpgradeRules(player);
             return;
         }
-        if (args[0].equalsIgnoreCase("upgrades") || args[0].equals("업그레이드목록")) {
+        if (args[0].equalsIgnoreCase("upgrades") || args[0].equalsIgnoreCase("upgrade-list") || args[0].equals("업그레이드목록")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.listUpgrades(player, islandId);
             return;
         }
-        if (args[0].equalsIgnoreCase("buyupgrade") || args[0].equals("업그레이드구매")) {
+        if (args[0].equalsIgnoreCase("buyupgrade") || args[0].equalsIgnoreCase("upgrade-buy") || args[0].equals("업그레이드구매")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             String upgradeKey = argumentAfterOptionalIsland(args, 1, "size");
             routingController.purchaseUpgrade(player, islandId, upgradeKey);
