@@ -36,6 +36,10 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
 
     @Override
     public IslandRuntimeSnapshot markActive(UUID islandId, String nodeId, String worldName, int cellX, int cellZ, long fencingToken) {
+        IslandRuntimeSnapshot current = find(islandId).orElse(null);
+        if (current != null && current.fencingToken() > fencingToken) {
+            return current;
+        }
         return put(new IslandRuntimeSnapshot(islandId, IslandState.ACTIVE, nodeId, worldName, cellX, cellZ, nodeId, fencingToken, Instant.now(), Instant.now()));
     }
 

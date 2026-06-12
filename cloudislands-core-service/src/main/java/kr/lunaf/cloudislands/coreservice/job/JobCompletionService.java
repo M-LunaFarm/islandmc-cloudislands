@@ -56,14 +56,16 @@ public final class JobCompletionService {
 
     public void completed(IslandJob job) {
         if (job.type() == IslandJobType.CREATE_ISLAND || job.type() == IslandJobType.ACTIVATE_ISLAND || job.type() == IslandJobType.RESET_ISLAND) {
+            String worldName = job.payload().getOrDefault("worldName", "ci_shard_001");
+            if (!markActiveFromJob(job, worldName)) {
+                return;
+            }
             if (job.type() == IslandJobType.RESET_ISLAND) {
                 recordPreMutationSnapshot(job);
             }
             if (job.type() == IslandJobType.CREATE_ISLAND) {
                 recordCompletedSnapshot(job, "CREATED", true);
             }
-            String worldName = job.payload().getOrDefault("worldName", "ci_shard_001");
-            runtimes.markActive(job.islandId(), job.targetNode(), worldName, integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), longValue(job.payload().get("fencingToken")));
             setIslandState(job.islandId(), IslandState.ACTIVE);
             int readyTickets = tickets.markReadyForIsland(job.islandId(), job.targetNode(), worldName, Instant.now().plus(routeTicketTtl), Map.of());
             events.publish(job.type() == IslandJobType.RESET_ISLAND ? CloudIslandEventType.ISLAND_RESET.name() : CloudIslandEventType.ISLAND_ACTIVATED.name(), Map.of("islandId", job.islandId().toString(), "nodeId", job.targetNode() == null ? "" : job.targetNode(), "readyTickets", Integer.toString(readyTickets)));
@@ -96,17 +98,21 @@ public final class JobCompletionService {
             return;
         }
         if (job.type() == IslandJobType.RESTORE_ISLAND) {
+            if (!markActiveFromJob(job, job.payload().getOrDefault("worldName", "ci_shard_001"))) {
+                return;
+            }
             recordPreMutationSnapshot(job);
             restoreDeletedIslandRecord(job);
-            runtimes.markActive(job.islandId(), job.targetNode(), job.payload().getOrDefault("worldName", "ci_shard_001"), integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), longValue(job.payload().get("fencingToken")));
             setIslandState(job.islandId(), IslandState.ACTIVE);
             events.publish(CloudIslandEventType.ISLAND_RESTORED.name(), Map.of("islandId", job.islandId().toString(), "state", "RESTORED", "snapshotNo", job.payload().getOrDefault("snapshotNo", "")));
             return;
         }
         if (job.type() == IslandJobType.MIGRATE_ISLAND) {
-            recordPreMutationSnapshot(job);
             String worldName = job.payload().getOrDefault("worldName", "ci_shard_001");
-            runtimes.markActive(job.islandId(), job.targetNode(), worldName, integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), longValue(job.payload().get("fencingToken")));
+            if (!markActiveFromJob(job, worldName)) {
+                return;
+            }
+            recordPreMutationSnapshot(job);
             setIslandState(job.islandId(), IslandState.ACTIVE);
             events.publish(CloudIslandEventType.ISLAND_MIGRATED.name(), Map.of("islandId", job.islandId().toString(), "targetNode", job.targetNode() == null ? "" : job.targetNode(), "worldName", worldName));
         }
@@ -129,6 +135,23 @@ public final class JobCompletionService {
         if (islands != null) {
             islands.setState(islandId, state);
         }
+    }
+
+    private boolean markActiveFromJob(IslandJob job, String worldName) {
+        long fencingToken = longValue(job.payload().get("fencingToken"));
+        kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime = runtimes.markActive(job.islandId(), job.targetNode(), worldName, integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), fencingToken);
+        if (runtime.fencingToken() == fencingToken) {
+            return true;
+        }
+        failPreparingRouteTickets(job, "STALE_FENCING_TOKEN");
+        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
+            "islandId", job.islandId().toString(),
+            "state", runtime.state().name(),
+            "ignoredJob", job.jobId().toString(),
+            "jobFencingToken", Long.toString(fencingToken),
+            "currentFencingToken", Long.toString(runtime.fencingToken())
+        ));
+        return false;
     }
 
     private void failPreparingRouteTickets(IslandJob job, String errorMessage) {

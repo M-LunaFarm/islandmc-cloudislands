@@ -69,7 +69,19 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
 
     @Override
     public IslandRuntimeSnapshot markActive(UUID islandId, String nodeId, String worldName, int cellX, int cellZ, long fencingToken) {
-        return update(islandId, IslandState.ACTIVE, nodeId, worldName, cellX, cellZ, nodeId, fencingToken, Instant.now());
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            Optional<IslandRuntimeSnapshot> current = findForUpdate(connection, islandId);
+            if (current.isPresent() && current.get().fencingToken() > fencingToken) {
+                connection.commit();
+                return current.get();
+            }
+            IslandRuntimeSnapshot runtime = upsert(connection, islandId, IslandState.ACTIVE, nodeId, worldName, cellX, cellZ, nodeId, fencingToken, Instant.now());
+            connection.commit();
+            return runtime;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to mark island active", exception);
+        }
     }
 
     @Override
