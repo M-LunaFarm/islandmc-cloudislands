@@ -152,17 +152,30 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
 
     @Override
     public List<IslandHomeSnapshot> homes(UUID islandId) {
-        return delegate.homes(islandId);
+        Optional<List<IslandHomeSnapshot>> cached = cachedHomes(islandId);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
+        List<IslandHomeSnapshot> homes = delegate.homes(islandId);
+        cacheHomes(islandId, homes);
+        return homes;
     }
 
     @Override
     public Optional<IslandHomeSnapshot> home(UUID islandId, String name) {
-        return delegate.home(islandId, name);
+        Optional<List<IslandHomeSnapshot>> cached = cachedHomes(islandId);
+        if (cached.isPresent()) {
+            return cached.get().stream().filter(home -> home.name().equalsIgnoreCase(name)).findFirst();
+        }
+        Optional<IslandHomeSnapshot> home = delegate.home(islandId, name);
+        cacheHomes(islandId, delegate.homes(islandId));
+        return home;
     }
 
     @Override
     public void upsertHome(UUID islandId, String name, IslandLocation location, UUID createdBy) {
         delegate.upsertHome(islandId, name, location, createdBy);
+        cacheHomes(islandId, delegate.homes(islandId));
     }
 
     @Override
@@ -284,6 +297,45 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
         }
     }
 
+    private void cacheHomes(UUID islandId, List<IslandHomeSnapshot> homes) {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            redis.command("SET", RedisKeys.islandHomes(islandId), homesJson(homes));
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+        }
+    }
+
+    private Optional<List<IslandHomeSnapshot>> cachedHomes(UUID islandId) {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            String json = redis.command("GET", RedisKeys.islandHomes(islandId));
+            if (json == null || json.isBlank()) {
+                return Optional.empty();
+            }
+            List<IslandHomeSnapshot> homes = new ArrayList<>();
+            for (String object : objects(json)) {
+                IslandLocation location = new IslandLocation(
+                    JsonFields.text(object, "worldName", ""),
+                    JsonFields.decimal(object, "localX", 0.0D),
+                    JsonFields.decimal(object, "localY", 0.0D),
+                    JsonFields.decimal(object, "localZ", 0.0D),
+                    (float) JsonFields.decimal(object, "yaw", 0.0D),
+                    (float) JsonFields.decimal(object, "pitch", 0.0D)
+                );
+                homes.add(new IslandHomeSnapshot(
+                    JsonFields.uuid(object, "islandId", islandId),
+                    JsonFields.text(object, "name", "default"),
+                    location,
+                    JsonFields.uuid(object, "createdBy", new UUID(0L, 0L)),
+                    instant(JsonFields.text(object, "createdAt", ""))
+                ));
+            }
+            return Optional.of(List.copyOf(homes));
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+            return Optional.empty();
+        }
+    }
+
     private void cacheWarps(UUID islandId, List<IslandWarpSnapshot> warps) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             redis.command("SET", RedisKeys.islandWarps(islandId), warpsJson(warps));
@@ -355,6 +407,30 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
             builder.append('"').append(entry.getKey().name()).append("\":\"").append(escape(entry.getValue())).append('"');
         }
         return builder.append("}}").toString();
+    }
+
+    private static String homesJson(List<IslandHomeSnapshot> homes) {
+        StringBuilder builder = new StringBuilder("[");
+        boolean first = true;
+        for (IslandHomeSnapshot home : homes) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('{')
+                .append("\"islandId\":\"").append(home.islandId()).append("\",")
+                .append("\"name\":\"").append(escape(home.name())).append("\",")
+                .append("\"worldName\":\"").append(escape(home.location().worldName())).append("\",")
+                .append("\"localX\":").append(home.location().localX()).append(',')
+                .append("\"localY\":").append(home.location().localY()).append(',')
+                .append("\"localZ\":").append(home.location().localZ()).append(',')
+                .append("\"yaw\":").append(home.location().yaw()).append(',')
+                .append("\"pitch\":").append(home.location().pitch()).append(',')
+                .append("\"createdBy\":\"").append(home.createdBy()).append("\",")
+                .append("\"createdAt\":\"").append(home.createdAt()).append("\"")
+                .append('}');
+        }
+        return builder.append(']').toString();
     }
 
     private static String warpsJson(List<IslandWarpSnapshot> warps) {
