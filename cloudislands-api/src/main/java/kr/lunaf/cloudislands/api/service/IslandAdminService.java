@@ -32,6 +32,10 @@ public interface IslandAdminService {
     CompletableFuture<IslandActionResult> kickAllNodeResult(String nodeId, String reason);
     CompletableFuture<Void> shutdownNodeSafely(String nodeId, String reason);
     CompletableFuture<IslandActionResult> shutdownNodeSafelyResult(String nodeId, String reason);
+    CompletableFuture<Void> activateIsland(UUID islandId);
+    CompletableFuture<IslandActionResult> activateIslandResult(UUID islandId);
+    CompletableFuture<Void> deactivateIsland(UUID islandId);
+    CompletableFuture<IslandActionResult> deactivateIslandResult(UUID islandId);
     CompletableFuture<Void> migrateIsland(UUID islandId, String targetNode);
     CompletableFuture<IslandActionResult> migrateIslandResult(UUID islandId, String targetNode);
     default CompletableFuture<Void> saveIsland(UUID islandId) {
