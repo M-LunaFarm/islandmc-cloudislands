@@ -110,15 +110,16 @@ public final class MigrationAdminService {
         return issues;
     }
 
-    private void recordMigrationBundleSnapshot(MigrationManifest manifest) {
+    private MigrationWorldBundle recordMigrationBundleSnapshot(MigrationManifest manifest) {
         if (snapshots == null) {
-            return;
+            return null;
         }
         try {
             Path root = lastExtractionRoot == null ? migrationBundleRoot : lastExtractionRoot;
             MigrationWorldBundle bundle = worldExtractor.verify(worldExtractor.plan(manifest, root));
             String storagePath = root.normalize().relativize(bundle.bundlePath().normalize()).toString().replace('\\', '/');
             snapshots.record(manifest.islandId(), 1L, storagePath, "Migrated from SuperiorSkyblock2", manifest.ownerUuid(), bundle.checksum(), bundle.sizeBytes());
+            return bundle;
         } catch (RuntimeException | java.io.IOException exception) {
             throw new IllegalStateException("migration bundle snapshot unavailable for " + manifest.islandId() + ": " + exception.getMessage(), exception);
         }
@@ -154,6 +155,7 @@ public final class MigrationAdminService {
             List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_PLAN_EMPTY", "run scan and dryrun before import", true));
             return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\",\"imported\":false,\"importedIslands\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
         }
+        long[] extractedStats = new long[] {0L, 0L, 0L};
         CloudIslandsMigrationImporter.ImportResult result = importer.importPlan(lastPlan, manifest -> {
             islands.createOwnedIsland(manifest.islandId(), manifest.ownerUuid(), "superiorskyblock2", "Migrated Island");
             islands.updateStats(manifest.islandId(), manifest.size(), manifest.level(), manifest.worth());
@@ -207,12 +209,17 @@ public final class MigrationAdminService {
             }
             metadata.setPublicAccess(manifest.islandId(), manifest.publicAccess());
             metadata.setLocked(manifest.islandId(), manifest.locked());
-            recordMigrationBundleSnapshot(manifest);
+            MigrationWorldBundle bundle = recordMigrationBundleSnapshot(manifest);
+            if (bundle != null) {
+                extractedStats[0]++;
+                extractedStats[1] += bundle.fileCount();
+                extractedStats[2] += bundle.sizeBytes();
+            }
             playerProfiles.setPrimaryIsland(manifest.ownerUuid(), manifest.islandId());
         });
         lastRollbackPlan = result.rollbackPlan();
         MigrationRunState state = result.imported() ? MigrationRunState.IMPORTED : MigrationRunState.DRY_RUN_FAILED;
-        return "{\"state\":\"" + state + "\",\"imported\":" + result.imported() + ",\"importedIslands\":" + result.importedIslands() + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), result.issues())) + ",\"issues\":" + issuesJson(result.issues()) + ",\"rollbackPlan\":" + rollbackPlanJson(result.rollbackPlan()) + "}";
+        return "{\"state\":\"" + state + "\",\"imported\":" + result.imported() + ",\"importedIslands\":" + result.importedIslands() + ",\"extractedBundles\":" + extractedStats[0] + ",\"extractedFiles\":" + extractedStats[1] + ",\"extractedBytes\":" + extractedStats[2] + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), result.issues())) + ",\"issues\":" + issuesJson(result.issues()) + ",\"rollbackPlan\":" + rollbackPlanJson(result.rollbackPlan()) + "}";
     }
 
     public synchronized String verify() {
