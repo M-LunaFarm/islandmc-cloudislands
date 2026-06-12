@@ -2329,7 +2329,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 if (worth.isBlank()) {
                     worth = Long.toString((long) decimal(object, "worth"));
                 }
-                entries.add((entries.size() + 1) + ". " + (name.isBlank() ? islandId : name) + " (" + islandId + ", 레벨=" + level + ", 가치=" + worth + ")");
+                entries.add((entries.size() + 1) + ". " + (name.isBlank() ? "이름 없는 섬" : name) + " (ID=" + compactId(islandId) + ", 레벨=" + level + ", 가치=" + worth + ")");
             }
             index = objectEnd + 1;
         }

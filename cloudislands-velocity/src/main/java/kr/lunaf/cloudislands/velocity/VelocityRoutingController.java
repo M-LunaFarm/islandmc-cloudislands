@@ -2177,7 +2177,7 @@ public final class VelocityRoutingController {
                 String name = jsonValue(object, "name");
                 long level = longValue(object, "level");
                 String worth = jsonValue(object, "worth");
-                entries.add((entries.size() + 1) + ". " + (name.isBlank() ? islandId : name) + " (" + islandId + ", 레벨=" + level + ", 가치=" + (worth.isBlank() ? "0" : worth) + ")");
+                entries.add((entries.size() + 1) + ". " + (name.isBlank() ? "이름 없는 섬" : name) + " (ID=" + shortId(islandId) + ", 레벨=" + level + ", 가치=" + (worth.isBlank() ? "0" : worth) + ")");
             }
             index = objectEnd + 1;
         }
