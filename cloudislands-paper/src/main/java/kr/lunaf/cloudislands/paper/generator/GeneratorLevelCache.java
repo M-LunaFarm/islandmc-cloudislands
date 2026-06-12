@@ -3,10 +3,14 @@ package kr.lunaf.cloudislands.paper.generator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 
 public final class GeneratorLevelCache {
     private static final long TTL_MILLIS = 30_000L;
+    private static final Pattern GENERATOR_UPGRADE = Pattern.compile("\\{[^{}]*\"upgradeKey\"\\s*:\\s*\"generator\"[^{}]*}", Pattern.CASE_INSENSITIVE);
+    private static final Pattern LEVEL_FIELD = Pattern.compile("\"level\"\\s*:\\s*(\\d+)");
     private final CoreApiClient client;
     private final Map<UUID, CachedLevel> cache = new ConcurrentHashMap<>();
 
@@ -43,24 +47,16 @@ public final class GeneratorLevelCache {
         if (json == null || json.isBlank()) {
             return 1;
         }
-        int marker = json.indexOf("\"upgradeKey\":\"generator\"");
-        if (marker < 0) {
+        Matcher upgrade = GENERATOR_UPGRADE.matcher(json);
+        if (!upgrade.find()) {
             return 1;
         }
-        int levelMarker = json.indexOf("\"level\":", marker);
-        if (levelMarker < 0) {
-            return 1;
-        }
-        int start = levelMarker + "\"level\":".length();
-        int end = start;
-        while (end < json.length() && Character.isDigit(json.charAt(end))) {
-            end++;
-        }
-        if (end == start) {
+        Matcher level = LEVEL_FIELD.matcher(upgrade.group());
+        if (!level.find()) {
             return 1;
         }
         try {
-            return Math.max(1, Integer.parseInt(json.substring(start, end)));
+            return Math.max(1, Integer.parseInt(level.group(1)));
         } catch (NumberFormatException ignored) {
             return 1;
         }
