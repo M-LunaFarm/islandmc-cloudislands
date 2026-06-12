@@ -95,7 +95,8 @@ public final class JobCompletionService {
                 snapshots.prune(job.islandId(), snapshotKeepLatest);
             }
             runtimes.setState(job.islandId(), IslandState.DELETED);
-            setIslandState(job.islandId(), IslandState.DELETED);
+            markIslandDeleted(job);
+            clearOwnerPrimaryIsland(job);
             events.publish(CloudIslandEventType.ISLAND_DELETED.name(), Map.of("islandId", job.islandId().toString(), "snapshotNo", Long.toString(snapshotNo)));
             return;
         }
@@ -137,6 +138,43 @@ public final class JobCompletionService {
         if (islands != null) {
             islands.setState(islandId, state);
         }
+    }
+
+    private void markIslandDeleted(IslandJob job) {
+        if (islands == null) {
+            return;
+        }
+        UUID ownerUuid = ownerUuid(job);
+        if (ownerUuid != null) {
+            islands.markDeleted(job.islandId(), ownerUuid);
+        } else {
+            setIslandState(job.islandId(), IslandState.DELETED);
+        }
+    }
+
+    private void clearOwnerPrimaryIsland(IslandJob job) {
+        if (playerProfiles == null) {
+            return;
+        }
+        UUID ownerUuid = ownerUuid(job);
+        if (ownerUuid != null) {
+            playerProfiles.clearPrimaryIsland(ownerUuid);
+        }
+    }
+
+    private UUID ownerUuid(IslandJob job) {
+        String value = job.payload().getOrDefault("ownerUuid", "");
+        if (!value.isBlank()) {
+            try {
+                return UUID.fromString(value);
+            } catch (IllegalArgumentException ignored) {
+                return null;
+            }
+        }
+        if (islands == null) {
+            return null;
+        }
+        return islands.findById(job.islandId()).map(kr.lunaf.cloudislands.api.model.IslandSnapshot::ownerUuid).orElse(null);
     }
 
     private boolean markActiveFromJob(IslandJob job, String worldName) {
