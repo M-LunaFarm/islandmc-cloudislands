@@ -85,9 +85,26 @@ public final class MigrationAdminService {
     }
 
     public synchronized String dryRun() {
-        lastPlan = importer.dryRun(lastScan.manifests());
+        MigrationImportPlan sourcePlan = importer.dryRun(lastScan.manifests());
+        List<MigrationIssue> issues = new ArrayList<>(lastScan.issues());
+        issues.addAll(sourcePlan.issues());
+        issues.addAll(targetConflictIssues(lastScan.manifests()));
+        lastPlan = new MigrationImportPlan(lastScan.manifests(), issues);
         MigrationRunState state = lastPlan.canImport() ? MigrationRunState.DRY_RUN_PASSED : MigrationRunState.DRY_RUN_FAILED;
         return "{\"state\":\"" + state + "\",\"manifests\":" + lastPlan.manifests().size() + ",\"canImport\":" + lastPlan.canImport() + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastPlan.issues()) + "}";
+    }
+
+    private List<MigrationIssue> targetConflictIssues(List<MigrationManifest> manifests) {
+        List<MigrationIssue> issues = new ArrayList<>();
+        for (MigrationManifest manifest : manifests) {
+            islands.findById(manifest.islandId())
+                .ifPresent(_existing -> issues.add(new MigrationIssue("TARGET_ISLAND_EXISTS", "target already has island " + manifest.islandId(), true)));
+            islands.findByOwner(manifest.ownerUuid())
+                .ifPresent(existing -> issues.add(new MigrationIssue("TARGET_OWNER_HAS_ISLAND", "owner " + manifest.ownerUuid() + " already owns island " + existing.islandId(), true)));
+            playerProfiles.find(manifest.ownerUuid()).primaryIslandId()
+                .ifPresent(primaryIslandId -> issues.add(new MigrationIssue("TARGET_OWNER_PRIMARY_ISLAND_EXISTS", "owner " + manifest.ownerUuid() + " already has primary island " + primaryIslandId, true)));
+        }
+        return issues;
     }
 
     public synchronized String extractWorldBundles(String outputPath) {
