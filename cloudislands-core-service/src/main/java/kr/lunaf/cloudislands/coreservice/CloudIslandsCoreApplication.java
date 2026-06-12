@@ -38,6 +38,7 @@ import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.bank.JdbcIslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.config.CoreServiceConfig;
 import kr.lunaf.cloudislands.coreservice.db.DriverManagerDataSource;
+import kr.lunaf.cloudislands.coreservice.db.MeteredDataSource;
 import kr.lunaf.cloudislands.coreservice.event.CompositeGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
@@ -145,7 +146,8 @@ public final class CloudIslandsCoreApplication {
         this.ipAllowlist = new IpAllowlist(config.ipAllowlist());
         this.mtlsGuard = new MtlsHeaderGuard(config.requireMtls(), config.mtlsVerifiedHeader(), config.mtlsVerifiedValue());
         this.deleteStorage = migrationRollbackStorage(config);
-        DataSource dataSource = new DriverManagerDataSource(config.jdbcUrl(), config.databaseUsername(), config.databasePassword());
+        MeteredDataSource meteredDataSource = new MeteredDataSource(new DriverManagerDataSource(config.jdbcUrl(), config.databaseUsername(), config.databasePassword()));
+        DataSource dataSource = meteredDataSource;
         NodeRegistry nodes = config.jdbcRepositories() ? new JdbcNodeRegistry(dataSource) : new InMemoryNodeRegistry();
         NodeAllocator allocator = new NodeAllocator(config.heartbeatTimeout());
         RouteTicketStore tickets = config.jdbcRepositories() ? new JdbcRouteTicketStore(dataSource, clock) : new InMemoryRouteTicketStore(clock);
@@ -197,7 +199,7 @@ public final class CloudIslandsCoreApplication {
             migrationRollbackTarget(config, dataSource)
         );
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets, jobs, islandRepository, playerProfiles);
-        PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, inMemoryEvents, config.heartbeatTimeout());
+        PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds);
         this.nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, events, config.heartbeatTimeout());
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
         route("/health", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));

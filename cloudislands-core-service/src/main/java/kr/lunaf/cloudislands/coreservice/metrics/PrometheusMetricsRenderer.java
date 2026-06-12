@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreservice.metrics;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
+import java.util.function.DoubleSupplier;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
 import kr.lunaf.cloudislands.coreservice.NodeRegistry;
@@ -17,12 +18,14 @@ public final class PrometheusMetricsRenderer {
     private final IslandJobQueue jobs;
     private final InMemoryGlobalEventPublisher events;
     private final Duration heartbeatTimeout;
+    private final DoubleSupplier databaseQuerySeconds;
 
-    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout) {
+    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds) {
         this.nodes = nodes;
         this.jobs = jobs;
         this.events = events;
         this.heartbeatTimeout = heartbeatTimeout;
+        this.databaseQuerySeconds = databaseQuerySeconds;
     }
 
     public String render() {
@@ -132,6 +135,9 @@ public final class PrometheusMetricsRenderer {
         help(out, "cloudislands_jobs_retry_total", "Island job retry attempts recorded by the queue");
         type(out, "cloudislands_jobs_retry_total", "counter");
         out.append("cloudislands_jobs_retry_total{backend=\"").append(jobBackend).append("\"} ").append(jobRetries).append('\n');
+        help(out, "cloudislands_database_query_seconds", "Last JDBC query duration observed by Core API");
+        type(out, "cloudislands_database_query_seconds", "gauge");
+        out.append("cloudislands_database_query_seconds ").append(databaseQuerySeconds.getAsDouble()).append('\n');
         if (!Double.isNaN(redisLatencySeconds)) {
             help(out, "cloudislands_redis_latency_seconds", "Redis PING latency observed by Core API");
             type(out, "cloudislands_redis_latency_seconds", "gauge");
