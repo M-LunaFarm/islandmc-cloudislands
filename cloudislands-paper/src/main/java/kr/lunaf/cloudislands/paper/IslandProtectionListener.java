@@ -157,7 +157,8 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onHangingBreak(HangingBreakByEntityEvent event) {
-        if (event.getRemover() instanceof Player player) {
+        Player player = attackingPlayer(event.getRemover());
+        if (player != null) {
             boolean blocked = denied(player, event.getEntity().getLocation().getBlock(), IslandPermission.BREAK);
             event.setCancelled(blocked);
             if (!blocked) {
@@ -205,7 +206,8 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onVehicleDestroy(VehicleDestroyEvent event) {
-        if (event.getAttacker() instanceof Player player) {
+        Player player = attackingPlayer(event.getAttacker());
+        if (player != null) {
             event.setCancelled(denied(player, event.getVehicle().getLocation().getBlock(), IslandPermission.BREAK));
         }
     }
