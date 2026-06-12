@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.coreservice.config;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.Locale;
 
 public record CoreServiceConfig(
     String bind,
@@ -109,6 +110,13 @@ public record CoreServiceConfig(
 
     private static boolean bool(String key, boolean fallback) {
         String value = env(key, Boolean.toString(fallback));
-        return value.equalsIgnoreCase("true") || value.equals("1") || value.equalsIgnoreCase("yes");
+        String normalized = value.toLowerCase(Locale.ROOT);
+        if (normalized.equals("true") || normalized.equals("yes") || normalized.equals("on") || normalized.equals("1") || normalized.equals("enable") || normalized.equals("enabled")) {
+            return true;
+        }
+        if (normalized.equals("false") || normalized.equals("no") || normalized.equals("off") || normalized.equals("0") || normalized.equals("disable") || normalized.equals("disabled")) {
+            return false;
+        }
+        return fallback;
     }
 }
