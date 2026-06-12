@@ -1950,12 +1950,18 @@ public final class VelocityRoutingController {
             String occurredAt = jsonValue(object, "occurredAt");
             String fields = objectValue(object, "fields");
             String islandId = jsonValue(fields, "islandId");
+            String playerUuid = jsonValue(fields, "playerUuid");
+            String action = jsonValue(fields, "action");
+            String reason = jsonValue(fields, "reason");
             String nodeId = jsonValue(fields, "nodeId");
             if (nodeId.isBlank()) {
                 nodeId = jsonValue(fields, "targetNode");
             }
             entries.add((type.isBlank() ? "UNKNOWN_EVENT" : type)
                 + (islandId.isBlank() ? "" : " island=" + islandId)
+                + (playerUuid.isBlank() ? "" : " player=" + shortId(playerUuid))
+                + (action.isBlank() ? "" : " action=" + action)
+                + (reason.isBlank() ? "" : " reason=" + reason)
                 + (nodeId.isBlank() ? "" : " node=" + nodeId)
                 + (occurredAt.isBlank() ? "" : " at=" + occurredAt));
             index = objectEnd + 1;
