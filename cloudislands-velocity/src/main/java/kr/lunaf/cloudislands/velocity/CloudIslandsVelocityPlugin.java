@@ -1099,9 +1099,15 @@ public final class CloudIslandsVelocityPlugin {
             if (first.equals("biome") || first.equals("biome-menu") || first.equals("biome-info") || first.equals("바이옴") || first.equals("바이옴정보")) {
                 addLiteralSuggestions(matches, args[1], List.of("minecraft:plains", "minecraft:forest", "minecraft:desert", "minecraft:taiga"));
             }
-            if (first.equals("invite") || first.equals("초대") || first.equals("kick") || first.equals("remove-member") || first.equals("추방") || first.equals("promote") || first.equals("승급") || first.equals("demote") || first.equals("강등") || first.equals("transfer") || first.equals("양도") || first.equals("trust") || first.equals("신뢰") || first.equals("untrust") || first.equals("신뢰해제") || first.equals("ban") || first.equals("밴") || first.equals("unban") || first.equals("pardon") || first.equals("밴해제") || first.equals("kickvisitor") || first.equals("방문자추방")) {
+            if (first.equals("invite") || first.equals("초대") || first.equals("kick") || first.equals("remove-member") || first.equals("추방") || first.equals("promote") || first.equals("승급") || first.equals("demote") || first.equals("강등") || first.equals("setrole") || first.equals("role-set") || first.equals("역할설정") || first.equals("transfer") || first.equals("양도") || first.equals("trust") || first.equals("신뢰") || first.equals("untrust") || first.equals("신뢰해제") || first.equals("ban") || first.equals("밴") || first.equals("unban") || first.equals("pardon") || first.equals("밴해제") || first.equals("kickvisitor") || first.equals("방문자추방")) {
                 addOnlinePlayerSuggestions(matches, args[1]);
             }
+        }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("setrole") || args[0].equalsIgnoreCase("role-set") || args[0].equals("역할설정")) && !isUuid(args[1])) {
+            addLiteralSuggestions(matches, args[2], memberRoleNames());
+        }
+        if (args.length == 4 && (args[0].equalsIgnoreCase("setrole") || args[0].equalsIgnoreCase("role-set") || args[0].equals("역할설정")) && isUuid(args[1])) {
+            addLiteralSuggestions(matches, args[3], memberRoleNames());
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("setpermission") || args[0].equalsIgnoreCase("permission-set") || args[0].equals("권한설정"))) {
             addLiteralSuggestions(matches, args[2], List.of("BUILD", "INTERACT", "MANAGE_MEMBERS", "MANAGE_FLAGS", "MANAGE_WARPS"));
@@ -1253,6 +1259,13 @@ public final class CloudIslandsVelocityPlugin {
         } catch (IllegalArgumentException ignored) {
             return null;
         }
+    }
+
+    private List<String> memberRoleNames() {
+        return java.util.Arrays.stream(IslandRole.values())
+            .filter(role -> role.islandMemberRole() && role != IslandRole.OWNER)
+            .map(Enum::name)
+            .toList();
     }
 
     private IslandPermission parsePermission(String value) {
