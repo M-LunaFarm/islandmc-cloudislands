@@ -694,11 +694,14 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("worthrank") || args[0].equalsIgnoreCase("valuerank") || args[0].equals("가치랭킹") || (args.length > 1 && (args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("ranking") || args[0].equals("랭킹")) && (args[1].equalsIgnoreCase("worth") || args[1].equalsIgnoreCase("value") || args[1].equals("가치")))) {
-            routingController.showWorthRanking(player);
+            int limit = args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("ranking") || args[0].equals("랭킹")
+                ? (args.length > 2 ? (int) parseLongOrZero(args[2]) : 10)
+                : (args.length > 1 ? (int) parseLongOrZero(args[1]) : 10);
+            routingController.showWorthRanking(player, limit);
             return;
         }
         if (args[0].equalsIgnoreCase("rank") || args[0].equals("ranking") || args[0].equals("랭킹")) {
-            routingController.showLevelRanking(player);
+            routingController.showLevelRanking(player, args.length > 1 ? (int) parseLongOrZero(args[1]) : 10);
             return;
         }
         if (args[0].equalsIgnoreCase("levelcalc") || args[0].equals("레벨계산")) {

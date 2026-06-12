@@ -327,7 +327,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         if (subcommand.equals("rank") || subcommand.equals("ranking") || subcommand.equals("랭킹")) {
             if (args.length > 1) {
                 boolean worthRanking = args[1].equalsIgnoreCase("worth") || args[1].equals("가치");
-                listIslandRanking(player, worthRanking);
+                listIslandRanking(player, worthRanking, rankingLimit(args, worthRanking ? 2 : 1));
             } else {
                 IslandRankingMenu.open(plugin, coreApiClient, player);
             }
@@ -335,11 +335,11 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("rank-list") || subcommand.equals("랭킹목록")) {
             boolean worthRanking = args.length > 1 && (args[1].equalsIgnoreCase("worth") || args[1].equals("가치"));
-            listIslandRanking(player, worthRanking);
+            listIslandRanking(player, worthRanking, rankingLimit(args, worthRanking ? 2 : 1));
             return true;
         }
         if (subcommand.equals("worthrank") || subcommand.equals("valuerank") || subcommand.equals("가치랭킹")) {
-            listIslandRanking(player, true);
+            listIslandRanking(player, true, rankingLimit(args, 1));
             return true;
         }
         if (subcommand.equals("levelcalc") || subcommand.equals("recalculate") || subcommand.equals("레벨계산")) {
@@ -1138,8 +1138,13 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private void listIslandRanking(Player player, boolean worthRanking) {
+        listIslandRanking(player, worthRanking, 10);
+    }
+
+    private void listIslandRanking(Player player, boolean worthRanking, int limit) {
+        int cappedLimit = Math.max(1, Math.min(limit, 100));
         if (worthRanking) {
-            coreApiClient.topIslandsByWorth(10)
+            coreApiClient.topIslandsByWorth(cappedLimit)
                 .thenAccept(body -> message(player, rankingMessage(body, "섬 가치 랭킹", "worth")))
                 .exceptionally(error -> {
                     message(player, "섬 가치 랭킹을 불러오지 못했습니다.");
@@ -1147,12 +1152,19 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 });
             return;
         }
-        coreApiClient.topIslandsByLevel(10)
+        coreApiClient.topIslandsByLevel(cappedLimit)
             .thenAccept(body -> message(player, rankingMessage(body, "섬 레벨 랭킹", "level")))
             .exceptionally(error -> {
                 message(player, "섬 레벨 랭킹을 불러오지 못했습니다.");
                 return null;
             });
+    }
+
+    private int rankingLimit(String[] args, int index) {
+        if (args.length <= index) {
+            return 10;
+        }
+        return (int) number(args[index], 10L);
     }
 
     private void recalculateIslandLevel(Player player) {
