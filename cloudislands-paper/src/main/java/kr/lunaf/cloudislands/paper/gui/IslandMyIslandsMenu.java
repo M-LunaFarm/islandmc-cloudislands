@@ -49,6 +49,14 @@ public final class IslandMyIslandsMenu implements Listener {
             player.performCommand("섬 생성메뉴");
             return;
         }
+        if (name.equals("메인 메뉴")) {
+            player.performCommand("섬 메뉴");
+            return;
+        }
+        if (name.equals("공개 섬")) {
+            player.performCommand("섬 방문");
+            return;
+        }
         String islandId = loreValue(meta, "islandId=");
         if (!islandId.isBlank()) {
             player.performCommand("섬 방문 " + islandId);
@@ -66,8 +74,10 @@ public final class IslandMyIslandsMenu implements Listener {
                     inventory.setItem(index, item(material(island.role()), island.name(), "islandId=" + island.islandId(), "role=" + island.role(), "state=" + island.state(), "level=" + island.level(), "worth=" + island.worth(), "클릭하면 이 섬으로 이동합니다."));
                 }
             }
+            inventory.setItem(45, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
             inventory.setItem(48, item(Material.OAK_SAPLING, "섬 생성", "/섬 생성메뉴"));
             inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 목록"));
+            inventory.setItem(53, item(Material.ENDER_PEARL, "공개 섬", "/섬 방문"));
             player.openInventory(inventory);
         });
     }
