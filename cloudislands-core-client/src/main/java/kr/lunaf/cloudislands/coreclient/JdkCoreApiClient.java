@@ -496,7 +496,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId) {
-        return post("/v1/routes/session/consume", "{\"playerUuid\":\"" + playerUuid + "\",\"nodeId\":\"" + escape(nodeId) + "\"}").thenApply(body -> body.isBlank() ? Optional.empty() : Optional.of(RouteSessionJson.parse(body)));
+        return consumeRouteSession(playerUuid, nodeId, true);
+    }
+
+    @Override
+    public CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId, boolean reportMissing) {
+        return post("/v1/routes/session/consume", "{\"playerUuid\":\"" + playerUuid + "\",\"nodeId\":\"" + escape(nodeId) + "\",\"reportMissing\":" + reportMissing + "}").thenApply(body -> body.isBlank() ? Optional.empty() : Optional.of(RouteSessionJson.parse(body)));
     }
 
     @Override

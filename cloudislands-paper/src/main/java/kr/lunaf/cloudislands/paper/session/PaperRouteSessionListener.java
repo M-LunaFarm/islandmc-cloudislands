@@ -93,7 +93,7 @@ public final class PaperRouteSessionListener implements Listener {
     }
 
     private void consumeSession(java.util.UUID playerUuid, int attempt) {
-        coreApiClient.consumeRouteSession(playerUuid, nodeId).thenAccept(session -> {
+        coreApiClient.consumeRouteSession(playerUuid, nodeId, attempt >= 6).thenAccept(session -> {
             if (session.isPresent()) {
                 var value = session.get();
                 ticketConsumer.consumeAndTeleport(value.ticketId(), value.playerUuid(), value.nonce());

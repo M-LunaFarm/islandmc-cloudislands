@@ -703,8 +703,9 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
             String nodeId = JsonFields.text(body, "nodeId", "");
+            boolean reportMissing = JsonFields.bool(body, "reportMissing", true);
             PlayerRouteSession session = sessions.consume(playerUuid, nodeId).orElse(null);
-            if (session == null) {
+            if (session == null && reportMissing) {
                 events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
                     "playerUuid", playerUuid.toString(),
                     "targetNode", nodeId,
