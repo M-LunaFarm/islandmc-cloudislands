@@ -2441,7 +2441,7 @@ public final class VelocityRoutingController {
             if (!inviteId.isBlank()) {
                 String islandId = jsonValue(object, "islandId");
                 String inviterUuid = jsonValue(object, "inviterUuid");
-                entries.add(inviteId + (islandId.isBlank() ? "" : " 섬=" + islandId) + (inviterUuid.isBlank() ? "" : " inviter=" + inviterUuid));
+                entries.add(shortId(inviteId) + (islandId.isBlank() ? "" : " 섬=" + shortId(islandId)) + (inviterUuid.isBlank() ? "" : " 초대한사람=" + shortId(inviterUuid)));
             }
             index = objectEnd + 1;
         }
