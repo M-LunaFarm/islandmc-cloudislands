@@ -63,6 +63,7 @@ import kr.lunaf.cloudislands.paper.session.PaperChatListener;
 import kr.lunaf.cloudislands.paper.session.PaperPlayerProfileListener;
 import kr.lunaf.cloudislands.paper.session.PaperScoreboardListener;
 import kr.lunaf.cloudislands.paper.session.PaperRouteSessionListener;
+import kr.lunaf.cloudislands.paper.storage.MeteredIslandStorage;
 import kr.lunaf.cloudislands.paper.storage.PaperStorageFactory;
 import kr.lunaf.cloudislands.paper.world.IslandWorldRestorer;
 import kr.lunaf.cloudislands.paper.world.bundle.BundleRestorePlanner;
@@ -159,7 +160,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             island.setExecutor(islandController);
             island.setTabCompleter(islandController);
         }
-        IslandStorage storage = role == AgentRole.ISLAND_NODE ? PaperStorageFactory.create(this, getConfig()) : null;
+        MeteredIslandStorage storage = role == AgentRole.ISLAND_NODE ? new MeteredIslandStorage(PaperStorageFactory.create(this, getConfig())) : null;
         String supportedTemplates = String.join(",", getConfig().getStringList("node.supported-templates"));
         if (supportedTemplates.isBlank()) {
             supportedTemplates = getConfig().getString("node.supported-template", "*");
@@ -180,7 +181,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             velocityServerName,
             getDescription().getVersion(),
             supportedTemplates,
-            () -> heartbeatMetadata(supportedTemplates),
+            () -> heartbeatMetadata(supportedTemplates, storage),
             () -> storageAvailable(storage),
             () -> softPlayerCap,
             () -> hardPlayerCap,
@@ -251,9 +252,11 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";lastLevelScanFailedAt=" + scanner.lastScanFailedAt();
     }
 
-    private String heartbeatMetadata(String supportedTemplates) {
+    private String heartbeatMetadata(String supportedTemplates, MeteredIslandStorage storage) {
         return levelScanStatus(supportedTemplates)
-            + ";permissionCacheHitRatio=" + agent.permissionCache().hitRatio();
+            + ";permissionCacheHitRatio=" + agent.permissionCache().hitRatio()
+            + ";storageUploadSeconds=" + (storage == null ? 0.0D : storage.lastUploadSeconds())
+            + ";storageDownloadSeconds=" + (storage == null ? 0.0D : storage.lastDownloadSeconds());
     }
 
     private void startIslandNodeWorker(CoreApiClient client, String nodeId, IslandStorage storage, IslandLimitCache limitCache) {

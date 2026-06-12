@@ -63,6 +63,10 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_node_state", "gauge");
         help(out, "cloudislands_permission_cache_hit_ratio", "Paper local permission cache hit ratio reported by heartbeat");
         type(out, "cloudislands_permission_cache_hit_ratio", "gauge");
+        help(out, "cloudislands_storage_upload_seconds", "Last island storage upload duration reported by Paper heartbeat");
+        type(out, "cloudislands_storage_upload_seconds", "gauge");
+        help(out, "cloudislands_storage_download_seconds", "Last island storage download duration reported by Paper heartbeat");
+        type(out, "cloudislands_storage_download_seconds", "gauge");
         Instant now = Instant.now();
         for (NodeLoad node : nodes.snapshot()) {
             boolean fresh = Duration.between(node.lastHeartbeat(), now).compareTo(heartbeatTimeout) <= 0;
@@ -89,6 +93,8 @@ public final class PrometheusMetricsRenderer {
             if (permissionHitRatio != null && !permissionHitRatio.isBlank()) {
                 labels(out, "cloudislands_permission_cache_hit_ratio", node, null).append(permissionHitRatio).append('\n');
             }
+            appendMetadataGauge(out, "cloudislands_storage_upload_seconds", node, "storageUploadSeconds");
+            appendMetadataGauge(out, "cloudislands_storage_download_seconds", node, "storageDownloadSeconds");
         }
         help(out, "cloudislands_jobs_total", "Island jobs by in-memory state or backend mode");
         type(out, "cloudislands_jobs_total", "gauge");
@@ -176,6 +182,13 @@ public final class PrometheusMetricsRenderer {
         help(out, name, description);
         type(out, name, "counter");
         out.append(name).append(' ').append(events.countByType(eventType.name())).append('\n');
+    }
+
+    private void appendMetadataGauge(StringBuilder out, String name, NodeLoad node, String metadataKey) {
+        String value = node.heartbeatMetadata().get(metadataKey);
+        if (value != null && !value.isBlank()) {
+            labels(out, name, node, null).append(value).append('\n');
+        }
     }
 
     private static double memoryPressure(NodeLoad node) {
