@@ -31,6 +31,8 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_nodes_online", "gauge");
         help(out, "cloudislands_node_players", "Players currently reported by a node");
         type(out, "cloudislands_node_players", "gauge");
+        help(out, "cloudislands_node_soft_player_cap", "Soft player capacity before visitor routing is avoided");
+        type(out, "cloudislands_node_soft_player_cap", "gauge");
         help(out, "cloudislands_node_hard_player_cap", "Maximum player capacity reported by a node");
         type(out, "cloudislands_node_hard_player_cap", "gauge");
         help(out, "cloudislands_node_mspt", "Node MSPT reported by Paper heartbeat");
@@ -64,6 +66,7 @@ public final class PrometheusMetricsRenderer {
             boolean fresh = Duration.between(node.lastHeartbeat(), now).compareTo(heartbeatTimeout) <= 0;
             labels(out, "cloudislands_nodes_online", node, null).append(fresh && node.state() != NodeState.DOWN ? 1 : 0).append('\n');
             labels(out, "cloudislands_node_players", node, null).append(node.players()).append('\n');
+            labels(out, "cloudislands_node_soft_player_cap", node, null).append(node.softPlayerCap()).append('\n');
             labels(out, "cloudislands_node_hard_player_cap", node, null).append(node.hardPlayerCap()).append('\n');
             labels(out, "cloudislands_node_mspt", node, null).append(node.mspt()).append('\n');
             labels(out, "cloudislands_node_active_islands", node, null).append(node.activeIslands()).append('\n');
