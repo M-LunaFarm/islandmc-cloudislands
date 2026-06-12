@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.coreservice.repository;
 
 import java.io.IOException;
 import java.net.URI;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -10,6 +11,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
+import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 
 public final class CachingIslandRuntimeRepository implements IslandRuntimeRepository {
@@ -24,7 +26,13 @@ public final class CachingIslandRuntimeRepository implements IslandRuntimeReposi
 
     @Override
     public Optional<IslandRuntimeSnapshot> find(UUID islandId) {
-        return delegate.find(islandId);
+        Optional<IslandRuntimeSnapshot> cached = cachedRuntime(islandId);
+        if (cached.isPresent()) {
+            return cached;
+        }
+        Optional<IslandRuntimeSnapshot> runtime = delegate.find(islandId);
+        runtime.ifPresent(this::cache);
+        return runtime;
     }
 
     @Override
@@ -113,6 +121,30 @@ public final class CachingIslandRuntimeRepository implements IslandRuntimeReposi
         return runtime;
     }
 
+    private Optional<IslandRuntimeSnapshot> cachedRuntime(UUID islandId) {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            String json = redis.command("GET", RedisKeys.islandRuntime(islandId));
+            if (json == null || json.isBlank()) {
+                return Optional.empty();
+            }
+            return Optional.of(new IslandRuntimeSnapshot(
+                JsonFields.uuid(json, "islandId", islandId),
+                JsonFields.enumValue(IslandState.class, json, "state", IslandState.INACTIVE_READY),
+                nullableText(JsonFields.text(json, "activeNode", "")),
+                nullableText(JsonFields.text(json, "activeWorld", "")),
+                nullableInteger(json, "cellX"),
+                nullableInteger(json, "cellZ"),
+                nullableText(JsonFields.text(json, "leaseOwner", "")),
+                JsonFields.longValue(json, "fencingToken", 0L),
+                nullableInstant(JsonFields.text(json, "activatedAt", "")),
+                nullableInstant(JsonFields.text(json, "lastHeartbeat", ""))
+            ));
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+            return Optional.empty();
+        }
+    }
+
     private static String runtimeJson(IslandRuntimeSnapshot runtime) {
         return new StringBuilder("{")
             .append("\"islandId\":\"").append(runtime.islandId()).append("\",")
@@ -131,6 +163,28 @@ public final class CachingIslandRuntimeRepository implements IslandRuntimeReposi
 
     private static String nullable(Integer value) {
         return value == null ? "null" : Integer.toString(value);
+    }
+
+    private static Integer nullableInteger(String json, String field) {
+        if (json.contains("\"" + field + "\":null")) {
+            return null;
+        }
+        return JsonFields.integer(json, field, 0);
+    }
+
+    private static Instant nullableInstant(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Instant.parse(value);
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private static String nullableText(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 
     private static String escape(String value) {

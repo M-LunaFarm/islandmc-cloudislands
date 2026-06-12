@@ -2,12 +2,14 @@ package kr.lunaf.cloudislands.coreservice.repository;
 
 import java.io.IOException;
 import java.net.URI;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
+import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 
 public final class CachingIslandRepository implements IslandRepository {
@@ -22,6 +24,10 @@ public final class CachingIslandRepository implements IslandRepository {
 
     @Override
     public Optional<IslandSnapshot> findById(UUID islandId) {
+        Optional<IslandSnapshot> cached = cachedIsland(islandId);
+        if (cached.isPresent()) {
+            return cached;
+        }
         Optional<IslandSnapshot> island = delegate.findById(islandId);
         island.ifPresent(this::cache);
         return island;
@@ -29,6 +35,13 @@ public final class CachingIslandRepository implements IslandRepository {
 
     @Override
     public Optional<IslandSnapshot> findByOwner(UUID ownerUuid) {
+        Optional<UUID> cachedIslandId = cachedOwnerIslandId(ownerUuid);
+        if (cachedIslandId.isPresent()) {
+            Optional<IslandSnapshot> cached = findById(cachedIslandId.get());
+            if (cached.isPresent()) {
+                return cached;
+            }
+        }
         Optional<IslandSnapshot> island = delegate.findByOwner(ownerUuid);
         island.ifPresent(this::cache);
         return island;
@@ -110,6 +123,7 @@ public final class CachingIslandRepository implements IslandRepository {
     private IslandSnapshot cache(IslandSnapshot island) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             redis.command("SET", RedisKeys.islandSummary(island.islandId()), islandJson(island));
+            redis.command("SET", RedisKeys.playerIsland(island.ownerUuid()), island.islandId().toString());
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
         }
@@ -121,6 +135,55 @@ public final class CachingIslandRepository implements IslandRepository {
             redis.command("DEL", RedisKeys.islandSummary(islandId));
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
+        }
+    }
+
+    private Optional<IslandSnapshot> cachedIsland(UUID islandId) {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            String json = redis.command("GET", RedisKeys.islandSummary(islandId));
+            if (json == null || json.isBlank()) {
+                return Optional.empty();
+            }
+            IslandSnapshot island = new IslandSnapshot(
+                JsonFields.uuid(json, "islandId", islandId),
+                JsonFields.uuid(json, "ownerUuid", new UUID(0L, 0L)),
+                JsonFields.text(json, "name", ""),
+                JsonFields.enumValue(IslandState.class, json, "state", IslandState.INACTIVE_READY),
+                JsonFields.integer(json, "size", 300),
+                JsonFields.longValue(json, "level", 0L),
+                JsonFields.text(json, "worth", "0.00"),
+                JsonFields.bool(json, "publicAccess", false),
+                instant(JsonFields.text(json, "createdAt", "")),
+                instant(JsonFields.text(json, "updatedAt", ""))
+            );
+            return island.state() == IslandState.DELETED ? Optional.empty() : Optional.of(island);
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+            return Optional.empty();
+        }
+    }
+
+    private Optional<UUID> cachedOwnerIslandId(UUID ownerUuid) {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            String value = redis.command("GET", RedisKeys.playerIsland(ownerUuid));
+            if (value == null || value.isBlank()) {
+                return Optional.empty();
+            }
+            return Optional.of(UUID.fromString(value));
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+            return Optional.empty();
+        }
+    }
+
+    private static Instant instant(String value) {
+        if (value == null || value.isBlank()) {
+            return Instant.EPOCH;
+        }
+        try {
+            return Instant.parse(value);
+        } catch (RuntimeException ignored) {
+            return Instant.EPOCH;
         }
     }
 
