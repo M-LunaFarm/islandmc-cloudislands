@@ -22,8 +22,9 @@ public final class PrometheusMetricsRenderer {
     private final DoubleSupplier databaseQuerySeconds;
     private final LongSupplier databaseConnectionFailures;
     private final LongSupplier databaseQueryFailures;
+    private final LongSupplier redisEventFailures;
 
-    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures) {
+    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures) {
         this.nodes = nodes;
         this.jobs = jobs;
         this.events = events;
@@ -31,6 +32,7 @@ public final class PrometheusMetricsRenderer {
         this.databaseQuerySeconds = databaseQuerySeconds;
         this.databaseConnectionFailures = databaseConnectionFailures;
         this.databaseQueryFailures = databaseQueryFailures;
+        this.redisEventFailures = redisEventFailures;
     }
 
     public String render() {
@@ -179,6 +181,9 @@ public final class PrometheusMetricsRenderer {
             type(out, "cloudislands_redis_failures_total", "counter");
             out.append("cloudislands_redis_failures_total ").append(redisFailures).append('\n');
         }
+        help(out, "cloudislands_redis_event_failures_total", "Redis event stream publish failures observed by Core API");
+        type(out, "cloudislands_redis_event_failures_total", "counter");
+        out.append("cloudislands_redis_event_failures_total ").append(redisEventFailures.getAsLong()).append('\n');
         help(out, "cloudislands_route_ticket_created_total", "Route tickets created by Core API");
         type(out, "cloudislands_route_ticket_created_total", "counter");
         out.append("cloudislands_route_ticket_created_total ").append(events.countByType(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CREATED.name())).append('\n');
