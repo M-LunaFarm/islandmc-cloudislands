@@ -144,6 +144,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (args.length == 5 && args[0].equalsIgnoreCase("template") && args[1].equalsIgnoreCase("upsert")) {
             return matches(List.of("true", "false"), args[4]);
         }
+        if (args.length == 6 && args[0].equalsIgnoreCase("template") && args[1].equalsIgnoreCase("upsert")) {
+            return matches(List.of("1.0.0", "1.21.0", "1.21.4"), args[5]);
+        }
         if (args.length == 2 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
             return matches(MIGRATION_COMMANDS, args[1]);
         }
