@@ -3,8 +3,18 @@ main: kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin
 version: 0.1.0
 api-version: '1.21'
 author: LeeSeungmin
+softdepend: [Vault]
 commands:
   island:
+    description: CloudIslands player island command
+    permission: cloudislands.player
     aliases: [is, 섬]
   ciadmin:
+    description: CloudIslands administration command
+    permission: cloudislands.admin
     aliases: [섬관리]
+permissions:
+  cloudislands.player:
+    default: true
+  cloudislands.admin:
+    default: op
