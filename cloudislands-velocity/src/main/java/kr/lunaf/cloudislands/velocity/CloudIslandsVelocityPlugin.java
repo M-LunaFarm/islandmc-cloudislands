@@ -465,7 +465,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.listMyIslands(player);
             return;
         }
-        if (args[0].equalsIgnoreCase("settings") || args[0].equals("설정")) {
+        if (args[0].equalsIgnoreCase("settings") || args[0].equalsIgnoreCase("setting") || args[0].equals("설정")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.showIslandSettings(player, islandId);
             return;
@@ -731,18 +731,18 @@ public final class CloudIslandsVelocityPlugin {
             routingController.listIslandLogs(player, islandId);
             return;
         }
-        if (args[0].equalsIgnoreCase("bank") || args[0].equals("은행")) {
+        if (args[0].equalsIgnoreCase("bank") || args[0].equalsIgnoreCase("bank-balance") || args[0].equals("은행") || args[0].equals("은행잔액")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.showBank(player, islandId);
             return;
         }
-        if (args[0].equalsIgnoreCase("deposit") || args[0].equals("입금")) {
+        if (args[0].equalsIgnoreCase("deposit") || args[0].equalsIgnoreCase("bank-deposit") || args[0].equals("입금")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             String amount = argumentAfterOptionalIsland(args, 1, "0");
             routingController.depositBank(player, islandId, amount);
             return;
         }
-        if (args[0].equalsIgnoreCase("withdraw") || args[0].equals("출금")) {
+        if (args[0].equalsIgnoreCase("withdraw") || args[0].equalsIgnoreCase("bank-withdraw") || args[0].equals("출금")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             String amount = argumentAfterOptionalIsland(args, 1, "0");
             routingController.withdrawBank(player, islandId, amount);
@@ -755,11 +755,11 @@ public final class CloudIslandsVelocityPlugin {
             routingController.showWorthRanking(player, limit);
             return;
         }
-        if (args[0].equalsIgnoreCase("rank") || args[0].equals("ranking") || args[0].equals("랭킹")) {
+        if (args[0].equalsIgnoreCase("rank") || args[0].equals("ranking") || args[0].equalsIgnoreCase("rank-list") || args[0].equals("랭킹") || args[0].equals("랭킹목록")) {
             routingController.showLevelRanking(player, args.length > 1 ? (int) parseLongOrZero(args[1]) : 10);
             return;
         }
-        if (args[0].equalsIgnoreCase("levelcalc") || args[0].equals("레벨계산")) {
+        if (args[0].equalsIgnoreCase("levelcalc") || args[0].equalsIgnoreCase("recalculate") || args[0].equals("레벨계산")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.recalculateLevel(player, islandId);
             return;
@@ -1048,7 +1048,7 @@ public final class CloudIslandsVelocityPlugin {
             if (first.equals("fly") || first.equals("비행") || first.equals("keepinventory") || first.equals("keepinv") || first.equals("인벤보존") || first.equals("pvp") || first.equals("피빕") || first.equals("publicwarps") || first.equals("public-warps") || first.equals("공개워프")) {
                 addLiteralSuggestions(matches, args[1], List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"));
             }
-            if (first.equals("rank") || first.equals("ranking") || first.equals("랭킹")) {
+            if (first.equals("rank") || first.equals("ranking") || first.equals("rank-list") || first.equals("랭킹") || first.equals("랭킹목록")) {
                 addLiteralSuggestions(matches, args[1], List.of("worth", "value", "10", "25", "50"));
             }
             if (first.equals("limits") || first.equals("limit") || first.equals("limit-list") || first.equals("setlimit") || first.equals("limit-set") || first.equals("제한") || first.equals("제한목록") || first.equals("제한설정")) {
