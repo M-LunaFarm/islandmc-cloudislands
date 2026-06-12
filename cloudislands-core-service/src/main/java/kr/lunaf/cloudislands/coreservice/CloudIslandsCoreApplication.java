@@ -554,6 +554,16 @@ public final class CloudIslandsCoreApplication {
             String nonce = JsonFields.text(body, "nonce", "");
             RouteTicket ticket = tickets.find(ticketId).orElse(null);
             boolean allowed = ticket != null && ticket.playerUuid().equals(playerUuid) && ticket.nonce().equals(nonce);
+            if (!allowed) {
+                events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
+                    "ticketId", ticketId.toString(),
+                    "playerUuid", playerUuid.toString(),
+                    "islandId", ticket == null ? "" : ticket.islandId().toString(),
+                    "action", ticket == null ? "" : ticket.action().name(),
+                    "targetNode", ticket == null ? "" : ticket.targetNode(),
+                    "reason", "VERIFY_FAILED"
+                ));
+            }
             write(exchange, allowed ? 200 : 404, allowed ? RoutingOrchestrator.toJson(ticket) : ApiResponses.error("ROUTE_TICKET_NOT_FOUND", "Route ticket was not found"));
         });
         route("/v1/routes/consume", exchange -> write(exchange, 200, routing.consumeTicketJson(readBody(exchange))));
