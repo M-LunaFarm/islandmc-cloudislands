@@ -3,11 +3,18 @@ package kr.lunaf.cloudislands.velocity;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import com.velocitypowered.api.scheduler.ScheduledTask;
+import java.time.Duration;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
@@ -18,6 +25,9 @@ import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 
 public final class VelocityRoutingController {
+    private static final Pattern EVENT = Pattern.compile("\\{[^}]*\"type\":\"([^\"]+)\"[^}]*\"fields\":\\{([^}]*)}[^}]*\"occurredAt\":\"([^\"]+)\"[^}]*}");
+    private static final Pattern FIELD = Pattern.compile("\"([^\"]+)\":\"([^\"]*)\"");
+
     private final ProxyServer proxy;
     private final CoreApiClient coreApiClient;
     private final String fallbackServer;
@@ -25,6 +35,8 @@ public final class VelocityRoutingController {
     private final boolean hideNodeNames;
     private final boolean useActionBar;
     private final boolean useBossBarLoading;
+    private final Set<String> seenEvents = ConcurrentHashMap.newKeySet();
+    private ScheduledTask eventPollTask;
 
     public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer) {
         this(proxy, coreApiClient, fallbackServer, 20);
@@ -780,6 +792,21 @@ public final class VelocityRoutingController {
         sendBodyResult(player, coreApiClient.clearCache(), "캐시 정리를 요청하지 못했습니다.");
     }
 
+    public void startEventPolling(Object plugin) {
+        stopEventPolling();
+        eventPollTask = proxy.getScheduler()
+            .buildTask(plugin, this::pollCoreEvents)
+            .repeat(Duration.ofSeconds(2L))
+            .schedule();
+    }
+
+    public void stopEventPolling() {
+        if (eventPollTask != null) {
+            eventPollTask.cancel();
+            eventPollTask = null;
+        }
+    }
+
     public void listEvents(Player player) {
         sendBodyResult(player, coreApiClient.listEvents(), "이벤트 목록을 불러오지 못했습니다.");
     }
@@ -894,6 +921,65 @@ public final class VelocityRoutingController {
             player.sendMessage(Component.text(emptyMessage));
             return null;
         });
+    }
+
+    private void pollCoreEvents() {
+        coreApiClient.listEvents().thenAccept(body -> {
+            Matcher matcher = EVENT.matcher(body == null ? "" : body);
+            while (matcher.find()) {
+                String type = matcher.group(1);
+                Map<String, String> fields = fields(matcher.group(2));
+                String key = eventKey(type, fields, matcher.group(3));
+                if (seenEvents.add(key)) {
+                    handleCoreEvent(type, fields);
+                }
+            }
+            if (seenEvents.size() > 2048) {
+                seenEvents.clear();
+            }
+        }).exceptionally(error -> null);
+    }
+
+    private void handleCoreEvent(String type, Map<String, String> fields) {
+        if (!type.equals("NODE_STATE_CHANGED")) {
+            return;
+        }
+        String state = fields.getOrDefault("state", "");
+        if (!state.equals("KICKALL") && !state.equals("SHUTDOWN_SAFE")) {
+            return;
+        }
+        String nodeId = fields.getOrDefault("nodeId", "");
+        if (nodeId.isBlank() || nodeId.equals("*")) {
+            return;
+        }
+        moveNodePlayersToFallback(nodeId);
+    }
+
+    private String eventKey(String type, Map<String, String> fields, String occurredAt) {
+        String identity = firstPresent(fields, "nodeId", "islandId", "ticketId", "jobId", "playerUuid");
+        if (identity.isBlank()) {
+            identity = fields.toString();
+        }
+        return type + "@" + occurredAt + "@" + identity + "@" + fields.getOrDefault("state", "");
+    }
+
+    private String firstPresent(Map<String, String> fields, String... keys) {
+        for (String key : keys) {
+            String value = fields.getOrDefault(key, "");
+            if (!value.isBlank()) {
+                return value;
+            }
+        }
+        return "";
+    }
+
+    private Map<String, String> fields(String raw) {
+        Map<String, String> result = new java.util.HashMap<>();
+        Matcher matcher = FIELD.matcher(raw == null ? "" : raw);
+        while (matcher.find()) {
+            result.put(matcher.group(1), matcher.group(2));
+        }
+        return result;
     }
 
     private String appendLevelScanSummary(String body) {

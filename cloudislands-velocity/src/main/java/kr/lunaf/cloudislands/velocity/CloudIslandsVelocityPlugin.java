@@ -7,6 +7,7 @@ import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
+import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.Player;
@@ -194,7 +195,13 @@ public final class CloudIslandsVelocityPlugin {
                 return adminSuggestions(invocation.arguments());
             }
         });
+        routingController.startEventPolling(this);
         logger.info("CloudIslands Velocity router enabled with aliases {}", commandAliases);
+    }
+
+    @Subscribe
+    public void onProxyShutdown(ProxyShutdownEvent event) {
+        routingController.stopEventPolling();
     }
 
     @Subscribe
