@@ -396,7 +396,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.disableTemplate(player, args[2]);
             return;
         }
-        if (args.length >= 2 && args[0].equalsIgnoreCase("node") && (args[1].equalsIgnoreCase("menu") || args[1].equalsIgnoreCase("list"))) {
+        if (args.length >= 1 && args[0].equalsIgnoreCase("node") && (args.length == 1 || args[1].equalsIgnoreCase("menu") || args[1].equalsIgnoreCase("list"))) {
             routingController.listNodes(player);
             return;
         }
@@ -428,7 +428,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.shutdownSafeNode(player, args[2]);
             return;
         }
-        if (args.length >= 2 && args[0].equalsIgnoreCase("jobs") && args[1].equalsIgnoreCase("list")) {
+        if (args.length >= 1 && args[0].equalsIgnoreCase("jobs") && (args.length == 1 || args[1].equalsIgnoreCase("list"))) {
             routingController.listJobs(player);
             return;
         }
