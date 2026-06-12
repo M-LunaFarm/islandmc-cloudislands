@@ -137,6 +137,9 @@ public final class IslandLifecycleWorkflow {
 
     public Result restore(UUID islandId, long snapshotNo, String storagePath) {
         IslandRuntimeSnapshot current = runtimes.find(islandId).orElse(null);
+        if (current != null && current.state() == IslandState.ACTIVE) {
+            return restoreActive(islandId, current, snapshotNo, storagePath);
+        }
         if (!canStartActivation(current)) {
             return new Result(false, "ISLAND_BUSY", current);
         }
@@ -158,6 +161,9 @@ public final class IslandLifecycleWorkflow {
 
     public Result reset(UUID islandId, String reason) {
         IslandRuntimeSnapshot current = runtimes.find(islandId).orElse(null);
+        if (current != null && current.state() == IslandState.ACTIVE) {
+            return resetActive(islandId, current, reason);
+        }
         if (!canStartActivation(current)) {
             return new Result(false, "ISLAND_BUSY", current);
         }
@@ -182,6 +188,51 @@ public final class IslandLifecycleWorkflow {
         islands.setState(islandId, IslandState.QUARANTINED);
         events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", runtime.state().name(), "reason", reason));
         return new Result(true, "QUARANTINED", runtime);
+    }
+
+    private Result restoreActive(UUID islandId, IslandRuntimeSnapshot current, long snapshotNo, String storagePath) {
+        if (current.activeNode() == null || current.activeNode().isBlank() || nodes.find(current.activeNode()).isEmpty()) {
+            return new Result(false, "NODE_UNAVAILABLE", current);
+        }
+        IslandRuntimeSnapshot runtime = runtimes.setState(islandId, IslandState.ACTIVATING);
+        islands.setState(islandId, IslandState.ACTIVATING);
+        try {
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, current.activeNode(), 30, Map.of(
+                "snapshotNo", Long.toString(snapshotNo),
+                "storagePath", storagePath == null ? "" : storagePath,
+                "fencingToken", Long.toString(current.fencingToken()),
+                "worldName", current.activeWorld() == null ? "ci_shard_001" : current.activeWorld(),
+                "cellX", current.cellX() == null ? "0" : Integer.toString(current.cellX()),
+                "cellZ", current.cellZ() == null ? "0" : Integer.toString(current.cellZ())
+            ), Instant.now()));
+        } catch (RuntimeException exception) {
+            return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
+        }
+        events.publish(CloudIslandEventType.ISLAND_RESTORE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "state", "RESTORING_ACTIVE", "snapshotNo", Long.toString(snapshotNo), "targetNode", current.activeNode()));
+        return new Result(true, "RESTORE_QUEUED", runtime);
+    }
+
+    private Result resetActive(UUID islandId, IslandRuntimeSnapshot current, String reason) {
+        if (current.activeNode() == null || current.activeNode().isBlank() || nodes.find(current.activeNode()).isEmpty()) {
+            return new Result(false, "NODE_UNAVAILABLE", current);
+        }
+        String templateId = islands.templateId(islandId).orElse("default");
+        IslandRuntimeSnapshot runtime = runtimes.setState(islandId, IslandState.ACTIVATING);
+        islands.setState(islandId, IslandState.ACTIVATING);
+        try {
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESET_ISLAND, islandId, current.activeNode(), 40, Map.of(
+                "templateId", templateId,
+                "reason", reason,
+                "fencingToken", Long.toString(current.fencingToken()),
+                "worldName", current.activeWorld() == null ? "ci_shard_001" : current.activeWorld(),
+                "cellX", current.cellX() == null ? "0" : Integer.toString(current.cellX()),
+                "cellZ", current.cellZ() == null ? "0" : Integer.toString(current.cellZ())
+            ), Instant.now()));
+        } catch (RuntimeException exception) {
+            return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
+        }
+        events.publish(CloudIslandEventType.ISLAND_RESET_REQUESTED.name(), Map.of("islandId", islandId.toString(), "state", "RESETTING_ACTIVE", "targetNode", current.activeNode(), "reason", reason));
+        return new Result(true, "RESET_QUEUED", runtime);
     }
 
     private boolean canStartActivation(IslandRuntimeSnapshot runtime) {
