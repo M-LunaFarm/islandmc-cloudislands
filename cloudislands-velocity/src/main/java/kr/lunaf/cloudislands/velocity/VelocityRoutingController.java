@@ -2469,7 +2469,7 @@ public final class VelocityRoutingController {
             return fallback;
         }
         if (code.startsWith("NO_READY_NODE") || code.startsWith("TARGET_NODE") || code.startsWith("ACTIVE_NODE")) {
-            return "현재 섬 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.";
+            return "현재 섬 서비스가 혼잡합니다. 잠시 후 다시 시도해주세요.";
         }
         return switch (code) {
             case "ALREADY_HAS_ISLAND" -> "이미 섬을 보유하고 있습니다.";
@@ -2481,7 +2481,7 @@ public final class VelocityRoutingController {
             case "VISITOR_BANNED" -> "해당 섬에 방문할 수 없습니다.";
             case "VISITOR_SOFT_FULL" -> "해당 섬은 지금 멤버 입장 슬롯을 우선 사용 중입니다. 잠시 후 다시 시도해주세요.";
             case "ACTIVATION_LOCKED" -> "섬을 준비하는 중입니다. 잠시 후 다시 시도해주세요.";
-            case "NODE_UNAVAILABLE" -> "현재 섬 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.";
+            case "NODE_UNAVAILABLE" -> "현재 섬 서비스가 혼잡합니다. 잠시 후 다시 시도해주세요.";
             case "TARGET_OFFLINE_NO_ISLAND" -> "대상 플레이어의 섬을 찾을 수 없습니다.";
             case "PUBLIC_ISLAND_NOT_FOUND" -> "방문 가능한 공개 섬을 찾지 못했습니다.";
             case "WARP_NOT_FOUND" -> "해당 워프를 찾을 수 없습니다.";
