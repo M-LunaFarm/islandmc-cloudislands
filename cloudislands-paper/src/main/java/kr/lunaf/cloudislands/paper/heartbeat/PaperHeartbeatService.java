@@ -69,6 +69,7 @@ public final class PaperHeartbeatService {
 
     public void start(long intervalTicks) {
         stop();
+        publish(NodeState.STARTING);
         task = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::publish, intervalTicks, intervalTicks);
     }
 
@@ -80,6 +81,10 @@ public final class PaperHeartbeatService {
     }
 
     private void publish() {
+        publish(null);
+    }
+
+    private void publish(NodeState overrideState) {
         Runtime runtime = Runtime.getRuntime();
         long heapMax = runtime.maxMemory() / 1024L / 1024L;
         long heapUsed = (runtime.totalMemory() - runtime.freeMemory()) / 1024L / 1024L;
@@ -94,7 +99,7 @@ public final class PaperHeartbeatService {
             pool,
             velocityServerName,
             nodeVersion,
-            nodeState(players, softCap, hardCap, activeIslands, maxActive, storageOk),
+            overrideState == null ? nodeState(players, softCap, hardCap, activeIslands, maxActive, storageOk) : overrideState,
             players,
             softCap,
             hardCap,
