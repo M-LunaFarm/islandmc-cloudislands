@@ -223,8 +223,15 @@ public final class PrometheusMetricsRenderer {
             out.append("cloudislands_route_tickets_total{state=\"").append(escape(entry.getKey())).append("\"} ").append(entry.getValue()).append('\n');
         }
         eventCounter(out, "cloudislands_island_activation_requested_total", "Island activation requests accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_ACTIVATE_REQUESTED);
+        eventCounter(out, "cloudislands_island_created_total", "Islands created by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_CREATED);
         eventCounter(out, "cloudislands_island_activated_total", "Island activations completed by node workers", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_ACTIVATED);
         eventCounter(out, "cloudislands_island_deactivated_total", "Island deactivations completed by node workers", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_DEACTIVATED);
+        eventCounter(out, "cloudislands_island_delete_requested_total", "Island delete requests accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_DELETE_REQUESTED);
+        eventCounter(out, "cloudislands_island_deleted_total", "Island deletions completed by node workers", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_DELETED);
+        eventCounter(out, "cloudislands_island_reset_requested_total", "Island reset requests accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_RESET_REQUESTED);
+        eventCounter(out, "cloudislands_island_reset_total", "Island resets completed by node workers", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_RESET);
+        eventCounter(out, "cloudislands_island_restore_requested_total", "Island restore requests accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_RESTORE_REQUESTED);
+        eventCounter(out, "cloudislands_island_restored_total", "Island restores completed by node workers", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_RESTORED);
         eventCounter(out, "cloudislands_island_snapshot_requested_total", "Island snapshot requests accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_SNAPSHOT_REQUESTED);
         eventCounter(out, "cloudislands_island_snapshot_created_total", "Island snapshots completed by node workers", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_SNAPSHOT_CREATED);
         eventCounter(out, "cloudislands_island_migrated_total", "Island migrations completed by node workers", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_MIGRATED);
@@ -235,6 +242,8 @@ public final class PrometheusMetricsRenderer {
         eventCounter(out, "cloudislands_island_upgrade_total", "Island upgrades purchased through Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_UPGRADE);
         eventCounter(out, "cloudislands_island_limit_changed_total", "Island limit changes accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_LIMIT_CHANGED);
         eventCounter(out, "cloudislands_island_mission_completed_total", "Island missions completed through Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_MISSION_COMPLETED);
+        eventCounter(out, "cloudislands_island_template_changed_total", "Island template changes accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_TEMPLATE_CHANGED);
+        eventCounter(out, "cloudislands_node_state_changed_total", "Node state changes accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.NODE_STATE_CHANGED);
         return out.toString();
     }
 
