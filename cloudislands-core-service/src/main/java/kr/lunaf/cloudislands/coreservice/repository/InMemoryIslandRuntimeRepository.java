@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreservice.repository;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,6 +15,16 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
     @Override
     public Optional<IslandRuntimeSnapshot> find(UUID islandId) {
         return Optional.ofNullable(runtimes.get(islandId));
+    }
+
+    @Override
+    public List<IslandRuntimeSnapshot> listByNode(String nodeId, int limit) {
+        int cappedLimit = Math.max(1, Math.min(limit, 200));
+        return runtimes.values().stream()
+            .filter(runtime -> nodeId != null && nodeId.equals(runtime.activeNode()))
+            .filter(this::runningOnNode)
+            .limit(cappedLimit)
+            .toList();
     }
 
     @Override
@@ -76,6 +87,13 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
     private IslandRuntimeSnapshot put(IslandRuntimeSnapshot runtime) {
         runtimes.put(runtime.islandId(), runtime);
         return runtime;
+    }
+
+    private boolean runningOnNode(IslandRuntimeSnapshot runtime) {
+        return runtime.state() == IslandState.ACTIVE
+            || runtime.state() == IslandState.ACTIVATING
+            || runtime.state() == IslandState.SAVING
+            || runtime.state() == IslandState.DEACTIVATING;
     }
 
     private IslandRuntimeSnapshot defaultRuntime(UUID islandId) {

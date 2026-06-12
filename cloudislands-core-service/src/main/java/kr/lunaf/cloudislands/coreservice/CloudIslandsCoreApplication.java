@@ -208,6 +208,16 @@ public final class CloudIslandsCoreApplication {
             String nodeId = JsonFields.text(body, "nodeId", "");
             write(exchange, nodes.find(nodeId).isPresent() ? 200 : 404, nodes.find(nodeId).map(NodeRegistry::toJson).orElseGet(() -> ApiResponses.error("NODE_NOT_FOUND", "Node was not found")));
         });
+        route("/v1/nodes/islands", exchange -> {
+            String body = readBody(exchange);
+            String nodeId = JsonFields.text(body, "nodeId", "");
+            int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 50), 200));
+            if (nodes.find(nodeId).isEmpty()) {
+                write(exchange, 404, ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
+                return;
+            }
+            write(exchange, 200, nodeIslandsJson(nodeId, runtimeRepository.listByNode(nodeId, limit)));
+        });
         route("/v1/jobs", exchange -> write(exchange, 200, jobsJson(jobs)));
         route("/v1/events", exchange -> write(exchange, 200, inMemoryEvents.toJson()));
         route("/v1/audit", exchange -> write(exchange, 200, auditJson.get()));
@@ -1468,6 +1478,19 @@ public final class CloudIslandsCoreApplication {
             + ",\"activatedAt\":" + nullable(runtime.activatedAt() == null ? null : runtime.activatedAt().toString())
             + ",\"lastHeartbeat\":" + nullable(runtime.lastHeartbeat() == null ? null : runtime.lastHeartbeat().toString())
             + "}";
+    }
+
+    private static String nodeIslandsJson(String nodeId, java.util.List<kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot> runtimes) {
+        StringBuilder builder = new StringBuilder("{\"nodeId\":\"").append(escape(nodeId)).append("\",\"count\":").append(runtimes.size()).append(",\"islands\":[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime : runtimes) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append(runtimeJson(runtime));
+        }
+        return builder.append("]}").toString();
     }
 
     private static String templatesJson(java.util.List<IslandTemplateSnapshot> templates) {

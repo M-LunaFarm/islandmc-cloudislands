@@ -110,6 +110,7 @@ public interface CoreApiClient {
     CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce);
     CompletableFuture<String> listNodes();
     CompletableFuture<String> nodeInfo(String nodeId);
+    CompletableFuture<String> nodeIslands(String nodeId, int limit);
     CompletableFuture<String> drainNode(String nodeId);
     CompletableFuture<String> drainNodeResult(String nodeId);
     CompletableFuture<String> undrainNode(String nodeId);

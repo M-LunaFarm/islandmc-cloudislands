@@ -494,6 +494,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> nodeIslands(String nodeId, int limit) {
+        return post("/v1/nodes/islands", "{\"nodeId\":\"" + escape(nodeId) + "\",\"limit\":" + Math.max(1, Math.min(limit, 200)) + "}");
+    }
+
+    @Override
     public CompletableFuture<String> drainNode(String nodeId) {
         return drainNodeResult(nodeId);
     }

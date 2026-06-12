@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.coreservice.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
@@ -7,6 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandState;
 
 public interface IslandRuntimeRepository {
     Optional<IslandRuntimeSnapshot> find(UUID islandId);
+    List<IslandRuntimeSnapshot> listByNode(String nodeId, int limit);
     IslandRuntimeSnapshot markActivating(UUID islandId, String targetNode, String targetWorld, int cellX, int cellZ);
     IslandRuntimeSnapshot markActive(UUID islandId, String nodeId, String worldName, int cellX, int cellZ, long fencingToken);
     IslandRuntimeSnapshot markSaving(UUID islandId);

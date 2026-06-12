@@ -595,7 +595,7 @@ public final class VelocityRoutingController {
     }
 
     public void nodeIslands(Player player, String nodeId) {
-        sendBodyResult(player, coreApiClient.nodeInfo(nodeId).thenApply(this::nodeIslandSummary), "노드 섬 현황을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.nodeIslands(nodeId, 50).thenApply(this::nodeIslandListMessage), "노드 섬 현황을 불러오지 못했습니다.");
     }
 
     public void drainNode(Player player, String nodeId) {
@@ -918,6 +918,75 @@ public final class VelocityRoutingController {
             summary.append(", 서버=").append(server);
         }
         return summary.toString();
+    }
+
+    private String nodeIslandListMessage(String body) {
+        if (body == null || body.isBlank()) {
+            return "";
+        }
+        String nodeId = jsonValue(body, "nodeId");
+        long count = longValue(body, "count");
+        String islands = arrayValue(body, "islands");
+        if (islands.isBlank() || count == 0L) {
+            return "노드 섬 현황" + (nodeId.isBlank() ? "" : " " + nodeId) + ": 활성 섬 없음";
+        }
+        java.util.List<String> entries = new java.util.ArrayList<>();
+        int index = 0;
+        while (index < islands.length()) {
+            int objectStart = islands.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(islands, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = islands.substring(objectStart, objectEnd + 1);
+            String islandId = jsonValue(object, "islandId");
+            if (!islandId.isBlank()) {
+                entries.add(islandId + "(" + jsonValue(object, "state") + ")");
+            }
+            index = objectEnd + 1;
+        }
+        return "노드 섬 현황" + (nodeId.isBlank() ? "" : " " + nodeId) + ": " + (entries.isEmpty() ? "활성 섬 없음" : String.join(", ", entries));
+    }
+
+    private String arrayValue(String body, String field) {
+        String needle = "\"" + field + "\":[";
+        int start = body == null ? -1 : body.indexOf(needle);
+        if (start < 0) {
+            return "";
+        }
+        start += needle.length() - 1;
+        int depth = 0;
+        for (int i = start; i < body.length(); i++) {
+            char current = body.charAt(i);
+            if (current == '[') {
+                depth++;
+            } else if (current == ']') {
+                depth--;
+                if (depth == 0) {
+                    return body.substring(start, i + 1);
+                }
+            }
+        }
+        return "";
+    }
+
+    private int matchingObjectEnd(String value, int objectStart) {
+        int depth = 0;
+        for (int i = objectStart; i < value.length(); i++) {
+            char current = value.charAt(i);
+            if (current == '{') {
+                depth++;
+            } else if (current == '}') {
+                depth--;
+                if (depth == 0) {
+                    return i;
+                }
+            }
+        }
+        return -1;
     }
 
     private void appendLongSummary(StringBuilder summary, String label, long value) {

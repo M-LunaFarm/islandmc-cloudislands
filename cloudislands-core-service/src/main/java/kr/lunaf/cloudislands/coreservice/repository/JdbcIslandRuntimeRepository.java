@@ -5,6 +5,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import javax.sql.DataSource;
@@ -28,6 +30,25 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
             }
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to read island runtime", exception);
+        }
+    }
+
+    @Override
+    public List<IslandRuntimeSnapshot> listByNode(String nodeId, int limit) {
+        int cappedLimit = Math.max(1, Math.min(limit, 200));
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT * FROM island_runtime WHERE active_node = ? AND state IN ('ACTIVE', 'ACTIVATING', 'SAVING', 'DEACTIVATING') ORDER BY updated_at DESC LIMIT ?")) {
+            statement.setString(1, nodeId);
+            statement.setInt(2, cappedLimit);
+            try (ResultSet rs = statement.executeQuery()) {
+                List<IslandRuntimeSnapshot> results = new ArrayList<>();
+                while (rs.next()) {
+                    results.add(map(rs));
+                }
+                return results;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to list node island runtimes", exception);
         }
     }
 

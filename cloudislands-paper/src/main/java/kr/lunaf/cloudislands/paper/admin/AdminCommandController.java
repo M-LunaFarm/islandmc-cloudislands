@@ -173,7 +173,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return true;
         }
         if (args[1].equalsIgnoreCase("islands")) {
-            run(sender, "Node islands", coreApiClient.nodeInfo(targetNode).thenApply(this::nodeIslandSummary));
+            run(sender, "Node islands", coreApiClient.nodeIslands(targetNode, 50).thenApply(this::nodeIslandListMessage));
             return true;
         }
         if (args[1].equalsIgnoreCase("drain")) {
@@ -609,6 +609,75 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             builder.append(", 서버=").append(server);
         }
         return builder.toString();
+    }
+
+    private String nodeIslandListMessage(String body) {
+        if (body == null || body.isBlank()) {
+            return "";
+        }
+        String nodeId = textValue(body, "nodeId");
+        long count = longValue(body, "count");
+        String islands = arrayValue(body, "islands");
+        if (islands.isBlank() || count == 0L) {
+            return "노드 섬 현황" + (nodeId.isBlank() ? "" : " " + nodeId) + ": 활성 섬 없음";
+        }
+        List<String> entries = new ArrayList<>();
+        int index = 0;
+        while (index < islands.length()) {
+            int objectStart = islands.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(islands, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = islands.substring(objectStart, objectEnd + 1);
+            String islandId = textValue(object, "islandId");
+            if (!islandId.isBlank()) {
+                entries.add(islandId + "(" + textValue(object, "state") + ")");
+            }
+            index = objectEnd + 1;
+        }
+        return "노드 섬 현황" + (nodeId.isBlank() ? "" : " " + nodeId) + ": " + (entries.isEmpty() ? "활성 섬 없음" : String.join(", ", entries));
+    }
+
+    private String arrayValue(String body, String field) {
+        String needle = "\"" + field + "\":[";
+        int start = body == null ? -1 : body.indexOf(needle);
+        if (start < 0) {
+            return "";
+        }
+        start += needle.length() - 1;
+        int depth = 0;
+        for (int i = start; i < body.length(); i++) {
+            char current = body.charAt(i);
+            if (current == '[') {
+                depth++;
+            } else if (current == ']') {
+                depth--;
+                if (depth == 0) {
+                    return body.substring(start, i + 1);
+                }
+            }
+        }
+        return "";
+    }
+
+    private int matchingObjectEnd(String value, int objectStart) {
+        int depth = 0;
+        for (int i = objectStart; i < value.length(); i++) {
+            char current = value.charAt(i);
+            if (current == '{') {
+                depth++;
+            } else if (current == '}') {
+                depth--;
+                if (depth == 0) {
+                    return i;
+                }
+            }
+        }
+        return -1;
     }
 
     private String objectValue(String body, String field) {
