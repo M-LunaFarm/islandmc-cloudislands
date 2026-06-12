@@ -13,10 +13,13 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
+import org.bukkit.event.vehicle.VehicleCreateEvent;
+import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Hanging;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Vehicle;
 
 public final class IslandEntityLimitListener implements Listener {
     private static final long NOTICE_COOLDOWN_MILLIS = 3_000L;
@@ -33,7 +36,7 @@ public final class IslandEntityLimitListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onEntitySpawn(EntitySpawnEvent event) {
-        if (event.getEntity() instanceof Hanging) {
+        if (event.getEntity() instanceof Hanging || event.getEntity() instanceof Vehicle) {
             return;
         }
         if (!countsForLimit(event.getEntity())) {
@@ -66,6 +69,30 @@ public final class IslandEntityLimitListener implements Listener {
                 return;
             }
             observedEntities.merge(islandId, 1L, Long::sum);
+        });
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onVehicleCreate(VehicleCreateEvent event) {
+        protection.regionAt(event.getVehicle().getLocation().getBlock()).ifPresent(region -> {
+            UUID islandId = region.islandId();
+            seedObserved(event.getVehicle().getWorld(), region, event.getVehicle());
+            long limit = limits.limit(islandId, "ENTITY", Long.MAX_VALUE);
+            long current = observedEntities.getOrDefault(islandId, 0L);
+            if (current >= limit) {
+                event.getVehicle().remove();
+                notifyNearby(event.getVehicle().getLocation(), islandId, current, limit);
+                return;
+            }
+            observedEntities.merge(islandId, 1L, Long::sum);
+        });
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onVehicleDestroy(VehicleDestroyEvent event) {
+        protection.regionAt(event.getVehicle().getLocation().getBlock()).ifPresent(region -> {
+            seedObserved(event.getVehicle().getWorld(), region, null);
+            observedEntities.merge(region.islandId(), -1L, (left, right) -> Math.max(0L, left + right));
         });
     }
 
@@ -108,7 +135,7 @@ public final class IslandEntityLimitListener implements Listener {
         if (entity instanceof Player) {
             return false;
         }
-        return entity instanceof LivingEntity || entity instanceof Hanging;
+        return entity instanceof LivingEntity || entity instanceof Hanging || entity instanceof Vehicle;
     }
 
     private void notifyNearby(org.bukkit.Location location, UUID islandId, long current, long limit) {
