@@ -257,7 +257,11 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args.length >= 2 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("debug")) {
-            routingController.debugRoutesTarget(player, args.length > 2 ? args[2] : "");
+            if (args.length < 3 || args[2].equalsIgnoreCase("all")) {
+                routingController.debugRoutes(player, new UUID(0L, 0L));
+            } else {
+                routingController.debugRoutesTarget(player, args[2]);
+            }
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("ticket")) {

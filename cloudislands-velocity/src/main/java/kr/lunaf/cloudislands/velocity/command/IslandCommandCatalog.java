@@ -32,7 +32,7 @@ public final class IslandCommandCatalog {
             "ciadmin player clearisland", "ciadmin node list", "ciadmin node info", "ciadmin node islands <node> [limit]",
             "ciadmin node drain", "ciadmin node undrain", "ciadmin node kickall",
             "ciadmin node sweep", "ciadmin node shutdown-safe", "ciadmin jobs list", "ciadmin jobs retry",
-            "ciadmin jobs cancel", "ciadmin jobs recover", "ciadmin route debug <player>", "ciadmin route ticket <ticket|player>",
+            "ciadmin jobs cancel", "ciadmin jobs recover", "ciadmin route debug [all|player]", "ciadmin route ticket <ticket|player>",
             "ciadmin route clear <player> [ticket]", "ciadmin cache clear", "ciadmin events", "ciadmin audit",
             "ciadmin block-values list", "ciadmin block-values set", "ciadmin reload",
             "ciadmin migrate-superiorskyblock2"
