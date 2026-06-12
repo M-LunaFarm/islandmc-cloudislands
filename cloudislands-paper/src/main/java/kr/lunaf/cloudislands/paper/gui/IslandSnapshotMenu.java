@@ -54,7 +54,7 @@ public final class IslandSnapshotMenu implements Listener {
             player.performCommand("섬 설정");
             return;
         }
-        String snapshotNo = loreValue(meta, "snapshotNo=");
+        String snapshotNo = loreValue(meta, "번호=");
         if (!snapshotNo.isBlank()) {
             if (event.isShiftClick() && event.isRightClick()) {
                 player.performCommand("섬 스냅샷복원 " + snapshotNo);
@@ -92,7 +92,7 @@ public final class IslandSnapshotMenu implements Listener {
     }
 
     private static ItemStack snapshotItem(Snapshot snapshot) {
-        return item(Material.PAPER, "스냅샷 #" + snapshot.snapshotNo(), "snapshotNo=" + snapshot.snapshotNo(), "reason=" + snapshot.reason(), "sizeBytes=" + snapshot.sizeBytes(), "createdAt=" + snapshot.createdAt(), "좌클릭: 상세 보기", "Shift+우클릭: 이 스냅샷 복원 요청");
+        return item(Material.PAPER, "스냅샷 #" + snapshot.snapshotNo(), "번호=" + snapshot.snapshotNo(), "사유: " + (snapshot.reason().isBlank() ? "없음" : snapshot.reason()), "크기: " + snapshot.sizeBytes() + " bytes", snapshot.createdAt().isBlank() ? "생성 정보 없음" : "생성 시각: " + snapshot.createdAt(), "좌클릭: 상세 보기", "Shift+우클릭: 이 스냅샷 복원 요청");
     }
 
     private static ItemStack item(Material material, String name, String... lore) {

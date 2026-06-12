@@ -61,11 +61,11 @@ public final class IslandInfoMenu implements Listener {
     private static void openSync(Plugin plugin, Player player, String body) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
-            inventory.setItem(10, item(Material.GRASS_BLOCK, "기본 정보", "name=" + fallback(text(body, "name"), "unknown"), "state=" + fallback(text(body, "state"), "unknown"), "islandId=" + text(body, "islandId")));
-            inventory.setItem(11, item(Material.EXPERIENCE_BOTTLE, "레벨", "level=" + number(body, "level"), "worth=" + fallback(text(body, "worth"), "0")));
-            inventory.setItem(12, item(Material.BARRIER, "공개 상태", "publicAccess=" + bool(body, "publicAccess"), "locked=" + bool(body, "locked")));
-            inventory.setItem(13, item(Material.MAP, "크기와 경계", "size=" + number(body, "size"), "border=" + number(body, "border")));
-            inventory.setItem(14, item(Material.PLAYER_HEAD, "소유자", "ownerUuid=" + text(body, "ownerUuid")));
+            inventory.setItem(10, item(Material.GRASS_BLOCK, "기본 정보", "섬 이름: " + fallback(text(body, "name"), "이름 없음"), "상태: " + fallback(text(body, "state"), "알 수 없음"), "섬 ID: " + shortId(text(body, "islandId"))));
+            inventory.setItem(11, item(Material.EXPERIENCE_BOTTLE, "레벨", "레벨: " + number(body, "level"), "가치: " + fallback(text(body, "worth"), "0")));
+            inventory.setItem(12, item(Material.BARRIER, "공개 상태", "공개 여부: " + yesNo(bool(body, "publicAccess")), "잠금 여부: " + yesNo(bool(body, "locked"))));
+            inventory.setItem(13, item(Material.MAP, "크기와 경계", "섬 크기: " + number(body, "size"), "경계: " + number(body, "border")));
+            inventory.setItem(14, item(Material.PLAYER_HEAD, "소유자", "소유자: " + shortId(text(body, "ownerUuid"))));
             inventory.setItem(16, item(Material.REDSTONE_TORCH, "설정", "/섬 설정"));
             inventory.setItem(21, item(Material.GOLD_BLOCK, "섬 랭킹", "/섬 랭킹"));
             inventory.setItem(22, item(Material.CLOCK, "섬 로그", "/섬 로그"));
@@ -125,5 +125,16 @@ public final class IslandInfoMenu implements Listener {
 
     private static String fallback(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private static String yesNo(boolean value) {
+        return value ? "예" : "아니오";
+    }
+
+    private static String shortId(String value) {
+        if (value == null || value.isBlank()) {
+            return "알 수 없음";
+        }
+        return value.length() <= 8 ? value : value.substring(0, 8);
     }
 }

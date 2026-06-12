@@ -86,7 +86,7 @@ public final class IslandHomeMenu implements Listener {
     }
 
     private static ItemStack homeItem(Home home) {
-        return item(Material.GREEN_BED, home.name(), "homeName=" + home.name(), "위치: " + (long) home.x() + ", " + (long) home.y() + ", " + (long) home.z(), home.createdAt().isBlank() ? "생성 정보 없음" : "createdAt=" + home.createdAt(), "좌클릭: 이 홈으로 이동", "우클릭: 현재 위치로 갱신");
+        return item(Material.GREEN_BED, home.name(), "homeName=" + home.name(), "위치: " + (long) home.x() + ", " + (long) home.y() + ", " + (long) home.z(), home.createdAt().isBlank() ? "생성 정보 없음" : "생성 시각: " + home.createdAt(), "좌클릭: 이 홈으로 이동", "우클릭: 현재 위치로 갱신");
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
