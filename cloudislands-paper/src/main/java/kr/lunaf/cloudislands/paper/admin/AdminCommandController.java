@@ -390,7 +390,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args[1].equalsIgnoreCase("snapshots")) {
             int limit = args.length > 3 ? (int) number(args[3], 20L) : 20;
-            run(sender, "Island snapshots", coreApiClient.listIslandSnapshots(islandId, Math.max(1, Math.min(limit, 50))));
+            run(sender, "Island snapshots", coreApiClient.listIslandSnapshots(islandId, Math.max(1, Math.min(limit, 50))).thenApply(this::snapshotListMessage));
             return true;
         }
         if (args[1].equalsIgnoreCase("restore") || args[1].equalsIgnoreCase("rollback")) {
@@ -1051,6 +1051,38 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return "Route clear: no response";
         }
         return "Route clear: session=" + boolValue(body, "clearedSession") + " ticket=" + boolValue(body, "clearedTicket");
+    }
+
+    private String snapshotListMessage(String body) {
+        String snapshots = arrayValue(body, "snapshots");
+        if (snapshots.isBlank()) {
+            return "Snapshots: empty";
+        }
+        List<String> entries = new ArrayList<>();
+        int index = 0;
+        while (index < snapshots.length() && entries.size() < 20) {
+            int objectStart = snapshots.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(snapshots, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = snapshots.substring(objectStart, objectEnd + 1);
+            long snapshotNo = longValue(object, "snapshotNo");
+            if (snapshotNo > 0L) {
+                String reason = textValue(object, "reason");
+                long sizeBytes = longValue(object, "sizeBytes");
+                String createdAt = textValue(object, "createdAt");
+                entries.add("#" + snapshotNo
+                    + (reason.isBlank() ? "" : " " + reason)
+                    + " size=" + sizeBytes
+                    + (createdAt.isBlank() ? "" : " at=" + createdAt));
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "Snapshots: empty" : "Snapshots: " + String.join(" | ", entries);
     }
 
     private void collectSessionSummaries(String sessions, List<String> entries, int limit) {

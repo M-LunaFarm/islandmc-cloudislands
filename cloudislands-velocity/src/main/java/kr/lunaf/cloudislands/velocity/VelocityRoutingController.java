@@ -593,7 +593,7 @@ public final class VelocityRoutingController {
     }
 
     public void listSnapshots(Player player, UUID islandId) {
-        sendPlayerPayloadFuture(player, coreApiClient.listIslandSnapshots(islandId, 20), "스냅샷 목록을 불러오지 못했습니다.", "스냅샷 목록을 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.listIslandSnapshots(islandId, 20).thenApply(this::snapshotListMessage), "스냅샷 목록을 불러오지 못했습니다.");
     }
 
     public void snapshot(Player player, UUID islandId, String reason) {
@@ -1342,6 +1342,38 @@ public final class VelocityRoutingController {
             return "Route clear: no response";
         }
         return "Route clear: session=" + boolValue(body, "clearedSession") + " ticket=" + boolValue(body, "clearedTicket");
+    }
+
+    private String snapshotListMessage(String body) {
+        String snapshots = arrayValue(body, "snapshots");
+        if (snapshots.isBlank()) {
+            return "Snapshots: empty";
+        }
+        java.util.List<String> entries = new java.util.ArrayList<>();
+        int index = 0;
+        while (index < snapshots.length() && entries.size() < 20) {
+            int objectStart = snapshots.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(snapshots, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = snapshots.substring(objectStart, objectEnd + 1);
+            long snapshotNo = longValue(object, "snapshotNo");
+            if (snapshotNo > 0L) {
+                String reason = jsonValue(object, "reason");
+                long sizeBytes = longValue(object, "sizeBytes");
+                String createdAt = jsonValue(object, "createdAt");
+                entries.add("#" + snapshotNo
+                    + (reason.isBlank() ? "" : " " + reason)
+                    + " size=" + sizeBytes
+                    + (createdAt.isBlank() ? "" : " at=" + createdAt));
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "Snapshots: empty" : "Snapshots: " + String.join(" | ", entries);
     }
 
     private void collectSessionSummaries(String sessions, java.util.List<String> entries, int limit) {
