@@ -663,11 +663,25 @@ public final class CloudIslandsCoreApplication {
             events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId.isBlank() ? "*" : nodeId, "state", "SWEEP", "recoveryRequired", Integer.toString(affected), "nodes", String.join(",", downNodes)));
             write(exchange, 202, "{\"nodes\":" + nodesJson + ",\"recoveryRequired\":" + affected + "}");
         });
-        route("/v1/admin/islands/activate", exchange -> lifecycle(exchange, lifecycle.activate(JsonFields.uuid(readBody(exchange), "islandId", new UUID(0L, 0L)))));
-        route("/v1/admin/islands/deactivate", exchange -> lifecycle(exchange, lifecycle.deactivate(JsonFields.uuid(readBody(exchange), "islandId", new UUID(0L, 0L)))));
+        route("/v1/admin/islands/activate", exchange -> {
+            UUID islandId = JsonFields.uuid(readBody(exchange), "islandId", new UUID(0L, 0L));
+            IslandLifecycleWorkflow.Result result = lifecycle.activate(islandId);
+            audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_ACTIVATE", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code()));
+            lifecycle(exchange, result);
+        });
+        route("/v1/admin/islands/deactivate", exchange -> {
+            UUID islandId = JsonFields.uuid(readBody(exchange), "islandId", new UUID(0L, 0L));
+            IslandLifecycleWorkflow.Result result = lifecycle.deactivate(islandId);
+            audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_DEACTIVATE", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code()));
+            lifecycle(exchange, result);
+        });
         route("/v1/admin/islands/migrate", exchange -> {
             String body = readBody(exchange);
-            lifecycle(exchange, lifecycle.migrate(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "targetNode", "")));
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            String targetNode = JsonFields.text(body, "targetNode", "");
+            IslandLifecycleWorkflow.Result result = lifecycle.migrate(islandId, targetNode);
+            audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_MIGRATE", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code(), "targetNode", targetNode));
+            lifecycle(exchange, result);
         });
         routePrefix("/v1/admin/islands/", exchange -> {
             String method = exchange.getRequestMethod();
@@ -678,16 +692,26 @@ public final class CloudIslandsCoreApplication {
                 return;
             }
             if (tail.endsWith("/activate")) {
-                lifecycle(exchange, lifecycle.activate(uuidPath(tail.substring(0, tail.length() - "/activate".length()))));
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/activate".length()));
+                IslandLifecycleWorkflow.Result result = lifecycle.activate(islandId);
+                audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_ACTIVATE", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code()));
+                lifecycle(exchange, result);
                 return;
             }
             if (tail.endsWith("/deactivate")) {
-                lifecycle(exchange, lifecycle.deactivate(uuidPath(tail.substring(0, tail.length() - "/deactivate".length()))));
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/deactivate".length()));
+                IslandLifecycleWorkflow.Result result = lifecycle.deactivate(islandId);
+                audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_DEACTIVATE", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code()));
+                lifecycle(exchange, result);
                 return;
             }
             if (tail.endsWith("/migrate")) {
                 String body = readBody(exchange);
-                lifecycle(exchange, lifecycle.migrate(uuidPath(tail.substring(0, tail.length() - "/migrate".length())), JsonFields.text(body, "targetNode", "")));
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/migrate".length()));
+                String targetNode = JsonFields.text(body, "targetNode", "");
+                IslandLifecycleWorkflow.Result result = lifecycle.migrate(islandId, targetNode);
+                audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_MIGRATE", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code(), "targetNode", targetNode));
+                lifecycle(exchange, result);
                 return;
             }
             write(exchange, 404, ApiResponses.error("ROUTE_NOT_FOUND", "Route was not found"));
