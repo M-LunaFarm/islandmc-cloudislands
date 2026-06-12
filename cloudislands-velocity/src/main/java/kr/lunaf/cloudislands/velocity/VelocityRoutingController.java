@@ -605,7 +605,7 @@ public final class VelocityRoutingController {
     }
 
     public void listJobs(Player player) {
-        sendBodyResult(player, coreApiClient.listJobs(), "작업 목록을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listJobs().thenApply(this::jobListMessage), "작업 목록을 불러오지 못했습니다.");
     }
 
     public void retryJob(Player player, UUID jobId) {
@@ -1159,6 +1159,80 @@ public final class VelocityRoutingController {
             index = valueEnd + 1;
         }
         return "Node sweep: nodes=" + (swept.isEmpty() ? "none" : String.join(",", swept)) + " recoveryRequired=" + recoveryRequired;
+    }
+
+    private String jobListMessage(String body) {
+        String jobs = arrayValue(body, "jobs");
+        if (jobs.isBlank()) {
+            return "Jobs: empty";
+        }
+        int pending = 0;
+        int claimed = 0;
+        int failed = 0;
+        int done = 0;
+        int other = 0;
+        int total = 0;
+        java.util.List<String> entries = new java.util.ArrayList<>();
+        int index = 0;
+        while (index < jobs.length()) {
+            int objectStart = jobs.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(jobs, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = jobs.substring(objectStart, objectEnd + 1);
+            String state = jsonValue(object, "state");
+            total++;
+            if (state.equalsIgnoreCase("PENDING")) {
+                pending++;
+            } else if (state.equalsIgnoreCase("CLAIMED")) {
+                claimed++;
+            } else if (state.equalsIgnoreCase("FAILED")) {
+                failed++;
+            } else if (state.equalsIgnoreCase("DONE") || state.equalsIgnoreCase("COMPLETED")) {
+                done++;
+            } else {
+                other++;
+            }
+            if (entries.size() < 10) {
+                entries.add(jobSummary(object));
+            }
+            index = objectEnd + 1;
+        }
+        return "Jobs: total=" + total
+            + " pending=" + pending
+            + " claimed=" + claimed
+            + " failed=" + failed
+            + " done=" + done
+            + " other=" + other
+            + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String jobSummary(String object) {
+        String id = jsonValue(object, "id");
+        String type = jsonValue(object, "type");
+        String state = jsonValue(object, "state");
+        String targetNode = jsonValue(object, "targetNode");
+        long attempts = longValue(object, "attempts");
+        String error = jsonValue(object, "error");
+        String shortId = id.length() > 8 ? id.substring(0, 8) : id;
+        StringBuilder builder = new StringBuilder(shortId.isBlank() ? "job" : shortId)
+            .append(' ')
+            .append(type.isBlank() ? "UNKNOWN" : type)
+            .append(' ')
+            .append(state.isBlank() ? "UNKNOWN" : state)
+            .append(" attempts=")
+            .append(attempts);
+        if (!targetNode.isBlank() && !hideNodeNames) {
+            builder.append(" node=").append(targetNode);
+        }
+        if (!error.isBlank()) {
+            builder.append(" error=").append(error);
+        }
+        return builder.toString();
     }
 
     private String publicIslandListMessage(String body) {
