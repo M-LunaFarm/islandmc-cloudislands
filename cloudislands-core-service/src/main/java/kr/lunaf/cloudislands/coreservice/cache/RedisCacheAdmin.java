@@ -25,6 +25,7 @@ public final class RedisCacheAdmin {
         "ci:island:*:missions:*",
         "ci:island:*:upgrades",
         "ci:island:*:snapshots",
+        "ci:island:*:logs",
         "ci:templates",
         "ci:rankings:*"
     );

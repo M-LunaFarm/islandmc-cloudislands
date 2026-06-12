@@ -23,6 +23,7 @@ public final class RedisKeys {
     public static String islandMissions(UUID islandId, String kind) { return "ci:island:" + islandId + ":missions:" + kind; }
     public static String islandUpgrades(UUID islandId) { return "ci:island:" + islandId + ":upgrades"; }
     public static String islandSnapshots(UUID islandId) { return "ci:island:" + islandId + ":snapshots"; }
+    public static String islandLogs(UUID islandId) { return "ci:island:" + islandId + ":logs"; }
     public static String templates() { return "ci:templates"; }
     public static String rankingVersion() { return "ci:rankings:version"; }
     public static String rankingTop(String metric, int limit, long version) { return "ci:rankings:" + metric + ":" + limit + ":v" + version; }
