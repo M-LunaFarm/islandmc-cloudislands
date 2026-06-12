@@ -111,6 +111,7 @@ public final class PaperHeartbeatService {
         int maxActive = Math.max(1, maxActiveIslands.getAsInt());
         boolean storageOk = storageAvailable.getAsBoolean();
         NodeHeartbeatRequest heartbeat = new NodeHeartbeatRequest(
+            NodeHeartbeatRequest.CURRENT_PROTOCOL_VERSION,
             nodeId,
             pool,
             velocityServerName,

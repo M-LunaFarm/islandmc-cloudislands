@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.protocol.node;
 import kr.lunaf.cloudislands.api.model.NodeState;
 
 public record NodeHeartbeatRequest(
+    int protocolVersion,
     String nodeId,
     String pool,
     String velocityServerName,
@@ -23,4 +24,6 @@ public record NodeHeartbeatRequest(
     int recentFailurePenalty,
     boolean storageAvailable,
     String supportedTemplates
-) {}
+) {
+    public static final int CURRENT_PROTOCOL_VERSION = 1;
+}

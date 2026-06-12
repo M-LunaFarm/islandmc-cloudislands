@@ -142,6 +142,8 @@ import kr.lunaf.cloudislands.storage.LocalIslandStorage;
 import kr.lunaf.cloudislands.storage.s3.S3IslandStorage;
 
 public final class CloudIslandsCoreApplication {
+    private static final int MIN_NODE_PROTOCOL_VERSION = 1;
+    private static final int MAX_NODE_PROTOCOL_VERSION = NodeHeartbeatRequest.CURRENT_PROTOCOL_VERSION;
     private final HttpServer server;
     private final ApiTokenGuard tokenGuard;
     private final FixedWindowRateLimiter rateLimiter;
@@ -941,6 +943,10 @@ public final class CloudIslandsCoreApplication {
         });
         route("/v1/nodes/heartbeat", exchange -> {
             NodeHeartbeatRequest heartbeat = heartbeat(readBody(exchange));
+            if (heartbeat.protocolVersion() < MIN_NODE_PROTOCOL_VERSION || heartbeat.protocolVersion() > MAX_NODE_PROTOCOL_VERSION) {
+                write(exchange, 426, ApiResponses.error("PROTOCOL_VERSION_UNSUPPORTED", "Node protocol version is not supported"));
+                return;
+            }
             nodes.heartbeat(heartbeat);
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -2581,7 +2587,7 @@ public final class CloudIslandsCoreApplication {
     }
 
     private static NodeHeartbeatRequest heartbeat(String body) {
-        return new NodeHeartbeatRequest(JsonFields.text(body, "nodeId", "unknown"), JsonFields.text(body, "pool", "island"), JsonFields.text(body, "velocityServerName", JsonFields.text(body, "nodeId", "unknown")), JsonFields.text(body, "nodeVersion", ""), JsonFields.enumValue(NodeState.class, body, "state", NodeState.READY), JsonFields.integer(body, "players", 0), JsonFields.integer(body, "softPlayerCap", 90), JsonFields.integer(body, "hardPlayerCap", 110), JsonFields.integer(body, "reservedSlots", 0), JsonFields.integer(body, "activeIslands", 0), JsonFields.integer(body, "maxActiveIslands", 600), JsonFields.decimal(body, "mspt", 20.0D), JsonFields.integer(body, "activationQueue", 0), JsonFields.integer(body, "maxActivationQueue", 20), JsonFields.decimal(body, "chunkLoadPressure", 0.0D), JsonFields.longValue(body, "heapUsedMb", 0L), JsonFields.longValue(body, "heapMaxMb", 1L), JsonFields.integer(body, "recentFailurePenalty", 0), JsonFields.bool(body, "storageAvailable", true), JsonFields.text(body, "supportedTemplates", "*"));
+        return new NodeHeartbeatRequest(JsonFields.integer(body, "protocolVersion", NodeHeartbeatRequest.CURRENT_PROTOCOL_VERSION), JsonFields.text(body, "nodeId", "unknown"), JsonFields.text(body, "pool", "island"), JsonFields.text(body, "velocityServerName", JsonFields.text(body, "nodeId", "unknown")), JsonFields.text(body, "nodeVersion", ""), JsonFields.enumValue(NodeState.class, body, "state", NodeState.READY), JsonFields.integer(body, "players", 0), JsonFields.integer(body, "softPlayerCap", 90), JsonFields.integer(body, "hardPlayerCap", 110), JsonFields.integer(body, "reservedSlots", 0), JsonFields.integer(body, "activeIslands", 0), JsonFields.integer(body, "maxActiveIslands", 600), JsonFields.decimal(body, "mspt", 20.0D), JsonFields.integer(body, "activationQueue", 0), JsonFields.integer(body, "maxActivationQueue", 20), JsonFields.decimal(body, "chunkLoadPressure", 0.0D), JsonFields.longValue(body, "heapUsedMb", 0L), JsonFields.longValue(body, "heapMaxMb", 1L), JsonFields.integer(body, "recentFailurePenalty", 0), JsonFields.bool(body, "storageAvailable", true), JsonFields.text(body, "supportedTemplates", "*"));
     }
 
     private static String readBody(HttpExchange exchange) throws IOException {

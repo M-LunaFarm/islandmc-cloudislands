@@ -406,6 +406,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<IslandActionResult> heartbeatResult(String nodeId, NodeHeartbeat heartbeat) {
             return client.publishHeartbeatResult(new NodeHeartbeatRequest(
+                NodeHeartbeatRequest.CURRENT_PROTOCOL_VERSION,
                 nodeId,
                 "island",
                 nodeId,
