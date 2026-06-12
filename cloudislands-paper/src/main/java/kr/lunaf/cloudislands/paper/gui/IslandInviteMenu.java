@@ -45,6 +45,14 @@ public final class IslandInviteMenu implements Listener {
             player.performCommand("섬 초대목록");
             return;
         }
+        if (name.equals("멤버 관리")) {
+            player.performCommand("섬 멤버관리");
+            return;
+        }
+        if (name.equals("메인 메뉴")) {
+            player.performCommand("섬 메뉴");
+            return;
+        }
         String inviteId = loreValue(meta, "inviteId=");
         if (inviteId.isBlank()) {
             return;
@@ -63,7 +71,9 @@ public final class IslandInviteMenu implements Listener {
                     inventory.setItem(slot++, inviteItem(invite));
                 }
             }
+            inventory.setItem(45, item(Material.NAME_TAG, "멤버 관리", "/섬 멤버관리"));
             inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 초대목록"));
+            inventory.setItem(53, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
             player.openInventory(inventory);
         });
     }
