@@ -1,10 +1,14 @@
 package kr.lunaf.cloudislands.paper.limit;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import org.bukkit.Chunk;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -15,6 +19,7 @@ public final class IslandLimitListener implements Listener {
     private final ProtectionController protection;
     private final IslandLimitCache limits;
     private final Map<UUID, Map<String, Long>> observed = new ConcurrentHashMap<>();
+    private final Map<UUID, Set<String>> seeded = new ConcurrentHashMap<>();
 
     public IslandLimitListener(ProtectionController protection, IslandLimitCache limits) {
         this.protection = protection;
@@ -27,7 +32,9 @@ public final class IslandLimitListener implements Listener {
         if (key == null) {
             return;
         }
-        protection.islandAt(event.getBlockPlaced()).ifPresent(islandId -> {
+        protection.regionAt(event.getBlockPlaced()).ifPresent(region -> {
+            UUID islandId = region.islandId();
+            seedObserved(event.getBlockPlaced().getWorld(), region, key, event.getBlockPlaced());
             long limit = limits.limit(islandId, key, Long.MAX_VALUE);
             long current = count(islandId, key);
             if (current >= limit) {
@@ -45,11 +52,53 @@ public final class IslandLimitListener implements Listener {
         if (key == null) {
             return;
         }
-        protection.islandAt(event.getBlock()).ifPresent(islandId -> observed.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>()).merge(key, -1L, (left, right) -> Math.max(0L, left + right)));
+        protection.regionAt(event.getBlock()).ifPresent(region -> {
+            seedObserved(event.getBlock().getWorld(), region, key, null);
+            observed.computeIfAbsent(region.islandId(), ignored -> new ConcurrentHashMap<>()).merge(key, -1L, (left, right) -> Math.max(0L, left + right));
+        });
     }
 
     private long count(UUID islandId, String key) {
         return observed.getOrDefault(islandId, Map.of()).getOrDefault(key, 0L);
+    }
+
+    private void seedObserved(World world, IslandRegion region, String key, Block excludedBlock) {
+        Set<String> seededKeys = seeded.computeIfAbsent(region.islandId(), ignored -> ConcurrentHashMap.newKeySet());
+        if (!seededKeys.add(key)) {
+            return;
+        }
+        long count = countLoadedBlocks(world, region, key, excludedBlock);
+        observed.computeIfAbsent(region.islandId(), ignored -> new ConcurrentHashMap<>()).put(key, count);
+    }
+
+    private long countLoadedBlocks(World world, IslandRegion region, String key, Block excludedBlock) {
+        long count = 0L;
+        for (Chunk chunk : world.getLoadedChunks()) {
+            int chunkMinX = chunk.getX() << 4;
+            int chunkMaxX = chunkMinX + 15;
+            int chunkMinZ = chunk.getZ() << 4;
+            int chunkMaxZ = chunkMinZ + 15;
+            if (chunkMaxX < region.minX() || chunkMinX > region.maxX() || chunkMaxZ < region.minZ() || chunkMinZ > region.maxZ()) {
+                continue;
+            }
+            int minX = Math.max(chunkMinX, region.minX());
+            int maxX = Math.min(chunkMaxX, region.maxX());
+            int minZ = Math.max(chunkMinZ, region.minZ());
+            int maxZ = Math.min(chunkMaxZ, region.maxZ());
+            for (int x = minX; x <= maxX; x++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    for (int y = world.getMinHeight(); y < world.getMaxHeight(); y++) {
+                        if (excludedBlock != null && excludedBlock.getX() == x && excludedBlock.getY() == y && excludedBlock.getZ() == z) {
+                            continue;
+                        }
+                        if (key.equals(limitKey(world.getBlockAt(x, y, z).getType()))) {
+                            count++;
+                        }
+                    }
+                }
+            }
+        }
+        return count;
     }
 
     private String limitKey(Material material) {
