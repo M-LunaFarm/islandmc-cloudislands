@@ -22,7 +22,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public final class AdminCommandController implements CommandExecutor, TabCompleter {
-    private static final List<String> ROOT_COMMANDS = List.of("status", "cache", "node", "island", "player", "jobs", "route", "events", "audit", "block-values", "upgrade-rules", "template", "migrate-superiorskyblock2", "reload");
+    private static final List<String> ROOT_COMMANDS = List.of("status", "cache", "node", "island", "player", "jobs", "route", "events", "audit", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "islands", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
@@ -99,7 +99,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "Upgrade rules", coreApiClient.listUpgradeRules());
             return true;
         }
-        if (args[0].equalsIgnoreCase("template")) {
+        if (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) {
             return handleTemplate(sender, args);
         }
         if (args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
@@ -138,13 +138,13 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (args.length == 2 && args[0].equalsIgnoreCase("block-values")) {
             return matches(BLOCK_VALUE_COMMANDS, args[1]);
         }
-        if (args.length == 2 && args[0].equalsIgnoreCase("template")) {
+        if (args.length == 2 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates"))) {
             return matches(TEMPLATE_COMMANDS, args[1]);
         }
-        if (args.length == 5 && args[0].equalsIgnoreCase("template") && args[1].equalsIgnoreCase("upsert")) {
+        if (args.length == 5 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("upsert")) {
             return matches(List.of("true", "false"), args[4]);
         }
-        if (args.length == 6 && args[0].equalsIgnoreCase("template") && args[1].equalsIgnoreCase("upsert")) {
+        if (args.length == 6 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("upsert")) {
             return matches(List.of("1.0.0", "1.21.0", "1.21.4"), args[5]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
@@ -803,7 +803,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private void usage(CommandSender sender, String label) {
-        sender.sendMessage("사용법: /" + label + " status, cache clear, node menu, node list, node islands <node>, island tp <uuid>, player info <uuid>, jobs list, route debug [all|player], route ticket <ticket|player>, route clear <player> [ticket], events, audit, block-values list, upgrade-rules, template list, migrate-superiorskyblock2 scan|dryrun|import|verify|rollback, reload");
+        sender.sendMessage("사용법: /" + label + " status, cache clear, node menu, node list, node islands <node>, island tp <uuid>, player info <uuid>, jobs list, route debug [all|player], route ticket <ticket|player>, route clear <player> [ticket], events, audit, block-values list, upgrade-rules, template|templates list, migrate-superiorskyblock2 scan|dryrun|import|verify|rollback, reload");
     }
 
     private UUID uuid(CommandSender sender, String value) {
