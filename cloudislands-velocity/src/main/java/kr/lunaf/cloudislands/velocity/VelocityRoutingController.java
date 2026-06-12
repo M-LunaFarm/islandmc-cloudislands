@@ -1571,11 +1571,28 @@ public final class VelocityRoutingController {
     }
 
     private String appendLevelScanSummary(String body) {
-        String summary = levelScanSummary(body);
-        if (summary.isBlank()) {
+        java.util.List<String> summaries = new java.util.ArrayList<>();
+        String activation = activationAllocationSummary(body);
+        if (!activation.isBlank()) {
+            summaries.add(activation);
+        }
+        String levelScan = levelScanSummary(body);
+        if (!levelScan.isBlank()) {
+            summaries.add(levelScan);
+        }
+        if (summaries.isEmpty()) {
             return body;
         }
-        return (body == null || body.isBlank() ? "" : body + " | ") + summary;
+        return (body == null || body.isBlank() ? "" : body + " | ") + String.join(" | ", summaries);
+    }
+
+    private String activationAllocationSummary(String body) {
+        if (body == null || body.isBlank() || !body.contains("\"eligibleForNewActivation\"")) {
+            return "";
+        }
+        boolean eligible = boolValue(body, "eligibleForNewActivation");
+        String reason = jsonValue(body, "allocationBlockReason");
+        return "활성화 배정=" + (eligible ? "가능" : "차단(" + (reason.isBlank() ? "UNKNOWN" : reason) + ")");
     }
 
     private String levelScanSummary(String body) {
