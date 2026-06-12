@@ -29,6 +29,7 @@ import kr.lunaf.cloudislands.paper.event.IslandWarpChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandWarpCreateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandWarpDeleteEvent;
 import kr.lunaf.cloudislands.paper.event.IslandWorthChangeEvent;
+import kr.lunaf.cloudislands.paper.event.RouteTicketFailedEvent;
 import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
@@ -327,6 +328,17 @@ public final class PermissionEventPoller {
     }
 
     private void publishLocalEvents(String type, Map<String, String> fields) {
+        if (type.equals(CloudIslandEventType.ROUTE_TICKET_FAILED.name())) {
+            Bukkit.getPluginManager().callEvent(new RouteTicketFailedEvent(
+                uuidField(fields, "ticketId"),
+                uuidField(fields, "islandId"),
+                uuidField(fields, "playerUuid"),
+                fields.getOrDefault("action", ""),
+                fields.getOrDefault("targetNode", ""),
+                fields.getOrDefault("reason", ""),
+                fields));
+            return;
+        }
         UUID islandId = islandId(fields);
         if (islandId == null) {
             return;
