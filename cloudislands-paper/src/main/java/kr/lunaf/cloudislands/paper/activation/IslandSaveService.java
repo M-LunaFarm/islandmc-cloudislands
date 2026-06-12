@@ -61,6 +61,9 @@ public final class IslandSaveService {
         if (!retentionPolicy.checksumAlgorithm().equalsIgnoreCase("SHA-256")) {
             throw new IOException("unsupported snapshot checksum algorithm: " + retentionPolicy.checksumAlgorithm());
         }
+        if (!retentionPolicy.compress()) {
+            throw new IOException("uncompressed snapshot bundles are not supported by the current storage format");
+        }
         IslandBundleExporter.ExportedIslandBundle exported = exporter.export(islandId, activeIsland, exportRoot.resolve(islandId.toString()));
         IslandBundleManifest previous = storage.readManifest(islandId);
         long sizeBytes = Files.size(exported.bundleFile());
