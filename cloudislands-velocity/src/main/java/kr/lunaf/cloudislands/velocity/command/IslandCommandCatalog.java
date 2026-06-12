@@ -112,6 +112,7 @@ public final class IslandCommandCatalog {
             "ciadmin player info <player>",
             "ciadmin player setisland <player> <islandUuid>",
             "ciadmin player clearisland <player>",
+            "ciadmin node menu",
             "ciadmin node list",
             "ciadmin node info <node>",
             "ciadmin node islands <node> [limit]",

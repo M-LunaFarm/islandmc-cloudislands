@@ -396,7 +396,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.disableTemplate(player, args[2]);
             return;
         }
-        if (args.length >= 2 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("list")) {
+        if (args.length >= 2 && args[0].equalsIgnoreCase("node") && (args[1].equalsIgnoreCase("menu") || args[1].equalsIgnoreCase("list"))) {
             routingController.listNodes(player);
             return;
         }
