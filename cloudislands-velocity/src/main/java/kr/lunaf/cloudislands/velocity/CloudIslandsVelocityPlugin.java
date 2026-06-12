@@ -1018,7 +1018,7 @@ public final class CloudIslandsVelocityPlugin {
         if (args.length == 2) {
             String first = args[0].toLowerCase(Locale.ROOT);
             if (first.equals("fly") || first.equals("비행") || first.equals("keepinventory") || first.equals("keepinv") || first.equals("인벤보존") || first.equals("pvp") || first.equals("피빕") || first.equals("publicwarps") || first.equals("공개워프")) {
-                addLiteralSuggestions(matches, args[1], List.of("true", "false", "on", "off", "켜기", "끄기"));
+                addLiteralSuggestions(matches, args[1], List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"));
             }
             if (first.equals("rank") || first.equals("ranking") || first.equals("랭킹")) {
                 addLiteralSuggestions(matches, args[1], List.of("worth", "value", "10", "25", "50"));
@@ -1043,7 +1043,7 @@ public final class CloudIslandsVelocityPlugin {
             addLiteralSuggestions(matches, args[2], List.of("BUILD", "INTERACT", "MANAGE_MEMBERS", "MANAGE_FLAGS", "MANAGE_WARPS"));
         }
         if (args.length == 4 && (args[0].equalsIgnoreCase("setpermission") || args[0].equalsIgnoreCase("permission-set") || args[0].equals("권한설정"))) {
-            addLiteralSuggestions(matches, args[3], List.of("true", "false", "허용", "거부"));
+            addLiteralSuggestions(matches, args[3], List.of("true", "false", "on", "off", "허용", "거부"));
         }
         return matches;
     }
@@ -1060,7 +1060,7 @@ public final class CloudIslandsVelocityPlugin {
             addLiteralSuggestions(matches, args[3], List.of("maintenance", "restart", "drain"));
         }
         if (args.length == 5 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("upsert")) {
-            addLiteralSuggestions(matches, args[4], List.of("true", "false", "enabled", "disabled", "on", "off"));
+            addLiteralSuggestions(matches, args[4], List.of("true", "false", "enabled", "disabled", "enable", "disable", "on", "off", "활성", "비활성"));
         }
         if (args.length == 6 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("upsert")) {
             addLiteralSuggestions(matches, args[5], List.of("1.0.0", "1.21.0", "1.21.4"));

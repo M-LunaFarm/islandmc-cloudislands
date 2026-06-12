@@ -253,7 +253,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return matches(TEMPLATE_COMMANDS, args[1]);
         }
         if (args.length == 5 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("upsert")) {
-            return matches(List.of("true", "false", "enabled", "disabled", "on", "off"), args[4]);
+            return matches(List.of("true", "false", "enabled", "disabled", "enable", "disable", "on", "off", "활성", "비활성"), args[4]);
         }
         if (args.length == 6 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("upsert")) {
             return matches(List.of("1.0.0", "1.21.0", "1.21.4"), args[5]);
