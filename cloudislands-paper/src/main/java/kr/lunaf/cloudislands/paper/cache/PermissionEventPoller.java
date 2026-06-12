@@ -34,6 +34,7 @@ import kr.lunaf.cloudislands.paper.event.IslandHomeChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandInviteChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandLevelRecalculateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandLimitChangeEvent;
+import kr.lunaf.cloudislands.paper.event.IslandMemberChangedEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMemberJoinEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMemberLeaveEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMigrationEvent;
@@ -57,6 +58,7 @@ import kr.lunaf.cloudislands.paper.event.IslandWarpCreateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandWarpDeleteEvent;
 import kr.lunaf.cloudislands.paper.event.IslandWorthChangeEvent;
 import kr.lunaf.cloudislands.paper.event.NodeStateChangeEvent;
+import kr.lunaf.cloudislands.paper.event.NodeStateChangedEvent;
 import kr.lunaf.cloudislands.paper.event.RouteSessionPublishedEvent;
 import kr.lunaf.cloudislands.paper.event.RouteTicketConsumedEvent;
 import kr.lunaf.cloudislands.paper.event.RouteTicketClearedEvent;
@@ -561,6 +563,13 @@ public final class PermissionEventPoller {
             return;
         }
         if (type.equals(CloudIslandEventType.NODE_STATE_CHANGED.name())) {
+            Bukkit.getPluginManager().callEvent(new NodeStateChangedEvent(
+                fields.getOrDefault("nodeId", ""),
+                fields.getOrDefault("state", ""),
+                fields.getOrDefault("operation", ""),
+                fields.getOrDefault("reason", ""),
+                intField(fields, "recoveryRequired"),
+                fields));
             Bukkit.getPluginManager().callEvent(new NodeStateChangeEvent(
                 fields.getOrDefault("nodeId", ""),
                 fields.getOrDefault("state", ""),
@@ -686,12 +695,13 @@ public final class PermissionEventPoller {
             return;
         }
         String action = fields.getOrDefault("action", fields.getOrDefault("operation", "")).toUpperCase(java.util.Locale.ROOT);
+        String oldRole = fields.getOrDefault("oldRole", "");
+        String newRole = firstPresent(fields, "newRole", "role");
+        Bukkit.getPluginManager().callEvent(new IslandMemberChangedEvent(islandId, playerUuid, action, oldRole, newRole, fields));
         if (action.equals("REMOVE") || action.equals("REMOVED") || action.equals("LEAVE") || action.equals("LEFT") || action.equals("KICK") || action.equals("KICKED")) {
             Bukkit.getPluginManager().callEvent(new IslandMemberLeaveEvent(islandId, playerUuid, fields));
             return;
         }
-        String oldRole = fields.getOrDefault("oldRole", "");
-        String newRole = firstPresent(fields, "newRole", "role");
         if (!oldRole.isBlank() || !newRole.isBlank()) {
             Bukkit.getPluginManager().callEvent(new IslandRoleChangeEvent(islandId, playerUuid, oldRole, newRole, fields));
         }
