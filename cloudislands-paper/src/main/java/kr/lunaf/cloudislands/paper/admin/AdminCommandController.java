@@ -22,7 +22,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public final class AdminCommandController implements CommandExecutor, TabCompleter {
-    private static final List<String> ROOT_COMMANDS = List.of("help", "status", "cache", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
+    private static final List<String> ROOT_COMMANDS = List.of("help", "status", "cache", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "islands", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
@@ -76,6 +76,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         "ciadmin events",
         "ciadmin audit",
         "ciadmin metrics",
+        "ciadmin storage",
         "ciadmin block-values list",
         "ciadmin block-values set <materialKey> <worth> <levelPoints> <limit>",
         "ciadmin upgrade-rules",
@@ -158,6 +159,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args[0].equalsIgnoreCase("metrics")) {
             run(sender, "Core metrics", coreApiClient.metrics());
+            return true;
+        }
+        if (args[0].equalsIgnoreCase("storage")) {
+            run(sender, "Storage status", coreApiClient.listNodes().thenApply(this::storageStatusMessage));
             return true;
         }
         if (args[0].equalsIgnoreCase("block-values")) {
@@ -796,6 +801,39 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             index = objectEnd + 1;
         }
         return "노드 섬 현황" + (nodeId.isBlank() ? "" : " " + nodeId) + ": " + (entries.isEmpty() ? "활성 섬 없음" : String.join(", ", entries));
+    }
+
+    private String storageStatusMessage(String body) {
+        String nodes = arrayValue(body, "nodes");
+        if (nodes.isBlank()) {
+            return "Storage status: registered node 없음";
+        }
+        List<String> entries = new ArrayList<>();
+        int unavailable = 0;
+        int index = 0;
+        while (index < nodes.length()) {
+            int objectStart = nodes.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(nodes, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = nodes.substring(objectStart, objectEnd + 1);
+            String nodeId = textValue(object, "nodeId");
+            boolean available = boolValue(object, "storageAvailable");
+            if (!nodeId.isBlank()) {
+                entries.add(nodeId + "=" + (available ? "OK" : "DOWN"));
+                if (!available) {
+                    unavailable++;
+                }
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty()
+            ? "Storage status: registered node 없음"
+            : "Storage status: " + String.join(", ", entries) + " / unavailable=" + unavailable;
     }
 
     private String nodeIslandRuntimeSuffix(String object) {

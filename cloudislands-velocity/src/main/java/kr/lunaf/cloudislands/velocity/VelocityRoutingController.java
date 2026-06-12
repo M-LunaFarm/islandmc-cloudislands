@@ -840,6 +840,10 @@ public final class VelocityRoutingController {
         sendBodyResult(player, coreApiClient.metrics(), "Core metrics를 불러오지 못했습니다.");
     }
 
+    public void storageStatus(Player player) {
+        sendBodyResult(player, coreApiClient.listNodes().thenApply(this::storageStatusMessage), "Storage 상태를 불러오지 못했습니다.");
+    }
+
     public void listBlockValues(Player player) {
         sendBodyResult(player, coreApiClient.listBlockValues(), "블록 가치 목록을 불러오지 못했습니다.");
     }
@@ -1087,6 +1091,39 @@ public final class VelocityRoutingController {
             index = objectEnd + 1;
         }
         return "노드 섬 현황" + hiddenNodeLabel(nodeId) + ": " + (entries.isEmpty() ? "활성 섬 없음" : String.join(", ", entries));
+    }
+
+    private String storageStatusMessage(String body) {
+        String nodes = arrayValue(body, "nodes");
+        if (nodes.isBlank()) {
+            return "Storage status: registered node 없음";
+        }
+        java.util.List<String> entries = new java.util.ArrayList<>();
+        int unavailable = 0;
+        int index = 0;
+        while (index < nodes.length()) {
+            int objectStart = nodes.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(nodes, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = nodes.substring(objectStart, objectEnd + 1);
+            String nodeId = jsonValue(object, "nodeId");
+            boolean available = boolValue(object, "storageAvailable");
+            if (!nodeId.isBlank()) {
+                entries.add((hideNodeNames ? "node-" + (entries.size() + 1) : nodeId) + "=" + (available ? "OK" : "DOWN"));
+                if (!available) {
+                    unavailable++;
+                }
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty()
+            ? "Storage status: registered node 없음"
+            : "Storage status: " + String.join(", ", entries) + " / unavailable=" + unavailable;
     }
 
     private String publicIslandListMessage(String body) {
