@@ -32,6 +32,7 @@ import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.block.FluidLevelChangeEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
@@ -230,6 +231,13 @@ public final class IslandProtectionListener implements Listener {
     public void onEntityExplode(EntityExplodeEvent event) {
         IslandFlag flag = explosionFlag(event.getEntityType());
         event.blockList().removeIf(block -> !explosionAllowed(block, flag));
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onEntityChangeBlock(EntityChangeBlockEvent event) {
+        if (event.getEntityType() == EntityType.ENDERMAN) {
+            event.setCancelled(!protection.checkSystemFlag(event.getBlock(), IslandFlag.ENDERMAN_GRIEF).allowed());
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
