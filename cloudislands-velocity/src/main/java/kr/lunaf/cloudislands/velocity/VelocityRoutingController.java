@@ -1331,16 +1331,23 @@ public final class VelocityRoutingController {
             return fallback;
         }
         return switch (code) {
+            case "PLAYER_NOT_FOUND" -> "플레이어를 찾을 수 없습니다.";
             case "ISLAND_NOT_FOUND" -> "섬을 찾을 수 없습니다.";
             case "ISLAND_PRIVATE" -> "해당 섬은 비공개 상태입니다.";
             case "ISLAND_LOCKED" -> "해당 섬은 현재 잠겨 있습니다.";
             case "VISITOR_BANNED" -> "해당 섬에 방문할 수 없습니다.";
             case "NODE_UNAVAILABLE" -> "현재 섬 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.";
+            case "TARGET_OFFLINE_NO_ISLAND" -> "대상 플레이어의 섬을 찾을 수 없습니다.";
             case "PUBLIC_ISLAND_NOT_FOUND" -> "방문 가능한 공개 섬을 찾지 못했습니다.";
             case "WARP_NOT_FOUND" -> "해당 워프를 찾을 수 없습니다.";
             case "WARP_PRIVATE" -> "해당 워프는 공개 상태가 아닙니다.";
+            case "WARP_LIMIT" -> "섬 워프 한도에 도달했습니다.";
             case "ISLAND_LOADING_FAILED" -> "섬을 준비하지 못했습니다. 잠시 후 다시 시도해주세요.";
             case "ISLAND_PERMISSION_DENIED" -> "섬 권한이 없습니다.";
+            case "MEMBER_LIMIT" -> "섬 멤버 한도에 도달했습니다.";
+            case "BANK_LIMIT" -> "섬 은행 한도에 도달했습니다.";
+            case "INVITE_UNAVAILABLE" -> "사용할 수 없는 초대입니다.";
+            case "OWNERSHIP_TRANSFER_DENIED" -> "섬 소유권을 양도할 수 없습니다.";
             case "UNAUTHORIZED", "ADMIN_PERMISSION_DENIED" -> "이 명령을 사용할 권한이 없습니다.";
             case "RATE_LIMITED" -> "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.";
             default -> fallback;
