@@ -1342,6 +1342,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         List<GlobalEventSnapshot> events = new ArrayList<>();
         for (String object : objects(json, "events")) {
             events.add(new GlobalEventSnapshot(
+                number(object, "seq"),
                 text(object, "type", ""),
                 stringMap(object, "fields"),
                 instant(text(object, "occurredAt", Instant.EPOCH.toString()))
