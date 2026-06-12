@@ -326,6 +326,21 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 200, flagsJson(metadataRepository.flags(islandId)));
                 return;
             }
+            if (method.equalsIgnoreCase("GET") && tail.endsWith("/permissions")) {
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/permissions".length()));
+                write(exchange, 200, permissionsJson(permissionRules.list(islandId)));
+                return;
+            }
+            if (method.equalsIgnoreCase("GET") && tail.endsWith("/bans")) {
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/bans".length()));
+                write(exchange, 200, bansJson(metadataRepository.bans(islandId)));
+                return;
+            }
+            if (method.equalsIgnoreCase("GET") && tail.endsWith("/biome")) {
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/biome".length()));
+                write(exchange, 200, biomeJson(metadataRepository.biome(islandId)));
+                return;
+            }
             if (method.equalsIgnoreCase("GET") && tail.endsWith("/homes")) {
                 UUID islandId = uuidPath(tail.substring(0, tail.length() - "/homes".length()));
                 write(exchange, 200, homesJson(metadataRepository.homes(islandId)));
