@@ -299,12 +299,16 @@ public final class JobCompletionService {
             return;
         }
         String fencingToken = job.payload().getOrDefault("migrationFencingToken", job.payload().getOrDefault("fencingToken", "0"));
-        jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.MIGRATE_ISLAND, job.islandId(), targetNode, 10, Map.of(
-            "fencingToken", fencingToken,
-            "worldName", job.payload().getOrDefault("worldName", "ci_shard_001"),
-            "cellX", job.payload().getOrDefault("cellX", "0"),
-            "cellZ", job.payload().getOrDefault("cellZ", "0")
-        ), Instant.now()));
+        java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
+        payload.put("fencingToken", fencingToken);
+        payload.put("worldName", job.payload().getOrDefault("worldName", "ci_shard_001"));
+        payload.put("cellX", job.payload().getOrDefault("cellX", "0"));
+        payload.put("cellZ", job.payload().getOrDefault("cellZ", "0"));
+        payload.put("snapshotNo", job.payload().getOrDefault("snapshotNo", "0"));
+        payload.put("sourceSnapshotReason", job.payload().getOrDefault("reason", "BEFORE_MIGRATION"));
+        payload.put("sourceSnapshotChecksum", job.payload().getOrDefault("checksum", ""));
+        payload.put("sourceSnapshotSizeBytes", job.payload().getOrDefault("sizeBytes", "0"));
+        jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.MIGRATE_ISLAND, job.islandId(), targetNode, 10, Map.copyOf(payload), Instant.now()));
         events.publish(CloudIslandEventType.ISLAND_MIGRATE_REQUESTED.name(), Map.of("islandId", job.islandId().toString(), "targetNode", targetNode, "phase", "ACTIVATE_TARGET"));
     }
 
