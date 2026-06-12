@@ -366,6 +366,21 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 200, bankJson(bankRepository.balance(islandId)));
                 return;
             }
+            if (method.equalsIgnoreCase("GET") && tail.endsWith("/missions")) {
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/missions".length()));
+                write(exchange, 200, missionsJson(missionRepository.list(islandId, "MISSION")));
+                return;
+            }
+            if (method.equalsIgnoreCase("GET") && tail.endsWith("/snapshots")) {
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/snapshots".length()));
+                write(exchange, 200, snapshotsJson(snapshotRepository.list(islandId, 20)));
+                return;
+            }
+            if (method.equalsIgnoreCase("GET") && tail.endsWith("/logs")) {
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/logs".length()));
+                write(exchange, 200, islandLogsJson(islandLogs.list(islandId, 30)));
+                return;
+            }
             if (method.equalsIgnoreCase("GET") && !tail.contains("/")) {
                 UUID islandId = uuidPath(tail);
                 java.util.Optional<IslandSnapshot> island = islandRepository.findById(islandId);
