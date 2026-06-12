@@ -398,25 +398,26 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return true;
         }
         if (args[1].equalsIgnoreCase("clear")) {
-            if (args.length < 4) {
-                sender.sendMessage("플레이어 이름 또는 UUID와 티켓 UUID를 입력해주세요.");
+            if (args.length < 3) {
+                sender.sendMessage("플레이어 이름 또는 UUID를 입력해주세요.");
                 return true;
             }
-            UUID ticketId = uuid(sender, args[3]);
-            if (ticketId != null) {
-                resolvePlayerUuid(sender, args[2]).thenAccept(playerUuid -> {
-                    if (playerUuid == null) {
-                        return;
-                    }
-                    run(sender, "Route clear", coreApiClient.clearRoute(playerUuid, ticketId));
-                }).exceptionally(error -> {
-                    sender.sendMessage("플레이어를 찾지 못했습니다: " + args[2]);
-                    return null;
-                });
+            UUID ticketId = args.length > 3 ? uuid(sender, args[3]) : new UUID(0L, 0L);
+            if (ticketId == null) {
+                return true;
             }
+            resolvePlayerUuid(sender, args[2]).thenAccept(playerUuid -> {
+                if (playerUuid == null) {
+                    return;
+                }
+                run(sender, "Route clear", coreApiClient.clearRoute(playerUuid, ticketId));
+            }).exceptionally(error -> {
+                sender.sendMessage("플레이어를 찾지 못했습니다: " + args[2]);
+                return null;
+            });
             return true;
         }
-        sender.sendMessage("사용법: /ciadmin route debug <playerUuid|playerName> | ticket <ticketUuid|playerUuid|playerName> | clear <playerUuid|playerName> <ticketUuid>");
+        sender.sendMessage("사용법: /ciadmin route debug <playerUuid|playerName> | ticket <ticketUuid|playerUuid|playerName> | clear <playerUuid|playerName> [ticketUuid]");
         return true;
     }
 
@@ -771,7 +772,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private void usage(CommandSender sender, String label) {
-        sender.sendMessage("사용법: /" + label + " status, cache clear, node list, node islands <node>, island tp <uuid>, player info <uuid>, jobs list, route debug <player>, route ticket <ticket|player>, events, audit, block-values list, upgrade-rules, template list, migrate-superiorskyblock2 scan, reload");
+        sender.sendMessage("사용법: /" + label + " status, cache clear, node list, node islands <node>, island tp <uuid>, player info <uuid>, jobs list, route debug <player>, route ticket <ticket|player>, route clear <player> [ticket], events, audit, block-values list, upgrade-rules, template list, migrate-superiorskyblock2 scan, reload");
     }
 
     private UUID uuid(CommandSender sender, String value) {
