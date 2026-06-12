@@ -2,6 +2,8 @@ package kr.lunaf.cloudislands.storage.manifest;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 
@@ -55,14 +57,11 @@ public final class IslandManifestJson {
     }
 
     private static String text(String json, String field, String fallback) {
-        String needle = "\"" + field + "\":\"";
-        int start = json.indexOf(needle);
-        if (start < 0) {
+        Matcher matcher = Pattern.compile("\"" + Pattern.quote(field) + "\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"").matcher(json);
+        if (!matcher.find()) {
             return fallback;
         }
-        int valueStart = start + needle.length();
-        int end = json.indexOf('"', valueStart);
-        return end < 0 ? fallback : json.substring(valueStart, end);
+        return unescape(matcher.group(1));
     }
 
     private static UUID uuid(String json, String field, UUID fallback) {
@@ -98,16 +97,14 @@ public final class IslandManifestJson {
     }
 
     private static String scalar(String json, String field, String fallback) {
-        String needle = "\"" + field + "\":";
-        int start = json.indexOf(needle);
-        if (start < 0) {
+        Matcher matcher = Pattern.compile("\"" + Pattern.quote(field) + "\"\\s*:\\s*([-0-9.]+)").matcher(json);
+        if (!matcher.find()) {
             return fallback;
         }
-        int valueStart = start + needle.length();
-        int end = valueStart;
-        while (end < json.length() && "0123456789.-".indexOf(json.charAt(end)) >= 0) {
-            end++;
-        }
-        return end == valueStart ? fallback : json.substring(valueStart, end);
+        return matcher.group(1);
+    }
+
+    private static String unescape(String value) {
+        return value.replace("\\\"", "\"").replace("\\\\", "\\");
     }
 }
