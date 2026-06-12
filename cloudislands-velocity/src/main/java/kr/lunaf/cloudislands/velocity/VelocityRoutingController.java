@@ -1174,19 +1174,19 @@ public final class VelocityRoutingController {
             if (entries.size() < 10) {
                 String minNodeVersion = jsonValue(object, "minNodeVersion");
                 entries.add(jsonValue(object, "id")
-                    + " " + (boolValue(object, "enabled") ? "enabled" : "disabled")
-                    + (minNodeVersion.isBlank() ? "" : " min=" + minNodeVersion));
+                    + " " + (boolValue(object, "enabled") ? "사용 가능" : "비활성")
+                    + (minNodeVersion.isBlank() ? "" : " 최소버전=" + minNodeVersion));
             }
             index = objectEnd + 1;
         }
-        return "섬 템플릿: total=" + total + " enabled=" + enabled + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+        return "섬 템플릿: 전체 " + total + "개, 사용 가능 " + enabled + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     private String warpListMessage(String label, String body) {
         return namedObjectListMessage(label, body, "warps", object -> jsonValue(object, "name")
-            + (boolValue(object, "publicAccess") ? "(public)" : "")
+            + (boolValue(object, "publicAccess") ? "(공개)" : "")
             + " 섬=" + shortId(jsonValue(object, "islandId"))
-            + " at=" + seconds(doubleValue(object, "localX")) + "," + seconds(doubleValue(object, "localY")) + "," + seconds(doubleValue(object, "localZ")));
+            + " 위치=" + seconds(doubleValue(object, "localX")) + "," + seconds(doubleValue(object, "localY")) + "," + seconds(doubleValue(object, "localZ")));
     }
 
     private String homeListMessage(String body) {
@@ -1325,7 +1325,7 @@ public final class VelocityRoutingController {
             }
             index = valueEnd + 1;
         }
-        return "섬 플래그: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+        return "섬 플래그: 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     private String namedObjectListMessage(String label, String body, String arrayField, java.util.function.Function<String, String> formatter) {
@@ -1379,13 +1379,13 @@ public final class VelocityRoutingController {
             if (entries.size() < 10) {
                 String object = rules.substring(objectStart, objectEnd + 1);
                 entries.add(jsonValue(object, "upgradeKey")
-                    + " type=" + jsonValue(object, "type")
-                    + " max=" + longValue(object, "maxLevel")
-                    + " base=" + jsonValue(object, "baseCost"));
+                    + " 유형=" + jsonValue(object, "type")
+                    + " 최대=" + longValue(object, "maxLevel")
+                    + " 기본비용=" + jsonValue(object, "baseCost"));
             }
             index = objectEnd + 1;
         }
-        return "업그레이드 규칙: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+        return "업그레이드 규칙: 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     private String maintenanceMessage(String label, String body) {
