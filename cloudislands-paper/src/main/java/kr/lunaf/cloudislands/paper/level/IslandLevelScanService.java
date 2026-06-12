@@ -8,8 +8,10 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandLevelScanService {
@@ -66,6 +68,12 @@ public final class IslandLevelScanService {
                         counts.merge(type.getKey().toString(), 1L, Long::sum);
                     }
                 }
+            }
+        }
+        for (Entity entity : world.getEntities()) {
+            Location location = entity.getLocation();
+            if (location.getBlockX() >= minX && location.getBlockX() <= maxX && location.getBlockZ() >= minZ && location.getBlockZ() <= maxZ) {
+                counts.merge("entity:" + entity.getType().getKey(), 1L, Long::sum);
             }
         }
         return counts;
