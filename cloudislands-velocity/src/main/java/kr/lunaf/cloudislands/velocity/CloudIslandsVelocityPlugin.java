@@ -185,7 +185,7 @@ public final class CloudIslandsVelocityPlugin {
 
             @Override
             public List<String> suggest(SimpleCommand.Invocation invocation) {
-                return suggestions(IslandCommandCatalog.playerCommands(), "섬", invocation.arguments());
+                return playerSuggestions(invocation.arguments());
             }
         };
         commands.register(commands.metaBuilder("섬").aliases(commandAliasArray(commandAliases)).build(), islandCommand);
@@ -1009,6 +1009,41 @@ public final class CloudIslandsVelocityPlugin {
             if (index < parts.length && !matches.contains(parts[index])) {
                 matches.add(parts[index]);
             }
+        }
+        return matches;
+    }
+
+    private List<String> playerSuggestions(String[] args) {
+        List<String> matches = suggestions(IslandCommandCatalog.playerCommands(), "섬", args);
+        if (args.length == 2) {
+            String first = args[0].toLowerCase(Locale.ROOT);
+            if (first.equals("fly") || first.equals("비행") || first.equals("keepinventory") || first.equals("keepinv") || first.equals("인벤보존") || first.equals("pvp") || first.equals("피빕") || first.equals("publicwarps") || first.equals("공개워프")) {
+                addLiteralSuggestions(matches, args[1], List.of("true", "false", "on", "off", "켜기", "끄기"));
+            }
+            if (first.equals("rank") || first.equals("ranking") || first.equals("랭킹")) {
+                addLiteralSuggestions(matches, args[1], List.of("worth", "value", "10", "25", "50"));
+            }
+            if (first.equals("limits") || first.equals("limit") || first.equals("제한")) {
+                addLiteralSuggestions(matches, args[1], List.of("HOPPER", "SPAWNER", "ENTITY", "REDSTONE"));
+            }
+            if (first.equals("hoppers") || first.equals("호퍼") || first.equals("spawners") || first.equals("스포너") || first.equals("entities") || first.equals("엔티티") || first.equals("redstone") || first.equals("레드스톤")) {
+                addLiteralSuggestions(matches, args[1], List.of("25", "50", "100", "250"));
+            }
+            if (first.equals("setpermission") || first.equals("권한설정")) {
+                addLiteralSuggestions(matches, args[1], List.of("MEMBER", "TRUSTED", "MODERATOR", "VISITOR"));
+            }
+            if (first.equals("biome") || first.equals("바이옴")) {
+                addLiteralSuggestions(matches, args[1], List.of("minecraft:plains", "minecraft:forest", "minecraft:desert", "minecraft:taiga"));
+            }
+            if (first.equals("invite") || first.equals("초대") || first.equals("kick") || first.equals("추방") || first.equals("promote") || first.equals("승급") || first.equals("demote") || first.equals("강등") || first.equals("transfer") || first.equals("양도") || first.equals("trust") || first.equals("신뢰") || first.equals("untrust") || first.equals("신뢰해제") || first.equals("ban") || first.equals("밴") || first.equals("unban") || first.equals("밴해제") || first.equals("kickvisitor") || first.equals("방문자추방")) {
+                addOnlinePlayerSuggestions(matches, args[1]);
+            }
+        }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("setpermission") || args[0].equals("권한설정"))) {
+            addLiteralSuggestions(matches, args[2], List.of("BUILD", "INTERACT", "MANAGE_MEMBERS", "MANAGE_FLAGS", "MANAGE_WARPS"));
+        }
+        if (args.length == 4 && (args[0].equalsIgnoreCase("setpermission") || args[0].equals("권한설정"))) {
+            addLiteralSuggestions(matches, args[3], List.of("true", "false", "허용", "거부"));
         }
         return matches;
     }
