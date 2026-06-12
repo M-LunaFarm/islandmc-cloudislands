@@ -752,18 +752,20 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("mission") || args[0].equals("missions") || args[0].equals("미션")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            if (args.length > 2) {
-                routingController.completeMission(player, islandId, args[2]);
+            UUID islandId = args.length > 1 && isUuid(args[1]) ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            int missionIndex = islandId.equals(new UUID(0L, 0L)) ? 1 : 2;
+            if (args.length > missionIndex) {
+                routingController.completeMission(player, islandId, args[missionIndex]);
             } else {
                 routingController.listMissions(player, islandId);
             }
             return;
         }
         if (args[0].equalsIgnoreCase("challenge") || args[0].equals("challenges") || args[0].equals("챌린지")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            if (args.length > 2) {
-                routingController.completeChallenge(player, islandId, args[2]);
+            UUID islandId = args.length > 1 && isUuid(args[1]) ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            int challengeIndex = islandId.equals(new UUID(0L, 0L)) ? 1 : 2;
+            if (args.length > challengeIndex) {
+                routingController.completeChallenge(player, islandId, args[challengeIndex]);
             } else {
                 routingController.listChallenges(player, islandId);
             }
