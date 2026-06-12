@@ -999,9 +999,9 @@ public final class VelocityRoutingController {
     private String inviteCreateMessage(String body) {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
-            return "Invite: failed code=" + code;
+            return "초대: 실패 code=" + code;
         }
-        return "Invite: accepted invite=" + shortId(jsonValue(body, "inviteId"))
+        return "초대: 생성됨 invite=" + shortId(jsonValue(body, "inviteId"))
             + " island=" + shortId(jsonValue(body, "islandId"))
             + " target=" + shortId(jsonValue(body, "targetUuid"))
             + " state=" + jsonValue(body, "state");
@@ -1151,7 +1151,7 @@ public final class VelocityRoutingController {
     private String templateListMessage(String body) {
         String templates = arrayValue(body, "templates");
         if (templates.isBlank()) {
-            return "Templates: empty";
+            return "섬 템플릿: 없음";
         }
         java.util.List<String> entries = new java.util.ArrayList<>();
         int total = 0;
@@ -1179,7 +1179,7 @@ public final class VelocityRoutingController {
             }
             index = objectEnd + 1;
         }
-        return "Templates: total=" + total + " enabled=" + enabled + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+        return "섬 템플릿: total=" + total + " enabled=" + enabled + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     private String warpListMessage(String label, String body) {
@@ -1190,7 +1190,7 @@ public final class VelocityRoutingController {
     }
 
     private String homeListMessage(String body) {
-        return namedObjectListMessage("Homes", body, "homes", object -> jsonValue(object, "name")
+        return namedObjectListMessage("섬 홈", body, "homes", object -> jsonValue(object, "name")
             + " at=" + seconds(doubleValue(object, "localX")) + "," + seconds(doubleValue(object, "localY")) + "," + seconds(doubleValue(object, "localZ")));
     }
 
@@ -1211,7 +1211,7 @@ public final class VelocityRoutingController {
     }
 
     private String islandLogListMessage(String body) {
-        return namedObjectListMessage("Island logs", body, "logs", object -> fallback(jsonValue(object, "action"), "UNKNOWN")
+        return namedObjectListMessage("섬 로그", body, "logs", object -> fallback(jsonValue(object, "action"), "UNKNOWN")
             + " by=" + shortId(jsonValue(object, "actorUuid"))
             + " at=" + jsonValue(object, "createdAt"));
     }
@@ -1219,9 +1219,9 @@ public final class VelocityRoutingController {
     private String bankInfoMessage(String body) {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
-            return "Bank: failed code=" + code;
+            return "섬 은행: 실패 code=" + code;
         }
-        return "Bank: island=" + shortId(jsonValue(body, "islandId"))
+        return "섬 은행: island=" + shortId(jsonValue(body, "islandId"))
             + " balance=" + jsonValue(body, "balance");
     }
 
@@ -1241,15 +1241,15 @@ public final class VelocityRoutingController {
     private String levelRecalculationMessage(String body) {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
-            return "Level recalculation: failed code=" + code;
+            return "레벨 계산: 실패 code=" + code;
         }
-        return "Level recalculation: island=" + shortId(jsonValue(body, "islandId"))
+        return "레벨 계산: island=" + shortId(jsonValue(body, "islandId"))
             + " level=" + longValue(body, "level")
             + " worth=" + jsonValue(body, "worth");
     }
 
     private String upgradeListMessage(String body) {
-        return namedObjectListMessage("Upgrades", body, "upgrades", object -> jsonValue(object, "upgradeKey")
+        return namedObjectListMessage("섬 업그레이드", body, "upgrades", object -> jsonValue(object, "upgradeKey")
             + " level=" + longValue(object, "level")
             + " type=" + jsonValue(object, "type"));
     }
@@ -1258,7 +1258,7 @@ public final class VelocityRoutingController {
         String code = jsonValue(body, "code");
         String upgrade = objectValue(body, "upgrade");
         boolean accepted = boolValue(body, "accepted");
-        return "Upgrade purchase: " + (accepted ? "accepted" : "rejected")
+        return "업그레이드 구매: " + (accepted ? "accepted" : "rejected")
             + (code.isBlank() ? "" : " code=" + code)
             + " cost=" + jsonValue(body, "cost")
             + (upgrade.isBlank() ? "" : " upgrade=" + jsonValue(upgrade, "upgradeKey") + " level=" + longValue(upgrade, "level"));
@@ -1361,7 +1361,7 @@ public final class VelocityRoutingController {
     private String upgradeRulesMessage(String body) {
         String rules = arrayValue(body, "rules");
         if (rules.isBlank()) {
-            return "Upgrade rules: empty";
+            return "업그레이드 규칙: 없음";
         }
         java.util.List<String> entries = new java.util.ArrayList<>();
         int total = 0;
@@ -1385,7 +1385,7 @@ public final class VelocityRoutingController {
             }
             index = objectEnd + 1;
         }
-        return "Upgrade rules: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+        return "업그레이드 규칙: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     private String maintenanceMessage(String label, String body) {
