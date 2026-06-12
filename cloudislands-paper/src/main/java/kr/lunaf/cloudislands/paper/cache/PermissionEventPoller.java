@@ -61,6 +61,8 @@ import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import net.kyori.adventure.bossbar.BossBar;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -148,6 +150,7 @@ public final class PermissionEventPoller {
             return;
         }
         publishLocalEvents(type, fields);
+        handleMigrationNotice(type, fields);
         if (handlesNodeOperation(type, fields)) {
             return;
         }
@@ -288,6 +291,40 @@ public final class PermissionEventPoller {
             if (islandId.equals(currentIslandId)) {
                 online.sendMessage(message);
             }
+        }
+    }
+
+    private void handleMigrationNotice(String type, Map<String, String> fields) {
+        if (!type.equals(CloudIslandEventType.ISLAND_MIGRATE_REQUESTED.name())) {
+            return;
+        }
+        String islandIdValue = fields.getOrDefault("islandId", "");
+        if (islandIdValue.isBlank()) {
+            return;
+        }
+        UUID islandId;
+        try {
+            islandId = UUID.fromString(islandIdValue);
+        } catch (IllegalArgumentException exception) {
+            return;
+        }
+        Bukkit.getScheduler().runTask(plugin, () -> notifyMigratingIslandPlayers(islandId));
+    }
+
+    private void notifyMigratingIslandPlayers(UUID islandId) {
+        String primary = "섬 서버를 최적화하는 중입니다...";
+        String secondary = "잠시 후 자동으로 이동됩니다.";
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            UUID currentIslandId = protection.islandAt(player.getLocation().getBlock()).orElse(null);
+            if (!islandId.equals(currentIslandId)) {
+                continue;
+            }
+            BossBar bossBar = BossBar.bossBar(Component.text(primary + " " + secondary), 1.0F, BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS);
+            player.sendMessage(primary);
+            player.sendMessage(secondary);
+            player.sendActionBar(Component.text(secondary));
+            player.showBossBar(bossBar);
+            Bukkit.getScheduler().runTaskLater(plugin, () -> player.hideBossBar(bossBar), 160L);
         }
     }
 
