@@ -587,11 +587,11 @@ public final class CloudIslandsVelocityPlugin {
             routingController.listInvites(player);
             return;
         }
-        if (args[0].equalsIgnoreCase("accept") || args[0].equals("수락") || args[0].equals("초대수락")) {
+        if (args[0].equalsIgnoreCase("accept") || args[0].equalsIgnoreCase("invite-accept") || args[0].equals("수락") || args[0].equals("초대수락")) {
             routingController.acceptInviteTarget(player, args.length > 1 ? args[1] : "");
             return;
         }
-        if (args[0].equalsIgnoreCase("decline") || args[0].equals("거절") || args[0].equals("초대거절")) {
+        if (args[0].equalsIgnoreCase("decline") || args[0].equalsIgnoreCase("invite-decline") || args[0].equals("거절") || args[0].equals("초대거절")) {
             routingController.declineInviteTarget(player, args.length > 1 ? args[1] : "");
             return;
         }
@@ -600,7 +600,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.listMembers(player, islandId);
             return;
         }
-        if (args[0].equalsIgnoreCase("kick") || args[0].equals("추방")) {
+        if (args[0].equalsIgnoreCase("kick") || args[0].equalsIgnoreCase("remove-member") || args[0].equals("추방")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             routingController.kickMemberTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""));
             return;
@@ -638,7 +638,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.banVisitorTarget(player, islandId, target, reason);
             return;
         }
-        if (args[0].equalsIgnoreCase("unban") || args[0].equals("밴해제")) {
+        if (args[0].equalsIgnoreCase("unban") || args[0].equalsIgnoreCase("pardon") || args[0].equals("밴해제")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             routingController.pardonVisitorTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""));
             return;
@@ -1046,7 +1046,7 @@ public final class CloudIslandsVelocityPlugin {
             if (first.equals("biome") || first.equals("바이옴")) {
                 addLiteralSuggestions(matches, args[1], List.of("minecraft:plains", "minecraft:forest", "minecraft:desert", "minecraft:taiga"));
             }
-            if (first.equals("invite") || first.equals("초대") || first.equals("kick") || first.equals("추방") || first.equals("promote") || first.equals("승급") || first.equals("demote") || first.equals("강등") || first.equals("transfer") || first.equals("양도") || first.equals("trust") || first.equals("신뢰") || first.equals("untrust") || first.equals("신뢰해제") || first.equals("ban") || first.equals("밴") || first.equals("unban") || first.equals("밴해제") || first.equals("kickvisitor") || first.equals("방문자추방")) {
+            if (first.equals("invite") || first.equals("초대") || first.equals("kick") || first.equals("remove-member") || first.equals("추방") || first.equals("promote") || first.equals("승급") || first.equals("demote") || first.equals("강등") || first.equals("transfer") || first.equals("양도") || first.equals("trust") || first.equals("신뢰") || first.equals("untrust") || first.equals("신뢰해제") || first.equals("ban") || first.equals("밴") || first.equals("unban") || first.equals("pardon") || first.equals("밴해제") || first.equals("kickvisitor") || first.equals("방문자추방")) {
                 addOnlinePlayerSuggestions(matches, args[1]);
             }
         }
