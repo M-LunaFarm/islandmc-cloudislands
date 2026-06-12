@@ -721,7 +721,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.setPermission(player, islandId, role, permission, allowed);
             return;
         }
-        if (args[0].equalsIgnoreCase("logs") || args[0].equals("로그")) {
+        if (args[0].equalsIgnoreCase("logs") || args[0].equalsIgnoreCase("log") || args[0].equalsIgnoreCase("log-list") || args[0].equalsIgnoreCase("log-menu") || args[0].equals("로그") || args[0].equals("로그목록")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.listIslandLogs(player, islandId);
             return;
@@ -804,15 +804,15 @@ public final class CloudIslandsVelocityPlugin {
             }
             return;
         }
-        if (args[0].equalsIgnoreCase("chat") || args[0].equals("채팅")) {
+        if (args[0].equalsIgnoreCase("chat") || args[0].equalsIgnoreCase("islandchat") || args[0].equals("채팅")) {
             routingController.sendIslandChat(player, new UUID(0L, 0L), "ISLAND", joinArgs(args, 1));
             return;
         }
-        if (args[0].equalsIgnoreCase("teamchat") || args[0].equals("팀채팅")) {
+        if (args[0].equalsIgnoreCase("teamchat") || args[0].equalsIgnoreCase("team-chat") || args[0].equals("팀채팅")) {
             routingController.sendIslandChat(player, new UUID(0L, 0L), "TEAM", joinArgs(args, 1));
             return;
         }
-        if (args[0].equalsIgnoreCase("limits") || args[0].equals("제한")) {
+        if (args[0].equalsIgnoreCase("limits") || args[0].equalsIgnoreCase("limit") || args[0].equalsIgnoreCase("limit-list") || args[0].equals("제한") || args[0].equals("제한목록")) {
             UUID islandId = islandIdArgument(args, 1);
             int valueIndex = hasIslandIdArgument(args, 1) ? 3 : 2;
             if (args.length > valueIndex) {
@@ -842,12 +842,12 @@ public final class CloudIslandsVelocityPlugin {
             routingController.setLimit(player, islandId, "REDSTONE", parseLongOrZero(argumentAfterIslandId(args, 1, "0")));
             return;
         }
-        if (args[0].equalsIgnoreCase("snapshots") || args[0].equals("스냅샷목록")) {
+        if (args[0].equalsIgnoreCase("snapshots") || args[0].equalsIgnoreCase("snapshot-list") || args[0].equals("스냅샷목록")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.listSnapshots(player, islandId);
             return;
         }
-        if (args[0].equalsIgnoreCase("snapshot") || args[0].equals("스냅샷")) {
+        if (args[0].equalsIgnoreCase("snapshot") || args[0].equalsIgnoreCase("snapshot-create") || args[0].equalsIgnoreCase("snapshot-request") || args[0].equals("스냅샷") || args[0].equals("스냅샷생성")) {
             boolean hasIslandId = args.length > 1 && isUuid(args[1]);
             UUID islandId = hasIslandId ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             String reason = joinArgs(args, hasIslandId ? 2 : 1);
@@ -857,7 +857,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.snapshot(player, islandId, reason);
             return;
         }
-        if (args[0].equalsIgnoreCase("restore") || args[0].equals("복원")) {
+        if (args[0].equalsIgnoreCase("restore") || args[0].equalsIgnoreCase("snapshot-restore") || args[0].equalsIgnoreCase("rollback") || args[0].equals("복원") || args[0].equals("스냅샷복원") || args[0].equals("롤백")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             long snapshotNo = parseLongOrZero(argumentAfterOptionalIsland(args, 1, "0"));
             routingController.restore(player, islandId, snapshotNo);
