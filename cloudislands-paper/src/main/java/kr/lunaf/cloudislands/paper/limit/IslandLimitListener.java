@@ -32,7 +32,7 @@ public final class IslandLimitListener implements Listener {
             long current = count(islandId, key);
             if (current >= limit) {
                 event.setCancelled(true);
-                event.getPlayer().sendMessage("섬 " + key + " 제한에 도달했습니다. (" + limit + ")");
+                event.getPlayer().sendMessage("섬 " + limitName(key) + " 제한에 도달했습니다. 현재 " + current + "/" + limit + " (limitKey=" + key + ")");
                 return;
             }
             observed.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>()).merge(key, 1L, Long::sum);
@@ -63,6 +63,15 @@ public final class IslandLimitListener implements Listener {
             return "REDSTONE";
         }
         return null;
+    }
+
+    private String limitName(String key) {
+        return switch (key) {
+            case "HOPPER" -> "호퍼";
+            case "SPAWNER" -> "스포너";
+            case "REDSTONE" -> "레드스톤";
+            default -> key;
+        };
     }
 
     private boolean isRedstone(Material material) {
