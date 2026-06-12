@@ -240,7 +240,7 @@ public final class CloudIslandsCoreApplication {
             migrationRollbackTarget(config, dataSource)
         );
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotKeepLatest());
-        PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, tickets, runtimeRepository, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::activeConnections, meteredDataSource::openedConnections, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventWriter == null ? 0L : redisEventWriter.failuresTotal());
+        PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, tickets, runtimeRepository, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::activeConnections, meteredDataSource::openedConnections, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventWriter == null ? 0L : redisEventWriter.failuresTotal(), () -> redisCacheFailures(nodes, tickets, islandRepository, metadataRepository, playerProfiles, permissionRules, runtimeRepository, audit));
         this.nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, islandRepository, events, config.heartbeatTimeout());
         this.routeTicketExpiryMonitor = new RouteTicketExpiryMonitor(tickets, events, config.routeTicketTtl());
         this.jobRecoveryMonitor = new JobRecoveryMonitor(jobs, Duration.ofSeconds(60), config.leaseDuration().toMillis(), 16);
@@ -1588,6 +1588,35 @@ public final class CloudIslandsCoreApplication {
             String islandId = result.island() == null ? "" : result.island().islandId().toString();
             write(exchange, result.accepted() ? 202 : 409, "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\",\"islandId\":\"" + islandId + "\",\"ticket\":" + ticketJson + "}");
         });
+    }
+
+    private static long redisCacheFailures(NodeRegistry nodes, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandRuntimeRepository runtimes, AuditLogger audit) {
+        long failures = 0L;
+        if (nodes instanceof CachingNodeRegistry cachingNodes) {
+            failures += cachingNodes.failuresTotal();
+        }
+        if (tickets instanceof CachingRouteTicketStore cachingTickets) {
+            failures += cachingTickets.failuresTotal();
+        }
+        if (islands instanceof CachingIslandRepository cachingIslands) {
+            failures += cachingIslands.failuresTotal();
+        }
+        if (metadata instanceof CachingIslandMetadataRepository cachingMetadata) {
+            failures += cachingMetadata.failuresTotal();
+        }
+        if (playerProfiles instanceof CachingPlayerProfileRepository cachingProfiles) {
+            failures += cachingProfiles.failuresTotal();
+        }
+        if (permissionRules instanceof CachingIslandPermissionRuleRepository cachingPermissionRules) {
+            failures += cachingPermissionRules.failuresTotal();
+        }
+        if (runtimes instanceof CachingIslandRuntimeRepository cachingRuntimes) {
+            failures += cachingRuntimes.failuresTotal();
+        }
+        if (audit instanceof RedisAuditLogger redisAudit) {
+            failures += redisAudit.failuresTotal();
+        }
+        return failures;
     }
 
     private static RollbackTarget migrationRollbackTarget(CoreServiceConfig config, DataSource dataSource) {
