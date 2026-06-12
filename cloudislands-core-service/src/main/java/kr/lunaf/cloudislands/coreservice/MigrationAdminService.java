@@ -56,6 +56,7 @@ public final class MigrationAdminService {
     private SuperiorSkyblock2MigrationScanner.ScanResult lastScan = new SuperiorSkyblock2MigrationScanner.ScanResult(List.of(), List.of());
     private MigrationImportPlan lastPlan = new MigrationImportPlan(List.of(), List.of());
     private MigrationRollbackPlan lastRollbackPlan;
+    private Path lastExtractionRoot;
 
     public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandLevelRepository levels, RollbackTarget hardRollbackTarget) {
         this(islands, metadata, playerProfiles, permissionRules, upgrades, bank, limits, missions, levels, hardRollbackTarget, Path.of("cloudislands-storage"));
@@ -73,6 +74,7 @@ public final class MigrationAdminService {
         this.levels = levels;
         this.hardRollbackTarget = hardRollbackTarget;
         this.migrationBundleRoot = migrationBundleRoot == null ? Path.of("cloudislands-storage") : migrationBundleRoot;
+        this.lastExtractionRoot = this.migrationBundleRoot;
     }
 
     public synchronized String scan(String path) {
@@ -90,6 +92,7 @@ public final class MigrationAdminService {
 
     public synchronized String extractWorldBundles(String outputPath) {
         Path targetRoot = outputPath == null || outputPath.isBlank() ? migrationBundleRoot : Path.of(outputPath);
+        lastExtractionRoot = targetRoot;
         List<MigrationIssue> issues = new ArrayList<>();
         int extractedBundles = 0;
         long extractedFiles = 0L;
@@ -180,6 +183,7 @@ public final class MigrationAdminService {
     public synchronized String verify() {
         List<MigrationManifest> imported = new ArrayList<>();
         List<MigrationIssue> issues = new ArrayList<>();
+        Path verifyBundleRoot = lastExtractionRoot == null ? migrationBundleRoot : lastExtractionRoot;
         int extractedBundles = 0;
         long extractedFiles = 0L;
         long extractedBytes = 0L;
@@ -214,7 +218,7 @@ public final class MigrationAdminService {
                 issues.add(new MigrationIssue("WORLD_SOURCE_NOT_FOUND", "missing world source for " + manifest.islandId(), false));
             } else {
                 try {
-                    MigrationWorldBundle bundle = worldExtractor.verify(worldExtractor.plan(manifest, migrationBundleRoot));
+                    MigrationWorldBundle bundle = worldExtractor.verify(worldExtractor.plan(manifest, verifyBundleRoot));
                     extractedBundles++;
                     extractedFiles += bundle.fileCount();
                     extractedBytes += bundle.sizeBytes();
@@ -230,7 +234,7 @@ public final class MigrationAdminService {
         issues.addAll(result.issues());
         boolean passed = issues.isEmpty();
         MigrationRunState state = passed ? MigrationRunState.VERIFIED : MigrationRunState.VERIFYING;
-        return "{\"state\":\"" + state + "\",\"passed\":" + passed + ",\"expected\":" + lastScan.manifests().size() + ",\"imported\":" + imported.size() + ",\"extractedBundles\":" + extractedBundles + ",\"extractedFiles\":" + extractedFiles + ",\"extractedBytes\":" + extractedBytes + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+        return "{\"state\":\"" + state + "\",\"path\":\"" + escape(verifyBundleRoot.toString()) + "\",\"passed\":" + passed + ",\"expected\":" + lastScan.manifests().size() + ",\"imported\":" + imported.size() + ",\"extractedBundles\":" + extractedBundles + ",\"extractedFiles\":" + extractedFiles + ",\"extractedBytes\":" + extractedBytes + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
     }
 
     public synchronized String rollbackLastImport() {
