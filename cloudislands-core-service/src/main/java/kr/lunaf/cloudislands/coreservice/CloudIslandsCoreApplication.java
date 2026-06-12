@@ -1015,8 +1015,9 @@ public final class CloudIslandsCoreApplication {
                 return;
             }
             String normalizedChannel = channel.equals("TEAM") ? "TEAM" : "ISLAND";
+            String actorName = playerProfiles.find(actorUuid).lastName();
             islandLogs.append(islandId, actorUuid, "ISLAND_CHAT", Map.of("channel", normalizedChannel, "message", message));
-            events.publish(CloudIslandEventType.ISLAND_CHAT_SENT.name(), Map.of("islandId", islandId.toString(), "actorUuid", actorUuid.toString(), "channel", normalizedChannel, "message", message));
+            events.publish(CloudIslandEventType.ISLAND_CHAT_SENT.name(), Map.of("islandId", islandId.toString(), "actorUuid", actorUuid.toString(), "actorName", actorName == null || actorName.isBlank() ? actorUuid.toString() : actorName, "channel", normalizedChannel, "message", message));
             write(exchange, 202, "{\"accepted\":true,\"channel\":\"" + normalizedChannel + "\",\"message\":\"" + escape(message) + "\"}");
         });
         route("/v1/islands/bank", exchange -> {

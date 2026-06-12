@@ -177,14 +177,15 @@ public final class PermissionEventPoller {
         }
         UUID islandId = UUID.fromString(islandIdValue);
         String channel = fields.getOrDefault("channel", "ISLAND");
-        Bukkit.getScheduler().runTask(plugin, () -> broadcastIslandChat(islandId, actorUuid, channel, message));
+        String actorName = fields.getOrDefault("actorName", actorUuidValue);
+        Bukkit.getScheduler().runTask(plugin, () -> broadcastIslandChat(islandId, actorName, channel, message));
         return true;
     }
 
-    private void broadcastIslandChat(UUID islandId, UUID actorUuid, String channel, String chatMessage) {
+    private void broadcastIslandChat(UUID islandId, String actorName, String channel, String chatMessage) {
         boolean teamChannel = channel.equalsIgnoreCase("TEAM");
         String normalizedChannel = teamChannel ? "팀" : "섬";
-        String message = "[" + normalizedChannel + "] " + actorUuid + ": " + chatMessage;
+        String message = "[" + normalizedChannel + "] " + actorName + ": " + chatMessage;
         for (Player online : Bukkit.getOnlinePlayers()) {
             if (teamChannel) {
                 if (protection.memberOrTrusted(islandId, online.getUniqueId())) {
