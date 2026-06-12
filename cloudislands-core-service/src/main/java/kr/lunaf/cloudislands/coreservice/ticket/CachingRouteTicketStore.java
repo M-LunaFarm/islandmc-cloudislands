@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreservice.ticket;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -90,17 +91,20 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
     @Override
     public boolean clear(UUID ticketId) {
         Optional<RouteTicket> ticket = delegate.find(ticketId);
-        boolean cleared = delegate.clear(ticketId);
-        if (cleared) {
-            ticket.map(RouteTicket::playerUuid).ifPresent(this::deletePlayerTicket);
-            deleteTicket(ticketId);
+        if (ticket.isEmpty()) {
+            ticket = cachedTicket(ticketId);
         }
+        boolean cleared = delegate.clear(ticketId);
+        ticket.map(RouteTicket::playerUuid).ifPresent(this::deletePlayerTicket);
+        deleteTicket(ticketId);
         return cleared;
     }
 
     @Override
     public int clearAll() {
-        return delegate.clearAll();
+        int cleared = delegate.clearAll();
+        clearTicketCaches();
+        return cleared;
     }
 
     @Override
@@ -137,6 +141,42 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
         }
+    }
+
+    private void clearTicketCaches() {
+        deletePattern("ci:player:*:route-ticket");
+        deletePattern("ci:route-ticket:*");
+    }
+
+    private void deletePattern(String pattern) {
+        for (String key : keys(pattern)) {
+            try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+                redis.command("DEL", key);
+            } catch (IOException | RuntimeException ignored) {
+                failures.incrementAndGet();
+            }
+        }
+    }
+
+    private List<String> keys(String pattern) {
+        List<String> keys = new ArrayList<>();
+        String cursor = "0";
+        do {
+            try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+                String response = redis.command("SCAN", cursor, "MATCH", pattern, "COUNT", "100");
+                String[] lines = response.split("\\n");
+                cursor = lines.length == 0 || lines[0].isBlank() ? "0" : lines[0];
+                for (int i = 1; i < lines.length; i++) {
+                    if (!lines[i].isBlank()) {
+                        keys.add(lines[i]);
+                    }
+                }
+            } catch (IOException | RuntimeException ignored) {
+                failures.incrementAndGet();
+                return keys;
+            }
+        } while (!"0".equals(cursor));
+        return keys;
     }
 
     private void cacheTicketsJson() {
