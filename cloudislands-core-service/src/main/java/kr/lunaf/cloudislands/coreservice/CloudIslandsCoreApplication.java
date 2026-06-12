@@ -391,34 +391,16 @@ public final class CloudIslandsCoreApplication {
         route("/v1/admin/jobs/retry", exchange -> {
             String body = readBody(exchange);
             UUID jobId = JsonFields.uuid(body, "jobId", new UUID(0L, 0L));
-            boolean retried;
-            if (jobs instanceof InMemoryIslandJobPublisher memoryJobs) {
-                retried = memoryJobs.retry(jobId);
-                audit.log(new UUID(0L, 0L), "ADMIN", "JOB_RETRY", "JOB", jobId.toString(), Map.of("retried", Boolean.toString(retried)));
-                write(exchange, retried ? 202 : 404, retried ? ApiResponses.ok(true) : ApiResponses.error("JOB_NOT_RETRIED", "Job was not found or cannot be retried"));
-            } else if (jobs instanceof JdbcIslandJobQueue jdbcJobs) {
-                retried = jdbcJobs.retry(jobId);
-                audit.log(new UUID(0L, 0L), "ADMIN", "JOB_RETRY", "JOB", jobId.toString(), Map.of("retried", Boolean.toString(retried)));
-                write(exchange, retried ? 202 : 404, retried ? ApiResponses.ok(true) : ApiResponses.error("JOB_NOT_RETRIED", "Job was not found or cannot be retried"));
-            } else {
-                write(exchange, 409, ApiResponses.error("JOB_RETRY_UNAVAILABLE", "Job retry is only available for in-memory or JDBC queue mode"));
-            }
+            boolean retried = jobs.retry(jobId);
+            audit.log(new UUID(0L, 0L), "ADMIN", "JOB_RETRY", "JOB", jobId.toString(), Map.of("retried", Boolean.toString(retried)));
+            write(exchange, retried ? 202 : 404, retried ? ApiResponses.ok(true) : ApiResponses.error("JOB_NOT_RETRIED", "Job was not found or cannot be retried"));
         });
         route("/v1/admin/jobs/cancel", exchange -> {
             String body = readBody(exchange);
             UUID jobId = JsonFields.uuid(body, "jobId", new UUID(0L, 0L));
-            boolean canceled;
-            if (jobs instanceof InMemoryIslandJobPublisher memoryJobs) {
-                canceled = memoryJobs.cancel(jobId);
-                audit.log(new UUID(0L, 0L), "ADMIN", "JOB_CANCEL", "JOB", jobId.toString(), Map.of("canceled", Boolean.toString(canceled)));
-                write(exchange, canceled ? 202 : 404, canceled ? ApiResponses.ok(true) : ApiResponses.error("JOB_NOT_CANCELED", "Job was not found or cannot be canceled"));
-            } else if (jobs instanceof JdbcIslandJobQueue jdbcJobs) {
-                canceled = jdbcJobs.cancel(jobId);
-                audit.log(new UUID(0L, 0L), "ADMIN", "JOB_CANCEL", "JOB", jobId.toString(), Map.of("canceled", Boolean.toString(canceled)));
-                write(exchange, canceled ? 202 : 404, canceled ? ApiResponses.ok(true) : ApiResponses.error("JOB_NOT_CANCELED", "Job was not found or cannot be canceled"));
-            } else {
-                write(exchange, 409, ApiResponses.error("JOB_CANCEL_UNAVAILABLE", "Job cancel is only available for in-memory or JDBC queue mode"));
-            }
+            boolean canceled = jobs.cancel(jobId);
+            audit.log(new UUID(0L, 0L), "ADMIN", "JOB_CANCEL", "JOB", jobId.toString(), Map.of("canceled", Boolean.toString(canceled)));
+            write(exchange, canceled ? 202 : 404, canceled ? ApiResponses.ok(true) : ApiResponses.error("JOB_NOT_CANCELED", "Job was not found or cannot be canceled"));
         });
         route("/v1/routes/home", exchange -> {
             String body = readBody(exchange);

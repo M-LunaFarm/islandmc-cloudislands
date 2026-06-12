@@ -70,6 +70,48 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
         ackByJobId(jobId, "failed", errorMessage);
     }
 
+    @Override
+    public boolean retry(UUID jobId) {
+        IslandJob job = claimedJobs.get(jobId);
+        if (job == null) {
+            return false;
+        }
+        String streamId = streamIdsByJobId.get(jobId);
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            redis.command("XADD", RedisKeys.jobsStream(), "*", "jobId", job.jobId().toString(), "type", job.type().name(), "islandId", job.islandId().toString(), "targetNode", job.targetNode() == null ? "" : job.targetNode(), "priority", Integer.toString(job.priority()), "createdAt", job.createdAt().toString(), "payload", encodePayload(job.payload()));
+            if (streamId != null && !streamId.isBlank()) {
+                redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
+            }
+            claimedJobs.remove(jobId);
+            streamIdsByJobId.remove(jobId);
+            retryAttemptsTotal.incrementAndGet();
+            redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_RETRIED", "jobId", jobId.toString(), "streamId", streamId == null ? "" : streamId, "error", "");
+            return true;
+        } catch (IOException exception) {
+            throw new IllegalStateException("failed to retry redis island job", exception);
+        }
+    }
+
+    @Override
+    public boolean cancel(UUID jobId) {
+        IslandJob job = claimedJobs.get(jobId);
+        String streamId = streamIdsByJobId.get(jobId);
+        if (job == null && (streamId == null || streamId.isBlank())) {
+            return false;
+        }
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            if (streamId != null && !streamId.isBlank()) {
+                redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
+            }
+            claimedJobs.remove(jobId);
+            streamIdsByJobId.remove(jobId);
+            redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_CANCELED", "jobId", jobId.toString(), "streamId", streamId == null ? "" : streamId, "error", "");
+            return true;
+        } catch (IOException exception) {
+            throw new IllegalStateException("failed to cancel redis island job", exception);
+        }
+    }
+
     public Map<String, Long> countsByState() {
         Map<String, Long> counts = new HashMap<>();
         counts.put("PENDING", 0L);

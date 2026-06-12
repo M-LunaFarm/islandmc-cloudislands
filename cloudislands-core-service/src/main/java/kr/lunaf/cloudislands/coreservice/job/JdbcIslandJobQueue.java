@@ -135,6 +135,7 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
         }
     }
 
+    @Override
     public boolean retry(UUID jobId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = 'PENDING', locked_by = NULL, locked_until = NULL, error_message = NULL, updated_at = now() WHERE id = ? AND state IN ('FAILED', 'CLAIMED')")) {
@@ -145,6 +146,7 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
         }
     }
 
+    @Override
     public boolean cancel(UUID jobId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = 'CANCELED', locked_until = NULL, updated_at = now() WHERE id = ? AND state IN ('PENDING', 'CLAIMED', 'FAILED')")) {

@@ -11,4 +11,6 @@ public interface IslandJobQueue extends IslandJobPublisher {
     Optional<IslandJob> findClaimed(UUID jobId);
     void complete(String nodeId, UUID jobId);
     void fail(String nodeId, UUID jobId, String errorMessage);
+    boolean retry(UUID jobId);
+    boolean cancel(UUID jobId);
 }

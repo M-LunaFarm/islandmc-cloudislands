@@ -55,6 +55,7 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
         replace(jobId, record -> record.lockedBy() != null && record.lockedBy().equals(nodeId) ? record.failed(errorMessage) : record);
     }
 
+    @Override
     public synchronized boolean retry(UUID jobId) {
         final boolean[] changed = {false};
         replace(jobId, record -> {
@@ -67,6 +68,7 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
         return changed[0];
     }
 
+    @Override
     public synchronized boolean cancel(UUID jobId) {
         final boolean[] changed = {false};
         replace(jobId, record -> {
