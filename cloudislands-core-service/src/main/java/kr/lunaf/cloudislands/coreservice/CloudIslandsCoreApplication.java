@@ -1190,6 +1190,10 @@ public final class CloudIslandsCoreApplication {
             }
             java.util.List<kr.lunaf.cloudislands.api.model.IslandMemberSnapshot> members = metadataRepository.members(islandId);
             IslandRole currentRole = memberRole(members, playerUuid);
+            if (role == IslandRole.VISITOR || role == IslandRole.BANNED) {
+                write(exchange, 409, ApiResponses.error("MEMBER_ROLE_UNAVAILABLE", "Visitor and banned roles are not managed as island members"));
+                return;
+            }
             if (role == IslandRole.OWNER || currentRole == IslandRole.OWNER) {
                 write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island ownership must be changed through ownership transfer"));
                 return;
