@@ -36,10 +36,11 @@ public final class InMemoryGlobalEventPublisher implements GlobalEventPublisher 
         while (firstAfterSequence < events.size() && events.get(firstAfterSequence).sequence() <= sinceSequence) {
             firstAfterSequence++;
         }
-        int from = Math.max(firstAfterSequence, events.size() - safeLimit);
+        int from = sinceSequence > 0L ? firstAfterSequence : Math.max(0, events.size() - safeLimit);
+        int to = sinceSequence > 0L ? Math.min(events.size(), from + safeLimit) : events.size();
         StringBuilder builder = new StringBuilder("{\"events\":[");
         boolean first = true;
-        for (int i = from; i < events.size(); i++) {
+        for (int i = from; i < to; i++) {
             EventRecord event = events.get(i);
             if (!first) {
                 builder.append(',');
