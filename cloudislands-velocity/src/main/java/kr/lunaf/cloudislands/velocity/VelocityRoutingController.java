@@ -34,6 +34,8 @@ public final class VelocityRoutingController {
     private final CoreApiClient coreApiClient;
     private final String fallbackServer;
     private final int routeWaitSeconds;
+    private final String islandPool;
+    private final int routeTicketTtlSeconds;
     private final boolean hideNodeNames;
     private final boolean useActionBar;
     private final boolean useBossBarLoading;
@@ -53,10 +55,16 @@ public final class VelocityRoutingController {
     }
 
     public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer, int routeWaitSeconds, boolean useActionBar, boolean useBossBarLoading, boolean hideNodeNames) {
+        this(proxy, coreApiClient, fallbackServer, routeWaitSeconds, useActionBar, useBossBarLoading, hideNodeNames, "island", 30);
+    }
+
+    public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer, int routeWaitSeconds, boolean useActionBar, boolean useBossBarLoading, boolean hideNodeNames, String islandPool, int routeTicketTtlSeconds) {
         this.proxy = proxy;
         this.coreApiClient = coreApiClient;
         this.fallbackServer = fallbackServer;
         this.routeWaitSeconds = Math.max(1, routeWaitSeconds);
+        this.islandPool = islandPool == null || islandPool.isBlank() ? "island" : islandPool;
+        this.routeTicketTtlSeconds = Math.max(1, routeTicketTtlSeconds);
         this.hideNodeNames = hideNodeNames;
         this.useActionBar = useActionBar;
         this.useBossBarLoading = useBossBarLoading;
@@ -94,7 +102,9 @@ public final class VelocityRoutingController {
 
     public String statusSummary() {
         return "CloudIslands Velocity router online, fallback=" + fallbackServer
+            + ", islandPool=" + islandPool
             + ", routeWaitSeconds=" + routeWaitSeconds
+            + ", routeTicketTtlSeconds=" + routeTicketTtlSeconds
             + ", onlinePlayers=" + proxy.getPlayerCount()
             + ", actionbar=" + useActionBar
             + ", bossbarLoading=" + useBossBarLoading

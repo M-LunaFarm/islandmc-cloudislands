@@ -52,8 +52,10 @@ public final class CloudIslandsVelocityPlugin {
         long timeoutMs = Long.getLong("cloudislands.timeoutMs", config.timeoutMs());
         String fallbackServer = System.getProperty("cloudislands.fallback", config.fallbackServer());
         int routeWaitSeconds = Integer.getInteger("cloudislands.routeWaitSeconds", config.routeWaitSeconds());
+        String islandPool = System.getProperty("cloudislands.islandPool", config.islandPool());
+        int routeTicketTtlSeconds = Integer.getInteger("cloudislands.routeTicketTtlSeconds", config.routeTicketTtlSeconds());
         CoreApiClient client = new JdkCoreApiClient(URI.create(coreUrl), coreToken, adminToken, Duration.ofMillis(Math.max(1L, timeoutMs)));
-        this.routingController = new VelocityRoutingController(proxy, client, fallbackServer, routeWaitSeconds, config.useActionBar(), config.useBossBarLoading(), config.hideNodeNames());
+        this.routingController = new VelocityRoutingController(proxy, client, fallbackServer, routeWaitSeconds, config.useActionBar(), config.useBossBarLoading(), config.hideNodeNames(), islandPool, routeTicketTtlSeconds);
         this.commandAliases = config.aliases();
     }
 
@@ -113,6 +115,8 @@ public final class CloudIslandsVelocityPlugin {
             integer(values.get("core-api.timeout-ms"), 3000),
             values.getOrDefault("routing.fallback-on-failure", values.getOrDefault("routing.default-lobby", "Lobby")),
             integer(values.get("routing.wait-for-activation-timeout-seconds"), 20),
+            values.getOrDefault("routing.island-pool", "island"),
+            integer(values.get("routing.route-ticket-ttl-seconds"), 30),
             bool(values.get("routing.hide-node-names"), true),
             bool(values.get("messages.use-actionbar"), true),
             bool(values.get("messages.use-bossbar-loading"), true),
@@ -164,7 +168,7 @@ public final class CloudIslandsVelocityPlugin {
         return aliases.stream().filter(alias -> !alias.equalsIgnoreCase("섬")).distinct().toArray(String[]::new);
     }
 
-    private record VelocityConfig(String coreBaseUrl, String coreToken, String adminToken, int timeoutMs, String fallbackServer, int routeWaitSeconds, boolean hideNodeNames, boolean useActionBar, boolean useBossBarLoading, List<String> aliases) {}
+    private record VelocityConfig(String coreBaseUrl, String coreToken, String adminToken, int timeoutMs, String fallbackServer, int routeWaitSeconds, String islandPool, int routeTicketTtlSeconds, boolean hideNodeNames, boolean useActionBar, boolean useBossBarLoading, List<String> aliases) {}
 
     @Subscribe
     public void onProxyInitialize(ProxyInitializeEvent event) {
