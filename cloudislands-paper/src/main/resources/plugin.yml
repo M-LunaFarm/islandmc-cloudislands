@@ -7,11 +7,15 @@ softdepend: [Vault]
 commands:
   island:
     description: CloudIslands player island command
+    usage: /island help
     permission: cloudislands.player
+    permission-message: 섬 명령을 사용할 권한이 없습니다.
     aliases: [is, 섬]
   ciadmin:
     description: CloudIslands administration command
+    usage: /ciadmin status
     permission: cloudislands.admin
+    permission-message: 섬 관리 명령을 사용할 권한이 없습니다.
     aliases: [섬관리]
 permissions:
   cloudislands.player:
