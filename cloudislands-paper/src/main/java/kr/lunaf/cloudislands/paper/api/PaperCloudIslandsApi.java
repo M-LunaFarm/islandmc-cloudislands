@@ -14,6 +14,7 @@ import kr.lunaf.cloudislands.api.model.AuditLogSnapshot;
 import kr.lunaf.cloudislands.api.model.BlockValueSnapshot;
 import kr.lunaf.cloudislands.api.model.ClaimedIslandJobSnapshot;
 import kr.lunaf.cloudislands.api.model.CoreMaintenanceResult;
+import kr.lunaf.cloudislands.api.model.GlobalEventBatchSnapshot;
 import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
@@ -656,6 +657,21 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<List<GlobalEventSnapshot>> listGlobalEventsSince(long sinceSeq, int limit) {
             return client.listEventsSince(sinceSeq, limit).thenApply(PaperCloudIslandsApi::events);
+        }
+
+        @Override
+        public CompletableFuture<GlobalEventBatchSnapshot> listGlobalEventBatch() {
+            return client.listEvents().thenApply(PaperCloudIslandsApi::eventBatch);
+        }
+
+        @Override
+        public CompletableFuture<GlobalEventBatchSnapshot> listGlobalEventBatch(int limit) {
+            return client.listEvents(limit).thenApply(PaperCloudIslandsApi::eventBatch);
+        }
+
+        @Override
+        public CompletableFuture<GlobalEventBatchSnapshot> listGlobalEventBatchSince(long sinceSeq, int limit) {
+            return client.listEventsSince(sinceSeq, limit).thenApply(PaperCloudIslandsApi::eventBatch);
         }
     }
 
@@ -1349,6 +1365,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             ));
         }
         return events;
+    }
+
+    private static GlobalEventBatchSnapshot eventBatch(String json) {
+        return new GlobalEventBatchSnapshot(
+            number(json, "oldestSeq"),
+            number(json, "latestSeq"),
+            events(json)
+        );
     }
 
     private static List<AuditLogSnapshot> auditLogs(String json) {
