@@ -27,7 +27,10 @@ public record CoreServiceConfig(
     Duration routeTicketTtl,
     Duration routePreparingTicketTtl,
     Duration heartbeatTimeout,
-    Duration leaseDuration
+    Duration leaseDuration,
+    boolean requireMtls,
+    String mtlsVerifiedHeader,
+    String mtlsVerifiedValue
 ) {
     public static CoreServiceConfig fromEnvironment() {
         return new CoreServiceConfig(
@@ -54,7 +57,10 @@ public record CoreServiceConfig(
             Duration.ofSeconds(integer("CI_ROUTE_TICKET_TTL_SECONDS", 30)),
             Duration.ofSeconds(integer("CI_ROUTE_PREPARING_TICKET_TTL_SECONDS", 120)),
             Duration.ofSeconds(integer("CI_HEARTBEAT_TIMEOUT_SECONDS", 5)),
-            Duration.ofSeconds(integer("CI_LEASE_SECONDS", 30))
+            Duration.ofSeconds(integer("CI_LEASE_SECONDS", 30)),
+            bool("CI_REQUIRE_MTLS", false),
+            env("CI_MTLS_VERIFIED_HEADER", "X-SSL-Client-Verify"),
+            env("CI_MTLS_VERIFIED_VALUE", "SUCCESS")
         );
     }
 
@@ -75,7 +81,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue);
     }
 
     private static String env(String key, String fallback) {
@@ -89,5 +95,10 @@ public record CoreServiceConfig(
         } catch (NumberFormatException ignored) {
             return fallback;
         }
+    }
+
+    private static boolean bool(String key, boolean fallback) {
+        String value = env(key, Boolean.toString(fallback));
+        return value.equalsIgnoreCase("true") || value.equals("1") || value.equalsIgnoreCase("yes");
     }
 }

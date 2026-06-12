@@ -85,6 +85,7 @@ import kr.lunaf.cloudislands.coreservice.security.ApiTokenGuard;
 import kr.lunaf.cloudislands.coreservice.security.FixedWindowRateLimiter;
 import kr.lunaf.cloudislands.coreservice.security.AdminEndpointGuard;
 import kr.lunaf.cloudislands.coreservice.security.IpAllowlist;
+import kr.lunaf.cloudislands.coreservice.security.MtlsHeaderGuard;
 import kr.lunaf.cloudislands.coreservice.session.InMemoryRouteSessionStore;
 import kr.lunaf.cloudislands.coreservice.snapshot.InMemoryIslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
@@ -122,6 +123,7 @@ public final class CloudIslandsCoreApplication {
     private final FixedWindowRateLimiter rateLimiter;
     private final AdminEndpointGuard adminGuard;
     private final IpAllowlist ipAllowlist;
+    private final MtlsHeaderGuard mtlsGuard;
     private final NodeFailureMonitor nodeFailureMonitor;
     private final IslandStorage deleteStorage;
     private final IslandRuntimeRepository runtimeRepository;
@@ -139,6 +141,7 @@ public final class CloudIslandsCoreApplication {
         this.rateLimiter = new FixedWindowRateLimiter(clock, 240, 60_000L);
         this.adminGuard = new AdminEndpointGuard(config.adminToken());
         this.ipAllowlist = new IpAllowlist(config.ipAllowlist());
+        this.mtlsGuard = new MtlsHeaderGuard(config.requireMtls(), config.mtlsVerifiedHeader(), config.mtlsVerifiedValue());
         this.deleteStorage = migrationRollbackStorage(config);
         DataSource dataSource = new DriverManagerDataSource(config.jdbcUrl(), config.databaseUsername(), config.databasePassword());
         NodeRegistry nodes = config.jdbcRepositories() ? new JdbcNodeRegistry(dataSource) : new InMemoryNodeRegistry();
@@ -1287,6 +1290,10 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 401, ApiResponses.error("UNAUTHORIZED", "Missing or invalid API token"));
                 return;
             }
+            if (!path.equals("/health") && !mtlsGuard.allowed(exchange)) {
+                write(exchange, 401, ApiResponses.error("MTLS_REQUIRED", "mTLS verification is required"));
+                return;
+            }
             if (!ipAllowlist.allowed(exchange)) {
                 write(exchange, 403, ApiResponses.error("IP_NOT_ALLOWED", "Remote address is not allowed"));
                 return;
@@ -1308,6 +1315,10 @@ public final class CloudIslandsCoreApplication {
             }
             if (!tokenGuard.allowed(exchange)) {
                 write(exchange, 401, ApiResponses.error("UNAUTHORIZED", "Missing or invalid API token"));
+                return;
+            }
+            if (!mtlsGuard.allowed(exchange)) {
+                write(exchange, 401, ApiResponses.error("MTLS_REQUIRED", "mTLS verification is required"));
                 return;
             }
             if (!ipAllowlist.allowed(exchange)) {
