@@ -214,7 +214,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (args.length == 2) {
             String first = args[0].toLowerCase(Locale.ROOT);
-            if (first.equals("fly") || first.equals("비행") || first.equals("keepinventory") || first.equals("keepinv") || first.equals("인벤보존") || first.equals("pvp") || first.equals("피빕") || first.equals("publicwarps") || first.equals("공개워프")) {
+            if (first.equals("fly") || first.equals("비행") || first.equals("keepinventory") || first.equals("keepinv") || first.equals("인벤보존") || first.equals("pvp") || first.equals("피빕") || first.equals("publicwarps") || first.equals("public-warps") || first.equals("공개워프")) {
                 return literalMatches(List.of("true", "false", "on", "off", "켜기", "끄기"), args[1]);
             }
             if (first.equals("rank") || first.equals("ranking") || first.equals("랭킹")) {
@@ -232,7 +232,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             if (first.equals("biome") || first.equals("바이옴")) {
                 return literalMatches(List.of("minecraft:plains", "minecraft:forest", "minecraft:desert", "minecraft:taiga"), args[1]);
             }
-            if (first.equals("invite") || first.equals("초대") || first.equals("kick") || first.equals("추방") || first.equals("promote") || first.equals("승급") || first.equals("demote") || first.equals("강등") || first.equals("transfer") || first.equals("양도") || first.equals("trust") || first.equals("신뢰") || first.equals("untrust") || first.equals("신뢰해제") || first.equals("ban") || first.equals("밴") || first.equals("unban") || first.equals("밴해제") || first.equals("kickvisitor") || first.equals("방문자추방")) {
+            if (first.equals("invite") || first.equals("초대") || first.equals("kick") || first.equals("remove-member") || first.equals("추방") || first.equals("promote") || first.equals("승급") || first.equals("demote") || first.equals("강등") || first.equals("transfer") || first.equals("양도") || first.equals("trust") || first.equals("신뢰") || first.equals("untrust") || first.equals("신뢰해제") || first.equals("ban") || first.equals("밴") || first.equals("unban") || first.equals("pardon") || first.equals("밴해제") || first.equals("kickvisitor") || first.equals("방문자추방")) {
                 return onlinePlayerMatches(args[1]);
             }
         }

@@ -1029,7 +1029,7 @@ public final class CloudIslandsVelocityPlugin {
             if (first.equals("hoppers") || first.equals("호퍼") || first.equals("spawners") || first.equals("스포너") || first.equals("entities") || first.equals("엔티티") || first.equals("redstone") || first.equals("레드스톤")) {
                 addLiteralSuggestions(matches, args[1], List.of("25", "50", "100", "250"));
             }
-            if (first.equals("setpermission") || first.equals("권한설정")) {
+            if (first.equals("setpermission") || first.equals("permission-set") || first.equals("권한설정")) {
                 addLiteralSuggestions(matches, args[1], List.of("MEMBER", "TRUSTED", "MODERATOR", "VISITOR"));
             }
             if (first.equals("biome") || first.equals("바이옴")) {
@@ -1039,10 +1039,10 @@ public final class CloudIslandsVelocityPlugin {
                 addOnlinePlayerSuggestions(matches, args[1]);
             }
         }
-        if (args.length == 3 && (args[0].equalsIgnoreCase("setpermission") || args[0].equals("권한설정"))) {
+        if (args.length == 3 && (args[0].equalsIgnoreCase("setpermission") || args[0].equalsIgnoreCase("permission-set") || args[0].equals("권한설정"))) {
             addLiteralSuggestions(matches, args[2], List.of("BUILD", "INTERACT", "MANAGE_MEMBERS", "MANAGE_FLAGS", "MANAGE_WARPS"));
         }
-        if (args.length == 4 && (args[0].equalsIgnoreCase("setpermission") || args[0].equals("권한설정"))) {
+        if (args.length == 4 && (args[0].equalsIgnoreCase("setpermission") || args[0].equalsIgnoreCase("permission-set") || args[0].equals("권한설정"))) {
             addLiteralSuggestions(matches, args[3], List.of("true", "false", "허용", "거부"));
         }
         return matches;
