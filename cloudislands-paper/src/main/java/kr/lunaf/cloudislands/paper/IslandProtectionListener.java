@@ -261,7 +261,18 @@ public final class IslandProtectionListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onEntityChangeBlock(EntityChangeBlockEvent event) {
         if (event.getEntityType() == EntityType.ENDERMAN) {
-            event.setCancelled(!protection.checkSystemFlag(event.getBlock(), IslandFlag.ENDERMAN_GRIEF).allowed());
+            boolean allowed = protection.checkSystemFlag(event.getBlock(), IslandFlag.ENDERMAN_GRIEF).allowed();
+            event.setCancelled(!allowed);
+            if (allowed) {
+                protection.islandAt(event.getBlock()).ifPresent(islandId -> {
+                    if (event.getBlock().getType() != Material.AIR) {
+                        blockDeltas.broken(islandId, event.getBlock());
+                    }
+                    if (event.getTo() != Material.AIR) {
+                        blockDeltas.placed(islandId, event.getTo());
+                    }
+                });
+            }
         }
     }
 

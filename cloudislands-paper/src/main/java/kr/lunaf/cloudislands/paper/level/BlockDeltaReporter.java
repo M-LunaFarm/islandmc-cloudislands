@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper.level;
 
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.EntityType;
 import org.bukkit.plugin.Plugin;
@@ -21,6 +22,10 @@ public final class BlockDeltaReporter {
 
     public void broken(UUID islandId, Block block) {
         report(islandId, block, -1L);
+    }
+
+    public void placed(UUID islandId, Material material) {
+        report(islandId, material.getKey().toString(), 1L);
     }
 
     public void entityPlaced(UUID islandId, EntityType entityType) {
