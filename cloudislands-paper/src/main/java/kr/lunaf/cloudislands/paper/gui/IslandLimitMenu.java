@@ -45,7 +45,10 @@ public final class IslandLimitMenu implements Listener {
             return;
         }
         player.closeInventory();
-        player.sendMessage("사용법: /섬 제한설정 " + limitKey + " <값>");
+        long value = number(loreValue(meta, "value="));
+        long step = event.isShiftClick() ? 10L : 1L;
+        long nextValue = event.isRightClick() ? Math.max(0L, value - step) : value + step;
+        player.performCommand("섬 제한설정 " + limitKey + " " + nextValue);
     }
 
     private static void openSync(Plugin plugin, Player player, List<Limit> limits) {
@@ -63,7 +66,7 @@ public final class IslandLimitMenu implements Listener {
     }
 
     private static ItemStack limitItem(Limit limit) {
-        return item(Material.HOPPER, limit.key(), "limitKey=" + limit.key(), "value=" + limit.value(), limit.updatedAt().isBlank() ? "업데이트 정보 없음" : "updatedAt=" + limit.updatedAt(), "클릭하면 설정 명령을 안내합니다.");
+        return item(Material.HOPPER, limit.key(), "limitKey=" + limit.key(), "value=" + limit.value(), limit.updatedAt().isBlank() ? "업데이트 정보 없음" : "updatedAt=" + limit.updatedAt(), "좌클릭: +1", "우클릭: -1", "Shift+클릭: 10 단위로 조정");
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
@@ -132,6 +135,14 @@ public final class IslandLimitMenu implements Listener {
         }
         try {
             return Long.parseLong(body.substring(start, end));
+        } catch (NumberFormatException exception) {
+            return 0L;
+        }
+    }
+
+    private static long number(String value) {
+        try {
+            return Long.parseLong(value);
         } catch (NumberFormatException exception) {
             return 0L;
         }
