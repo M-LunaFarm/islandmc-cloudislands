@@ -151,8 +151,8 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "섬 멤버",
         "섬 초대 <player>",
         "섬 초대목록",
-        "섬 초대수락 <inviteId>",
-        "섬 초대거절 <inviteId>",
+        "섬 초대수락 <플레이어|섬|inviteId>",
+        "섬 초대거절 <플레이어|섬|inviteId>",
         "섬 추방 <player>",
         "섬 승급 <player>",
         "섬 강등 <player>",
@@ -723,7 +723,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("accept") || subcommand.equals("invite-accept") || subcommand.equals("초대수락")) {
             if (args.length < 2) {
-                player.sendMessage("수락할 초대 ID, 섬 ID, 또는 초대한 플레이어를 입력해주세요.");
+                player.sendMessage("수락할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요.");
                 return true;
             }
             acceptIslandInviteTarget(player, args[1]);
@@ -731,7 +731,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("decline") || subcommand.equals("invite-decline") || subcommand.equals("초대거절")) {
             if (args.length < 2) {
-                player.sendMessage("거절할 초대 ID, 섬 ID, 또는 초대한 플레이어를 입력해주세요.");
+                player.sendMessage("거절할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요.");
                 return true;
             }
             declineIslandInviteTarget(player, args[1]);
@@ -1985,7 +1985,21 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return coreApiClient.listPendingInvites(player.getUniqueId()).thenApply(body -> findInviteId(body, online.getUniqueId()));
         }
         return coreApiClient.playerInfoByName(target)
-            .thenCompose(body -> coreApiClient.listPendingInvites(player.getUniqueId()).thenApply(invites -> findInviteId(invites, uuid(text(body, "playerUuid")))));
+            .handle((body, error) -> error == null ? uuid(text(body, "playerUuid")) : null)
+            .thenCompose(playerUuid -> {
+                if (playerUuid == null) {
+                    return resolveInviteIslandName(player, target);
+                }
+                return coreApiClient.listPendingInvites(player.getUniqueId()).thenCompose(invites -> {
+                    UUID inviteId = findInviteId(invites, playerUuid);
+                    return inviteId == null ? resolveInviteIslandName(player, target) : CompletableFuture.completedFuture(inviteId);
+                });
+            });
+    }
+
+    private CompletableFuture<UUID> resolveInviteIslandName(Player player, String islandName) {
+        return coreApiClient.islandInfoByName(islandName)
+            .thenCompose(body -> coreApiClient.listPendingInvites(player.getUniqueId()).thenApply(invites -> findInviteId(invites, uuid(text(body, "islandId")))));
     }
 
     private UUID findInviteId(String body, UUID targetUuid) {

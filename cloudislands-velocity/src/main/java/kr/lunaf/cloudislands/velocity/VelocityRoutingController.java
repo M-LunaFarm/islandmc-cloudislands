@@ -2419,7 +2419,21 @@ public final class VelocityRoutingController {
             return coreApiClient.listPendingInvites(player.getUniqueId()).thenApply(body -> findInviteId(body, online.get().getUniqueId()));
         }
         return coreApiClient.playerInfoByName(target)
-            .thenCompose(body -> coreApiClient.listPendingInvites(player.getUniqueId()).thenApply(invites -> findInviteId(invites, parseUuid(jsonValue(body, "playerUuid")))));
+            .handle((body, error) -> error == null ? parseUuid(jsonValue(body, "playerUuid")) : new UUID(0L, 0L))
+            .thenCompose(playerUuid -> {
+                if (playerUuid.equals(new UUID(0L, 0L))) {
+                    return resolveInviteIslandName(player, target);
+                }
+                return coreApiClient.listPendingInvites(player.getUniqueId()).thenCompose(invites -> {
+                    UUID inviteId = findInviteId(invites, playerUuid);
+                    return inviteId.equals(new UUID(0L, 0L)) ? resolveInviteIslandName(player, target) : CompletableFuture.completedFuture(inviteId);
+                });
+            });
+    }
+
+    private CompletableFuture<UUID> resolveInviteIslandName(Player player, String islandName) {
+        return coreApiClient.islandInfoByName(islandName)
+            .thenCompose(body -> coreApiClient.listPendingInvites(player.getUniqueId()).thenApply(invites -> findInviteId(invites, parseUuid(jsonValue(body, "islandId")))));
     }
 
     private CompletableFuture<UUID> resolvePlayerUuid(String target) {
