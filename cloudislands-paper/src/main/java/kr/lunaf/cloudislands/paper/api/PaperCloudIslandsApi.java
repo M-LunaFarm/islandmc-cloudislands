@@ -55,6 +55,8 @@ import kr.lunaf.cloudislands.api.model.JobRecoveryResult;
 import kr.lunaf.cloudislands.api.model.MigrationIssueSnapshot;
 import kr.lunaf.cloudislands.api.model.MigrationRunSnapshot;
 import kr.lunaf.cloudislands.api.model.NodeState;
+import kr.lunaf.cloudislands.api.model.NodeLevelScanSnapshot;
+import kr.lunaf.cloudislands.api.model.NodeStorageSnapshot;
 import kr.lunaf.cloudislands.api.model.NodeSweepResult;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
@@ -1310,8 +1312,39 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             text(json, "supportedTemplates", ""),
             instant(text(json, "lastHeartbeat", Instant.EPOCH.toString())),
             decimal(json, "score", 0.0D),
-            decimalMap(json, "scoreBreakdown")
+            decimalMap(json, "scoreBreakdown"),
+            bool(json, "eligibleForNewActivation", false),
+            text(json, "allocationBlockReason", ""),
+            levelScan(objectValue(json, "levelScan")),
+            storage(objectValue(json, "storage"))
         ));
+    }
+
+    private static NodeLevelScanSnapshot levelScan(String json) {
+        if (json == null || json.isBlank()) {
+            return NodeLevelScanSnapshot.empty();
+        }
+        return new NodeLevelScanSnapshot(
+            bool(json, "running", false),
+            text(json, "lastIsland", ""),
+            longValue(json, "startedAt", 0L),
+            longValue(json, "finishedAt", 0L),
+            longValue(json, "failedAt", 0L)
+        );
+    }
+
+    private static NodeStorageSnapshot storage(String json) {
+        if (json == null || json.isBlank()) {
+            return NodeStorageSnapshot.empty();
+        }
+        return new NodeStorageSnapshot(
+            decimal(json, "uploadSeconds", 0.0D),
+            decimal(json, "downloadSeconds", 0.0D),
+            longValue(json, "healthCheckFailures", 0L),
+            longValue(json, "uploadFailures", 0L),
+            longValue(json, "downloadFailures", 0L),
+            longValue(json, "operationFailures", 0L)
+        );
     }
 
     private static List<IslandTemplateSnapshot> templates(String json) {
@@ -1562,6 +1595,30 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             cursor = valueEnd + 1;
         }
         return Map.copyOf(values);
+    }
+
+    private static String objectValue(String json, String field) {
+        String needle = "\"" + field + "\":{";
+        int start = json == null ? -1 : json.indexOf(needle);
+        if (start < 0) {
+            return "";
+        }
+        int objectStart = start + needle.length() - 1;
+        int index = objectStart;
+        int depth = 0;
+        while (index < json.length()) {
+            char ch = json.charAt(index);
+            if (ch == '{') {
+                depth++;
+            } else if (ch == '}') {
+                depth--;
+                if (depth == 0) {
+                    return json.substring(objectStart, index + 1);
+                }
+            }
+            index++;
+        }
+        return "";
     }
 
     private static Map<String, Double> decimalMap(String json, String field) {
