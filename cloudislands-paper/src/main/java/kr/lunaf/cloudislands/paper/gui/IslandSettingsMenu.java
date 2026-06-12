@@ -37,6 +37,7 @@ public final class IslandSettingsMenu implements Listener {
             inventory.setItem(14, item(Material.REDSTONE_TORCH, "플래그 설정", "/섬 플래그"));
             inventory.setItem(15, item(Material.ENDER_PEARL, "워프 관리", "/섬 워프"));
             inventory.setItem(16, item(Material.BARRIER, "방문자 밴", "/섬 밴목록"));
+            inventory.setItem(17, item(Material.NAME_TAG, "역할 설정", "/섬 역할"));
             inventory.setItem(18, item(Material.GOLD_BLOCK, "은행", "/섬 은행"));
             inventory.setItem(19, item(Material.BEACON, "업그레이드", "/섬 업그레이드"));
             inventory.setItem(20, item(Material.GRASS_BLOCK, "바이옴", "/섬 바이옴"));
@@ -71,6 +72,8 @@ public final class IslandSettingsMenu implements Listener {
             player.performCommand("섬 멤버관리");
         } else if (name.equals("권한 설정")) {
             player.performCommand("섬 권한");
+        } else if (name.equals("역할 설정")) {
+            player.performCommand("섬 역할");
         } else if (name.equals("플래그 설정")) {
             player.performCommand("섬 플래그");
         } else if (name.equals("워프 관리")) {

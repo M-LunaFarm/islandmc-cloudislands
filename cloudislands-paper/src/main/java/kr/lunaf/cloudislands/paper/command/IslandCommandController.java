@@ -42,6 +42,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandMissionMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMyIslandsMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandPermissionMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandRankingMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandRoleMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandSnapshotMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandUpgradeMenu;
@@ -85,7 +86,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "members", "member-menu", "member-list", "멤버", "멤버관리", "멤버목록", "invite", "초대", "invites", "invite-menu", "invite-list", "초대목록",
         "accept", "invite-accept", "초대수락", "decline", "invite-decline", "초대거절",
         "kick", "remove-member", "추방", "trust", "신뢰", "untrust", "신뢰해제",
-        "promote", "승급", "demote", "강등", "setrole", "role-set", "역할설정", "roles", "role-list", "role-upsert", "role-edit", "역할목록", "역할편집", "transfer", "양도",
+        "promote", "승급", "demote", "강등", "setrole", "role-set", "역할설정", "roles", "role-menu", "role-list", "role-upsert", "role-edit", "역할", "역할목록", "역할편집", "transfer", "양도",
         "ban", "밴", "unban", "pardon", "밴해제", "kickvisitor", "방문자추방", "bans", "ban-menu", "ban-list", "banlist", "밴목록",
         "settings", "setting", "설정",
         "flags", "flag-menu", "flag-list", "flag", "setflag", "flag-set", "플래그", "플래그설정", "플래그목록",
@@ -817,7 +818,11 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             setIslandMemberRole(player, args[1], role, "섬 멤버 역할을 " + role.name() + "(으)로 변경했습니다.");
             return true;
         }
-        if (subcommand.equals("roles") || subcommand.equals("role-list") || subcommand.equals("역할목록")) {
+        if (subcommand.equals("roles") || subcommand.equals("role-menu") || subcommand.equals("역할")) {
+            openIslandRoleMenu(player);
+            return true;
+        }
+        if (subcommand.equals("role-list") || subcommand.equals("역할목록")) {
             listIslandRoles(player);
             return true;
         }
@@ -2306,6 +2311,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void openIslandPermissionMenu(Player player) {
         currentIsland(player, "섬 안에서만 권한 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandPermissionMenu.open(plugin, coreApiClient, player, islandId));
+    }
+
+    private void openIslandRoleMenu(Player player) {
+        currentIsland(player, "섬 안에서만 역할 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandRoleMenu.open(plugin, coreApiClient, player, islandId));
     }
 
     private void upsertIslandRole(Player player, IslandRole role, int weight, String displayName) {

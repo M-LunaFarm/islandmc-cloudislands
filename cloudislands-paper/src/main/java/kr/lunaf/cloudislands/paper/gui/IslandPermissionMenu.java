@@ -57,6 +57,10 @@ public final class IslandPermissionMenu implements Listener {
             player.performCommand("섬 설정");
             return;
         }
+        if ("역할 설정".equals(displayName)) {
+            player.performCommand("섬 역할");
+            return;
+        }
         String role = loreValue(meta, "role=");
         String permission = loreValue(meta, "permission=");
         if (role.isBlank() || permission.isBlank()) {
@@ -78,6 +82,7 @@ public final class IslandPermissionMenu implements Listener {
             inventory.setItem(46, item(Material.PAPER, "권한 목록", "/섬 권한목록"));
             inventory.setItem(47, item(Material.CLOCK, "새로고침", "/섬 권한"));
             inventory.setItem(48, item(Material.COMPARATOR, "설정", "/섬 설정"));
+            inventory.setItem(53, item(Material.NAME_TAG, "역할 설정", "/섬 역할"));
             int summarySlot = 49;
             for (Rule rule : rules.stream().limit(5).toList()) {
                 inventory.setItem(summarySlot++, ruleItem(rule.role(), rule.permission(), rule.allowed()));
