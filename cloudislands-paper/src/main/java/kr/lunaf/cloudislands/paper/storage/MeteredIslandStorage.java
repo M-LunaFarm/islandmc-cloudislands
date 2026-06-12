@@ -112,10 +112,10 @@ public final class MeteredIslandStorage implements IslandStorage {
     }
 
     @Override
-    public void writeSnapshot(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
+    public StoredBundle writeSnapshot(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
         long started = System.nanoTime();
         try {
-            delegate.writeSnapshot(islandId, snapshotNo, bundle, manifest);
+            return delegate.writeSnapshot(islandId, snapshotNo, bundle, manifest);
         } catch (IOException exception) {
             recordUploadFailure();
             throw exception;

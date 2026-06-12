@@ -52,10 +52,10 @@ public final class LocalIslandStorage implements IslandStorage {
     }
 
     @Override
-    public void writeSnapshot(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
+    public StoredBundle writeSnapshot(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
         Path islandRoot = islandRoot(islandId);
         Path snapshotDir = islandRoot.resolve("snapshots").resolve(String.format("%06d", snapshotNo));
-        writeBundle(islandRoot, snapshotDir, bundle, manifest, true);
+        return writeBundle(islandRoot, snapshotDir, bundle, manifest, true);
     }
 
     @Override

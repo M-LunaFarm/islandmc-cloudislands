@@ -83,18 +83,19 @@ public final class IslandSaveService {
             java.time.Instant.now(),
             checksum
         );
+        IslandStorage.StoredBundle storedBundle;
         try (InputStream input = Files.newInputStream(exported.bundleFile())) {
             if (deleteBackup) {
-                storage.writeDeleteBackup(islandId, exported.snapshotNo(), input, manifest);
+                storedBundle = storage.writeDeleteBackup(islandId, exported.snapshotNo(), input, manifest);
             } else {
-                storage.writeSnapshot(islandId, exported.snapshotNo(), input, manifest);
+                storedBundle = storage.writeSnapshot(islandId, exported.snapshotNo(), input, manifest);
             }
         }
         if (pruneAfterSave) {
             storage.pruneSnapshots(islandId, retentionPolicy);
         }
-        return new SaveResult(islandId, exported.snapshotNo(), exported.bundleFile(), checksum, sizeBytes);
+        return new SaveResult(islandId, exported.snapshotNo(), exported.bundleFile(), storedBundle.storagePath(), storedBundle.checksum(), storedBundle.sizeBytes());
     }
 
-    public record SaveResult(UUID islandId, long snapshotNo, Path bundleFile, String checksum, long sizeBytes) {}
+    public record SaveResult(UUID islandId, long snapshotNo, Path bundleFile, String storagePath, String checksum, long sizeBytes) {}
 }

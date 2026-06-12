@@ -94,9 +94,9 @@ public final class S3IslandStorage implements IslandStorage {
     }
 
     @Override
-    public void writeSnapshot(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
+    public StoredBundle writeSnapshot(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
         String snapshot = String.format("%06d", snapshotNo);
-        writeBundle(islandId, "snapshots/" + snapshot, bundle, manifest, true, snapshot);
+        return writeBundle(islandId, "snapshots/" + snapshot, bundle, manifest, true, snapshot);
     }
 
     @Override
