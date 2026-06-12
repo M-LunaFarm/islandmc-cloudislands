@@ -41,9 +41,18 @@ public final class InMemoryRouteSessionStore implements RouteSessionStore {
 
     @Override
     public Optional<PlayerRouteSession> consume(UUID playerUuid, String nodeId) {
-        Optional<PlayerRouteSession> session = find(playerUuid, nodeId);
-        session.ifPresent(value -> byPlayer.remove(playerUuid, value));
-        return session;
+        java.util.concurrent.atomic.AtomicReference<PlayerRouteSession> consumed = new java.util.concurrent.atomic.AtomicReference<>();
+        byPlayer.computeIfPresent(playerUuid, (_playerUuid, session) -> {
+            if (session.expiresAt().isBefore(clock.instant())) {
+                return null;
+            }
+            if (!session.targetNode().equals(nodeId)) {
+                return session;
+            }
+            consumed.set(session);
+            return null;
+        });
+        return Optional.ofNullable(consumed.get());
     }
 
     public Optional<PlayerRouteSession> findAny(UUID playerUuid) {
