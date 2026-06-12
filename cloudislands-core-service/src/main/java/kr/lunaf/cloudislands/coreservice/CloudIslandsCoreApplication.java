@@ -58,6 +58,7 @@ import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.JdbcIslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue;
+import kr.lunaf.cloudislands.coreservice.limit.CachingIslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.limit.InMemoryIslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.limit.IslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.limit.JdbcIslandLimitRepository;
@@ -227,7 +228,10 @@ public final class CloudIslandsCoreApplication {
             : baseBankRepository;
         IslandUpgradeService upgradeService = new IslandUpgradeService(upgradeRepository, bankRepository, upgradePolicy);
         IslandMissionRepository missionRepository = config.jdbcRepositories() ? new JdbcIslandMissionRepository(dataSource) : new InMemoryIslandMissionRepository();
-        IslandLimitRepository limitRepository = config.jdbcRepositories() ? new JdbcIslandLimitRepository(dataSource) : new InMemoryIslandLimitRepository();
+        IslandLimitRepository baseLimitRepository = config.jdbcRepositories() ? new JdbcIslandLimitRepository(dataSource) : new InMemoryIslandLimitRepository();
+        IslandLimitRepository limitRepository = config.redisEvents() || config.redisJobs()
+            ? new CachingIslandLimitRepository(baseLimitRepository, config.redisUri())
+            : baseLimitRepository;
         IslandTemplateRepository templateRepository = config.jdbcRepositories() ? new JdbcIslandTemplateRepository(dataSource) : new InMemoryIslandTemplateRepository();
         AuditLogger baseAudit = config.jdbcRepositories() ? new JdbcAuditLogger(dataSource) : new InMemoryAuditLogger();
         AuditLogger audit = redisEventWriter == null ? baseAudit : new RedisAuditLogger(baseAudit, redisEventWriter, RedisKeys.auditStream());
@@ -250,7 +254,7 @@ public final class CloudIslandsCoreApplication {
             migrationRollbackTarget(config, dataSource)
         );
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotKeepLatest());
-        PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, tickets, runtimeRepository, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::activeConnections, meteredDataSource::openedConnections, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventWriter == null ? 0L : redisEventWriter.failuresTotal(), () -> redisCacheFailures(nodes, tickets, islandRepository, metadataRepository, playerProfiles, permissionRules, runtimeRepository, rankingRepository, bankRepository, redisCacheAdmin, audit));
+        PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, tickets, runtimeRepository, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::activeConnections, meteredDataSource::openedConnections, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventWriter == null ? 0L : redisEventWriter.failuresTotal(), () -> redisCacheFailures(nodes, tickets, islandRepository, metadataRepository, playerProfiles, permissionRules, runtimeRepository, rankingRepository, bankRepository, limitRepository, redisCacheAdmin, audit));
         this.nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, islandRepository, events, config.heartbeatTimeout());
         this.routeTicketExpiryMonitor = new RouteTicketExpiryMonitor(tickets, events, config.routeTicketTtl());
         this.jobRecoveryMonitor = new JobRecoveryMonitor(jobs, Duration.ofSeconds(60), config.leaseDuration().toMillis(), 16);
@@ -1602,7 +1606,7 @@ public final class CloudIslandsCoreApplication {
         });
     }
 
-    private static long redisCacheFailures(NodeRegistry nodes, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandRuntimeRepository runtimes, RankingRepository rankings, IslandBankRepository bank, RedisCacheAdmin redisCacheAdmin, AuditLogger audit) {
+    private static long redisCacheFailures(NodeRegistry nodes, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandRuntimeRepository runtimes, RankingRepository rankings, IslandBankRepository bank, IslandLimitRepository limits, RedisCacheAdmin redisCacheAdmin, AuditLogger audit) {
         long failures = 0L;
         if (nodes instanceof CachingNodeRegistry cachingNodes) {
             failures += cachingNodes.failuresTotal();
@@ -1630,6 +1634,9 @@ public final class CloudIslandsCoreApplication {
         }
         if (bank instanceof CachingIslandBankRepository cachingBank) {
             failures += cachingBank.failuresTotal();
+        }
+        if (limits instanceof CachingIslandLimitRepository cachingLimits) {
+            failures += cachingLimits.failuresTotal();
         }
         if (redisCacheAdmin != null) {
             failures += redisCacheAdmin.failuresTotal();

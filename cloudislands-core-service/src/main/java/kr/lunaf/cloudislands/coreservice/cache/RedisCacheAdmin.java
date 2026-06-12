@@ -21,6 +21,7 @@ public final class RedisCacheAdmin {
         "ci:island:*:homes",
         "ci:island:*:warps",
         "ci:island:*:bank",
+        "ci:island:*:limits",
         "ci:rankings:*"
     );
 
