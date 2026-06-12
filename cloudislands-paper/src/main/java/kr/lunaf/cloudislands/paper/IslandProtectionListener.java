@@ -254,6 +254,8 @@ public final class IslandProtectionListener implements Listener {
     public void onEntityExplode(EntityExplodeEvent event) {
         IslandFlag flag = explosionFlag(event.getEntityType());
         event.blockList().removeIf(block -> !explosionAllowed(block, flag));
+        event.blockList().forEach(block ->
+            protection.islandAt(block).ifPresent(islandId -> blockDeltas.broken(islandId, block)));
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -266,6 +268,8 @@ public final class IslandProtectionListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onBlockExplode(BlockExplodeEvent event) {
         event.blockList().removeIf(block -> !explosionAllowed(block, IslandFlag.EXPLOSION));
+        event.blockList().forEach(block ->
+            protection.islandAt(block).ifPresent(islandId -> blockDeltas.broken(islandId, block)));
     }
 
     @EventHandler(ignoreCancelled = true)
