@@ -774,6 +774,11 @@ public final class CloudIslandsVelocityPlugin {
             routingController.purchaseUpgrade(player, islandId, upgradeKey);
             return;
         }
+        if (args[0].equalsIgnoreCase("mission-menu") || args[0].equalsIgnoreCase("mission-list") || args[0].equals("미션목록")) {
+            UUID islandId = args.length > 1 && isUuid(args[1]) ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.listMissions(player, islandId);
+            return;
+        }
         if (args[0].equalsIgnoreCase("mission") || args[0].equals("missions") || args[0].equals("미션")) {
             UUID islandId = args.length > 1 && isUuid(args[1]) ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             int missionIndex = islandId.equals(new UUID(0L, 0L)) ? 1 : 2;
@@ -782,6 +787,11 @@ public final class CloudIslandsVelocityPlugin {
             } else {
                 routingController.listMissions(player, islandId);
             }
+            return;
+        }
+        if (args[0].equalsIgnoreCase("challenge-menu") || args[0].equalsIgnoreCase("challenge-list") || args[0].equals("챌린지목록")) {
+            UUID islandId = args.length > 1 && isUuid(args[1]) ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.listChallenges(player, islandId);
             return;
         }
         if (args[0].equalsIgnoreCase("challenge") || args[0].equals("challenges") || args[0].equals("챌린지")) {
