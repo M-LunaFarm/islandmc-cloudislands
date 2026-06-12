@@ -1191,17 +1191,17 @@ public final class VelocityRoutingController {
 
     private String homeListMessage(String body) {
         return namedObjectListMessage("섬 홈", body, "homes", object -> jsonValue(object, "name")
-            + " at=" + seconds(doubleValue(object, "localX")) + "," + seconds(doubleValue(object, "localY")) + "," + seconds(doubleValue(object, "localZ")));
+            + " 위치=" + seconds(doubleValue(object, "localX")) + "," + seconds(doubleValue(object, "localY")) + "," + seconds(doubleValue(object, "localZ")));
     }
 
     private String memberListMessage(String body) {
-        return namedObjectListMessage("Members", body, "members", object -> shortId(jsonValue(object, "playerUuid"))
-            + " role=" + jsonValue(object, "role"));
+        return namedObjectListMessage("섬 멤버", body, "members", object -> shortId(jsonValue(object, "playerUuid"))
+            + " 역할=" + jsonValue(object, "role"));
     }
 
     private String banListMessage(String body) {
-        return namedObjectListMessage("Bans", body, "bans", object -> shortId(jsonValue(object, "bannedUuid"))
-            + " reason=" + fallback(jsonValue(object, "reason"), "-"));
+        return namedObjectListMessage("섬 밴", body, "bans", object -> shortId(jsonValue(object, "bannedUuid"))
+            + " 사유=" + fallback(jsonValue(object, "reason"), "-"));
     }
 
     private String permissionListMessage(String body) {
@@ -1212,8 +1212,8 @@ public final class VelocityRoutingController {
 
     private String islandLogListMessage(String body) {
         return namedObjectListMessage("섬 로그", body, "logs", object -> fallback(jsonValue(object, "action"), "UNKNOWN")
-            + " by=" + shortId(jsonValue(object, "actorUuid"))
-            + " at=" + jsonValue(object, "createdAt"));
+            + " 처리자=" + shortId(jsonValue(object, "actorUuid"))
+            + " 시각=" + jsonValue(object, "createdAt"));
     }
 
     private String bankInfoMessage(String body) {
@@ -1232,10 +1232,10 @@ public final class VelocityRoutingController {
             bank = body;
         }
         boolean accepted = !body.contains("\"accepted\":false");
-        return label + ": " + (accepted ? "accepted" : "rejected")
+        return label + ": " + (accepted ? "접수됨" : "거부됨")
             + (code.isBlank() ? "" : " 사유=" + code)
             + " 섬=" + shortId(jsonValue(bank, "islandId"))
-            + " balance=" + jsonValue(bank, "balance");
+            + " 잔액=" + jsonValue(bank, "balance");
     }
 
     private String levelRecalculationMessage(String body) {
@@ -1250,8 +1250,8 @@ public final class VelocityRoutingController {
 
     private String upgradeListMessage(String body) {
         return namedObjectListMessage("섬 업그레이드", body, "upgrades", object -> jsonValue(object, "upgradeKey")
-            + " level=" + longValue(object, "level")
-            + " type=" + jsonValue(object, "type"));
+            + " 레벨=" + longValue(object, "level")
+            + " 유형=" + jsonValue(object, "type"));
     }
 
     private String upgradePurchaseMessage(String body) {
@@ -1260,23 +1260,23 @@ public final class VelocityRoutingController {
         boolean accepted = boolValue(body, "accepted");
         return "업그레이드 구매: " + (accepted ? "접수됨" : "거부됨")
             + (code.isBlank() ? "" : " 사유=" + code)
-            + " cost=" + jsonValue(body, "cost")
-            + (upgrade.isBlank() ? "" : " upgrade=" + jsonValue(upgrade, "upgradeKey") + " level=" + longValue(upgrade, "level"));
+            + " 비용=" + jsonValue(body, "cost")
+            + (upgrade.isBlank() ? "" : " 업그레이드=" + jsonValue(upgrade, "upgradeKey") + " 레벨=" + longValue(upgrade, "level"));
     }
 
     private String missionListMessage(String label, String body) {
         return namedObjectListMessage(label, body, "missions", object -> jsonValue(object, "missionKey")
             + " " + longValue(object, "progress") + "/" + longValue(object, "goal")
-            + " completed=" + boolValue(object, "completed"));
+            + " 완료=" + boolValue(object, "completed"));
     }
 
     private String missionResultMessage(String label, String body) {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
-            return label + ": failed code=" + code;
+            return label + ": 실패 사유=" + code;
         }
-        return label + ": completed key=" + jsonValue(body, "missionKey")
-            + " reward=" + jsonValue(body, "reward");
+        return label + ": 완료 키=" + jsonValue(body, "missionKey")
+            + " 보상=" + jsonValue(body, "reward");
     }
 
     private String limitListMessage(String body) {
@@ -1351,7 +1351,7 @@ public final class VelocityRoutingController {
             }
             index = objectEnd + 1;
         }
-        return label + ": total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+        return label + ": 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     private String fallback(String value, String fallback) {
