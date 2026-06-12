@@ -150,11 +150,11 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return handleRankings(sender, args);
         }
         if (args[0].equalsIgnoreCase("events")) {
-            run(sender, "Events list", coreApiClient.listEvents());
+            run(sender, "Events list", coreApiClient.listEvents().thenApply(this::eventListMessage));
             return true;
         }
         if (args[0].equalsIgnoreCase("audit")) {
-            run(sender, "Audit logs", coreApiClient.listAuditLogs());
+            run(sender, "Audit logs", coreApiClient.listAuditLogs().thenApply(this::auditListMessage));
             return true;
         }
         if (args[0].equalsIgnoreCase("metrics")) {
@@ -958,6 +958,68 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return "Job recover: recovered=" + (recoveredText.isBlank() ? Long.toString(recoveredNumber) : recoveredText);
         }
         return "Job " + action + ": " + (boolValue(body, "ok") ? "accepted" : "not applied");
+    }
+
+    private String eventListMessage(String body) {
+        String events = arrayValue(body, "events");
+        if (events.isBlank()) {
+            return "Events: empty";
+        }
+        List<String> entries = new ArrayList<>();
+        int index = 0;
+        while (index < events.length() && entries.size() < 10) {
+            int objectStart = events.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(events, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = events.substring(objectStart, objectEnd + 1);
+            String type = textValue(object, "type");
+            String occurredAt = textValue(object, "occurredAt");
+            String fields = objectValue(object, "fields");
+            String islandId = textValue(fields, "islandId");
+            String nodeId = textValue(fields, "nodeId");
+            entries.add((type.isBlank() ? "UNKNOWN_EVENT" : type)
+                + (islandId.isBlank() ? "" : " island=" + islandId)
+                + (nodeId.isBlank() ? "" : " node=" + nodeId)
+                + (occurredAt.isBlank() ? "" : " at=" + occurredAt));
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "Events: empty" : "Events: " + String.join(" | ", entries);
+    }
+
+    private String auditListMessage(String body) {
+        String audit = arrayValue(body, "audit");
+        if (audit.isBlank()) {
+            return "Audit: empty";
+        }
+        List<String> entries = new ArrayList<>();
+        int index = 0;
+        while (index < audit.length() && entries.size() < 10) {
+            int objectStart = audit.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(audit, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = audit.substring(objectStart, objectEnd + 1);
+            String action = textValue(object, "action");
+            String actorType = textValue(object, "actorType");
+            String targetType = textValue(object, "targetType");
+            String targetId = textValue(object, "targetId");
+            String createdAt = textValue(object, "createdAt");
+            entries.add((action.isBlank() ? "UNKNOWN_ACTION" : action)
+                + (targetType.isBlank() && targetId.isBlank() ? "" : " target=" + targetType + ":" + targetId)
+                + (actorType.isBlank() ? "" : " actor=" + actorType)
+                + (createdAt.isBlank() ? "" : " at=" + createdAt));
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "Audit: empty" : "Audit: " + String.join(" | ", entries);
     }
 
     private String nodeIslandRuntimeSuffix(String object) {
