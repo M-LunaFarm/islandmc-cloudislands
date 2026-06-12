@@ -695,8 +695,8 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("setflag") || args[0].equalsIgnoreCase("flag-set") || args[0].equals("플래그설정")) {
-            UUID islandId = optionalIslandIdArgument(args, 1);
-            int flagIndex = hasOptionalIslandIdArgument(args, 1) ? 2 : 1;
+            UUID islandId = islandIdArgument(args, 1);
+            int flagIndex = hasIslandIdArgument(args, 1) ? 2 : 1;
             kr.lunaf.cloudislands.api.model.IslandFlag flag = args.length > flagIndex ? parseFlag(args[flagIndex]) : kr.lunaf.cloudislands.api.model.IslandFlag.FLY;
             boolean enabled = parseToggle(args, flagIndex + 1, true);
             routingController.setBooleanFlag(player, islandId, flag, enabled, flag.name());
@@ -1057,7 +1057,14 @@ public final class CloudIslandsVelocityPlugin {
             addLiteralSuggestions(matches, args[3], List.of("true", "false", "on", "off", "허용", "거부"));
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("setflag") || args[0].equalsIgnoreCase("flag-set") || args[0].equals("플래그설정"))) {
-            addLiteralSuggestions(matches, args[2], List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"));
+            if (isUuid(args[1])) {
+                addLiteralSuggestions(matches, args[2], List.of("FLY", "KEEP_INVENTORY", "PVP", "PUBLIC_WARPS"));
+            } else {
+                addLiteralSuggestions(matches, args[2], List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"));
+            }
+        }
+        if (args.length == 4 && (args[0].equalsIgnoreCase("setflag") || args[0].equalsIgnoreCase("flag-set") || args[0].equals("플래그설정")) && isUuid(args[1])) {
+            addLiteralSuggestions(matches, args[3], List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"));
         }
         return matches;
     }
