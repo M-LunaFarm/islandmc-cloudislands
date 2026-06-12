@@ -1122,7 +1122,7 @@ public final class CloudIslandsVelocityPlugin {
                 addLiteralSuggestions(matches, args[1], memberRoleNames());
             }
             if (first.equals("setflag") || first.equals("flag-set") || first.equals("플래그설정")) {
-                addLiteralSuggestions(matches, args[1], List.of("FLY", "KEEP_INVENTORY", "PVP", "PUBLIC_WARPS"));
+                addLiteralSuggestions(matches, args[1], flagNames());
             }
             if (first.equals("biome") || first.equals("biome-menu") || first.equals("biome-info") || first.equals("바이옴") || first.equals("바이옴정보")) {
                 addLiteralSuggestions(matches, args[1], List.of("minecraft:plains", "minecraft:forest", "minecraft:desert", "minecraft:taiga"));
@@ -1138,7 +1138,7 @@ public final class CloudIslandsVelocityPlugin {
             addLiteralSuggestions(matches, args[3], memberRoleNames());
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("setpermission") || args[0].equalsIgnoreCase("permission-set") || args[0].equals("권한설정"))) {
-            addLiteralSuggestions(matches, args[2], List.of("BUILD", "INTERACT", "MANAGE_MEMBERS", "MANAGE_FLAGS", "MANAGE_WARPS"));
+            addLiteralSuggestions(matches, args[2], permissionNames());
         }
         if (args.length == 4 && (args[0].equalsIgnoreCase("setpermission") || args[0].equalsIgnoreCase("permission-set") || args[0].equals("권한설정"))) {
             addLiteralSuggestions(matches, args[3], List.of("true", "false", "on", "off", "허용", "거부"));
@@ -1148,7 +1148,7 @@ public final class CloudIslandsVelocityPlugin {
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("setflag") || args[0].equalsIgnoreCase("flag-set") || args[0].equals("플래그설정"))) {
             if (isUuid(args[1])) {
-                addLiteralSuggestions(matches, args[2], List.of("FLY", "KEEP_INVENTORY", "PVP", "PUBLIC_WARPS"));
+                addLiteralSuggestions(matches, args[2], flagNames());
             } else {
                 addLiteralSuggestions(matches, args[2], List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"));
             }
@@ -1295,6 +1295,18 @@ public final class CloudIslandsVelocityPlugin {
     private List<String> memberRoleNames() {
         return java.util.Arrays.stream(IslandRole.values())
             .filter(role -> role.islandMemberRole() && role != IslandRole.OWNER)
+            .map(Enum::name)
+            .toList();
+    }
+
+    private List<String> permissionNames() {
+        return java.util.Arrays.stream(IslandPermission.values())
+            .map(Enum::name)
+            .toList();
+    }
+
+    private List<String> flagNames() {
+        return java.util.Arrays.stream(kr.lunaf.cloudislands.api.model.IslandFlag.values())
             .map(Enum::name)
             .toList();
     }
