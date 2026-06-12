@@ -532,6 +532,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<IslandActionResult> saveIslandResult(UUID islandId) { return client.requestIslandSnapshotResult(islandId, "ADMIN_SAVE").thenApply(body -> actionCode(body, "SAVE_REQUESTED")); }
         @Override public CompletableFuture<Void> snapshotIsland(UUID islandId, String reason) { return snapshotIslandResult(islandId, reason).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> snapshotIslandResult(UUID islandId, String reason) { return client.requestIslandSnapshotResult(islandId, reason).thenApply(body -> actionCode(body, "SNAPSHOT_REQUESTED")); }
+        @Override public CompletableFuture<List<IslandSnapshotRecord>> listIslandSnapshots(UUID islandId, int limit) { return client.listIslandSnapshots(islandId, limit).thenApply(PaperCloudIslandsApi::snapshots); }
         @Override public CompletableFuture<Void> restoreIsland(UUID islandId, long snapshotNo) { return restoreIslandResult(islandId, snapshotNo).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> restoreIslandResult(UUID islandId, long snapshotNo) { return client.restoreIslandSnapshotResult(islandId, snapshotNo).thenApply(body -> actionCode(body, "RESTORE_REQUESTED")); }
         @Override public CompletableFuture<Void> quarantineIsland(UUID islandId, String reason) { return quarantineIslandResult(islandId, reason).thenApply(_result -> null); }

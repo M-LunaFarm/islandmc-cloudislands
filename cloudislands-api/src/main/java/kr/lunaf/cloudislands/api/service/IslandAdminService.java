@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.api.model.IslandActionResult;
 import kr.lunaf.cloudislands.api.model.IslandJobSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.api.model.IslandTemplateSnapshot;
 import kr.lunaf.cloudislands.api.model.JobRecoveryResult;
 import kr.lunaf.cloudislands.api.model.MigrationRunSnapshot;
@@ -46,6 +47,7 @@ public interface IslandAdminService {
     }
     CompletableFuture<Void> snapshotIsland(UUID islandId, String reason);
     CompletableFuture<IslandActionResult> snapshotIslandResult(UUID islandId, String reason);
+    CompletableFuture<List<IslandSnapshotRecord>> listIslandSnapshots(UUID islandId, int limit);
     CompletableFuture<Void> restoreIsland(UUID islandId, long snapshotNo);
     CompletableFuture<IslandActionResult> restoreIslandResult(UUID islandId, long snapshotNo);
     CompletableFuture<Void> quarantineIsland(UUID islandId, String reason);
