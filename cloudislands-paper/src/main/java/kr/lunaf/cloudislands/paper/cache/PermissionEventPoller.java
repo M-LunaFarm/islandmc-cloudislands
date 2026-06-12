@@ -43,6 +43,8 @@ import kr.lunaf.cloudislands.paper.event.IslandSnapshotCreateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandSnapshotRequestEvent;
 import kr.lunaf.cloudislands.paper.event.IslandTemplateChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandUpgradeEvent;
+import kr.lunaf.cloudislands.paper.event.IslandVisitorBanChangeEvent;
+import kr.lunaf.cloudislands.paper.event.IslandVisitorKickEvent;
 import kr.lunaf.cloudislands.paper.event.IslandWarpChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandWarpCreateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandWarpDeleteEvent;
@@ -459,6 +461,10 @@ public final class PermissionEventPoller {
             Bukkit.getPluginManager().callEvent(new IslandHomeChangeEvent(islandId, fields.getOrDefault("name", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_BANK_CHANGED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandBankChangeEvent(islandId, fields.getOrDefault("operation", ""), fields.getOrDefault("amount", ""), fields.getOrDefault("balance", ""), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_VISITOR_BAN_CHANGED.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandVisitorBanChangeEvent(islandId, uuidField(fields, "playerUuid"), Boolean.TRUE.equals(booleanField(fields, "banned")), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_VISITOR_KICKED.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandVisitorKickEvent(islandId, uuidField(fields, "playerUuid"), uuidField(fields, "actorUuid"), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_LIMIT_CHANGED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandLimitChangeEvent(islandId, fields.getOrDefault("limitKey", ""), longField(fields, "value"), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name())) {
