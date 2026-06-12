@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper;
 import java.net.URI;
 import java.time.Duration;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
+import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JdkCoreApiClient;
@@ -98,6 +99,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         CoreApiClient client = new JdkCoreApiClient(URI.create(getConfig().getString("core-api.base-url", "https://core-api.internal:8443")), System.getenv().getOrDefault("CI_CORE_TOKEN", ""), Duration.ofSeconds(3));
         this.agent = new CloudIslandsPaperAgent(this, role, client, nodeId);
         this.api = new PaperCloudIslandsApi(client, agent);
+        CloudIslandsProvider.set(api);
         getServer().getServicesManager().register(CloudIslandsApi.class, api, this, ServicePriority.Normal);
         this.economyBridge = new VaultEconomyBridge(getServer());
         getServer().getServicesManager().register(EconomyBridge.class, economyBridge, this, ServicePriority.Normal);
@@ -217,6 +219,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             heartbeatService.stop();
         }
         if (api != null) {
+            CloudIslandsProvider.clear(api);
             getServer().getServicesManager().unregister(CloudIslandsApi.class, api);
             api = null;
         }
