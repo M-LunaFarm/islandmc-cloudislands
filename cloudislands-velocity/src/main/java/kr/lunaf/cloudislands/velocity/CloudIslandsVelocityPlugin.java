@@ -813,8 +813,8 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("snapshot") || args[0].equals("스냅샷")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            String reason = args.length > 2 ? args[2] : "MANUAL";
+            UUID islandId = args.length > 2 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            String reason = args.length > 2 ? args[2] : (args.length > 1 ? args[1] : "MANUAL");
             routingController.snapshot(player, islandId, reason);
             return;
         }
