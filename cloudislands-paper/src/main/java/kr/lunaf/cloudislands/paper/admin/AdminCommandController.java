@@ -482,7 +482,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "Block value set", coreApiClient.setBlockValueResult(actorUuid, args[2], args[3], number(args[4], 0L), number(args[5], 0L)));
             return true;
         }
-        sender.sendMessage("사용법: /ciadmin block-values list|set");
+        sender.sendMessage("사용법: /ciadmin block-values list|set <materialKey> <worth> <levelPoints> <limit>");
         return true;
     }
 
@@ -819,7 +819,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private void usage(CommandSender sender, String label) {
-        sender.sendMessage("사용법: /" + label + " status, cache clear, node menu, node list, node islands <node>, island tp <uuid>, player info <uuid>, jobs list, route debug [all|player], route ticket <ticket|player>, route clear <player> [ticket], events, audit, block-values list, upgrade-rules, template|templates list|upsert|enable|disable, migrate-superiorskyblock2 scan|dryrun|dry-run|import|verify|rollback [path], reload");
+        sender.sendMessage("사용법: /" + label + " status, cache clear, node menu, node list, node islands <node>, island tp <uuid>, player info <uuid>, jobs list, route debug [all|player], route ticket <ticket|player>, route clear <player> [ticket], events, audit, block-values list|set <materialKey> <worth> <levelPoints> <limit>, upgrade-rules, template|templates list|upsert|enable|disable, migrate-superiorskyblock2 scan|dryrun|dry-run|import|verify|rollback [path], reload");
     }
 
     private UUID uuid(CommandSender sender, String value) {
