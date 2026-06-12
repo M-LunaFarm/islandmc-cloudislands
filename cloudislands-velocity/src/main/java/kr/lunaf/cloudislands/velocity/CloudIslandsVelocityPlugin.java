@@ -915,6 +915,9 @@ public final class CloudIslandsVelocityPlugin {
             }
             addOnlinePlayerSuggestions(matches, args[2]);
         }
+        if (args.length == 3 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("ticket")) {
+            addOnlinePlayerSuggestions(matches, args[2]);
+        }
         if (args.length == 3 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("clear")) {
             addOnlinePlayerSuggestions(matches, args[2]);
         }
