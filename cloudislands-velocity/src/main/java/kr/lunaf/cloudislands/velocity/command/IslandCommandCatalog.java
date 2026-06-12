@@ -24,6 +24,7 @@ public final class IslandCommandCatalog {
 
     public static List<String> adminCommands() {
         return List.of(
+            "ciadmin status",
             "ciadmin island info", "ciadmin island where", "ciadmin island tp",
             "ciadmin island activate", "ciadmin island deactivate", "ciadmin island migrate",
             "ciadmin island save", "ciadmin island snapshot", "ciadmin island snapshots", "ciadmin island rollback",

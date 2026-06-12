@@ -90,6 +90,14 @@ public final class VelocityRoutingController {
         });
     }
 
+    public String statusSummary() {
+        return "CloudIslands Velocity router online, fallback=" + fallbackServer
+            + ", routeWaitSeconds=" + routeWaitSeconds
+            + ", actionbar=" + useActionBar
+            + ", bossbarLoading=" + useBossBarLoading
+            + ", hideNodeNames=" + hideNodeNames;
+    }
+
     public void resetIsland(Player player, UUID islandId, String reason) {
         sendPlayerPayloadFuture(player, coreApiClient.resetIsland(islandId, player.getUniqueId(), reason), "섬 리셋을 요청하지 못했습니다.", "섬 리셋을 요청했습니다.");
     }
