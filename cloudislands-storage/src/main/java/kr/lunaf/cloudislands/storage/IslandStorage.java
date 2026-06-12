@@ -18,7 +18,8 @@ public interface IslandStorage {
     void promoteBundle(UUID islandId, long snapshotNo, String storagePath) throws IOException;
     int pruneSnapshots(UUID islandId, int keepLatest) throws IOException;
     default int pruneSnapshots(UUID islandId, SnapshotRetentionPolicy policy) throws IOException {
-        return pruneSnapshots(islandId, policy.retainedSnapshotCount());
+        SnapshotRetentionPolicy effectivePolicy = policy == null ? SnapshotRetentionPolicy.defaultPolicy() : policy.normalized();
+        return pruneSnapshots(islandId, effectivePolicy.retainedSnapshotCount());
     }
     void deleteLiveState(UUID islandId) throws IOException;
     void deleteIsland(UUID islandId) throws IOException;

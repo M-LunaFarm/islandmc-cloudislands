@@ -343,7 +343,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         int manual = getConfig().getInt("snapshots.keep-manual", 50);
         boolean compress = configBoolean("snapshots.compress", true);
         String checksum = getConfig().getString("snapshots.checksum", "SHA-256");
-        return new SnapshotRetentionPolicy(hourly, daily, weekly, manual, compress, checksum == null || checksum.isBlank() ? "SHA-256" : checksum);
+        return new SnapshotRetentionPolicy(hourly, daily, weekly, manual, compress, checksum).normalized();
     }
 
     private boolean configBoolean(String path, boolean fallback) {

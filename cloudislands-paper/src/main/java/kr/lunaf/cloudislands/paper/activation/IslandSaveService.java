@@ -32,7 +32,7 @@ public final class IslandSaveService {
         this.storage = storage;
         this.exporter = exporter;
         this.exportRoot = exportRoot;
-        this.retentionPolicy = retentionPolicy == null ? SnapshotRetentionPolicy.defaultPolicy() : retentionPolicy;
+        this.retentionPolicy = (retentionPolicy == null ? SnapshotRetentionPolicy.defaultPolicy() : retentionPolicy).normalized();
     }
 
     public SaveResult save(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland) throws IOException {
