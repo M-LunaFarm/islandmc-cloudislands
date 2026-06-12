@@ -46,6 +46,7 @@ import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerLeashEntityEvent;
 import org.bukkit.event.player.PlayerShearEntityEvent;
@@ -100,6 +101,11 @@ public final class IslandProtectionListener implements Listener {
         if (event.getClickedBlock() != null) {
             event.setCancelled(denied(event.getPlayer(), event.getClickedBlock(), interactionPermission(event.getClickedBlock().getType())));
         }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onInteractEntity(PlayerInteractEntityEvent event) {
+        event.setCancelled(denied(event.getPlayer(), event.getRightClicked().getLocation().getBlock(), IslandPermission.INTERACT));
     }
 
     @EventHandler(ignoreCancelled = true)
