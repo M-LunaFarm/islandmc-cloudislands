@@ -98,6 +98,8 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "섬 command list [page]",
         "섬",
         "섬 메뉴",
+        "섬 생성메뉴",
+        "섬 템플릿",
         "섬 생성 [template]",
         "섬 목록",
         "섬 내섬",
