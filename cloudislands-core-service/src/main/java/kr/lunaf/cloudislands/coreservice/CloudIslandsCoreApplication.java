@@ -565,7 +565,7 @@ public final class CloudIslandsCoreApplication {
             kr.lunaf.cloudislands.api.model.IslandRoleSnapshot snapshot = roleRepository.upsert(islandId, role, weight, displayName);
             audit.log(actorUuid, "PLAYER", "ISLAND_ROLE_UPSERT", "ISLAND", islandId.toString(), Map.of("role", role.name(), "weight", Integer.toString(weight), "displayName", displayName));
             islandLogs.append(islandId, actorUuid, "ISLAND_ROLE_UPSERT", Map.of("role", role.name(), "weight", Integer.toString(weight), "displayName", displayName));
-            events.publish(CloudIslandEventType.ISLAND_PERMISSION_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", role.name(), "operation", "ROLE_UPSERT"));
+            events.publish(CloudIslandEventType.ISLAND_ROLE_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", role.name(), "operation", "ROLE_UPSERT"));
             write(exchange, 202, roleJson(snapshot));
         });
         route("/v1/jobs/claim", exchange -> {

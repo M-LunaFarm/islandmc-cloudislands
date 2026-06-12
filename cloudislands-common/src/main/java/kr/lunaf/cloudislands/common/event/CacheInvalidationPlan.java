@@ -15,6 +15,7 @@ public final class CacheInvalidationPlan {
             case ISLAND_VISITOR_BAN_CHANGED -> EnumSet.of(CacheTarget.MEMBERS, CacheTarget.PERMISSIONS, CacheTarget.ROUTE, CacheTarget.SUMMARY);
             case ISLAND_FLAG_CHANGED -> EnumSet.of(CacheTarget.FLAGS, CacheTarget.PERMISSIONS, CacheTarget.ROUTE, CacheTarget.SUMMARY);
             case ISLAND_PERMISSION_CHANGED -> EnumSet.of(CacheTarget.PERMISSIONS, CacheTarget.SUMMARY);
+            case ISLAND_ROLE_CHANGED -> EnumSet.of(CacheTarget.ROLES, CacheTarget.SUMMARY);
             case ISLAND_BIOME_CHANGED -> EnumSet.of(CacheTarget.BIOME, CacheTarget.SUMMARY);
             case ISLAND_HOME_CHANGED -> EnumSet.of(CacheTarget.HOMES, CacheTarget.ROUTE, CacheTarget.SUMMARY);
             case ISLAND_WARP_CHANGED -> EnumSet.of(CacheTarget.WARPS, CacheTarget.ROUTE, CacheTarget.SUMMARY);
@@ -41,6 +42,7 @@ public final class CacheInvalidationPlan {
         MEMBERS,
         INVITES,
         PERMISSIONS,
+        ROLES,
         FLAGS,
         BIOME,
         HOMES,
