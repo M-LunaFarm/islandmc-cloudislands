@@ -43,6 +43,7 @@ import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.bank.JdbcIslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.cache.RedisCacheAdmin;
 import kr.lunaf.cloudislands.coreservice.config.CoreServiceConfig;
+import kr.lunaf.cloudislands.coreservice.db.BoundedDataSource;
 import kr.lunaf.cloudislands.coreservice.db.DriverManagerDataSource;
 import kr.lunaf.cloudislands.coreservice.db.MeteredDataSource;
 import kr.lunaf.cloudislands.coreservice.event.CompositeGlobalEventPublisher;
@@ -177,7 +178,7 @@ public final class CloudIslandsCoreApplication {
         this.ipAllowlist = new IpAllowlist(config.ipAllowlist());
         this.mtlsGuard = new MtlsHeaderGuard(config.requireMtls(), config.mtlsVerifiedHeader(), config.mtlsVerifiedValue());
         this.deleteStorage = migrationRollbackStorage(config);
-        MeteredDataSource meteredDataSource = new MeteredDataSource(new DriverManagerDataSource(config.jdbcUrl(), config.databaseUsername(), config.databasePassword()));
+        MeteredDataSource meteredDataSource = new MeteredDataSource(new BoundedDataSource(new DriverManagerDataSource(config.jdbcUrl(), config.databaseUsername(), config.databasePassword()), config.databasePoolSize()));
         DataSource dataSource = meteredDataSource;
         NodeRegistry baseNodes = config.jdbcRepositories() ? new JdbcNodeRegistry(dataSource) : new InMemoryNodeRegistry();
         NodeRegistry nodes = config.redisEvents() || config.redisJobs()

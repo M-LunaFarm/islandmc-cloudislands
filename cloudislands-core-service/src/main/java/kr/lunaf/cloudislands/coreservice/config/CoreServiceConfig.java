@@ -20,6 +20,7 @@ public record CoreServiceConfig(
     String jdbcUrl,
     String databaseUsername,
     String databasePassword,
+    int databasePoolSize,
     URI redisUri,
     String storageType,
     URI storageEndpoint,
@@ -56,6 +57,7 @@ public record CoreServiceConfig(
             env("CI_JDBC_URL", setting(config, "database.jdbc-url", "jdbc:postgresql://postgres.internal:5432/cloudislands")),
             env("CI_DB_USERNAME", setting(config, "database.username", "cloudislands")),
             env("CI_DB_PASSWORD", setting(config, "database.password", env("DB_PASSWORD", ""))),
+            integer("CI_DB_POOL_SIZE", configInteger(config, "database.pool-size", 20)),
             URI.create(env("CI_REDIS_URI", setting(config, "redis.uri", "redis://redis.internal:6379"))),
             env("CI_STORAGE_TYPE", setting(config, "storage.type", "S3")),
             URI.create(env("CI_STORAGE_ENDPOINT", setting(config, "storage.endpoint", "http://minio.internal:9000"))),
@@ -100,7 +102,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, databasePoolSize, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue);
     }
 
     private static String env(String key, String fallback) {
