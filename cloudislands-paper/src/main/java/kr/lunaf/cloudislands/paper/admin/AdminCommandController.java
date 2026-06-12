@@ -34,11 +34,17 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private final CloudIslandsPaperAgent agent;
     private final CoreApiClient coreApiClient;
     private final String nodeId;
+    private final int routeWaitSeconds;
 
     public AdminCommandController(CloudIslandsPaperAgent agent, CoreApiClient coreApiClient, String nodeId) {
+        this(agent, coreApiClient, nodeId, 20);
+    }
+
+    public AdminCommandController(CloudIslandsPaperAgent agent, CoreApiClient coreApiClient, String nodeId, int routeWaitSeconds) {
         this.agent = agent;
         this.coreApiClient = coreApiClient;
         this.nodeId = nodeId;
+        this.routeWaitSeconds = Math.max(1, routeWaitSeconds);
     }
 
     @Override
@@ -473,7 +479,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             publishAndConnect(player, ticket, failureMessage);
             return;
         }
-        if (attempt >= 45) {
+        if (attempt >= routeWaitSeconds) {
             message(player, failureMessage);
             return;
         }

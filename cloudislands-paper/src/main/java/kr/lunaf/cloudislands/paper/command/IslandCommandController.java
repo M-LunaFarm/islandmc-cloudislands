@@ -84,11 +84,17 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
     private final ProtectionController protection;
+    private final int routeWaitSeconds;
 
     public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection) {
+        this(plugin, coreApiClient, protection, 20);
+    }
+
+    public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.protection = protection;
+        this.routeWaitSeconds = Math.max(1, routeWaitSeconds);
     }
 
     @Override
@@ -960,7 +966,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             publishAndConnect(player, ticket, failureMessage);
             return;
         }
-        if (attempt >= 45) {
+        if (attempt >= routeWaitSeconds) {
             message(player, failureMessage);
             return;
         }

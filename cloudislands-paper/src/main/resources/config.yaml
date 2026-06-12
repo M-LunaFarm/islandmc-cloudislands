@@ -45,6 +45,9 @@ heartbeat:
   interval-ticks: 20
   timeout-seconds: 5
 
+routing:
+  wait-for-activation-timeout-seconds: 20
+
 snapshots:
   keep-hourly: 24
   keep-daily: 7
