@@ -27,6 +27,7 @@ import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.permission.defaults.DefaultIslandPermissions;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
@@ -1881,7 +1882,7 @@ public final class CloudIslandsCoreApplication {
             .map(island -> island.ownerUuid().equals(actorUuid))
             .orElse(false);
         boolean allowed = metadataRepository.members(islandId).stream()
-            .anyMatch(member -> member.playerUuid().equals(actorUuid) && (member.role() == IslandRole.OWNER || member.role() == IslandRole.CO_OWNER));
+            .anyMatch(member -> member.playerUuid().equals(actorUuid) && DefaultIslandPermissions.create().allowed(member.role(), IslandPermission.MANAGE_MEMBERS));
         if (owner || allowed) {
             return true;
         }
