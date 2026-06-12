@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper;
 
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
@@ -13,12 +14,14 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 
 public final class RouteTicketConsumer {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
     private final String nodeId;
+    private final java.util.Map<UUID, BossBar> loadingBars = new ConcurrentHashMap<>();
     private volatile ActiveIslandRegistry activeIslands;
 
     public RouteTicketConsumer(Plugin plugin, CoreApiClient coreApiClient, String nodeId) {
@@ -37,7 +40,7 @@ public final class RouteTicketConsumer {
 
     private void consumeAndTeleport(UUID ticketId, UUID playerUuid, String nonce, int attempt) {
         if (attempt == 0 || attempt % 5 == 0) {
-            Bukkit.getScheduler().runTask(plugin, () -> notifyPreparing(playerUuid));
+            Bukkit.getScheduler().runTask(plugin, () -> notifyPreparing(playerUuid, attempt));
         }
         coreApiClient.consumeTicket(ticketId, playerUuid, nodeId, nonce).thenAccept(ticket -> {
             if (ticket.isPresent()) {
@@ -65,7 +68,7 @@ public final class RouteTicketConsumer {
         World world = worldName == null ? null : Bukkit.getWorld(worldName);
         if (player == null || world == null) {
             if (attempt == 0 || attempt % 5 == 0) {
-                notifyPreparing(playerUuid);
+                notifyPreparing(playerUuid, attempt);
             }
             if (attempt < 20) {
                 Bukkit.getScheduler().runTaskLater(plugin, () -> teleport(playerUuid, ticket, attempt + 1), 20L);
@@ -78,6 +81,7 @@ public final class RouteTicketConsumer {
             IslandPreVisitEvent preVisit = new IslandPreVisitEvent(ticket.islandId(), playerUuid, player, worldName);
             Bukkit.getPluginManager().callEvent(preVisit);
             if (preVisit.isCancelled()) {
+                hideLoading(player);
                 player.sendActionBar(Component.text("섬 방문이 취소되었습니다."));
                 return;
             }
@@ -85,6 +89,7 @@ public final class RouteTicketConsumer {
         java.util.Map<String, String> payload = ticket.payload();
         Location target = targetLocation(world, ticket, payload);
         if (player.teleport(target)) {
+            hideLoading(player);
             player.sendActionBar(Component.text(arrivalMessage(ticket.action())));
             Bukkit.getPluginManager().callEvent(new RouteTicketConsumedEvent(ticket.islandId(), ticket.ticketId(), playerUuid, player, ticket.action(), worldName));
             if (ticket.action() == RouteAction.VISIT) {
@@ -127,17 +132,32 @@ public final class RouteTicketConsumer {
         };
     }
 
-    private void notifyPreparing(UUID playerUuid) {
+    private void notifyPreparing(UUID playerUuid, int attempt) {
         Player player = Bukkit.getPlayer(playerUuid);
         if (player != null) {
+            BossBar bar = loadingBars.computeIfAbsent(playerUuid, ignored -> BossBar.bossBar(Component.text("섬 로딩 중"), 0.1F, BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS));
+            bar.progress(Math.min(0.95F, 0.1F + (attempt / 20.0F) * 0.85F));
+            player.showBossBar(bar);
             player.sendActionBar(Component.text("섬을 준비하는 중입니다..."));
         }
     }
 
     private void notifyRouteFailed(UUID playerUuid) {
         Player player = Bukkit.getPlayer(playerUuid);
+        if (player == null) {
+            loadingBars.remove(playerUuid);
+            return;
+        }
         if (player != null) {
+            hideLoading(player);
             player.sendActionBar(Component.text("섬 이동 준비가 완료되지 않았습니다. 다시 시도해주세요."));
+        }
+    }
+
+    private void hideLoading(Player player) {
+        BossBar bar = loadingBars.remove(player.getUniqueId());
+        if (bar != null) {
+            player.hideBossBar(bar);
         }
     }
 
