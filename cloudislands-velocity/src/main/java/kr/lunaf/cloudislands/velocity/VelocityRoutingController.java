@@ -2579,33 +2579,40 @@ public final class VelocityRoutingController {
     private void publishAndConnect(Player player, RouteTicket ticket) {
         coreApiClient.publishRouteSession(ticket).thenRun(() -> {
             String targetServerName = ticket.payload().getOrDefault("targetServerName", ticket.targetNode());
-            connectWithTicket(player, targetServerName);
+            connectWithTicket(player, ticket, targetServerName);
         }).exceptionally(error -> {
             fallback(player, "섬 이동 정보를 준비하지 못했습니다. 로비로 이동합니다.");
             return null;
         });
     }
 
-    private void connectWithTicket(Player player, String targetServerName) {
+    private void connectWithTicket(Player player, RouteTicket ticket, String targetServerName) {
         RegisteredServer server = findServer(targetServerName);
         if (server == null) {
+            clearFailedRoute(ticket);
             fallback(player, "섬 이동 경로를 찾을 수 없습니다.");
             return;
         }
-        connect(player, server);
+        connect(player, ticket, server);
     }
 
-    private void connect(Player player, RegisteredServer server) {
+    private void connect(Player player, RouteTicket ticket, RegisteredServer server) {
         player.createConnectionRequest(server).connectWithIndication().thenAccept(success -> {
             if (!success) {
+                clearFailedRoute(ticket);
                 fallback(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.");
                 return;
             }
             actionBar(player, "섬에 도착했습니다.");
         }).exceptionally(error -> {
+            clearFailedRoute(ticket);
             fallback(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.");
             return null;
         });
+    }
+
+    private void clearFailedRoute(RouteTicket ticket) {
+        coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId()).exceptionally(error -> null);
     }
 
     private void fallback(Player player, String message) {
