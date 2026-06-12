@@ -212,6 +212,33 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         if (args.length == 3 && args[0].equalsIgnoreCase("command") && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
             return literalMatches(List.of("1", "2", "3", "4", "5"), args[2]);
         }
+        if (args.length == 2) {
+            String first = args[0].toLowerCase(Locale.ROOT);
+            if (first.equals("fly") || first.equals("비행") || first.equals("keepinventory") || first.equals("keepinv") || first.equals("인벤보존") || first.equals("pvp") || first.equals("피빕") || first.equals("publicwarps") || first.equals("공개워프")) {
+                return literalMatches(List.of("true", "false", "on", "off", "켜기", "끄기"), args[1]);
+            }
+            if (first.equals("rank") || first.equals("ranking") || first.equals("랭킹")) {
+                return literalMatches(List.of("worth", "value", "10", "25", "50"), args[1]);
+            }
+            if (first.equals("limits") || first.equals("limit") || first.equals("제한") || first.equals("setlimit") || first.equals("제한설정")) {
+                return literalMatches(List.of("HOPPER", "SPAWNER", "ENTITY", "REDSTONE"), args[1]);
+            }
+            if (first.equals("hoppers") || first.equals("호퍼") || first.equals("spawners") || first.equals("스포너") || first.equals("entities") || first.equals("엔티티") || first.equals("redstone") || first.equals("레드스톤")) {
+                return literalMatches(List.of("25", "50", "100", "250"), args[1]);
+            }
+            if (first.equals("setpermission") || first.equals("permission-set") || first.equals("권한설정")) {
+                return literalMatches(List.of("MEMBER", "TRUSTED", "MODERATOR", "VISITOR"), args[1]);
+            }
+            if (first.equals("biome") || first.equals("바이옴")) {
+                return literalMatches(List.of("minecraft:plains", "minecraft:forest", "minecraft:desert", "minecraft:taiga"), args[1]);
+            }
+        }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("setpermission") || args[0].equalsIgnoreCase("permission-set") || args[0].equals("권한설정"))) {
+            return literalMatches(List.of("BUILD", "INTERACT", "MANAGE_MEMBERS", "MANAGE_FLAGS", "MANAGE_WARPS"), args[2]);
+        }
+        if (args.length == 4 && (args[0].equalsIgnoreCase("setpermission") || args[0].equalsIgnoreCase("permission-set") || args[0].equals("권한설정"))) {
+            return literalMatches(List.of("true", "false", "허용", "거부"), args[3]);
+        }
         if (args.length != 1) {
             return List.of();
         }
