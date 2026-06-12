@@ -29,7 +29,7 @@ public final class IslandCommandCatalog {
             "ciadmin island save", "ciadmin island snapshot", "ciadmin island snapshots", "ciadmin island rollback",
             "ciadmin island quarantine", "ciadmin island repair", "ciadmin island delete",
             "ciadmin island restore", "ciadmin player info", "ciadmin player setisland",
-            "ciadmin player clearisland", "ciadmin node list", "ciadmin node info",
+            "ciadmin player clearisland", "ciadmin node list", "ciadmin node info", "ciadmin node islands",
             "ciadmin node drain", "ciadmin node undrain", "ciadmin node kickall",
             "ciadmin node sweep", "ciadmin node shutdown-safe", "ciadmin jobs list", "ciadmin jobs retry",
             "ciadmin jobs cancel", "ciadmin jobs recover", "ciadmin route debug", "ciadmin route ticket",

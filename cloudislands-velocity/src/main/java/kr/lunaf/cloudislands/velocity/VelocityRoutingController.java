@@ -594,6 +594,10 @@ public final class VelocityRoutingController {
         sendBodyResult(player, coreApiClient.nodeInfo(nodeId).thenApply(this::appendLevelScanSummary), "노드 정보를 불러오지 못했습니다.");
     }
 
+    public void nodeIslands(Player player, String nodeId) {
+        sendBodyResult(player, coreApiClient.nodeInfo(nodeId).thenApply(this::nodeIslandSummary), "노드 섬 현황을 불러오지 못했습니다.");
+    }
+
     public void drainNode(Player player, String nodeId) {
         sendBodyResult(player, coreApiClient.drainNode(nodeId), "노드 drain을 요청하지 못했습니다.");
     }
@@ -887,6 +891,32 @@ public final class VelocityRoutingController {
         appendLongSummary(summary, "시작", longValue(scan, "startedAt"));
         appendLongSummary(summary, "완료", longValue(scan, "finishedAt"));
         appendLongSummary(summary, "실패", longValue(scan, "failedAt"));
+        return summary.toString();
+    }
+
+    private String nodeIslandSummary(String body) {
+        if (body == null || body.isBlank()) {
+            return "";
+        }
+        String id = jsonValue(body, "id");
+        String server = jsonValue(body, "server");
+        String state = jsonValue(body, "state");
+        long active = longValue(body, "activeIslands");
+        long max = longValue(body, "maxActiveIslands");
+        StringBuilder summary = new StringBuilder("노드 섬 현황");
+        if (!id.isBlank()) {
+            summary.append(' ').append(id);
+        }
+        summary.append(": 활성 섬 ").append(active);
+        if (max > 0L) {
+            summary.append('/').append(max);
+        }
+        if (!state.isBlank()) {
+            summary.append(", 상태=").append(state);
+        }
+        if (!server.isBlank()) {
+            summary.append(", 서버=").append(server);
+        }
         return summary.toString();
     }
 

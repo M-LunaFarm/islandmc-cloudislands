@@ -335,6 +335,10 @@ public final class CloudIslandsVelocityPlugin {
             routingController.nodeInfo(player, args[2]);
             return;
         }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("islands")) {
+            routingController.nodeIslands(player, args[2]);
+            return;
+        }
         if (args.length >= 3 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("drain")) {
             routingController.drainNode(player, args[2]);
             return;
