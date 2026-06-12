@@ -80,6 +80,23 @@ public final class IslandLifecycleWorkflow {
         return new Result(true, "ACTIVATING", runtime);
     }
 
+    public Result activationPreflight(UUID islandId) {
+        IslandRuntimeSnapshot current = runtimes.find(islandId).orElse(null);
+        if (current != null && current.state() == IslandState.ACTIVE) {
+            return new Result(true, "ACTIVE", current);
+        }
+        if (!canStartActivation(current)) {
+            return new Result(false, "ISLAND_BUSY", current);
+        }
+        String templateId = islands.templateId(islandId).orElse("default");
+        List<NodeLoad> nodeSnapshot = nodes.snapshot();
+        NodeLoad node = allocator.selectReadyNode(nodeSnapshot, Instant.now(), templateId, minNodeVersion(templateId), islandPool).orElse(null);
+        if (node == null) {
+            return new Result(false, readyNodeUnavailableCode(nodeSnapshot, templateId), current);
+        }
+        return new Result(true, "ACTIVATION_READY", current);
+    }
+
     public Result deactivate(UUID islandId) {
         IslandRuntimeSnapshot current = runtimes.find(islandId).orElse(null);
         if (current == null || current.activeNode() == null || current.activeNode().isBlank()) {

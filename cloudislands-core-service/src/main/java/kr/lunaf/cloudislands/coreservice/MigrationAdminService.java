@@ -26,6 +26,7 @@ import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.UpgradePolicy;
+import kr.lunaf.cloudislands.coreservice.workflow.IslandLifecycleWorkflow;
 import kr.lunaf.cloudislands.migration.MigrationIssue;
 import kr.lunaf.cloudislands.migration.MigrationManifest;
 import kr.lunaf.cloudislands.migration.MigrationReport;
@@ -54,6 +55,7 @@ public final class MigrationAdminService {
     private final IslandSnapshotRepository snapshots;
     private final RollbackTarget hardRollbackTarget;
     private final Path migrationBundleRoot;
+    private final IslandLifecycleWorkflow activationTester;
     private final SuperiorSkyblock2MigrationScanner scanner = new SuperiorSkyblock2MigrationScanner();
     private final CloudIslandsMigrationImporter importer = new CloudIslandsMigrationImporter();
     private final MigrationVerifier verifier = new MigrationVerifier();
@@ -69,6 +71,10 @@ public final class MigrationAdminService {
     }
 
     public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandLevelRepository levels, IslandSnapshotRepository snapshots, RollbackTarget hardRollbackTarget, Path migrationBundleRoot) {
+        this(islands, metadata, playerProfiles, permissionRules, upgrades, bank, limits, missions, levels, snapshots, hardRollbackTarget, migrationBundleRoot, null);
+    }
+
+    public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandLevelRepository levels, IslandSnapshotRepository snapshots, RollbackTarget hardRollbackTarget, Path migrationBundleRoot, IslandLifecycleWorkflow activationTester) {
         this.islands = islands;
         this.metadata = metadata;
         this.playerProfiles = playerProfiles;
@@ -81,6 +87,7 @@ public final class MigrationAdminService {
         this.snapshots = snapshots;
         this.hardRollbackTarget = hardRollbackTarget;
         this.migrationBundleRoot = migrationBundleRoot == null ? Path.of("cloudislands-storage") : migrationBundleRoot;
+        this.activationTester = activationTester;
         this.lastExtractionRoot = this.migrationBundleRoot;
     }
 
@@ -280,6 +287,8 @@ public final class MigrationAdminService {
         int extractedBundles = 0;
         long extractedFiles = 0L;
         long extractedBytes = 0L;
+        int activationTested = 0;
+        int activationTestPassed = 0;
         for (MigrationManifest manifest : lastScan.manifests()) {
             IslandSnapshot island = islands.findById(manifest.islandId()).orElse(null);
             if (island == null) {
@@ -320,6 +329,17 @@ public final class MigrationAdminService {
                     issues.add(new MigrationIssue("WORLD_CHECKSUM_FAILED", manifest.islandId() + ": " + exception.getMessage(), true));
                 }
             }
+            if (activationTester == null) {
+                issues.add(new MigrationIssue("ACTIVATION_TEST_UNAVAILABLE", "activation preflight is not wired for " + manifest.islandId(), false));
+            } else {
+                activationTested++;
+                IslandLifecycleWorkflow.Result activation = activationTester.activationPreflight(manifest.islandId());
+                if (activation.accepted()) {
+                    activationTestPassed++;
+                } else {
+                    matched &= expect(issues, false, "ACTIVATION_TEST_FAILED", "activation test failed " + manifest.islandId() + " code=" + activation.code());
+                }
+            }
             if (matched) {
                 imported.add(manifest);
             }
@@ -328,7 +348,7 @@ public final class MigrationAdminService {
         issues.addAll(result.issues());
         boolean passed = issues.isEmpty();
         MigrationRunState state = passed ? MigrationRunState.VERIFIED : MigrationRunState.VERIFYING;
-        return "{\"state\":\"" + state + "\",\"path\":\"" + escape(verifyBundleRoot.toString()) + "\",\"passed\":" + passed + ",\"expected\":" + lastScan.manifests().size() + ",\"imported\":" + imported.size() + ",\"extractedBundles\":" + extractedBundles + ",\"extractedFiles\":" + extractedFiles + ",\"extractedBytes\":" + extractedBytes + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+        return "{\"state\":\"" + state + "\",\"path\":\"" + escape(verifyBundleRoot.toString()) + "\",\"passed\":" + passed + ",\"expected\":" + lastScan.manifests().size() + ",\"imported\":" + imported.size() + ",\"extractedBundles\":" + extractedBundles + ",\"extractedFiles\":" + extractedFiles + ",\"extractedBytes\":" + extractedBytes + ",\"activationTested\":" + activationTested + ",\"activationTestPassed\":" + activationTestPassed + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
     }
 
     public synchronized String rollbackLastImport() {
