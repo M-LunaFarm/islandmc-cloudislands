@@ -13,7 +13,15 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
         Files.createDirectories(targetDirectory);
         validateBundleEntries(bundleFile);
         runTar(List.of("tar", "--zstd", "-xf", bundleFile.toAbsolutePath().toString(), "-C", targetDirectory.toAbsolutePath().toString()), "bundle extraction");
-        return new ExtractedBundle(targetDirectory, targetDirectory.resolve("manifest.json"), targetDirectory.resolve("chunks"));
+        Path manifest = targetDirectory.resolve("manifest.json");
+        Path chunks = targetDirectory.resolve("chunks");
+        if (!Files.isRegularFile(manifest)) {
+            throw new IOException("extracted bundle is missing manifest.json");
+        }
+        if (!Files.isDirectory(chunks)) {
+            throw new IOException("extracted bundle is missing chunks directory");
+        }
+        return new ExtractedBundle(targetDirectory, manifest, chunks);
     }
 
     private void validateBundleEntries(Path bundleFile) throws IOException {
@@ -34,6 +42,7 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
             || value.startsWith("../")
             || value.equals("..")
             || value.contains("/../")
+            || value.endsWith("/..")
             || value.matches("^[A-Za-z]:.*");
     }
 
