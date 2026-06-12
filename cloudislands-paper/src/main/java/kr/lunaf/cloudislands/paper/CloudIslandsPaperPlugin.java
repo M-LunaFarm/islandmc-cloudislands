@@ -163,8 +163,12 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             supportedTemplates = getConfig().getString("node.supported-template", "*");
         }
         int maxActivationQueue = Math.max(1, getConfig().getInt("island-node.activation.max-concurrent", 4));
-        int softPlayerCap = Math.max(1, getConfig().getInt("node.soft-player-cap", 90));
-        int hardPlayerCap = Math.max(softPlayerCap, getConfig().getInt("node.hard-player-cap", 110));
+        int hardPlayerCap = Math.max(1, getConfig().getInt("node.hard-player-cap", 110));
+        int reservedSlots = Math.max(0, getConfig().getInt("node.reserved-slots", 15));
+        int reservedSoftCap = Math.max(1, hardPlayerCap - reservedSlots);
+        int softPlayerCap = getConfig().contains("node.soft-player-cap")
+            ? Math.max(1, Math.min(reservedSoftCap, getConfig().getInt("node.soft-player-cap", reservedSoftCap)))
+            : reservedSoftCap;
         int maxActiveIslands = Math.max(1, getConfig().getInt("node.max-active-islands", 600));
         this.heartbeatService = new PaperHeartbeatService(
             this,

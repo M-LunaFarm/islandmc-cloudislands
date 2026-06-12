@@ -5,6 +5,7 @@ node:
   velocity-server-name: "Island-1"
   soft-player-cap: 90
   hard-player-cap: 110
+  reserved-slots: 15
   max-active-islands: 600
   supported-templates:
     - "*"
