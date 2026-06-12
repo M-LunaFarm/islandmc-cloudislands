@@ -35,7 +35,9 @@ public final class IslandCommandCatalog {
             "ciadmin jobs cancel", "ciadmin jobs recover", "ciadmin route debug [all|player]", "ciadmin route ticket <ticket|player>",
             "ciadmin route clear <player> [ticket]", "ciadmin cache clear", "ciadmin events", "ciadmin audit",
             "ciadmin block-values list", "ciadmin block-values set", "ciadmin reload",
-            "ciadmin migrate-superiorskyblock2"
+            "ciadmin migrate-superiorskyblock2 scan", "ciadmin migrate-superiorskyblock2 dryrun",
+            "ciadmin migrate-superiorskyblock2 import", "ciadmin migrate-superiorskyblock2 verify",
+            "ciadmin migrate-superiorskyblock2 rollback"
         );
     }
 }
