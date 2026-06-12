@@ -90,7 +90,7 @@ public final class S3IslandStorage implements IslandStorage {
 
     @Override
     public InputStream openBundle(String storagePath) throws IOException {
-        return new ByteArrayInputStream(requestBytes("GET", storagePath, null));
+        return new ByteArrayInputStream(requestBytes("GET", storedBundleKey(storagePath), null));
     }
 
     @Override
@@ -123,8 +123,9 @@ public final class S3IslandStorage implements IslandStorage {
     @Override
     public void promoteBundle(UUID islandId, long snapshotNo, String storagePath) throws IOException {
         String snapshot = String.format("%06d", snapshotNo);
-        String prefix = storagePath.substring(0, storagePath.lastIndexOf('/') + 1);
-        byte[] bundle = requestBytes("GET", storagePath, null);
+        String bundleKey = storedBundleKey(storagePath);
+        String prefix = bundleKey.substring(0, bundleKey.lastIndexOf('/') + 1);
+        byte[] bundle = requestBytes("GET", bundleKey, null);
         byte[] manifest = requestBytes("GET", prefix + "manifest.json", null);
         requestBytes("PUT", key(islandId, "snapshots/" + snapshot + "/bundle.tar.zst"), bundle);
         requestBytes("PUT", key(islandId, "snapshots/" + snapshot + "/manifest.json"), manifest);
@@ -248,6 +249,20 @@ public final class S3IslandStorage implements IslandStorage {
             index = end + close.length();
         }
         return values;
+    }
+
+    private String storedBundleKey(String storagePath) throws IOException {
+        if (storagePath == null || storagePath.isBlank()) {
+            throw new IOException("missing storage path");
+        }
+        String key = storagePath.trim();
+        if (key.startsWith("/") || key.contains("\\") || key.contains("..") || key.endsWith("/") || !key.endsWith("/bundle.tar.zst")) {
+            throw new IOException("invalid stored bundle path: " + storagePath);
+        }
+        if (key.lastIndexOf('/') <= 0) {
+            throw new IOException("stored bundle path has no parent prefix: " + storagePath);
+        }
+        return key;
     }
 
     private static String xmlUnescape(String value) {
