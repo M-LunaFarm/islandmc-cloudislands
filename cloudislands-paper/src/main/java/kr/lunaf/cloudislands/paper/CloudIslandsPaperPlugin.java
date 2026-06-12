@@ -97,7 +97,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         String pool = getConfig().getString("node.pool", "island");
         String velocityServerName = getConfig().getString("node.velocity-server-name", nodeId);
         AgentRole role = AgentRole.valueOf(getConfig().getString("node.role", "ISLAND_NODE"));
-        CoreApiClient client = new JdkCoreApiClient(URI.create(getConfig().getString("core-api.base-url", "https://core-api.internal:8443")), coreApiToken(), Duration.ofSeconds(3));
+        CoreApiClient client = new JdkCoreApiClient(URI.create(getConfig().getString("core-api.base-url", "https://core-api.internal:8443")), coreApiToken(), coreAdminToken(), Duration.ofSeconds(3));
         this.agent = new CloudIslandsPaperAgent(this, role, client, nodeId);
         this.api = new PaperCloudIslandsApi(client, agent);
         CloudIslandsProvider.set(api);
@@ -294,6 +294,14 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             return envToken;
         }
         return resolveEnv(getConfig().getString("core-api.auth-token", ""));
+    }
+
+    private String coreAdminToken() {
+        String envToken = System.getenv("CI_ADMIN_TOKEN");
+        if (envToken != null && !envToken.isBlank()) {
+            return envToken;
+        }
+        return resolveEnv(getConfig().getString("core-api.admin-token", ""));
     }
 
     private String resolveEnv(String value) {

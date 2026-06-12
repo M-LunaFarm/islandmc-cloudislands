@@ -34,9 +34,13 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final HttpClient httpClient;
 
     public JdkCoreApiClient(URI baseUri, String authToken, Duration timeout) {
+        this(baseUri, authToken, System.getenv().getOrDefault("CI_ADMIN_TOKEN", ""), timeout);
+    }
+
+    public JdkCoreApiClient(URI baseUri, String authToken, String adminToken, Duration timeout) {
         this.baseUri = baseUri;
         this.authToken = authToken;
-        this.adminToken = System.getenv().getOrDefault("CI_ADMIN_TOKEN", "");
+        this.adminToken = adminToken == null ? "" : adminToken;
         this.httpClient = HttpClient.newBuilder().connectTimeout(timeout).build();
     }
 

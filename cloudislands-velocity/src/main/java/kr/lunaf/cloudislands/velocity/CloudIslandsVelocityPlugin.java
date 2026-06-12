@@ -48,10 +48,11 @@ public final class CloudIslandsVelocityPlugin {
         VelocityConfig config = loadConfig(dataDirectory, logger);
         String coreUrl = System.getProperty("cloudislands.core", config.coreBaseUrl());
         String coreToken = System.getenv().getOrDefault("CI_CORE_TOKEN", config.coreToken());
+        String adminToken = System.getenv().getOrDefault("CI_ADMIN_TOKEN", config.adminToken());
         long timeoutMs = Long.getLong("cloudislands.timeoutMs", config.timeoutMs());
         String fallbackServer = System.getProperty("cloudislands.fallback", config.fallbackServer());
         int routeWaitSeconds = Integer.getInteger("cloudislands.routeWaitSeconds", config.routeWaitSeconds());
-        CoreApiClient client = new JdkCoreApiClient(URI.create(coreUrl), coreToken, Duration.ofMillis(Math.max(1L, timeoutMs)));
+        CoreApiClient client = new JdkCoreApiClient(URI.create(coreUrl), coreToken, adminToken, Duration.ofMillis(Math.max(1L, timeoutMs)));
         this.routingController = new VelocityRoutingController(proxy, client, fallbackServer, routeWaitSeconds, config.useActionBar(), config.useBossBarLoading(), config.hideNodeNames());
         this.commandAliases = config.aliases();
     }
@@ -108,6 +109,7 @@ public final class CloudIslandsVelocityPlugin {
         return new VelocityConfig(
             values.getOrDefault("core-api.base-url", "https://core-api.internal:8443"),
             values.getOrDefault("core-api.auth-token", ""),
+            values.getOrDefault("core-api.admin-token", ""),
             integer(values.get("core-api.timeout-ms"), 3000),
             values.getOrDefault("routing.fallback-on-failure", values.getOrDefault("routing.default-lobby", "Lobby")),
             integer(values.get("routing.wait-for-activation-timeout-seconds"), 20),
@@ -148,7 +150,7 @@ public final class CloudIslandsVelocityPlugin {
         return aliases.stream().filter(alias -> !alias.equalsIgnoreCase("섬")).distinct().toArray(String[]::new);
     }
 
-    private record VelocityConfig(String coreBaseUrl, String coreToken, int timeoutMs, String fallbackServer, int routeWaitSeconds, boolean hideNodeNames, boolean useActionBar, boolean useBossBarLoading, List<String> aliases) {}
+    private record VelocityConfig(String coreBaseUrl, String coreToken, String adminToken, int timeoutMs, String fallbackServer, int routeWaitSeconds, boolean hideNodeNames, boolean useActionBar, boolean useBossBarLoading, List<String> aliases) {}
 
     @Subscribe
     public void onProxyInitialize(ProxyInitializeEvent event) {

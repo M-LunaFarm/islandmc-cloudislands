@@ -13,6 +13,7 @@ node:
 core-api:
   base-url: "https://core-api.internal:8443"
   auth-token: "${CI_CORE_TOKEN}"
+  admin-token: "${CI_ADMIN_TOKEN}"
 
 redis:
   uri: "redis://redis.internal:6379"
