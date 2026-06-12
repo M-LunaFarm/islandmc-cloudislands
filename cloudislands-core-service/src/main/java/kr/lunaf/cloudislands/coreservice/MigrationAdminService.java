@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreservice;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
@@ -119,6 +120,14 @@ public final class MigrationAdminService {
         }
     }
 
+    private Map<java.util.UUID, MigrationWorldBundle> verifyMigrationBundles(List<MigrationManifest> manifests) {
+        Map<java.util.UUID, MigrationWorldBundle> bundles = new HashMap<>();
+        for (MigrationManifest manifest : manifests) {
+            bundles.put(manifest.islandId(), verifyMigrationBundle(manifest));
+        }
+        return bundles;
+    }
+
     private void recordMigrationBundleSnapshot(MigrationManifest manifest, MigrationWorldBundle bundle) {
         if (snapshots == null) {
             return;
@@ -163,8 +172,12 @@ public final class MigrationAdminService {
             return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\",\"imported\":false,\"importedIslands\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
         }
         long[] extractedStats = new long[] {0L, 0L, 0L};
+        Map<java.util.UUID, MigrationWorldBundle> preflightBundles = verifyMigrationBundles(lastPlan.manifests());
         CloudIslandsMigrationImporter.ImportResult result = importer.importPlan(lastPlan, manifest -> {
-            MigrationWorldBundle bundle = verifyMigrationBundle(manifest);
+            MigrationWorldBundle bundle = preflightBundles.get(manifest.islandId());
+            if (bundle == null) {
+                throw new IllegalStateException("migration bundle preflight missing for " + manifest.islandId());
+            }
             islands.createOwnedIsland(manifest.islandId(), manifest.ownerUuid(), "superiorskyblock2", "Migrated Island");
             islands.updateStats(manifest.islandId(), manifest.size(), manifest.level(), manifest.worth());
             metadata.upsertMember(manifest.islandId(), manifest.ownerUuid(), IslandRole.OWNER);
