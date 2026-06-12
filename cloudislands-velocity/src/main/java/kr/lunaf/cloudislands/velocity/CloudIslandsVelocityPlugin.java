@@ -296,6 +296,16 @@ public final class CloudIslandsVelocityPlugin {
             routingController.clearRouteTarget(player, args.length > 2 ? args[2] : "", ticketId);
             return;
         }
+        if (args.length >= 1 && args[0].equalsIgnoreCase("rankings")) {
+            String type = args.length > 1 ? args[1] : "level";
+            int limit = args.length > 2 ? (int) parseLongOrZero(args[2]) : 10;
+            if (type.equalsIgnoreCase("worth") || type.equalsIgnoreCase("value")) {
+                routingController.showWorthRanking(player, limit);
+            } else {
+                routingController.showLevelRanking(player, limit);
+            }
+            return;
+        }
         if (args.length >= 2 && args[0].equalsIgnoreCase("cache") && args[1].equalsIgnoreCase("clear")) {
             routingController.clearCache(player);
             return;
@@ -406,7 +416,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.recoverJobs(player, args.length > 2 ? args[2] : "recovery", args.length > 3 ? parseLongOrZero(args[3]) : 60000L, args.length > 4 ? (int) parseLongOrZero(args[4]) : 16);
             return;
         }
-        player.sendMessage(Component.text("사용법: /ciadmin status, /ciadmin island info|where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete, /ciadmin player info <player>|setisland <player> <islandUuid>|clearisland <player>, /ciadmin jobs list|retry <jobId>|cancel <jobId>|recover [nodeId] [minIdleMillis] [maxJobs], /ciadmin route debug [all|player]|ticket <ticket|player>|clear <player> [ticket], /ciadmin events, /ciadmin audit, /ciadmin block-values list|set <materialKey> <worth> <levelPoints> <limit>, /ciadmin upgrade-rules, /ciadmin template|templates list|upsert <id> <name> [enabled] [minNodeVersion]|enable|disable, /ciadmin node list|info|islands|drain|undrain|sweep|kickall|shutdown-safe, /ciadmin migrate-superiorskyblock2 scan|dryrun|dry-run|import|verify|rollback [path]"));
+        player.sendMessage(Component.text("사용법: /ciadmin status, /ciadmin island info|where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete, /ciadmin player info <player>|setisland <player> <islandUuid>|clearisland <player>, /ciadmin jobs list|retry <jobId>|cancel <jobId>|recover [nodeId] [minIdleMillis] [maxJobs], /ciadmin route debug [all|player]|ticket <ticket|player>|clear <player> [ticket], /ciadmin rankings level|worth [limit], /ciadmin events, /ciadmin audit, /ciadmin block-values list|set <materialKey> <worth> <levelPoints> <limit>, /ciadmin upgrade-rules, /ciadmin template|templates list|upsert <id> <name> [enabled] [minNodeVersion]|enable|disable, /ciadmin node list|info|islands|drain|undrain|sweep|kickall|shutdown-safe, /ciadmin migrate-superiorskyblock2 scan|dryrun|dry-run|import|verify|rollback [path]"));
     }
 
     private void dispatch(Player player, String[] args) {
@@ -938,6 +948,12 @@ public final class CloudIslandsVelocityPlugin {
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
             addLiteralSuggestions(matches, args[2], List.of("plugins/SuperiorSkyblock2"));
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("rankings")) {
+            addLiteralSuggestions(matches, args[1], List.of("level", "worth"));
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("rankings")) {
+            addLiteralSuggestions(matches, args[2], List.of("10", "25", "50", "100"));
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("debug")) {
             if ("all".startsWith(args[2].toLowerCase(Locale.ROOT))) {

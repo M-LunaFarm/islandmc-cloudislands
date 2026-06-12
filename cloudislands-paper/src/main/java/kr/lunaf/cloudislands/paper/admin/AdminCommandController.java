@@ -22,13 +22,14 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public final class AdminCommandController implements CommandExecutor, TabCompleter {
-    private static final List<String> ROOT_COMMANDS = List.of("status", "cache", "node", "island", "player", "jobs", "route", "events", "audit", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
+    private static final List<String> ROOT_COMMANDS = List.of("status", "cache", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "islands", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
     private static final List<String> PLAYER_COMMANDS = List.of("info", "setisland", "clearisland");
     private static final List<String> JOB_COMMANDS = List.of("list", "retry", "cancel", "recover");
     private static final List<String> ROUTE_COMMANDS = List.of("debug", "ticket", "clear");
+    private static final List<String> RANKING_COMMANDS = List.of("level", "worth");
     private static final List<String> BLOCK_VALUE_COMMANDS = List.of("list", "set");
     private static final List<String> BLOCK_VALUE_MATERIALS = List.of("minecraft:stone", "minecraft:diamond_block", "minecraft:emerald_block", "minecraft:spawner");
     private static final List<String> TEMPLATE_COMMANDS = List.of("list", "upsert", "enable", "disable");
@@ -84,6 +85,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args[0].equalsIgnoreCase("route")) {
             return handleRoute(sender, args);
+        }
+        if (args[0].equalsIgnoreCase("rankings")) {
+            return handleRankings(sender, args);
         }
         if (args[0].equalsIgnoreCase("events")) {
             run(sender, "Events list", coreApiClient.listEvents());
@@ -144,6 +148,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("route")) {
             return matches(ROUTE_COMMANDS, args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("rankings")) {
+            return matches(RANKING_COMMANDS, args[1]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("rankings")) {
+            return matches(List.of("10", "25", "50", "100"), args[2]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("block-values")) {
             return matches(BLOCK_VALUE_COMMANDS, args[1]);
@@ -386,9 +396,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return true;
         }
         if (args[1].equalsIgnoreCase("recover")) {
-            long minIdleMillis = args.length > 2 ? number(args[2], 60000L) : 60000L;
-            int maxJobs = args.length > 3 ? (int) number(args[3], 20L) : 20;
-            run(sender, "Jobs recover", coreApiClient.recoverJobs(nodeId, minIdleMillis, maxJobs));
+            String recoverNodeId = args.length > 2 ? args[2] : nodeId;
+            long minIdleMillis = args.length > 3 ? number(args[3], 60000L) : 60000L;
+            int maxJobs = args.length > 4 ? (int) number(args[4], 20L) : 20;
+            run(sender, "Jobs recover", coreApiClient.recoverJobs(recoverNodeId, minIdleMillis, maxJobs));
             return true;
         }
         if (args.length < 3) {
@@ -408,6 +419,21 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return true;
         }
         sender.sendMessage("사용법: /ciadmin jobs list|retry <jobId>|cancel <jobId>|recover [nodeId] [minIdleMillis] [maxJobs]");
+        return true;
+    }
+
+    private boolean handleRankings(CommandSender sender, String[] args) {
+        if (args.length < 2 || args[1].equalsIgnoreCase("level")) {
+            int limit = args.length > 2 ? (int) number(args[2], 10L) : 10;
+            run(sender, "Level rankings", coreApiClient.topIslandsByLevel(limit));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("worth") || args[1].equalsIgnoreCase("value")) {
+            int limit = args.length > 2 ? (int) number(args[2], 10L) : 10;
+            run(sender, "Worth rankings", coreApiClient.topIslandsByWorth(limit));
+            return true;
+        }
+        sender.sendMessage("사용법: /ciadmin rankings level|worth [limit]");
         return true;
     }
 
@@ -828,7 +854,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private void usage(CommandSender sender, String label) {
-        sender.sendMessage("사용법: /" + label + " status, cache clear, node menu|list|info|islands|drain|undrain|sweep|kickall|shutdown-safe, island info|where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete, player info <player>|setisland <player> <islandUuid>|clearisland <player>, jobs list|retry <jobId>|cancel <jobId>|recover [nodeId] [minIdleMillis] [maxJobs], route debug [all|player]|ticket <ticket|player>|clear <player> [ticket], events, audit, block-values list|set <materialKey> <worth> <levelPoints> <limit>, upgrade-rules, template|templates list|upsert|enable|disable, migrate-superiorskyblock2 scan|dryrun|dry-run|import|verify|rollback [path], reload");
+        sender.sendMessage("사용법: /" + label + " status, cache clear, node menu|list|info|islands|drain|undrain|sweep|kickall|shutdown-safe, island info|where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete, player info <player>|setisland <player> <islandUuid>|clearisland <player>, jobs list|retry <jobId>|cancel <jobId>|recover [nodeId] [minIdleMillis] [maxJobs], route debug [all|player]|ticket <ticket|player>|clear <player> [ticket], rankings level|worth [limit], events, audit, block-values list|set <materialKey> <worth> <levelPoints> <limit>, upgrade-rules, template|templates list|upsert|enable|disable, migrate-superiorskyblock2 scan|dryrun|dry-run|import|verify|rollback [path], reload");
     }
 
     private UUID uuid(CommandSender sender, String value) {

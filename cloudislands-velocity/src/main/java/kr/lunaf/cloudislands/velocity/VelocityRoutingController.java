@@ -524,11 +524,19 @@ public final class VelocityRoutingController {
     }
 
     public void showLevelRanking(Player player) {
-        sendPlayerPayloadFuture(player, coreApiClient.topIslandsByLevel(10), "랭킹을 불러오지 못했습니다.", "랭킹을 불러왔습니다.");
+        showLevelRanking(player, 10);
+    }
+
+    public void showLevelRanking(Player player, int limit) {
+        sendPlayerPayloadFuture(player, coreApiClient.topIslandsByLevel(Math.max(1, Math.min(limit, 100))), "랭킹을 불러오지 못했습니다.", "랭킹을 불러왔습니다.");
     }
 
     public void showWorthRanking(Player player) {
-        sendPlayerPayloadFuture(player, coreApiClient.topIslandsByWorth(10), "가치 랭킹을 불러오지 못했습니다.", "가치 랭킹을 불러왔습니다.");
+        showWorthRanking(player, 10);
+    }
+
+    public void showWorthRanking(Player player, int limit) {
+        sendPlayerPayloadFuture(player, coreApiClient.topIslandsByWorth(Math.max(1, Math.min(limit, 100))), "가치 랭킹을 불러오지 못했습니다.", "가치 랭킹을 불러왔습니다.");
     }
 
     public void recalculateLevel(Player player, UUID islandId) {
