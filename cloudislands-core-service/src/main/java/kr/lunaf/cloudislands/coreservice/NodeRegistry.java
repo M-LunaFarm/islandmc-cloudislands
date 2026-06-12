@@ -45,6 +45,7 @@ public interface NodeRegistry {
             .append("\"players\":").append(node.players()).append(',')
             .append("\"softPlayerCap\":").append(node.softPlayerCap()).append(',')
             .append("\"hardPlayerCap\":").append(node.hardPlayerCap()).append(',')
+            .append("\"reservedSlots\":").append(node.reservedSlots()).append(',')
             .append("\"activeIslands\":").append(node.activeIslands()).append(',')
             .append("\"maxActiveIslands\":").append(node.maxActiveIslands()).append(',')
             .append("\"mspt\":").append(node.mspt()).append(',')

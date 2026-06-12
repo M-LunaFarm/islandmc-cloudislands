@@ -191,6 +191,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             () -> storageAvailable(storage),
             () -> softPlayerCap,
             () -> hardPlayerCap,
+            () -> reservedSlots,
             () -> activeIslands == null ? 0 : activeIslands.size(),
             () -> maxActiveIslands,
             () -> jobWorker == null ? 0 : jobWorker.activationQueue(),

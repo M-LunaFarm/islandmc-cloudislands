@@ -55,6 +55,8 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_node_soft_player_cap", "gauge");
         help(out, "cloudislands_node_hard_player_cap", "Maximum player capacity reported by a node");
         type(out, "cloudislands_node_hard_player_cap", "gauge");
+        help(out, "cloudislands_node_reserved_slots", "Reserved player slots reported by a node");
+        type(out, "cloudislands_node_reserved_slots", "gauge");
         help(out, "cloudislands_node_mspt", "Node MSPT reported by Paper heartbeat");
         type(out, "cloudislands_node_mspt", "gauge");
         help(out, "cloudislands_node_active_islands", "Active islands currently reported by a node");
@@ -104,6 +106,7 @@ public final class PrometheusMetricsRenderer {
             labels(out, "cloudislands_node_players", node, null).append(node.players()).append('\n');
             labels(out, "cloudislands_node_soft_player_cap", node, null).append(node.softPlayerCap()).append('\n');
             labels(out, "cloudislands_node_hard_player_cap", node, null).append(node.hardPlayerCap()).append('\n');
+            labels(out, "cloudislands_node_reserved_slots", node, null).append(node.reservedSlots()).append('\n');
             labels(out, "cloudislands_node_mspt", node, null).append(node.mspt()).append('\n');
             labels(out, "cloudislands_node_active_islands", node, null).append(node.activeIslands()).append('\n');
             labels(out, "cloudislands_node_max_active_islands", node, null).append(node.maxActiveIslands()).append('\n');

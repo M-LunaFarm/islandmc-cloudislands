@@ -1744,6 +1744,7 @@ public final class VelocityRoutingController {
         long players = longValue(object, "players");
         long softCap = longValue(object, "softPlayerCap");
         long hardCap = longValue(object, "hardPlayerCap");
+        long reservedSlots = longValue(object, "reservedSlots");
         long activeIslands = longValue(object, "activeIslands");
         long maxActiveIslands = longValue(object, "maxActiveIslands");
         long activationQueue = longValue(object, "activationQueue");
@@ -1751,7 +1752,7 @@ public final class VelocityRoutingController {
         String displayNode = hideNodeNames || id.isBlank() ? "node-" + displayIndex : id;
         return displayNode
             + " " + (state.isBlank() ? "UNKNOWN" : state)
-            + " players=" + players + "/" + softCap + "/" + hardCap
+            + " players=" + players + "/" + softCap + "/" + hardCap + " reserved=" + reservedSlots
             + " islands=" + activeIslands + "/" + maxActiveIslands
             + " queue=" + activationQueue + "/" + maxActivationQueue
             + " mspt=" + seconds(doubleValue(object, "mspt"))

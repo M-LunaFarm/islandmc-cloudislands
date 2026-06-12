@@ -15,6 +15,7 @@ public record NodeLoad(
     int players,
     int softPlayerCap,
     int hardPlayerCap,
+    int reservedSlots,
     int activeIslands,
     int maxActiveIslands,
     double mspt,

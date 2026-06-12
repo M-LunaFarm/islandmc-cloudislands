@@ -23,6 +23,7 @@ public final class PaperHeartbeatService {
     private final BooleanSupplier storageAvailable;
     private final IntSupplier softPlayerCap;
     private final IntSupplier hardPlayerCap;
+    private final IntSupplier reservedSlots;
     private final IntSupplier activeIslandCount;
     private final IntSupplier maxActiveIslands;
     private final IntSupplier activationQueue;
@@ -45,10 +46,14 @@ public final class PaperHeartbeatService {
     }
 
     public PaperHeartbeatService(Plugin plugin, CoreApiClient coreApiClient, String nodeId, String pool, String velocityServerName, String nodeVersion, String supportedTemplates, BooleanSupplier storageAvailable, IntSupplier softPlayerCap, IntSupplier hardPlayerCap, IntSupplier activeIslandCount, IntSupplier maxActiveIslands, IntSupplier activationQueue, IntSupplier maxActivationQueue, DoubleSupplier chunkLoadPressure, IntSupplier recentFailurePenalty) {
-        this(plugin, coreApiClient, nodeId, pool, velocityServerName, nodeVersion, supportedTemplates, () -> supportedTemplates, storageAvailable, softPlayerCap, hardPlayerCap, activeIslandCount, maxActiveIslands, activationQueue, maxActivationQueue, chunkLoadPressure, recentFailurePenalty);
+        this(plugin, coreApiClient, nodeId, pool, velocityServerName, nodeVersion, supportedTemplates, () -> supportedTemplates, storageAvailable, softPlayerCap, hardPlayerCap, () -> Math.max(0, hardPlayerCap.getAsInt() - softPlayerCap.getAsInt()), activeIslandCount, maxActiveIslands, activationQueue, maxActivationQueue, chunkLoadPressure, recentFailurePenalty);
     }
 
     public PaperHeartbeatService(Plugin plugin, CoreApiClient coreApiClient, String nodeId, String pool, String velocityServerName, String nodeVersion, String supportedTemplates, Supplier<String> supportedTemplatesSupplier, BooleanSupplier storageAvailable, IntSupplier softPlayerCap, IntSupplier hardPlayerCap, IntSupplier activeIslandCount, IntSupplier maxActiveIslands, IntSupplier activationQueue, IntSupplier maxActivationQueue, DoubleSupplier chunkLoadPressure, IntSupplier recentFailurePenalty) {
+        this(plugin, coreApiClient, nodeId, pool, velocityServerName, nodeVersion, supportedTemplates, supportedTemplatesSupplier, storageAvailable, softPlayerCap, hardPlayerCap, () -> Math.max(0, hardPlayerCap.getAsInt() - softPlayerCap.getAsInt()), activeIslandCount, maxActiveIslands, activationQueue, maxActivationQueue, chunkLoadPressure, recentFailurePenalty);
+    }
+
+    public PaperHeartbeatService(Plugin plugin, CoreApiClient coreApiClient, String nodeId, String pool, String velocityServerName, String nodeVersion, String supportedTemplates, Supplier<String> supportedTemplatesSupplier, BooleanSupplier storageAvailable, IntSupplier softPlayerCap, IntSupplier hardPlayerCap, IntSupplier reservedSlots, IntSupplier activeIslandCount, IntSupplier maxActiveIslands, IntSupplier activationQueue, IntSupplier maxActivationQueue, DoubleSupplier chunkLoadPressure, IntSupplier recentFailurePenalty) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.nodeId = nodeId;
@@ -60,6 +65,7 @@ public final class PaperHeartbeatService {
         this.storageAvailable = storageAvailable;
         this.softPlayerCap = softPlayerCap;
         this.hardPlayerCap = hardPlayerCap;
+        this.reservedSlots = reservedSlots;
         this.activeIslandCount = activeIslandCount;
         this.maxActiveIslands = maxActiveIslands;
         this.activationQueue = activationQueue;
@@ -101,6 +107,7 @@ public final class PaperHeartbeatService {
         int activeIslands = Math.max(0, activeIslandCount.getAsInt());
         int softCap = Math.max(1, softPlayerCap.getAsInt());
         int hardCap = Math.max(softCap, hardPlayerCap.getAsInt());
+        int reserved = Math.max(0, Math.min(hardCap, reservedSlots.getAsInt()));
         int maxActive = Math.max(1, maxActiveIslands.getAsInt());
         boolean storageOk = storageAvailable.getAsBoolean();
         NodeHeartbeatRequest heartbeat = new NodeHeartbeatRequest(
@@ -112,6 +119,7 @@ public final class PaperHeartbeatService {
             players,
             softCap,
             hardCap,
+            reserved,
             activeIslands,
             maxActive,
             currentMspt(),

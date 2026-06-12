@@ -1566,13 +1566,14 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         long players = longValue(object, "players");
         long softCap = longValue(object, "softPlayerCap");
         long hardCap = longValue(object, "hardPlayerCap");
+        long reservedSlots = longValue(object, "reservedSlots");
         long activeIslands = longValue(object, "activeIslands");
         long maxActiveIslands = longValue(object, "maxActiveIslands");
         long activationQueue = longValue(object, "activationQueue");
         long maxActivationQueue = longValue(object, "maxActivationQueue");
         return (id.isBlank() ? "node" : id)
             + " " + (state.isBlank() ? "UNKNOWN" : state)
-            + " players=" + players + "/" + softCap + "/" + hardCap
+            + " players=" + players + "/" + softCap + "/" + hardCap + " reserved=" + reservedSlots
             + " islands=" + activeIslands + "/" + maxActiveIslands
             + " queue=" + activationQueue + "/" + maxActivationQueue
             + " mspt=" + seconds(doubleValue(object, "mspt"))
