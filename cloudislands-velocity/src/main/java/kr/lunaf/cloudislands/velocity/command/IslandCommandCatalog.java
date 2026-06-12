@@ -25,11 +25,11 @@ public final class IslandCommandCatalog {
     public static List<String> adminCommands() {
         return List.of(
             "ciadmin status",
-            "ciadmin island info", "ciadmin island where", "ciadmin island tp",
-            "ciadmin island activate", "ciadmin island deactivate", "ciadmin island migrate",
-            "ciadmin island save", "ciadmin island snapshot", "ciadmin island snapshots", "ciadmin island rollback",
-            "ciadmin island quarantine", "ciadmin island repair", "ciadmin island delete",
-            "ciadmin island restore", "ciadmin player info <player>", "ciadmin player setisland <player> <islandUuid>",
+            "ciadmin island info <island|player>", "ciadmin island where <island>", "ciadmin island tp <island>",
+            "ciadmin island activate <island>", "ciadmin island deactivate <island>", "ciadmin island migrate <island> <node>",
+            "ciadmin island save <island>", "ciadmin island snapshot <island> [reason]", "ciadmin island snapshots <island>", "ciadmin island rollback <island> <snapshot>",
+            "ciadmin island quarantine <island>", "ciadmin island repair <island>", "ciadmin island delete <island>",
+            "ciadmin island restore <island> <snapshot>", "ciadmin player info <player>", "ciadmin player setisland <player> <islandUuid>",
             "ciadmin player clearisland <player>", "ciadmin node list", "ciadmin node info", "ciadmin node islands <node> [limit]",
             "ciadmin node drain", "ciadmin node undrain", "ciadmin node kickall",
             "ciadmin node sweep", "ciadmin node shutdown-safe", "ciadmin jobs list", "ciadmin jobs retry <jobId>",
