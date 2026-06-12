@@ -692,7 +692,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> playerInfo(UUID playerUuid) {
-        return post("/v1/admin/players/info", "{\"playerUuid\":\"" + playerUuid + "\"}");
+        return postWithResultBody("/v1/admin/players/info", "{\"playerUuid\":\"" + playerUuid + "\"}");
     }
 
     @Override
@@ -707,12 +707,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> setPlayerIsland(UUID playerUuid, UUID islandId) {
-        return post("/v1/admin/players/setisland", "{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\"}");
+        return postWithResultBody("/v1/admin/players/setisland", "{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\"}");
     }
 
     @Override
     public CompletableFuture<String> clearPlayerIsland(UUID playerUuid) {
-        return post("/v1/admin/players/clearisland", "{\"playerUuid\":\"" + playerUuid + "\"}");
+        return postWithResultBody("/v1/admin/players/clearisland", "{\"playerUuid\":\"" + playerUuid + "\"}");
     }
 
     @Override
