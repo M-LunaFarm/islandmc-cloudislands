@@ -1627,7 +1627,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
                 coreApiClient.banIslandVisitorResult(islandId, player.getUniqueId(), targetUuid, reason)
-                    .thenAccept(body -> message(player, "섬 방문자를 밴했습니다."))
+                    .thenAccept(body -> plugin.getServer().getScheduler().runTask(plugin, () -> {
+                        moveVisitorToFallback(islandId, targetUuid, "섬에서 밴되어 로비로 이동합니다.", "섬에서 밴되어 로비로 이동하지 못했습니다.");
+                        player.sendMessage("섬 방문자를 밴했습니다.");
+                    }))
                     .exceptionally(error -> {
                         message(player, "섬 방문자를 밴하지 못했습니다.");
                         return null;
@@ -1660,23 +1663,33 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> plugin.getServer().getScheduler().runTask(plugin, () -> {
-                Player targetPlayer = plugin.getServer().getPlayer(targetUuid);
-                if (targetPlayer == null) {
+                if (plugin.getServer().getPlayer(targetUuid) == null) {
                     player.sendMessage("대상 플레이어가 온라인이 아닙니다.");
                     return;
                 }
-                UUID targetIslandId = protection.islandAt(targetPlayer.getLocation().getBlock()).orElse(null);
-                if (!islandId.equals(targetIslandId)) {
+                if (!moveVisitorToFallback(islandId, targetUuid, "섬에서 추방되어 로비로 이동합니다.", "섬에서 추방되어 로비로 이동하지 못했습니다.")) {
                     player.sendMessage("해당 방문자는 이 섬에 없습니다.");
                     return;
                 }
-                connectPlayerToServer(targetPlayer, fallbackServerName, "섬에서 추방되어 로비로 이동합니다.", "섬에서 추방되어 로비로 이동하지 못했습니다.");
                 player.sendMessage("방문자를 섬에서 추방했습니다.");
             })).exceptionally(error -> {
                 message(player, "대상 플레이어를 찾지 못했습니다.");
                 return null;
             });
         });
+    }
+
+    private boolean moveVisitorToFallback(UUID islandId, UUID targetUuid, String successMessage, String failureMessage) {
+        Player targetPlayer = plugin.getServer().getPlayer(targetUuid);
+        if (targetPlayer == null) {
+            return false;
+        }
+        UUID targetIslandId = protection.islandAt(targetPlayer.getLocation().getBlock()).orElse(null);
+        if (!islandId.equals(targetIslandId)) {
+            return false;
+        }
+        connectPlayerToServer(targetPlayer, fallbackServerName, successMessage, failureMessage);
+        return true;
     }
 
     private void listIslandBans(Player player) {
