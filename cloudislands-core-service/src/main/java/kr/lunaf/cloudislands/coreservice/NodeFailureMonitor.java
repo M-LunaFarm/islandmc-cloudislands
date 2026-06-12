@@ -63,6 +63,10 @@ public final class NodeFailureMonitor {
                 events.publish(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_RECOVERY_REQUIRED.name(), Map.of(
                     "islandId", runtime.islandId().toString(),
                     "nodeId", nodeId,
+                    "previousState", runtime.state().name(),
+                    "activeWorld", runtime.activeWorld() == null ? "" : runtime.activeWorld(),
+                    "cellX", runtime.cellX() == null ? "" : runtime.cellX().toString(),
+                    "cellZ", runtime.cellZ() == null ? "" : runtime.cellZ().toString(),
                     "reason", "NODE_DOWN"
                 ));
             }
