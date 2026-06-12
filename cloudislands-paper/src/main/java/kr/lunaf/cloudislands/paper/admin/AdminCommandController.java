@@ -1664,8 +1664,22 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " queue=" + activationQueue + "/" + maxActivationQueue
             + " mspt=" + seconds(doubleValue(object, "mspt"))
             + " score=" + seconds(doubleValue(object, "score"))
+            + scoreParts(object)
             + " activation=" + (activationEligible ? "ok" : "blocked:" + (allocationBlockReason.isBlank() ? "UNKNOWN" : allocationBlockReason))
             + " storage=" + (boolValue(object, "storageAvailable") ? "ok" : "down");
+    }
+
+    private String scoreParts(String nodeObject) {
+        String breakdown = objectValue(nodeObject, "scoreBreakdown");
+        if (breakdown.isBlank()) {
+            return "";
+        }
+        return " parts=p:" + seconds(doubleValue(breakdown, "playerPressure"))
+            + ",a:" + seconds(doubleValue(breakdown, "activeIslandPressure"))
+            + ",m:" + seconds(doubleValue(breakdown, "msptPressure"))
+            + ",q:" + seconds(doubleValue(breakdown, "activationQueuePressure"))
+            + ",mem:" + seconds(doubleValue(breakdown, "memoryPressure"))
+            + ",fail:" + seconds(doubleValue(breakdown, "recentFailurePenalty"));
     }
 
     private String nodeActionSummaryMessage(String label, String nodeId, String body) {
