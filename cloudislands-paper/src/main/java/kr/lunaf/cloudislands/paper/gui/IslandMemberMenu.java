@@ -54,6 +54,18 @@ public final class IslandMemberMenu implements Listener {
             player.performCommand("섬 권한");
             return;
         }
+        if (name.equals("설정")) {
+            player.performCommand("섬 설정");
+            return;
+        }
+        if (name.equals("새로고침")) {
+            player.performCommand("섬 멤버관리");
+            return;
+        }
+        if (name.equals("메인 메뉴")) {
+            player.performCommand("섬 메뉴");
+            return;
+        }
         String playerUuid = loreValue(meta, "playerUuid=");
         if (!playerUuid.isBlank()) {
             if (event.isShiftClick() && event.isRightClick()) {
@@ -78,6 +90,9 @@ public final class IslandMemberMenu implements Listener {
             inventory.setItem(45, item(Material.WRITABLE_BOOK, "멤버 초대", "사용법: /섬 초대 <플레이어>"));
             inventory.setItem(46, item(Material.PAPER, "초대 목록", "/섬 초대목록"));
             inventory.setItem(47, item(Material.COMPARATOR, "권한 설정", "/섬 권한"));
+            inventory.setItem(48, item(Material.REDSTONE_TORCH, "설정", "/섬 설정"));
+            inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 멤버관리"));
+            inventory.setItem(53, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
             int slot = 0;
             for (Member member : members.stream().limit(45).toList()) {
                 inventory.setItem(slot++, memberItem(member));
