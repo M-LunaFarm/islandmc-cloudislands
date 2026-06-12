@@ -818,6 +818,11 @@ public final class CloudIslandsVelocityPlugin {
             routingController.listUpgrades(player, islandId);
             return;
         }
+        if (args[0].equalsIgnoreCase("generator") || args[0].equalsIgnoreCase("generator-info") || args[0].equals("생성기") || args[0].equals("생성기정보")) {
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            routingController.showGenerator(player, islandId);
+            return;
+        }
         if (args[0].equalsIgnoreCase("buyupgrade") || args[0].equalsIgnoreCase("upgrade-buy") || args[0].equals("업그레이드구매")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             String upgradeKey = argumentAfterOptionalIsland(args, 1, "size");

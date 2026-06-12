@@ -75,6 +75,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "level", "레벨", "worth", "value", "가치", "rank", "ranking", "rank-list", "worthrank", "valuerank", "랭킹", "랭킹목록", "가치랭킹", "levelcalc", "recalculate", "레벨계산",
         "bank", "bank-balance", "은행", "은행잔액", "deposit", "bank-deposit", "입금", "withdraw", "bank-withdraw", "출금",
         "upgrade", "upgrades", "upgrade-menu", "upgrade-list", "buyupgrade", "upgrade-buy", "업그레이드", "업그레이드목록", "업그레이드구매",
+        "generator", "generator-info", "생성기", "생성기정보",
         "mission", "missions", "mission-menu", "mission-list", "미션", "미션목록",
         "challenge", "challenges", "challenge-menu", "challenge-list", "챌린지", "챌린지목록",
         "chat", "chat-menu", "islandchat", "채팅", "teamchat", "team-chat", "팀채팅", "log", "logs", "log-menu", "log-list", "로그", "로그목록",
@@ -136,6 +137,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "섬 업그레이드",
         "섬 업그레이드목록",
         "섬 업그레이드구매 <upgradeKey>",
+        "섬 생성기",
         "섬 미션 [missionKey]",
         "섬 챌린지 [challengeKey]",
         "섬 채팅 <message>",
@@ -581,6 +583,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 return true;
             }
             purchaseIslandUpgrade(player, args[1]);
+            return true;
+        }
+        if (subcommand.equals("generator") || subcommand.equals("generator-info") || subcommand.equals("생성기") || subcommand.equals("생성기정보")) {
+            showIslandGenerator(player);
             return true;
         }
         if (subcommand.equals("mission") || subcommand.equals("missions") || subcommand.equals("미션")) {
@@ -1632,6 +1638,17 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         });
     }
 
+    private void showIslandGenerator(Player player) {
+        currentIsland(player, "섬 안에서만 생성기를 확인할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.listIslandUpgrades(islandId)
+                .thenAccept(body -> message(player, generatorInfoMessage(body)))
+                .exceptionally(error -> {
+                    message(player, "섬 생성기를 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
     private void openIslandUpgradeMenu(Player player) {
         currentIsland(player, "섬 안에서만 업그레이드 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandUpgradeMenu.open(plugin, coreApiClient, player, islandId));
     }
@@ -2464,6 +2481,39 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private String bankBalance(String body) {
         String balance = text(body, "balance");
         return balance.isBlank() ? "0" : balance;
+    }
+
+    private String generatorInfoMessage(String body) {
+        String generatorKey = "default";
+        long level = 1L;
+        int index = 0;
+        while (body != null && index < body.length()) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String upgradeKey = text(object, "upgradeKey");
+            String normalized = upgradeKey.toLowerCase(Locale.ROOT);
+            if (normalized.equals("generator") || normalized.startsWith("generator:")) {
+                long currentLevel = Math.max(1L, (long) decimal(object, "level"));
+                String currentKey = text(object, "generatorKey");
+                if (currentKey.isBlank()) {
+                    int separator = upgradeKey.indexOf(':');
+                    currentKey = separator < 0 ? "default" : upgradeKey.substring(separator + 1);
+                }
+                if (currentLevel > level || (currentLevel == level && generatorKey.equals("default") && !currentKey.equalsIgnoreCase("default"))) {
+                    level = currentLevel;
+                    generatorKey = currentKey.isBlank() ? "default" : currentKey;
+                }
+            }
+            index = objectEnd + 1;
+        }
+        return "섬 생성기: key=" + generatorKey + " level=" + level + " / 업그레이드: /섬 업그레이드구매 generator";
     }
 
     private String upgradeListMessage(String body) {

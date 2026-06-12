@@ -593,6 +593,10 @@ public final class VelocityRoutingController {
         sendBodyResult(player, coreApiClient.listIslandUpgrades(islandId).thenApply(this::upgradeListMessage), "섬 업그레이드를 불러오지 못했습니다.");
     }
 
+    public void showGenerator(Player player, UUID islandId) {
+        sendBodyResult(player, coreApiClient.listIslandUpgrades(islandId).thenApply(this::generatorInfoMessage), "섬 생성기를 불러오지 못했습니다.");
+    }
+
     public void purchaseUpgrade(Player player, UUID islandId, String upgradeKey) {
         sendBodyResult(player, coreApiClient.purchaseIslandUpgrade(islandId, player.getUniqueId(), upgradeKey).thenApply(this::upgradePurchaseMessage), "업그레이드에 실패했습니다.");
     }
@@ -1316,6 +1320,39 @@ public final class VelocityRoutingController {
         return namedObjectListMessage("섬 업그레이드", body, "upgrades", object -> jsonValue(object, "upgradeKey")
             + " 레벨=" + longValue(object, "level")
             + " 유형=" + jsonValue(object, "type"));
+    }
+
+    private String generatorInfoMessage(String body) {
+        String generatorKey = "default";
+        long level = 1L;
+        int index = 0;
+        while (body != null && index < body.length()) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String upgradeKey = jsonValue(object, "upgradeKey");
+            String normalized = upgradeKey.toLowerCase(java.util.Locale.ROOT);
+            if (normalized.equals("generator") || normalized.startsWith("generator:")) {
+                long currentLevel = Math.max(1L, longValue(object, "level"));
+                String currentKey = jsonValue(object, "generatorKey");
+                if (currentKey.isBlank()) {
+                    int separator = upgradeKey.indexOf(':');
+                    currentKey = separator < 0 ? "default" : upgradeKey.substring(separator + 1);
+                }
+                if (currentLevel > level || (currentLevel == level && generatorKey.equals("default") && !currentKey.equalsIgnoreCase("default"))) {
+                    level = currentLevel;
+                    generatorKey = currentKey.isBlank() ? "default" : currentKey;
+                }
+            }
+            index = objectEnd + 1;
+        }
+        return "섬 생성기: key=" + generatorKey + " level=" + level + " / 업그레이드: /섬 업그레이드구매 generator";
     }
 
     private String upgradePurchaseMessage(String body) {

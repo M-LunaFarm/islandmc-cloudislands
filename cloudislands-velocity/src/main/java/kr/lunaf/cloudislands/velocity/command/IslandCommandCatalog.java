@@ -69,6 +69,7 @@ public final class IslandCommandCatalog {
             "섬 업그레이드",
             "섬 업그레이드목록",
             "섬 업그레이드구매 <upgradeKey>",
+            "섬 생성기 [islandUuid]",
             "섬 크기",
             "섬 경계",
             "섬 바이옴 <biomeKey>",
