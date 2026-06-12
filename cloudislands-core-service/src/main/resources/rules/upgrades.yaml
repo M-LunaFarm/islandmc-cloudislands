@@ -52,6 +52,11 @@ upgrades:
     max-level: 1
     base-cost: 100000
     multiplier: 1
+  redstone:
+    type: "REDSTONE_LIMIT"
+    max-level: 5
+    base-cost: 20000
+    multiplier: 2
   bank:
     type: "BANK_LIMIT"
     max-level: 5
