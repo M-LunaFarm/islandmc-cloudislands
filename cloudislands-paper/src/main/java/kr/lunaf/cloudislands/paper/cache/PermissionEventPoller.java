@@ -45,6 +45,7 @@ import kr.lunaf.cloudislands.paper.event.IslandRepairedEvent;
 import kr.lunaf.cloudislands.paper.event.IslandResetEvent;
 import kr.lunaf.cloudislands.paper.event.IslandRestoreRequestEvent;
 import kr.lunaf.cloudislands.paper.event.IslandRestoredEvent;
+import kr.lunaf.cloudislands.paper.event.IslandRoleCatalogChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandRoleChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandRuntimeChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandSnapshotCreateEvent;
@@ -681,6 +682,8 @@ public final class PermissionEventPoller {
             Bukkit.getPluginManager().callEvent(new IslandFlagChangeEvent(islandId, firstPresent(fields, "flag", "flagKey"), fields.getOrDefault("value", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_PERMISSION_CHANGED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandPermissionChangeEvent(islandId, fields.getOrDefault("role", ""), fields.getOrDefault("permission", ""), booleanField(fields, "allowed"), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_ROLE_CHANGED.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandRoleCatalogChangeEvent(islandId, fields.getOrDefault("role", ""), fields.getOrDefault("operation", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_INVITE_CHANGED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandInviteChangeEvent(islandId, uuidField(fields, "inviteId"), uuidField(fields, "playerUuid"), uuidField(fields, "targetUuid"), fields.getOrDefault("state", ""), booleanField(fields, "accepted"), booleanField(fields, "declined"), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_HOME_CHANGED.name())) {
