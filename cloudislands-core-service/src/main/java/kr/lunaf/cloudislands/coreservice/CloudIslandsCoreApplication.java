@@ -546,7 +546,28 @@ public final class CloudIslandsCoreApplication {
         });
         route("/v1/routes/session", exchange -> {
             String body = readBody(exchange);
-            sessions.put(new RouteTicket(JsonFields.uuid(body, "ticketId", UUID.randomUUID()), JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), kr.lunaf.cloudislands.api.model.RouteAction.HOME, new UUID(0L, 0L), JsonFields.text(body, "targetNode", ""), "ci_shard_001", kr.lunaf.cloudislands.api.model.RouteTicketState.READY, java.time.Instant.parse(JsonFields.text(body, "expiresAt", java.time.Instant.now().plusSeconds(30).toString())), JsonFields.text(body, "nonce", ""), Map.of("targetServerName", JsonFields.text(body, "targetServerName", ""))));
+            UUID ticketId = JsonFields.uuid(body, "ticketId", new UUID(0L, 0L));
+            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            String targetNode = JsonFields.text(body, "targetNode", "");
+            String nonce = JsonFields.text(body, "nonce", "");
+            RouteTicket ticket = tickets.find(ticketId).orElse(null);
+            if (ticket == null) {
+                write(exchange, 404, ApiResponses.error("TICKET_NOT_FOUND", "Route ticket was not found"));
+                return;
+            }
+            if (ticket.state() != kr.lunaf.cloudislands.api.model.RouteTicketState.READY) {
+                write(exchange, 409, ApiResponses.error("TICKET_NOT_READY", "Route ticket is not ready"));
+                return;
+            }
+            if (ticket.expiresAt().isBefore(java.time.Instant.now())) {
+                write(exchange, 409, ApiResponses.error("TICKET_EXPIRED", "Route ticket has expired"));
+                return;
+            }
+            if (!ticket.playerUuid().equals(playerUuid) || !ticket.targetNode().equals(targetNode) || !ticket.nonce().equals(nonce)) {
+                write(exchange, 403, ApiResponses.error("TICKET_MISMATCH", "Route ticket fields do not match"));
+                return;
+            }
+            sessions.put(ticket);
             write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/routes/session/consume", exchange -> {
