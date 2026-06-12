@@ -3,11 +3,17 @@ package kr.lunaf.cloudislands.paper.session;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.RouteTicketConsumer;
+import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.Plugin;
 import net.kyori.adventure.text.Component;
@@ -19,6 +25,7 @@ public final class PaperRouteSessionListener implements Listener {
     private final String nodeId;
     private final boolean requireRouteSession;
     private final String fallbackServerName;
+    private final Map<UUID, PlayerRouteSession> verifiedSessions = new ConcurrentHashMap<>();
 
     public PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId) {
         this(plugin, coreApiClient, ticketConsumer, nodeId, false);
@@ -38,8 +45,31 @@ public final class PaperRouteSessionListener implements Listener {
     }
 
     @EventHandler
+    public void onPreLogin(AsyncPlayerPreLoginEvent event) {
+        if (!requireRouteSession) {
+            return;
+        }
+        try {
+            var session = coreApiClient.consumeRouteSession(event.getUniqueId(), nodeId).get(3L, TimeUnit.SECONDS);
+            if (session.isPresent()) {
+                verifiedSessions.put(event.getUniqueId(), session.get());
+                return;
+            }
+        } catch (Exception exception) {
+            plugin.getLogger().warning("Route session pre-login check failed for " + event.getUniqueId() + ": " + exception.getMessage());
+        }
+        event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, "섬 이동 정보가 없어 접속할 수 없습니다. /섬 홈으로 다시 이동해주세요.");
+    }
+
+    @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        consumeSession(event.getPlayer().getUniqueId(), 0);
+        UUID playerUuid = event.getPlayer().getUniqueId();
+        PlayerRouteSession verified = verifiedSessions.remove(playerUuid);
+        if (verified != null) {
+            ticketConsumer.consumeAndTeleport(verified.ticketId(), verified.playerUuid(), verified.nonce());
+            return;
+        }
+        consumeSession(playerUuid, 0);
     }
 
     private void consumeSession(java.util.UUID playerUuid, int attempt) {
