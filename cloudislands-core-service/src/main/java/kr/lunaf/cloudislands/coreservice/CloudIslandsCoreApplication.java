@@ -1000,6 +1000,11 @@ public final class CloudIslandsCoreApplication {
             if (!requireManager(exchange, islandRepository, metadataRepository, islandId, inviterUuid)) {
                 return;
             }
+            boolean existingMember = metadataRepository.members(islandId).stream().anyMatch(member -> member.playerUuid().equals(targetUuid));
+            if (!existingMember && metadataRepository.members(islandId).size() >= limitValue(limitRepository, islandId, "MEMBERS", 3L)) {
+                write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
+                return;
+            }
             var invite = metadataRepository.createInvite(islandId, inviterUuid, targetUuid);
             audit.log(inviterUuid, "PLAYER", "ISLAND_INVITE_CREATE", "ISLAND", islandId.toString(), Map.of("targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString()));
             islandLogs.append(islandId, inviterUuid, "ISLAND_INVITE_CREATE", Map.of("targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString()));
