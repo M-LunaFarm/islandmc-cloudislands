@@ -1616,8 +1616,8 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("섬 스냅샷을 생성할 관리자 권한이 없습니다.");
                 return;
             }
-            coreApiClient.requestIslandSnapshot(islandId, reason)
-                .thenRun(() -> message(player, "섬 스냅샷 생성을 요청했습니다."))
+            coreApiClient.requestIslandSnapshotResult(islandId, reason)
+                .thenAccept(body -> message(player, actionResultMessage("섬 스냅샷 생성 요청", islandId, body)))
                 .exceptionally(error -> {
                     message(player, "섬 스냅샷 생성을 요청하지 못했습니다.");
                     return null;
@@ -1635,8 +1635,8 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("올바른 스냅샷 번호를 입력해주세요.");
                 return;
             }
-            coreApiClient.restoreIslandSnapshot(islandId, snapshotNo)
-                .thenRun(() -> message(player, "섬 스냅샷 복원을 요청했습니다."))
+            coreApiClient.restoreIslandSnapshotResult(islandId, snapshotNo)
+                .thenAccept(body -> message(player, actionResultMessage("섬 스냅샷 복원 요청 #" + snapshotNo, islandId, body)))
                 .exceptionally(error -> {
                     message(player, "섬 스냅샷 복원을 요청하지 못했습니다.");
                     return null;
