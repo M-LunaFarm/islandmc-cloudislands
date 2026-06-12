@@ -1010,9 +1010,9 @@ public final class VelocityRoutingController {
     private String chatResultMessage(String label, String body) {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
-            return label + ": failed code=" + code;
+            return label + ": 실패 사유=" + code;
         }
-        return label + ": sent channel=" + jsonValue(body, "channel");
+        return label + ": 전송 완료 채널=" + jsonValue(body, "channel");
     }
 
     private String compactTarget(String targetId) {
@@ -1022,30 +1022,30 @@ public final class VelocityRoutingController {
     private String islandInfoMessage(String body) {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
-            return "Island: failed code=" + code;
+            return "섬 정보: 실패 사유=" + code;
         }
         String islandId = jsonValue(body, "islandId");
         String ownerUuid = jsonValue(body, "ownerUuid");
         String name = jsonValue(body, "name");
         String state = jsonValue(body, "state");
-        return "Island: id=" + shortId(islandId)
-            + " owner=" + shortId(ownerUuid)
-            + (name.isBlank() ? "" : " name=" + name)
-            + " state=" + (state.isBlank() ? "UNKNOWN" : state)
-            + " size=" + longValue(body, "size")
-            + " level=" + longValue(body, "level")
-            + " worth=" + jsonValue(body, "worth")
-            + " public=" + boolValue(body, "publicAccess");
+        return "섬 정보: ID=" + shortId(islandId)
+            + " 소유자=" + shortId(ownerUuid)
+            + (name.isBlank() ? "" : " 이름=" + name)
+            + " 상태=" + (state.isBlank() ? "UNKNOWN" : state)
+            + " 크기=" + longValue(body, "size")
+            + " 레벨=" + longValue(body, "level")
+            + " 가치=" + jsonValue(body, "worth")
+            + " 공개=" + boolValue(body, "publicAccess");
     }
 
     private String islandStatMessage(String label, String field, String body) {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
-            return label + ": failed code=" + code;
+            return label + ": 실패 사유=" + code;
         }
         String islandId = jsonValue(body, "islandId");
         String value = field.equals("worth") ? jsonValue(body, field) : Long.toString(longValue(body, field));
-        return label + ": 섬=" + shortId(islandId) + " " + field + "=" + value;
+        return label + ": 섬=" + shortId(islandId) + " 값=" + value;
     }
 
     private String biomeInfoMessage(String body) {
@@ -1054,8 +1054,8 @@ public final class VelocityRoutingController {
             return "섬 바이옴: 실패 사유=" + code;
         }
         return "섬 바이옴: 섬=" + shortId(jsonValue(body, "islandId"))
-            + " biome=" + jsonValue(body, "biomeKey")
-            + " updatedBy=" + shortId(jsonValue(body, "updatedBy"));
+            + " 바이옴=" + jsonValue(body, "biomeKey")
+            + " 변경자=" + shortId(jsonValue(body, "updatedBy"));
     }
 
     private String runtimeInfoMessage(String body) {
@@ -1078,14 +1078,14 @@ public final class VelocityRoutingController {
     private String playerInfoMessage(String body) {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
-            return "Player: failed code=" + code;
+            return "플레이어 정보: 실패 사유=" + code;
         }
         String playerUuid = jsonValue(body, "playerUuid");
         String lastName = jsonValue(body, "lastName");
         String islandId = jsonValue(body, "primaryIslandId");
-        return "Player: uuid=" + shortId(playerUuid)
-            + (lastName.isBlank() ? "" : " name=" + lastName)
-            + (islandId.isBlank() ? " 섬=none" : " 섬=" + shortId(islandId));
+        return "플레이어 정보: ID=" + shortId(playerUuid)
+            + (lastName.isBlank() ? "" : " 이름=" + lastName)
+            + (islandId.isBlank() ? " 섬=없음" : " 섬=" + shortId(islandId));
     }
 
     private String rankingListMessage(String label, String body) {
