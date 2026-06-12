@@ -339,9 +339,11 @@ public final class RoutingOrchestrator {
 
     private void markActiveRouteRecoveryRequired(IslandRuntimeSnapshot runtime, String reason) {
         runtimes.setState(runtime.islandId(), IslandState.RECOVERY_REQUIRED);
+        islands.setState(runtime.islandId(), IslandState.RECOVERY_REQUIRED);
         events.publish(CloudIslandEventType.ISLAND_RECOVERY_REQUIRED.name(), Map.of(
             "islandId", runtime.islandId().toString(),
             "activeNode", runtime.activeNode() == null ? "" : runtime.activeNode(),
+            "previousState", runtime.state().name(),
             "reason", reason
         ));
     }
