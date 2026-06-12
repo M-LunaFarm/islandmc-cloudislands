@@ -16,9 +16,9 @@ public final class AdminNodeMenu implements Listener {
 
     public static void open(Player player, String nodeId) {
         Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
-        inventory.setItem(10, item(Material.COMPASS, "노드 목록", "/ciadmin node list"));
-        inventory.setItem(11, item(Material.ENDER_EYE, "현재 노드 정보", "/ciadmin node info " + nodeId));
-        inventory.setItem(12, item(Material.GRASS_BLOCK, "현재 노드 섬 현황", "/ciadmin node islands " + nodeId + " 50", "활성 섬 UUID와 상태를 확인합니다."));
+        inventory.setItem(10, item(Material.COMPASS, "노드 목록", "/ciadmin node list", "신규 활성화 배정 가능 여부와 차단 사유를 함께 확인합니다."));
+        inventory.setItem(11, item(Material.ENDER_EYE, "현재 노드 정보", "/ciadmin node info " + nodeId, "선택한 노드의 활성화 배정 상태를 확인합니다."));
+        inventory.setItem(12, item(Material.GRASS_BLOCK, "현재 노드 섬 현황", "/ciadmin node islands " + nodeId + " 50", "활성 섬 UUID와 상태를 확인합니다.", "배정 차단 사유는 노드 정보에서 확인합니다."));
         inventory.setItem(13, item(Material.REDSTONE_TORCH, "현재 노드 Drain", "/ciadmin node drain " + nodeId));
         inventory.setItem(14, item(Material.LEVER, "현재 노드 Undrain", "/ciadmin node undrain " + nodeId));
         inventory.setItem(15, item(Material.HOPPER, "장애 스윕", "/ciadmin node sweep " + nodeId));
