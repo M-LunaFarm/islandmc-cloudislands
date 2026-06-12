@@ -692,7 +692,16 @@ public final class CloudIslandsCoreApplication {
         });
         route("/v1/routes/session/consume", exchange -> {
             String body = readBody(exchange);
-            PlayerRouteSession session = sessions.consume(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), JsonFields.text(body, "nodeId", "")).orElse(null);
+            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            String nodeId = JsonFields.text(body, "nodeId", "");
+            PlayerRouteSession session = sessions.consume(playerUuid, nodeId).orElse(null);
+            if (session == null) {
+                events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
+                    "playerUuid", playerUuid.toString(),
+                    "targetNode", nodeId,
+                    "reason", "SESSION_NOT_FOUND"
+                ));
+            }
             write(exchange, session == null ? 404 : 200, session == null ? "" : sessionJson(session));
         });
         route("/v1/routes/ticket-status", exchange -> {
