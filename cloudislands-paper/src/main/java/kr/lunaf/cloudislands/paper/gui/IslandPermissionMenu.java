@@ -18,8 +18,8 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandPermissionMenu implements Listener {
     private static final String TITLE = "섬 권한 설정";
-    private static final List<String> ROLES = List.of("MEMBER", "TRUSTED", "VISITOR");
-    private static final List<String> PERMISSIONS = List.of("BUILD", "BREAK", "INTERACT", "OPEN_CONTAINER", "MANAGE_WARPS", "SET_HOME", "SET_BIOME");
+    private static final List<String> ROLES = List.of("MEMBER", "TRUSTED", "VISITOR", "CUSTOM_1", "CUSTOM_2", "CUSTOM_3", "CUSTOM_4", "CUSTOM_5");
+    private static final List<String> PERMISSIONS = List.of("BUILD", "BREAK", "INTERACT", "OPEN_CONTAINER", "MANAGE_WARPS");
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
         client.listIslandPermissions(islandId)
@@ -73,14 +73,13 @@ public final class IslandPermissionMenu implements Listener {
                 for (String permission : PERMISSIONS) {
                     inventory.setItem(slot++, ruleItem(role, permission, allowed(rules, role, permission)));
                 }
-                slot += 2;
             }
-            inventory.setItem(30, item(Material.BOOK, "전체 권한 이름", "/섬 권한목록", permissionSummary()));
-            inventory.setItem(31, item(Material.PAPER, "권한 목록", "/섬 권한목록"));
-            inventory.setItem(32, item(Material.CLOCK, "새로고침", "/섬 권한"));
-            inventory.setItem(33, item(Material.COMPARATOR, "설정", "/섬 설정"));
-            int summarySlot = 36;
-            for (Rule rule : rules.stream().limit(18).toList()) {
+            inventory.setItem(45, item(Material.BOOK, "전체 권한 이름", "/섬 권한목록", permissionSummary()));
+            inventory.setItem(46, item(Material.PAPER, "권한 목록", "/섬 권한목록"));
+            inventory.setItem(47, item(Material.CLOCK, "새로고침", "/섬 권한"));
+            inventory.setItem(48, item(Material.COMPARATOR, "설정", "/섬 설정"));
+            int summarySlot = 49;
+            for (Rule rule : rules.stream().limit(5).toList()) {
                 inventory.setItem(summarySlot++, ruleItem(rule.role(), rule.permission(), rule.allowed()));
             }
             player.openInventory(inventory);
