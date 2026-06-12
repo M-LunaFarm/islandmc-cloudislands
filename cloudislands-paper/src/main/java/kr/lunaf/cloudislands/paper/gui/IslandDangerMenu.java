@@ -16,8 +16,9 @@ public final class IslandDangerMenu implements Listener {
 
     public static void open(Player player) {
         Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
-        inventory.setItem(11, item(Material.TNT, "섬 리셋 확인", "월드를 초기화하고 복구 작업을 요청합니다.", "우클릭해야 실행됩니다."));
-        inventory.setItem(15, item(Material.LAVA_BUCKET, "섬 삭제 확인", "섬 삭제 작업을 요청합니다.", "우클릭해야 실행됩니다."));
+        inventory.setItem(10, item(Material.CHEST, "스냅샷 확인", "/섬 스냅샷", "위험 작업 전에 복구 지점을 확인합니다."));
+        inventory.setItem(12, item(Material.TNT, "섬 리셋 확인", "월드를 초기화하고 복구 작업을 요청합니다.", "Shift+우클릭해야 실행됩니다."));
+        inventory.setItem(14, item(Material.LAVA_BUCKET, "섬 삭제 확인", "섬 삭제 작업을 요청합니다.", "Shift+우클릭해야 실행됩니다."));
         inventory.setItem(22, item(Material.OAK_DOOR, "돌아가기", "/섬 설정"));
         player.openInventory(inventory);
     }
@@ -41,8 +42,12 @@ public final class IslandDangerMenu implements Listener {
             player.performCommand("섬 설정");
             return;
         }
-        if (!event.isRightClick()) {
-            player.sendMessage("위험 작업은 우클릭해야 실행됩니다.");
+        if (name.equals("스냅샷 확인")) {
+            player.performCommand("섬 스냅샷");
+            return;
+        }
+        if (!event.isShiftClick() || !event.isRightClick()) {
+            player.sendMessage("위험 작업은 Shift+우클릭해야 실행됩니다.");
             return;
         }
         if (name.equals("섬 리셋 확인")) {
