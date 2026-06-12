@@ -10,11 +10,15 @@ import kr.lunaf.cloudislands.common.event.CacheInvalidationPlan;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 
 public final class InMemoryGlobalEventPublisher implements GlobalEventPublisher {
+    private static final int MAX_EVENTS = 4096;
     private final List<EventRecord> events = new ArrayList<>();
 
     @Override
     public synchronized void publish(String eventType, Map<String, String> fields) {
         events.add(new EventRecord(eventType, enrichedFields(eventType, fields), Instant.now()));
+        while (events.size() > MAX_EVENTS) {
+            events.remove(0);
+        }
     }
 
     public synchronized String toJson() {
