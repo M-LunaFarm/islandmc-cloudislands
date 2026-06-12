@@ -50,6 +50,7 @@ import kr.lunaf.cloudislands.paper.heartbeat.PaperHeartbeatService;
 import kr.lunaf.cloudislands.paper.job.CoreBackedIslandJobSource;
 import kr.lunaf.cloudislands.paper.job.PaperIslandJobWorker;
 import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
+import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.limit.IslandEntityLimitListener;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitListener;
@@ -132,11 +133,11 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         CropGrowthLevelCache cropGrowthLevels = new CropGrowthLevelCache(client);
         getServer().getPluginManager().registerEvents(new IslandGeneratorListener(agent.protection(), ConfigGeneratorRules.load(this), generatorLevels), this);
         getServer().getPluginManager().registerEvents(new IslandCropGrowthListener(agent.protection(), cropGrowthLevels), this);
+        String fallbackServerName = getConfig().getString("routing.fallback-on-failure", "Lobby");
         boolean requireRouteSession = role == AgentRole.ISLAND_NODE && getConfig().getBoolean("routing.require-route-session", true);
         getServer().getPluginManager().registerEvents(new PaperRouteSessionListener(this, client, agent.routeTickets(), nodeId, requireRouteSession, fallbackServerName), this);
         PluginCommand admin = getCommand("ciadmin");
         int routeWaitSeconds = getConfig().getInt("routing.wait-for-activation-timeout-seconds", 20);
-        String fallbackServerName = getConfig().getString("routing.fallback-on-failure", "Lobby");
         if (admin != null) {
             AdminCommandController adminController = new AdminCommandController(agent, client, nodeId, routeWaitSeconds);
             admin.setExecutor(adminController);
@@ -144,7 +145,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         }
         PluginCommand island = getCommand("island");
         if (island != null) {
-            IslandCommandController islandController = new IslandCommandController(this, client, agent.protection(), routeWaitSeconds, fallbackServerName);
+            IslandLevelScanService levelScanService = new IslandLevelScanService(this, () -> activeIslands, client);
+            IslandCommandController islandController = new IslandCommandController(this, client, agent.protection(), routeWaitSeconds, fallbackServerName, levelScanService);
             island.setExecutor(islandController);
             island.setTabCompleter(islandController);
         }

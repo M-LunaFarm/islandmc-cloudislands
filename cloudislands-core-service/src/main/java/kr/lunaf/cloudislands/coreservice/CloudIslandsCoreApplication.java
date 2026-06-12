@@ -807,6 +807,15 @@ public final class CloudIslandsCoreApplication {
             events.publish(CloudIslandEventType.ISLAND_BLOCKS_CHANGED.name(), Map.of("islandId", islandId.toString(), "materialKey", materialKey, "delta", Long.toString(delta)));
             write(exchange, 202, ApiResponses.ok(true));
         });
+        route("/v1/islands/blocks/replace", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            Map<String, Long> counts = parseCountsPayload(JsonFields.text(body, "counts", ""));
+            levelRepository.replaceBlockCounts(islandId, counts);
+            rankingRepository.markDirty(islandId);
+            events.publish(CloudIslandEventType.ISLAND_BLOCKS_CHANGED.name(), Map.of("islandId", islandId.toString(), "materialKey", "*", "delta", "rescan"));
+            write(exchange, 202, ApiResponses.ok(true));
+        });
         route("/v1/islands/level/recalculate", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -1555,6 +1564,27 @@ public final class CloudIslandsCoreApplication {
                 .append('}');
         }
         return builder.append("]}").toString();
+    }
+
+    private static Map<String, Long> parseCountsPayload(String payload) {
+        Map<String, Long> counts = new java.util.LinkedHashMap<>();
+        if (payload == null || payload.isBlank()) {
+            return counts;
+        }
+        for (String entry : payload.split("\\|")) {
+            int separator = entry.lastIndexOf('=');
+            if (separator <= 0 || separator >= entry.length() - 1) {
+                continue;
+            }
+            try {
+                long amount = Long.parseLong(entry.substring(separator + 1));
+                if (amount > 0L) {
+                    counts.put(entry.substring(0, separator), amount);
+                }
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return counts;
     }
 
     private static String missionsJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandMissionSnapshot> missions) {

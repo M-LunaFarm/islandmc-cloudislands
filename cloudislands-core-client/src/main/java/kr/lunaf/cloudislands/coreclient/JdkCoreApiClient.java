@@ -303,6 +303,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> replaceBlockCounts(UUID islandId, Map<String, Long> counts) {
+        return postWithResultBody("/v1/islands/blocks/replace", "{\"islandId\":\"" + islandId + "\",\"counts\":\"" + escape(countsPayload(counts)) + "\"}");
+    }
+
+    @Override
     public CompletableFuture<String> recalculateIslandLevel(UUID islandId, UUID actorUuid) {
         return post("/v1/islands/level/recalculate", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\"}");
     }
@@ -875,6 +880,22 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     private static String escape(String value) {
         return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private static String countsPayload(Map<String, Long> counts) {
+        StringBuilder builder = new StringBuilder();
+        boolean first = true;
+        for (Map.Entry<String, Long> entry : counts.entrySet()) {
+            if (entry.getKey() == null || entry.getKey().isBlank() || entry.getValue() == null || entry.getValue() <= 0L) {
+                continue;
+            }
+            if (!first) {
+                builder.append('|');
+            }
+            first = false;
+            builder.append(entry.getKey()).append('=').append(entry.getValue());
+        }
+        return builder.toString();
     }
 
     private static UUID uuid(String json, String field, UUID fallback) {

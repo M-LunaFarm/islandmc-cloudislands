@@ -32,6 +32,37 @@ public final class JdbcIslandLevelRepository implements IslandLevelRepository {
     }
 
     @Override
+    public void replaceBlockCounts(UUID islandId, Map<String, Long> counts) {
+        try (Connection connection = dataSource.getConnection()) {
+            boolean autoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try (PreparedStatement delete = connection.prepareStatement("DELETE FROM island_block_counts WHERE island_id = ?");
+                 PreparedStatement insert = connection.prepareStatement("INSERT INTO island_block_counts(island_id, material_key, amount, dirty) VALUES (?, ?, ?, true)")) {
+                delete.setObject(1, islandId);
+                delete.executeUpdate();
+                for (Map.Entry<String, Long> entry : counts.entrySet()) {
+                    if (entry.getKey() == null || entry.getKey().isBlank() || entry.getValue() == null || entry.getValue() <= 0L) {
+                        continue;
+                    }
+                    insert.setObject(1, islandId);
+                    insert.setString(2, entry.getKey());
+                    insert.setLong(3, entry.getValue());
+                    insert.addBatch();
+                }
+                insert.executeBatch();
+                connection.commit();
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            } finally {
+                connection.setAutoCommit(autoCommit);
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to replace island block counts", exception);
+        }
+    }
+
+    @Override
     public Map<String, Long> blockCounts(UUID islandId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT material_key, amount FROM island_block_counts WHERE island_id = ?")) {

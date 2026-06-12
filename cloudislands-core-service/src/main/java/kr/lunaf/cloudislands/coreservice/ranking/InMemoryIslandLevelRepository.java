@@ -21,6 +21,17 @@ public final class InMemoryIslandLevelRepository implements IslandLevelRepositor
     }
 
     @Override
+    public void replaceBlockCounts(UUID islandId, Map<String, Long> replacement) {
+        Map<String, Long> sanitized = new ConcurrentHashMap<>();
+        replacement.forEach((key, value) -> {
+            if (key != null && !key.isBlank() && value != null && value > 0L) {
+                sanitized.put(key, value);
+            }
+        });
+        counts.put(islandId, sanitized);
+    }
+
+    @Override
     public Map<String, Long> blockCounts(UUID islandId) {
         return Map.copyOf(counts.getOrDefault(islandId, Map.of()));
     }

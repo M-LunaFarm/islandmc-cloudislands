@@ -45,6 +45,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandSnapshotMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandUpgradeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
+import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
@@ -94,6 +95,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private final int routeWaitSeconds;
     private final String fallbackServerName;
     private final Map<UUID, BossBar> routeBossBars = new ConcurrentHashMap<>();
+    private final IslandLevelScanService levelScanService;
 
     public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection) {
         this(plugin, coreApiClient, protection, 20);
@@ -104,11 +106,16 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName) {
+        this(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, null);
+    }
+
+    public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.protection = protection;
         this.routeWaitSeconds = Math.max(1, routeWaitSeconds);
         this.fallbackServerName = fallbackServerName == null || fallbackServerName.isBlank() ? "Lobby" : fallbackServerName;
+        this.levelScanService = levelScanService;
     }
 
     @Override
@@ -1130,7 +1137,9 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("섬 레벨을 계산할 권한이 없습니다.");
                 return;
             }
-            coreApiClient.recalculateIslandLevel(islandId, player.getUniqueId())
+            player.sendActionBar(Component.text("섬 블록을 다시 확인하는 중입니다."));
+            CompletableFuture<Void> rescan = levelScanService == null ? CompletableFuture.completedFuture(null) : levelScanService.rescanIsland(islandId);
+            rescan.thenCompose(ignored -> coreApiClient.recalculateIslandLevel(islandId, player.getUniqueId()))
                 .thenAccept(body -> {
                     String worth = text(body, "worth");
                     message(player, "섬 레벨 계산 완료: 레벨 " + (long) decimal(body, "level") + " / 가치 " + (worth.isBlank() ? "0" : worth));

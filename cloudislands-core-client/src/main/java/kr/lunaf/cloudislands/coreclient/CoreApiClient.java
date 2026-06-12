@@ -70,6 +70,7 @@ public interface CoreApiClient {
     CompletableFuture<String> setIslandLockedResult(UUID islandId, UUID actorUuid, boolean locked);
     CompletableFuture<Void> recordBlockDelta(UUID islandId, String materialKey, long delta);
     CompletableFuture<String> recordBlockDeltaResult(UUID islandId, String materialKey, long delta);
+    CompletableFuture<String> replaceBlockCounts(UUID islandId, Map<String, Long> counts);
     CompletableFuture<String> recalculateIslandLevel(UUID islandId, UUID actorUuid);
     CompletableFuture<String> topIslandsByLevel(int limit);
     CompletableFuture<String> topIslandsByWorth(int limit);
