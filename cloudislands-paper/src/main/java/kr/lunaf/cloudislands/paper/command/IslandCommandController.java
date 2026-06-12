@@ -851,8 +851,8 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("섬 홈을 설정할 권한이 없습니다.");
                 return;
             }
-            coreApiClient.setIslandHome(islandId, player.getUniqueId(), name, location(player.getLocation()))
-                .thenRun(() -> message(player, "섬 홈을 설정했습니다."))
+            coreApiClient.setIslandHomeResult(islandId, player.getUniqueId(), name, location(player.getLocation()))
+                .thenAccept(body -> message(player, actionResultMessage("섬 홈 설정 " + name, name, body)))
                 .exceptionally(error -> {
                     message(player, "섬 홈을 설정하지 못했습니다.");
                     return null;
@@ -866,8 +866,8 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("섬 워프를 설정할 권한이 없습니다.");
                 return;
             }
-            coreApiClient.setIslandWarp(islandId, player.getUniqueId(), name, location(player.getLocation()), false)
-                .thenRun(() -> message(player, "섬 워프를 설정했습니다."))
+            coreApiClient.setIslandWarpResult(islandId, player.getUniqueId(), name, location(player.getLocation()), false)
+                .thenAccept(body -> message(player, actionResultMessage("섬 워프 설정 " + name, name, body)))
                 .exceptionally(error -> {
                     message(player, "섬 워프를 설정하지 못했습니다.");
                     return null;
@@ -953,8 +953,8 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("섬 워프를 삭제할 권한이 없습니다.");
                 return;
             }
-            coreApiClient.deleteIslandWarp(islandId, player.getUniqueId(), name)
-                .thenRun(() -> message(player, "섬 워프를 삭제했습니다."))
+            coreApiClient.deleteIslandWarpResult(islandId, player.getUniqueId(), name)
+                .thenAccept(body -> message(player, actionResultMessage("섬 워프 삭제 " + name, name, body)))
                 .exceptionally(error -> {
                     message(player, "섬 워프를 삭제하지 못했습니다.");
                     return null;
@@ -968,8 +968,8 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("섬 워프 공개 상태를 변경할 권한이 없습니다.");
                 return;
             }
-            coreApiClient.setIslandWarpPublicAccess(islandId, player.getUniqueId(), name, publicAccess)
-                .thenRun(() -> message(player, publicAccess ? "섬 워프를 공개했습니다." : "섬 워프를 비공개로 변경했습니다."))
+            coreApiClient.setIslandWarpPublicAccessResult(islandId, player.getUniqueId(), name, publicAccess)
+                .thenAccept(body -> message(player, actionResultMessage(publicAccess ? "섬 워프 공개 " + name : "섬 워프 비공개 " + name, name, body)))
                 .exceptionally(error -> {
                     message(player, "섬 워프 공개 상태를 변경하지 못했습니다.");
                     return null;
@@ -983,10 +983,12 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("섬 공개 상태를 변경할 권한이 없습니다.");
                 return;
             }
-            coreApiClient.setIslandPublicAccess(islandId, player.getUniqueId(), publicAccess)
-                .thenRun(() -> {
-                    message(player, publicAccess ? "섬을 공개했습니다." : "섬을 비공개로 변경했습니다.");
-                    plugin.getServer().getScheduler().runTask(plugin, () -> player.performCommand("섬 설정"));
+            coreApiClient.setIslandPublicAccessResult(islandId, player.getUniqueId(), publicAccess)
+                .thenAccept(body -> {
+                    message(player, actionResultMessage(publicAccess ? "섬 공개 설정" : "섬 비공개 설정", islandId, body));
+                    if (!resultRejected(body)) {
+                        plugin.getServer().getScheduler().runTask(plugin, () -> player.performCommand("섬 설정"));
+                    }
                 })
                 .exceptionally(error -> {
                     message(player, "섬 공개 상태를 변경하지 못했습니다.");
@@ -1001,10 +1003,12 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("섬 잠금 상태를 변경할 권한이 없습니다.");
                 return;
             }
-            coreApiClient.setIslandLocked(islandId, player.getUniqueId(), locked)
-                .thenRun(() -> {
-                    message(player, locked ? "섬을 잠갔습니다." : "섬 잠금을 해제했습니다.");
-                    plugin.getServer().getScheduler().runTask(plugin, () -> player.performCommand("섬 설정"));
+            coreApiClient.setIslandLockedResult(islandId, player.getUniqueId(), locked)
+                .thenAccept(body -> {
+                    message(player, actionResultMessage(locked ? "섬 잠금 설정" : "섬 잠금 해제", islandId, body));
+                    if (!resultRejected(body)) {
+                        plugin.getServer().getScheduler().runTask(plugin, () -> player.performCommand("섬 설정"));
+                    }
                 })
                 .exceptionally(error -> {
                     message(player, "섬 잠금 상태를 변경하지 못했습니다.");
