@@ -1681,10 +1681,13 @@ public final class VelocityRoutingController {
             return "Nodes: empty";
         }
         int total = 0;
+        int starting = 0;
+        int warming = 0;
         int ready = 0;
         int softFull = 0;
         int hardFull = 0;
         int draining = 0;
+        int shuttingDown = 0;
         int down = 0;
         java.util.List<String> entries = new java.util.ArrayList<>();
         int index = 0;
@@ -1700,7 +1703,11 @@ public final class VelocityRoutingController {
             String object = nodes.substring(objectStart, objectEnd + 1);
             String state = jsonValue(object, "state");
             total++;
-            if (state.equalsIgnoreCase("READY")) {
+            if (state.equalsIgnoreCase("STARTING")) {
+                starting++;
+            } else if (state.equalsIgnoreCase("WARMING")) {
+                warming++;
+            } else if (state.equalsIgnoreCase("READY")) {
                 ready++;
             } else if (state.equalsIgnoreCase("SOFT_FULL")) {
                 softFull++;
@@ -1708,6 +1715,8 @@ public final class VelocityRoutingController {
                 hardFull++;
             } else if (state.equalsIgnoreCase("DRAINING")) {
                 draining++;
+            } else if (state.equalsIgnoreCase("SHUTTING_DOWN")) {
+                shuttingDown++;
             } else if (state.equalsIgnoreCase("DOWN")) {
                 down++;
             }
@@ -1717,10 +1726,13 @@ public final class VelocityRoutingController {
             index = objectEnd + 1;
         }
         return "Nodes: total=" + total
+            + " starting=" + starting
+            + " warming=" + warming
             + " ready=" + ready
             + " softFull=" + softFull
             + " hardFull=" + hardFull
             + " draining=" + draining
+            + " shuttingDown=" + shuttingDown
             + " down=" + down
             + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
