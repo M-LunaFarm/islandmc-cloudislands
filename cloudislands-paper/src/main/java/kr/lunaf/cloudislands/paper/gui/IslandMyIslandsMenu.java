@@ -57,7 +57,7 @@ public final class IslandMyIslandsMenu implements Listener {
             player.performCommand("섬 방문");
             return;
         }
-        String islandId = loreValue(meta, "islandId=");
+        String islandId = loreValue(meta, "섬 ID=");
         if (!islandId.isBlank()) {
             player.performCommand("섬 방문 " + islandId);
         }
@@ -71,7 +71,7 @@ public final class IslandMyIslandsMenu implements Listener {
             } else {
                 for (int index = 0; index < islands.size() && index < 45; index++) {
                     IslandEntry island = islands.get(index);
-                    inventory.setItem(index, item(material(island.role()), island.name(), "islandId=" + island.islandId(), "role=" + island.role(), "state=" + island.state(), "level=" + island.level(), "worth=" + island.worth(), "클릭하면 이 섬으로 이동합니다."));
+                    inventory.setItem(index, item(material(island.role()), island.name(), "섬 ID=" + island.islandId(), "역할: " + island.role(), "상태: " + island.state(), "레벨: " + island.level(), "가치: " + island.worth(), "클릭하면 이 섬으로 이동합니다."));
                 }
             }
             inventory.setItem(45, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));

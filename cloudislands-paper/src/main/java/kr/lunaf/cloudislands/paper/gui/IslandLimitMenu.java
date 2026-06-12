@@ -54,11 +54,11 @@ public final class IslandLimitMenu implements Listener {
             player.performCommand("섬 설정");
             return;
         }
-        String limitKey = loreValue(meta, "limitKey=");
+        String limitKey = loreValue(meta, "제한 키=");
         if (limitKey.isBlank()) {
             return;
         }
-        long value = number(loreValue(meta, "value="));
+        long value = number(loreValue(meta, "현재 값: "));
         long step = event.isShiftClick() ? 10L : 1L;
         long nextValue = event.isRightClick() ? Math.max(0L, value - step) : value + step;
         player.performCommand("섬 제한설정 " + limitKey + " " + nextValue);
@@ -82,7 +82,7 @@ public final class IslandLimitMenu implements Listener {
     }
 
     private static ItemStack limitItem(Limit limit) {
-        return item(Material.HOPPER, limit.key(), "limitKey=" + limit.key(), "value=" + limit.value(), limit.updatedAt().isBlank() ? "업데이트 정보 없음" : "updatedAt=" + limit.updatedAt(), "좌클릭: +1", "우클릭: -1", "Shift+클릭: 10 단위로 조정");
+        return item(Material.HOPPER, limit.key(), "제한 키=" + limit.key(), "현재 값: " + limit.value(), limit.updatedAt().isBlank() ? "업데이트 정보 없음" : "갱신 시각: " + limit.updatedAt(), "좌클릭: +1", "우클릭: -1", "Shift+클릭: 10 단위로 조정");
     }
 
     private static ItemStack item(Material material, String name, String... lore) {

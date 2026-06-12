@@ -56,7 +56,7 @@ public final class IslandRankingMenu implements Listener {
             player.performCommand("섬 랭킹");
             return;
         }
-        String islandId = loreValue(meta, "islandId=");
+        String islandId = loreValue(meta, "섬 ID=");
         if (islandId.isBlank()) {
             return;
         }
@@ -83,7 +83,7 @@ public final class IslandRankingMenu implements Listener {
     }
 
     private static ItemStack rankingItem(Material material, Ranking ranking) {
-        return item(material, ranking.label() + " #" + ranking.rank(), "islandId=" + ranking.islandId(), "level=" + ranking.level(), "worth=" + ranking.worth(), "클릭하면 방문을 시도합니다.");
+        return item(material, ranking.label() + " #" + ranking.rank(), "섬 ID=" + ranking.islandId(), "레벨: " + ranking.level(), "가치: " + ranking.worth(), "클릭하면 방문을 시도합니다.");
     }
 
     private static ItemStack item(Material material, String name, String... lore) {

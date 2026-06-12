@@ -56,7 +56,7 @@ public final class IslandVisitMenu implements Listener {
         if (meta.getLore() == null) {
             return;
         }
-        String islandId = loreValue(meta.getLore(), "islandId=");
+        String islandId = loreValue(meta.getLore(), "섬 ID=");
         if (!islandId.isBlank()) {
             player.performCommand("섬 방문 " + islandId);
         }
@@ -71,7 +71,7 @@ public final class IslandVisitMenu implements Listener {
             } else {
                 for (int index = 0; index < islands.size() && index < 36; index++) {
                     IslandEntry island = islands.get(index);
-                    inventory.setItem(index + 9, item(Material.GRASS_BLOCK, island.name(), "islandId=" + island.islandId(), "ownerUuid=" + island.ownerUuid(), "level=" + island.level(), "worth=" + island.worth(), "클릭하면 방문합니다."));
+                    inventory.setItem(index + 9, item(Material.GRASS_BLOCK, island.name(), "섬 ID=" + island.islandId(), "소유자: " + shortId(island.ownerUuid()), "레벨: " + island.level(), "가치: " + island.worth(), "클릭하면 방문합니다."));
                 }
             }
             inventory.setItem(45, item(Material.ENDER_EYE, "공개 워프 목록", "/섬 공개워프목록"));
@@ -150,6 +150,13 @@ public final class IslandVisitMenu implements Listener {
         } catch (NumberFormatException exception) {
             return 0L;
         }
+    }
+
+    private static String shortId(String value) {
+        if (value == null || value.isBlank()) {
+            return "알 수 없음";
+        }
+        return value.length() <= 8 ? value : value.substring(0, 8);
     }
 
     private record IslandEntry(String islandId, String ownerUuid, String name, long level, String worth) {
