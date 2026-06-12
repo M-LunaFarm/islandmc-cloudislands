@@ -10,5 +10,6 @@ public enum UpgradeType {
     MOB_LIMIT,
     CROP_GROWTH,
     FLY_ACCESS,
+    REDSTONE_LIMIT,
     BANK_LIMIT
 }

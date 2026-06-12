@@ -1689,6 +1689,7 @@ public final class CloudIslandsCoreApplication {
             case HOPPER_LIMIT -> limits.set(islandId, "HOPPER", Math.max(1L, level) * 50L, actorUuid);
             case SPAWNER_LIMIT -> limits.set(islandId, "SPAWNER", Math.max(1L, level) * 25L, actorUuid);
             case MOB_LIMIT -> limits.set(islandId, "ENTITY", Math.max(1L, level) * 200L, actorUuid);
+            case REDSTONE_LIMIT -> limits.set(islandId, "REDSTONE", Math.max(1L, level) * 512L, actorUuid);
             case BANK_LIMIT -> limits.set(islandId, "BANK", Math.max(1L, level) * 100000L, actorUuid);
             case GENERATOR_LEVEL, CROP_GROWTH, FLY_ACCESS -> null;
         };

@@ -20,6 +20,7 @@ public final class UpgradePolicy {
         defaults.put("mob", new UpgradeRule("mob", UpgradeType.MOB_LIMIT, 5, new BigDecimal("20000"), new BigDecimal("2")));
         defaults.put("crop", new UpgradeRule("crop", UpgradeType.CROP_GROWTH, 5, new BigDecimal("15000"), new BigDecimal("2")));
         defaults.put("fly", new UpgradeRule("fly", UpgradeType.FLY_ACCESS, 1, new BigDecimal("100000"), BigDecimal.ONE));
+        defaults.put("redstone", new UpgradeRule("redstone", UpgradeType.REDSTONE_LIMIT, 5, new BigDecimal("20000"), new BigDecimal("2")));
         defaults.put("bank", new UpgradeRule("bank", UpgradeType.BANK_LIMIT, 5, new BigDecimal("10000"), new BigDecimal("2")));
         this.rules = Map.copyOf(defaults);
     }
@@ -47,6 +48,7 @@ public final class UpgradePolicy {
             case "mob" -> UpgradeType.MOB_LIMIT;
             case "crop" -> UpgradeType.CROP_GROWTH;
             case "fly" -> UpgradeType.FLY_ACCESS;
+            case "redstone" -> UpgradeType.REDSTONE_LIMIT;
             case "bank" -> UpgradeType.BANK_LIMIT;
             default -> UpgradeType.ISLAND_SIZE;
         };

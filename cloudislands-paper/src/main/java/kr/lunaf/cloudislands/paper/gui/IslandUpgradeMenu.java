@@ -68,6 +68,7 @@ public final class IslandUpgradeMenu implements Listener {
             case "MAX_MEMBERS" -> Material.NAME_TAG;
             case "MAX_WARPS" -> Material.ENDER_PEARL;
             case "GENERATOR_LEVEL" -> Material.COBBLESTONE;
+            case "REDSTONE_LIMIT" -> Material.REDSTONE;
             case "BANK_LIMIT" -> Material.GOLD_INGOT;
             default -> Material.BEACON;
         };
