@@ -85,7 +85,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "members", "member-menu", "member-list", "멤버", "멤버관리", "멤버목록", "invite", "초대", "invites", "invite-menu", "invite-list", "초대목록",
         "accept", "invite-accept", "초대수락", "decline", "invite-decline", "초대거절",
         "kick", "remove-member", "추방", "trust", "신뢰", "untrust", "신뢰해제",
-        "promote", "승급", "demote", "강등", "setrole", "role-set", "역할설정", "transfer", "양도",
+        "promote", "승급", "demote", "강등", "setrole", "role-set", "역할설정", "roles", "role-list", "role-upsert", "role-edit", "역할목록", "역할편집", "transfer", "양도",
         "ban", "밴", "unban", "pardon", "밴해제", "kickvisitor", "방문자추방", "bans", "ban-menu", "ban-list", "banlist", "밴목록",
         "settings", "setting", "설정",
         "flags", "flag-menu", "flag-list", "flag", "setflag", "flag-set", "플래그", "플래그설정", "플래그목록",
@@ -157,6 +157,8 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "섬 승급 <player>",
         "섬 강등 <player>",
         "섬 역할설정 <player> <role>",
+        "섬 역할목록",
+        "섬 역할편집 <role> <weight> <displayName>",
         "섬 양도 <player>",
         "섬 신뢰 <player>",
         "섬 신뢰해제 <player>",
@@ -234,6 +236,9 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             if (first.equals("setpermission") || first.equals("permission-set") || first.equals("권한설정")) {
                 return literalMatches(List.of("MEMBER", "TRUSTED", "MODERATOR", "VISITOR", "CUSTOM_1", "CUSTOM_2", "CUSTOM_3", "CUSTOM_4", "CUSTOM_5"), args[1]);
             }
+            if (first.equals("role-upsert") || first.equals("role-edit") || first.equals("역할편집")) {
+                return literalMatches(memberRoleNames(), args[1]);
+            }
             if (first.equals("biome") || first.equals("바이옴")) {
                 return literalMatches(List.of("minecraft:plains", "minecraft:forest", "minecraft:desert", "minecraft:taiga"), args[1]);
             }
@@ -246,6 +251,9 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("setrole") || args[0].equalsIgnoreCase("role-set") || args[0].equals("역할설정"))) {
             return literalMatches(memberRoleNames(), args[2]);
+        }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("role-upsert") || args[0].equalsIgnoreCase("role-edit") || args[0].equals("역할편집"))) {
+            return literalMatches(List.of("1", "2", "3", "4", "5", "10"), args[2]);
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("setflag") || args[0].equalsIgnoreCase("flag-set") || args[0].equals("플래그설정"))) {
             return literalMatches(List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"), args[2]);
@@ -807,6 +815,23 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 return true;
             }
             setIslandMemberRole(player, args[1], role, "섬 멤버 역할을 " + role.name() + "(으)로 변경했습니다.");
+            return true;
+        }
+        if (subcommand.equals("roles") || subcommand.equals("role-list") || subcommand.equals("역할목록")) {
+            listIslandRoles(player);
+            return true;
+        }
+        if (subcommand.equals("role-upsert") || subcommand.equals("role-edit") || subcommand.equals("역할편집")) {
+            if (args.length < 4) {
+                player.sendMessage("역할, 가중치, 표시 이름을 입력해주세요.");
+                return true;
+            }
+            IslandRole role = islandRole(args[1]);
+            if (role == null || role == IslandRole.OWNER || !role.islandMemberRole()) {
+                player.sendMessage("편집 가능한 멤버 역할을 입력해주세요. 예: CUSTOM_1");
+                return true;
+            }
+            upsertIslandRole(player, role, integer(args[2], role.ordinal()), joined(args, 3));
             return true;
         }
         if (subcommand.equals("transfer") || subcommand.equals("양도")) {
@@ -2268,8 +2293,34 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         });
     }
 
+    private void listIslandRoles(Player player) {
+        currentIsland(player, "섬 안에서만 역할을 확인할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.listIslandRoles(islandId)
+                .thenAccept(body -> message(player, roleListMessage(body)))
+                .exceptionally(error -> {
+                    message(player, "섬 역할을 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
     private void openIslandPermissionMenu(Player player) {
         currentIsland(player, "섬 안에서만 권한 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandPermissionMenu.open(plugin, coreApiClient, player, islandId));
+    }
+
+    private void upsertIslandRole(Player player, IslandRole role, int weight, String displayName) {
+        currentIsland(player, "섬 안에서만 역할을 편집할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
+                player.sendMessage("섬 역할을 편집할 권한이 없습니다.");
+                return;
+            }
+            coreApiClient.upsertIslandRole(islandId, player.getUniqueId(), role, weight, displayName.isBlank() ? role.name() : displayName)
+                .thenAccept(body -> message(player, "섬 역할 저장 완료: " + text(body, "role") + " weight=" + (long) decimal(body, "weight") + " name=" + text(body, "displayName")))
+                .exceptionally(error -> {
+                    message(player, "섬 역할을 저장하지 못했습니다.");
+                    return null;
+                });
+        });
     }
 
     private void setIslandPermission(Player player, String roleName, String permissionName, String allowedValue) {
@@ -2644,6 +2695,28 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             index = objectEnd + 1;
         }
         return entries.isEmpty() ? "섬 권한 규칙이 없습니다." : "섬 권한: " + String.join(", ", entries);
+    }
+
+    private String roleListMessage(String body) {
+        List<String> entries = new ArrayList<>();
+        int index = 0;
+        while (body != null && index < body.length()) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String role = text(object, "role");
+            if (!role.isBlank()) {
+                entries.add(role + "(weight=" + (long) decimal(object, "weight") + ", name=" + text(object, "displayName") + ")");
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "섬 커스텀 역할이 없습니다." : "섬 역할: " + String.join(", ", entries);
     }
 
     private String joined(String[] args, int start) {

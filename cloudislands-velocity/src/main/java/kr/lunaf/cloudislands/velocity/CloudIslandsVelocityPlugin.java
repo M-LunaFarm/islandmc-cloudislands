@@ -645,6 +645,26 @@ public final class CloudIslandsVelocityPlugin {
             routingController.setRoleTarget(player, islandId, target, role);
             return;
         }
+        if (args[0].equalsIgnoreCase("roles") || args[0].equalsIgnoreCase("role-list") || args[0].equals("역할목록")) {
+            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            routingController.listRoles(player, islandId);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("role-upsert") || args[0].equalsIgnoreCase("role-edit") || args[0].equals("역할편집")) {
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            int roleIndex = hasOptionalIslandIdArgument(args, 1) ? 2 : 1;
+            IslandRole role = args.length > roleIndex ? parseRoleOrNull(args[roleIndex]) : null;
+            if (role == null || role == IslandRole.OWNER || !role.islandMemberRole()) {
+                player.sendMessage(Component.text("편집 가능한 멤버 역할을 입력해주세요. 예: CUSTOM_1"));
+                return;
+            }
+            int weightIndex = roleIndex + 1;
+            int displayIndex = roleIndex + 2;
+            int weight = args.length > weightIndex ? (int) parseLongOrZero(args[weightIndex]) : role.ordinal();
+            String displayName = args.length > displayIndex ? joinArgs(args, displayIndex) : role.name();
+            routingController.upsertRole(player, islandId, role, weight, displayName.isBlank() ? role.name() : displayName);
+            return;
+        }
         if (args[0].equalsIgnoreCase("transfer") || args[0].equals("양도")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             routingController.transferOwnershipTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""));
@@ -1093,6 +1113,9 @@ public final class CloudIslandsVelocityPlugin {
             if (first.equals("setpermission") || first.equals("permission-set") || first.equals("권한설정")) {
                 addLiteralSuggestions(matches, args[1], List.of("MEMBER", "TRUSTED", "MODERATOR", "VISITOR", "CUSTOM_1", "CUSTOM_2", "CUSTOM_3", "CUSTOM_4", "CUSTOM_5"));
             }
+            if (first.equals("role-upsert") || first.equals("role-edit") || first.equals("역할편집")) {
+                addLiteralSuggestions(matches, args[1], memberRoleNames());
+            }
             if (first.equals("setflag") || first.equals("flag-set") || first.equals("플래그설정")) {
                 addLiteralSuggestions(matches, args[1], List.of("FLY", "KEEP_INVENTORY", "PVP", "PUBLIC_WARPS"));
             }
@@ -1114,6 +1137,9 @@ public final class CloudIslandsVelocityPlugin {
         }
         if (args.length == 4 && (args[0].equalsIgnoreCase("setpermission") || args[0].equalsIgnoreCase("permission-set") || args[0].equals("권한설정"))) {
             addLiteralSuggestions(matches, args[3], List.of("true", "false", "on", "off", "허용", "거부"));
+        }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("role-upsert") || args[0].equalsIgnoreCase("role-edit") || args[0].equals("역할편집"))) {
+            addLiteralSuggestions(matches, args[2], List.of("1", "2", "3", "4", "5", "10"));
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("setflag") || args[0].equalsIgnoreCase("flag-set") || args[0].equals("플래그설정"))) {
             if (isUuid(args[1])) {

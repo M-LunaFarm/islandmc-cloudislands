@@ -541,6 +541,14 @@ public final class VelocityRoutingController {
         sendActionResult(player, coreApiClient.setIslandPermission(islandId, player.getUniqueId(), role, permission, allowed), "섬 권한을 변경했습니다.", "섬 권한을 변경하지 못했습니다.");
     }
 
+    public void listRoles(Player player, UUID islandId) {
+        sendBodyResult(player, coreApiClient.listIslandRoles(islandId).thenApply(this::roleListMessage), "섬 역할을 불러오지 못했습니다.");
+    }
+
+    public void upsertRole(Player player, UUID islandId, IslandRole role, int weight, String displayName) {
+        sendBodyResult(player, coreApiClient.upsertIslandRole(islandId, player.getUniqueId(), role, weight, displayName).thenApply(body -> "섬 역할 저장 완료: " + jsonValue(body, "role") + " weight=" + longValue(body, "weight") + " name=" + jsonValue(body, "displayName")), "섬 역할을 저장하지 못했습니다.");
+    }
+
     public void listIslandLogs(Player player, UUID islandId) {
         sendBodyResult(player, coreApiClient.listIslandLogs(islandId, 30).thenApply(this::islandLogListMessage), "섬 로그를 불러오지 못했습니다.");
     }
@@ -1258,6 +1266,12 @@ public final class VelocityRoutingController {
         return namedObjectListMessage("섬 권한", body, "rules", object -> jsonValue(object, "role")
             + ":" + jsonValue(object, "permission")
             + "=" + (boolValue(object, "allowed") ? "허용" : "거부"));
+    }
+
+    private String roleListMessage(String body) {
+        return namedObjectListMessage("섬 역할", body, "roles", object -> jsonValue(object, "role")
+            + " weight=" + longValue(object, "weight")
+            + " name=" + fallback(jsonValue(object, "displayName"), "-"));
     }
 
     private String islandLogListMessage(String body) {

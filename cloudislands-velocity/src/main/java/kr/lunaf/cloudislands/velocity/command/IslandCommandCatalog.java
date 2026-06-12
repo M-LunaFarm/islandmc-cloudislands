@@ -31,6 +31,8 @@ public final class IslandCommandCatalog {
             "섬 승급 <player>",
             "섬 강등 <player>",
             "섬 역할설정 <player> <role>",
+            "섬 역할목록 [islandUuid]",
+            "섬 역할편집 [islandUuid] <role> <weight> <displayName>",
             "섬 양도 <player>",
             "섬 신뢰 <player>",
             "섬 신뢰해제 <player>",
