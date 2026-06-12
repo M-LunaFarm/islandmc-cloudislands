@@ -461,7 +461,9 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 200, "{\"sessions\":" + sessions.toJson() + ",\"tickets\":" + tickets.toJson() + "}");
             } else {
                 PlayerRouteSession session = sessions.findAny(playerUuid).orElse(null);
-                write(exchange, session == null ? 404 : 200, session == null ? ApiResponses.error("ROUTE_SESSION_NOT_FOUND", "Route session was not found") : sessionJson(session));
+                RouteTicket ticket = tickets.findLatestForPlayer(playerUuid).orElse(null);
+                boolean found = session != null || ticket != null;
+                write(exchange, found ? 200 : 404, found ? routeDebugJson(playerUuid, session, ticket) : ApiResponses.error("ROUTE_ROUTE_NOT_FOUND", "Route session or ticket was not found"));
             }
         });
         route("/v1/admin/routes/ticket", exchange -> {
@@ -1534,6 +1536,13 @@ public final class CloudIslandsCoreApplication {
 
     private static String bankJson(kr.lunaf.cloudislands.api.model.IslandBankSnapshot bank) {
         return "{\"islandId\":\"" + bank.islandId() + "\",\"balance\":\"" + escape(bank.balance()) + "\",\"updatedAt\":\"" + bank.updatedAt() + "\"}";
+    }
+
+    private static String routeDebugJson(UUID playerUuid, PlayerRouteSession session, RouteTicket ticket) {
+        return "{\"playerUuid\":\"" + playerUuid
+            + "\",\"session\":" + (session == null ? "null" : sessionJson(session))
+            + ",\"ticket\":" + (ticket == null ? "null" : RoutingOrchestrator.toJson(ticket))
+            + "}";
     }
 
     private static String sessionJson(PlayerRouteSession session) {
