@@ -50,10 +50,18 @@ public final class IslandSnapshotMenu implements Listener {
             player.performCommand("섬 스냅샷");
             return;
         }
+        if (name.equals("설정")) {
+            player.performCommand("섬 설정");
+            return;
+        }
         String snapshotNo = loreValue(meta, "snapshotNo=");
         if (!snapshotNo.isBlank()) {
-            if (event.isRightClick()) {
+            if (event.isShiftClick() && event.isRightClick()) {
                 player.performCommand("섬 스냅샷복원 " + snapshotNo);
+                return;
+            }
+            if (event.isRightClick()) {
+                player.sendMessage("스냅샷 복원은 Shift+우클릭해야 실행됩니다.");
                 return;
             }
             player.sendMessage("스냅샷 상세");
@@ -78,12 +86,13 @@ public final class IslandSnapshotMenu implements Listener {
                     inventory.setItem(slot++, snapshotItem(snapshot));
                 }
             }
+            inventory.setItem(53, item(Material.COMPARATOR, "설정", "/섬 설정"));
             player.openInventory(inventory);
         });
     }
 
     private static ItemStack snapshotItem(Snapshot snapshot) {
-        return item(Material.PAPER, "스냅샷 #" + snapshot.snapshotNo(), "snapshotNo=" + snapshot.snapshotNo(), "reason=" + snapshot.reason(), "sizeBytes=" + snapshot.sizeBytes(), "createdAt=" + snapshot.createdAt(), "좌클릭: 상세 보기", "우클릭: 이 스냅샷 복원 요청");
+        return item(Material.PAPER, "스냅샷 #" + snapshot.snapshotNo(), "snapshotNo=" + snapshot.snapshotNo(), "reason=" + snapshot.reason(), "sizeBytes=" + snapshot.sizeBytes(), "createdAt=" + snapshot.createdAt(), "좌클릭: 상세 보기", "Shift+우클릭: 이 스냅샷 복원 요청");
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
