@@ -28,6 +28,30 @@ public final class JdbcRankingRepository implements RankingRepository {
     }
 
     @Override
+    public List<UUID> drainDirty(int limit) {
+        List<UUID> result = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement select = connection.prepareStatement("SELECT DISTINCT island_id FROM island_block_counts WHERE dirty = true LIMIT ?")) {
+            select.setInt(1, Math.max(1, limit));
+            try (ResultSet rs = select.executeQuery()) {
+                while (rs.next()) {
+                    result.add((UUID) rs.getObject("island_id"));
+                }
+            }
+            try (PreparedStatement update = connection.prepareStatement("UPDATE island_block_counts SET dirty = false WHERE island_id = ?")) {
+                for (UUID islandId : result) {
+                    update.setObject(1, islandId);
+                    update.addBatch();
+                }
+                update.executeBatch();
+            }
+            return result;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to drain dirty island rankings", exception);
+        }
+    }
+
+    @Override
     public void save(IslandRankSnapshot snapshot) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("INSERT INTO island_rank_snapshots(island_id, level, worth, member_count, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT (island_id) DO UPDATE SET level = EXCLUDED.level, worth = EXCLUDED.worth, member_count = EXCLUDED.member_count, updated_at = EXCLUDED.updated_at")) {

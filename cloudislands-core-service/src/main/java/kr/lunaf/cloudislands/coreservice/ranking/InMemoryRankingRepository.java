@@ -20,6 +20,13 @@ public final class InMemoryRankingRepository implements RankingRepository {
     }
 
     @Override
+    public List<UUID> drainDirty(int limit) {
+        List<UUID> drained = dirty.stream().limit(Math.max(1, limit)).toList();
+        dirty.removeAll(drained);
+        return drained;
+    }
+
+    @Override
     public void save(IslandRankSnapshot snapshot) {
         snapshots.put(snapshot.islandId(), snapshot);
         dirty.remove(snapshot.islandId());

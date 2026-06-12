@@ -64,6 +64,7 @@ import kr.lunaf.cloudislands.coreservice.permission.JdbcIslandPermissionRuleRepo
 import kr.lunaf.cloudislands.coreservice.profile.InMemoryPlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.profile.JdbcPlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
+import kr.lunaf.cloudislands.coreservice.ranking.DirtyRankingRecalculationTask;
 import kr.lunaf.cloudislands.coreservice.ranking.InMemoryIslandLevelRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.InMemoryRankingRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.IslandLevelRepository;
@@ -130,6 +131,7 @@ public final class CloudIslandsCoreApplication {
     private final IslandJobQueue jobs;
     private final GlobalEventPublisher events;
     private final IslandSnapshotRepository snapshotRepository;
+    private final DirtyRankingRecalculationTask rankingRecalculationTask;
 
     public CloudIslandsCoreApplication(int port) throws IOException {
         this(CoreServiceConfig.fromEnvironment().withPort(port));
@@ -167,6 +169,7 @@ public final class CloudIslandsCoreApplication {
         IslandLevelRepository levelRepository = config.jdbcRepositories() ? new JdbcIslandLevelRepository(dataSource) : new InMemoryIslandLevelRepository();
         kr.lunaf.cloudislands.coreservice.ranking.ConfigBlockValues.load(config.blockValuesFile()).forEach(levelRepository::putBlockValue);
         RankingRecalculationService levelRecalculation = new RankingRecalculationService(rankingRepository, events);
+        this.rankingRecalculationTask = new DirtyRankingRecalculationTask(rankingRepository, levelRepository, metadataRepository, levelRecalculation);
         IslandUpgradeRepository upgradeRepository = config.jdbcRepositories() ? new JdbcIslandUpgradeRepository(dataSource) : new InMemoryIslandUpgradeRepository();
         UpgradePolicy upgradePolicy = ConfigUpgradePolicy.load(config.upgradesFile());
         IslandBankRepository bankRepository = config.jdbcRepositories() ? new JdbcIslandBankRepository(dataSource) : new InMemoryIslandBankRepository();
@@ -1293,6 +1296,7 @@ public final class CloudIslandsCoreApplication {
     public void start() {
         server.start();
         nodeFailureMonitor.start();
+        rankingRecalculationTask.start();
     }
 
     public static void main(String[] args) throws IOException {
