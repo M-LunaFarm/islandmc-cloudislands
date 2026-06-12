@@ -42,12 +42,25 @@ public final class IslandPermissionMenu implements Listener {
         if (meta == null) {
             return;
         }
+        String displayName = meta.getDisplayName();
+        player.closeInventory();
+        if ("권한 목록".equals(displayName)) {
+            player.performCommand("섬 권한목록");
+            return;
+        }
+        if ("새로고침".equals(displayName)) {
+            player.performCommand("섬 권한");
+            return;
+        }
+        if ("설정".equals(displayName)) {
+            player.performCommand("섬 설정");
+            return;
+        }
         String role = loreValue(meta, "role=");
         String permission = loreValue(meta, "permission=");
         if (role.isBlank() || permission.isBlank()) {
             return;
         }
-        player.closeInventory();
         player.performCommand("섬 권한설정 " + role + " " + permission + " " + (!event.isRightClick()));
     }
 
@@ -61,6 +74,9 @@ public final class IslandPermissionMenu implements Listener {
                 }
                 slot += 2;
             }
+            inventory.setItem(31, item(Material.PAPER, "권한 목록", "/섬 권한목록"));
+            inventory.setItem(32, item(Material.CLOCK, "새로고침", "/섬 권한"));
+            inventory.setItem(33, item(Material.COMPARATOR, "설정", "/섬 설정"));
             int summarySlot = 36;
             for (Rule rule : rules.stream().limit(18).toList()) {
                 inventory.setItem(summarySlot++, ruleItem(rule.role(), rule.permission(), rule.allowed()));
