@@ -605,7 +605,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 sender.sendMessage("사용법: /ciadmin template|templates upsert <id> <name> [enabled] [minNodeVersion]");
                 return true;
             }
-            boolean enabled = args.length < 5 || Boolean.parseBoolean(args[4]);
+            boolean enabled = args.length < 5 || booleanArgument(args[4], false);
             String minNodeVersion = args.length > 5 ? args[5] : "";
             run(sender, "Template upsert", coreApiClient.upsertTemplate(args[2], args[3], enabled, minNodeVersion).thenApply(body -> actionResultMessage("Template upsert", args[2], body)));
             return true;
@@ -1933,6 +1933,20 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         } catch (NumberFormatException exception) {
             return fallback;
         }
+    }
+
+    private boolean booleanArgument(String value, boolean fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        String normalized = value.toLowerCase(Locale.ROOT);
+        if (normalized.equals("true") || normalized.equals("yes") || normalized.equals("on") || normalized.equals("1") || normalized.equals("enable") || normalized.equals("enabled") || normalized.equals("켜기") || normalized.equals("활성")) {
+            return true;
+        }
+        if (normalized.equals("false") || normalized.equals("no") || normalized.equals("off") || normalized.equals("0") || normalized.equals("disable") || normalized.equals("disabled") || normalized.equals("끄기") || normalized.equals("비활성")) {
+            return false;
+        }
+        return fallback;
     }
 
     private String joined(String[] args, int start) {
