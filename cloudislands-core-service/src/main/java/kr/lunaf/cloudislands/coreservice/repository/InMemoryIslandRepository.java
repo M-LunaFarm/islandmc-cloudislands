@@ -58,6 +58,9 @@ public final class InMemoryIslandRepository implements IslandRepository {
             throw new IllegalStateException("island not found");
         }
         byIslandId.put(islandId, new IslandSnapshot(island.islandId(), island.ownerUuid(), island.name(), state, island.size(), island.level(), island.worth(), island.publicAccess(), island.createdAt(), Instant.now()));
+        if (state == IslandState.DELETED) {
+            byOwner.remove(island.ownerUuid(), islandId);
+        }
     }
 
     @Override

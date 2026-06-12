@@ -105,7 +105,10 @@ public final class JdbcIslandRepository implements IslandRepository {
     public void setState(UUID islandId, IslandState state) {
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
-            try (PreparedStatement island = connection.prepareStatement("UPDATE islands SET state = ?, updated_at = now() WHERE id = ? AND deleted_at IS NULL")) {
+            String islandSql = state == IslandState.DELETED
+                ? "UPDATE islands SET state = ?, deleted_at = now(), updated_at = now() WHERE id = ? AND deleted_at IS NULL"
+                : "UPDATE islands SET state = ?, updated_at = now() WHERE id = ? AND deleted_at IS NULL";
+            try (PreparedStatement island = connection.prepareStatement(islandSql)) {
                 island.setString(1, state.name());
                 island.setObject(2, islandId);
                 if (island.executeUpdate() == 0) {
