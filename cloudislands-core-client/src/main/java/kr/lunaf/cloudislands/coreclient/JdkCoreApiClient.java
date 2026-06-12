@@ -479,7 +479,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<String> publishRouteSessionResult(RouteTicket ticket) {
         String targetServerName = ticket.payload().getOrDefault("targetServerName", ticket.targetNode());
-        return postWithResultBody("/v1/routes/session", "{\"playerUuid\":\"" + ticket.playerUuid() + "\",\"ticketId\":\"" + ticket.ticketId() + "\",\"targetNode\":\"" + ticket.targetNode() + "\",\"targetServerName\":\"" + targetServerName + "\",\"nonce\":\"" + ticket.nonce() + "\",\"expiresAt\":\"" + ticket.expiresAt() + "\"}");
+        return postWithResultBody("/v1/routes/session", "{\"playerUuid\":\"" + ticket.playerUuid() + "\",\"ticketId\":\"" + ticket.ticketId() + "\",\"targetNode\":\"" + escape(ticket.targetNode()) + "\",\"targetServerName\":\"" + escape(targetServerName) + "\",\"nonce\":\"" + escape(ticket.nonce()) + "\",\"expiresAt\":\"" + ticket.expiresAt() + "\"}");
     }
 
     @Override
