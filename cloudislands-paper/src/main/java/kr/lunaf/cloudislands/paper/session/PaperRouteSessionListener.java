@@ -57,6 +57,8 @@ public final class PaperRouteSessionListener implements Listener {
         }).exceptionally(error -> {
             if (attempt < 6) {
                 Bukkit.getScheduler().runTaskLater(plugin, () -> consumeSession(playerUuid, attempt + 1), 10L);
+            } else if (requireRouteSession) {
+                rejectDirectJoin(playerUuid);
             } else {
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     var player = Bukkit.getPlayer(playerUuid);
