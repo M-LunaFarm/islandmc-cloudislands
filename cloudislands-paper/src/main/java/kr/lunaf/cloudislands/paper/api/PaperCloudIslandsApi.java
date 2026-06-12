@@ -1309,7 +1309,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             bool(json, "storageAvailable", false),
             text(json, "supportedTemplates", ""),
             instant(text(json, "lastHeartbeat", Instant.EPOCH.toString())),
-            decimal(json, "score", 0.0D)
+            decimal(json, "score", 0.0D),
+            decimalMap(json, "scoreBreakdown")
         ));
     }
 
@@ -1558,6 +1559,60 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 break;
             }
             values.put(key, unescape(object.substring(valueStart + 1, valueEnd)));
+            cursor = valueEnd + 1;
+        }
+        return Map.copyOf(values);
+    }
+
+    private static Map<String, Double> decimalMap(String json, String field) {
+        String needle = "\"" + field + "\":{";
+        int start = json.indexOf(needle);
+        if (start < 0) {
+            return Map.of();
+        }
+        int index = start + needle.length();
+        int depth = 1;
+        while (index < json.length() && depth > 0) {
+            char ch = json.charAt(index);
+            if (ch == '{') {
+                depth++;
+            } else if (ch == '}') {
+                depth--;
+            }
+            index++;
+        }
+        if (depth != 0) {
+            return Map.of();
+        }
+        String object = json.substring(start + needle.length(), index - 1);
+        java.util.LinkedHashMap<String, Double> values = new java.util.LinkedHashMap<>();
+        int cursor = 0;
+        while (cursor < object.length()) {
+            while (cursor < object.length() && (object.charAt(cursor) == ',' || Character.isWhitespace(object.charAt(cursor)))) {
+                cursor++;
+            }
+            if (cursor >= object.length() || object.charAt(cursor) != '"') {
+                break;
+            }
+            int keyEnd = nextQuote(object, cursor + 1);
+            if (keyEnd < 0) {
+                break;
+            }
+            String key = unescape(object.substring(cursor + 1, keyEnd));
+            int separator = object.indexOf(':', keyEnd + 1);
+            if (separator < 0) {
+                break;
+            }
+            int valueStart = separator + 1;
+            int valueEnd = valueStart;
+            while (valueEnd < object.length() && object.charAt(valueEnd) != ',') {
+                valueEnd++;
+            }
+            try {
+                values.put(key, Double.parseDouble(object.substring(valueStart, valueEnd).replace("\"", "").trim()));
+            } catch (NumberFormatException ignored) {
+                values.put(key, 0.0D);
+            }
             cursor = valueEnd + 1;
         }
         return Map.copyOf(values);
