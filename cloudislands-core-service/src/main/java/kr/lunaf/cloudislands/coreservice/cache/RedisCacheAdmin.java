@@ -14,6 +14,7 @@ public final class RedisCacheAdmin {
         "ci:player-name:*:profile",
         "ci:player:*:route-ticket",
         "ci:route-ticket:*",
+        "ci:route-ticket-counts",
         "ci:player:*:route-session",
         "ci:lock:player-create:*",
         "ci:island:*:summary",

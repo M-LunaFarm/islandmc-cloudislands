@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 
 public final class CachingRouteTicketStore implements RouteTicketStore {
+    private static final long COUNTS_CACHE_TTL_MILLIS = 5_000L;
     private final RouteTicketStore delegate;
     private final URI redisUri;
     private final AtomicLong failures = new AtomicLong();
@@ -28,7 +29,9 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
 
     @Override
     public RouteTicket save(RouteTicket ticket) {
-        return cache(delegate.save(ticket));
+        RouteTicket saved = cache(delegate.save(ticket));
+        invalidateTicketCounts();
+        return saved;
     }
 
     @Override
@@ -36,6 +39,7 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
         int updated = delegate.markReadyForIsland(islandId, targetNode, targetWorld, expiresAt, payload);
         if (updated > 0) {
             cacheTicketsJson();
+            invalidateTicketCounts();
         }
         return updated;
     }
@@ -44,13 +48,19 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
     public List<RouteTicket> markFailedForIsland(UUID islandId, String targetNode, String reason) {
         List<RouteTicket> failed = delegate.markFailedForIsland(islandId, targetNode, reason);
         failed.forEach(this::cache);
+        if (!failed.isEmpty()) {
+            invalidateTicketCounts();
+        }
         return failed;
     }
 
     @Override
     public Optional<RouteTicket> consume(UUID ticketId, UUID playerUuid, String nodeId, String nonce) {
         Optional<RouteTicket> ticket = delegate.consume(ticketId, playerUuid, nodeId, nonce);
-        ticket.ifPresent(this::cache);
+        ticket.ifPresent(consumed -> {
+            cache(consumed);
+            invalidateTicketCounts();
+        });
         return ticket;
     }
 
@@ -78,13 +88,22 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
 
     @Override
     public Map<String, Long> countsByState() {
-        return delegate.countsByState();
+        Optional<Map<String, Long>> cached = cachedCountsByState();
+        if (cached.isPresent()) {
+            return cached.get();
+        }
+        Map<String, Long> counts = delegate.countsByState();
+        cacheCountsByState(counts);
+        return counts;
     }
 
     @Override
     public List<RouteTicket> expireStale() {
         List<RouteTicket> expired = delegate.expireStale();
-        expired.forEach(this::cache);
+        expired.forEach(this::deleteCachedTicket);
+        if (!expired.isEmpty()) {
+            invalidateTicketCounts();
+        }
         return expired;
     }
 
@@ -97,6 +116,9 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
         boolean cleared = delegate.clear(ticketId);
         ticket.map(RouteTicket::playerUuid).ifPresent(this::deletePlayerTicket);
         deleteTicket(ticketId);
+        if (cleared || ticket.isPresent()) {
+            invalidateTicketCounts();
+        }
         return cleared;
     }
 
@@ -104,6 +126,7 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
     public int clearAll() {
         int cleared = delegate.clearAll();
         clearTicketCaches();
+        invalidateTicketCounts();
         return cleared;
     }
 
@@ -143,9 +166,15 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
         }
     }
 
+    private void deleteCachedTicket(RouteTicket ticket) {
+        deletePlayerTicket(ticket.playerUuid());
+        deleteTicket(ticket.ticketId());
+    }
+
     private void clearTicketCaches() {
         deletePattern("ci:player:*:route-ticket");
         deletePattern("ci:route-ticket:*");
+        invalidateTicketCounts();
     }
 
     private void deletePattern(String pattern) {
@@ -241,6 +270,35 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
         }
     }
 
+    private Optional<Map<String, Long>> cachedCountsByState() {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            String json = redis.command("GET", RedisKeys.routeTicketCounts());
+            if (json == null || json.isBlank()) {
+                return Optional.empty();
+            }
+            return Optional.of(countsFromJson(json));
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+            return Optional.empty();
+        }
+    }
+
+    private void cacheCountsByState(Map<String, Long> counts) {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            redis.command("SET", RedisKeys.routeTicketCounts(), countsJson(counts), "PX", Long.toString(COUNTS_CACHE_TTL_MILLIS));
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+        }
+    }
+
+    private void invalidateTicketCounts() {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            redis.command("DEL", RedisKeys.routeTicketCounts());
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+        }
+    }
+
     private static RouteTicket ticketFromJson(String json) {
         return new RouteTicket(
             JsonFields.uuid(json, "ticketId", new UUID(0L, 0L)),
@@ -262,6 +320,59 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
         } catch (RuntimeException ignored) {
             return Instant.EPOCH;
         }
+    }
+
+    private static Map<String, Long> countsFromJson(String json) {
+        java.util.LinkedHashMap<String, Long> counts = zeroCounts();
+        String trimmed = json == null ? "" : json.trim();
+        if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+            trimmed = trimmed.substring(1, trimmed.length() - 1).trim();
+        }
+        if (trimmed.isBlank()) {
+            return Map.copyOf(counts);
+        }
+        for (String pair : trimmed.split(",")) {
+            int colon = pair.indexOf(':');
+            if (colon <= 0) {
+                continue;
+            }
+            String key = unquote(pair.substring(0, colon));
+            try {
+                counts.put(key, Long.parseLong(pair.substring(colon + 1).trim()));
+            } catch (NumberFormatException ignored) {
+                counts.put(key, 0L);
+            }
+        }
+        return Map.copyOf(counts);
+    }
+
+    private static String countsJson(Map<String, Long> counts) {
+        StringBuilder builder = new StringBuilder("{");
+        boolean first = true;
+        for (RouteTicketState state : RouteTicketState.values()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('"').append(state.name()).append("\":").append(counts.getOrDefault(state.name(), 0L));
+        }
+        return builder.append('}').toString();
+    }
+
+    private static java.util.LinkedHashMap<String, Long> zeroCounts() {
+        java.util.LinkedHashMap<String, Long> counts = new java.util.LinkedHashMap<>();
+        for (RouteTicketState state : RouteTicketState.values()) {
+            counts.put(state.name(), 0L);
+        }
+        return counts;
+    }
+
+    private static String unquote(String value) {
+        String trimmed = value == null ? "" : value.trim();
+        if (trimmed.startsWith("\"") && trimmed.endsWith("\"") && trimmed.length() >= 2) {
+            trimmed = trimmed.substring(1, trimmed.length() - 1);
+        }
+        return trimmed.replace("\\\"", "\"").replace("\\\\", "\\");
     }
 
     private static int matchingObjectEnd(String json, int objectStart) {
