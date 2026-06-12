@@ -120,12 +120,17 @@ public final class MigrationAdminService {
         }
     }
 
-    private Map<java.util.UUID, MigrationWorldBundle> verifyMigrationBundles(List<MigrationManifest> manifests) {
+    private BundlePreflight preflightMigrationBundles(List<MigrationManifest> manifests) {
         Map<java.util.UUID, MigrationWorldBundle> bundles = new HashMap<>();
+        List<MigrationIssue> issues = new ArrayList<>();
         for (MigrationManifest manifest : manifests) {
-            bundles.put(manifest.islandId(), verifyMigrationBundle(manifest));
+            try {
+                bundles.put(manifest.islandId(), verifyMigrationBundle(manifest));
+            } catch (RuntimeException exception) {
+                issues.add(new MigrationIssue("MIGRATION_BUNDLE_PREFLIGHT_FAILED", manifest.islandId() + ": " + exception.getMessage(), true));
+            }
         }
-        return bundles;
+        return new BundlePreflight(bundles, issues);
     }
 
     private void recordMigrationBundleSnapshot(MigrationManifest manifest, MigrationWorldBundle bundle) {
@@ -172,7 +177,11 @@ public final class MigrationAdminService {
             return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\",\"imported\":false,\"importedIslands\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
         }
         long[] extractedStats = new long[] {0L, 0L, 0L};
-        Map<java.util.UUID, MigrationWorldBundle> preflightBundles = verifyMigrationBundles(lastPlan.manifests());
+        BundlePreflight preflight = preflightMigrationBundles(lastPlan.manifests());
+        if (!preflight.issues().isEmpty()) {
+            return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\",\"imported\":false,\"importedIslands\":0,\"extractedBundles\":0,\"extractedFiles\":0,\"extractedBytes\":0" + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), preflight.issues())) + ",\"issues\":" + issuesJson(preflight.issues()) + "}";
+        }
+        Map<java.util.UUID, MigrationWorldBundle> preflightBundles = preflight.bundles();
         CloudIslandsMigrationImporter.ImportResult result = importer.importPlan(lastPlan, manifest -> {
             MigrationWorldBundle bundle = preflightBundles.get(manifest.islandId());
             if (bundle == null) {
@@ -240,6 +249,8 @@ public final class MigrationAdminService {
         MigrationRunState state = result.imported() ? MigrationRunState.IMPORTED : MigrationRunState.DRY_RUN_FAILED;
         return "{\"state\":\"" + state + "\",\"imported\":" + result.imported() + ",\"importedIslands\":" + result.importedIslands() + ",\"extractedBundles\":" + extractedStats[0] + ",\"extractedFiles\":" + extractedStats[1] + ",\"extractedBytes\":" + extractedStats[2] + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), result.issues())) + ",\"issues\":" + issuesJson(result.issues()) + ",\"rollbackPlan\":" + rollbackPlanJson(result.rollbackPlan()) + "}";
     }
+
+    private record BundlePreflight(Map<java.util.UUID, MigrationWorldBundle> bundles, List<MigrationIssue> issues) {}
 
     public synchronized String verify() {
         List<MigrationManifest> imported = new ArrayList<>();
