@@ -452,6 +452,10 @@ public final class CloudIslandsVelocityPlugin {
             sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands(), commandListPage(args), "섬 command list");
             return;
         }
+        if (args.length > 0 && (args[0].equalsIgnoreCase("menu") || args[0].equals("메뉴"))) {
+            sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands(), 1, "섬 command list");
+            return;
+        }
         if (args.length == 0 || args[0].equalsIgnoreCase("home") || args[0].equals("홈")) {
             player.sendActionBar(Component.text("섬을 준비하는 중입니다."));
             routingController.routeHome(player, args.length > 1 ? args[1] : "default");
