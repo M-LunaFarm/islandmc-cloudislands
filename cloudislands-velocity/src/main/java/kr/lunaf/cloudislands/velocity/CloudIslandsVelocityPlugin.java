@@ -687,7 +687,11 @@ public final class CloudIslandsVelocityPlugin {
         }
         if (args[0].equalsIgnoreCase("challenge") || args[0].equals("challenges") || args[0].equals("챌린지")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            routingController.listChallenges(player, islandId);
+            if (args.length > 2) {
+                routingController.completeChallenge(player, islandId, args[2]);
+            } else {
+                routingController.listChallenges(player, islandId);
+            }
             return;
         }
         if (args[0].equalsIgnoreCase("chat") || args[0].equals("채팅")) {

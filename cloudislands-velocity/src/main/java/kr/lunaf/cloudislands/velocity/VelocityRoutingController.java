@@ -534,7 +534,11 @@ public final class VelocityRoutingController {
     }
 
     public void completeMission(Player player, UUID islandId, String missionKey) {
-        sendPlayerPayloadFuture(player, coreApiClient.completeIslandMission(islandId, player.getUniqueId(), missionKey), "미션을 완료하지 못했습니다.", "미션을 완료했습니다.");
+        sendPlayerPayloadFuture(player, coreApiClient.completeIslandMission(islandId, player.getUniqueId(), missionKey, "MISSION"), "미션을 완료하지 못했습니다.", "미션을 완료했습니다.");
+    }
+
+    public void completeChallenge(Player player, UUID islandId, String missionKey) {
+        sendPlayerPayloadFuture(player, coreApiClient.completeIslandMission(islandId, player.getUniqueId(), missionKey, "CHALLENGE"), "챌린지를 완료하지 못했습니다.", "챌린지를 완료했습니다.");
     }
 
     public void listLimits(Player player, UUID islandId) {

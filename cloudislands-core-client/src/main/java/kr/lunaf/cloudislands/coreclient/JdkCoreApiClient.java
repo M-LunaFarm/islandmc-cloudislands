@@ -359,7 +359,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> completeIslandMission(UUID islandId, UUID actorUuid, String missionKey) {
-        return postWithResultBody("/v1/islands/missions/complete", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"missionKey\":\"" + escape(missionKey) + "\"}");
+        return completeIslandMission(islandId, actorUuid, missionKey, "MISSION");
+    }
+
+    @Override
+    public CompletableFuture<String> completeIslandMission(UUID islandId, UUID actorUuid, String missionKey, String kind) {
+        return postWithResultBody("/v1/islands/missions/complete", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"missionKey\":\"" + escape(missionKey) + "\",\"kind\":\"" + escape(kind) + "\"}");
     }
 
     @Override

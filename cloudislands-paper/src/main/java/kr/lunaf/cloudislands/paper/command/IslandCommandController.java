@@ -1218,16 +1218,16 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private void completeIslandMission(Player player, String missionKey) {
-        completeIslandTask(player, missionKey, "섬 미션");
+        completeIslandTask(player, missionKey, "MISSION", "섬 미션");
     }
 
     private void completeIslandChallenge(Player player, String missionKey) {
-        completeIslandTask(player, missionKey, "섬 챌린지");
+        completeIslandTask(player, missionKey, "CHALLENGE", "섬 챌린지");
     }
 
-    private void completeIslandTask(Player player, String missionKey, String label) {
+    private void completeIslandTask(Player player, String missionKey, String kind, String label) {
         currentIsland(player, "섬 안에서만 " + label + "을 완료할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.completeIslandMission(islandId, player.getUniqueId(), missionKey)
+            coreApiClient.completeIslandMission(islandId, player.getUniqueId(), missionKey, kind)
                 .thenAccept(body -> {
                     String title = text(body, "title");
                     String reward = text(body, "reward");

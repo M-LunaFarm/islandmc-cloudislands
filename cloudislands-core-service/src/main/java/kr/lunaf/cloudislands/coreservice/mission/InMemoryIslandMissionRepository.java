@@ -23,11 +23,11 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
     }
 
     @Override
-    public Optional<IslandMissionSnapshot> complete(UUID islandId, UUID actorUuid, String missionKey) {
+    public Optional<IslandMissionSnapshot> complete(UUID islandId, UUID actorUuid, String missionKey, String kind) {
         ensureDefaults(islandId);
         Map<String, IslandMissionSnapshot> islandMissions = missions.getOrDefault(islandId, Map.of());
         IslandMissionSnapshot current = islandMissions.get(missionKey.toLowerCase());
-        if (current == null) {
+        if (current == null || !current.kind().equals(MissionCatalog.normalizeKind(kind))) {
             return Optional.empty();
         }
         IslandMissionSnapshot completed = new IslandMissionSnapshot(islandId, current.missionKey(), current.kind(), current.title(), current.goal(), current.goal(), true, current.reward(), Instant.now());

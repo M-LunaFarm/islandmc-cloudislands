@@ -38,13 +38,14 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
     }
 
     @Override
-    public Optional<IslandMissionSnapshot> complete(UUID islandId, UUID actorUuid, String missionKey) {
+    public Optional<IslandMissionSnapshot> complete(UUID islandId, UUID actorUuid, String missionKey, String kind) {
         ensureDefaults(islandId);
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE island_missions SET progress = goal, completed = true, updated_by = ?, updated_at = now() WHERE island_id = ? AND mission_key = ? RETURNING island_id, mission_key, kind, title, progress, goal, completed, reward, updated_at")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE island_missions SET progress = goal, completed = true, updated_by = ?, updated_at = now() WHERE island_id = ? AND mission_key = ? AND kind = ? RETURNING island_id, mission_key, kind, title, progress, goal, completed, reward, updated_at")) {
             statement.setObject(1, actorUuid);
             statement.setObject(2, islandId);
             statement.setString(3, missionKey.toLowerCase());
+            statement.setString(4, MissionCatalog.normalizeKind(kind));
             try (ResultSet rs = statement.executeQuery()) {
                 return rs.next() ? Optional.of(snapshot(rs)) : Optional.empty();
             }
