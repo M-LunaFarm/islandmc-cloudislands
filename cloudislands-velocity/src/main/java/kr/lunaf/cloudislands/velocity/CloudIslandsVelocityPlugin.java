@@ -699,7 +699,7 @@ public final class CloudIslandsVelocityPlugin {
             int roleIndex = hasOptionalIslandIdArgument(args, 1) ? 2 : 1;
             IslandRole role = args.length > roleIndex ? parseRole(args[roleIndex]) : IslandRole.MEMBER;
             IslandPermission permission = args.length > roleIndex + 1 ? parsePermission(args[roleIndex + 1]) : IslandPermission.BUILD;
-            boolean allowed = args.length > roleIndex + 2 && Boolean.parseBoolean(args[roleIndex + 2]);
+            boolean allowed = parseToggle(args, roleIndex + 2, false);
             routingController.setPermission(player, islandId, role, permission, allowed);
             return;
         }
@@ -973,11 +973,14 @@ public final class CloudIslandsVelocityPlugin {
         if (args.length <= index) {
             return fallback;
         }
-        String value = args[index];
-        return value.equalsIgnoreCase("on")
-            || value.equalsIgnoreCase("true")
-            || value.equalsIgnoreCase("yes")
-            || value.equals("켜기");
+        String value = args[index].toLowerCase(Locale.ROOT);
+        if (value.equals("on") || value.equals("true") || value.equals("yes") || value.equals("1") || value.equals("켜기") || value.equals("허용")) {
+            return true;
+        }
+        if (value.equals("off") || value.equals("false") || value.equals("no") || value.equals("0") || value.equals("끄기") || value.equals("거부")) {
+            return false;
+        }
+        return Boolean.parseBoolean(args[index]);
     }
 
     private List<String> suggestions(List<String> catalog, String root, String[] args) {
