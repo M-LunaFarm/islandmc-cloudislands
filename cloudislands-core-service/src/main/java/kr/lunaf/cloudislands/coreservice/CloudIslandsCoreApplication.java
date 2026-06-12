@@ -1029,7 +1029,7 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
             BigDecimal amount = amount(body);
-            if (!requireMember(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.DEPOSIT_BANK)) {
                 return;
             }
             if (amount.signum() <= 0) {
