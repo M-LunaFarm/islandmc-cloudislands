@@ -37,6 +37,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private static final List<String> NODE_DANGER_REASONS = List.of("maintenance", "restart", "drain");
     private static final List<String> HELP_COMMANDS = List.of(
         "ciadmin status",
+        "ciadmin help [page]",
+        "ciadmin command list [page]",
         "ciadmin cache clear",
         "ciadmin node menu",
         "ciadmin node list",
