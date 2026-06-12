@@ -1210,7 +1210,7 @@ public final class VelocityRoutingController {
     private String permissionListMessage(String body) {
         return namedObjectListMessage("섬 권한", body, "rules", object -> jsonValue(object, "role")
             + ":" + jsonValue(object, "permission")
-            + "=" + boolValue(object, "allowed"));
+            + "=" + (boolValue(object, "allowed") ? "허용" : "거부"));
     }
 
     private String islandLogListMessage(String body) {
@@ -1283,8 +1283,8 @@ public final class VelocityRoutingController {
     }
 
     private String limitListMessage(String body) {
-        return namedObjectListMessage("Limits", body, "limits", object -> jsonValue(object, "limitKey")
-            + "=" + longValue(object, "value"));
+        return namedObjectListMessage("섬 제한", body, "limits", object -> jsonValue(object, "limitKey")
+            + " 값=" + longValue(object, "value"));
     }
 
     private String limitResultMessage(String body) {
@@ -2046,7 +2046,7 @@ public final class VelocityRoutingController {
     private String snapshotListMessage(String body) {
         String snapshots = arrayValue(body, "snapshots");
         if (snapshots.isBlank()) {
-            return "Snapshots: empty";
+            return "섬 스냅샷이 없습니다.";
         }
         java.util.List<String> entries = new java.util.ArrayList<>();
         int index = 0;
@@ -2066,13 +2066,13 @@ public final class VelocityRoutingController {
                 long sizeBytes = longValue(object, "sizeBytes");
                 String createdAt = jsonValue(object, "createdAt");
                 entries.add("#" + snapshotNo
-                    + (reason.isBlank() ? "" : " " + reason)
-                    + " size=" + sizeBytes
-                    + (createdAt.isBlank() ? "" : " at=" + createdAt));
+                    + (reason.isBlank() ? "" : " 사유=" + reason)
+                    + " 크기=" + sizeBytes
+                    + (createdAt.isBlank() ? "" : " 생성=" + createdAt));
             }
             index = objectEnd + 1;
         }
-        return entries.isEmpty() ? "Snapshots: empty" : "Snapshots: " + String.join(" | ", entries);
+        return entries.isEmpty() ? "섬 스냅샷이 없습니다." : "섬 스냅샷: " + String.join(" | ", entries);
     }
 
     private void collectSessionSummaries(String sessions, java.util.List<String> entries, int limit) {

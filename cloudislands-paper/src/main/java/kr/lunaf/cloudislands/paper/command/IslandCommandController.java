@@ -2427,7 +2427,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             String object = body.substring(objectStart, objectEnd + 1);
             String key = text(object, "limitKey");
             if (!key.isBlank()) {
-                entries.add(key + "=" + (long) decimal(object, "value"));
+                entries.add(key + " 값=" + (long) decimal(object, "value"));
             }
             index = objectEnd + 1;
         }
@@ -2450,7 +2450,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             long snapshotNo = (long) decimal(object, "snapshotNo");
             if (snapshotNo > 0L) {
                 String reason = text(object, "reason");
-                entries.add("#" + snapshotNo + (reason.isBlank() ? "" : " " + reason));
+                entries.add("#" + snapshotNo + (reason.isBlank() ? "" : " 사유=" + reason));
             }
             index = objectEnd + 1;
         }
@@ -2576,7 +2576,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             String role = text(object, "role");
             String permission = text(object, "permission");
             if (!role.isBlank() && !permission.isBlank()) {
-                entries.add(role + ":" + permission + "=" + bool(object, "allowed"));
+                entries.add(role + ":" + permission + "=" + (bool(object, "allowed") ? "허용" : "거부"));
             }
             index = objectEnd + 1;
         }
