@@ -145,6 +145,7 @@ public interface CoreApiClient {
     CompletableFuture<String> clearRouteResult(UUID playerUuid, UUID ticketId);
     CompletableFuture<String> listEvents();
     CompletableFuture<String> listEvents(int limit);
+    CompletableFuture<String> listEventsSince(long sinceSeq, int limit);
     CompletableFuture<String> listAuditLogs();
     CompletableFuture<String> metrics();
     CompletableFuture<String> clearCache();

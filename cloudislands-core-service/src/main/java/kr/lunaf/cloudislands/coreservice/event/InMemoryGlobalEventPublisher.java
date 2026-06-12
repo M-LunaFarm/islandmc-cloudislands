@@ -12,10 +12,11 @@ import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 public final class InMemoryGlobalEventPublisher implements GlobalEventPublisher {
     private static final int MAX_EVENTS = 4096;
     private final List<EventRecord> events = new ArrayList<>();
+    private long nextSequence = 1L;
 
     @Override
     public synchronized void publish(String eventType, Map<String, String> fields) {
-        events.add(new EventRecord(eventType, enrichedFields(eventType, fields), Instant.now()));
+        events.add(new EventRecord(nextSequence++, eventType, enrichedFields(eventType, fields), Instant.now()));
         while (events.size() > MAX_EVENTS) {
             events.remove(0);
         }
@@ -26,8 +27,16 @@ public final class InMemoryGlobalEventPublisher implements GlobalEventPublisher 
     }
 
     public synchronized String toJson(int limit) {
+        return toJson(limit, 0L);
+    }
+
+    public synchronized String toJson(int limit, long sinceSequence) {
         int safeLimit = Math.max(1, Math.min(limit, MAX_EVENTS));
-        int from = Math.max(0, events.size() - safeLimit);
+        int firstAfterSequence = 0;
+        while (firstAfterSequence < events.size() && events.get(firstAfterSequence).sequence() <= sinceSequence) {
+            firstAfterSequence++;
+        }
+        int from = Math.max(firstAfterSequence, events.size() - safeLimit);
         StringBuilder builder = new StringBuilder("{\"events\":[");
         boolean first = true;
         for (int i = from; i < events.size(); i++) {
@@ -37,6 +46,7 @@ public final class InMemoryGlobalEventPublisher implements GlobalEventPublisher 
             }
             first = false;
             builder.append('{')
+                .append("\"seq\":").append(event.sequence()).append(',')
                 .append("\"type\":\"").append(event.type()).append("\",")
                 .append("\"fields\":").append(fieldsJson(event.fields())).append(',')
                 .append("\"occurredAt\":\"").append(event.occurredAt()).append("\"")
@@ -124,5 +134,5 @@ public final class InMemoryGlobalEventPublisher implements GlobalEventPublisher 
         return builder.toString();
     }
 
-    public record EventRecord(String type, Map<String, String> fields, Instant occurredAt) {}
+    public record EventRecord(long sequence, String type, Map<String, String> fields, Instant occurredAt) {}
 }

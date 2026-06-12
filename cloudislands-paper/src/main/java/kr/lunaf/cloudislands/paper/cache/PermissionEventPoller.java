@@ -34,6 +34,7 @@ public final class PermissionEventPoller {
     private final String fallbackServerName;
     private final Set<String> seen = ConcurrentHashMap.newKeySet();
     private final Deque<String> seenOrder = new ArrayDeque<>();
+    private long lastEventSequence;
     private BukkitTask task;
 
     public PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, GeneratorLevelCache generatorLevels, CropGrowthLevelCache cropGrowthLevels, IslandLimitCache limits, ProtectionController protection, String nodeId, String fallbackServerName) {
@@ -62,8 +63,9 @@ public final class PermissionEventPoller {
 
     private void poll() {
         try {
-            String json = client.listEvents(512).join();
+            String json = client.listEventsSince(lastEventSequence, 512).join();
             for (ParsedEvent event : events(json)) {
+                lastEventSequence = Math.max(lastEventSequence, event.sequence());
                 String type = event.type();
                 Map<String, String> fields = fields(event.fields());
                 String key = eventKey(type, fields, event.occurredAt());
@@ -363,12 +365,31 @@ public final class PermissionEventPoller {
             String type = textField(object, "type");
             String fields = objectField(object, "fields");
             String occurredAt = textField(object, "occurredAt");
+            long sequence = longField(object, "seq");
             if (!type.isBlank() && !occurredAt.isBlank()) {
-                result.add(new ParsedEvent(type, fields, occurredAt));
+                result.add(new ParsedEvent(sequence, type, fields, occurredAt));
             }
             index = source.indexOf('{', objectEnd + 1);
         }
         return result;
+    }
+
+    private long longField(String object, String key) {
+        String needle = "\"" + key + "\":";
+        int start = object.indexOf(needle);
+        if (start < 0) {
+            return 0L;
+        }
+        int valueStart = start + needle.length();
+        int valueEnd = valueStart;
+        while (valueEnd < object.length() && Character.isDigit(object.charAt(valueEnd))) {
+            valueEnd++;
+        }
+        try {
+            return Long.parseLong(object.substring(valueStart, valueEnd));
+        } catch (RuntimeException ignored) {
+            return 0L;
+        }
     }
 
     private int matchingObjectEnd(String source, int objectStart) {
@@ -470,5 +491,5 @@ public final class PermissionEventPoller {
         return builder.toString();
     }
 
-    private record ParsedEvent(String type, String fields, String occurredAt) {}
+    private record ParsedEvent(long sequence, String type, String fields, String occurredAt) {}
 }

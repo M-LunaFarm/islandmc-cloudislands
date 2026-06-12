@@ -669,6 +669,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> listEventsSince(long sinceSeq, int limit) {
+        return postWithResultBody("/v1/events", "{\"sinceSeq\":" + Math.max(0L, sinceSeq) + ",\"limit\":" + Math.max(1, Math.min(limit, 4096)) + "}");
+    }
+
+    @Override
     public CompletableFuture<String> listAuditLogs() {
         return postWithResultBody("/v1/audit", "{}");
     }

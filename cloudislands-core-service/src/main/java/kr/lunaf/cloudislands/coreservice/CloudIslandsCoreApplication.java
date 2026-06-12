@@ -243,7 +243,8 @@ public final class CloudIslandsCoreApplication {
         route("/v1/events", exchange -> {
             String body = readBody(exchange);
             int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 512), 4096));
-            write(exchange, 200, inMemoryEvents.toJson(limit));
+            long sinceSeq = Math.max(0L, JsonFields.longValue(body, "sinceSeq", 0L));
+            write(exchange, 200, inMemoryEvents.toJson(limit, sinceSeq));
         });
         route("/v1/audit", exchange -> write(exchange, 200, auditJson.get()));
         route("/v1/rankings/level", exchange -> {
