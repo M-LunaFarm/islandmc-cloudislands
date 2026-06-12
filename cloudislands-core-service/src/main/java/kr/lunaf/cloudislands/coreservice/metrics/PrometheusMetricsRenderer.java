@@ -83,6 +83,8 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_node_storage_available", "gauge");
         help(out, "cloudislands_node_routing_score", "Node routing score used by allocator, lower is preferred");
         type(out, "cloudislands_node_routing_score", "gauge");
+        help(out, "cloudislands_node_activation_eligible", "Whether a node can receive new island activations");
+        type(out, "cloudislands_node_activation_eligible", "gauge");
         help(out, "cloudislands_node_state", "Node state marker by state label");
         type(out, "cloudislands_node_state", "gauge");
         help(out, "cloudislands_permission_cache_hit_ratio", "Paper local permission cache hit ratio reported by heartbeat");
@@ -121,6 +123,8 @@ public final class PrometheusMetricsRenderer {
             labels(out, "cloudislands_node_memory_pressure", node, null).append(memoryPressure(node)).append('\n');
             labels(out, "cloudislands_node_storage_available", node, null).append(node.storageAvailable() ? 1 : 0).append('\n');
             labels(out, "cloudislands_node_routing_score", node, null).append(node.score()).append('\n');
+            String allocationBlockReason = node.allocationBlockReason(now, heartbeatTimeout);
+            labels(out, "cloudislands_node_activation_eligible", node, "reason=\"" + escape(allocationBlockReason.isBlank() ? "OK" : allocationBlockReason) + "\"").append(allocationBlockReason.isBlank() ? 1 : 0).append('\n');
             for (NodeState state : NodeState.values()) {
                 labels(out, "cloudislands_node_state", node, "state=\"" + state.name() + "\"").append(node.state() == state ? 1 : 0).append('\n');
             }
