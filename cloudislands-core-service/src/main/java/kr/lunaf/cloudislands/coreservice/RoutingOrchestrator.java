@@ -254,6 +254,9 @@ public final class RoutingOrchestrator {
             if ("VISITOR_SOFT_FULL".equals(exception.getMessage())) {
                 return rejectRoute(429, "VISITOR_SOFT_FULL", "The island node is reserving slots for members", playerUuid, island.islandId(), action);
             }
+            if ("ACTIVATION_LOCKED".equals(exception.getMessage())) {
+                return rejectRoute(409, "ACTIVATION_LOCKED", "Island activation is already in progress", playerUuid, island.islandId(), action);
+            }
             return rejectRoute(409, "NODE_UNAVAILABLE", "No eligible island node is available", playerUuid, island.islandId(), action);
         }
     }
@@ -329,7 +332,7 @@ public final class RoutingOrchestrator {
             .orElseThrow(() -> new IllegalStateException("no eligible island node"));
         RedisActivationLock.Lease lease = null;
         if (activationLock != null) {
-            lease = activationLock.acquire(runtime.islandId(), "route").orElseThrow(() -> new IllegalStateException("island activation is already locked"));
+            lease = activationLock.acquire(runtime.islandId(), "route").orElseThrow(() -> new IllegalStateException("ACTIVATION_LOCKED"));
         }
         IslandRuntimeSnapshot activating = runtimes.markActivating(runtime.islandId(), selected.nodeId(), "ci_shard_001", 0, 0);
         try {
