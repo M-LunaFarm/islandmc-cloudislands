@@ -55,6 +55,7 @@ import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitListener;
 import kr.lunaf.cloudislands.paper.session.PaperPlayerProfileListener;
 import kr.lunaf.cloudislands.paper.session.PaperBrandingListener;
+import kr.lunaf.cloudislands.paper.session.PaperScoreboardListener;
 import kr.lunaf.cloudislands.paper.session.PaperRouteSessionListener;
 import kr.lunaf.cloudislands.paper.storage.PaperStorageFactory;
 import kr.lunaf.cloudislands.paper.world.IslandWorldRestorer;
@@ -96,6 +97,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandBoundaryListener(agent.protection()), this);
         getServer().getPluginManager().registerEvents(new PaperPlayerProfileListener(client), this);
         getServer().getPluginManager().registerEvents(new PaperBrandingListener(getConfig().getString("plugin.service-name", "CloudIslands")), this);
+        getServer().getPluginManager().registerEvents(new PaperScoreboardListener(getConfig().getString("plugin.service-name", "CloudIslands")), this);
         getServer().getPluginManager().registerEvents(new IslandGameplayFlagListener(agent.protection()), this);
         getServer().getPluginManager().registerEvents(new IslandLimitListener(agent.protection(), limitCache), this);
         getServer().getPluginManager().registerEvents(new IslandEntityLimitListener(agent.protection(), limitCache), this);
