@@ -903,7 +903,13 @@ public final class CloudIslandsVelocityPlugin {
         if (args.length == 3 && args[0].equalsIgnoreCase("player")) {
             addOnlinePlayerSuggestions(matches, args[2]);
         }
-        if (args.length == 3 && args[0].equalsIgnoreCase("route") && (args[1].equalsIgnoreCase("debug") || args[1].equalsIgnoreCase("clear"))) {
+        if (args.length == 3 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("debug")) {
+            if ("all".startsWith(args[2].toLowerCase(Locale.ROOT))) {
+                matches.add("all");
+            }
+            addOnlinePlayerSuggestions(matches, args[2]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("clear")) {
             addOnlinePlayerSuggestions(matches, args[2]);
         }
         return matches;
