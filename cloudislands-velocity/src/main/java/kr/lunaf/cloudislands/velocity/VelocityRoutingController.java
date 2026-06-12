@@ -100,7 +100,7 @@ public final class VelocityRoutingController {
     }
 
     public void resetIsland(Player player, UUID islandId, String reason) {
-        sendPlayerPayloadFuture(player, coreApiClient.resetIsland(islandId, player.getUniqueId(), reason), "섬 리셋을 요청하지 못했습니다.", "섬 리셋을 요청했습니다.");
+        sendBodyResult(player, coreApiClient.resetIsland(islandId, player.getUniqueId(), reason).thenApply(body -> actionResultMessage("Island reset", islandId.toString(), body)), "섬 리셋을 요청하지 못했습니다.");
     }
 
     public void showMyIsland(Player player) {
@@ -303,7 +303,7 @@ public final class VelocityRoutingController {
     }
 
     public void invite(Player player, UUID islandId, UUID targetUuid) {
-        sendPlayerPayloadFuture(player, coreApiClient.createIslandInvite(islandId, player.getUniqueId(), targetUuid), "초대를 생성하지 못했습니다.", "섬 초대를 보냈습니다.");
+        sendBodyResult(player, coreApiClient.createIslandInvite(islandId, player.getUniqueId(), targetUuid).thenApply(this::inviteCreateMessage), "초대를 생성하지 못했습니다.");
     }
 
     public void inviteTarget(Player player, UUID islandId, String target) {
@@ -589,7 +589,7 @@ public final class VelocityRoutingController {
             return;
         }
         String label = channel.equalsIgnoreCase("TEAM") ? "팀 채팅" : "섬 채팅";
-        sendPlayerPayloadFuture(player, coreApiClient.sendIslandChat(islandId, player.getUniqueId(), channel, message.strip()), label + "을 전송하지 못했습니다.", label + "을 전송했습니다.");
+        sendBodyResult(player, coreApiClient.sendIslandChat(islandId, player.getUniqueId(), channel, message.strip()).thenApply(body -> chatResultMessage(label, body)), label + "을 전송하지 못했습니다.");
     }
 
     public void listSnapshots(Player player, UUID islandId) {
@@ -967,6 +967,25 @@ public final class VelocityRoutingController {
             builder.append(" snapshot=").append(longValue(body, "snapshotNo"));
         }
         return builder.toString();
+    }
+
+    private String inviteCreateMessage(String body) {
+        String code = jsonValue(body, "code");
+        if (!code.isBlank()) {
+            return "Invite: failed code=" + code;
+        }
+        return "Invite: accepted invite=" + shortId(jsonValue(body, "inviteId"))
+            + " island=" + shortId(jsonValue(body, "islandId"))
+            + " target=" + shortId(jsonValue(body, "targetUuid"))
+            + " state=" + jsonValue(body, "state");
+    }
+
+    private String chatResultMessage(String label, String body) {
+        String code = jsonValue(body, "code");
+        if (!code.isBlank()) {
+            return label + ": failed code=" + code;
+        }
+        return label + ": sent channel=" + jsonValue(body, "channel");
     }
 
     private String compactTarget(String targetId) {
