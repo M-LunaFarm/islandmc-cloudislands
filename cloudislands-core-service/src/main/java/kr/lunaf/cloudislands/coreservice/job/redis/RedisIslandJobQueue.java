@@ -21,6 +21,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
     private final URI redisUri;
     private final Map<UUID, String> streamIdsByJobId = new ConcurrentHashMap<>();
     private final Map<UUID, kr.lunaf.cloudislands.protocol.job.IslandJob> claimedJobs = new ConcurrentHashMap<>();
+    private final Map<UUID, String> claimedNodesByJobId = new ConcurrentHashMap<>();
     private final AtomicLong failedJobsTotal = new AtomicLong();
     private final AtomicLong retryAttemptsTotal = new AtomicLong();
     private final AtomicLong redisFailuresTotal = new AtomicLong();
@@ -68,14 +69,17 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
     }
 
     
-    public void complete(String nodeId, UUID jobId) {
-        ackByJobId(jobId, "completed", null);
+    public boolean complete(String nodeId, UUID jobId) {
+        return ackByJobId(nodeId, jobId, "completed", null);
     }
 
     @Override
-    public void fail(String nodeId, UUID jobId, String errorMessage) {
-        failedJobsTotal.incrementAndGet();
-        ackByJobId(jobId, "failed", errorMessage);
+    public boolean fail(String nodeId, UUID jobId, String errorMessage) {
+        boolean acked = ackByJobId(nodeId, jobId, "failed", errorMessage);
+        if (acked) {
+            failedJobsTotal.incrementAndGet();
+        }
+        return acked;
     }
 
     @Override
@@ -92,6 +96,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             }
             claimedJobs.remove(jobId);
             streamIdsByJobId.remove(jobId);
+            claimedNodesByJobId.remove(jobId);
             retryAttemptsTotal.incrementAndGet();
             redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_RETRIED", "jobId", jobId.toString(), "streamId", streamId == null ? "" : streamId, "error", "");
             return true;
@@ -114,6 +119,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             }
             claimedJobs.remove(jobId);
             streamIdsByJobId.remove(jobId);
+            claimedNodesByJobId.remove(jobId);
             redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_CANCELED", "jobId", jobId.toString(), "streamId", streamId == null ? "" : streamId, "error", "");
             return true;
         } catch (IOException exception) {
@@ -167,14 +173,20 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
         }
     }
 
-    private void ackByJobId(UUID jobId, String state, String errorMessage) {
+    private boolean ackByJobId(String nodeId, UUID jobId, String state, String errorMessage) {
+        String claimedNode = claimedNodesByJobId.get(jobId);
+        if (claimedNode == null || !claimedNode.equals(nodeId)) {
+            return false;
+        }
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             claimedJobs.remove(jobId);
             String streamId = streamIdsByJobId.remove(jobId);
+            claimedNodesByJobId.remove(jobId);
             if (streamId != null && !streamId.isBlank()) {
                 redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
             }
             redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_" + state.toUpperCase(), "jobId", jobId.toString(), "streamId", streamId == null ? "" : streamId, "error", errorMessage == null ? "" : errorMessage);
+            return true;
         } catch (IOException exception) {
             recordRedisFailure();
             throw new IllegalStateException("failed to ack redis island job", exception);
@@ -213,6 +225,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
                     }
                     IslandJob claimedJob = new IslandJob(jobId, type, UUID.fromString(current.get("islandId")), targetNode, parseInt(current.get("priority"), 0), decodePayload(current.getOrDefault("payload", "")), parseInstant(current.get("createdAt")));
                     claimedJobs.put(jobId, claimedJob);
+                    claimedNodesByJobId.put(jobId, nodeId);
                     jobs.add(claimedJob);
                 }
                 current.clear();

@@ -466,17 +466,28 @@ public final class CloudIslandsCoreApplication {
         route("/v1/jobs/complete", exchange -> {
             String body = readBody(exchange);
             UUID jobId = JsonFields.uuid(body, "jobId", new UUID(0L, 0L));
+            String nodeId = JsonFields.text(body, "nodeId", "");
             java.util.Map<String, String> payload = JsonFields.object(body, "payload");
-            jobs.findClaimed(jobId).map(job -> new kr.lunaf.cloudislands.protocol.job.IslandJob(job.jobId(), job.type(), job.islandId(), job.targetNode(), job.priority(), java.util.Map.copyOf(new java.util.HashMap<String, String>() {{ putAll(job.payload()); putAll(payload); }}), job.createdAt())).ifPresent(jobCompletion::completed);
-            jobs.complete(JsonFields.text(body, "nodeId", ""), jobId);
+            java.util.Optional<kr.lunaf.cloudislands.protocol.job.IslandJob> claimed = jobs.findClaimed(jobId)
+                .map(job -> new kr.lunaf.cloudislands.protocol.job.IslandJob(job.jobId(), job.type(), job.islandId(), job.targetNode(), job.priority(), java.util.Map.copyOf(new java.util.HashMap<String, String>() {{ putAll(job.payload()); putAll(payload); }}), job.createdAt()));
+            if (claimed.isEmpty() || !jobs.complete(nodeId, jobId)) {
+                write(exchange, 409, ApiResponses.error("JOB_CLAIM_MISMATCH", "Job is not claimed by this node"));
+                return;
+            }
+            claimed.ifPresent(jobCompletion::completed);
             write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/jobs/fail", exchange -> {
             String body = readBody(exchange);
             UUID jobId = JsonFields.uuid(body, "jobId", new UUID(0L, 0L));
+            String nodeId = JsonFields.text(body, "nodeId", "");
             String error = JsonFields.text(body, "error", "unknown");
-            jobs.findClaimed(jobId).ifPresent(job -> jobCompletion.failed(job, error));
-            jobs.fail(JsonFields.text(body, "nodeId", ""), jobId, error);
+            java.util.Optional<kr.lunaf.cloudislands.protocol.job.IslandJob> claimed = jobs.findClaimed(jobId);
+            if (claimed.isEmpty() || !jobs.fail(nodeId, jobId, error)) {
+                write(exchange, 409, ApiResponses.error("JOB_CLAIM_MISMATCH", "Job is not claimed by this node"));
+                return;
+            }
+            claimed.ifPresent(job -> jobCompletion.failed(job, error));
             write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/jobs/recover", exchange -> {

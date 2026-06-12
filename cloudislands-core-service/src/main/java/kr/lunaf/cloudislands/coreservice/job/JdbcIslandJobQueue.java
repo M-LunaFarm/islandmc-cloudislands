@@ -87,18 +87,18 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
     }
 
     @Override
-    public void complete(String nodeId, UUID jobId) {
-        updateState(nodeId, jobId, "COMPLETED", null);
+    public boolean complete(String nodeId, UUID jobId) {
+        return updateState(nodeId, jobId, "COMPLETED", null);
     }
 
     @Override
-    public void fail(String nodeId, UUID jobId, String errorMessage) {
+    public boolean fail(String nodeId, UUID jobId, String errorMessage) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = CASE WHEN retry_count + 1 < max_retries THEN 'PENDING' ELSE 'FAILED' END, retry_count = retry_count + 1, error_message = ?, locked_by = CASE WHEN retry_count + 1 < max_retries THEN NULL ELSE locked_by END, locked_until = NULL, updated_at = now() WHERE id = ? AND locked_by = ? AND state = 'CLAIMED'")) {
             statement.setString(1, errorMessage == null ? "unknown" : errorMessage);
             statement.setObject(2, jobId);
             statement.setString(3, nodeId);
-            statement.executeUpdate();
+            return statement.executeUpdate() > 0;
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to fail jdbc island job", exception);
         }
@@ -221,14 +221,14 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
         }
     }
 
-    private void updateState(String nodeId, UUID jobId, String state, String errorMessage) {
+    private boolean updateState(String nodeId, UUID jobId, String state, String errorMessage) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = ?, locked_until = NULL, error_message = ?, updated_at = now() WHERE id = ? AND locked_by = ? AND state = 'CLAIMED'")) {
             statement.setString(1, state);
             statement.setString(2, errorMessage);
             statement.setObject(3, jobId);
             statement.setString(4, nodeId);
-            statement.executeUpdate();
+            return statement.executeUpdate() > 0;
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to update jdbc island job", exception);
         }

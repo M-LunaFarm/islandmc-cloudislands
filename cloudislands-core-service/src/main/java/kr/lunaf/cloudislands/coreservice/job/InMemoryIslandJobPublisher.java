@@ -46,13 +46,29 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
     }
 
     
-    public synchronized void complete(String nodeId, UUID jobId) {
-        replace(jobId, record -> record.lockedBy() != null && record.lockedBy().equals(nodeId) ? record.completed() : record);
+    public synchronized boolean complete(String nodeId, UUID jobId) {
+        final boolean[] changed = {false};
+        replace(jobId, record -> {
+            if (record.state() == JobState.CLAIMED && record.lockedBy() != null && record.lockedBy().equals(nodeId)) {
+                changed[0] = true;
+                return record.completed();
+            }
+            return record;
+        });
+        return changed[0];
     }
 
     @Override
-    public synchronized void fail(String nodeId, UUID jobId, String errorMessage) {
-        replace(jobId, record -> record.lockedBy() != null && record.lockedBy().equals(nodeId) ? record.failed(errorMessage) : record);
+    public synchronized boolean fail(String nodeId, UUID jobId, String errorMessage) {
+        final boolean[] changed = {false};
+        replace(jobId, record -> {
+            if (record.state() == JobState.CLAIMED && record.lockedBy() != null && record.lockedBy().equals(nodeId)) {
+                changed[0] = true;
+                return record.failed(errorMessage);
+            }
+            return record;
+        });
+        return changed[0];
     }
 
     @Override
