@@ -61,7 +61,7 @@ public final class PaperRouteSessionListener implements Listener {
         } catch (Exception exception) {
             plugin.getLogger().warning("Route session pre-login check failed for " + event.getUniqueId() + ": " + exception.getMessage());
         }
-        event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, "섬 이동 정보가 없어 접속할 수 없습니다. /섬 홈으로 다시 이동해주세요.");
+        event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, "정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요.");
     }
 
     @EventHandler
@@ -115,7 +115,7 @@ public final class PaperRouteSessionListener implements Listener {
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     var player = Bukkit.getPlayer(playerUuid);
                     if (player != null) {
-                        player.sendActionBar(Component.text("섬 이동 정보를 확인하지 못했습니다."));
+                        player.sendActionBar(Component.text("섬 입장 준비를 확인하지 못했습니다."));
                     }
                 });
             }
@@ -127,12 +127,12 @@ public final class PaperRouteSessionListener implements Listener {
         Bukkit.getScheduler().runTask(plugin, () -> {
             var player = Bukkit.getPlayer(playerUuid);
             if (player != null) {
-                player.sendActionBar(Component.text("섬 이동 정보가 없어 로비로 이동합니다."));
+                player.sendActionBar(Component.text("섬 입장 요청이 없어 로비로 이동합니다."));
                 sendToFallback(player);
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     var stillHere = Bukkit.getPlayer(playerUuid);
                     if (stillHere != null) {
-                        stillHere.kick(Component.text("섬 이동 정보가 없어 접속할 수 없습니다. /섬 홈으로 다시 이동해주세요."));
+                        stillHere.kick(Component.text("정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요."));
                     }
                 }, 40L);
             }
@@ -145,7 +145,7 @@ public final class PaperRouteSessionListener implements Listener {
             output.writeUTF(fallbackServerName);
             player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
         } catch (IOException ignored) {
-            player.kick(Component.text("섬 이동 정보가 없어 접속할 수 없습니다. /섬 홈으로 다시 이동해주세요."));
+            player.kick(Component.text("정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요."));
         }
     }
 }
