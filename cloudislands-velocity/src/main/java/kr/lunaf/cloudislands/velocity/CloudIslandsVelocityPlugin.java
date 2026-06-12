@@ -223,7 +223,7 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (isCommandListRequest(args)) {
-            sendCommandList(player, "CloudIslands 관리자 명령어 목록", IslandCommandCatalog.adminCommands(), commandListPage(args), "ciadmin help");
+            sendCommandList(player, "CloudIslands 관리자 명령어 목록", IslandCommandCatalog.adminCommands(), commandListPage(args), "ciadmin command list");
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("info")) {
@@ -428,12 +428,12 @@ public final class CloudIslandsVelocityPlugin {
             routingController.recoverJobs(player, args.length > 2 ? args[2] : "recovery", args.length > 3 ? parseLongOrZero(args[3]) : 60000L, args.length > 4 ? (int) parseLongOrZero(args[4]) : 16);
             return;
         }
-        sendCommandList(player, "CloudIslands 관리자 명령어 목록", IslandCommandCatalog.adminCommands(), 1, "ciadmin help");
+        sendCommandList(player, "CloudIslands 관리자 명령어 목록", IslandCommandCatalog.adminCommands(), 1, "ciadmin command list");
     }
 
     private void dispatch(Player player, String[] args) {
         if (isCommandListRequest(args)) {
-            sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands(), commandListPage(args), "섬 help");
+            sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands(), commandListPage(args), "섬 command list");
             return;
         }
         if (args.length == 0 || args[0].equalsIgnoreCase("home") || args[0].equals("홈")) {
@@ -835,7 +835,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.deleteIsland(player, islandId);
             return;
         }
-        sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands(), 1, "섬 help");
+        sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands(), 1, "섬 command list");
     }
 
     private void sendCommandList(Player player, String title, List<String> commands, int page, String nextCommand) {

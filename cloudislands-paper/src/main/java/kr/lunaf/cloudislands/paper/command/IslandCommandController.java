@@ -794,7 +794,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             player.sendMessage("> /" + command);
         }
         if (safePage < maxPage) {
-            player.sendMessage("> /섬 help " + (safePage + 1));
+            player.sendMessage("> /섬 command list " + (safePage + 1));
         }
     }
 
