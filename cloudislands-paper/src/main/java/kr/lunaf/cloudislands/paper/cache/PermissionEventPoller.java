@@ -20,6 +20,8 @@ import kr.lunaf.cloudislands.paper.event.IslandMemberLeaveEvent;
 import kr.lunaf.cloudislands.paper.event.IslandRoleChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandUpgradeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandWarpChangeEvent;
+import kr.lunaf.cloudislands.paper.event.IslandWarpCreateEvent;
+import kr.lunaf.cloudislands.paper.event.IslandWarpDeleteEvent;
 import kr.lunaf.cloudislands.paper.event.IslandWorthChangeEvent;
 import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
@@ -330,7 +332,7 @@ public final class PermissionEventPoller {
         } else if (type.equals(CloudIslandEventType.ISLAND_BIOME_CHANGED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandBiomeChangeEvent(islandId, fields.getOrDefault("biomeKey", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_WARP_CHANGED.name())) {
-            Bukkit.getPluginManager().callEvent(new IslandWarpChangeEvent(islandId, firstPresent(fields, "warpName", "name"), fields.getOrDefault("action", ""), fields));
+            publishWarpEvent(islandId, fields);
         } else if (type.equals(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name())) {
             publishMemberEvent(islandId, fields);
         } else if (type.equals(CloudIslandEventType.ISLAND_OWNERSHIP_CHANGED.name())) {
@@ -345,6 +347,18 @@ public final class PermissionEventPoller {
             if (fields.containsKey("worth")) {
                 Bukkit.getPluginManager().callEvent(new IslandWorthChangeEvent(islandId, fields.getOrDefault("worth", ""), fields));
             }
+        }
+    }
+
+    private void publishWarpEvent(UUID islandId, Map<String, String> fields) {
+        String warpName = firstPresent(fields, "warpName", "name");
+        String action = fields.getOrDefault("action", fields.getOrDefault("operation", ""));
+        String normalized = action.toUpperCase(java.util.Locale.ROOT);
+        Bukkit.getPluginManager().callEvent(new IslandWarpChangeEvent(islandId, warpName, action, fields));
+        if (normalized.equals("WARP_SET") || normalized.equals("SET") || normalized.equals("CREATE") || normalized.equals("CREATED")) {
+            Bukkit.getPluginManager().callEvent(new IslandWarpCreateEvent(islandId, warpName, fields));
+        } else if (normalized.equals("WARP_DELETED") || normalized.equals("DELETE") || normalized.equals("DELETED") || normalized.equals("REMOVE") || normalized.equals("REMOVED")) {
+            Bukkit.getPluginManager().callEvent(new IslandWarpDeleteEvent(islandId, warpName, fields));
         }
     }
 
