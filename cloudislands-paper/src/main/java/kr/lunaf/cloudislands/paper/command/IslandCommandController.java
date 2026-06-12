@@ -1251,8 +1251,8 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void routeTicket(Player player, RouteTicket ticket, String failureMessage, int attempt) {
         if (ticket.state().name().equals("READY")) {
-            showRouteLoading(player, 1.0f, "섬 로딩 완료");
-            player.sendActionBar(Component.text("잠시 후 섬으로 이동합니다."));
+            showRouteLoading(player, 1.0f, routeTargetName(ticket) + " 로딩 완료");
+            player.sendActionBar(Component.text("잠시 후 " + routeTargetName(ticket) + "으로 이동합니다."));
             publishAndConnect(player, ticket, failureMessage);
             return;
         }
@@ -1262,8 +1262,9 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return;
         }
         int progress = Math.min(95, 20 + (attempt * 4));
-        showRouteLoading(player, progress / 100.0f, "섬 로딩 중 " + progress + "%");
-        player.sendActionBar(Component.text("섬을 준비하는 중입니다... " + progress + "%"));
+        String target = routeTargetName(ticket);
+        showRouteLoading(player, progress / 100.0f, target + " 로딩 중 " + progress + "%");
+        player.sendActionBar(Component.text(target + "을 준비하는 중입니다... " + progress + "%"));
         CompletableFuture.runAsync(() -> coreApiClient.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
             if (status.isPresent()) {
                 routeTicket(player, status.get(), failureMessage, attempt + 1);
@@ -1329,6 +1330,20 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void clearFailedRoute(RouteTicket ticket) {
         coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), "PLUGIN_MESSAGE_FAILED").exceptionally(error -> null);
+    }
+
+    private String routeTargetName(RouteTicket ticket) {
+        if (ticket == null || ticket.action() == null) {
+            return "섬";
+        }
+        return switch (ticket.action().name().toUpperCase(Locale.ROOT)) {
+            case "HOME" -> "내 섬";
+            case "VISIT" -> "방문할 섬";
+            case "WARP" -> "섬 워프";
+            case "ADMIN_TELEPORT" -> "관리 대상 섬";
+            case "RETURN_AFTER_MIGRATION" -> "이전하던 섬";
+            default -> "섬";
+        };
     }
 
     private void connectPlayerToServer(Player player, String targetServerName, String successMessage, String failureMessage) {

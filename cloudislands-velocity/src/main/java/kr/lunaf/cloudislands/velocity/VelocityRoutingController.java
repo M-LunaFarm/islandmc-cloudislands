@@ -5,6 +5,7 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import java.time.Duration;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -2556,8 +2557,9 @@ public final class VelocityRoutingController {
             return;
         }
         if (ticket.state().name().equals("PREPARING")) {
-            actionBar(player, "섬을 준비하는 중입니다.");
-            BossBar bossBar = BossBar.bossBar(Component.text("섬 로딩 중"), 0.2F, BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
+            String target = routeTargetName(ticket);
+            actionBar(player, target + "을 준비하는 중입니다.");
+            BossBar bossBar = BossBar.bossBar(Component.text(target + " 로딩 중"), 0.2F, BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
             showBossBar(player, bossBar);
             waitForReadyTicket(player, ticket, failureMessage, bossBar, 0);
             return;
@@ -2575,14 +2577,16 @@ public final class VelocityRoutingController {
     private void waitForReadyTicket(Player player, RouteTicket ticket, String failureMessage, BossBar bossBar, int attempt) {
         int progress = Math.min(95, 20 + attempt);
         bossBar.progress(progress / 100.0F);
-        bossBar.name(Component.text("섬 로딩 중 " + progress + "%"));
-        actionBar(player, "섬을 준비하는 중입니다... " + progress + "%");
+        String target = routeTargetName(ticket);
+        bossBar.name(Component.text(target + " 로딩 중 " + progress + "%"));
+        actionBar(player, target + "을 준비하는 중입니다... " + progress + "%");
         coreApiClient.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
             Optional<RouteTicket> ready = status.filter(value -> value.state().name().equals("READY"));
             if (ready.isPresent()) {
                 bossBar.progress(1.0F);
-                bossBar.name(Component.text("잠시 후 섬으로 이동합니다."));
-                actionBar(player, "잠시 후 섬으로 이동합니다.");
+                String readyTarget = routeTargetName(ready.get());
+                bossBar.name(Component.text("잠시 후 " + readyTarget + "으로 이동합니다."));
+                actionBar(player, "잠시 후 " + readyTarget + "으로 이동합니다.");
                 hideBossBar(player, bossBar);
                 publishAndConnect(player, ready.get());
                 return;
@@ -2645,7 +2649,7 @@ public final class VelocityRoutingController {
                 fallback(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.");
                 return;
             }
-            actionBar(player, "섬에 도착했습니다.");
+            actionBar(player, arrivalMessage(ticket));
         }).exceptionally(error -> {
             clearFailedRoute(ticket);
             fallback(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.");
@@ -2660,6 +2664,34 @@ public final class VelocityRoutingController {
     private void fallback(Player player, String message) {
         player.sendMessage(Component.text(message));
         proxy.getServer(fallbackServer).ifPresent(server -> player.createConnectionRequest(server).connectWithIndication());
+    }
+
+    private String routeTargetName(RouteTicket ticket) {
+        if (ticket == null || ticket.action() == null) {
+            return "섬";
+        }
+        return switch (ticket.action().name().toUpperCase(Locale.ROOT)) {
+            case "HOME" -> "내 섬";
+            case "VISIT" -> "방문할 섬";
+            case "WARP" -> "섬 워프";
+            case "ADMIN_TELEPORT" -> "관리 대상 섬";
+            case "RETURN_AFTER_MIGRATION" -> "이전하던 섬";
+            default -> "섬";
+        };
+    }
+
+    private String arrivalMessage(RouteTicket ticket) {
+        if (ticket == null || ticket.action() == null) {
+            return "섬에 도착했습니다.";
+        }
+        return switch (ticket.action().name().toUpperCase(Locale.ROOT)) {
+            case "HOME" -> "내 섬에 도착했습니다.";
+            case "VISIT" -> "방문한 섬에 도착했습니다.";
+            case "WARP" -> "섬 워프에 도착했습니다.";
+            case "ADMIN_TELEPORT" -> "관리 대상 섬에 도착했습니다.";
+            case "RETURN_AFTER_MIGRATION" -> "섬 이전이 끝났습니다.";
+            default -> "섬에 도착했습니다.";
+        };
     }
 
     private int moveNodePlayersToFallback(String nodeId) {
