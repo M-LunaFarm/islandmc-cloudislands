@@ -180,7 +180,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             velocityServerName,
             getDescription().getVersion(),
             supportedTemplates,
-            () -> levelScanStatus(supportedTemplates),
+            () -> heartbeatMetadata(supportedTemplates),
             () -> storageAvailable(storage),
             () -> softPlayerCap,
             () -> hardPlayerCap,
@@ -249,6 +249,11 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";lastLevelScanStartedAt=" + scanner.lastScanStartedAt()
             + ";lastLevelScanFinishedAt=" + scanner.lastScanFinishedAt()
             + ";lastLevelScanFailedAt=" + scanner.lastScanFailedAt();
+    }
+
+    private String heartbeatMetadata(String supportedTemplates) {
+        return levelScanStatus(supportedTemplates)
+            + ";permissionCacheHitRatio=" + agent.permissionCache().hitRatio();
     }
 
     private void startIslandNodeWorker(CoreApiClient client, String nodeId, IslandStorage storage, IslandLimitCache limitCache) {

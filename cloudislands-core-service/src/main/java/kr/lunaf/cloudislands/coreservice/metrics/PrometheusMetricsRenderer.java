@@ -61,6 +61,8 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_node_routing_score", "gauge");
         help(out, "cloudislands_node_state", "Node state marker by state label");
         type(out, "cloudislands_node_state", "gauge");
+        help(out, "cloudislands_permission_cache_hit_ratio", "Paper local permission cache hit ratio reported by heartbeat");
+        type(out, "cloudislands_permission_cache_hit_ratio", "gauge");
         Instant now = Instant.now();
         for (NodeLoad node : nodes.snapshot()) {
             boolean fresh = Duration.between(node.lastHeartbeat(), now).compareTo(heartbeatTimeout) <= 0;
@@ -82,6 +84,10 @@ public final class PrometheusMetricsRenderer {
             labels(out, "cloudislands_node_routing_score", node, null).append(node.score()).append('\n');
             for (NodeState state : NodeState.values()) {
                 labels(out, "cloudislands_node_state", node, "state=\"" + state.name() + "\"").append(node.state() == state ? 1 : 0).append('\n');
+            }
+            String permissionHitRatio = node.heartbeatMetadata().get("permissionCacheHitRatio");
+            if (permissionHitRatio != null && !permissionHitRatio.isBlank()) {
+                labels(out, "cloudislands_permission_cache_hit_ratio", node, null).append(permissionHitRatio).append('\n');
             }
         }
         help(out, "cloudislands_jobs_total", "Island jobs by in-memory state or backend mode");
