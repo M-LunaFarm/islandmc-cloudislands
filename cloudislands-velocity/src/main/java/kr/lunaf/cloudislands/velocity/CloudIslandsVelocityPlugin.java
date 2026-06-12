@@ -815,14 +815,17 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("snapshot") || args[0].equals("스냅샷")) {
-            UUID islandId = args.length > 2 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            String reason = args.length > 2 ? args[2] : (args.length > 1 ? args[1] : "MANUAL");
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            String reason = joinArgs(args, hasOptionalIslandIdArgument(args, 1) ? 2 : 1);
+            if (reason.isBlank()) {
+                reason = "MANUAL";
+            }
             routingController.snapshot(player, islandId, reason);
             return;
         }
         if (args[0].equalsIgnoreCase("restore") || args[0].equals("복원")) {
-            UUID islandId = args.length > 2 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            long snapshotNo = args.length > 2 ? parseLongOrZero(args[2]) : (args.length > 1 ? parseLongOrZero(args[1]) : 0L);
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            long snapshotNo = parseLongOrZero(argumentAfterOptionalIsland(args, 1, "0"));
             routingController.restore(player, islandId, snapshotNo);
             return;
         }
