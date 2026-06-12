@@ -454,11 +454,16 @@ public final class VelocityRoutingController {
     }
 
     public void kickVisitor(Player player, UUID islandId, UUID targetUuid) {
-        proxy.getPlayer(targetUuid).ifPresentOrElse(target -> {
-            target.sendMessage(Component.text("섬에서 추방되어 로비로 이동합니다."));
-            fallback(target, "섬에서 추방되어 로비로 이동합니다.");
-            player.sendMessage(Component.text("방문자를 섬에서 추방했습니다."));
-        }, () -> player.sendMessage(Component.text("대상 플레이어가 온라인이 아닙니다.")));
+        coreApiClient.kickIslandVisitor(islandId, player.getUniqueId(), targetUuid).thenRun(() -> {
+            proxy.getPlayer(targetUuid).ifPresentOrElse(target -> {
+                target.sendMessage(Component.text("섬에서 추방되어 로비로 이동합니다."));
+                fallback(target, "섬에서 추방되어 로비로 이동합니다.");
+                player.sendMessage(Component.text("방문자를 섬에서 추방했습니다."));
+            }, () -> player.sendMessage(Component.text("대상 플레이어가 온라인이 아닙니다.")));
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("방문자를 추방할 권한이 없거나 처리하지 못했습니다."));
+            return null;
+        });
     }
 
     public void kickVisitorTarget(Player player, UUID islandId, String target) {

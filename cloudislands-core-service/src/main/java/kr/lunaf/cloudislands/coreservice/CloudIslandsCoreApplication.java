@@ -1248,6 +1248,19 @@ public final class CloudIslandsCoreApplication {
             events.publish(CloudIslandEventType.ISLAND_VISITOR_BAN_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "banned", Boolean.toString(false)));
             write(exchange, 202, ApiResponses.ok(true));
         });
+        route("/v1/islands/visitors/kick", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.KICK_VISITOR)) {
+                return;
+            }
+            audit.log(actorUuid, "PLAYER", "ISLAND_VISITOR_KICK", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
+            islandLogs.append(islandId, actorUuid, "ISLAND_VISITOR_KICK", Map.of("playerUuid", playerUuid.toString()));
+            events.publish(CloudIslandEventType.ISLAND_VISITOR_KICKED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "actorUuid", actorUuid.toString()));
+            write(exchange, 202, ApiResponses.ok(true));
+        });
         route("/v1/islands/lock", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
