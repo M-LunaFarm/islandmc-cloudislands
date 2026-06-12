@@ -552,18 +552,48 @@ public final class CloudIslandsCoreApplication {
             String nonce = JsonFields.text(body, "nonce", "");
             RouteTicket ticket = tickets.find(ticketId).orElse(null);
             if (ticket == null) {
+                events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
+                    "ticketId", ticketId.toString(),
+                    "playerUuid", playerUuid.toString(),
+                    "targetNode", targetNode,
+                    "reason", "SESSION_TICKET_NOT_FOUND"
+                ));
                 write(exchange, 404, ApiResponses.error("TICKET_NOT_FOUND", "Route ticket was not found"));
                 return;
             }
             if (ticket.state() != kr.lunaf.cloudislands.api.model.RouteTicketState.READY) {
+                events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
+                    "ticketId", ticket.ticketId().toString(),
+                    "playerUuid", ticket.playerUuid().toString(),
+                    "islandId", ticket.islandId().toString(),
+                    "action", ticket.action().name(),
+                    "targetNode", ticket.targetNode(),
+                    "reason", "SESSION_TICKET_NOT_READY"
+                ));
                 write(exchange, 409, ApiResponses.error("TICKET_NOT_READY", "Route ticket is not ready"));
                 return;
             }
             if (ticket.expiresAt().isBefore(java.time.Instant.now())) {
+                events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
+                    "ticketId", ticket.ticketId().toString(),
+                    "playerUuid", ticket.playerUuid().toString(),
+                    "islandId", ticket.islandId().toString(),
+                    "action", ticket.action().name(),
+                    "targetNode", ticket.targetNode(),
+                    "reason", "SESSION_TICKET_EXPIRED"
+                ));
                 write(exchange, 409, ApiResponses.error("TICKET_EXPIRED", "Route ticket has expired"));
                 return;
             }
             if (!ticket.playerUuid().equals(playerUuid) || !ticket.targetNode().equals(targetNode) || !ticket.nonce().equals(nonce)) {
+                events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
+                    "ticketId", ticket.ticketId().toString(),
+                    "playerUuid", playerUuid.toString(),
+                    "islandId", ticket.islandId().toString(),
+                    "action", ticket.action().name(),
+                    "targetNode", targetNode,
+                    "reason", "SESSION_TICKET_MISMATCH"
+                ));
                 write(exchange, 403, ApiResponses.error("TICKET_MISMATCH", "Route ticket fields do not match"));
                 return;
             }
