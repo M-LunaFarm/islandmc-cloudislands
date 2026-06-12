@@ -23,5 +23,9 @@ public interface IslandStorage {
     void deleteLiveState(UUID islandId) throws IOException;
     void deleteIsland(UUID islandId) throws IOException;
 
-    record StoredBundle(String checksum, long sizeBytes) {}
+    record StoredBundle(String checksum, long sizeBytes, String storagePath, String checksumAlgorithm, String compression) {
+        public StoredBundle(String checksum, long sizeBytes) {
+            this(checksum, sizeBytes, "", "SHA-256", "zstd");
+        }
+    }
 }

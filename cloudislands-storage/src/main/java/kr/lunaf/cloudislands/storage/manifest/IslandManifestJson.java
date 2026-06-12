@@ -16,17 +16,21 @@ public final class IslandManifestJson {
             + "\"islandId\":\"" + manifest.islandId() + "\","
             + "\"ownerUuid\":\"" + manifest.ownerUuid() + "\","
             + "\"formatVersion\":" + manifest.formatVersion() + ","
-            + "\"minecraftVersion\":\"" + manifest.minecraftVersion() + "\","
+            + "\"minecraftVersion\":\"" + escape(manifest.minecraftVersion()) + "\","
             + "\"schemaVersion\":" + manifest.schemaVersion() + ","
             + "\"size\":" + manifest.size() + ","
             + "\"spawn\":{"
-            + "\"world\":\"" + spawn.worldName() + "\","
+            + "\"world\":\"" + escape(spawn.worldName()) + "\","
             + "\"x\":" + spawn.localX() + ",\"y\":" + spawn.localY() + ",\"z\":" + spawn.localZ() + ","
             + "\"yaw\":" + spawn.yaw() + ",\"pitch\":" + spawn.pitch()
             + "},"
             + "\"createdAt\":\"" + manifest.createdAt() + "\","
             + "\"savedAt\":\"" + manifest.savedAt() + "\","
-            + "\"checksum\":\"" + manifest.checksum() + "\""
+            + "\"checksum\":\"" + escape(manifest.checksum()) + "\","
+            + "\"checksumAlgorithm\":\"" + escape(manifest.checksumAlgorithm()) + "\","
+            + "\"compression\":\"" + escape(manifest.compression()) + "\","
+            + "\"storagePath\":\"" + escape(manifest.storagePath()) + "\","
+            + "\"sizeBytes\":" + manifest.sizeBytes()
             + "}";
     }
 
@@ -48,7 +52,11 @@ public final class IslandManifestJson {
         Instant createdAt = instant(json, "createdAt", Instant.now());
         Instant savedAt = instant(json, "savedAt", createdAt);
         String checksum = text(json, "checksum", "");
-        return new IslandBundleManifest(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, createdAt, savedAt, checksum);
+        String checksumAlgorithm = text(json, "checksumAlgorithm", "SHA-256");
+        String compression = text(json, "compression", "zstd");
+        String storagePath = text(json, "storagePath", "");
+        long sizeBytes = number(json, "sizeBytes", 0L);
+        return new IslandBundleManifest(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes);
     }
 
     public static IslandBundleManifest minimal(UUID islandId, UUID ownerUuid, String checksum) {
@@ -80,6 +88,14 @@ public final class IslandManifestJson {
         }
     }
 
+    private static long number(String json, String field, long fallback) {
+        try {
+            return Long.parseLong(scalar(json, field, Long.toString(fallback)));
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
+    }
+
     private static double decimal(String json, String field, double fallback) {
         try {
             return Double.parseDouble(scalar(json, field, Double.toString(fallback)));
@@ -106,5 +122,9 @@ public final class IslandManifestJson {
 
     private static String unescape(String value) {
         return value.replace("\\\"", "\"").replace("\\\\", "\\");
+    }
+
+    private static String escape(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

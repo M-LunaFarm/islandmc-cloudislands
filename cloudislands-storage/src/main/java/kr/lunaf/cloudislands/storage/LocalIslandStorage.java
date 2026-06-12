@@ -115,6 +115,7 @@ public final class LocalIslandStorage implements IslandStorage {
         try (InputStream input = Files.newInputStream(snapshotBundle)) {
             actualChecksum = Sha256Checksums.of(input);
         }
+        String storagePath = normalizedStoragePath(snapshotBundle);
         IslandBundleManifest savedManifest = new IslandBundleManifest(
             manifest.islandId(),
             manifest.ownerUuid(),
@@ -125,7 +126,11 @@ public final class LocalIslandStorage implements IslandStorage {
             manifest.spawn(),
             manifest.createdAt(),
             manifest.savedAt(),
-            actualChecksum
+            actualChecksum,
+            "SHA-256",
+            "zstd",
+            storagePath,
+            sizeBytes
         );
         Files.writeString(snapshotDir.resolve("manifest.json"), IslandManifestJson.write(savedManifest), StandardCharsets.UTF_8);
         Files.writeString(snapshotDir.resolve("checksums.sha256"), actualChecksum + "  bundle.tar.zst\n", StandardCharsets.UTF_8);
@@ -133,7 +138,7 @@ public final class LocalIslandStorage implements IslandStorage {
             Files.writeString(islandRoot.resolve("manifest.json"), IslandManifestJson.write(savedManifest), StandardCharsets.UTF_8);
             Files.writeString(islandRoot.resolve("latest"), snapshotDir.getFileName().toString(), StandardCharsets.UTF_8);
         }
-        return new StoredBundle(actualChecksum, sizeBytes);
+        return new StoredBundle(actualChecksum, sizeBytes, storagePath, "SHA-256", "zstd");
     }
 
     @Override
@@ -185,6 +190,10 @@ public final class LocalIslandStorage implements IslandStorage {
 
     private Path islandRoot(UUID islandId) {
         return root.resolve("islands").resolve(islandId.toString());
+    }
+
+    private String normalizedStoragePath(Path bundlePath) {
+        return root.toAbsolutePath().normalize().relativize(bundlePath.toAbsolutePath().normalize()).toString().replace('\\', '/');
     }
 
     private Path resolveStoragePath(String storagePath) throws IOException {
