@@ -133,6 +133,15 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (args.length == 2 && args[0].equalsIgnoreCase("jobs")) {
             return matches(JOB_COMMANDS, args[1]);
         }
+        if (args.length == 3 && args[0].equalsIgnoreCase("jobs") && args[1].equalsIgnoreCase("recover")) {
+            return matches(List.of(nodeId), args[2]);
+        }
+        if (args.length == 4 && args[0].equalsIgnoreCase("jobs") && args[1].equalsIgnoreCase("recover")) {
+            return matches(List.of("60000", "300000", "600000"), args[3]);
+        }
+        if (args.length == 5 && args[0].equalsIgnoreCase("jobs") && args[1].equalsIgnoreCase("recover")) {
+            return matches(List.of("16", "32", "64"), args[4]);
+        }
         if (args.length == 2 && args[0].equalsIgnoreCase("route")) {
             return matches(ROUTE_COMMANDS, args[1]);
         }
