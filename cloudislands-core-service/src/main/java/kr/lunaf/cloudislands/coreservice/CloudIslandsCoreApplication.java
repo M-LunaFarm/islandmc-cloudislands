@@ -277,6 +277,7 @@ public final class CloudIslandsCoreApplication {
             limitRepository,
             missionRepository,
             levelRepository,
+            snapshotRepository,
             migrationRollbackTarget(config, dataSource),
             Path.of(config.storageLocalPath())
         );
