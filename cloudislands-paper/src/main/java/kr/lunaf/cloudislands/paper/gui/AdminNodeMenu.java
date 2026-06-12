@@ -38,21 +38,24 @@ public final class AdminNodeMenu implements Listener {
         if (meta == null || !meta.hasDisplayName()) {
             return;
         }
+        String command = firstCommand(meta);
         String name = meta.getDisplayName();
         player.closeInventory();
-        if (name.equals("노드 목록")) {
-            player.performCommand("ciadmin node list");
-        } else if (name.equals("현재 노드 정보")) {
-            player.performCommand("ciadmin node info");
-        } else if (name.equals("현재 노드 Drain")) {
-            player.performCommand("ciadmin node drain");
-        } else if (name.equals("현재 노드 Undrain")) {
-            player.performCommand("ciadmin node undrain");
-        } else if (name.equals("장애 스윕")) {
-            player.performCommand("ciadmin node sweep");
+        if (command != null) {
+            player.performCommand(command.substring(1));
         } else if (name.equals("관리 명령 도움말")) {
             player.sendMessage("사용법: /ciadmin node list, /ciadmin node info [node], /ciadmin island where <uuid>");
         }
+    }
+
+    private static String firstCommand(ItemMeta meta) {
+        if (!meta.hasLore() || meta.getLore() == null) {
+            return null;
+        }
+        return meta.getLore().stream()
+            .filter(line -> line.startsWith("/"))
+            .findFirst()
+            .orElse(null);
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
