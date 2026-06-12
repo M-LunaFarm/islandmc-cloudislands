@@ -1051,9 +1051,9 @@ public final class VelocityRoutingController {
     private String biomeInfoMessage(String body) {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
-            return "Biome: failed code=" + code;
+            return "섬 바이옴: 실패 사유=" + code;
         }
-        return "Biome: 섬=" + shortId(jsonValue(body, "islandId"))
+        return "섬 바이옴: 섬=" + shortId(jsonValue(body, "islandId"))
             + " biome=" + jsonValue(body, "biomeKey")
             + " updatedBy=" + shortId(jsonValue(body, "updatedBy"));
     }
@@ -1205,7 +1205,7 @@ public final class VelocityRoutingController {
     }
 
     private String permissionListMessage(String body) {
-        return namedObjectListMessage("Permissions", body, "rules", object -> jsonValue(object, "role")
+        return namedObjectListMessage("섬 권한", body, "rules", object -> jsonValue(object, "role")
             + ":" + jsonValue(object, "permission")
             + "=" + boolValue(object, "allowed"));
     }
@@ -1287,9 +1287,9 @@ public final class VelocityRoutingController {
     private String limitResultMessage(String body) {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
-            return "Limit set: failed code=" + code;
+            return "섬 제한 변경: 실패 사유=" + code;
         }
-        return "Limit set: " + jsonValue(body, "limitKey")
+        return "섬 제한 변경: " + jsonValue(body, "limitKey")
             + "=" + longValue(body, "value")
             + " 섬=" + shortId(jsonValue(body, "islandId"));
     }
@@ -1297,7 +1297,7 @@ public final class VelocityRoutingController {
     private String flagListMessage(String body) {
         String flags = objectValue(body, "flags");
         if (flags.isBlank()) {
-            return "Flags: empty";
+            return "섬 플래그: 없음";
         }
         java.util.List<String> entries = new java.util.ArrayList<>();
         int total = 0;
@@ -1325,7 +1325,7 @@ public final class VelocityRoutingController {
             }
             index = valueEnd + 1;
         }
-        return "Flags: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+        return "섬 플래그: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     private String namedObjectListMessage(String label, String body, String arrayField, java.util.function.Function<String, String> formatter) {
