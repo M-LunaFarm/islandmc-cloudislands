@@ -6,4 +6,6 @@ import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
 
 public interface IslandEventService {
     CompletableFuture<List<GlobalEventSnapshot>> listGlobalEvents();
+    CompletableFuture<List<GlobalEventSnapshot>> listGlobalEvents(int limit);
+    CompletableFuture<List<GlobalEventSnapshot>> listGlobalEventsSince(long sinceSeq, int limit);
 }

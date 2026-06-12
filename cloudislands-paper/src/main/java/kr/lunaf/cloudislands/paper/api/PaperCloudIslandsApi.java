@@ -647,6 +647,16 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         public CompletableFuture<List<GlobalEventSnapshot>> listGlobalEvents() {
             return client.listEvents().thenApply(PaperCloudIslandsApi::events);
         }
+
+        @Override
+        public CompletableFuture<List<GlobalEventSnapshot>> listGlobalEvents(int limit) {
+            return client.listEvents(limit).thenApply(PaperCloudIslandsApi::events);
+        }
+
+        @Override
+        public CompletableFuture<List<GlobalEventSnapshot>> listGlobalEventsSince(long sinceSeq, int limit) {
+            return client.listEventsSince(sinceSeq, limit).thenApply(PaperCloudIslandsApi::events);
+        }
     }
 
     private static final class CommandService implements IslandCommandService {
