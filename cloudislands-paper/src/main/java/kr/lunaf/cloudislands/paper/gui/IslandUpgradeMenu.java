@@ -54,7 +54,7 @@ public final class IslandUpgradeMenu implements Listener {
             player.performCommand("섬 설정");
             return;
         }
-        String key = loreValue(meta, "upgradeKey=");
+        String key = loreValue(meta, "업그레이드=");
         if (key.isBlank()) {
             return;
         }
@@ -88,7 +88,7 @@ public final class IslandUpgradeMenu implements Listener {
             case "BANK_LIMIT" -> Material.GOLD_INGOT;
             default -> Material.BEACON;
         };
-        return item(material, upgrade.key(), "upgradeKey=" + upgrade.key(), "type=" + upgrade.type(), "현재 레벨: " + upgrade.level(), "클릭하면 다음 레벨 구매를 요청합니다.");
+        return item(material, upgrade.key(), "업그레이드=" + upgrade.key(), "유형: " + upgrade.type(), "현재 레벨: " + upgrade.level(), "클릭하면 다음 레벨 구매를 요청합니다.");
     }
 
     private static ItemStack item(Material material, String name, String... lore) {

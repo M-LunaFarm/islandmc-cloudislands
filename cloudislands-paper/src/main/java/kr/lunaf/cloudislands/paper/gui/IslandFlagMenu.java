@@ -53,8 +53,8 @@ public final class IslandFlagMenu implements Listener {
         }
         String flag = "";
         for (String line : meta.getLore()) {
-            if (line.startsWith("flag=")) {
-                flag = line.substring("flag=".length());
+            if (line.startsWith("플래그=")) {
+                flag = line.substring("플래그=".length());
                 break;
             }
         }
@@ -80,12 +80,12 @@ public final class IslandFlagMenu implements Listener {
     private static ItemStack flagItem(IslandFlag flag, String value) {
         String normalized = value == null ? "" : value;
         Material material = normalized.equalsIgnoreCase("true") ? Material.LIME_DYE : normalized.equalsIgnoreCase("false") ? Material.RED_DYE : Material.GRAY_DYE;
-        String state = normalized.isBlank() ? "기본값" : normalized;
+        String state = normalized.isBlank() ? "기본값" : normalized.equalsIgnoreCase("true") ? "허용" : normalized.equalsIgnoreCase("false") ? "거부" : normalized;
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(flag.name());
-            meta.setLore(java.util.List.of("flag=" + flag.name(), "현재 값: " + state, "좌클릭: true, 우클릭: false"));
+            meta.setLore(java.util.List.of("플래그=" + flag.name(), "현재 값: " + state, "좌클릭: 허용, 우클릭: 거부"));
             item.setItemMeta(meta);
         }
         return item;
