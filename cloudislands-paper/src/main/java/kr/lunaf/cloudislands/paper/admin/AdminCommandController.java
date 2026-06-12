@@ -24,7 +24,7 @@ import org.jetbrains.annotations.NotNull;
 public final class AdminCommandController implements CommandExecutor, TabCompleter {
     private static final List<String> ROOT_COMMANDS = List.of("status", "cache", "node", "island", "player", "jobs", "route", "events", "audit", "block-values", "upgrade-rules", "template", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
-    private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
+    private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "islands", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
     private static final List<String> PLAYER_COMMANDS = List.of("info", "setisland", "clearisland");
     private static final List<String> JOB_COMMANDS = List.of("list", "retry", "cancel", "recover");
@@ -172,6 +172,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "Node info", coreApiClient.nodeInfo(targetNode).thenApply(this::appendLevelScanSummary));
             return true;
         }
+        if (args[1].equalsIgnoreCase("islands")) {
+            run(sender, "Node islands", coreApiClient.nodeInfo(targetNode).thenApply(this::nodeIslandSummary));
+            return true;
+        }
         if (args[1].equalsIgnoreCase("drain")) {
             run(sender, "Node drain", coreApiClient.drainNode(targetNode));
             return true;
@@ -192,7 +196,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "Node shutdown-safe", coreApiClient.shutdownNodeSafely(targetNode, args.length > 3 ? joined(args, 3) : "admin"));
             return true;
         }
-        sender.sendMessage("사용법: /ciadmin node list|info|drain|undrain|sweep|kickall|shutdown-safe [node]");
+        sender.sendMessage("사용법: /ciadmin node list|info|islands|drain|undrain|sweep|kickall|shutdown-safe [node]");
         return true;
     }
 
@@ -579,6 +583,32 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             parts.add("실패=" + failedAt);
         }
         return String.join(", ", parts);
+    }
+
+    private String nodeIslandSummary(String body) {
+        if (body == null || body.isBlank()) {
+            return "";
+        }
+        String id = textValue(body, "id");
+        String server = textValue(body, "server");
+        String state = textValue(body, "state");
+        long active = longValue(body, "activeIslands");
+        long max = longValue(body, "maxActiveIslands");
+        StringBuilder builder = new StringBuilder("노드 섬 현황");
+        if (!id.isBlank()) {
+            builder.append(" ").append(id);
+        }
+        builder.append(": 활성 섬 ").append(active);
+        if (max > 0L) {
+            builder.append('/').append(max);
+        }
+        if (!state.isBlank()) {
+            builder.append(", 상태=").append(state);
+        }
+        if (!server.isBlank()) {
+            builder.append(", 서버=").append(server);
+        }
+        return builder.toString();
     }
 
     private String objectValue(String body, String field) {

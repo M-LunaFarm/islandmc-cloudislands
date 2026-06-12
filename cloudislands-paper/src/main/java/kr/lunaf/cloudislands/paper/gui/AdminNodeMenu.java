@@ -18,6 +18,7 @@ public final class AdminNodeMenu implements Listener {
         Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
         inventory.setItem(10, item(Material.COMPASS, "노드 목록", "/ciadmin node list"));
         inventory.setItem(11, item(Material.ENDER_EYE, "현재 노드 정보", "/ciadmin node info " + nodeId));
+        inventory.setItem(12, item(Material.GRASS_BLOCK, "현재 노드 섬 현황", "/ciadmin node islands " + nodeId, "활성 섬 수와 노드 수용량을 확인합니다."));
         inventory.setItem(13, item(Material.REDSTONE_TORCH, "현재 노드 Drain", "/ciadmin node drain " + nodeId));
         inventory.setItem(14, item(Material.LEVER, "현재 노드 Undrain", "/ciadmin node undrain " + nodeId));
         inventory.setItem(15, item(Material.HOPPER, "장애 스윕", "/ciadmin node sweep " + nodeId));
@@ -46,7 +47,7 @@ public final class AdminNodeMenu implements Listener {
         if (command != null) {
             player.performCommand(command.substring(1));
         } else if (name.equals("관리 명령 도움말")) {
-            player.sendMessage("사용법: /ciadmin node list, /ciadmin node info [node], /ciadmin island where <uuid>");
+            player.sendMessage("사용법: /ciadmin node list, /ciadmin node info [node], /ciadmin node islands [node], /ciadmin island where <uuid>");
         }
     }
 
