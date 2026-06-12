@@ -41,6 +41,7 @@ public final class IslandCommandCatalog {
             "ciadmin templates upsert <id> <name> [enabled] [minNodeVersion]", "ciadmin templates enable <id>",
             "ciadmin templates disable <id>", "ciadmin reload",
             "ciadmin migrate-superiorskyblock2 scan", "ciadmin migrate-superiorskyblock2 dryrun",
+            "ciadmin migrate-superiorskyblock2 dry-run",
             "ciadmin migrate-superiorskyblock2 import", "ciadmin migrate-superiorskyblock2 verify",
             "ciadmin migrate-superiorskyblock2 rollback"
         );

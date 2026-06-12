@@ -406,7 +406,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.recoverJobs(player, args.length > 2 ? args[2] : "recovery", args.length > 3 ? parseLongOrZero(args[3]) : 60000L, args.length > 4 ? (int) parseLongOrZero(args[4]) : 16);
             return;
         }
-        player.sendMessage(Component.text("사용법: /ciadmin status, /ciadmin island info <섬|플레이어>, /ciadmin island where <섬>, /ciadmin events, /ciadmin audit, /ciadmin block-values list, /ciadmin upgrade-rules, /ciadmin template|templates list|upsert <id> <name> [enabled] [minNodeVersion]|enable|disable, /ciadmin node list|info|islands|drain|undrain|sweep|kickall|shutdown-safe, /ciadmin migrate-superiorskyblock2 scan|dryrun|import|verify|rollback"));
+        player.sendMessage(Component.text("사용법: /ciadmin status, /ciadmin island info <섬|플레이어>, /ciadmin island where <섬>, /ciadmin events, /ciadmin audit, /ciadmin block-values list, /ciadmin upgrade-rules, /ciadmin template|templates list|upsert <id> <name> [enabled] [minNodeVersion]|enable|disable, /ciadmin node list|info|islands|drain|undrain|sweep|kickall|shutdown-safe, /ciadmin migrate-superiorskyblock2 scan|dryrun|dry-run|import|verify|rollback"));
     }
 
     private void dispatch(Player player, String[] args) {
