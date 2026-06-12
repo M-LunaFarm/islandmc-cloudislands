@@ -1704,7 +1704,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void kickIslandVisitor(Player player, String target) {
         currentIsland(player, "섬 안에서만 방문자를 추방할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.BAN_VISITOR)) {
+            if (!allowed(player, IslandPermission.KICK_VISITOR)) {
                 player.sendMessage("섬 방문자를 추방할 권한이 없습니다.");
                 return;
             }
