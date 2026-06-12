@@ -35,7 +35,7 @@ public final class IslandCommandCatalog {
             "ciadmin island restore <island> <snapshot>", "ciadmin player info <player>", "ciadmin player setisland <player> <islandUuid>",
             "ciadmin player clearisland <player>", "ciadmin node list", "ciadmin node info <node>", "ciadmin node islands <node> [limit]",
             "ciadmin node drain <node>", "ciadmin node undrain <node>", "ciadmin node kickall <node> [reason]",
-            "ciadmin node sweep <node>", "ciadmin node shutdown-safe <node> [reason]", "ciadmin jobs list", "ciadmin jobs retry <jobId>",
+            "ciadmin node sweep [node]", "ciadmin node shutdown-safe <node> [reason]", "ciadmin jobs list", "ciadmin jobs retry <jobId>",
             "ciadmin jobs cancel <jobId>", "ciadmin jobs recover [nodeId] [minIdleMillis] [maxJobs]", "ciadmin route debug [all|player]", "ciadmin route ticket <ticket|player>",
             "ciadmin route clear <player> [ticket]", "ciadmin cache clear", "ciadmin events", "ciadmin audit", "ciadmin metrics", "ciadmin storage",
             "ciadmin rankings level [limit]", "ciadmin rankings worth [limit]",

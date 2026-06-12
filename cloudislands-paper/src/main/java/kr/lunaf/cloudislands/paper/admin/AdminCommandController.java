@@ -44,7 +44,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         "ciadmin node islands <node> [limit]",
         "ciadmin node drain <node>",
         "ciadmin node undrain <node>",
-        "ciadmin node sweep <node>",
+        "ciadmin node sweep [node]",
         "ciadmin node kickall <node> [reason]",
         "ciadmin node shutdown-safe <node> [reason]",
         "ciadmin island info <island>",
