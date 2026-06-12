@@ -2602,12 +2602,14 @@ public final class VelocityRoutingController {
             }
             if (attempt >= routeWaitSeconds) {
                 hideBossBar(player, bossBar);
+                clearFailedRoute(ticket, "ROUTE_READY_TIMEOUT");
                 fallback(player, failureMessage);
                 return;
             }
             CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() -> waitForReadyTicket(player, ticket, failureMessage, bossBar, attempt + 1));
         }).exceptionally(error -> {
             hideBossBar(player, bossBar);
+            clearFailedRoute(ticket, "ROUTE_STATUS_FAILED");
             fallback(player, failureMessage);
             return null;
         });
@@ -2636,6 +2638,7 @@ public final class VelocityRoutingController {
             String targetServerName = ticket.payload().getOrDefault("targetServerName", ticket.targetNode());
             connectWithTicket(player, ticket, targetServerName);
         }).exceptionally(error -> {
+            clearFailedRoute(ticket, "SESSION_PUBLISH_FAILED");
             fallback(player, "섬 이동 정보를 준비하지 못했습니다. 로비로 이동합니다.");
             return null;
         });
@@ -2644,7 +2647,7 @@ public final class VelocityRoutingController {
     private void connectWithTicket(Player player, RouteTicket ticket, String targetServerName) {
         RegisteredServer server = findServer(targetServerName);
         if (server == null) {
-            clearFailedRoute(ticket);
+            clearFailedRoute(ticket, "TARGET_SERVER_NOT_FOUND");
             fallback(player, "섬 이동 경로를 찾을 수 없습니다.");
             return;
         }
@@ -2654,20 +2657,23 @@ public final class VelocityRoutingController {
     private void connect(Player player, RouteTicket ticket, RegisteredServer server) {
         player.createConnectionRequest(server).connectWithIndication().thenAccept(success -> {
             if (!success) {
-                clearFailedRoute(ticket);
+                clearFailedRoute(ticket, "CONNECT_FAILED");
                 fallback(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.");
                 return;
             }
             actionBar(player, arrivalMessage(ticket));
         }).exceptionally(error -> {
-            clearFailedRoute(ticket);
+            clearFailedRoute(ticket, "CONNECT_EXCEPTION");
             fallback(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.");
             return null;
         });
     }
 
-    private void clearFailedRoute(RouteTicket ticket) {
-        coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), "CONNECT_FAILED").exceptionally(error -> null);
+    private void clearFailedRoute(RouteTicket ticket, String reason) {
+        if (ticket == null) {
+            return;
+        }
+        coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), reason == null || reason.isBlank() ? "ROUTE_FAILED" : reason).exceptionally(error -> null);
     }
 
     private void fallback(Player player, String message) {
