@@ -50,6 +50,11 @@ heartbeat:
   interval-ticks: 20
   timeout-seconds: 5
 
+health:
+  enabled: false
+  bind-host: "127.0.0.1"
+  port: 8787
+
 routing:
   fallback-on-failure: "Lobby"
   wait-for-activation-timeout-seconds: 20

@@ -50,6 +50,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandSnapshotMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandUpgradeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
+import kr.lunaf.cloudislands.paper.health.PaperHealthService;
 import kr.lunaf.cloudislands.paper.heartbeat.PaperHeartbeatService;
 import kr.lunaf.cloudislands.paper.job.CoreBackedIslandJobSource;
 import kr.lunaf.cloudislands.paper.job.PaperIslandJobWorker;
@@ -86,6 +87,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private PeriodicIslandSaveTask periodicSaveTask;
     private EmptyIslandSaveTask emptyIslandSaveTask;
     private PeriodicIslandLevelScanTask periodicLevelScanTask;
+    private PaperHealthService healthService;
     private ActiveIslandRegistry activeIslands;
     private CloudIslandsApi api;
     private EconomyBridge economyBridge;
@@ -202,6 +204,16 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             () -> jobWorker == null ? 0 : jobWorker.recentFailurePenalty()
         );
         heartbeatService.start(getConfig().getLong("heartbeat.interval-ticks", 20L));
+        if (getConfig().getBoolean("health.enabled", false)) {
+            this.healthService = new PaperHealthService(
+                this,
+                getConfig().getString("health.bind-host", "127.0.0.1"),
+                getConfig().getInt("health.port", 8787),
+                () -> paperHealthJson(role, nodeId),
+                () -> paperMetricsText(role, nodeId)
+            );
+            healthService.start();
+        }
         if (role == AgentRole.ISLAND_NODE) {
             startIslandNodeWorker(client, nodeId, storage, limitCache);
         }
@@ -228,6 +240,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         if (heartbeatService != null) {
             heartbeatService.stop();
         }
+        if (healthService != null) {
+            healthService.stop();
+            healthService = null;
+        }
         if (api != null) {
             CloudIslandsProvider.clear(api);
             getServer().getServicesManager().unregister(CloudIslandsApi.class, api);
@@ -245,6 +261,28 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
 
     public ActiveIslandRegistry activeIslands() {
         return activeIslands;
+    }
+
+    private String paperHealthJson(AgentRole role, String nodeId) {
+        return "{"
+            + "\"status\":\"UP\","
+            + "\"role\":\"" + role.name() + "\","
+            + "\"nodeId\":\"" + nodeId + "\","
+            + "\"onlinePlayers\":" + getServer().getOnlinePlayers().size() + ","
+            + "\"activeIslands\":" + (activeIslands == null ? 0 : activeIslands.size()) + ","
+            + "\"activationQueue\":" + (jobWorker == null ? 0 : jobWorker.activationQueue())
+            + "}";
+    }
+
+    private String paperMetricsText(AgentRole role, String nodeId) {
+        int active = activeIslands == null ? 0 : activeIslands.size();
+        int queue = jobWorker == null ? 0 : jobWorker.activationQueue();
+        int failures = jobWorker == null ? 0 : jobWorker.recentFailurePenalty();
+        return ""
+            + "cloudislands_paper_online_players " + getServer().getOnlinePlayers().size() + "\n"
+            + "cloudislands_paper_active_islands{node=\"" + nodeId + "\",role=\"" + role.name() + "\"} " + active + "\n"
+            + "cloudislands_paper_activation_queue{node=\"" + nodeId + "\"} " + queue + "\n"
+            + "cloudislands_paper_recent_failure_penalty{node=\"" + nodeId + "\"} " + failures + "\n";
     }
 
     private String levelScanStatus(String supportedTemplates) {
