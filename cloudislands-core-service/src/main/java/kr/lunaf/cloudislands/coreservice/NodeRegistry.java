@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreservice;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 
@@ -20,6 +21,29 @@ public interface NodeRegistry {
     List<NodeLoad> snapshot();
 
     Optional<NodeLoad> find(String nodeId);
+
+    static NodeState normalizeHeartbeatState(NodeHeartbeatRequest request, NodeState currentState) {
+        if (currentState == NodeState.DRAINING || currentState == NodeState.SHUTTING_DOWN) {
+            return currentState;
+        }
+        NodeState requested = request.state();
+        if (requested != NodeState.READY && requested != NodeState.SOFT_FULL) {
+            return requested;
+        }
+        if (request.hardPlayerCap() > 0 && request.players() >= request.hardPlayerCap()) {
+            return NodeState.HARD_FULL;
+        }
+        if (request.maxActiveIslands() > 0 && request.activeIslands() >= request.maxActiveIslands()) {
+            return NodeState.HARD_FULL;
+        }
+        if (request.maxActivationQueue() > 0 && request.activationQueue() >= request.maxActivationQueue()) {
+            return NodeState.HARD_FULL;
+        }
+        if (request.softPlayerCap() > 0 && request.players() >= request.softPlayerCap()) {
+            return NodeState.SOFT_FULL;
+        }
+        return NodeState.READY;
+    }
 
     default String toJson() {
         StringBuilder builder = new StringBuilder("{\"nodes\":[");

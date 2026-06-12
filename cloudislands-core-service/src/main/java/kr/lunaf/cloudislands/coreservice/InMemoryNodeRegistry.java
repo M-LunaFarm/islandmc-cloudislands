@@ -24,7 +24,7 @@ public final class InMemoryNodeRegistry implements NodeRegistry {
     @Override
     public void heartbeat(NodeHeartbeatRequest request) {
         NodeLoad current = nodes.get(request.nodeId());
-        NodeState nextState = current != null && manualLifecycleState(current.state()) ? current.state() : request.state();
+        NodeState nextState = NodeRegistry.normalizeHeartbeatState(request, current == null ? request.state() : current.state());
         upsert(new NodeLoad(
             request.nodeId(),
             request.pool() == null || request.pool().isBlank() ? "island" : request.pool(),
@@ -96,10 +96,6 @@ public final class InMemoryNodeRegistry implements NodeRegistry {
         }
         upsert(new NodeLoad(node.nodeId(), node.pool(), node.velocityServerName(), node.nodeVersion(), state, node.players(), node.softPlayerCap(), node.hardPlayerCap(), node.reservedSlots(), node.activeIslands(), node.maxActiveIslands(), node.mspt(), node.activationQueue(), node.maxActivationQueue(), node.chunkLoadPressure(), node.heapUsedMb(), node.heapMaxMb(), node.recentFailurePenalty(), node.lastHeartbeat(), node.storageAvailable(), node.supportedTemplates()));
         return true;
-    }
-
-    private boolean manualLifecycleState(NodeState state) {
-        return state == NodeState.DRAINING || state == NodeState.SHUTTING_DOWN;
     }
 
     private void upsert(NodeLoad node) {
