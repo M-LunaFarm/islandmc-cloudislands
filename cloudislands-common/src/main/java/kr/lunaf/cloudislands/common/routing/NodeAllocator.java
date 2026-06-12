@@ -49,6 +49,34 @@ public final class NodeAllocator {
             .min(Comparator.comparingDouble(NodeLoad::score));
     }
 
+    public String readyNodeBlockReason(List<NodeLoad> nodes, Instant now, String templateId, String minNodeVersion, String pool) {
+        String fallback = "NO_READY_NODE";
+        boolean anyPoolNode = false;
+        for (NodeLoad node : nodes) {
+            if (!node.inPool(pool)) {
+                continue;
+            }
+            anyPoolNode = true;
+            if (!node.supportsTemplate(templateId)) {
+                fallback = fallback.equals("NO_READY_NODE") ? "TEMPLATE_UNSUPPORTED" : fallback;
+                continue;
+            }
+            if (!node.satisfiesMinVersion(minNodeVersion)) {
+                fallback = fallback.equals("NO_READY_NODE") ? "NODE_VERSION_TOO_OLD" : fallback;
+                continue;
+            }
+            String blockReason = node.allocationBlockReason(now, heartbeatTimeout);
+            if (blockReason.isBlank() && node.state() == NodeState.READY) {
+                return "";
+            }
+            if (blockReason.isBlank()) {
+                blockReason = "STATE_" + node.state().name();
+            }
+            fallback = fallback.equals("NO_READY_NODE") ? blockReason : fallback;
+        }
+        return anyPoolNode ? fallback : "POOL_EMPTY";
+    }
+
     public boolean acceptsExistingRoute(NodeLoad node, Instant now, String templateId, String minNodeVersion) {
         return acceptsExistingRoute(node, now, templateId, minNodeVersion, "island");
     }

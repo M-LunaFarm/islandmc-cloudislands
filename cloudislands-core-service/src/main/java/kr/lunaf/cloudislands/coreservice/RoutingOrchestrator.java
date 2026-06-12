@@ -257,6 +257,9 @@ public final class RoutingOrchestrator {
             if ("ACTIVATION_LOCKED".equals(exception.getMessage())) {
                 return rejectRoute(409, "ACTIVATION_LOCKED", "Island activation is already in progress", playerUuid, island.islandId(), action);
             }
+            if ("NO_READY_NODE".equals(exception.getMessage()) || (exception.getMessage() != null && exception.getMessage().startsWith("NO_READY_NODE_"))) {
+                return rejectRoute(409, exception.getMessage(), "No ready island node is available", playerUuid, island.islandId(), action);
+            }
             return rejectRoute(409, "NODE_UNAVAILABLE", "No eligible island node is available", playerUuid, island.islandId(), action);
         }
     }
@@ -328,8 +331,13 @@ public final class RoutingOrchestrator {
             String worldName = runtime.activeWorld() == null || runtime.activeWorld().isBlank() ? "ci_shard_001" : runtime.activeWorld();
             return new RouteTarget(activeNode, worldName, RouteTicketState.READY);
         }
-        NodeLoad selected = allocator.selectReadyNode(nodes.snapshot(), Instant.now(), templateId, minNodeVersion, islandPool)
-            .orElseThrow(() -> new IllegalStateException("no eligible island node"));
+        List<NodeLoad> nodeSnapshot = nodes.snapshot();
+        Instant now = Instant.now();
+        NodeLoad selected = allocator.selectReadyNode(nodeSnapshot, now, templateId, minNodeVersion, islandPool).orElse(null);
+        if (selected == null) {
+            String blockReason = allocator.readyNodeBlockReason(nodeSnapshot, now, templateId, minNodeVersion, islandPool);
+            throw new IllegalStateException("NO_READY_NODE".equals(blockReason) ? "NO_READY_NODE" : "NO_READY_NODE_" + blockReason);
+        }
         RedisActivationLock.Lease lease = null;
         if (activationLock != null) {
             lease = activationLock.acquire(runtime.islandId(), "route").orElseThrow(() -> new IllegalStateException("ACTIVATION_LOCKED"));
