@@ -1504,7 +1504,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return "Nodes: empty";
         }
         int total = 0;
-        int up = 0;
+        int ready = 0;
+        int softFull = 0;
+        int hardFull = 0;
         int draining = 0;
         int down = 0;
         List<String> entries = new ArrayList<>();
@@ -1521,8 +1523,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             String object = nodes.substring(objectStart, objectEnd + 1);
             String state = textValue(object, "state");
             total++;
-            if (state.equalsIgnoreCase("UP")) {
-                up++;
+            if (state.equalsIgnoreCase("READY")) {
+                ready++;
+            } else if (state.equalsIgnoreCase("SOFT_FULL")) {
+                softFull++;
+            } else if (state.equalsIgnoreCase("HARD_FULL")) {
+                hardFull++;
             } else if (state.equalsIgnoreCase("DRAINING")) {
                 draining++;
             } else if (state.equalsIgnoreCase("DOWN")) {
@@ -1534,7 +1540,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             index = objectEnd + 1;
         }
         return "Nodes: total=" + total
-            + " up=" + up
+            + " ready=" + ready
+            + " softFull=" + softFull
+            + " hardFull=" + hardFull
             + " draining=" + draining
             + " down=" + down
             + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
@@ -1544,14 +1552,19 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         String id = textValue(object, "id");
         String state = textValue(object, "state");
         long players = longValue(object, "players");
+        long softCap = longValue(object, "softPlayerCap");
         long hardCap = longValue(object, "hardPlayerCap");
         long activeIslands = longValue(object, "activeIslands");
         long maxActiveIslands = longValue(object, "maxActiveIslands");
+        long activationQueue = longValue(object, "activationQueue");
+        long maxActivationQueue = longValue(object, "maxActivationQueue");
         return (id.isBlank() ? "node" : id)
             + " " + (state.isBlank() ? "UNKNOWN" : state)
-            + " players=" + players + "/" + hardCap
+            + " players=" + players + "/" + softCap + "/" + hardCap
             + " islands=" + activeIslands + "/" + maxActiveIslands
+            + " queue=" + activationQueue + "/" + maxActivationQueue
             + " mspt=" + seconds(doubleValue(object, "mspt"))
+            + " score=" + seconds(doubleValue(object, "score"))
             + " storage=" + (boolValue(object, "storageAvailable") ? "ok" : "down");
     }
 

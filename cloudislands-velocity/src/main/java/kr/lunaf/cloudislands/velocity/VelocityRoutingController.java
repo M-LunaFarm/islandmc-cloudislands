@@ -1685,7 +1685,9 @@ public final class VelocityRoutingController {
             return "Nodes: empty";
         }
         int total = 0;
-        int up = 0;
+        int ready = 0;
+        int softFull = 0;
+        int hardFull = 0;
         int draining = 0;
         int down = 0;
         java.util.List<String> entries = new java.util.ArrayList<>();
@@ -1702,8 +1704,12 @@ public final class VelocityRoutingController {
             String object = nodes.substring(objectStart, objectEnd + 1);
             String state = jsonValue(object, "state");
             total++;
-            if (state.equalsIgnoreCase("UP")) {
-                up++;
+            if (state.equalsIgnoreCase("READY")) {
+                ready++;
+            } else if (state.equalsIgnoreCase("SOFT_FULL")) {
+                softFull++;
+            } else if (state.equalsIgnoreCase("HARD_FULL")) {
+                hardFull++;
             } else if (state.equalsIgnoreCase("DRAINING")) {
                 draining++;
             } else if (state.equalsIgnoreCase("DOWN")) {
@@ -1715,7 +1721,9 @@ public final class VelocityRoutingController {
             index = objectEnd + 1;
         }
         return "Nodes: total=" + total
-            + " up=" + up
+            + " ready=" + ready
+            + " softFull=" + softFull
+            + " hardFull=" + hardFull
             + " draining=" + draining
             + " down=" + down
             + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
@@ -1725,15 +1733,20 @@ public final class VelocityRoutingController {
         String id = jsonValue(object, "id");
         String state = jsonValue(object, "state");
         long players = longValue(object, "players");
+        long softCap = longValue(object, "softPlayerCap");
         long hardCap = longValue(object, "hardPlayerCap");
         long activeIslands = longValue(object, "activeIslands");
         long maxActiveIslands = longValue(object, "maxActiveIslands");
+        long activationQueue = longValue(object, "activationQueue");
+        long maxActivationQueue = longValue(object, "maxActivationQueue");
         String displayNode = hideNodeNames || id.isBlank() ? "node-" + displayIndex : id;
         return displayNode
             + " " + (state.isBlank() ? "UNKNOWN" : state)
-            + " players=" + players + "/" + hardCap
+            + " players=" + players + "/" + softCap + "/" + hardCap
             + " islands=" + activeIslands + "/" + maxActiveIslands
+            + " queue=" + activationQueue + "/" + maxActivationQueue
             + " mspt=" + seconds(doubleValue(object, "mspt"))
+            + " score=" + seconds(doubleValue(object, "score"))
             + " storage=" + (boolValue(object, "storageAvailable") ? "ok" : "down");
     }
 
