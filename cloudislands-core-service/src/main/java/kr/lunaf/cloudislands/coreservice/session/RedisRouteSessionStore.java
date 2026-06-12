@@ -54,14 +54,20 @@ public final class RedisRouteSessionStore implements RouteSessionStore {
     @Override
     public Optional<PlayerRouteSession> consume(UUID playerUuid, String nodeId) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            String value = redis.command("GETDEL", key(playerUuid));
+            String sessionKey = key(playerUuid);
+            String value = redis.command("GET", sessionKey);
             if (value == null || value.isBlank()) {
                 return Optional.empty();
             }
             PlayerRouteSession session = decode(value);
-            if (session.expiresAt().isBefore(Instant.now()) || !session.targetNode().equals(nodeId)) {
+            if (session.expiresAt().isBefore(Instant.now())) {
+                redis.command("DEL", sessionKey);
                 return Optional.empty();
             }
+            if (!session.targetNode().equals(nodeId)) {
+                return Optional.empty();
+            }
+            redis.command("DEL", sessionKey);
             return Optional.of(session);
         } catch (IOException exception) {
             throw new IllegalStateException("failed to consume redis route session", exception);
