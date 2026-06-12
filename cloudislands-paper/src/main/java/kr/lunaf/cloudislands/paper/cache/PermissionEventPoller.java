@@ -64,10 +64,18 @@ public final class PermissionEventPoller {
     private void poll() {
         try {
             String json = client.listEventsSince(lastEventSequence, 512).join();
+            long oldestSequence = longField(json, "oldestSeq");
             long latestSequence = longField(json, "latestSeq");
             if (latestSequence > 0L && latestSequence < lastEventSequence) {
                 lastEventSequence = 0L;
                 clearSeen();
+                json = client.listEventsSince(lastEventSequence, 512).join();
+                oldestSequence = longField(json, "oldestSeq");
+            }
+            if (lastEventSequence > 0L && oldestSequence > lastEventSequence + 1L) {
+                invalidateLocalCaches();
+                clearSeen();
+                lastEventSequence = oldestSequence - 1L;
                 json = client.listEventsSince(lastEventSequence, 512).join();
             }
             for (ParsedEvent event : events(json)) {
@@ -140,6 +148,13 @@ public final class PermissionEventPoller {
     private synchronized void clearSeen() {
         seen.clear();
         seenOrder.clear();
+    }
+
+    private void invalidateLocalCaches() {
+        permissionSync.invalidateAll();
+        generatorLevels.invalidateAll();
+        cropGrowthLevels.invalidateAll();
+        limits.invalidateAll();
     }
 
     private String eventKey(String type, Map<String, String> fields, String occurredAt) {
