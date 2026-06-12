@@ -97,7 +97,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         String pool = getConfig().getString("node.pool", "island");
         String velocityServerName = getConfig().getString("node.velocity-server-name", nodeId);
         AgentRole role = AgentRole.valueOf(getConfig().getString("node.role", "ISLAND_NODE"));
-        CoreApiClient client = new JdkCoreApiClient(URI.create(getConfig().getString("core-api.base-url", "https://core-api.internal:8443")), System.getenv().getOrDefault("CI_CORE_TOKEN", ""), Duration.ofSeconds(3));
+        CoreApiClient client = new JdkCoreApiClient(URI.create(getConfig().getString("core-api.base-url", "https://core-api.internal:8443")), coreApiToken(), Duration.ofSeconds(3));
         this.agent = new CloudIslandsPaperAgent(this, role, client, nodeId);
         this.api = new PaperCloudIslandsApi(client, agent);
         CloudIslandsProvider.set(api);
@@ -286,6 +286,25 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         periodicSaveTask.start(getConfig().getLong("island-node.activation.periodic-save-seconds", 600L));
         emptyIslandSaveTask.start(getConfig().getLong("island-node.activation.save-on-empty-after-seconds", 300L));
         periodicLevelScanTask.start(getConfig().getLong("island-node.level-scan-interval-seconds", 900L));
+    }
+
+    private String coreApiToken() {
+        String envToken = System.getenv("CI_CORE_TOKEN");
+        if (envToken != null && !envToken.isBlank()) {
+            return envToken;
+        }
+        return resolveEnv(getConfig().getString("core-api.auth-token", ""));
+    }
+
+    private String resolveEnv(String value) {
+        if (value == null) {
+            return "";
+        }
+        String trimmed = value.trim();
+        if (trimmed.startsWith("${") && trimmed.endsWith("}")) {
+            return System.getenv().getOrDefault(trimmed.substring(2, trimmed.length() - 1), "");
+        }
+        return trimmed;
     }
 
     private boolean storageAvailable(IslandStorage storage) {
