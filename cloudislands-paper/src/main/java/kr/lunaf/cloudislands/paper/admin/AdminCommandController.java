@@ -635,11 +635,27 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             String object = islands.substring(objectStart, objectEnd + 1);
             String islandId = textValue(object, "islandId");
             if (!islandId.isBlank()) {
-                entries.add(islandId + "(" + textValue(object, "state") + ")");
+                entries.add(islandId + "(" + nodeIslandRuntimeSuffix(object) + ")");
             }
             index = objectEnd + 1;
         }
         return "노드 섬 현황" + (nodeId.isBlank() ? "" : " " + nodeId) + ": " + (entries.isEmpty() ? "활성 섬 없음" : String.join(", ", entries));
+    }
+
+    private String nodeIslandRuntimeSuffix(String object) {
+        List<String> parts = new ArrayList<>();
+        String state = textValue(object, "state");
+        if (!state.isBlank()) {
+            parts.add(state);
+        }
+        String world = textValue(object, "activeWorld");
+        if (!world.isBlank()) {
+            parts.add("world=" + world);
+        }
+        if (!object.contains("\"cellX\":null") && !object.contains("\"cellZ\":null")) {
+            parts.add("cell=" + longValue(object, "cellX") + "," + longValue(object, "cellZ"));
+        }
+        return String.join(" ", parts);
     }
 
     private int nodeIslandLimit(String[] args) {
