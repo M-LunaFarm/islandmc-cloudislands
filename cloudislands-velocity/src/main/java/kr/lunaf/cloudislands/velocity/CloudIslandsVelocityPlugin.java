@@ -218,7 +218,7 @@ public final class CloudIslandsVelocityPlugin {
     }
 
     private void dispatchAdmin(Player player, String[] args) {
-        if (args.length >= 1 && args[0].equalsIgnoreCase("status")) {
+        if (args.length == 0 || args[0].equalsIgnoreCase("status")) {
             player.sendMessage(Component.text(routingController.statusSummary()));
             return;
         }
