@@ -94,6 +94,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private static final List<String> HELP_COMMANDS = List.of(
         "섬 help [page]",
         "섬 command list [page]",
+        "섬",
         "섬 메뉴",
         "섬 생성 [template]",
         "섬 목록",
@@ -291,7 +292,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return true;
         }
         if (args.length == 0) {
-            IslandMainMenu.open(player);
+            sendCommandList(player, "섬 명령어 목록", HELP_COMMANDS, 1);
             return true;
         }
         String subcommand = args[0].toLowerCase(Locale.ROOT);
@@ -301,7 +302,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return true;
         }
         if (subcommand.equals("menu") || subcommand.equals("메뉴")) {
-            IslandMainMenu.open(player);
+            sendCommandList(player, "섬 명령어 목록", HELP_COMMANDS, 1);
             return true;
         }
         if (subcommand.equals("create-menu") || subcommand.equals("templates") || subcommand.equals("생성메뉴") || subcommand.equals("템플릿")) {
