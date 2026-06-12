@@ -30,6 +30,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private static final List<String> JOB_COMMANDS = List.of("list", "retry", "cancel", "recover");
     private static final List<String> ROUTE_COMMANDS = List.of("debug", "ticket", "clear");
     private static final List<String> BLOCK_VALUE_COMMANDS = List.of("list", "set");
+    private static final List<String> BLOCK_VALUE_MATERIALS = List.of("minecraft:stone", "minecraft:diamond_block", "minecraft:emerald_block", "minecraft:spawner");
     private static final List<String> TEMPLATE_COMMANDS = List.of("list", "upsert", "enable", "disable");
     private static final List<String> MIGRATION_COMMANDS = List.of("scan", "dryrun", "dry-run", "import", "verify", "rollback");
     private static final List<String> NODE_DANGER_REASONS = List.of("maintenance", "restart", "drain");
@@ -137,6 +138,18 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("block-values")) {
             return matches(BLOCK_VALUE_COMMANDS, args[1]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("block-values") && args[1].equalsIgnoreCase("set")) {
+            return matches(BLOCK_VALUE_MATERIALS, args[2]);
+        }
+        if (args.length == 4 && args[0].equalsIgnoreCase("block-values") && args[1].equalsIgnoreCase("set")) {
+            return matches(List.of("1.0", "10.0", "100.0"), args[3]);
+        }
+        if (args.length == 5 && args[0].equalsIgnoreCase("block-values") && args[1].equalsIgnoreCase("set")) {
+            return matches(List.of("1", "10", "100"), args[4]);
+        }
+        if (args.length == 6 && args[0].equalsIgnoreCase("block-values") && args[1].equalsIgnoreCase("set")) {
+            return matches(List.of("0", "64", "256"), args[5]);
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates"))) {
             return matches(TEMPLATE_COMMANDS, args[1]);

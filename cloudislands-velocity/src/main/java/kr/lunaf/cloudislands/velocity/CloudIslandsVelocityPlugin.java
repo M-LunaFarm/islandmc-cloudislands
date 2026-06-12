@@ -915,6 +915,18 @@ public final class CloudIslandsVelocityPlugin {
         if (args.length == 6 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("upsert")) {
             addLiteralSuggestions(matches, args[5], List.of("1.0.0", "1.21.0", "1.21.4"));
         }
+        if (args.length == 3 && args[0].equalsIgnoreCase("block-values") && args[1].equalsIgnoreCase("set")) {
+            addLiteralSuggestions(matches, args[2], List.of("minecraft:stone", "minecraft:diamond_block", "minecraft:emerald_block", "minecraft:spawner"));
+        }
+        if (args.length == 4 && args[0].equalsIgnoreCase("block-values") && args[1].equalsIgnoreCase("set")) {
+            addLiteralSuggestions(matches, args[3], List.of("1.0", "10.0", "100.0"));
+        }
+        if (args.length == 5 && args[0].equalsIgnoreCase("block-values") && args[1].equalsIgnoreCase("set")) {
+            addLiteralSuggestions(matches, args[4], List.of("1", "10", "100"));
+        }
+        if (args.length == 6 && args[0].equalsIgnoreCase("block-values") && args[1].equalsIgnoreCase("set")) {
+            addLiteralSuggestions(matches, args[5], List.of("0", "64", "256"));
+        }
         if (args.length == 3 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
             addLiteralSuggestions(matches, args[2], List.of("plugins/SuperiorSkyblock2"));
         }
