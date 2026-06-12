@@ -1188,8 +1188,14 @@ public final class CloudIslandsCoreApplication {
             if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.MANAGE_ROLES)) {
                 return;
             }
-            boolean existingMember = metadataRepository.members(islandId).stream().anyMatch(member -> member.playerUuid().equals(playerUuid));
-            if (!existingMember && metadataRepository.members(islandId).size() >= limitValue(limitRepository, islandId, "MEMBERS", 3L)) {
+            java.util.List<kr.lunaf.cloudislands.api.model.IslandMemberSnapshot> members = metadataRepository.members(islandId);
+            IslandRole currentRole = memberRole(members, playerUuid);
+            if (role == IslandRole.OWNER || currentRole == IslandRole.OWNER) {
+                write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island ownership must be changed through ownership transfer"));
+                return;
+            }
+            boolean existingMember = currentRole != null;
+            if (!existingMember && members.size() >= limitValue(limitRepository, islandId, "MEMBERS", 3L)) {
                 write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
                 return;
             }
@@ -1225,6 +1231,10 @@ public final class CloudIslandsCoreApplication {
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
             if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.MANAGE_MEMBERS)) {
+                return;
+            }
+            if (memberRole(metadataRepository.members(islandId), playerUuid) == IslandRole.OWNER) {
+                write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner cannot be removed as a member"));
                 return;
             }
             metadataRepository.removeMember(islandId, playerUuid);
@@ -1993,6 +2003,14 @@ public final class CloudIslandsCoreApplication {
         }
         write(exchange, 403, ApiResponses.error("ISLAND_PERMISSION_DENIED", "Island permission " + permission.name() + " is required"));
         return false;
+    }
+
+    private static IslandRole memberRole(java.util.List<kr.lunaf.cloudislands.api.model.IslandMemberSnapshot> members, UUID playerUuid) {
+        return members.stream()
+            .filter(member -> member.playerUuid().equals(playerUuid))
+            .map(kr.lunaf.cloudislands.api.model.IslandMemberSnapshot::role)
+            .findFirst()
+            .orElse(null);
     }
 
     private static boolean requireMember(HttpExchange exchange, IslandRepository islandRepository, IslandMetadataRepository metadataRepository, UUID islandId, UUID actorUuid) throws IOException {

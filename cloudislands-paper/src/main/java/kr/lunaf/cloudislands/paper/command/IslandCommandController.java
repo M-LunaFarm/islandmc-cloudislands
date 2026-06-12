@@ -1145,6 +1145,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             case "MAX_LEVEL" -> "이미 최대 업그레이드 레벨입니다.";
             case "INVITE_UNAVAILABLE" -> "사용할 수 없는 초대입니다.";
             case "OWNERSHIP_TRANSFER_DENIED" -> "섬 소유권을 양도할 수 없습니다.";
+            case "OWNER_ROLE_PROTECTED" -> "섬 소유자는 소유권 양도로만 변경할 수 있습니다.";
             case "UNAUTHORIZED", "ADMIN_PERMISSION_DENIED" -> "이 명령을 사용할 권한이 없습니다.";
             case "RATE_LIMITED" -> "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.";
             default -> fallback;
