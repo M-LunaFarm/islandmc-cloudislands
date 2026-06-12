@@ -78,6 +78,9 @@ public final class PermissionEventPoller {
                 if (handlesVisitorKick(type, fields)) {
                     continue;
                 }
+                if (handlesIslandChat(type, fields)) {
+                    continue;
+                }
                 if (affectsPermissions(type, fields)) {
                     String islandId = fields.get("islandId");
                     if (islandId != null && !islandId.isBlank()) {
@@ -156,6 +159,44 @@ public final class PermissionEventPoller {
             return true;
         }
         return false;
+    }
+
+    private boolean handlesIslandChat(String type, Map<String, String> fields) {
+        if (!type.equals(CloudIslandEventType.ISLAND_CHAT_SENT.name())) {
+            return false;
+        }
+        String islandIdValue = fields.getOrDefault("islandId", "");
+        String actorUuidValue = fields.getOrDefault("actorUuid", "");
+        String message = fields.getOrDefault("message", "");
+        if (islandIdValue.isBlank() || actorUuidValue.isBlank() || message.isBlank()) {
+            return true;
+        }
+        UUID actorUuid = UUID.fromString(actorUuidValue);
+        if (Bukkit.getPlayer(actorUuid) != null) {
+            return true;
+        }
+        UUID islandId = UUID.fromString(islandIdValue);
+        String channel = fields.getOrDefault("channel", "ISLAND");
+        Bukkit.getScheduler().runTask(plugin, () -> broadcastIslandChat(islandId, actorUuid, channel, message));
+        return true;
+    }
+
+    private void broadcastIslandChat(UUID islandId, UUID actorUuid, String channel, String chatMessage) {
+        boolean teamChannel = channel.equalsIgnoreCase("TEAM");
+        String normalizedChannel = teamChannel ? "팀" : "섬";
+        String message = "[" + normalizedChannel + "] " + actorUuid + ": " + chatMessage;
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            if (teamChannel) {
+                if (protection.memberOrTrusted(islandId, online.getUniqueId())) {
+                    online.sendMessage(message);
+                }
+                continue;
+            }
+            UUID currentIslandId = protection.islandAt(online.getLocation().getBlock()).orElse(null);
+            if (islandId.equals(currentIslandId)) {
+                online.sendMessage(message);
+            }
+        }
     }
 
     private boolean handlesVisitorKick(String type, Map<String, String> fields) {
