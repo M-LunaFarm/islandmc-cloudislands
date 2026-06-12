@@ -100,4 +100,14 @@ public final class NodeAllocator {
     public boolean acceptsExistingRoute(NodeLoad node, Instant now, String templateId, String minNodeVersion, String pool) {
         return node.inPool(pool) && node.acceptsExistingRoute(now, heartbeatTimeout, templateId, minNodeVersion);
     }
+
+    public String existingRouteBlockReason(NodeLoad node, Instant now, String templateId, String minNodeVersion, String pool) {
+        if (node == null) {
+            return "NODE_NOT_FOUND";
+        }
+        if (!node.inPool(pool)) {
+            return "POOL_MISMATCH";
+        }
+        return node.existingRouteBlockReason(now, heartbeatTimeout, templateId, minNodeVersion);
+    }
 }

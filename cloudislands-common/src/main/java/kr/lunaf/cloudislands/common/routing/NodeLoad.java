@@ -66,16 +66,29 @@ public record NodeLoad(
     }
 
     public boolean acceptsExistingRoute(Instant now, Duration heartbeatTimeout, String templateId, String minVersion) {
+        return existingRouteBlockReason(now, heartbeatTimeout, templateId, minVersion).isBlank();
+    }
+
+    public String existingRouteBlockReason(Instant now, Duration heartbeatTimeout, String templateId, String minVersion) {
         if (state != NodeState.READY && state != NodeState.SOFT_FULL) {
-            return false;
+            return "STATE_" + state.name();
         }
-        if (!storageAvailable) {
-            return false;
+        if (lastHeartbeat == null) {
+            return "HEARTBEAT_MISSING";
         }
-        if (lastHeartbeat == null || lastHeartbeat.plus(heartbeatTimeout).isBefore(now)) {
-            return false;
+        if (lastHeartbeat.plus(heartbeatTimeout).isBefore(now)) {
+            return "HEARTBEAT_STALE";
         }
-        return players < hardPlayerCap && supportsTemplate(templateId) && satisfiesMinVersion(minVersion);
+        if (hardPlayerCap > 0 && players >= hardPlayerCap) {
+            return "HARD_PLAYER_CAP";
+        }
+        if (!supportsTemplate(templateId)) {
+            return "TEMPLATE_UNSUPPORTED";
+        }
+        if (!satisfiesMinVersion(minVersion)) {
+            return "NODE_VERSION_TOO_OLD";
+        }
+        return "";
     }
 
     public boolean supportsTemplate(String templateId) {

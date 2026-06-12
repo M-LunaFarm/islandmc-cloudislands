@@ -257,6 +257,9 @@ public final class RoutingOrchestrator {
             if ("ACTIVATION_LOCKED".equals(exception.getMessage())) {
                 return rejectRoute(409, "ACTIVATION_LOCKED", "Island activation is already in progress", playerUuid, island.islandId(), action);
             }
+            if (exception.getMessage() != null && exception.getMessage().startsWith("ACTIVE_NODE_")) {
+                return rejectRoute(409, exception.getMessage(), "The active island node cannot accept this route", playerUuid, island.islandId(), action);
+            }
             if ("NO_READY_NODE".equals(exception.getMessage()) || (exception.getMessage() != null && exception.getMessage().startsWith("NO_READY_NODE_"))) {
                 return rejectRoute(409, exception.getMessage(), "No ready island node is available", playerUuid, island.islandId(), action);
             }
@@ -321,9 +324,12 @@ public final class RoutingOrchestrator {
                 markActiveRouteRecoveryRequired(runtime, "active_node_not_registered");
                 throw new IllegalStateException("active node is unavailable");
             }
-            if (!allocator.acceptsExistingRoute(activeNode, Instant.now(), templateId, minNodeVersion, islandPool)) {
-                markActiveRouteRecoveryRequired(runtime, "active_node_unhealthy");
-                throw new IllegalStateException("active node is unavailable");
+            String blockReason = allocator.existingRouteBlockReason(activeNode, Instant.now(), templateId, minNodeVersion, islandPool);
+            if (!blockReason.isBlank()) {
+                if (activeRouteRecoveryReason(blockReason)) {
+                    markActiveRouteRecoveryRequired(runtime, "active_node_" + blockReason.toLowerCase(java.util.Locale.ROOT));
+                }
+                throw new IllegalStateException("ACTIVE_NODE_" + blockReason);
             }
             if (visitorRoute && activeNode.state() == NodeState.SOFT_FULL) {
                 throw new IllegalStateException("VISITOR_SOFT_FULL");
@@ -366,6 +372,13 @@ public final class RoutingOrchestrator {
         }
         events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", runtime.islandId().toString(), "state", activating.state().name(), "targetNode", selected.nodeId()));
         return new RouteTarget(selected, activating.activeWorld() == null ? "ci_shard_001" : activating.activeWorld(), RouteTicketState.PREPARING);
+    }
+
+    private boolean activeRouteRecoveryReason(String blockReason) {
+        return blockReason.equals("NODE_NOT_FOUND")
+            || blockReason.equals("HEARTBEAT_MISSING")
+            || blockReason.equals("HEARTBEAT_STALE")
+            || blockReason.equals("STATE_DOWN");
     }
 
     private void markActiveRouteRecoveryRequired(IslandRuntimeSnapshot runtime, String reason) {

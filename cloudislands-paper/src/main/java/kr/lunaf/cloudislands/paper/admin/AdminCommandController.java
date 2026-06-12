@@ -1106,6 +1106,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (code.startsWith("TARGET_NODE")) {
             return "target-node-blocked";
         }
+        if (code.startsWith("ACTIVE_NODE")) {
+            return "active-node-blocked";
+        }
         return switch (code) {
             case "ACTIVATION_LOCKED" -> "activation-in-progress";
             case "VISITOR_SOFT_FULL" -> "visitor-denied-soft-full";

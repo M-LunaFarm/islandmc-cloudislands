@@ -984,6 +984,9 @@ public final class VelocityRoutingController {
         if (code.startsWith("TARGET_NODE")) {
             return "target-node-blocked";
         }
+        if (code.startsWith("ACTIVE_NODE")) {
+            return "active-node-blocked";
+        }
         return switch (code) {
             case "ACTIVATION_LOCKED" -> "activation-in-progress";
             case "VISITOR_SOFT_FULL" -> "visitor-denied-soft-full";
@@ -2441,7 +2444,7 @@ public final class VelocityRoutingController {
         if (code == null || code.isBlank()) {
             return fallback;
         }
-        if (code.startsWith("NO_READY_NODE") || code.startsWith("TARGET_NODE")) {
+        if (code.startsWith("NO_READY_NODE") || code.startsWith("TARGET_NODE") || code.startsWith("ACTIVE_NODE")) {
             return "현재 섬 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.";
         }
         return switch (code) {
