@@ -50,6 +50,14 @@ public final class IslandHomeMenu implements Listener {
             player.performCommand("섬 셋홈 default");
             return;
         }
+        if (displayName.equals("설정")) {
+            player.performCommand("섬 설정");
+            return;
+        }
+        if (displayName.equals("메인 메뉴")) {
+            player.performCommand("섬 메뉴");
+            return;
+        }
         String homeName = loreValue(meta, "homeName=");
         if (!homeName.isBlank()) {
             if (event.isRightClick()) {
@@ -71,6 +79,8 @@ public final class IslandHomeMenu implements Listener {
             if (homes.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, "홈 없음", "현재 등록된 섬 홈이 없습니다."));
             }
+            inventory.setItem(49, item(Material.COMPARATOR, "설정", "/섬 설정"));
+            inventory.setItem(53, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
             player.openInventory(inventory);
         });
     }
