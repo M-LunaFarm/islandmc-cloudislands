@@ -27,8 +27,9 @@ import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 
 public final class VelocityRoutingController {
-    private static final Pattern EVENT = Pattern.compile("\\{[^}]*\"type\":\"([^\"]+)\"[^}]*\"fields\":\\{([^}]*)}[^}]*\"occurredAt\":\"([^\"]+)\"[^}]*}");
+    private static final Pattern EVENT = Pattern.compile("\\{[^}]*\"seq\":(\\d+)[^}]*\"type\":\"([^\"]+)\"[^}]*\"fields\":\\{([^}]*)}[^}]*\"occurredAt\":\"([^\"]+)\"[^}]*}");
     private static final Pattern FIELD = Pattern.compile("\"([^\"]+)\":\"([^\"]*)\"");
+    private static final int EVENT_BATCH_SIZE = 512;
 
     private final ProxyServer proxy;
     private final CoreApiClient coreApiClient;
@@ -41,6 +42,7 @@ public final class VelocityRoutingController {
     private final boolean useBossBarLoading;
     private final Set<String> seenEvents = ConcurrentHashMap.newKeySet();
     private ScheduledTask eventPollTask;
+    private long lastEventSequence;
 
     public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer) {
         this(proxy, coreApiClient, fallbackServer, 20);
@@ -1689,12 +1691,24 @@ public final class VelocityRoutingController {
     }
 
     private void pollCoreEvents() {
-        coreApiClient.listEvents().thenAccept(body -> {
+        coreApiClient.listEventsSince(lastEventSequence, EVENT_BATCH_SIZE).thenAccept(body -> {
+            long oldestSequence = longValue(body, "oldestSeq");
+            long latestSequence = longValue(body, "latestSeq");
+            if (latestSequence > 0L && latestSequence < lastEventSequence) {
+                lastEventSequence = 0L;
+                seenEvents.clear();
+            }
+            if (lastEventSequence > 0L && oldestSequence > lastEventSequence + 1L) {
+                lastEventSequence = oldestSequence - 1L;
+                seenEvents.clear();
+            }
             Matcher matcher = EVENT.matcher(body == null ? "" : body);
             while (matcher.find()) {
-                String type = matcher.group(1);
-                Map<String, String> fields = fields(matcher.group(2));
-                String key = eventKey(type, fields, matcher.group(3));
+                long sequence = parseLong(matcher.group(1));
+                lastEventSequence = Math.max(lastEventSequence, sequence);
+                String type = matcher.group(2);
+                Map<String, String> fields = fields(matcher.group(3));
+                String key = eventKey(type, fields, matcher.group(4));
                 if (seenEvents.add(key)) {
                     handleCoreEvent(type, fields);
                 }
@@ -2488,6 +2502,14 @@ public final class VelocityRoutingController {
         }
         try {
             return Long.parseLong(body.substring(start, end));
+        } catch (NumberFormatException exception) {
+            return 0L;
+        }
+    }
+
+    private long parseLong(String value) {
+        try {
+            return Long.parseLong(value);
         } catch (NumberFormatException exception) {
             return 0L;
         }
