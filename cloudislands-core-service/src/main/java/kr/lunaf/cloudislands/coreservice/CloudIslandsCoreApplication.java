@@ -99,6 +99,7 @@ import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandMetadataRepository
 import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.redis.RedisStreamWriterAdapter;
+import kr.lunaf.cloudislands.coreservice.role.CachingIslandRoleRepository;
 import kr.lunaf.cloudislands.coreservice.role.InMemoryIslandRoleRepository;
 import kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository;
 import kr.lunaf.cloudislands.coreservice.role.JdbcIslandRoleRepository;
@@ -215,7 +216,10 @@ public final class CloudIslandsCoreApplication {
         IslandPermissionRuleRepository permissionRules = config.redisEvents() || config.redisJobs()
             ? new CachingIslandPermissionRuleRepository(basePermissionRules, config.redisUri())
             : basePermissionRules;
-        IslandRoleRepository roleRepository = config.jdbcRepositories() ? new JdbcIslandRoleRepository(dataSource) : new InMemoryIslandRoleRepository();
+        IslandRoleRepository baseRoleRepository = config.jdbcRepositories() ? new JdbcIslandRoleRepository(dataSource) : new InMemoryIslandRoleRepository();
+        IslandRoleRepository roleRepository = config.redisEvents() || config.redisJobs()
+            ? new CachingIslandRoleRepository(baseRoleRepository, config.redisUri())
+            : baseRoleRepository;
         IslandRuntimeRepository baseRuntimeRepository = config.jdbcRepositories() ? new JdbcIslandRuntimeRepository(dataSource) : new InMemoryIslandRuntimeRepository();
         IslandRuntimeRepository runtimeRepository = config.redisEvents() || config.redisJobs()
             ? new CachingIslandRuntimeRepository(baseRuntimeRepository, config.redisUri())
@@ -290,7 +294,7 @@ public final class CloudIslandsCoreApplication {
             lifecycle
         );
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotKeepLatest(), activationLock);
-        PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, tickets, runtimeRepository, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::activeConnections, meteredDataSource::openedConnections, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventWriter == null ? 0L : redisEventWriter.failuresTotal(), () -> redisCacheFailures(nodes, tickets, islandRepository, metadataRepository, playerProfiles, permissionRules, runtimeRepository, rankingRepository, levelRepository, bankRepository, limitRepository, missionRepository, upgradeRepository, templateRepository, snapshotRepository, islandLogs, redisCacheAdmin, activationLock, playerCreationLock, audit));
+        PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, tickets, runtimeRepository, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::activeConnections, meteredDataSource::openedConnections, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventWriter == null ? 0L : redisEventWriter.failuresTotal(), () -> redisCacheFailures(nodes, tickets, islandRepository, metadataRepository, playerProfiles, permissionRules, roleRepository, runtimeRepository, rankingRepository, levelRepository, bankRepository, limitRepository, missionRepository, upgradeRepository, templateRepository, snapshotRepository, islandLogs, redisCacheAdmin, activationLock, playerCreationLock, audit));
         this.nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, islandRepository, events, config.heartbeatTimeout());
         this.routeTicketExpiryMonitor = new RouteTicketExpiryMonitor(tickets, events, config.routeTicketTtl());
         this.jobRecoveryMonitor = new JobRecoveryMonitor(jobs, Duration.ofSeconds(60), config.leaseDuration().toMillis(), 16);
@@ -1760,7 +1764,7 @@ public final class CloudIslandsCoreApplication {
         });
     }
 
-    private static long redisCacheFailures(NodeRegistry nodes, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandRuntimeRepository runtimes, RankingRepository rankings, IslandLevelRepository levels, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandUpgradeRepository upgrades, IslandTemplateRepository templates, IslandSnapshotRepository snapshots, IslandLogRepository islandLogs, RedisCacheAdmin redisCacheAdmin, RedisActivationLock activationLock, RedisPlayerCreationLock playerCreationLock, AuditLogger audit) {
+    private static long redisCacheFailures(NodeRegistry nodes, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandRoleRepository roles, IslandRuntimeRepository runtimes, RankingRepository rankings, IslandLevelRepository levels, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandUpgradeRepository upgrades, IslandTemplateRepository templates, IslandSnapshotRepository snapshots, IslandLogRepository islandLogs, RedisCacheAdmin redisCacheAdmin, RedisActivationLock activationLock, RedisPlayerCreationLock playerCreationLock, AuditLogger audit) {
         long failures = 0L;
         if (nodes instanceof CachingNodeRegistry cachingNodes) {
             failures += cachingNodes.failuresTotal();
@@ -1779,6 +1783,9 @@ public final class CloudIslandsCoreApplication {
         }
         if (permissionRules instanceof CachingIslandPermissionRuleRepository cachingPermissionRules) {
             failures += cachingPermissionRules.failuresTotal();
+        }
+        if (roles instanceof CachingIslandRoleRepository cachingRoles) {
+            failures += cachingRoles.failuresTotal();
         }
         if (runtimes instanceof CachingIslandRuntimeRepository cachingRuntimes) {
             failures += cachingRuntimes.failuresTotal();
