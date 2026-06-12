@@ -120,15 +120,16 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
     }
 
     @Override
-    public int expireStale() {
+    public List<RouteTicket> expireStale() {
         Instant now = clock.instant();
-        int expired = 0;
+        List<RouteTicket> expired = new ArrayList<>();
         for (RouteTicket ticket : tickets.values()) {
             if ((ticket.state() != RouteTicketState.READY && ticket.state() != RouteTicketState.PREPARING) || !ticket.expiresAt().isBefore(now)) {
                 continue;
             }
-            tickets.put(ticket.ticketId(), new RouteTicket(ticket.ticketId(), ticket.playerUuid(), ticket.action(), ticket.islandId(), ticket.targetNode(), ticket.targetWorld(), RouteTicketState.EXPIRED, ticket.expiresAt(), ticket.nonce(), ticket.payload()));
-            expired++;
+            RouteTicket expiredTicket = new RouteTicket(ticket.ticketId(), ticket.playerUuid(), ticket.action(), ticket.islandId(), ticket.targetNode(), ticket.targetWorld(), RouteTicketState.EXPIRED, ticket.expiresAt(), ticket.nonce(), ticket.payload());
+            tickets.put(ticket.ticketId(), expiredTicket);
+            expired.add(expiredTicket);
         }
         return expired;
     }

@@ -208,6 +208,7 @@ public final class PrometheusMetricsRenderer {
         out.append("cloudislands_route_ticket_consumed_total ").append(events.countByType(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CONSUMED.name())).append('\n');
         appendEventFieldCounters(out, "cloudislands_route_ticket_consumed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CONSUMED, "action");
         appendEventFieldCounters(out, "cloudislands_route_ticket_consumed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CONSUMED, "targetNode");
+        publishExpiredRouteTickets();
         help(out, "cloudislands_route_ticket_failed_total", "Route ticket failures recorded by Core API");
         type(out, "cloudislands_route_ticket_failed_total", "counter");
         out.append("cloudislands_route_ticket_failed_total ").append(events.countByType(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_FAILED.name())).append('\n');
@@ -216,7 +217,6 @@ public final class PrometheusMetricsRenderer {
         for (Map.Entry<String, Long> entry : events.countsByField(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_FAILED.name(), "reason").entrySet()) {
             out.append("cloudislands_route_ticket_failed_total{reason=\"").append(escape(entry.getKey())).append("\"} ").append(entry.getValue()).append('\n');
         }
-        tickets.expireStale();
         help(out, "cloudislands_route_tickets_total", "Route tickets currently stored by state");
         type(out, "cloudislands_route_tickets_total", "gauge");
         for (Map.Entry<String, Long> entry : tickets.countsByState().entrySet()) {
@@ -293,6 +293,19 @@ public final class PrometheusMetricsRenderer {
             if (!entry.getKey().isBlank()) {
                 out.append(name).append('{').append(fieldName).append("=\"").append(escape(entry.getKey())).append("\"} ").append(entry.getValue()).append('\n');
             }
+        }
+    }
+
+    private void publishExpiredRouteTickets() {
+        for (var ticket : tickets.expireStale()) {
+            events.publish(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
+                "ticketId", ticket.ticketId().toString(),
+                "playerUuid", ticket.playerUuid().toString(),
+                "islandId", ticket.islandId().toString(),
+                "action", ticket.action().name(),
+                "targetNode", ticket.targetNode(),
+                "reason", "TICKET_EXPIRED"
+            ));
         }
     }
 

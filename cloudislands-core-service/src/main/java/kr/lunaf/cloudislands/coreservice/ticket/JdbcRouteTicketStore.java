@@ -179,10 +179,19 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
     }
 
     @Override
-    public int expireStale() {
+    public List<RouteTicket> expireStale() {
+        List<RouteTicket> expired = new ArrayList<>();
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE route_tickets SET state = 'EXPIRED' WHERE state IN ('READY', 'PREPARING') AND expires_at < now()")) {
-            return statement.executeUpdate();
+             PreparedStatement select = connection.prepareStatement("SELECT * FROM route_tickets WHERE state IN ('READY', 'PREPARING') AND expires_at < now()")) {
+            try (ResultSet rs = select.executeQuery()) {
+                while (rs.next()) {
+                    RouteTicket ticket = map(rs);
+                    RouteTicket expiredTicket = new RouteTicket(ticket.ticketId(), ticket.playerUuid(), ticket.action(), ticket.islandId(), ticket.targetNode(), ticket.targetWorld(), RouteTicketState.EXPIRED, ticket.expiresAt(), ticket.nonce(), ticket.payload());
+                    save(expiredTicket);
+                    expired.add(expiredTicket);
+                }
+            }
+            return expired;
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to expire stale route tickets", exception);
         }
