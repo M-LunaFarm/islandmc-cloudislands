@@ -83,7 +83,9 @@ public final class PaperRouteSessionListener implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        verifiedSessions.remove(event.getPlayer().getUniqueId());
+        UUID playerUuid = event.getPlayer().getUniqueId();
+        verifiedSessions.remove(playerUuid);
+        ticketConsumer.clearLoading(playerUuid);
     }
 
     private void scheduleVerifiedSessionExpiry(UUID playerUuid, PlayerRouteSession session) {

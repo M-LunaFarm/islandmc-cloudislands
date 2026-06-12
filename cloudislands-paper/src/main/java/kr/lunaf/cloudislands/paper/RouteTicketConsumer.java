@@ -34,6 +34,10 @@ public final class RouteTicketConsumer {
         this.activeIslands = activeIslands;
     }
 
+    public void clearLoading(UUID playerUuid) {
+        loadingBars.remove(playerUuid);
+    }
+
     public void consumeAndTeleport(UUID ticketId, UUID playerUuid, String nonce) {
         consumeAndTeleport(ticketId, playerUuid, nonce, 0);
     }
@@ -148,10 +152,8 @@ public final class RouteTicketConsumer {
             loadingBars.remove(playerUuid);
             return;
         }
-        if (player != null) {
-            hideLoading(player);
-            player.sendActionBar(Component.text("섬 이동 준비가 완료되지 않았습니다. 다시 시도해주세요."));
-        }
+        hideLoading(player);
+        player.sendActionBar(Component.text("섬 이동 준비가 완료되지 않았습니다. 다시 시도해주세요."));
     }
 
     private void hideLoading(Player player) {
