@@ -35,6 +35,7 @@ island-node:
     preload-radius: 4
     save-on-empty-after-seconds: 300
     periodic-save-seconds: 600
+  level-scan-interval-seconds: 900
 
 protection:
   cache-permissions: true

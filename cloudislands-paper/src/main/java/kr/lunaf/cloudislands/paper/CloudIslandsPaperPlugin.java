@@ -51,6 +51,7 @@ import kr.lunaf.cloudislands.paper.job.CoreBackedIslandJobSource;
 import kr.lunaf.cloudislands.paper.job.PaperIslandJobWorker;
 import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
 import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
+import kr.lunaf.cloudislands.paper.level.PeriodicIslandLevelScanTask;
 import kr.lunaf.cloudislands.paper.limit.IslandEntityLimitListener;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitListener;
@@ -78,6 +79,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private PermissionEventPoller permissionEventPoller;
     private PeriodicIslandSaveTask periodicSaveTask;
     private EmptyIslandSaveTask emptyIslandSaveTask;
+    private PeriodicIslandLevelScanTask periodicLevelScanTask;
     private ActiveIslandRegistry activeIslands;
     private CloudIslandsApi api;
     private GeneratorLevelCache generatorLevels;
@@ -198,6 +200,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         if (emptyIslandSaveTask != null) {
             emptyIslandSaveTask.stop();
         }
+        if (periodicLevelScanTask != null) {
+            periodicLevelScanTask.stop();
+        }
         if (heartbeatService != null) {
             heartbeatService.stop();
         }
@@ -231,10 +236,12 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         this.permissionEventPoller = new PermissionEventPoller(this, client, permissionSync, generatorLevels, cropGrowthLevels, limitCache, nodeId);
         this.periodicSaveTask = new PeriodicIslandSaveTask(this, activeIslands, saveService);
         this.emptyIslandSaveTask = new EmptyIslandSaveTask(this, activeIslands, agent.protection(), saveService, client);
+        this.periodicLevelScanTask = new PeriodicIslandLevelScanTask(this, activeIslands, new IslandLevelScanService(this, () -> activeIslands, client));
         permissionEventPoller.start(getConfig().getLong("protection.cache-event-poll-ticks", 100L));
         jobWorker.start(getConfig().getLong("island-node.activation.worker-interval-ticks", 20L));
         periodicSaveTask.start(getConfig().getLong("island-node.activation.periodic-save-seconds", 600L));
         emptyIslandSaveTask.start(getConfig().getLong("island-node.activation.save-on-empty-after-seconds", 300L));
+        periodicLevelScanTask.start(getConfig().getLong("island-node.level-scan-interval-seconds", 900L));
     }
 
     private boolean storageAvailable(IslandStorage storage) {
