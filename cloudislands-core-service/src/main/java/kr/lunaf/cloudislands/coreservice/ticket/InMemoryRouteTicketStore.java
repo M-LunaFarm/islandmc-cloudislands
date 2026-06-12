@@ -2,6 +2,8 @@ package kr.lunaf.cloudislands.coreservice.ticket;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -47,6 +49,33 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
             updated++;
         }
         return updated;
+    }
+
+    @Override
+    public List<RouteTicket> markFailedForIsland(UUID islandId, String targetNode, String reason) {
+        List<RouteTicket> failedTickets = new ArrayList<>();
+        for (RouteTicket ticket : tickets.values()) {
+            if (ticket.state() != RouteTicketState.PREPARING || !ticket.islandId().equals(islandId) || !ticket.targetNode().equals(targetNode)) {
+                continue;
+            }
+            java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>(ticket.payload());
+            payload.put("failureReason", reason == null ? "" : reason);
+            RouteTicket failed = new RouteTicket(
+                ticket.ticketId(),
+                ticket.playerUuid(),
+                ticket.action(),
+                ticket.islandId(),
+                ticket.targetNode(),
+                ticket.targetWorld(),
+                RouteTicketState.FAILED,
+                ticket.expiresAt(),
+                ticket.nonce(),
+                Map.copyOf(payload)
+            );
+            tickets.put(ticket.ticketId(), failed);
+            failedTickets.add(failed);
+        }
+        return failedTickets;
     }
 
     public Optional<RouteTicket> consume(UUID ticketId, UUID playerUuid, String nodeId, String nonce) {

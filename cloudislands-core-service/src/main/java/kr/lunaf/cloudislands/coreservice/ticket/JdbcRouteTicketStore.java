@@ -6,7 +6,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -66,6 +68,40 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
             return updated;
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to mark route tickets ready", exception);
+        }
+    }
+
+    @Override
+    public List<RouteTicket> markFailedForIsland(UUID islandId, String targetNode, String reason) {
+        List<RouteTicket> failedTickets = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT * FROM route_tickets WHERE island_id = ? AND target_node = ? AND state = 'PREPARING'")) {
+            statement.setObject(1, islandId);
+            statement.setString(2, targetNode);
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    RouteTicket ticket = map(rs);
+                    LinkedHashMap<String, String> payload = new LinkedHashMap<>(ticket.payload());
+                    payload.put("failureReason", reason == null ? "" : reason);
+                    RouteTicket failed = new RouteTicket(
+                        ticket.ticketId(),
+                        ticket.playerUuid(),
+                        ticket.action(),
+                        ticket.islandId(),
+                        ticket.targetNode(),
+                        ticket.targetWorld(),
+                        RouteTicketState.FAILED,
+                        ticket.expiresAt(),
+                        ticket.nonce(),
+                        Map.copyOf(payload)
+                    );
+                    save(failed);
+                    failedTickets.add(failed);
+                }
+            }
+            return failedTickets;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to mark route tickets failed", exception);
         }
     }
 

@@ -104,7 +104,25 @@ public final class JobCompletionService {
             default -> IslandState.RECOVERY_REQUIRED;
         };
         runtimes.setState(job.islandId(), state);
+        failPreparingRouteTickets(job, errorMessage);
         events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", job.islandId().toString(), "state", state.name(), "error", errorMessage == null ? "" : errorMessage));
+    }
+
+    private void failPreparingRouteTickets(IslandJob job, String errorMessage) {
+        if (job.type() != IslandJobType.CREATE_ISLAND && job.type() != IslandJobType.ACTIVATE_ISLAND && job.type() != IslandJobType.MIGRATE_ISLAND && job.type() != IslandJobType.RESTORE_ISLAND && job.type() != IslandJobType.RESET_ISLAND) {
+            return;
+        }
+        String reason = errorMessage == null || errorMessage.isBlank() ? "JOB_FAILED" : errorMessage;
+        for (var ticket : tickets.markFailedForIsland(job.islandId(), job.targetNode(), reason)) {
+            events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
+                "ticketId", ticket.ticketId().toString(),
+                "playerUuid", ticket.playerUuid().toString(),
+                "islandId", ticket.islandId().toString(),
+                "action", ticket.action().name(),
+                "targetNode", ticket.targetNode(),
+                "reason", reason
+            ));
+        }
     }
 
     private int integer(String value) {

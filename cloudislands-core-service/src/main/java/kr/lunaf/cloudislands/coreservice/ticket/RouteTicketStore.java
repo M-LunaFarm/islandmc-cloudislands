@@ -3,12 +3,15 @@ package kr.lunaf.cloudislands.coreservice.ticket;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 
 public interface RouteTicketStore {
     RouteTicket save(RouteTicket ticket);
 
     int markReadyForIsland(UUID islandId, String targetNode, String targetWorld, Map<String, String> payload);
+
+    List<RouteTicket> markFailedForIsland(UUID islandId, String targetNode, String reason);
 
     Optional<RouteTicket> consume(UUID ticketId, UUID playerUuid, String nodeId, String nonce);
 
