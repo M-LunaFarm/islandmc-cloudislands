@@ -162,6 +162,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             targets.addAll(onlinePlayerNames());
             return matches(targets, args[2]);
         }
+        if (args.length == 3 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("ticket")) {
+            return matches(onlinePlayerNames(), args[2]);
+        }
         if (args.length == 3 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("clear")) {
             return matches(onlinePlayerNames(), args[2]);
         }
