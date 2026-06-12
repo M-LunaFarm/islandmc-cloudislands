@@ -1,3 +1,6 @@
+plugin:
+  service-name: "CloudIslands"
+
 node:
   id: "island-1"
   role: "ISLAND_NODE"
@@ -27,6 +30,10 @@ storage:
   local-path: "islands-storage"
   access-key: "${S3_ACCESS_KEY}"
   secret-key: "${S3_SECRET_KEY}"
+  auth-token: "${S3_BEARER_TOKEN}"
+
+generators:
+  default-key: "default"
 
 island-node:
   shard-world-prefix: "ci_shard_"
