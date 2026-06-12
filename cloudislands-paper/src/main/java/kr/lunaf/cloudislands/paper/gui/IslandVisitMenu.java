@@ -45,6 +45,10 @@ public final class IslandVisitMenu implements Listener {
             player.performCommand("섬 랜덤방문");
             return;
         }
+        if (name.equals("공개 워프 목록")) {
+            player.performCommand("섬 공개워프목록");
+            return;
+        }
         if (name.equals("새로고침")) {
             player.performCommand("섬 방문");
             return;
@@ -65,11 +69,12 @@ public final class IslandVisitMenu implements Listener {
             if (islands.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, "공개 섬 없음", "방문 가능한 공개 섬이 없습니다."));
             } else {
-                for (int index = 0; index < islands.size() && index < 45; index++) {
+                for (int index = 0; index < islands.size() && index < 36; index++) {
                     IslandEntry island = islands.get(index);
                     inventory.setItem(index + 9, item(Material.GRASS_BLOCK, island.name(), "islandId=" + island.islandId(), "ownerUuid=" + island.ownerUuid(), "level=" + island.level(), "worth=" + island.worth(), "클릭하면 방문합니다."));
                 }
             }
+            inventory.setItem(45, item(Material.ENDER_EYE, "공개 워프 목록", "/섬 공개워프목록"));
             inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 방문"));
             player.openInventory(inventory);
         });
