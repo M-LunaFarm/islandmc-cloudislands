@@ -28,6 +28,7 @@ public final class IslandLifecycleWorkflow {
     private final IslandJobPublisher jobs;
     private final GlobalEventPublisher events;
     private final String islandPool;
+    private final String migrationPolicy;
     private final RedisActivationLock activationLock;
 
     public IslandLifecycleWorkflow(IslandRuntimeRepository runtimes, IslandRepository islands, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events) {
@@ -35,10 +36,14 @@ public final class IslandLifecycleWorkflow {
     }
 
     public IslandLifecycleWorkflow(IslandRuntimeRepository runtimes, IslandRepository islands, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events, String islandPool) {
-        this(runtimes, islands, templates, nodes, allocator, jobs, events, islandPool, null);
+        this(runtimes, islands, templates, nodes, allocator, jobs, events, islandPool, "INACTIVE_ONLY_AUTOMATIC", null);
     }
 
     public IslandLifecycleWorkflow(IslandRuntimeRepository runtimes, IslandRepository islands, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events, String islandPool, RedisActivationLock activationLock) {
+        this(runtimes, islands, templates, nodes, allocator, jobs, events, islandPool, "INACTIVE_ONLY_AUTOMATIC", activationLock);
+    }
+
+    public IslandLifecycleWorkflow(IslandRuntimeRepository runtimes, IslandRepository islands, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events, String islandPool, String migrationPolicy, RedisActivationLock activationLock) {
         this.runtimes = runtimes;
         this.islands = islands;
         this.templates = templates;
@@ -47,6 +52,7 @@ public final class IslandLifecycleWorkflow {
         this.jobs = jobs;
         this.events = events;
         this.islandPool = islandPool == null || islandPool.isBlank() ? "island" : islandPool;
+        this.migrationPolicy = migrationPolicy == null || migrationPolicy.isBlank() ? "INACTIVE_ONLY_AUTOMATIC" : migrationPolicy;
         this.activationLock = activationLock;
     }
 
@@ -121,8 +127,14 @@ public final class IslandLifecycleWorkflow {
 
     public Result migrate(UUID islandId, String targetNode) {
         IslandRuntimeSnapshot current = runtimes.find(islandId).orElse(null);
+        if (migrationDisabled()) {
+            return new Result(false, "MIGRATION_DISABLED", current);
+        }
         if (current != null && current.state() == IslandState.ACTIVE && targetNode != null && targetNode.equals(current.activeNode())) {
             return new Result(true, "ALREADY_ON_NODE", current);
+        }
+        if (current != null && current.state() == IslandState.ACTIVE && !activeMigrationAllowed()) {
+            return new Result(false, "ACTIVE_MIGRATION_DISABLED", current);
         }
         if (!canStartActivation(current) && (current == null || current.state() != IslandState.ACTIVE)) {
             return new Result(false, "ISLAND_BUSY", current);
@@ -151,6 +163,16 @@ public final class IslandLifecycleWorkflow {
         }
         events.publish(CloudIslandEventType.ISLAND_MIGRATE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "targetNode", targetNode, "fencingToken", Long.toString(runtime.fencingToken())));
         return new Result(true, "MIGRATING", runtime);
+    }
+
+    private boolean migrationDisabled() {
+        return migrationPolicy.equalsIgnoreCase("DISABLED")
+            || migrationPolicy.equalsIgnoreCase("NONE");
+    }
+
+    private boolean activeMigrationAllowed() {
+        return !migrationPolicy.equalsIgnoreCase("INACTIVE_ONLY")
+            && !migrationPolicy.equalsIgnoreCase("INACTIVE_ONLY_MANUAL");
     }
 
     public Result snapshot(UUID islandId, String reason) {
