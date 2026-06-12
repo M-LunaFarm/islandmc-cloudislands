@@ -118,6 +118,33 @@ public final class RoutingOrchestrator {
             .orElseGet(() -> rejectRoute(404, "ISLAND_NOT_FOUND", "Island was not found", playerUuid, islandId, RouteAction.WARP));
     }
 
+    public RoutePreparationResult prepareMigrationReturnRoute(UUID playerUuid, UUID islandId, String targetNode, Map<String, String> locationPayload) {
+        IslandSnapshot island = islands.findById(islandId).orElse(null);
+        if (island == null) {
+            return rejectRoute(404, "ISLAND_NOT_FOUND", "Island was not found", playerUuid, islandId, RouteAction.RETURN_AFTER_MIGRATION, targetNode);
+        }
+        if (targetNode == null || targetNode.isBlank()) {
+            return rejectRoute(409, "TARGET_NODE_UNAVAILABLE", "Migration target node is unavailable", playerUuid, islandId, RouteAction.RETURN_AFTER_MIGRATION, "");
+        }
+        NodeLoad node = nodes.find(targetNode).orElse(null);
+        if (node == null) {
+            return rejectRoute(409, "TARGET_NODE_UNAVAILABLE", "Migration target node is unavailable", playerUuid, islandId, RouteAction.RETURN_AFTER_MIGRATION, targetNode);
+        }
+        java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
+        payload.put("targetType", "MIGRATION_RETURN");
+        payload.putAll(locationPayload == null ? Map.of() : locationPayload);
+        RouteTicket saved = tickets.save(ticket(playerUuid, islandId, RouteAction.RETURN_AFTER_MIGRATION, payload, new RouteTarget(node, "ci_shard_001", RouteTicketState.PREPARING)));
+        events.publish(CloudIslandEventType.ROUTE_TICKET_CREATED.name(), Map.of(
+            "ticketId", saved.ticketId().toString(),
+            "playerUuid", saved.playerUuid().toString(),
+            "islandId", saved.islandId().toString(),
+            "action", saved.action().name(),
+            "targetNode", saved.targetNode(),
+            "state", saved.state().name()
+        ));
+        return RoutePreparationResult.accepted(toJson(saved));
+    }
+
     public RoutePreparationResult prepareAdminTeleportRoute(UUID playerUuid, UUID islandId) {
         return islands.findById(islandId)
             .map(island -> prepareTicket(playerUuid, island, RouteAction.ADMIN_TELEPORT, Map.of("targetType", "ADMIN_TELEPORT", "admin", "true")))

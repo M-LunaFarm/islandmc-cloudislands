@@ -479,6 +479,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<RouteTicket> createMigrationReturnTicket(UUID playerUuid, UUID islandId, String targetNode, double localX, double localY, double localZ, float yaw, float pitch) {
+        return postWithResultBody("/v1/routes/migration-return", "{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\",\"targetNode\":\"" + escape(targetNode) + "\",\"localX\":" + localX + ",\"localY\":" + localY + ",\"localZ\":" + localZ + ",\"yaw\":" + yaw + ",\"pitch\":" + pitch + "}").thenApply(JdkCoreApiClient::parseRouteTicketResult);
+    }
+
+    @Override
     public CompletableFuture<Void> publishRouteSession(RouteTicket ticket) {
         return publishRouteSessionResult(ticket).thenApply(_body -> null);
     }

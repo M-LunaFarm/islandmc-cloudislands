@@ -8,7 +8,12 @@ import java.util.Deque;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import kr.lunaf.cloudislands.api.model.RouteTicket;
+import kr.lunaf.cloudislands.api.model.RouteTicketState;
+import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.common.event.CacheInvalidationPlan;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
@@ -64,6 +69,7 @@ import kr.lunaf.cloudislands.paper.ProtectionController;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
@@ -308,15 +314,17 @@ public final class PermissionEventPoller {
         } catch (IllegalArgumentException exception) {
             return;
         }
-        Bukkit.getScheduler().runTask(plugin, () -> notifyMigratingIslandPlayers(islandId));
+        String targetNode = fields.getOrDefault("targetNode", "");
+        Bukkit.getScheduler().runTask(plugin, () -> notifyMigratingIslandPlayers(islandId, targetNode));
     }
 
-    private void notifyMigratingIslandPlayers(UUID islandId) {
+    private void notifyMigratingIslandPlayers(UUID islandId, String targetNode) {
         String primary = "섬 서버를 최적화하는 중입니다...";
         String secondary = "잠시 후 자동으로 이동됩니다.";
         for (Player player : Bukkit.getOnlinePlayers()) {
-            UUID currentIslandId = protection.islandAt(player.getLocation().getBlock()).orElse(null);
-            if (!islandId.equals(currentIslandId)) {
+            Location location = player.getLocation();
+            IslandRegion region = protection.regionAt(location.getBlock()).orElse(null);
+            if (region == null || !islandId.equals(region.islandId())) {
                 continue;
             }
             BossBar bossBar = BossBar.bossBar(Component.text(primary + " " + secondary), 1.0F, BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS);
@@ -325,6 +333,81 @@ public final class PermissionEventPoller {
             player.sendActionBar(Component.text(secondary));
             player.showBossBar(bossBar);
             Bukkit.getScheduler().runTaskLater(plugin, () -> player.hideBossBar(bossBar), 160L);
+            if (!targetNode.isBlank()) {
+                createMigrationReturnTicket(player, islandId, targetNode, region, location);
+            }
+        }
+    }
+
+    private void createMigrationReturnTicket(Player player, UUID islandId, String targetNode, IslandRegion region, Location location) {
+        double localX = location.getX() - region.originX();
+        double localZ = location.getZ() - region.originZ();
+        client.createMigrationReturnTicket(player.getUniqueId(), islandId, targetNode, localX, location.getY(), localZ, location.getYaw(), location.getPitch())
+            .thenAccept(ticket -> waitMigrationReturnTicket(player.getUniqueId(), ticket, 0))
+            .exceptionally(error -> {
+                Bukkit.getScheduler().runTask(plugin, () -> player.sendActionBar(Component.text("섬 이동 준비를 등록하지 못했습니다.")));
+                return null;
+            });
+    }
+
+    private void waitMigrationReturnTicket(UUID playerUuid, RouteTicket ticket, int attempt) {
+        if (ticket.state() == RouteTicketState.READY) {
+            publishMigrationReturnSession(playerUuid, ticket);
+            return;
+        }
+        if (ticket.state() == RouteTicketState.FAILED || ticket.state() == RouteTicketState.EXPIRED || attempt >= 180) {
+            Bukkit.getScheduler().runTask(plugin, () -> migrationReturnFailed(playerUuid));
+            return;
+        }
+        CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() ->
+            client.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
+                if (status.isPresent()) {
+                    waitMigrationReturnTicket(playerUuid, status.get(), attempt + 1);
+                } else {
+                    Bukkit.getScheduler().runTask(plugin, () -> migrationReturnFailed(playerUuid));
+                }
+            }).exceptionally(error -> {
+                if (attempt < 180) {
+                    waitMigrationReturnTicket(playerUuid, ticket, attempt + 1);
+                } else {
+                    Bukkit.getScheduler().runTask(plugin, () -> migrationReturnFailed(playerUuid));
+                }
+                return null;
+            })
+        );
+    }
+
+    private void publishMigrationReturnSession(UUID playerUuid, RouteTicket ticket) {
+        client.publishRouteSession(ticket).thenRun(() ->
+            Bukkit.getScheduler().runTask(plugin, () -> connectMigratingPlayer(playerUuid, ticket))
+        ).exceptionally(error -> {
+            Bukkit.getScheduler().runTask(plugin, () -> migrationReturnFailed(playerUuid));
+            return null;
+        });
+    }
+
+    private void connectMigratingPlayer(UUID playerUuid, RouteTicket ticket) {
+        Player player = Bukkit.getPlayer(playerUuid);
+        if (player == null) {
+            return;
+        }
+        player.sendActionBar(Component.text("최적화된 섬 서버로 이동합니다."));
+        try {
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            DataOutputStream output = new DataOutputStream(bytes);
+            output.writeUTF("Connect");
+            output.writeUTF(ticket.payload().getOrDefault("targetServerName", ticket.targetNode()));
+            player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
+        } catch (IOException exception) {
+            plugin.getLogger().warning("Failed to move migrating player to target node: " + exception.getMessage());
+            migrationReturnFailed(playerUuid);
+        }
+    }
+
+    private void migrationReturnFailed(UUID playerUuid) {
+        Player player = Bukkit.getPlayer(playerUuid);
+        if (player != null) {
+            player.sendActionBar(Component.text("섬 서버 이동 준비가 완료되지 않았습니다. 잠시 후 /섬 홈을 사용해주세요."));
         }
     }
 

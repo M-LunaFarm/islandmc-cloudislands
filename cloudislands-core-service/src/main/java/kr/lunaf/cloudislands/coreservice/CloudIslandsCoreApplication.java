@@ -631,6 +631,21 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             routeResult(exchange, routing.prepareWarpRoute(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "warpName", "default")));
         });
+        route("/v1/routes/migration-return", exchange -> {
+            String body = readBody(exchange);
+            java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
+            payload.put("localX", Double.toString(JsonFields.decimal(body, "localX", 0.5D)));
+            payload.put("localY", Double.toString(JsonFields.decimal(body, "localY", 100.0D)));
+            payload.put("localZ", Double.toString(JsonFields.decimal(body, "localZ", 0.5D)));
+            payload.put("yaw", Float.toString((float) JsonFields.decimal(body, "yaw", 180.0D)));
+            payload.put("pitch", Float.toString((float) JsonFields.decimal(body, "pitch", 0.0D)));
+            routeResult(exchange, routing.prepareMigrationReturnRoute(
+                JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)),
+                JsonFields.uuid(body, "islandId", new UUID(0L, 0L)),
+                JsonFields.text(body, "targetNode", ""),
+                payload
+            ));
+        });
         route("/v1/routes/session", exchange -> {
             String body = readBody(exchange);
             UUID ticketId = JsonFields.uuid(body, "ticketId", new UUID(0L, 0L));
