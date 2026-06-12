@@ -1335,6 +1335,8 @@ public final class VelocityRoutingController {
             return fallback;
         }
         return switch (code) {
+            case "ALREADY_HAS_ISLAND" -> "이미 섬을 보유하고 있습니다.";
+            case "TEMPLATE_UNAVAILABLE" -> "사용할 수 없는 섬 템플릿입니다.";
             case "PLAYER_NOT_FOUND" -> "플레이어를 찾을 수 없습니다.";
             case "ISLAND_NOT_FOUND" -> "섬을 찾을 수 없습니다.";
             case "ISLAND_PRIVATE" -> "해당 섬은 비공개 상태입니다.";
@@ -1347,6 +1349,7 @@ public final class VelocityRoutingController {
             case "WARP_PRIVATE" -> "해당 워프는 공개 상태가 아닙니다.";
             case "WARP_LIMIT" -> "섬 워프 한도에 도달했습니다.";
             case "ISLAND_LOADING_FAILED" -> "섬을 준비하지 못했습니다. 잠시 후 다시 시도해주세요.";
+            case "ROUTE_TICKET_NOT_FOUND", "ROUTE_ROUTE_NOT_FOUND" -> "섬 이동 세션이 만료되었습니다. 다시 시도해주세요.";
             case "ISLAND_PERMISSION_DENIED" -> "섬 권한이 없습니다.";
             case "MEMBER_LIMIT" -> "섬 멤버 한도에 도달했습니다.";
             case "BANK_LIMIT" -> "섬 은행 한도에 도달했습니다.";
