@@ -921,7 +921,30 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+        if (value == null) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            switch (c) {
+                case '\\' -> builder.append("\\\\");
+                case '"' -> builder.append("\\\"");
+                case '\b' -> builder.append("\\b");
+                case '\f' -> builder.append("\\f");
+                case '\n' -> builder.append("\\n");
+                case '\r' -> builder.append("\\r");
+                case '\t' -> builder.append("\\t");
+                default -> {
+                    if (c < 0x20) {
+                        builder.append(String.format("\\u%04x", (int) c));
+                    } else {
+                        builder.append(c);
+                    }
+                }
+            }
+        }
+        return builder.toString();
     }
 
     private static String countsPayload(Map<String, Long> counts) {
