@@ -7,16 +7,19 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 
 public final class NodeFailureMonitor {
+    private static final Logger LOGGER = Logger.getLogger(NodeFailureMonitor.class.getName());
     private final NodeRegistry nodes;
     private final IslandRuntimeRepository runtimes;
     private final GlobalEventPublisher events;
     private final Duration heartbeatTimeout;
     private final ScheduledExecutorService executor;
     private final AtomicBoolean started = new AtomicBoolean(false);
+    private volatile long lastFailureLogMillis;
 
     public NodeFailureMonitor(NodeRegistry nodes, IslandRuntimeRepository runtimes, GlobalEventPublisher events, Duration heartbeatTimeout) {
         this.nodes = nodes;
@@ -39,10 +42,27 @@ public final class NodeFailureMonitor {
     }
 
     public void sweep() {
+        try {
+            runSweep();
+        } catch (RuntimeException exception) {
+            logSweepFailure(exception);
+        }
+    }
+
+    private void runSweep() {
         List<String> downNodes = nodes.markStaleDown(heartbeatTimeout);
         for (String nodeId : downNodes) {
             int affected = runtimes.markRecoveryRequiredForNode(nodeId);
             events.publish(kr.lunaf.cloudislands.common.event.CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "DOWN", "recoveryRequired", Integer.toString(affected)));
         }
+    }
+
+    private void logSweepFailure(RuntimeException exception) {
+        long now = System.currentTimeMillis();
+        if (now - lastFailureLogMillis < 30_000L) {
+            return;
+        }
+        lastFailureLogMillis = now;
+        LOGGER.warning("CloudIslands node failure sweep failed: " + exception.getMessage());
     }
 }
