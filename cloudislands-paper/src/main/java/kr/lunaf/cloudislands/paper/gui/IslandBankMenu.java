@@ -43,8 +43,16 @@ public final class IslandBankMenu implements Listener {
         player.closeInventory();
         if (name.equals("입금")) {
             player.sendMessage("사용법: /섬 입금 <금액>");
+        } else if (name.equals("1,000 입금")) {
+            player.performCommand("섬 입금 1000");
+        } else if (name.equals("10,000 입금")) {
+            player.performCommand("섬 입금 10000");
         } else if (name.equals("출금")) {
             player.sendMessage("사용법: /섬 출금 <금액>");
+        } else if (name.equals("1,000 출금")) {
+            player.performCommand("섬 출금 1000");
+        } else if (name.equals("10,000 출금")) {
+            player.performCommand("섬 출금 10000");
         } else if (name.equals("잔액 새로고침")) {
             player.performCommand("섬 은행");
         }
@@ -53,9 +61,13 @@ public final class IslandBankMenu implements Listener {
     private static void openSync(Plugin plugin, Player player, String balance, String updatedAt) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
-            inventory.setItem(11, item(Material.GOLD_BLOCK, "잔액", "balance=" + (balance.isBlank() ? "0" : balance), updatedAt.isBlank() ? "업데이트 정보 없음" : "updatedAt=" + updatedAt));
-            inventory.setItem(13, item(Material.EMERALD, "입금", "사용법: /섬 입금 <금액>"));
-            inventory.setItem(15, item(Material.REDSTONE, "출금", "사용법: /섬 출금 <금액>"));
+            inventory.setItem(4, item(Material.GOLD_BLOCK, "잔액", "balance=" + (balance.isBlank() ? "0" : balance), updatedAt.isBlank() ? "업데이트 정보 없음" : "updatedAt=" + updatedAt));
+            inventory.setItem(10, item(Material.EMERALD, "1,000 입금", "/섬 입금 1000"));
+            inventory.setItem(11, item(Material.EMERALD_BLOCK, "10,000 입금", "/섬 입금 10000"));
+            inventory.setItem(13, item(Material.PAPER, "입금", "사용법: /섬 입금 <금액>"));
+            inventory.setItem(15, item(Material.REDSTONE, "1,000 출금", "/섬 출금 1000"));
+            inventory.setItem(16, item(Material.REDSTONE_BLOCK, "10,000 출금", "/섬 출금 10000"));
+            inventory.setItem(17, item(Material.PAPER, "출금", "사용법: /섬 출금 <금액>"));
             inventory.setItem(22, item(Material.CLOCK, "잔액 새로고침", "/섬 은행"));
             player.openInventory(inventory);
         });
