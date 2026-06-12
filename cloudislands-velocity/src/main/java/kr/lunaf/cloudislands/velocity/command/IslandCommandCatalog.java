@@ -18,7 +18,7 @@ public final class IslandCommandCatalog {
             "섬 레벨", "섬 레벨계산", "섬 가치", "섬 랭킹 [limit]", "섬 랭킹 worth [limit]", "섬 가치랭킹 [limit]",
             "섬 업그레이드", "섬 업그레이드목록", "섬 업그레이드구매 <upgradeKey>", "섬 크기", "섬 경계", "섬 바이옴 <biomeKey>",
             "섬 은행", "섬 입금 <amount>", "섬 출금 <amount>", "섬 미션", "섬 챌린지", "섬 채팅 <message>", "섬 팀채팅 <message>",
-            "섬 제한", "섬 호퍼", "섬 스포너", "섬 엔티티", "섬 레드스톤", "섬 스냅샷 [reason]",
+            "섬 제한 [limitKey value]", "섬 호퍼 <limit>", "섬 스포너 <limit>", "섬 엔티티 <limit>", "섬 레드스톤 <limit>", "섬 스냅샷 [reason]",
             "섬 스냅샷목록", "섬 복원 <snapshotNo>", "섬 로그", "섬 리셋", "섬 삭제"
         );
     }

@@ -779,32 +779,33 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args[0].equalsIgnoreCase("limits") || args[0].equals("제한")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            if (args.length > 3) {
-                routingController.setLimit(player, islandId, args[2], parseLongOrZero(args[3]));
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            int valueIndex = hasOptionalIslandIdArgument(args, 1) ? 3 : 2;
+            if (args.length > valueIndex) {
+                routingController.setLimit(player, islandId, args[valueIndex - 1], parseLongOrZero(args[valueIndex]));
             } else {
                 routingController.listLimits(player, islandId);
             }
             return;
         }
         if (args[0].equalsIgnoreCase("hoppers") || args[0].equals("호퍼")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            routingController.setLimit(player, islandId, "HOPPER", args.length > 2 ? parseLongOrZero(args[2]) : 0L);
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            routingController.setLimit(player, islandId, "HOPPER", parseLongOrZero(argumentAfterOptionalIsland(args, 1, "0")));
             return;
         }
         if (args[0].equalsIgnoreCase("spawners") || args[0].equals("스포너")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            routingController.setLimit(player, islandId, "SPAWNER", args.length > 2 ? parseLongOrZero(args[2]) : 0L);
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            routingController.setLimit(player, islandId, "SPAWNER", parseLongOrZero(argumentAfterOptionalIsland(args, 1, "0")));
             return;
         }
         if (args[0].equalsIgnoreCase("entities") || args[0].equals("엔티티")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            routingController.setLimit(player, islandId, "ENTITY", args.length > 2 ? parseLongOrZero(args[2]) : 0L);
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            routingController.setLimit(player, islandId, "ENTITY", parseLongOrZero(argumentAfterOptionalIsland(args, 1, "0")));
             return;
         }
         if (args[0].equalsIgnoreCase("redstone") || args[0].equals("레드스톤")) {
-            UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
-            routingController.setLimit(player, islandId, "REDSTONE", args.length > 2 ? parseLongOrZero(args[2]) : 0L);
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            routingController.setLimit(player, islandId, "REDSTONE", parseLongOrZero(argumentAfterOptionalIsland(args, 1, "0")));
             return;
         }
         if (args[0].equalsIgnoreCase("snapshots") || args[0].equals("스냅샷목록")) {
