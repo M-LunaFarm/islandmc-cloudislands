@@ -49,6 +49,10 @@ public final class LocalIslandPermissionCache {
         return total <= 0L ? 1.0D : Math.min(1.0D, (double) hits.get() / total);
     }
 
+    public long lookupCount() {
+        return lookups.get();
+    }
+
     public void invalidate(UUID islandId) {
         islands.remove(islandId);
     }

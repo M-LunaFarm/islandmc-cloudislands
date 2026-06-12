@@ -66,6 +66,8 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_node_state", "gauge");
         help(out, "cloudislands_permission_cache_hit_ratio", "Paper local permission cache hit ratio reported by heartbeat");
         type(out, "cloudislands_permission_cache_hit_ratio", "gauge");
+        help(out, "cloudislands_permission_checks_total", "Paper local island permission checks reported by heartbeat");
+        type(out, "cloudislands_permission_checks_total", "counter");
         help(out, "cloudislands_storage_upload_seconds", "Last island storage upload duration reported by Paper heartbeat");
         type(out, "cloudislands_storage_upload_seconds", "gauge");
         help(out, "cloudislands_storage_download_seconds", "Last island storage download duration reported by Paper heartbeat");
@@ -102,6 +104,7 @@ public final class PrometheusMetricsRenderer {
             if (permissionHitRatio != null && !permissionHitRatio.isBlank()) {
                 labels(out, "cloudislands_permission_cache_hit_ratio", node, null).append(permissionHitRatio).append('\n');
             }
+            appendMetadataGauge(out, "cloudislands_permission_checks_total", node, "permissionChecks");
             appendMetadataGauge(out, "cloudislands_storage_upload_seconds", node, "storageUploadSeconds");
             appendMetadataGauge(out, "cloudislands_storage_download_seconds", node, "storageDownloadSeconds");
             appendMetadataGauge(out, "cloudislands_island_save_seconds", node, "storageUploadSeconds");

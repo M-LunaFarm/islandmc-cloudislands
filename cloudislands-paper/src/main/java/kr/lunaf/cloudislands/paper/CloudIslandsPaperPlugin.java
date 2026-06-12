@@ -255,6 +255,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private String heartbeatMetadata(String supportedTemplates, MeteredIslandStorage storage) {
         return levelScanStatus(supportedTemplates)
             + ";permissionCacheHitRatio=" + agent.permissionCache().hitRatio()
+            + ";permissionChecks=" + agent.permissionCache().lookupCount()
             + ";storageUploadSeconds=" + (storage == null ? 0.0D : storage.lastUploadSeconds())
             + ";storageDownloadSeconds=" + (storage == null ? 0.0D : storage.lastDownloadSeconds());
     }
