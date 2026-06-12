@@ -743,7 +743,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> listJobs() {
-        return post("/v1/admin/jobs/list", "{}");
+        return postWithResultBody("/v1/admin/jobs/list", "{}");
     }
 
     @Override
