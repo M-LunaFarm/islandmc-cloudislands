@@ -32,6 +32,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private static final List<String> BLOCK_VALUE_COMMANDS = List.of("list", "set");
     private static final List<String> TEMPLATE_COMMANDS = List.of("list", "upsert", "enable", "disable");
     private static final List<String> MIGRATION_COMMANDS = List.of("scan", "dryrun", "dry-run", "import", "verify", "rollback");
+    private static final List<String> NODE_DANGER_REASONS = List.of("maintenance", "restart", "drain");
     private final CloudIslandsPaperAgent agent;
     private final CoreApiClient coreApiClient;
     private final String nodeId;
@@ -148,6 +149,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args.length == 4 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("islands")) {
             return matches(List.of("25", "50", "100"), args[3]);
+        }
+        if (args.length == 4 && args[0].equalsIgnoreCase("node") && (args[1].equalsIgnoreCase("kickall") || args[1].equalsIgnoreCase("shutdown-safe"))) {
+            return matches(NODE_DANGER_REASONS, args[3]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("player")) {
             return matches(onlinePlayerNames(), args[2]);
