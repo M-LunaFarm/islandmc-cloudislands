@@ -29,10 +29,14 @@ public final class InMemoryIslandLimitRepository implements IslandLimitRepositor
 
     private void seedDefaults(UUID islandId) {
         Map<String, IslandLimitSnapshot> islandLimits = limits.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>());
+        putDefault(islandLimits, islandId, "SIZE", 100L);
+        putDefault(islandLimits, islandId, "MEMBERS", 3L);
+        putDefault(islandLimits, islandId, "WARPS", 1L);
         putDefault(islandLimits, islandId, "HOPPER", 50L);
         putDefault(islandLimits, islandId, "SPAWNER", 25L);
         putDefault(islandLimits, islandId, "ENTITY", 200L);
         putDefault(islandLimits, islandId, "REDSTONE", 512L);
+        putDefault(islandLimits, islandId, "BANK", 100000L);
     }
 
     private void putDefault(Map<String, IslandLimitSnapshot> islandLimits, UUID islandId, String key, long value) {

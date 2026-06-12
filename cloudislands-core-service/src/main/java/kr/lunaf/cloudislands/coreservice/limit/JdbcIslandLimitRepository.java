@@ -58,10 +58,14 @@ public final class JdbcIslandLimitRepository implements IslandLimitRepository {
     private void seedDefaults(UUID islandId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("INSERT INTO island_limits(island_id, limit_key, limit_value, updated_by) VALUES (?, ?, ?, ?) ON CONFLICT (island_id, limit_key) DO NOTHING")) {
+            putDefault(statement, islandId, "SIZE", 100L);
+            putDefault(statement, islandId, "MEMBERS", 3L);
+            putDefault(statement, islandId, "WARPS", 1L);
             putDefault(statement, islandId, "HOPPER", 50L);
             putDefault(statement, islandId, "SPAWNER", 25L);
             putDefault(statement, islandId, "ENTITY", 200L);
             putDefault(statement, islandId, "REDSTONE", 512L);
+            putDefault(statement, islandId, "BANK", 100000L);
             statement.executeBatch();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to seed island limits", exception);
