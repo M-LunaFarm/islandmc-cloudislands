@@ -1,6 +1,8 @@
 package kr.lunaf.cloudislands.coreservice.security;
 
 import com.sun.net.httpserver.HttpExchange;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 
 public final class ApiTokenGuard {
     private final String expectedToken;
@@ -14,6 +16,13 @@ public final class ApiTokenGuard {
             return false;
         }
         String header = exchange.getRequestHeaders().getFirst("Authorization");
-        return header != null && header.equals("Bearer " + expectedToken);
+        return constantTimeEquals(header, "Bearer " + expectedToken);
+    }
+
+    private boolean constantTimeEquals(String actual, String expected) {
+        if (actual == null || expected == null) {
+            return false;
+        }
+        return MessageDigest.isEqual(actual.getBytes(StandardCharsets.UTF_8), expected.getBytes(StandardCharsets.UTF_8));
     }
 }

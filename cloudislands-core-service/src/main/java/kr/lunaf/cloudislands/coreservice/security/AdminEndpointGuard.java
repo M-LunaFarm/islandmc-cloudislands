@@ -1,7 +1,10 @@
 package kr.lunaf.cloudislands.coreservice.security;
 
 import com.sun.net.httpserver.HttpExchange;
+import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
+import java.security.MessageDigest;
+import java.util.Locale;
 import java.util.Set;
 import kr.lunaf.cloudislands.coreservice.security.permission.AdminPermission;
 import kr.lunaf.cloudislands.coreservice.security.permission.AdminPermissionPolicy;
@@ -38,7 +41,7 @@ public final class AdminEndpointGuard {
             return false;
         }
         String header = exchange.getRequestHeaders().getFirst("X-CloudIslands-Admin-Token");
-        return adminToken.equals(header);
+        return constantTimeEquals(header, adminToken);
     }
 
     private boolean adminApiPath(String path) {
@@ -51,13 +54,17 @@ public final class AdminEndpointGuard {
 
     private AdminPermissionPolicy policy(HttpExchange exchange) {
         String raw = exchange.getRequestHeaders().getFirst("X-CloudIslands-Admin-Permissions");
-        if (raw == null || raw.isBlank() || raw.equals("*")) {
+        if (raw == null || raw.isBlank() || raw.trim().equals("*")) {
             return AdminPermissionPolicy.all();
         }
         Set<AdminPermission> permissions = EnumSet.noneOf(AdminPermission.class);
         for (String part : raw.split(",")) {
+            String name = part.trim().replace('-', '_').toUpperCase(Locale.ROOT);
+            if (name.isBlank()) {
+                continue;
+            }
             try {
-                permissions.add(AdminPermission.valueOf(part.trim()));
+                permissions.add(AdminPermission.valueOf(name));
             } catch (IllegalArgumentException ignored) {
                 // Unknown permission names are ignored rather than granting access.
             }
@@ -122,5 +129,12 @@ public final class AdminEndpointGuard {
             case "/v1/admin/block-values", "/v1/admin/block-values/list" -> AdminPermission.ECONOMY_MANAGE;
             default -> path.startsWith("/v1/admin") ? AdminPermission.AUDIT_READ : null;
         };
+    }
+
+    private boolean constantTimeEquals(String actual, String expected) {
+        if (actual == null || expected == null) {
+            return false;
+        }
+        return MessageDigest.isEqual(actual.getBytes(StandardCharsets.UTF_8), expected.getBytes(StandardCharsets.UTF_8));
     }
 }
