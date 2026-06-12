@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.AuditLogSnapshot;
 import kr.lunaf.cloudislands.api.model.CoreMaintenanceResult;
+import kr.lunaf.cloudislands.api.model.GlobalEventBatchSnapshot;
 import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandActionResult;
 import kr.lunaf.cloudislands.api.model.IslandJobSnapshot;
@@ -86,6 +87,18 @@ public interface IslandAdminService {
     CompletableFuture<Void> setBlockValue(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit);
     CompletableFuture<IslandActionResult> setBlockValueResult(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit);
     CompletableFuture<List<GlobalEventSnapshot>> listEvents();
+    default CompletableFuture<List<GlobalEventSnapshot>> listEvents(int limit) {
+        return listEvents();
+    }
+    default CompletableFuture<GlobalEventBatchSnapshot> listEventBatch() {
+        return listEvents().thenApply(IslandAdminService::batch);
+    }
+    default CompletableFuture<GlobalEventBatchSnapshot> listEventBatch(int limit) {
+        return listEvents().thenApply(IslandAdminService::batch);
+    }
+    default CompletableFuture<GlobalEventBatchSnapshot> listEventBatchSince(long sinceSeq, int limit) {
+        return listEvents().thenApply(IslandAdminService::batch);
+    }
     CompletableFuture<List<AuditLogSnapshot>> listAuditLogs();
     CompletableFuture<List<String>> listNodes();
     CompletableFuture<List<IslandNodeSnapshot>> listNodeSnapshots();
@@ -100,4 +113,10 @@ public interface IslandAdminService {
     CompletableFuture<MigrationRunSnapshot> importSuperiorSkyblock2(String path);
     CompletableFuture<MigrationRunSnapshot> verifySuperiorSkyblock2(String path);
     CompletableFuture<MigrationRunSnapshot> rollbackSuperiorSkyblock2(String path);
+
+    private static GlobalEventBatchSnapshot batch(List<GlobalEventSnapshot> events) {
+        long oldestSequence = events.stream().mapToLong(GlobalEventSnapshot::sequence).filter(sequence -> sequence > 0L).min().orElse(0L);
+        long latestSequence = events.stream().mapToLong(GlobalEventSnapshot::sequence).max().orElse(0L);
+        return new GlobalEventBatchSnapshot(oldestSequence, latestSequence, events);
+    }
 }

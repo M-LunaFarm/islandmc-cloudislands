@@ -569,6 +569,10 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> setBlockValue(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) { return setBlockValueResult(actorUuid, materialKey, worth, levelPoints, limit).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> setBlockValueResult(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) { return client.setBlockValueResult(actorUuid, materialKey, worth, levelPoints, limit).thenApply(body -> action(body, "BLOCK_VALUE_SET")); }
         @Override public CompletableFuture<List<GlobalEventSnapshot>> listEvents() { return client.listEvents().thenApply(PaperCloudIslandsApi::events); }
+        @Override public CompletableFuture<List<GlobalEventSnapshot>> listEvents(int limit) { return client.listEvents(limit).thenApply(PaperCloudIslandsApi::events); }
+        @Override public CompletableFuture<GlobalEventBatchSnapshot> listEventBatch() { return client.listEvents().thenApply(PaperCloudIslandsApi::eventBatch); }
+        @Override public CompletableFuture<GlobalEventBatchSnapshot> listEventBatch(int limit) { return client.listEvents(limit).thenApply(PaperCloudIslandsApi::eventBatch); }
+        @Override public CompletableFuture<GlobalEventBatchSnapshot> listEventBatchSince(long sinceSeq, int limit) { return client.listEventsSince(sinceSeq, limit).thenApply(PaperCloudIslandsApi::eventBatch); }
         @Override public CompletableFuture<List<AuditLogSnapshot>> listAuditLogs() { return client.listAuditLogs().thenApply(PaperCloudIslandsApi::auditLogs); }
 
         @Override
