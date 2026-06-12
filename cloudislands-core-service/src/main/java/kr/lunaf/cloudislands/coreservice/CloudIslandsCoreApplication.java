@@ -76,6 +76,7 @@ import kr.lunaf.cloudislands.coreservice.ranking.JdbcIslandLevelRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.JdbcRankingRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService;
 import kr.lunaf.cloudislands.coreservice.ranking.RankingRepository;
+import kr.lunaf.cloudislands.coreservice.repository.CachingIslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.CachingIslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.CachingIslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
@@ -171,7 +172,10 @@ public final class CloudIslandsCoreApplication {
         GlobalEventPublisher events = config.redisEvents()
             ? new CompositeGlobalEventPublisher(java.util.List.of(inMemoryEvents, new RedisStreamEventPublisher(redisEventWriter)))
             : inMemoryEvents;
-        IslandRepository islandRepository = config.jdbcRepositories() ? new JdbcIslandRepository(dataSource) : new InMemoryIslandRepository();
+        IslandRepository baseIslandRepository = config.jdbcRepositories() ? new JdbcIslandRepository(dataSource) : new InMemoryIslandRepository();
+        IslandRepository islandRepository = config.redisEvents() || config.redisJobs()
+            ? new CachingIslandRepository(baseIslandRepository, config.redisUri())
+            : baseIslandRepository;
         IslandMetadataRepository baseMetadataRepository = config.jdbcRepositories() ? new JdbcIslandMetadataRepository(dataSource) : new InMemoryIslandMetadataRepository();
         IslandMetadataRepository metadataRepository = config.redisEvents() || config.redisJobs()
             ? new CachingIslandMetadataRepository(baseMetadataRepository, config.redisUri())

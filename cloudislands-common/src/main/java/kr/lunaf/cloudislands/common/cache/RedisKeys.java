@@ -10,6 +10,7 @@ public final class RedisKeys {
     public static String playerIsland(UUID uuid) { return "ci:player:" + uuid + ":island"; }
     public static String playerRouteTicket(UUID uuid) { return "ci:player:" + uuid + ":route-ticket"; }
     public static String playerRouteSession(UUID uuid) { return "ci:player:" + uuid + ":route-session"; }
+    public static String islandSummary(UUID islandId) { return "ci:island:" + islandId + ":summary"; }
     public static String islandRuntime(UUID islandId) { return "ci:island:" + islandId + ":runtime"; }
     public static String islandMembers(UUID islandId) { return "ci:island:" + islandId + ":members"; }
     public static String islandFlags(UUID islandId) { return "ci:island:" + islandId + ":flags"; }
