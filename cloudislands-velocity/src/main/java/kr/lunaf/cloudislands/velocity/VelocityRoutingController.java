@@ -1954,6 +1954,8 @@ public final class VelocityRoutingController {
             String playerUuid = jsonValue(fields, "playerUuid");
             String action = jsonValue(fields, "action");
             String reason = jsonValue(fields, "reason");
+            String clearedSession = jsonValue(fields, "clearedSession");
+            String clearedTicket = jsonValue(fields, "clearedTicket");
             String nodeId = jsonValue(fields, "nodeId");
             if (nodeId.isBlank()) {
                 nodeId = jsonValue(fields, "targetNode");
@@ -1964,6 +1966,8 @@ public final class VelocityRoutingController {
                 + (playerUuid.isBlank() ? "" : " player=" + shortId(playerUuid))
                 + (action.isBlank() ? "" : " action=" + action)
                 + (reason.isBlank() ? "" : " reason=" + reason)
+                + (clearedSession.isBlank() ? "" : " session=" + clearedSession)
+                + (clearedTicket.isBlank() ? "" : " ticketCleared=" + clearedTicket)
                 + (nodeId.isBlank() ? "" : " node=" + nodeId)
                 + (occurredAt.isBlank() ? "" : " at=" + occurredAt));
             index = objectEnd + 1;
@@ -2030,7 +2034,8 @@ public final class VelocityRoutingController {
         if (body == null || body.isBlank()) {
             return "Route clear: no response";
         }
-        return "Route clear: session=" + boolValue(body, "clearedSession") + " ticket=" + boolValue(body, "clearedTicket");
+        String reason = jsonValue(body, "reason");
+        return "Route clear: session=" + boolValue(body, "clearedSession") + " ticket=" + boolValue(body, "clearedTicket") + (reason.isBlank() ? "" : " reason=" + reason);
     }
 
     private String snapshotListMessage(String body) {

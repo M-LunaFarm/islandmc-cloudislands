@@ -753,7 +753,7 @@ public final class CloudIslandsCoreApplication {
                 "clearedSession", Boolean.toString(clearedSession),
                 "clearedTicket", Boolean.toString(clearedTicket)
             ));
-            write(exchange, 202, "{\"clearedSession\":" + clearedSession + ",\"clearedTicket\":" + clearedTicket + "}");
+            write(exchange, 202, "{\"clearedSession\":" + clearedSession + ",\"clearedTicket\":" + clearedTicket + ",\"reason\":\"" + escape(reason == null || reason.isBlank() ? "MANUAL_CLEAR" : reason) + "\"}");
         });
         route("/v1/admin/cache/clear", exchange -> {
             int clearedSessions = sessions.clearAll();

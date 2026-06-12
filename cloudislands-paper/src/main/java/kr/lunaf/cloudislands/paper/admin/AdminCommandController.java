@@ -1359,6 +1359,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             String playerUuid = textValue(fields, "playerUuid");
             String action = textValue(fields, "action");
             String reason = textValue(fields, "reason");
+            String clearedSession = textValue(fields, "clearedSession");
+            String clearedTicket = textValue(fields, "clearedTicket");
             String nodeId = textValue(fields, "nodeId");
             if (nodeId.isBlank()) {
                 nodeId = textValue(fields, "targetNode");
@@ -1369,6 +1371,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 + (playerUuid.isBlank() ? "" : " player=" + shortId(playerUuid))
                 + (action.isBlank() ? "" : " action=" + action)
                 + (reason.isBlank() ? "" : " reason=" + reason)
+                + (clearedSession.isBlank() ? "" : " session=" + clearedSession)
+                + (clearedTicket.isBlank() ? "" : " ticketCleared=" + clearedTicket)
                 + (nodeId.isBlank() ? "" : " node=" + nodeId)
                 + (occurredAt.isBlank() ? "" : " at=" + occurredAt));
             index = objectEnd + 1;
@@ -1435,7 +1439,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (body == null || body.isBlank()) {
             return "Route clear: no response";
         }
-        return "Route clear: session=" + boolValue(body, "clearedSession") + " ticket=" + boolValue(body, "clearedTicket");
+        String reason = textValue(body, "reason");
+        return "Route clear: session=" + boolValue(body, "clearedSession") + " ticket=" + boolValue(body, "clearedTicket") + (reason.isBlank() ? "" : " reason=" + reason);
     }
 
     private String snapshotListMessage(String body) {
