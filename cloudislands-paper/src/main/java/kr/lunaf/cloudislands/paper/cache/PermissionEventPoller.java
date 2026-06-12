@@ -23,6 +23,8 @@ import org.bukkit.scheduler.BukkitTask;
 
 public final class PermissionEventPoller {
     private static final int MAX_SEEN_EVENTS = 8192;
+    private static final int EVENT_BATCH_SIZE = 512;
+    private static final int MAX_BATCHES_PER_POLL = 8;
     private final Plugin plugin;
     private final CoreApiClient client;
     private final PermissionCacheSyncService permissionSync;
@@ -63,73 +65,83 @@ public final class PermissionEventPoller {
 
     private void poll() {
         try {
-            String json = client.listEventsSince(lastEventSequence, 512).join();
-            long oldestSequence = longField(json, "oldestSeq");
-            long latestSequence = longField(json, "latestSeq");
-            if (latestSequence > 0L && latestSequence < lastEventSequence) {
-                lastEventSequence = 0L;
-                clearSeen();
-                json = client.listEventsSince(lastEventSequence, 512).join();
-                oldestSequence = longField(json, "oldestSeq");
-            }
-            if (lastEventSequence > 0L && oldestSequence > lastEventSequence + 1L) {
-                invalidateLocalCaches();
-                clearSeen();
-                lastEventSequence = oldestSequence - 1L;
-                json = client.listEventsSince(lastEventSequence, 512).join();
-            }
-            for (ParsedEvent event : events(json)) {
-                lastEventSequence = Math.max(lastEventSequence, event.sequence());
-                String type = event.type();
-                Map<String, String> fields = fields(event.fields());
-                String key = eventKey(type, fields, event.occurredAt());
-                if (!markSeen(key)) {
-                    continue;
+            for (int batch = 0; batch < MAX_BATCHES_PER_POLL; batch++) {
+                String json = client.listEventsSince(lastEventSequence, EVENT_BATCH_SIZE).join();
+                long oldestSequence = longField(json, "oldestSeq");
+                long latestSequence = longField(json, "latestSeq");
+                if (latestSequence > 0L && latestSequence < lastEventSequence) {
+                    lastEventSequence = 0L;
+                    clearSeen();
+                    json = client.listEventsSince(lastEventSequence, EVENT_BATCH_SIZE).join();
+                    oldestSequence = longField(json, "oldestSeq");
                 }
-                if (handlesNodeOperation(type, fields)) {
-                    continue;
+                if (lastEventSequence > 0L && oldestSequence > lastEventSequence + 1L) {
+                    invalidateLocalCaches();
+                    clearSeen();
+                    lastEventSequence = oldestSequence - 1L;
+                    json = client.listEventsSince(lastEventSequence, EVENT_BATCH_SIZE).join();
                 }
-                if (handlesVisitorKick(type, fields)) {
-                    continue;
+                java.util.List<ParsedEvent> batchEvents = events(json);
+                for (ParsedEvent event : batchEvents) {
+                    handleEvent(event);
                 }
-                if (handlesIslandChat(type, fields)) {
-                    continue;
-                }
-                if (affectsPermissions(type, fields)) {
-                    String islandId = fields.get("islandId");
-                    if (islandId != null && !islandId.isBlank()) {
-                        permissionSync.sync(UUID.fromString(islandId));
-                    } else if (isGlobalCacheEvent(type)) {
-                        permissionSync.invalidateAll();
-                    }
-                }
-                if (affectsGenerator(type, fields)) {
-                    String islandId = fields.get("islandId");
-                    if (islandId != null && !islandId.isBlank()) {
-                        generatorLevels.invalidate(UUID.fromString(islandId));
-                    } else if (isGlobalCacheEvent(type)) {
-                        generatorLevels.invalidateAll();
-                    }
-                }
-                if (affectsCrop(type, fields)) {
-                    String islandId = fields.get("islandId");
-                    if (islandId != null && !islandId.isBlank()) {
-                        cropGrowthLevels.invalidate(UUID.fromString(islandId));
-                    } else if (isGlobalCacheEvent(type)) {
-                        cropGrowthLevels.invalidateAll();
-                    }
-                }
-                if (affectsLimits(type, fields)) {
-                    String islandId = fields.get("islandId");
-                    if (islandId != null && !islandId.isBlank()) {
-                        limits.invalidate(UUID.fromString(islandId));
-                    } else if (isGlobalCacheEvent(type)) {
-                        limits.invalidateAll();
-                    }
+                if (batchEvents.size() < EVENT_BATCH_SIZE) {
+                    break;
                 }
             }
         } catch (RuntimeException exception) {
             plugin.getLogger().warning("Failed to poll permission cache events: " + exception.getMessage());
+        }
+    }
+
+    private void handleEvent(ParsedEvent event) {
+        lastEventSequence = Math.max(lastEventSequence, event.sequence());
+        String type = event.type();
+        Map<String, String> fields = fields(event.fields());
+        String key = eventKey(type, fields, event.occurredAt());
+        if (!markSeen(key)) {
+            return;
+        }
+        if (handlesNodeOperation(type, fields)) {
+            return;
+        }
+        if (handlesVisitorKick(type, fields)) {
+            return;
+        }
+        if (handlesIslandChat(type, fields)) {
+            return;
+        }
+        if (affectsPermissions(type, fields)) {
+            String islandId = fields.get("islandId");
+            if (islandId != null && !islandId.isBlank()) {
+                permissionSync.sync(UUID.fromString(islandId));
+            } else if (isGlobalCacheEvent(type)) {
+                permissionSync.invalidateAll();
+            }
+        }
+        if (affectsGenerator(type, fields)) {
+            String islandId = fields.get("islandId");
+            if (islandId != null && !islandId.isBlank()) {
+                generatorLevels.invalidate(UUID.fromString(islandId));
+            } else if (isGlobalCacheEvent(type)) {
+                generatorLevels.invalidateAll();
+            }
+        }
+        if (affectsCrop(type, fields)) {
+            String islandId = fields.get("islandId");
+            if (islandId != null && !islandId.isBlank()) {
+                cropGrowthLevels.invalidate(UUID.fromString(islandId));
+            } else if (isGlobalCacheEvent(type)) {
+                cropGrowthLevels.invalidateAll();
+            }
+        }
+        if (affectsLimits(type, fields)) {
+            String islandId = fields.get("islandId");
+            if (islandId != null && !islandId.isBlank()) {
+                limits.invalidate(UUID.fromString(islandId));
+            } else if (isGlobalCacheEvent(type)) {
+                limits.invalidateAll();
+            }
         }
     }
 
