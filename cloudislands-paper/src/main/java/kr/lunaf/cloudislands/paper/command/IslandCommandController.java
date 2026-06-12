@@ -993,6 +993,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void routeTicket(Player player, RouteTicket ticket, String failureMessage, int attempt) {
         if (ticket.state().name().equals("READY")) {
+            player.sendActionBar(net.kyori.adventure.text.Component.text("잠시 후 섬으로 이동합니다."));
             publishAndConnect(player, ticket, failureMessage);
             return;
         }
@@ -1000,6 +1001,8 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             message(player, failureMessage);
             return;
         }
+        int progress = Math.min(95, 20 + (attempt * 4));
+        player.sendActionBar(net.kyori.adventure.text.Component.text("섬을 준비하는 중입니다... " + progress + "%"));
         CompletableFuture.runAsync(() -> coreApiClient.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
             if (status.isPresent()) {
                 routeTicket(player, status.get(), failureMessage, attempt + 1);
