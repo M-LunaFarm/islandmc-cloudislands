@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper;
 import java.net.URI;
 import java.time.Duration;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
+import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JdkCoreApiClient;
 import kr.lunaf.cloudislands.paper.api.PaperCloudIslandsApi;
@@ -17,6 +18,7 @@ import kr.lunaf.cloudislands.paper.admin.AdminCommandController;
 import kr.lunaf.cloudislands.paper.cache.PermissionEventPoller;
 import kr.lunaf.cloudislands.paper.cache.PermissionCacheSyncService;
 import kr.lunaf.cloudislands.paper.command.IslandCommandController;
+import kr.lunaf.cloudislands.paper.economy.VaultEconomyBridge;
 import kr.lunaf.cloudislands.paper.generator.ConfigGeneratorRules;
 import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
@@ -82,6 +84,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private PeriodicIslandLevelScanTask periodicLevelScanTask;
     private ActiveIslandRegistry activeIslands;
     private CloudIslandsApi api;
+    private EconomyBridge economyBridge;
     private GeneratorLevelCache generatorLevels;
 
     @Override
@@ -96,6 +99,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         this.agent = new CloudIslandsPaperAgent(this, role, client, nodeId);
         this.api = new PaperCloudIslandsApi(client, agent);
         getServer().getServicesManager().register(CloudIslandsApi.class, api, this, ServicePriority.Normal);
+        this.economyBridge = new VaultEconomyBridge(getServer());
+        getServer().getServicesManager().register(EconomyBridge.class, economyBridge, this, ServicePriority.Normal);
         IslandLimitCache limitCache = new IslandLimitCache(client);
         long denyMessageCooldownMs = getConfig().getLong("protection.deny-message-cooldown-ms", 1000L);
         getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection(), new BlockDeltaReporter(this, client), denyMessageCooldownMs), this);
@@ -210,6 +215,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         if (api != null) {
             getServer().getServicesManager().unregister(CloudIslandsApi.class, api);
             api = null;
+        }
+        if (economyBridge != null) {
+            getServer().getServicesManager().unregister(EconomyBridge.class, economyBridge);
+            economyBridge = null;
         }
     }
 
