@@ -353,11 +353,11 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         if (raw instanceof Boolean value) {
             return value;
         }
-        String normalized = String.valueOf(raw).toLowerCase(Locale.ROOT);
-        if (normalized.equals("true") || normalized.equals("yes") || normalized.equals("on") || normalized.equals("1") || normalized.equals("enable") || normalized.equals("enabled")) {
+        String normalized = String.valueOf(raw).trim().toLowerCase(Locale.ROOT);
+        if (normalized.equals("true") || normalized.equals("yes") || normalized.equals("on") || normalized.equals("1") || normalized.equals("enable") || normalized.equals("enabled") || normalized.equals("켜기") || normalized.equals("허용") || normalized.equals("활성")) {
             return true;
         }
-        if (normalized.equals("false") || normalized.equals("no") || normalized.equals("off") || normalized.equals("0") || normalized.equals("disable") || normalized.equals("disabled")) {
+        if (normalized.equals("false") || normalized.equals("no") || normalized.equals("off") || normalized.equals("0") || normalized.equals("disable") || normalized.equals("disabled") || normalized.equals("끄기") || normalized.equals("거부") || normalized.equals("비활성")) {
             return false;
         }
         return fallback;
