@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.Locale;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
@@ -150,7 +151,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandGeneratorListener(agent.protection(), ConfigGeneratorRules.load(this), generatorLevels), this);
         getServer().getPluginManager().registerEvents(new IslandCropGrowthListener(agent.protection(), cropGrowthLevels), this);
         String fallbackServerName = getConfig().getString("routing.fallback-on-failure", "Lobby");
-        boolean requireRouteSession = role == AgentRole.ISLAND_NODE && getConfig().getBoolean("routing.require-route-session", true);
+        boolean requireRouteSession = role == AgentRole.ISLAND_NODE && configBoolean("routing.require-route-session", true);
         getServer().getPluginManager().registerEvents(new PaperRouteSessionListener(this, client, agent.routeTickets(), nodeId, requireRouteSession, fallbackServerName), this);
         PluginCommand admin = getCommand("ciadmin");
         int routeWaitSeconds = getConfig().getInt("routing.wait-for-activation-timeout-seconds", 20);
@@ -339,8 +340,26 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         int daily = getConfig().getInt("snapshots.keep-daily", 7);
         int weekly = getConfig().getInt("snapshots.keep-weekly", 4);
         int manual = getConfig().getInt("snapshots.keep-manual", 50);
-        boolean compress = getConfig().getBoolean("snapshots.compress", true);
+        boolean compress = configBoolean("snapshots.compress", true);
         String checksum = getConfig().getString("snapshots.checksum", "SHA-256");
         return new SnapshotRetentionPolicy(hourly, daily, weekly, manual, compress, checksum == null || checksum.isBlank() ? "SHA-256" : checksum);
+    }
+
+    private boolean configBoolean(String path, boolean fallback) {
+        if (!getConfig().contains(path)) {
+            return fallback;
+        }
+        Object raw = getConfig().get(path);
+        if (raw instanceof Boolean value) {
+            return value;
+        }
+        String normalized = String.valueOf(raw).toLowerCase(Locale.ROOT);
+        if (normalized.equals("true") || normalized.equals("yes") || normalized.equals("on") || normalized.equals("1") || normalized.equals("enable") || normalized.equals("enabled")) {
+            return true;
+        }
+        if (normalized.equals("false") || normalized.equals("no") || normalized.equals("off") || normalized.equals("0") || normalized.equals("disable") || normalized.equals("disabled")) {
+            return false;
+        }
+        return fallback;
     }
 }
