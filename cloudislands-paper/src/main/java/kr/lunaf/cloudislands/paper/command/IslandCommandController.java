@@ -1235,12 +1235,34 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void sendIslandChat(Player player, String channel, String chatMessage, String label) {
         currentIsland(player, "섬 안에서만 " + label + "을 사용할 수 있습니다.").ifPresent(islandId -> {
             coreApiClient.sendIslandChat(islandId, player.getUniqueId(), channel, chatMessage)
-                .thenAccept(body -> message(player, label + " 전송: " + text(body, "message")))
+                .thenAccept(body -> {
+                    if (body == null || body.isBlank() || !body.contains("\"accepted\":true")) {
+                        message(player, label + "을 전송하지 못했습니다.");
+                        return;
+                    }
+                    plugin.getServer().getScheduler().runTask(plugin, () -> broadcastIslandChat(player, islandId, text(body, "channel"), text(body, "message")));
+                })
                 .exceptionally(error -> {
                     message(player, label + "을 전송하지 못했습니다.");
                     return null;
                 });
         });
+    }
+
+    private void broadcastIslandChat(Player sender, UUID islandId, String channel, String chatMessage) {
+        String normalizedChannel = channel.equalsIgnoreCase("TEAM") ? "팀" : "섬";
+        String message = "[" + normalizedChannel + "] " + sender.getName() + ": " + chatMessage;
+        boolean delivered = false;
+        for (Player online : plugin.getServer().getOnlinePlayers()) {
+            UUID currentIslandId = protection.islandAt(online.getLocation().getBlock()).orElse(null);
+            if (islandId.equals(currentIslandId)) {
+                online.sendMessage(message);
+                delivered = true;
+            }
+        }
+        if (!delivered) {
+            sender.sendMessage(message);
+        }
     }
 
     private void listIslandLogs(Player player, int limit) {
