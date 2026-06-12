@@ -2124,10 +2124,10 @@ public final class VelocityRoutingController {
             parts.add(state);
         }
         String world = jsonValue(object, "activeWorld");
-        if (!world.isBlank()) {
+        if (!world.isBlank() && !hideNodeNames) {
             parts.add("world=" + world);
         }
-        if (!object.contains("\"cellX\":null") && !object.contains("\"cellZ\":null")) {
+        if (!hideNodeNames && !object.contains("\"cellX\":null") && !object.contains("\"cellZ\":null")) {
             parts.add("cell=" + longValue(object, "cellX") + "," + longValue(object, "cellZ"));
         }
         return String.join(" ", parts);
