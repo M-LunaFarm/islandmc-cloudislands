@@ -941,6 +941,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
             String serverName = text(json, "targetServerName", targetNode);
             java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
             payload.put("targetServerName", serverName);
+            putIfPresent(payload, json, "targetType");
             putIfPresent(payload, json, "homeName");
             putIfPresent(payload, json, "warpName");
             putIfPresent(payload, json, "localX");

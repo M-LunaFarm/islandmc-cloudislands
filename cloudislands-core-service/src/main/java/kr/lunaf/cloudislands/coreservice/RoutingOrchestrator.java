@@ -98,7 +98,7 @@ public final class RoutingOrchestrator {
             if (island == null || metadata.isBanned(islandId, playerUuid) || metadata.isLocked(islandId)) {
                 continue;
             }
-            RoutePreparationResult result = prepareTicket(playerUuid, island, RouteAction.VISIT);
+            RoutePreparationResult result = prepareTicket(playerUuid, island, RouteAction.VISIT, visitPayload());
             if (result.status() == 202) {
                 return result;
             }
@@ -114,7 +114,7 @@ public final class RoutingOrchestrator {
 
     public RoutePreparationResult prepareAdminTeleportRoute(UUID playerUuid, UUID islandId) {
         return islands.findById(islandId)
-            .map(island -> prepareTicket(playerUuid, island, RouteAction.ADMIN_TELEPORT, Map.of("admin", "true")))
+            .map(island -> prepareTicket(playerUuid, island, RouteAction.ADMIN_TELEPORT, Map.of("targetType", "ADMIN_TELEPORT", "admin", "true")))
             .orElseGet(() -> rejectRoute(404, "ISLAND_NOT_FOUND", "Island was not found", playerUuid, islandId, RouteAction.ADMIN_TELEPORT));
     }
 
@@ -178,7 +178,7 @@ public final class RoutingOrchestrator {
     }
 
     private RoutePreparationResult visitAllowed(UUID playerUuid, IslandSnapshot island) {
-        return visitAllowed(playerUuid, island, RouteAction.VISIT, Map.of());
+        return visitAllowed(playerUuid, island, RouteAction.VISIT, visitPayload());
     }
 
     private RoutePreparationResult visitAllowed(UUID playerUuid, IslandSnapshot island, RouteAction action, Map<String, String> extraPayload) {
@@ -343,6 +343,7 @@ public final class RoutingOrchestrator {
     private Map<String, String> homePayload(UUID islandId, String homeName) {
         java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
         String normalized = homeName == null || homeName.isBlank() ? "default" : homeName.toLowerCase();
+        payload.put("targetType", "ISLAND_HOME");
         payload.put("homeName", normalized);
         IslandHomeSnapshot home = metadata.home(islandId, normalized).orElse(null);
         if (home != null) {
@@ -356,8 +357,20 @@ public final class RoutingOrchestrator {
         return Map.copyOf(payload);
     }
 
+    private Map<String, String> visitPayload() {
+        return Map.of(
+            "targetType", "VISITOR_SPAWN",
+            "localX", "0.5",
+            "localY", "100.0",
+            "localZ", "2.5",
+            "yaw", "180.0",
+            "pitch", "0.0"
+        );
+    }
+
     private Map<String, String> warpPayload(IslandWarpSnapshot warp) {
         java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
+        payload.put("targetType", "ISLAND_WARP");
         payload.put("warpName", warp.name());
         IslandLocation location = warp.location();
         payload.put("localX", Double.toString(location.localX()));

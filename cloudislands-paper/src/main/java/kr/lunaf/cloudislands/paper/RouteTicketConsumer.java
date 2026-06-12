@@ -83,14 +83,26 @@ public final class RouteTicketConsumer {
     }
 
     private Location targetLocation(World world, RouteTicket ticket, java.util.Map<String, String> payload) {
-        double localX = decimal(payload, "localX", 0.5D);
-        double localY = decimal(payload, "localY", 100.0D);
-        double localZ = decimal(payload, "localZ", 0.5D);
+        double localX = decimal(payload, "localX", defaultLocalX(ticket.action()));
+        double localY = decimal(payload, "localY", defaultLocalY(ticket.action()));
+        double localZ = decimal(payload, "localZ", defaultLocalZ(ticket.action()));
         ActiveIslandRegistry registry = activeIslands;
         ActiveIslandRegistry.ActiveIsland active = registry == null ? null : registry.find(ticket.islandId()).orElse(null);
         double worldX = active == null ? localX : active.originX() + localX;
         double worldZ = active == null ? localZ : active.originZ() + localZ;
         return new Location(world, worldX, localY, worldZ, (float) decimal(payload, "yaw", 180.0D), (float) decimal(payload, "pitch", 0.0D));
+    }
+
+    private double defaultLocalX(RouteAction action) {
+        return 0.5D;
+    }
+
+    private double defaultLocalY(RouteAction action) {
+        return 100.0D;
+    }
+
+    private double defaultLocalZ(RouteAction action) {
+        return action == RouteAction.VISIT ? 2.5D : 0.5D;
     }
 
     private String arrivalMessage(kr.lunaf.cloudislands.api.model.RouteAction action) {
