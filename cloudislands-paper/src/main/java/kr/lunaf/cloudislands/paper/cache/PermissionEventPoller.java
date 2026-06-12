@@ -14,8 +14,13 @@ import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.event.IslandBiomeChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandFlagChangeEvent;
+import kr.lunaf.cloudislands.paper.event.IslandLevelRecalculateEvent;
+import kr.lunaf.cloudislands.paper.event.IslandMemberJoinEvent;
+import kr.lunaf.cloudislands.paper.event.IslandMemberLeaveEvent;
+import kr.lunaf.cloudislands.paper.event.IslandRoleChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandUpgradeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandWarpChangeEvent;
+import kr.lunaf.cloudislands.paper.event.IslandWorthChangeEvent;
 import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
@@ -326,7 +331,39 @@ public final class PermissionEventPoller {
             Bukkit.getPluginManager().callEvent(new IslandBiomeChangeEvent(islandId, fields.getOrDefault("biomeKey", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_WARP_CHANGED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandWarpChangeEvent(islandId, firstPresent(fields, "warpName", "name"), fields.getOrDefault("action", ""), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name())) {
+            publishMemberEvent(islandId, fields);
+        } else if (type.equals(CloudIslandEventType.ISLAND_OWNERSHIP_CHANGED.name())) {
+            UUID playerUuid = uuidField(fields, "newOwnerUuid", "ownerUuid", "playerUuid");
+            if (playerUuid != null) {
+                Bukkit.getPluginManager().callEvent(new IslandRoleChangeEvent(islandId, playerUuid, fields.getOrDefault("oldRole", ""), "OWNER", fields));
+            }
+        } else if (type.equals(CloudIslandEventType.ISLAND_LEVEL_UPDATED.name()) || type.equals(CloudIslandEventType.ISLAND_BLOCKS_CHANGED.name())) {
+            if (fields.containsKey("level")) {
+                Bukkit.getPluginManager().callEvent(new IslandLevelRecalculateEvent(islandId, longField(fields, "level"), fields));
+            }
+            if (fields.containsKey("worth")) {
+                Bukkit.getPluginManager().callEvent(new IslandWorthChangeEvent(islandId, fields.getOrDefault("worth", ""), fields));
+            }
         }
+    }
+
+    private void publishMemberEvent(UUID islandId, Map<String, String> fields) {
+        UUID playerUuid = uuidField(fields, "playerUuid", "memberUuid", "targetUuid");
+        if (playerUuid == null) {
+            return;
+        }
+        String action = fields.getOrDefault("action", fields.getOrDefault("operation", "")).toUpperCase(java.util.Locale.ROOT);
+        if (action.equals("REMOVE") || action.equals("REMOVED") || action.equals("LEAVE") || action.equals("LEFT") || action.equals("KICK") || action.equals("KICKED")) {
+            Bukkit.getPluginManager().callEvent(new IslandMemberLeaveEvent(islandId, playerUuid, fields));
+            return;
+        }
+        String oldRole = fields.getOrDefault("oldRole", "");
+        String newRole = firstPresent(fields, "newRole", "role");
+        if (!oldRole.isBlank() || !newRole.isBlank()) {
+            Bukkit.getPluginManager().callEvent(new IslandRoleChangeEvent(islandId, playerUuid, oldRole, newRole, fields));
+        }
+        Bukkit.getPluginManager().callEvent(new IslandMemberJoinEvent(islandId, playerUuid, newRole, fields));
     }
 
     private UUID islandId(Map<String, String> fields) {
@@ -350,6 +387,30 @@ public final class PermissionEventPoller {
             return Integer.parseInt(value);
         } catch (NumberFormatException ignored) {
             return 0;
+        }
+    }
+
+    private long longField(Map<String, String> fields, String key) {
+        String value = fields.get(key);
+        if (value == null || value.isBlank()) {
+            return 0L;
+        }
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException ignored) {
+            return 0L;
+        }
+    }
+
+    private UUID uuidField(Map<String, String> fields, String... keys) {
+        String value = firstPresent(fields, keys);
+        if (value.isBlank()) {
+            return null;
+        }
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException ignored) {
+            return null;
         }
     }
 
