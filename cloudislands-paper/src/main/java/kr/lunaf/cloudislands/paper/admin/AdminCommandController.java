@@ -334,9 +334,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (args[1].equalsIgnoreCase("info")) {
             UUID lookupId = uuidOrNull(args[2]);
             if (lookupId != null) {
-                run(sender, "Island info", coreApiClient.adminIslandInfo(lookupId));
+                run(sender, "Island info", coreApiClient.adminIslandInfo(lookupId).thenApply(this::islandInfoMessage));
             } else {
-                run(sender, "Island info", coreApiClient.islandInfoByName(args[2]));
+                run(sender, "Island info", coreApiClient.islandInfoByName(args[2]).thenApply(this::islandInfoMessage));
             }
             return true;
         }
@@ -356,7 +356,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return true;
         }
         if (args[1].equalsIgnoreCase("where")) {
-            run(sender, "Island where", coreApiClient.adminIslandWhere(islandId));
+            run(sender, "Island where", coreApiClient.adminIslandWhere(islandId).thenApply(this::runtimeInfoMessage));
             return true;
         }
         if (args[1].equalsIgnoreCase("tp")) {
@@ -432,7 +432,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 return;
             }
             if (args[1].equalsIgnoreCase("info")) {
-                run(sender, "Player info", coreApiClient.playerInfo(playerUuid));
+                run(sender, "Player info", coreApiClient.playerInfo(playerUuid).thenApply(this::playerInfoMessage));
                 return;
             }
             if (args[1].equalsIgnoreCase("setisland")) {
@@ -493,12 +493,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private boolean handleRankings(CommandSender sender, String[] args) {
         if (args.length < 2 || args[1].equalsIgnoreCase("level")) {
             int limit = args.length > 2 ? (int) number(args[2], 10L) : 10;
-            run(sender, "Level rankings", coreApiClient.topIslandsByLevel(limit));
+            run(sender, "Level rankings", coreApiClient.topIslandsByLevel(limit).thenApply(body -> rankingListMessage("Level rankings", body)));
             return true;
         }
         if (args[1].equalsIgnoreCase("worth") || args[1].equalsIgnoreCase("value")) {
             int limit = args.length > 2 ? (int) number(args[2], 10L) : 10;
-            run(sender, "Worth rankings", coreApiClient.topIslandsByWorth(limit));
+            run(sender, "Worth rankings", coreApiClient.topIslandsByWorth(limit).thenApply(body -> rankingListMessage("Worth rankings", body)));
             return true;
         }
         sender.sendMessage("사용법: /ciadmin rankings level|worth [limit]");
@@ -573,7 +573,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
 
     private boolean handleBlockValues(CommandSender sender, String[] args) {
         if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
-            run(sender, "Block values", coreApiClient.listBlockValues());
+            run(sender, "Block values", coreApiClient.listBlockValues().thenApply(this::blockValueListMessage));
             return true;
         }
         if (args[1].equalsIgnoreCase("set")) {
@@ -591,7 +591,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
 
     private boolean handleTemplate(CommandSender sender, String[] args) {
         if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
-            run(sender, "Template list", coreApiClient.listTemplates());
+            run(sender, "Template list", coreApiClient.listTemplates().thenApply(this::templateListMessage));
             return true;
         }
         if (args[1].equalsIgnoreCase("upsert")) {
@@ -1071,6 +1071,149 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
 
     private String compactTarget(String targetId) {
         return targetId != null && targetId.length() == 36 && targetId.indexOf('-') > 0 ? shortId(targetId) : targetId;
+    }
+
+    private String islandInfoMessage(String body) {
+        String code = textValue(body, "code");
+        if (!code.isBlank()) {
+            return "Island: failed code=" + code;
+        }
+        String islandId = textValue(body, "islandId");
+        String ownerUuid = textValue(body, "ownerUuid");
+        String name = textValue(body, "name");
+        String state = textValue(body, "state");
+        return "Island: id=" + shortId(islandId)
+            + " owner=" + shortId(ownerUuid)
+            + (name.isBlank() ? "" : " name=" + name)
+            + " state=" + (state.isBlank() ? "UNKNOWN" : state)
+            + " size=" + longValue(body, "size")
+            + " level=" + longValue(body, "level")
+            + " worth=" + textValue(body, "worth")
+            + " public=" + boolValue(body, "publicAccess");
+    }
+
+    private String runtimeInfoMessage(String body) {
+        String code = textValue(body, "code");
+        if (!code.isBlank()) {
+            return "Island runtime: failed code=" + code;
+        }
+        String islandId = textValue(body, "islandId");
+        String state = textValue(body, "state");
+        String activeNode = textValue(body, "activeNode");
+        String activeWorld = textValue(body, "activeWorld");
+        return "Island runtime: island=" + shortId(islandId)
+            + " state=" + (state.isBlank() ? "UNKNOWN" : state)
+            + (activeNode.isBlank() ? "" : " node=" + activeNode)
+            + (activeWorld.isBlank() ? "" : " world=" + activeWorld)
+            + (body.contains("\"cellX\":null") || body.contains("\"cellZ\":null") ? "" : " cell=" + longValue(body, "cellX") + "," + longValue(body, "cellZ"))
+            + " fence=" + longValue(body, "fencingToken");
+    }
+
+    private String playerInfoMessage(String body) {
+        String code = textValue(body, "code");
+        if (!code.isBlank()) {
+            return "Player: failed code=" + code;
+        }
+        String playerUuid = textValue(body, "playerUuid");
+        String lastName = textValue(body, "lastName");
+        String islandId = textValue(body, "primaryIslandId");
+        return "Player: uuid=" + shortId(playerUuid)
+            + (lastName.isBlank() ? "" : " name=" + lastName)
+            + (islandId.isBlank() ? " island=none" : " island=" + shortId(islandId));
+    }
+
+    private String rankingListMessage(String label, String body) {
+        String rankings = arrayValue(body, "rankings");
+        if (rankings.isBlank()) {
+            return label + ": empty";
+        }
+        List<String> entries = new ArrayList<>();
+        int total = 0;
+        int index = 0;
+        while (index < rankings.length()) {
+            int objectStart = rankings.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(rankings, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            total++;
+            if (entries.size() < 10) {
+                String object = rankings.substring(objectStart, objectEnd + 1);
+                entries.add("#" + total
+                    + " " + shortId(textValue(object, "islandId"))
+                    + " level=" + longValue(object, "level")
+                    + " worth=" + textValue(object, "worth"));
+            }
+            index = objectEnd + 1;
+        }
+        return label + ": total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String blockValueListMessage(String body) {
+        String values = arrayValue(body, "values");
+        if (values.isBlank()) {
+            return "Block values: empty";
+        }
+        List<String> entries = new ArrayList<>();
+        int total = 0;
+        int index = 0;
+        while (index < values.length()) {
+            int objectStart = values.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(values, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            total++;
+            if (entries.size() < 10) {
+                String object = values.substring(objectStart, objectEnd + 1);
+                entries.add(textValue(object, "materialKey")
+                    + " worth=" + textValue(object, "worth")
+                    + " level=" + longValue(object, "levelPoints")
+                    + " limit=" + longValue(object, "limit"));
+            }
+            index = objectEnd + 1;
+        }
+        return "Block values: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String templateListMessage(String body) {
+        String templates = arrayValue(body, "templates");
+        if (templates.isBlank()) {
+            return "Templates: empty";
+        }
+        List<String> entries = new ArrayList<>();
+        int total = 0;
+        int enabled = 0;
+        int index = 0;
+        while (index < templates.length()) {
+            int objectStart = templates.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(templates, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = templates.substring(objectStart, objectEnd + 1);
+            total++;
+            if (boolValue(object, "enabled")) {
+                enabled++;
+            }
+            if (entries.size() < 10) {
+                String minNodeVersion = textValue(object, "minNodeVersion");
+                entries.add(textValue(object, "id")
+                    + " " + (boolValue(object, "enabled") ? "enabled" : "disabled")
+                    + (minNodeVersion.isBlank() ? "" : " min=" + minNodeVersion));
+            }
+            index = objectEnd + 1;
+        }
+        return "Templates: total=" + total + " enabled=" + enabled + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     private String eventListMessage(String body) {

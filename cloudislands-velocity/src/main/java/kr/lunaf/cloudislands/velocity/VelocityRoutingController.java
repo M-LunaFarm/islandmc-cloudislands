@@ -532,7 +532,7 @@ public final class VelocityRoutingController {
     }
 
     public void showLevelRanking(Player player, int limit) {
-        sendPlayerPayloadFuture(player, coreApiClient.topIslandsByLevel(Math.max(1, Math.min(limit, 100))), "랭킹을 불러오지 못했습니다.", "랭킹을 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.topIslandsByLevel(Math.max(1, Math.min(limit, 100))).thenApply(body -> rankingListMessage("Level rankings", body)), "랭킹을 불러오지 못했습니다.");
     }
 
     public void showWorthRanking(Player player) {
@@ -540,7 +540,7 @@ public final class VelocityRoutingController {
     }
 
     public void showWorthRanking(Player player, int limit) {
-        sendPlayerPayloadFuture(player, coreApiClient.topIslandsByWorth(Math.max(1, Math.min(limit, 100))), "가치 랭킹을 불러오지 못했습니다.", "가치 랭킹을 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.topIslandsByWorth(Math.max(1, Math.min(limit, 100))).thenApply(body -> rankingListMessage("Worth rankings", body)), "가치 랭킹을 불러오지 못했습니다.");
     }
 
     public void recalculateLevel(Player player, UUID islandId) {
@@ -697,7 +697,7 @@ public final class VelocityRoutingController {
     }
 
     public void adminIslandInfo(Player player, UUID lookupUuid) {
-        coreApiClient.adminIslandInfo(lookupUuid).thenAccept(body -> sendPlayerPayload(player, body, "섬 정보를 불러오지 못했습니다.", "섬 정보를 불러왔습니다."));
+        sendBodyResult(player, coreApiClient.adminIslandInfo(lookupUuid).thenApply(this::islandInfoMessage), "섬 정보를 불러오지 못했습니다.");
     }
 
     public void adminIslandInfoTarget(Player player, String target) {
@@ -706,11 +706,11 @@ public final class VelocityRoutingController {
             adminIslandInfo(player, parsed);
             return;
         }
-        sendPlayerPayloadFuture(player, coreApiClient.islandInfoByName(target), "섬 정보를 불러오지 못했습니다.", "섬 정보를 불러왔습니다.");
+        sendBodyResult(player, coreApiClient.islandInfoByName(target).thenApply(this::islandInfoMessage), "섬 정보를 불러오지 못했습니다.");
     }
 
     public void adminIslandWhere(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.adminIslandWhere(islandId), "섬 위치 정보를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.adminIslandWhere(islandId).thenApply(this::runtimeInfoMessage), "섬 위치 정보를 불러오지 못했습니다.");
     }
 
     public void adminIslandWhereTarget(Player player, String target) {
@@ -845,7 +845,7 @@ public final class VelocityRoutingController {
     }
 
     public void listBlockValues(Player player) {
-        sendBodyResult(player, coreApiClient.listBlockValues(), "블록 가치 목록을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listBlockValues().thenApply(this::blockValueListMessage), "블록 가치 목록을 불러오지 못했습니다.");
     }
 
     public void setBlockValue(Player player, String materialKey, String worth, long levelPoints, long limit) {
@@ -973,8 +973,151 @@ public final class VelocityRoutingController {
         return targetId != null && targetId.length() == 36 && targetId.indexOf('-') > 0 ? shortId(targetId) : targetId;
     }
 
+    private String islandInfoMessage(String body) {
+        String code = jsonValue(body, "code");
+        if (!code.isBlank()) {
+            return "Island: failed code=" + code;
+        }
+        String islandId = jsonValue(body, "islandId");
+        String ownerUuid = jsonValue(body, "ownerUuid");
+        String name = jsonValue(body, "name");
+        String state = jsonValue(body, "state");
+        return "Island: id=" + shortId(islandId)
+            + " owner=" + shortId(ownerUuid)
+            + (name.isBlank() ? "" : " name=" + name)
+            + " state=" + (state.isBlank() ? "UNKNOWN" : state)
+            + " size=" + longValue(body, "size")
+            + " level=" + longValue(body, "level")
+            + " worth=" + jsonValue(body, "worth")
+            + " public=" + boolValue(body, "publicAccess");
+    }
+
+    private String runtimeInfoMessage(String body) {
+        String code = jsonValue(body, "code");
+        if (!code.isBlank()) {
+            return "Island runtime: failed code=" + code;
+        }
+        String islandId = jsonValue(body, "islandId");
+        String state = jsonValue(body, "state");
+        String activeNode = jsonValue(body, "activeNode");
+        String activeWorld = jsonValue(body, "activeWorld");
+        return "Island runtime: island=" + shortId(islandId)
+            + " state=" + (state.isBlank() ? "UNKNOWN" : state)
+            + (activeNode.isBlank() || hideNodeNames ? "" : " node=" + activeNode)
+            + (activeWorld.isBlank() ? "" : " world=" + activeWorld)
+            + (body.contains("\"cellX\":null") || body.contains("\"cellZ\":null") ? "" : " cell=" + longValue(body, "cellX") + "," + longValue(body, "cellZ"))
+            + " fence=" + longValue(body, "fencingToken");
+    }
+
+    private String playerInfoMessage(String body) {
+        String code = jsonValue(body, "code");
+        if (!code.isBlank()) {
+            return "Player: failed code=" + code;
+        }
+        String playerUuid = jsonValue(body, "playerUuid");
+        String lastName = jsonValue(body, "lastName");
+        String islandId = jsonValue(body, "primaryIslandId");
+        return "Player: uuid=" + shortId(playerUuid)
+            + (lastName.isBlank() ? "" : " name=" + lastName)
+            + (islandId.isBlank() ? " island=none" : " island=" + shortId(islandId));
+    }
+
+    private String rankingListMessage(String label, String body) {
+        String rankings = arrayValue(body, "rankings");
+        if (rankings.isBlank()) {
+            return label + ": empty";
+        }
+        java.util.List<String> entries = new java.util.ArrayList<>();
+        int total = 0;
+        int index = 0;
+        while (index < rankings.length()) {
+            int objectStart = rankings.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(rankings, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            total++;
+            if (entries.size() < 10) {
+                String object = rankings.substring(objectStart, objectEnd + 1);
+                entries.add("#" + total
+                    + " " + shortId(jsonValue(object, "islandId"))
+                    + " level=" + longValue(object, "level")
+                    + " worth=" + jsonValue(object, "worth"));
+            }
+            index = objectEnd + 1;
+        }
+        return label + ": total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String blockValueListMessage(String body) {
+        String values = arrayValue(body, "values");
+        if (values.isBlank()) {
+            return "Block values: empty";
+        }
+        java.util.List<String> entries = new java.util.ArrayList<>();
+        int total = 0;
+        int index = 0;
+        while (index < values.length()) {
+            int objectStart = values.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(values, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            total++;
+            if (entries.size() < 10) {
+                String object = values.substring(objectStart, objectEnd + 1);
+                entries.add(jsonValue(object, "materialKey")
+                    + " worth=" + jsonValue(object, "worth")
+                    + " level=" + longValue(object, "levelPoints")
+                    + " limit=" + longValue(object, "limit"));
+            }
+            index = objectEnd + 1;
+        }
+        return "Block values: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String templateListMessage(String body) {
+        String templates = arrayValue(body, "templates");
+        if (templates.isBlank()) {
+            return "Templates: empty";
+        }
+        java.util.List<String> entries = new java.util.ArrayList<>();
+        int total = 0;
+        int enabled = 0;
+        int index = 0;
+        while (index < templates.length()) {
+            int objectStart = templates.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(templates, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = templates.substring(objectStart, objectEnd + 1);
+            total++;
+            if (boolValue(object, "enabled")) {
+                enabled++;
+            }
+            if (entries.size() < 10) {
+                String minNodeVersion = jsonValue(object, "minNodeVersion");
+                entries.add(jsonValue(object, "id")
+                    + " " + (boolValue(object, "enabled") ? "enabled" : "disabled")
+                    + (minNodeVersion.isBlank() ? "" : " min=" + minNodeVersion));
+            }
+            index = objectEnd + 1;
+        }
+        return "Templates: total=" + total + " enabled=" + enabled + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
     public void playerInfo(Player player, UUID playerUuid) {
-        sendBodyResult(player, coreApiClient.playerInfo(playerUuid), "플레이어 정보를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.playerInfo(playerUuid).thenApply(this::playerInfoMessage), "플레이어 정보를 불러오지 못했습니다.");
     }
 
     public void playerInfoTarget(Player player, String target) {
@@ -1025,7 +1168,7 @@ public final class VelocityRoutingController {
     }
 
     public void listTemplates(Player player) {
-        sendBodyResult(player, coreApiClient.listTemplates(), "섬 템플릿 목록을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listTemplates().thenApply(this::templateListMessage), "섬 템플릿 목록을 불러오지 못했습니다.");
     }
 
     public void upsertTemplate(Player player, String templateId, String displayName, boolean enabled, String minNodeVersion) {
