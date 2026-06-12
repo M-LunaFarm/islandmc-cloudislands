@@ -257,7 +257,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";permissionCacheHitRatio=" + agent.permissionCache().hitRatio()
             + ";permissionChecks=" + agent.permissionCache().lookupCount()
             + ";storageUploadSeconds=" + (storage == null ? 0.0D : storage.lastUploadSeconds())
-            + ";storageDownloadSeconds=" + (storage == null ? 0.0D : storage.lastDownloadSeconds());
+            + ";storageDownloadSeconds=" + (storage == null ? 0.0D : storage.lastDownloadSeconds())
+            + ";storageUploadFailures=" + (storage == null ? 0L : storage.uploadFailures())
+            + ";storageDownloadFailures=" + (storage == null ? 0L : storage.downloadFailures())
+            + ";storageOperationFailures=" + (storage == null ? 0L : storage.operationFailures());
     }
 
     private void startIslandNodeWorker(CoreApiClient client, String nodeId, IslandStorage storage, IslandLimitCache limitCache) {

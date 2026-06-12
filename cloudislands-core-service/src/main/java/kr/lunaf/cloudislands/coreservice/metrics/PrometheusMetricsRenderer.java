@@ -72,6 +72,8 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_storage_upload_seconds", "gauge");
         help(out, "cloudislands_storage_download_seconds", "Last island storage download duration reported by Paper heartbeat");
         type(out, "cloudislands_storage_download_seconds", "gauge");
+        help(out, "cloudislands_storage_failures_total", "Island object storage failures reported by Paper heartbeat");
+        type(out, "cloudislands_storage_failures_total", "counter");
         help(out, "cloudislands_island_save_seconds", "Last island save bundle upload duration reported by Paper heartbeat");
         type(out, "cloudislands_island_save_seconds", "gauge");
         help(out, "cloudislands_island_activation_seconds", "Last island activation bundle download duration reported by Paper heartbeat");
@@ -107,6 +109,9 @@ public final class PrometheusMetricsRenderer {
             appendMetadataGauge(out, "cloudislands_permission_checks_total", node, "permissionChecks");
             appendMetadataGauge(out, "cloudislands_storage_upload_seconds", node, "storageUploadSeconds");
             appendMetadataGauge(out, "cloudislands_storage_download_seconds", node, "storageDownloadSeconds");
+            appendMetadataGauge(out, "cloudislands_storage_failures_total", node, "storageUploadFailures", "operation=\"upload\"");
+            appendMetadataGauge(out, "cloudislands_storage_failures_total", node, "storageDownloadFailures", "operation=\"download\"");
+            appendMetadataGauge(out, "cloudislands_storage_failures_total", node, "storageOperationFailures", "operation=\"maintenance\"");
             appendMetadataGauge(out, "cloudislands_island_save_seconds", node, "storageUploadSeconds");
             appendMetadataGauge(out, "cloudislands_island_activation_seconds", node, "storageDownloadSeconds");
             appendMetadataGauge(out, "cloudislands_island_snapshot_seconds", node, "storageUploadSeconds");
@@ -203,9 +208,13 @@ public final class PrometheusMetricsRenderer {
     }
 
     private void appendMetadataGauge(StringBuilder out, String name, NodeLoad node, String metadataKey) {
+        appendMetadataGauge(out, name, node, metadataKey, null);
+    }
+
+    private void appendMetadataGauge(StringBuilder out, String name, NodeLoad node, String metadataKey, String extraLabel) {
         String value = node.heartbeatMetadata().get(metadataKey);
         if (value != null && !value.isBlank()) {
-            labels(out, name, node, null).append(value).append('\n');
+            labels(out, name, node, extraLabel).append(value).append('\n');
         }
     }
 
