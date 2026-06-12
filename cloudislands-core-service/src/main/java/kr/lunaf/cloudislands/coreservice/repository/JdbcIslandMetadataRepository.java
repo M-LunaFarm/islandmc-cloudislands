@@ -506,7 +506,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     @Override
     public List<UUID> publicIslandIds(int limit) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT id FROM islands WHERE public_access = true AND deleted_at IS NULL ORDER BY random() LIMIT ?")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT id FROM islands WHERE public_access = true AND locked = false AND deleted_at IS NULL ORDER BY random() LIMIT ?")) {
             statement.setInt(1, Math.max(0, limit));
             try (ResultSet rs = statement.executeQuery()) {
                 List<UUID> result = new ArrayList<>();

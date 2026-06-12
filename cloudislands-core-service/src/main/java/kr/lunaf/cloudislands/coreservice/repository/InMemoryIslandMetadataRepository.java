@@ -242,6 +242,7 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     public List<UUID> publicIslandIds(int limit) {
         return publicAccess.entrySet().stream()
             .filter(Map.Entry::getValue)
+            .filter(entry -> !locked.getOrDefault(entry.getKey(), false))
             .map(Map.Entry::getKey)
             .limit(Math.max(0, limit))
             .toList();
