@@ -84,6 +84,7 @@ import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandRuntimeRepository;
+import kr.lunaf.cloudislands.coreservice.repository.CachingIslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.redis.RedisStreamWriterAdapter;
 import kr.lunaf.cloudislands.coreservice.security.ApiTokenGuard;
 import kr.lunaf.cloudislands.coreservice.security.FixedWindowRateLimiter;
@@ -172,7 +173,10 @@ public final class CloudIslandsCoreApplication {
         IslandMetadataRepository metadataRepository = config.jdbcRepositories() ? new JdbcIslandMetadataRepository(dataSource) : new InMemoryIslandMetadataRepository();
         PlayerProfileRepository playerProfiles = config.jdbcRepositories() ? new JdbcPlayerProfileRepository(dataSource) : new InMemoryPlayerProfileRepository();
         IslandPermissionRuleRepository permissionRules = config.jdbcRepositories() ? new JdbcIslandPermissionRuleRepository(dataSource) : new InMemoryIslandPermissionRuleRepository();
-        IslandRuntimeRepository runtimeRepository = config.jdbcRepositories() ? new JdbcIslandRuntimeRepository(dataSource) : new InMemoryIslandRuntimeRepository();
+        IslandRuntimeRepository baseRuntimeRepository = config.jdbcRepositories() ? new JdbcIslandRuntimeRepository(dataSource) : new InMemoryIslandRuntimeRepository();
+        IslandRuntimeRepository runtimeRepository = config.redisEvents() || config.redisJobs()
+            ? new CachingIslandRuntimeRepository(baseRuntimeRepository, config.redisUri())
+            : baseRuntimeRepository;
         this.runtimeRepository = runtimeRepository;
         this.jobs = jobs;
         this.events = events;
