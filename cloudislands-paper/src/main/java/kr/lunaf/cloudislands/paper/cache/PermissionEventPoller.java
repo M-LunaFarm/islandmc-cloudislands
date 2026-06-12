@@ -645,10 +645,15 @@ public final class PermissionEventPoller {
             if (!CacheInvalidationPlan.targetsFor(CloudIslandEventType.valueOf(type)).contains(CacheInvalidationPlan.CacheTarget.GENERATOR)) {
                 return false;
             }
-            return !type.equals(CloudIslandEventType.ISLAND_UPGRADE.name()) || fields.getOrDefault("upgradeKey", "").equalsIgnoreCase("generator");
+            return !type.equals(CloudIslandEventType.ISLAND_UPGRADE.name()) || isGeneratorUpgrade(fields.getOrDefault("upgradeKey", ""));
         } catch (IllegalArgumentException ignored) {
-            return type.equals("ISLAND_UPGRADE") && fields.getOrDefault("upgradeKey", "").equalsIgnoreCase("generator");
+            return type.equals("ISLAND_UPGRADE") && isGeneratorUpgrade(fields.getOrDefault("upgradeKey", ""));
         }
+    }
+
+    private boolean isGeneratorUpgrade(String upgradeKey) {
+        String normalized = upgradeKey.toLowerCase(java.util.Locale.ROOT);
+        return normalized.equals("generator") || normalized.startsWith("generator:");
     }
 
     private boolean affectsCrop(String type, Map<String, String> fields) {

@@ -38,6 +38,9 @@ public final class UpgradePolicy {
     }
 
     public static UpgradeType typeFor(String upgradeKey) {
+        if (upgradeKey.toLowerCase().startsWith("generator:")) {
+            return UpgradeType.GENERATOR_LEVEL;
+        }
         return switch (upgradeKey.toLowerCase()) {
             case "size" -> UpgradeType.ISLAND_SIZE;
             case "members" -> UpgradeType.MAX_MEMBERS;

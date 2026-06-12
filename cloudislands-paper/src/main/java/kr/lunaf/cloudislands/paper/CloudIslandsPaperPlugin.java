@@ -147,7 +147,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandUpgradeMenu(), this);
         getServer().getPluginManager().registerEvents(new IslandVisitMenu(), this);
         getServer().getPluginManager().registerEvents(new IslandWarpMenu(), this);
-        this.generatorLevels = new GeneratorLevelCache(client);
+        this.generatorLevels = new GeneratorLevelCache(client, getConfig().getString("generators.default-key", "default"));
         CropGrowthLevelCache cropGrowthLevels = new CropGrowthLevelCache(client);
         getServer().getPluginManager().registerEvents(new IslandGeneratorListener(agent.protection(), ConfigGeneratorRules.load(this), generatorLevels, blockDeltas), this);
         getServer().getPluginManager().registerEvents(new IslandCropGrowthListener(agent.protection(), cropGrowthLevels), this);

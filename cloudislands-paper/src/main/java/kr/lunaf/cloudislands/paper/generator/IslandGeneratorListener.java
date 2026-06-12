@@ -34,7 +34,7 @@ public final class IslandGeneratorListener implements Listener {
         }
         Block block = event.getBlock();
         protection.islandAt(block).ifPresent(islandId -> {
-            Material material = generatedMaterial(levels.level(islandId));
+            Material material = generatedMaterial(levels.profile(islandId));
             if (material != null && material.isBlock()) {
                 event.getNewState().setType(material);
                 reportReplacement(islandId, block, material);
@@ -53,7 +53,7 @@ public final class IslandGeneratorListener implements Listener {
             return;
         }
         protection.islandAt(target).ifPresent(islandId -> {
-            Material material = generatedMaterial(levels.level(islandId));
+            Material material = generatedMaterial(levels.profile(islandId));
             if (material != null && material.isBlock()) {
                 event.setCancelled(true);
                 target.setType(material);
@@ -69,8 +69,8 @@ public final class IslandGeneratorListener implements Listener {
         blockDeltas.placed(islandId, material);
     }
 
-    private Material generatedMaterial(int level) {
-        return material(registry.rule("default", level).select(random));
+    private Material generatedMaterial(GeneratorLevelCache.GeneratorProfile profile) {
+        return material(registry.rule(profile.generatorKey(), profile.level()).select(random));
     }
 
     private boolean touchesOppositeFluid(Block block, Material source) {
