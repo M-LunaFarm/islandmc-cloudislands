@@ -23,7 +23,6 @@ import org.bukkit.scheduler.BukkitTask;
 
 public final class PermissionEventPoller {
     private static final Pattern EVENT = Pattern.compile("\\{[^}]*\"type\":\"([^\"]+)\"[^}]*\"fields\":\\{([^}]*)}[^}]*\"occurredAt\":\"([^\"]+)\"[^}]*}");
-    private static final Pattern FIELD = Pattern.compile("\"([^\"]+)\":\"([^\"]*)\"");
 
     private final Plugin plugin;
     private final CoreApiClient client;
@@ -313,10 +312,70 @@ public final class PermissionEventPoller {
 
     private Map<String, String> fields(String raw) {
         Map<String, String> result = new java.util.HashMap<>();
-        Matcher matcher = FIELD.matcher(raw == null ? "" : raw);
-        while (matcher.find()) {
-            result.put(matcher.group(1), matcher.group(2));
+        String source = raw == null ? "" : raw;
+        int index = 0;
+        while (index < source.length()) {
+            int keyStart = source.indexOf('"', index);
+            if (keyStart < 0) {
+                break;
+            }
+            int keyEnd = jsonStringEnd(source, keyStart + 1);
+            if (keyEnd < 0) {
+                break;
+            }
+            int colon = source.indexOf(':', keyEnd + 1);
+            int valueStart = colon < 0 ? -1 : source.indexOf('"', colon + 1);
+            if (valueStart < 0) {
+                break;
+            }
+            int valueEnd = jsonStringEnd(source, valueStart + 1);
+            if (valueEnd < 0) {
+                break;
+            }
+            result.put(unescape(source.substring(keyStart + 1, keyEnd)), unescape(source.substring(valueStart + 1, valueEnd)));
+            index = valueEnd + 1;
         }
         return result;
+    }
+
+    private int jsonStringEnd(String source, int start) {
+        boolean escaped = false;
+        for (int i = start; i < source.length(); i++) {
+            char current = source.charAt(i);
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (current == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (current == '"') {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private String unescape(String value) {
+        StringBuilder builder = new StringBuilder();
+        boolean escaped = false;
+        for (int i = 0; i < value.length(); i++) {
+            char current = value.charAt(i);
+            if (escaped) {
+                builder.append(current);
+                escaped = false;
+                continue;
+            }
+            if (current == '\\') {
+                escaped = true;
+                continue;
+            }
+            builder.append(current);
+        }
+        if (escaped) {
+            builder.append('\\');
+        }
+        return builder.toString();
     }
 }
