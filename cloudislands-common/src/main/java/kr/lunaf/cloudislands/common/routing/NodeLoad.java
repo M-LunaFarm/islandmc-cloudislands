@@ -110,18 +110,33 @@ public record NodeLoad(
     }
 
     public double score() {
-        double playerRatio = ratio(players, hardPlayerCap);
-        double activeIslandRatio = ratio(activeIslands, maxActiveIslands);
-        double msptRatio = Math.min(mspt / 50.0D, 1.5D);
-        double queueRatio = ratio(activationQueue, maxActivationQueue);
-        double memoryPressure = heapMaxMb <= 0 ? 1.0D : Math.min((double) heapUsedMb / heapMaxMb, 1.5D);
-        return playerRatio * 0.25D
-            + activeIslandRatio * 0.15D
-            + msptRatio * 0.25D
-            + queueRatio * 0.15D
+        return playerPressure() * 0.25D
+            + activeIslandPressure() * 0.15D
+            + msptPressure() * 0.25D
+            + activationQueuePressure() * 0.15D
             + chunkLoadPressure * 0.10D
-            + memoryPressure * 0.05D
+            + memoryPressure() * 0.05D
             + recentFailurePenalty * 0.05D;
+    }
+
+    public double playerPressure() {
+        return ratio(players, hardPlayerCap);
+    }
+
+    public double activeIslandPressure() {
+        return ratio(activeIslands, maxActiveIslands);
+    }
+
+    public double msptPressure() {
+        return Math.min(mspt / 50.0D, 1.5D);
+    }
+
+    public double activationQueuePressure() {
+        return ratio(activationQueue, maxActivationQueue);
+    }
+
+    public double memoryPressure() {
+        return heapMaxMb <= 0 ? 1.0D : Math.min((double) heapUsedMb / heapMaxMb, 1.5D);
     }
 
     private static double ratio(int value, int max) {

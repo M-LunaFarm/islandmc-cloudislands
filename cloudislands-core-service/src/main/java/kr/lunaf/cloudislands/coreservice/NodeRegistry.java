@@ -63,6 +63,15 @@ public interface NodeRegistry {
             .append("},")
             .append("\"lastHeartbeat\":\"").append(node.lastHeartbeat()).append("\",")
             .append("\"score\":").append(node.score())
+            .append(",\"scoreBreakdown\":{")
+            .append("\"playerPressure\":").append(node.playerPressure()).append(',')
+            .append("\"activeIslandPressure\":").append(node.activeIslandPressure()).append(',')
+            .append("\"msptPressure\":").append(node.msptPressure()).append(',')
+            .append("\"activationQueuePressure\":").append(node.activationQueuePressure()).append(',')
+            .append("\"chunkLoadPressure\":").append(node.chunkLoadPressure()).append(',')
+            .append("\"memoryPressure\":").append(node.memoryPressure()).append(',')
+            .append("\"recentFailurePenalty\":").append(node.recentFailurePenalty())
+            .append('}')
             .append('}')
             .toString();
     }
