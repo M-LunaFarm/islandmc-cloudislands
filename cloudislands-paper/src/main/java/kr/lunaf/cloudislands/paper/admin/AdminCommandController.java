@@ -477,7 +477,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args[1].equalsIgnoreCase("upsert")) {
             if (args.length < 4) {
-                sender.sendMessage("사용법: /ciadmin template upsert <id> <name> [enabled] [minNodeVersion]");
+                sender.sendMessage("사용법: /ciadmin template|templates upsert <id> <name> [enabled] [minNodeVersion]");
                 return true;
             }
             boolean enabled = args.length < 5 || Boolean.parseBoolean(args[4]);
@@ -497,7 +497,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "Template disable", coreApiClient.disableTemplate(args[2]));
             return true;
         }
-        sender.sendMessage("사용법: /ciadmin template list|upsert|enable|disable");
+        sender.sendMessage("사용법: /ciadmin template|templates list|upsert|enable|disable");
         return true;
     }
 
