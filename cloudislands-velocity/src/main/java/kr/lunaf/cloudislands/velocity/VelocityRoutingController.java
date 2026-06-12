@@ -951,6 +951,10 @@ public final class VelocityRoutingController {
             .append(compactTarget(targetId));
         if (!code.isBlank()) {
             builder.append(" code=").append(code);
+            String detail = adminCodeDetail(code);
+            if (!detail.isBlank()) {
+                builder.append(" detail=").append(detail);
+            }
         }
         String islandId = jsonValue(body, "islandId");
         if (!islandId.isBlank() && !islandId.equals(targetId)) {
@@ -968,6 +972,25 @@ public final class VelocityRoutingController {
             builder.append(" snapshot=").append(longValue(body, "snapshotNo"));
         }
         return builder.toString();
+    }
+
+    private String adminCodeDetail(String code) {
+        if (code == null || code.isBlank()) {
+            return "";
+        }
+        if (code.startsWith("NO_READY_NODE")) {
+            return "no-ready-node";
+        }
+        if (code.startsWith("TARGET_NODE")) {
+            return "target-node-blocked";
+        }
+        return switch (code) {
+            case "ACTIVATION_LOCKED" -> "activation-in-progress";
+            case "VISITOR_SOFT_FULL" -> "visitor-denied-soft-full";
+            case "CREATE_LOCKED" -> "player-create-lock-held";
+            case "NODE_UNAVAILABLE" -> "node-unavailable";
+            default -> "";
+        };
     }
 
     private String inviteCreateMessage(String body) {
