@@ -1,5 +1,8 @@
 package kr.lunaf.cloudislands.paper.cache;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -12,7 +15,9 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
+import kr.lunaf.cloudislands.paper.ProtectionController;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -26,18 +31,22 @@ public final class PermissionEventPoller {
     private final GeneratorLevelCache generatorLevels;
     private final CropGrowthLevelCache cropGrowthLevels;
     private final IslandLimitCache limits;
+    private final ProtectionController protection;
     private final String nodeId;
+    private final String fallbackServerName;
     private final Set<String> seen = ConcurrentHashMap.newKeySet();
     private BukkitTask task;
 
-    public PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, GeneratorLevelCache generatorLevels, CropGrowthLevelCache cropGrowthLevels, IslandLimitCache limits, String nodeId) {
+    public PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, GeneratorLevelCache generatorLevels, CropGrowthLevelCache cropGrowthLevels, IslandLimitCache limits, ProtectionController protection, String nodeId, String fallbackServerName) {
         this.plugin = plugin;
         this.client = client;
         this.permissionSync = permissionSync;
         this.generatorLevels = generatorLevels;
         this.cropGrowthLevels = cropGrowthLevels;
         this.limits = limits;
+        this.protection = protection;
         this.nodeId = nodeId;
+        this.fallbackServerName = fallbackServerName == null || fallbackServerName.isBlank() ? "Lobby" : fallbackServerName;
     }
 
     public void start(long intervalTicks) {
@@ -64,6 +73,9 @@ public final class PermissionEventPoller {
                     continue;
                 }
                 if (handlesNodeOperation(type, fields)) {
+                    continue;
+                }
+                if (handlesVisitorKick(type, fields)) {
                     continue;
                 }
                 if (affectsPermissions(type, fields)) {
@@ -144,6 +156,42 @@ public final class PermissionEventPoller {
             return true;
         }
         return false;
+    }
+
+    private boolean handlesVisitorKick(String type, Map<String, String> fields) {
+        if (!type.equals(CloudIslandEventType.ISLAND_VISITOR_KICKED.name())) {
+            return false;
+        }
+        String islandIdValue = fields.getOrDefault("islandId", "");
+        String playerUuidValue = fields.getOrDefault("playerUuid", "");
+        if (islandIdValue.isBlank() || playerUuidValue.isBlank()) {
+            return true;
+        }
+        UUID islandId = UUID.fromString(islandIdValue);
+        UUID playerUuid = UUID.fromString(playerUuidValue);
+        Bukkit.getScheduler().runTask(plugin, () -> moveVisitorToFallback(islandId, playerUuid));
+        return true;
+    }
+
+    private void moveVisitorToFallback(UUID islandId, UUID playerUuid) {
+        Player target = Bukkit.getPlayer(playerUuid);
+        if (target == null) {
+            return;
+        }
+        UUID currentIslandId = protection.islandAt(target.getLocation().getBlock()).orElse(null);
+        if (!islandId.equals(currentIslandId)) {
+            return;
+        }
+        target.sendMessage("섬에서 추방되어 로비로 이동합니다.");
+        try {
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            DataOutputStream output = new DataOutputStream(bytes);
+            output.writeUTF("Connect");
+            output.writeUTF(fallbackServerName);
+            target.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
+        } catch (IOException exception) {
+            plugin.getLogger().warning("Failed to move kicked visitor to fallback: " + exception.getMessage());
+        }
     }
 
     private void kickPlayers(String reason) {
