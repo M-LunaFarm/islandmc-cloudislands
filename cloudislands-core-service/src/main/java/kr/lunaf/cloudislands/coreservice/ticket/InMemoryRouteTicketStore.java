@@ -84,21 +84,23 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
     }
 
     public Optional<RouteTicket> consume(UUID ticketId, UUID playerUuid, String nodeId, String nonce) {
-        RouteTicket ticket = tickets.get(ticketId);
-        if (ticket == null || ticket.state() != RouteTicketState.READY) {
-            return Optional.empty();
-        }
         Instant now = clock.instant();
-        if (ticket.expiresAt().isBefore(now)) {
-            tickets.put(ticketId, new RouteTicket(ticket.ticketId(), ticket.playerUuid(), ticket.action(), ticket.islandId(), ticket.targetNode(), ticket.targetWorld(), RouteTicketState.EXPIRED, ticket.expiresAt(), ticket.nonce(), ticket.payload()));
-            return Optional.empty();
-        }
-        if (!ticket.playerUuid().equals(playerUuid) || !ticket.targetNode().equals(nodeId) || !ticket.nonce().equals(nonce)) {
-            return Optional.empty();
-        }
-        RouteTicket consumed = new RouteTicket(ticket.ticketId(), ticket.playerUuid(), ticket.action(), ticket.islandId(), ticket.targetNode(), ticket.targetWorld(), RouteTicketState.CONSUMED, ticket.expiresAt(), ticket.nonce(), ticket.payload());
-        tickets.put(ticketId, consumed);
-        return Optional.of(consumed);
+        java.util.concurrent.atomic.AtomicReference<RouteTicket> consumed = new java.util.concurrent.atomic.AtomicReference<>();
+        tickets.computeIfPresent(ticketId, (_id, ticket) -> {
+            if (ticket.state() != RouteTicketState.READY) {
+                return ticket;
+            }
+            if (ticket.expiresAt().isBefore(now)) {
+                return new RouteTicket(ticket.ticketId(), ticket.playerUuid(), ticket.action(), ticket.islandId(), ticket.targetNode(), ticket.targetWorld(), RouteTicketState.EXPIRED, ticket.expiresAt(), ticket.nonce(), ticket.payload());
+            }
+            if (!ticket.playerUuid().equals(playerUuid) || !ticket.targetNode().equals(nodeId) || !ticket.nonce().equals(nonce)) {
+                return ticket;
+            }
+            RouteTicket updated = new RouteTicket(ticket.ticketId(), ticket.playerUuid(), ticket.action(), ticket.islandId(), ticket.targetNode(), ticket.targetWorld(), RouteTicketState.CONSUMED, ticket.expiresAt(), ticket.nonce(), ticket.payload());
+            consumed.set(updated);
+            return updated;
+        });
+        return Optional.ofNullable(consumed.get());
     }
 
     public Optional<RouteTicket> find(UUID ticketId) {
