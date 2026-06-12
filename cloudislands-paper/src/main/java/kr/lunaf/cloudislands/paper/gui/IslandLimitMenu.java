@@ -40,11 +40,24 @@ public final class IslandLimitMenu implements Listener {
         if (meta == null || meta.getLore() == null) {
             return;
         }
+        String displayName = meta.getDisplayName();
+        player.closeInventory();
+        if ("메인 메뉴".equals(displayName)) {
+            player.performCommand("섬 메뉴");
+            return;
+        }
+        if ("새로고침".equals(displayName)) {
+            player.performCommand("섬 제한");
+            return;
+        }
+        if ("설정".equals(displayName)) {
+            player.performCommand("섬 설정");
+            return;
+        }
         String limitKey = loreValue(meta, "limitKey=");
         if (limitKey.isBlank()) {
             return;
         }
-        player.closeInventory();
         long value = number(loreValue(meta, "value="));
         long step = event.isShiftClick() ? 10L : 1L;
         long nextValue = event.isRightClick() ? Math.max(0L, value - step) : value + step;
@@ -61,6 +74,9 @@ public final class IslandLimitMenu implements Listener {
             if (limits.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, "제한 없음", "현재 설정된 섬 제한이 없습니다."));
             }
+            inventory.setItem(45, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
+            inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 제한"));
+            inventory.setItem(53, item(Material.COMPARATOR, "설정", "/섬 설정"));
             player.openInventory(inventory);
         });
     }
