@@ -162,7 +162,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         PluginCommand island = getCommand("island");
         if (island != null) {
             IslandLevelScanService levelScanService = new IslandLevelScanService(this, () -> activeIslands, client);
-            IslandCommandController islandController = new IslandCommandController(this, client, agent.protection(), routeWaitSeconds, fallbackServerName, levelScanService);
+            IslandCommandController islandController = new IslandCommandController(this, client, agent.protection(), routeWaitSeconds, fallbackServerName, levelScanService, economyBridge);
             island.setExecutor(islandController);
             island.setTabCompleter(islandController);
         }

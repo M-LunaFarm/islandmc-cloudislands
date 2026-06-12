@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.command;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.UUID;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -13,6 +14,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
@@ -150,6 +152,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private final String fallbackServerName;
     private final Map<UUID, BossBar> routeBossBars = new ConcurrentHashMap<>();
     private final IslandLevelScanService levelScanService;
+    private final EconomyBridge economyBridge;
 
     public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection) {
         this(plugin, coreApiClient, protection, 20);
@@ -164,12 +167,17 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService) {
+        this(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, levelScanService, null);
+    }
+
+    public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.protection = protection;
         this.routeWaitSeconds = Math.max(1, routeWaitSeconds);
         this.fallbackServerName = fallbackServerName == null || fallbackServerName.isBlank() ? "Lobby" : fallbackServerName;
         this.levelScanService = levelScanService;
+        this.economyBridge = economyBridge;
     }
 
     @Override
@@ -1322,13 +1330,31 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("섬 은행에 입금할 권한이 없습니다.");
                 return;
             }
-            coreApiClient.depositIslandBank(islandId, player.getUniqueId(), amount)
-                .thenAccept(body -> {
-                    if (body.contains("\"accepted\":false")) {
-                        message(player, playerCodeMessage(text(body, "code"), "섬 은행에 입금하지 못했습니다."));
-                        return;
+            BigDecimal parsedAmount = positiveAmount(amount);
+            if (parsedAmount == null) {
+                player.sendMessage(playerCodeMessage("INVALID_AMOUNT", "올바른 금액을 입력해주세요."));
+                return;
+            }
+            if (economyBridge == null) {
+                player.sendMessage("경제 플러그인을 찾을 수 없습니다.");
+                return;
+            }
+            String normalizedAmount = parsedAmount.toPlainString();
+            UUID playerUuid = player.getUniqueId();
+            economyBridge.withdraw(playerUuid, parsedAmount, "CloudIslands island bank deposit")
+                .thenCompose(withdrawn -> {
+                    if (!withdrawn) {
+                        message(player, playerCodeMessage("INSUFFICIENT_FUNDS", "잔액이 부족합니다."));
+                        return CompletableFuture.completedFuture(null);
                     }
-                    message(player, "섬 은행에 입금했습니다. 잔액: " + bankBalance(body));
+                    return coreApiClient.depositIslandBank(islandId, playerUuid, normalizedAmount).thenCompose(body -> {
+                        if (body.contains("\"accepted\":false")) {
+                            return refundPlayer(playerUuid, parsedAmount)
+                                .thenRun(() -> message(player, playerCodeMessage(text(body, "code"), "섬 은행에 입금하지 못했습니다.")));
+                        }
+                        message(player, "섬 은행에 입금했습니다. 잔액: " + bankBalance(body));
+                        return CompletableFuture.completedFuture(null);
+                    }).exceptionallyCompose(error -> refundPlayer(playerUuid, parsedAmount).thenRun(() -> message(player, "섬 은행에 입금하지 못했습니다.")));
                 })
                 .exceptionally(error -> {
                     message(player, "섬 은행에 입금하지 못했습니다.");
@@ -1343,19 +1369,58 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("섬 은행에서 출금할 권한이 없습니다.");
                 return;
             }
-            coreApiClient.withdrawIslandBank(islandId, player.getUniqueId(), amount)
-                .thenAccept(body -> {
+            BigDecimal parsedAmount = positiveAmount(amount);
+            if (parsedAmount == null) {
+                player.sendMessage(playerCodeMessage("INVALID_AMOUNT", "올바른 금액을 입력해주세요."));
+                return;
+            }
+            if (economyBridge == null) {
+                player.sendMessage("경제 플러그인을 찾을 수 없습니다.");
+                return;
+            }
+            String normalizedAmount = parsedAmount.toPlainString();
+            UUID playerUuid = player.getUniqueId();
+            coreApiClient.withdrawIslandBank(islandId, playerUuid, normalizedAmount)
+                .thenCompose(body -> {
                     if (body.contains("\"accepted\":false")) {
                         message(player, playerCodeMessage(text(body, "code"), "섬 은행에서 출금하지 못했습니다."));
-                        return;
+                        return CompletableFuture.completedFuture(null);
                     }
-                    message(player, "섬 은행에서 출금했습니다. 잔액: " + bankBalance(body));
+                    String balance = bankBalance(body);
+                    return economyBridge.deposit(playerUuid, parsedAmount, "CloudIslands island bank withdraw")
+                        .thenRun(() -> message(player, "섬 은행에서 출금했습니다. 잔액: " + balance))
+                        .exceptionallyCompose(error -> coreApiClient.depositIslandBank(islandId, playerUuid, normalizedAmount)
+                            .thenRun(() -> message(player, "경제 지급에 실패해 출금을 되돌렸습니다."))
+                            .exceptionally(rollbackError -> {
+                                message(player, "경제 지급에 실패했고 은행 되돌림도 실패했습니다. 관리자에게 문의해주세요.");
+                                return null;
+                            }));
                 })
                 .exceptionally(error -> {
                     message(player, "섬 은행에서 출금하지 못했습니다.");
                     return null;
                 });
         });
+    }
+
+    private CompletableFuture<Void> refundPlayer(UUID playerUuid, BigDecimal amount) {
+        if (economyBridge == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return economyBridge.deposit(playerUuid, amount, "CloudIslands island bank deposit rollback")
+            .exceptionally(error -> null);
+    }
+
+    private BigDecimal positiveAmount(String amount) {
+        if (amount == null || amount.isBlank()) {
+            return null;
+        }
+        try {
+            BigDecimal value = new BigDecimal(amount.trim());
+            return value.signum() > 0 ? value : null;
+        } catch (NumberFormatException exception) {
+            return null;
+        }
     }
 
     private void listIslandUpgrades(Player player) {

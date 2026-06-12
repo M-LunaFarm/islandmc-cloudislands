@@ -23,8 +23,10 @@ public final class VaultEconomyBridge implements EconomyBridge {
 
     @Override
     public CompletableFuture<Void> deposit(UUID playerUuid, BigDecimal amount, String reason) {
-        callBoolean(playerUuid, amount, "depositPlayer");
-        return CompletableFuture.completedFuture(null);
+        if (callBoolean(playerUuid, amount, "depositPlayer")) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return CompletableFuture.failedFuture(new IllegalStateException("economy deposit failed"));
     }
 
     @Override
