@@ -160,6 +160,7 @@ public final class PermissionEventPoller {
         publishLocalEvents(type, fields);
         handleMigrationLockState(type, fields);
         handleMigrationNotice(type, fields);
+        handleIslandMutationEvacuation(type, fields);
         if (handlesNodeOperation(type, fields)) {
             return;
         }
@@ -448,6 +449,48 @@ public final class PermissionEventPoller {
             }
         }
         return false;
+    }
+
+    private void handleIslandMutationEvacuation(String type, Map<String, String> fields) {
+        if (!type.equals(CloudIslandEventType.ISLAND_RESTORE_REQUESTED.name())
+            && !type.equals(CloudIslandEventType.ISLAND_RESET_REQUESTED.name())
+            && !type.equals(CloudIslandEventType.ISLAND_DELETE_REQUESTED.name())) {
+            return;
+        }
+        UUID islandId = islandId(fields);
+        if (islandId == null) {
+            return;
+        }
+        String targetNode = fields.getOrDefault("targetNode", "");
+        if (!targetNode.isBlank() && !targetNode.equals(nodeId)) {
+            return;
+        }
+        String reason = switch (type) {
+            case "ISLAND_RESTORE_REQUESTED" -> "섬 복원을 위해 로비로 이동합니다.";
+            case "ISLAND_RESET_REQUESTED" -> "섬 리셋을 위해 로비로 이동합니다.";
+            case "ISLAND_DELETE_REQUESTED" -> "섬 삭제를 위해 로비로 이동합니다.";
+            default -> "섬 작업을 위해 로비로 이동합니다.";
+        };
+        Bukkit.getScheduler().runTask(plugin, () -> moveIslandPlayersToFallback(islandId, reason));
+    }
+
+    private void moveIslandPlayersToFallback(UUID islandId, String reason) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            UUID currentIslandId = protection.islandAt(player.getLocation().getBlock()).orElse(null);
+            if (!islandId.equals(currentIslandId)) {
+                continue;
+            }
+            player.sendMessage(reason);
+            try {
+                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                DataOutputStream output = new DataOutputStream(bytes);
+                output.writeUTF("Connect");
+                output.writeUTF(fallbackServerName);
+                player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
+            } catch (IOException exception) {
+                plugin.getLogger().warning("Failed to move island player to fallback: " + exception.getMessage());
+            }
+        }
     }
 
     private boolean handlesVisitorRemoval(String type, Map<String, String> fields) {
