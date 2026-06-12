@@ -146,10 +146,19 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (args.length == 3 && args[0].equalsIgnoreCase("node")) {
             return matches(List.of(nodeId), args[2]);
         }
+        if (args.length == 4 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("islands")) {
+            return matches(List.of("25", "50", "100"), args[3]);
+        }
         if (args.length == 3 && args[0].equalsIgnoreCase("player")) {
             return matches(onlinePlayerNames(), args[2]);
         }
-        if (args.length == 3 && args[0].equalsIgnoreCase("route") && (args[1].equalsIgnoreCase("debug") || args[1].equalsIgnoreCase("clear"))) {
+        if (args.length == 3 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("debug")) {
+            List<String> targets = new ArrayList<>();
+            targets.add("all");
+            targets.addAll(onlinePlayerNames());
+            return matches(targets, args[2]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("clear")) {
             return matches(onlinePlayerNames(), args[2]);
         }
         return List.of();
