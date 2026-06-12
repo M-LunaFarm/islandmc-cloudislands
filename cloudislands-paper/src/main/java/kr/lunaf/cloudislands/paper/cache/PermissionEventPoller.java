@@ -221,17 +221,18 @@ public final class PermissionEventPoller {
         UUID islandId = UUID.fromString(islandIdValue);
         String channel = fields.getOrDefault("channel", "ISLAND");
         String actorName = fields.getOrDefault("actorName", actorUuidValue);
-        Bukkit.getScheduler().runTask(plugin, () -> broadcastIslandChat(islandId, actorName, channel, message));
+        String recipients = fields.getOrDefault("recipients", "");
+        Bukkit.getScheduler().runTask(plugin, () -> broadcastIslandChat(islandId, actorName, channel, message, recipients));
         return true;
     }
 
-    private void broadcastIslandChat(UUID islandId, String actorName, String channel, String chatMessage) {
+    private void broadcastIslandChat(UUID islandId, String actorName, String channel, String chatMessage, String recipients) {
         boolean teamChannel = channel.equalsIgnoreCase("TEAM");
         String normalizedChannel = teamChannel ? "팀" : "섬";
         String message = "[" + normalizedChannel + "] " + actorName + ": " + chatMessage;
         for (Player online : Bukkit.getOnlinePlayers()) {
             if (teamChannel) {
-                if (protection.memberOrTrusted(islandId, online.getUniqueId())) {
+                if (teamRecipient(recipients, online.getUniqueId()) || (recipients.isBlank() && protection.memberOrTrusted(islandId, online.getUniqueId()))) {
                     online.sendMessage(message);
                 }
                 continue;
@@ -241,6 +242,19 @@ public final class PermissionEventPoller {
                 online.sendMessage(message);
             }
         }
+    }
+
+    private boolean teamRecipient(String recipients, UUID playerUuid) {
+        if (recipients == null || recipients.isBlank()) {
+            return false;
+        }
+        String target = playerUuid.toString();
+        for (String recipient : recipients.split(",")) {
+            if (recipient.trim().equalsIgnoreCase(target)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean handlesVisitorKick(String type, Map<String, String> fields) {

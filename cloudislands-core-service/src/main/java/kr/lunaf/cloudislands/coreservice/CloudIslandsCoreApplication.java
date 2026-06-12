@@ -1022,7 +1022,16 @@ public final class CloudIslandsCoreApplication {
             String normalizedChannel = channel.equals("TEAM") ? "TEAM" : "ISLAND";
             String actorName = playerProfiles.find(actorUuid).lastName();
             islandLogs.append(islandId, actorUuid, "ISLAND_CHAT", Map.of("channel", normalizedChannel, "message", message));
-            events.publish(CloudIslandEventType.ISLAND_CHAT_SENT.name(), Map.of("islandId", islandId.toString(), "actorUuid", actorUuid.toString(), "actorName", actorName == null || actorName.isBlank() ? actorUuid.toString() : actorName, "channel", normalizedChannel, "message", message));
+            java.util.Map<String, String> payload = new java.util.LinkedHashMap<>();
+            payload.put("islandId", islandId.toString());
+            payload.put("actorUuid", actorUuid.toString());
+            payload.put("actorName", actorName == null || actorName.isBlank() ? actorUuid.toString() : actorName);
+            payload.put("channel", normalizedChannel);
+            payload.put("message", message);
+            if (normalizedChannel.equals("TEAM")) {
+                payload.put("recipients", String.join(",", metadataRepository.members(islandId).stream().map(member -> member.playerUuid().toString()).toList()));
+            }
+            events.publish(CloudIslandEventType.ISLAND_CHAT_SENT.name(), payload);
             write(exchange, 202, "{\"accepted\":true,\"channel\":\"" + normalizedChannel + "\",\"message\":\"" + escape(message) + "\"}");
         });
         route("/v1/islands/bank", exchange -> {
