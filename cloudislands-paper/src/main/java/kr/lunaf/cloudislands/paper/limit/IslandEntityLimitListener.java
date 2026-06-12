@@ -1,13 +1,18 @@
 package kr.lunaf.cloudislands.paper.limit;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import org.bukkit.World;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
 public final class IslandEntityLimitListener implements Listener {
@@ -15,6 +20,7 @@ public final class IslandEntityLimitListener implements Listener {
     private final ProtectionController protection;
     private final IslandLimitCache limits;
     private final Map<UUID, Long> observedEntities = new ConcurrentHashMap<>();
+    private final Set<UUID> seededEntities = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Long> lastLimitNotice = new ConcurrentHashMap<>();
 
     public IslandEntityLimitListener(ProtectionController protection, IslandLimitCache limits) {
@@ -24,7 +30,9 @@ public final class IslandEntityLimitListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onCreatureSpawn(CreatureSpawnEvent event) {
-        protection.islandAt(event.getLocation().getBlock()).ifPresent(islandId -> {
+        protection.regionAt(event.getLocation().getBlock()).ifPresent(region -> {
+            UUID islandId = region.islandId();
+            seedObserved(event.getEntity().getWorld(), region, event.getEntity());
             long limit = limits.limit(islandId, "ENTITY", Long.MAX_VALUE);
             long current = observedEntities.getOrDefault(islandId, 0L);
             if (current >= limit) {
@@ -38,7 +46,29 @@ public final class IslandEntityLimitListener implements Listener {
 
     @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
-        protection.islandAt(event.getEntity().getLocation().getBlock()).ifPresent(islandId -> observedEntities.merge(islandId, -1L, (left, right) -> Math.max(0L, left + right)));
+        protection.regionAt(event.getEntity().getLocation().getBlock()).ifPresent(region -> {
+            seedObserved(event.getEntity().getWorld(), region, null);
+            observedEntities.merge(region.islandId(), -1L, (left, right) -> Math.max(0L, left + right));
+        });
+    }
+
+    private void seedObserved(World world, IslandRegion region, Entity excludedEntity) {
+        if (!seededEntities.add(region.islandId())) {
+            return;
+        }
+        long count = 0L;
+        for (LivingEntity entity : world.getLivingEntities()) {
+            if (entity instanceof Player) {
+                continue;
+            }
+            if (excludedEntity != null && entity.getUniqueId().equals(excludedEntity.getUniqueId())) {
+                continue;
+            }
+            if (region.contains(entity.getWorld().getName(), entity.getLocation().getBlockX(), entity.getLocation().getBlockZ())) {
+                count++;
+            }
+        }
+        observedEntities.put(region.islandId(), count);
     }
 
     private void notifyNearby(CreatureSpawnEvent event, UUID islandId, long current, long limit) {
