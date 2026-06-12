@@ -339,7 +339,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> listBlockValues() {
-        return post("/v1/admin/block-values/list", "{}");
+        return postWithResultBody("/v1/admin/block-values/list", "{}");
     }
 
     @Override
@@ -590,12 +590,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> adminIslandInfo(UUID lookupUuid) {
-        return post("/v1/admin/islands/info", "{\"lookupUuid\":\"" + lookupUuid + "\"}");
+        return postWithResultBody("/v1/admin/islands/info", "{\"lookupUuid\":\"" + lookupUuid + "\"}");
     }
 
     @Override
     public CompletableFuture<String> adminIslandWhere(UUID islandId) {
-        return post("/v1/admin/islands/where", "{\"islandId\":\"" + islandId + "\"}");
+        return postWithResultBody("/v1/admin/islands/where", "{\"islandId\":\"" + islandId + "\"}");
     }
 
     @Override
@@ -625,17 +625,17 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> debugRoutes(UUID playerUuid) {
-        return post("/v1/admin/routes/debug", "{\"playerUuid\":\"" + playerUuid + "\"}");
+        return postWithResultBody("/v1/admin/routes/debug", "{\"playerUuid\":\"" + playerUuid + "\"}");
     }
 
     @Override
     public CompletableFuture<String> routeTicket(UUID ticketId) {
-        return post("/v1/admin/routes/ticket", "{\"ticketId\":\"" + ticketId + "\"}");
+        return postWithResultBody("/v1/admin/routes/ticket", "{\"ticketId\":\"" + ticketId + "\"}");
     }
 
     @Override
     public CompletableFuture<String> routeTicketForPlayer(UUID playerUuid) {
-        return post("/v1/admin/routes/ticket", "{\"playerUuid\":\"" + playerUuid + "\"}");
+        return postWithResultBody("/v1/admin/routes/ticket", "{\"playerUuid\":\"" + playerUuid + "\"}");
     }
 
     @Override
@@ -650,12 +650,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> listEvents() {
-        return post("/v1/events", "{}");
+        return postWithResultBody("/v1/events", "{}");
     }
 
     @Override
     public CompletableFuture<String> listAuditLogs() {
-        return post("/v1/audit", "{}");
+        return postWithResultBody("/v1/audit", "{}");
     }
 
     @Override
@@ -687,7 +687,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
             case "rollback" -> "rollback";
             default -> "scan";
         };
-        return post("/v1/admin/migrations/superiorskyblock2/" + endpoint, "{\"path\":\"" + escape(path == null ? "" : path) + "\"}");
+        return postWithResultBody("/v1/admin/migrations/superiorskyblock2/" + endpoint, "{\"path\":\"" + escape(path == null ? "" : path) + "\"}");
     }
 
     @Override
@@ -717,22 +717,22 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> listTemplates() {
-        return post("/v1/admin/templates/list", "{}");
+        return postWithResultBody("/v1/admin/templates/list", "{}");
     }
 
     @Override
     public CompletableFuture<String> upsertTemplate(String templateId, String displayName, boolean enabled, String minNodeVersion) {
-        return post("/v1/admin/templates/upsert", "{\"templateId\":\"" + escape(templateId) + "\",\"displayName\":\"" + escape(displayName) + "\",\"enabled\":" + enabled + ",\"minNodeVersion\":\"" + escape(minNodeVersion) + "\"}");
+        return postWithResultBody("/v1/admin/templates/upsert", "{\"templateId\":\"" + escape(templateId) + "\",\"displayName\":\"" + escape(displayName) + "\",\"enabled\":" + enabled + ",\"minNodeVersion\":\"" + escape(minNodeVersion) + "\"}");
     }
 
     @Override
     public CompletableFuture<String> enableTemplate(String templateId) {
-        return post("/v1/admin/templates/enable", "{\"templateId\":\"" + escape(templateId) + "\"}");
+        return postWithResultBody("/v1/admin/templates/enable", "{\"templateId\":\"" + escape(templateId) + "\"}");
     }
 
     @Override
     public CompletableFuture<String> disableTemplate(String templateId) {
-        return post("/v1/admin/templates/disable", "{\"templateId\":\"" + escape(templateId) + "\"}");
+        return postWithResultBody("/v1/admin/templates/disable", "{\"templateId\":\"" + escape(templateId) + "\"}");
     }
 
     @Override
