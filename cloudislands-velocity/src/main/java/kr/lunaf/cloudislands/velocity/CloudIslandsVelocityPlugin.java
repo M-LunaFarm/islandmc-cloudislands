@@ -689,7 +689,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.setBooleanFlag(player, islandId, kr.lunaf.cloudislands.api.model.IslandFlag.PVP, parseToggle(args, hasIslandIdArgument(args, 1) ? 2 : 1, true), "PVP");
             return;
         }
-        if (args[0].equalsIgnoreCase("publicwarps") || args[0].equals("공개워프")) {
+        if (args[0].equalsIgnoreCase("publicwarps") || args[0].equalsIgnoreCase("public-warps") || args[0].equals("공개워프")) {
             UUID islandId = islandIdArgument(args, 1);
             routingController.setBooleanFlag(player, islandId, kr.lunaf.cloudislands.api.model.IslandFlag.PUBLIC_WARPS, parseToggle(args, hasIslandIdArgument(args, 1) ? 2 : 1, true), "공개 워프");
             return;
@@ -712,7 +712,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.listPermissions(player, islandId);
             return;
         }
-        if (args[0].equalsIgnoreCase("setpermission") || args[0].equals("권한설정")) {
+        if (args[0].equalsIgnoreCase("setpermission") || args[0].equalsIgnoreCase("permission-set") || args[0].equals("권한설정")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             int roleIndex = hasOptionalIslandIdArgument(args, 1) ? 2 : 1;
             IslandRole role = args.length > roleIndex ? parseRole(args[roleIndex]) : IslandRole.MEMBER;
@@ -1025,7 +1025,7 @@ public final class CloudIslandsVelocityPlugin {
         List<String> matches = suggestions(IslandCommandCatalog.playerCommands(), "섬", args);
         if (args.length == 2) {
             String first = args[0].toLowerCase(Locale.ROOT);
-            if (first.equals("fly") || first.equals("비행") || first.equals("keepinventory") || first.equals("keepinv") || first.equals("인벤보존") || first.equals("pvp") || first.equals("피빕") || first.equals("publicwarps") || first.equals("공개워프")) {
+            if (first.equals("fly") || first.equals("비행") || first.equals("keepinventory") || first.equals("keepinv") || first.equals("인벤보존") || first.equals("pvp") || first.equals("피빕") || first.equals("publicwarps") || first.equals("public-warps") || first.equals("공개워프")) {
                 addLiteralSuggestions(matches, args[1], List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"));
             }
             if (first.equals("rank") || first.equals("ranking") || first.equals("랭킹")) {
