@@ -15,6 +15,7 @@ import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
 import kr.lunaf.cloudislands.coreservice.NodeRegistry;
+import kr.lunaf.cloudislands.coreservice.RedisPlayerCreationLock;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
@@ -38,6 +39,7 @@ public final class CreateIslandWorkflow {
     private final RouteTicketStore tickets;
     private final String islandPool;
     private final Duration routePreparingTicketTtl;
+    private final RedisPlayerCreationLock playerCreationLock;
 
     public CreateIslandWorkflow(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events, RouteTicketStore tickets) {
         this(islands, metadata, playerProfiles, templates, nodes, allocator, jobs, events, tickets, "island");
@@ -48,6 +50,10 @@ public final class CreateIslandWorkflow {
     }
 
     public CreateIslandWorkflow(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events, RouteTicketStore tickets, String islandPool, Duration routePreparingTicketTtl) {
+        this(islands, metadata, playerProfiles, templates, nodes, allocator, jobs, events, tickets, islandPool, routePreparingTicketTtl, null);
+    }
+
+    public CreateIslandWorkflow(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events, RouteTicketStore tickets, String islandPool, Duration routePreparingTicketTtl, RedisPlayerCreationLock playerCreationLock) {
         this.islands = islands;
         this.metadata = metadata;
         this.playerProfiles = playerProfiles;
@@ -59,6 +65,7 @@ public final class CreateIslandWorkflow {
         this.tickets = tickets;
         this.islandPool = islandPool == null || islandPool.isBlank() ? "island" : islandPool;
         this.routePreparingTicketTtl = routePreparingTicketTtl == null || routePreparingTicketTtl.isNegative() || routePreparingTicketTtl.isZero() ? Duration.ofSeconds(120) : routePreparingTicketTtl;
+        this.playerCreationLock = playerCreationLock;
     }
 
     public CreateIslandResult create(UUID ownerUuid, String templateId) {
@@ -68,12 +75,19 @@ public final class CreateIslandWorkflow {
             publishTicketFailure(ownerUuid, null, "TEMPLATE_UNAVAILABLE");
             return new CreateIslandResult(false, "TEMPLATE_UNAVAILABLE", null, null);
         }
+        RedisPlayerCreationLock.Lease lease = acquireCreationLock(ownerUuid);
+        if (playerCreationLock != null && lease == null) {
+            publishTicketFailure(ownerUuid, null, "CREATE_LOCKED");
+            return new CreateIslandResult(false, "CREATE_LOCKED", null, null);
+        }
         if (islands.findByOwner(ownerUuid).isPresent()) {
+            releaseCreationLock(lease);
             publishTicketFailure(ownerUuid, null, "ALREADY_HAS_ISLAND");
             return new CreateIslandResult(false, "ALREADY_HAS_ISLAND", null, null);
         }
         NodeLoad node = allocator.selectReadyNode(nodes.snapshot(), Instant.now(), normalizedTemplate, template.minNodeVersion(), islandPool).orElse(null);
         if (node == null) {
+            releaseCreationLock(lease);
             publishTicketFailure(ownerUuid, null, "NODE_UNAVAILABLE");
             return new CreateIslandResult(false, "NODE_UNAVAILABLE", null, null);
         }
@@ -84,6 +98,7 @@ public final class CreateIslandWorkflow {
         try {
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.CREATE_ISLAND, islandId, node.nodeId(), 0, Map.of("templateId", normalizedTemplate), Instant.now()));
         } catch (RuntimeException exception) {
+            releaseCreationLock(lease);
             islands.setState(islandId, IslandState.ERROR_CREATING);
             publishTicketFailure(ownerUuid, islandId, "JOB_QUEUE_UNAVAILABLE");
             events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", IslandState.ERROR_CREATING.name(), "reason", "JOB_QUEUE_UNAVAILABLE", "targetNode", node.nodeId()));
@@ -110,5 +125,15 @@ public final class CreateIslandWorkflow {
             "action", RouteAction.HOME.name(),
             "reason", reason
         ));
+    }
+
+    private RedisPlayerCreationLock.Lease acquireCreationLock(UUID playerUuid) {
+        return playerCreationLock == null ? null : playerCreationLock.acquire(playerUuid).orElse(null);
+    }
+
+    private void releaseCreationLock(RedisPlayerCreationLock.Lease lease) {
+        if (playerCreationLock != null) {
+            playerCreationLock.release(lease);
+        }
     }
 }

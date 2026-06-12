@@ -32,6 +32,7 @@ public final class RedisKeys {
     public static String rankingVersion() { return "ci:rankings:version"; }
     public static String rankingTop(String metric, int limit, long version) { return "ci:rankings:" + metric + ":" + limit + ":v" + version; }
     public static String activationLock(UUID islandId) { return "ci:lock:activation:" + islandId; }
+    public static String playerCreateLock(UUID playerUuid) { return "ci:lock:player-create:" + playerUuid; }
     public static String jobsStream() { return "ci:stream:jobs"; }
     public static String eventsStream() { return "ci:stream:events"; }
     public static String auditStream() { return "ci:stream:audit"; }
