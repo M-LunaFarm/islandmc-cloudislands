@@ -86,6 +86,14 @@ public final class PaperHeartbeatService {
     }
 
     private void publish(NodeState overrideState) {
+        try {
+            publishHeartbeat(overrideState);
+        } catch (RuntimeException exception) {
+            logHeartbeatFailure(exception);
+        }
+    }
+
+    private void publishHeartbeat(NodeState overrideState) {
         Runtime runtime = Runtime.getRuntime();
         long heapMax = runtime.maxMemory() / 1024L / 1024L;
         long heapUsed = (runtime.totalMemory() - runtime.freeMemory()) / 1024L / 1024L;
@@ -116,11 +124,7 @@ public final class PaperHeartbeatService {
             storageOk,
             supportedTemplatesSupplier.get()
         );
-        try {
-            coreApiClient.publishHeartbeat(heartbeat);
-        } catch (RuntimeException exception) {
-            logHeartbeatFailure(exception);
-        }
+        coreApiClient.publishHeartbeat(heartbeat);
     }
 
     private void logHeartbeatFailure(RuntimeException exception) {
