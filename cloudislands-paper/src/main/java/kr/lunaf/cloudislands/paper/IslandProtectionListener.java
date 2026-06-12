@@ -309,7 +309,11 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onSpread(BlockSpreadEvent event) {
-        event.setCancelled(!protection.checkSystemFlag(event.getBlock(), IslandFlag.FIRE_SPREAD).allowed());
+        boolean allowed = protection.checkSystemFlag(event.getBlock(), IslandFlag.FIRE_SPREAD).allowed();
+        event.setCancelled(!allowed);
+        if (allowed) {
+            reportBlockReplacement(event.getBlock(), event.getNewState().getType());
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -340,6 +344,17 @@ public final class IslandProtectionListener implements Listener {
             sendDenyMessage(player, permission);
         }
         return denied;
+    }
+
+    private void reportBlockReplacement(Block block, Material newType) {
+        protection.islandAt(block).ifPresent(islandId -> {
+            if (block.getType() != Material.AIR) {
+                blockDeltas.broken(islandId, block);
+            }
+            if (newType != Material.AIR) {
+                blockDeltas.placed(islandId, newType);
+            }
+        });
     }
 
     private void sendDenyMessage(Player player, IslandPermission permission) {
