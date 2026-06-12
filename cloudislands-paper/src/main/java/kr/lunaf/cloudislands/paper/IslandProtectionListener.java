@@ -289,7 +289,11 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onBurn(BlockBurnEvent event) {
-        event.setCancelled(!protection.checkSystemFlag(event.getBlock(), IslandFlag.FIRE_SPREAD).allowed());
+        boolean allowed = protection.checkSystemFlag(event.getBlock(), IslandFlag.FIRE_SPREAD).allowed();
+        event.setCancelled(!allowed);
+        if (allowed) {
+            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.broken(islandId, event.getBlock()));
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -299,13 +303,21 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onLeavesDecay(LeavesDecayEvent event) {
-        event.setCancelled(!protection.checkSystemFlag(event.getBlock(), IslandFlag.LEAF_DECAY).allowed());
+        boolean allowed = protection.checkSystemFlag(event.getBlock(), IslandFlag.LEAF_DECAY).allowed();
+        event.setCancelled(!allowed);
+        if (allowed) {
+            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.broken(islandId, event.getBlock()));
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onFade(BlockFadeEvent event) {
         if (event.getBlock().getType().name().contains("ICE")) {
-            event.setCancelled(!protection.checkSystemFlag(event.getBlock(), IslandFlag.ICE_MELT).allowed());
+            boolean allowed = protection.checkSystemFlag(event.getBlock(), IslandFlag.ICE_MELT).allowed();
+            event.setCancelled(!allowed);
+            if (allowed) {
+                protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.broken(islandId, event.getBlock()));
+            }
         }
     }
 
