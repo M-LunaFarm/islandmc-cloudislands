@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.common.event.CacheInvalidationPlan;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.event.IslandAccessChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandBiomeChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandFlagChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandLevelRecalculateEvent;
@@ -331,6 +332,8 @@ public final class PermissionEventPoller {
         }
         if (type.equals(CloudIslandEventType.ISLAND_UPGRADE.name())) {
             Bukkit.getPluginManager().callEvent(new IslandUpgradeEvent(islandId, fields.getOrDefault("upgradeKey", ""), intField(fields, "level"), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_ACCESS_CHANGED.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandAccessChangeEvent(islandId, booleanField(fields, "publicAccess"), booleanField(fields, "locked"), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_FLAG_CHANGED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandFlagChangeEvent(islandId, firstPresent(fields, "flag", "flagKey"), fields.getOrDefault("value", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_PERMISSION_CHANGED.name())) {
