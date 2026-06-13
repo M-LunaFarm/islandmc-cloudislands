@@ -7,6 +7,11 @@ dependencies {
     implementation(project(":cloudislands-common"))
     implementation(project(":cloudislands-core-client"))
     implementation(project(":cloudislands-storage"))
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 tasks.jar {
