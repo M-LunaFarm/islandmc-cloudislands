@@ -73,20 +73,32 @@ public record CloudIslandsAddonSnapshot(
     }
 
     public boolean featureEnabled(String key, boolean fallback) {
+        return featureEnabledIn(features, key, fallback);
+    }
+
+    public boolean configuredFeatureEnabled(String key) {
+        return configuredFeatureEnabled(key, true);
+    }
+
+    public boolean configuredFeatureEnabled(String key, boolean fallback) {
+        return featureEnabledIn(configuredFeatures, key, fallback);
+    }
+
+    private boolean featureEnabledIn(Map<String, Boolean> source, String key, boolean fallback) {
         String canonical = canonicalFeature(key);
         String requested = key == null ? "" : key.trim();
-        boolean enabled = features.getOrDefault(canonical, features.getOrDefault(requested, fallback));
-        if (!canonical.equals(requested) && features.containsKey(requested)) {
-            enabled = enabled && features.get(requested);
+        boolean enabled = source.getOrDefault(canonical, source.getOrDefault(requested, fallback));
+        if (!canonical.equals(requested) && source.containsKey(requested)) {
+            enabled = enabled && source.get(requested);
         }
         for (Map.Entry<String, String> alias : featureAliases().entrySet()) {
-            if (alias.getValue().equals(canonical) && features.containsKey(alias.getKey())) {
-                enabled = enabled && features.get(alias.getKey());
+            if (alias.getValue().equals(canonical) && source.containsKey(alias.getKey())) {
+                enabled = enabled && source.get(alias.getKey());
             }
         }
         for (Map.Entry<String, String> dependency : featureDependencies().entrySet()) {
             if (dependency.getKey().equals(canonical)) {
-                enabled = enabled && features.getOrDefault(dependency.getValue(), fallback);
+                enabled = enabled && source.getOrDefault(dependency.getValue(), fallback);
             }
         }
         return enabled;
