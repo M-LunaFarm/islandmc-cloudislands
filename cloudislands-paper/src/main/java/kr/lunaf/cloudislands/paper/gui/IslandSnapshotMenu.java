@@ -17,6 +17,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandSnapshotMenu implements Listener {
+    private static final String TITLE_KEY = "snapshot-menu-title";
     private static final String TITLE = "섬 스냅샷";
     private final MessageRenderer messages;
 
@@ -43,7 +44,7 @@ public final class IslandSnapshotMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!TITLE.equals(event.getView().getTitle())) {
+        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
             return;
         }
         event.setCancelled(true);
@@ -100,7 +101,7 @@ public final class IslandSnapshotMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, List<Snapshot> snapshots, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
+            Inventory inventory = Bukkit.createInventory(null, 54, message(messages, TITLE_KEY, TITLE));
             inventory.setItem(45, item(Material.CHEST, message(messages, "snapshot-menu-create-name", "새 스냅샷 생성"), message(messages, "snapshot-menu-create-command", "/섬 스냅샷생성 manual")));
             inventory.setItem(49, item(Material.CLOCK, message(messages, "snapshot-menu-refresh-name", "새로고침"), message(messages, "snapshot-menu-refresh-command", "/섬 스냅샷")));
             int slot = 0;

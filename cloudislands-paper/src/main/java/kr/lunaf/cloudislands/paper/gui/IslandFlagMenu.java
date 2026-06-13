@@ -18,6 +18,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandFlagMenu implements Listener {
+    private static final String TITLE_KEY = "flag-menu-title";
     private static final String TITLE = "섬 플래그 설정";
     private final MessageRenderer messages;
 
@@ -44,7 +45,7 @@ public final class IslandFlagMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!TITLE.equals(event.getView().getTitle())) {
+        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
             return;
         }
         event.setCancelled(true);
@@ -83,7 +84,7 @@ public final class IslandFlagMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, Map<IslandFlag, String> values, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
+            Inventory inventory = Bukkit.createInventory(null, 54, message(messages, TITLE_KEY, TITLE));
             int slot = 0;
             for (IslandFlag flag : IslandFlag.values()) {
                 inventory.setItem(slot++, flagItem(flag, values.get(flag), messages));

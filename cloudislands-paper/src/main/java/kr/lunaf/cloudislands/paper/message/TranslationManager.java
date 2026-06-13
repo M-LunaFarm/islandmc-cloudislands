@@ -691,6 +691,7 @@ public final class TranslationManager {
         values.put("visit-menu-public-warps-command", "/섬 공개워프목록");
         values.put("visit-menu-refresh-name", "새로고침");
         values.put("visit-menu-refresh-command", "/섬 방문");
+        values.put("limit-menu-title", "섬 제한");
         values.put("limit-menu-load-failed", "섬 제한을 불러오지 못했습니다.");
         values.put("limit-menu-empty-title", "제한 없음");
         values.put("limit-menu-empty", "현재 설정된 섬 제한이 없습니다.");
@@ -770,6 +771,7 @@ public final class TranslationManager {
         values.put("settings-menu-info-command", "/섬 정보");
         values.put("settings-menu-danger-name", "위험 작업");
         values.put("settings-menu-danger-command", "/섬 위험작업");
+        values.put("flag-menu-title", "섬 플래그 설정");
         values.put("flag-menu-load-failed", "섬 플래그를 불러오지 못했습니다.");
         values.put("flag-menu-default", "기본값");
         values.put("flag-menu-allow", "허용");
@@ -780,6 +782,7 @@ public final class TranslationManager {
         values.put("flag-menu-settings-command", "/섬 설정");
         values.put("flag-menu-current-value", "현재 값: ");
         values.put("flag-menu-click-actions", "좌클릭: 허용, 우클릭: 거부");
+        values.put("permission-menu-title", "섬 권한 설정");
         values.put("permission-menu-load-failed", "섬 권한을 불러오지 못했습니다.");
         values.put("permission-menu-default", "기본값");
         values.put("permission-menu-allow", "허용");
@@ -899,6 +902,7 @@ public final class TranslationManager {
         values.put("danger-menu-back-command", "/섬 설정");
         values.put("danger-confirm-required", "Shift+우클릭해야 실행됩니다.");
         values.put("danger-confirm-click-required", "위험 작업은 Shift+우클릭해야 실행됩니다.");
+        values.put("snapshot-menu-title", "섬 스냅샷");
         values.put("snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다.");
         values.put("snapshot-restore-confirm-required", "스냅샷 복원은 Shift+우클릭해야 실행됩니다.");
         values.put("snapshot-menu-detail-title", "스냅샷 상세");

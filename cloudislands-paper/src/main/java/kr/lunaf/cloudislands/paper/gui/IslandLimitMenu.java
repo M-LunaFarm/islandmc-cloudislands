@@ -17,6 +17,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandLimitMenu implements Listener {
+    private static final String TITLE_KEY = "limit-menu-title";
     private static final String TITLE = "섬 제한";
     private final MessageRenderer messages;
 
@@ -43,7 +44,7 @@ public final class IslandLimitMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!TITLE.equals(event.getView().getTitle())) {
+        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
             return;
         }
         event.setCancelled(true);
@@ -83,7 +84,7 @@ public final class IslandLimitMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, List<Limit> limits, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
+            Inventory inventory = Bukkit.createInventory(null, 54, message(messages, TITLE_KEY, TITLE));
             int slot = 0;
             for (Limit limit : limits.stream().limit(45).toList()) {
                 inventory.setItem(slot++, limitItem(limit, messages));

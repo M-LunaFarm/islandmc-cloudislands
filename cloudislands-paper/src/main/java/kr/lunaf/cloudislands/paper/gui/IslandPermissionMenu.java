@@ -18,6 +18,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandPermissionMenu implements Listener {
+    private static final String TITLE_KEY = "permission-menu-title";
     private static final String TITLE = "섬 권한 설정";
     private static final List<String> ROLES = List.of("MEMBER", "TRUSTED", "VISITOR", "CUSTOM_1", "CUSTOM_2", "CUSTOM_3", "CUSTOM_4", "CUSTOM_5");
     private static final List<String> PERMISSIONS = List.of("BUILD", "BREAK", "INTERACT", "OPEN_CONTAINER", "MANAGE_WARPS");
@@ -46,7 +47,7 @@ public final class IslandPermissionMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!TITLE.equals(event.getView().getTitle())) {
+        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
             return;
         }
         event.setCancelled(true);
@@ -85,7 +86,7 @@ public final class IslandPermissionMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, List<Rule> rules, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
+            Inventory inventory = Bukkit.createInventory(null, 54, message(messages, TITLE_KEY, TITLE));
             int slot = 0;
             for (String role : ROLES) {
                 for (String permission : PERMISSIONS) {
