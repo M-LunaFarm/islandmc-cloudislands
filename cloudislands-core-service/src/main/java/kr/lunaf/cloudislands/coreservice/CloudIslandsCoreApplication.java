@@ -147,6 +147,9 @@ import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import kr.lunaf.cloudislands.storage.LocalIslandStorage;
 import kr.lunaf.cloudislands.storage.s3.S3IslandStorage;
+import kr.lunaf.cloudislands.coreservice.addon.AddonStateRepository;
+import kr.lunaf.cloudislands.coreservice.addon.InMemoryAddonStateRepository;
+import kr.lunaf.cloudislands.coreservice.addon.JdbcAddonStateRepository;
 
 public final class CloudIslandsCoreApplication {
     private static final Logger LOGGER = Logger.getLogger(CloudIslandsCoreApplication.class.getName());
@@ -274,6 +277,7 @@ public final class CloudIslandsCoreApplication {
         IslandTemplateRepository templateRepository = config.redisEvents() || config.redisJobs()
             ? new CachingIslandTemplateRepository(baseTemplateRepository, config.redisUri())
             : baseTemplateRepository;
+        AddonStateRepository addonStates = config.jdbcRepositories() ? new JdbcAddonStateRepository(dataSource) : new InMemoryAddonStateRepository();
         AuditLogger baseAudit = config.jdbcRepositories() ? new JdbcAuditLogger(dataSource) : new InMemoryAuditLogger();
         AuditLogger audit = redisEventWriter == null ? baseAudit : new RedisAuditLogger(baseAudit, redisEventWriter, RedisKeys.auditStream());
         this.audit = audit;
@@ -352,6 +356,42 @@ public final class CloudIslandsCoreApplication {
             write(exchange, 200, inMemoryEvents.toJson(limit, sinceSeq));
         });
         route("/v1/audit", exchange -> write(exchange, 200, auditJson.get()));
+        route("/v1/addons/state", exchange -> {
+            String body = readBody(exchange);
+            String addonId = JsonFields.text(body, "addonId", "");
+            write(exchange, 200, addonStateJson(addonStates.list(addonId)));
+        });
+        route("/v1/addons/state/set", exchange -> {
+            String body = readBody(exchange);
+            String addonId = JsonFields.text(body, "addonId", "");
+            String key = JsonFields.text(body, "key", "");
+            String value = JsonFields.text(body, "value", "");
+            if (addonId.isBlank() || key.isBlank()) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id and key are required"));
+                return;
+            }
+            write(exchange, 202, addonStateJson(addonStates.put(addonId, key, value)));
+        });
+        route("/v1/addons/state/remove", exchange -> {
+            String body = readBody(exchange);
+            String addonId = JsonFields.text(body, "addonId", "");
+            String key = JsonFields.text(body, "key", "");
+            if (addonId.isBlank() || key.isBlank()) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id and key are required"));
+                return;
+            }
+            write(exchange, 202, addonStateJson(addonStates.remove(addonId, key)));
+        });
+        route("/v1/addons/state/clear", exchange -> {
+            String body = readBody(exchange);
+            String addonId = JsonFields.text(body, "addonId", "");
+            if (addonId.isBlank()) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id is required"));
+                return;
+            }
+            addonStates.clear(addonId);
+            write(exchange, 202, addonStateJson(Map.of()));
+        });
         route("/v1/rankings/level", exchange -> {
             String body = readBody(exchange);
             write(exchange, 200, rankingsJson(rankingRepository.topByLevel(queryInteger(exchange, "limit", JsonFields.integer(body, "limit", 10), 1, 100))));
@@ -2896,6 +2936,22 @@ public final class CloudIslandsCoreApplication {
 
     private static String escape(String value) {
         return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private static String addonStateJson(Map<String, String> values) {
+        StringBuilder builder = new StringBuilder("{\"values\":{");
+        boolean first = true;
+        for (Map.Entry<String, String> entry : (values == null ? Map.<String, String>of() : values).entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null) {
+                continue;
+            }
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('"').append(escape(entry.getKey())).append("\":\"").append(escape(entry.getValue())).append('"');
+        }
+        return builder.append("}}").toString();
     }
 
     private static NodeHeartbeatRequest heartbeat(String body) {

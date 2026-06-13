@@ -795,6 +795,26 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> addonState(String addonId) {
+        return post("/v1/addons/state", "{\"addonId\":\"" + escape(addonId) + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> putAddonState(String addonId, String key, String value) {
+        return postWithResultBody("/v1/addons/state/set", "{\"addonId\":\"" + escape(addonId) + "\",\"key\":\"" + escape(key) + "\",\"value\":\"" + escape(value) + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> removeAddonState(String addonId, String key) {
+        return postWithResultBody("/v1/addons/state/remove", "{\"addonId\":\"" + escape(addonId) + "\",\"key\":\"" + escape(key) + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> clearAddonState(String addonId) {
+        return postWithResultBody("/v1/addons/state/clear", "{\"addonId\":\"" + escape(addonId) + "\"}");
+    }
+
+    @Override
     public CompletableFuture<String> migrateSuperiorSkyblock2(String action, String path) {
         String endpoint = switch (action.toLowerCase()) {
             case "dryrun", "dry-run" -> "dryrun";

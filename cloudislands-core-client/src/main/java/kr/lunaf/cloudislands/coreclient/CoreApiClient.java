@@ -169,6 +169,10 @@ public interface CoreApiClient {
     CompletableFuture<String> clearCacheResult();
     CompletableFuture<String> reload();
     CompletableFuture<String> reloadResult();
+    CompletableFuture<String> addonState(String addonId);
+    CompletableFuture<String> putAddonState(String addonId, String key, String value);
+    CompletableFuture<String> removeAddonState(String addonId, String key);
+    CompletableFuture<String> clearAddonState(String addonId);
     CompletableFuture<String> migrateSuperiorSkyblock2(String action, String path);
     CompletableFuture<String> playerInfo(UUID playerUuid);
     CompletableFuture<String> playerInfoByName(String lastName);

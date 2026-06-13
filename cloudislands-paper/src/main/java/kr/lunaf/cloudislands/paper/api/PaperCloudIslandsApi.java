@@ -132,7 +132,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         this.events = new EventService(client, agent.plugin());
         this.admin = new AdminService(client);
         this.commands = new CommandService(client);
-        this.addons = new AddonService(agent.plugin(), events);
+        this.addons = new AddonService(client, agent.plugin(), events);
     }
 
     @Override
@@ -186,6 +186,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     }
 
     private static final class AddonService implements IslandAddonService {
+        private final CoreApiClient coreClient;
         private final Plugin plugin;
         private final IslandEventService events;
         private final Map<String, AddonRegistration> registrations = new ConcurrentHashMap<>();
@@ -195,7 +196,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         private GlobalEventSubscription eventSubscription;
         private boolean eventSubscriptionStarting;
 
-        private AddonService(Plugin plugin, IslandEventService events) {
+        private AddonService(CoreApiClient coreClient, Plugin plugin, IslandEventService events) {
+            this.coreClient = coreClient;
             this.plugin = plugin;
             this.events = events;
         }
@@ -425,7 +427,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         private Map<String, String> effectiveMetadata(String id, Map<String, String> metadata, boolean addonDefaultEnabled, boolean parentEnabled) {
             Map<String, String> effective = new HashMap<>(metadata == null ? Map.of() : metadata);
             effective.putIfAbsent("source-node", plugin.getConfig().getString("node.id", "unknown"));
-            effective.putIfAbsent("addon-state-storage", "paper-local-properties");
+            effective.putIfAbsent("addon-state-storage", "core-api-with-paper-local-fallback");
             effective.put("addon-default-enabled", Boolean.toString(addonDefaultEnabled));
             effective.put("parent-enabled", Boolean.toString(parentEnabled));
             if (!addonDefaultEnabled) {
@@ -574,7 +576,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<Map<String, String>> state(String id) {
-            return CompletableFuture.completedFuture(readAddonState(safeRegistrationId(id)));
+            String safeId = safeRegistrationId(id);
+            return coreClient.addonState(safeId)
+                .thenApply(this::stateFromJson)
+                .thenApply(state -> {
+                    addonStates.put(safeId, state);
+                    return state;
+                })
+                .exceptionally(_error -> readAddonState(safeId));
         }
 
         @Override
@@ -583,14 +592,23 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (values == null || values.isEmpty()) {
                 return state(safeId);
             }
-            Map<String, String> state = new HashMap<>(readAddonState(safeId));
+            Map<String, String> localState = new HashMap<>(readAddonState(safeId));
             values.forEach((key, value) -> {
                 if (key != null && !key.isBlank() && value != null) {
-                    state.put(key, value);
+                    localState.put(key, value);
                 }
             });
-            writeAddonState(safeId, state);
-            return CompletableFuture.completedFuture(Map.copyOf(state));
+            writeAddonState(safeId, localState);
+            CompletableFuture<Map<String, String>> result = CompletableFuture.completedFuture(Map.copyOf(localState));
+            for (Map.Entry<String, String> entry : localState.entrySet()) {
+                result = result.thenCompose(_ignored -> coreClient.putAddonState(safeId, entry.getKey(), entry.getValue()).thenApply(this::stateFromJson));
+            }
+            return result
+                .thenApply(state -> {
+                    addonStates.put(safeId, state);
+                    return state;
+                })
+                .exceptionally(_error -> Map.copyOf(localState));
         }
 
         @Override
@@ -601,7 +619,13 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 state.remove(key);
             }
             writeAddonState(safeId, state);
-            return CompletableFuture.completedFuture(Map.copyOf(state));
+            return coreClient.removeAddonState(safeId, key)
+                .thenApply(this::stateFromJson)
+                .thenApply(coreState -> {
+                    addonStates.put(safeId, coreState);
+                    return coreState;
+                })
+                .exceptionally(_error -> Map.copyOf(state));
         }
 
         @Override
@@ -613,7 +637,87 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             } catch (IOException exception) {
                 plugin.getLogger().warning("CloudIslands addon state clear failed for " + safeId + ": " + exception.getMessage());
             }
-            return CompletableFuture.completedFuture(null);
+            return coreClient.clearAddonState(safeId).thenApply(_body -> null).exceptionally(_error -> null);
+        }
+
+        private Map<String, String> stateFromJson(String json) {
+            if (json == null || json.isBlank()) {
+                return Map.of();
+            }
+            int valuesStart = json.indexOf("\"values\":{");
+            if (valuesStart < 0) {
+                return Map.of();
+            }
+            int index = valuesStart + "\"values\":{".length();
+            Map<String, String> values = new HashMap<>();
+            while (index < json.length()) {
+                index = skipWhitespaceAndComma(json, index);
+                if (index >= json.length() || json.charAt(index) == '}') {
+                    break;
+                }
+                if (json.charAt(index) != '"') {
+                    break;
+                }
+                int keyEnd = jsonStringEnd(json, index + 1);
+                if (keyEnd < 0) {
+                    break;
+                }
+                String key = unescapeJson(json.substring(index + 1, keyEnd));
+                index = skipWhitespace(json, keyEnd + 1);
+                if (index >= json.length() || json.charAt(index) != ':') {
+                    break;
+                }
+                index = skipWhitespace(json, index + 1);
+                if (index >= json.length() || json.charAt(index) != '"') {
+                    break;
+                }
+                int valueEnd = jsonStringEnd(json, index + 1);
+                if (valueEnd < 0) {
+                    break;
+                }
+                values.put(key, unescapeJson(json.substring(index + 1, valueEnd)));
+                index = valueEnd + 1;
+            }
+            return Map.copyOf(values);
+        }
+
+        private int skipWhitespaceAndComma(String value, int index) {
+            int next = index;
+            while (next < value.length() && (Character.isWhitespace(value.charAt(next)) || value.charAt(next) == ',')) {
+                next++;
+            }
+            return next;
+        }
+
+        private int skipWhitespace(String value, int index) {
+            int next = index;
+            while (next < value.length() && Character.isWhitespace(value.charAt(next))) {
+                next++;
+            }
+            return next;
+        }
+
+        private int jsonStringEnd(String value, int start) {
+            boolean escaped = false;
+            for (int index = start; index < value.length(); index++) {
+                char character = value.charAt(index);
+                if (escaped) {
+                    escaped = false;
+                    continue;
+                }
+                if (character == '\\') {
+                    escaped = true;
+                    continue;
+                }
+                if (character == '"') {
+                    return index;
+                }
+            }
+            return -1;
+        }
+
+        private String unescapeJson(String value) {
+            return value.replace("\\\"", "\"").replace("\\\\", "\\");
         }
 
         private Map<String, String> readAddonState(String id) {
