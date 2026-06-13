@@ -77,6 +77,10 @@ public final class DatabaseService {
         }
     }
 
+    public File databasePath() {
+        return databaseFile();
+    }
+
     private File databaseFile() {
         File configured = new File(sqliteFileName);
         return configured.isAbsolute() ? configured : new File(dataFolder, sqliteFileName);

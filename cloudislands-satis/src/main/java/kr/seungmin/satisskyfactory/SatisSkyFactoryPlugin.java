@@ -50,6 +50,7 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -112,8 +113,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         configureSkyblockHook();
 
-        database = new DatabaseService(this, configs.main().getString("database.sqlite-file", "data.db"));
+        database = new DatabaseService(this, resolveDatabaseFileName());
         database.open();
+        warnIfLocalDatabaseInCloudIslandsMode();
+        getLogger().info("Satis database path: " + database.databasePath().getAbsolutePath());
 
         economy = EconomyModeFactory.create(this, configs.main());
         itemRegistry = new ItemRegistry();
@@ -508,6 +511,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("mode", configs.main().getString("integration.mode", "ADDON"));
         metadata.put("skyblock-provider", configs.main().getString("integration.skyblock-provider", "CLOUDISLANDS"));
         metadata.put("cloudislands-adapter", Boolean.toString(configs.main().getBoolean("integration.cloudislands-adapter", true)));
+        metadata.put("database-scope", databaseScope());
+        metadata.put("database-file", configuredDatabaseFileName());
         return metadata;
     }
 
@@ -691,5 +696,50 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return effective;
         }
         return configuredFeatureEnabled(key);
+    }
+
+    private String resolveDatabaseFileName() {
+        String envPath = System.getenv("CLOUDISLANDS_SATIS_DB");
+        if (envPath != null && !envPath.isBlank()) {
+            return envPath.trim();
+        }
+        String configuredPath = configs.main().getString("database.path", "");
+        if (configuredPath != null && !configuredPath.isBlank()) {
+            return configuredPath.trim();
+        }
+        String sqliteFile = configuredDatabaseFileName();
+        String sharedDirectory = configs.main().getString("database.shared-directory", "");
+        if (sharedDirectory != null && !sharedDirectory.isBlank()) {
+            return new File(sharedDirectory.trim(), sqliteFile).getPath();
+        }
+        return sqliteFile;
+    }
+
+    private String configuredDatabaseFileName() {
+        String sqliteFile = configs.main().getString("database.sqlite-file", "data.db");
+        return sqliteFile == null || sqliteFile.isBlank() ? "data.db" : sqliteFile.trim();
+    }
+
+    private String databaseScope() {
+        String envPath = System.getenv("CLOUDISLANDS_SATIS_DB");
+        if (envPath != null && !envPath.isBlank()) {
+            return "ENV_SHARED";
+        }
+        String configuredPath = configs.main().getString("database.path", "");
+        if (configuredPath != null && !configuredPath.isBlank()) {
+            return new File(configuredPath).isAbsolute() ? "ABSOLUTE_PATH" : "PLUGIN_RELATIVE_PATH";
+        }
+        String sharedDirectory = configs.main().getString("database.shared-directory", "");
+        if (sharedDirectory != null && !sharedDirectory.isBlank()) {
+            return "SHARED_DIRECTORY";
+        }
+        return "PLUGIN_LOCAL";
+    }
+
+    private void warnIfLocalDatabaseInCloudIslandsMode() {
+        if (!requiresCloudIslandsApi() || !databaseScope().equals("PLUGIN_LOCAL")) {
+            return;
+        }
+        getLogger().warning("CloudIslands Satis is using a plugin-local SQLite database. Set database.shared-directory, database.path, or CLOUDISLANDS_SATIS_DB so A/B island nodes share factory state.");
     }
 }

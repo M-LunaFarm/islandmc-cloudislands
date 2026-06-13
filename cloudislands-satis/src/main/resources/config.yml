@@ -54,6 +54,10 @@ economy:
   currency-symbol: "원"
 database:
   type: SQLITE
+  # Use one of these in multi-node CloudIslands setups so A/B island nodes share Satis state.
+  # Environment variable CLOUDISLANDS_SATIS_DB has the highest priority.
+  path: ""
+  shared-directory: ""
   sqlite-file: "data.db"
   save-interval-seconds: 60
 visuals:
