@@ -12,8 +12,10 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.logging.Logger;
 import javax.sql.DataSource;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
@@ -147,6 +149,7 @@ import kr.lunaf.cloudislands.storage.LocalIslandStorage;
 import kr.lunaf.cloudislands.storage.s3.S3IslandStorage;
 
 public final class CloudIslandsCoreApplication {
+    private static final Logger LOGGER = Logger.getLogger(CloudIslandsCoreApplication.class.getName());
     private static final int MIN_NODE_PROTOCOL_VERSION = 1;
     private static final int MAX_NODE_PROTOCOL_VERSION = NodeHeartbeatRequest.CURRENT_PROTOCOL_VERSION;
     private final HttpServer server;
@@ -179,6 +182,7 @@ public final class CloudIslandsCoreApplication {
         this.adminGuard = new AdminEndpointGuard(config.adminToken(), config.adminApiEnabled());
         this.ipAllowlist = new IpAllowlist(config.ipAllowlist());
         this.mtlsGuard = new MtlsHeaderGuard(config.requireMtls(), config.mtlsVerifiedHeader(), config.mtlsVerifiedValue());
+        logSecurityPosture(config);
         this.deleteStorage = migrationRollbackStorage(config);
         MeteredDataSource meteredDataSource = new MeteredDataSource(new BoundedDataSource(new DriverManagerDataSource(config.jdbcUrl(), config.databaseUsername(), config.databasePassword()), config.databasePoolSize()));
         DataSource dataSource = meteredDataSource;
@@ -1930,6 +1934,87 @@ public final class CloudIslandsCoreApplication {
             + "\"requireMtls\":" + config.requireMtls() + ","
             + "\"ipAllowlistEnabled\":" + (config.ipAllowlist() != null && !config.ipAllowlist().isBlank())
             + "}";
+    }
+
+    private static void logSecurityPosture(CoreServiceConfig config) {
+        if (config.coreToken() == null || config.coreToken().isBlank()) {
+            LOGGER.warning("CloudIslands security: Core API token is empty; non-health requests will be rejected");
+        }
+        if (config.adminApiEnabled() && (config.adminToken() == null || config.adminToken().isBlank())) {
+            LOGGER.warning("CloudIslands security: Admin API is enabled but admin token is empty; admin requests will be rejected");
+        }
+        if (!config.requireMtls()) {
+            LOGGER.warning("CloudIslands security: Core API mTLS verification is disabled");
+        }
+        if ((config.ipAllowlist() == null || config.ipAllowlist().isBlank()) && publicBind(config.bind())) {
+            LOGGER.warning("CloudIslands security: Core API is bound to " + config.bind() + " without an IP allowlist");
+        }
+        warnIfPublicHost("Redis", config.redisUri() == null ? "" : config.redisUri().getHost());
+        warnIfPublicHost("PostgreSQL", jdbcHost(config.jdbcUrl()));
+        if ("S3".equalsIgnoreCase(config.storageType())) {
+            String storageHost = config.storageEndpoint() == null ? "" : config.storageEndpoint().getHost();
+            warnIfPublicHost("Object storage", storageHost);
+            if (config.storageEndpoint() != null && "http".equalsIgnoreCase(config.storageEndpoint().getScheme()) && !internalHost(storageHost)) {
+                LOGGER.warning("CloudIslands security: Object storage endpoint uses plain HTTP on a non-internal host");
+            }
+        }
+    }
+
+    private static boolean publicBind(String bind) {
+        return bind == null || bind.isBlank() || bind.equals("0.0.0.0") || bind.equals("::");
+    }
+
+    private static void warnIfPublicHost(String name, String host) {
+        if (host == null || host.isBlank()) {
+            return;
+        }
+        if (!internalHost(host)) {
+            LOGGER.warning("CloudIslands security: " + name + " host does not look internal: " + host);
+        }
+    }
+
+    private static boolean internalHost(String host) {
+        if (host == null || host.isBlank()) {
+            return false;
+        }
+        String value = host.toLowerCase(Locale.ROOT);
+        if (value.equals("localhost") || value.endsWith(".local") || value.endsWith(".internal") || value.endsWith(".cluster.local")) {
+            return true;
+        }
+        if (value.startsWith("127.") || value.startsWith("10.") || value.startsWith("192.168.")) {
+            return true;
+        }
+        if (value.startsWith("172.")) {
+            String[] parts = value.split("\\.");
+            if (parts.length > 1) {
+                try {
+                    int second = Integer.parseInt(parts[1]);
+                    return second >= 16 && second <= 31;
+                } catch (NumberFormatException ignored) {
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static String jdbcHost(String jdbcUrl) {
+        if (jdbcUrl == null || jdbcUrl.isBlank()) {
+            return "";
+        }
+        int scheme = jdbcUrl.indexOf("://");
+        if (scheme < 0) {
+            return "";
+        }
+        int hostStart = scheme + 3;
+        int slash = jdbcUrl.indexOf('/', hostStart);
+        String authority = slash < 0 ? jdbcUrl.substring(hostStart) : jdbcUrl.substring(hostStart, slash);
+        int at = authority.lastIndexOf('@');
+        if (at >= 0) {
+            authority = authority.substring(at + 1);
+        }
+        int colon = authority.indexOf(':');
+        return colon < 0 ? authority : authority.substring(0, colon);
     }
 
     public void start() {
