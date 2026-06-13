@@ -522,10 +522,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         private boolean registeredFeatureKnown(AddonRegistration registration, String requestedFeature, String normalizedFeature) {
             Map<String, Boolean> features = registration.features() == null ? Map.of() : registration.features();
-            if (features.containsKey(normalizedFeature) || features.containsKey(requestedFeature)) {
+            String requested = requestedFeature == null ? "" : requestedFeature;
+            String normalized = normalizedFeature == null ? "" : normalizedFeature;
+            if (features.containsKey(normalized) || features.containsKey(requested)) {
                 return true;
             }
-            return AddonFeatureAliases.aliasesFor(registration.metadata(), normalizedFeature).contains(requestedFeature);
+            return AddonFeatureAliases.aliasesFor(registration.metadata(), normalized).contains(requested);
         }
 
         private String normalizeFeature(AddonRegistration registration, String feature) {
