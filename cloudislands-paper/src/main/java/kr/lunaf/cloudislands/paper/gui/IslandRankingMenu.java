@@ -52,22 +52,22 @@ public final class IslandRankingMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || meta.getLore() == null) {
-            return;
-        }
-        String displayName = meta.getDisplayName();
+        int slot = event.getRawSlot();
         player.closeInventory();
-        if ("공개 섬".equals(displayName)) {
+        if (slot == 45) {
             player.performCommand("섬 방문");
             return;
         }
-        if ("랜덤 방문".equals(displayName)) {
+        if (slot == 53) {
             player.performCommand("섬 랜덤방문");
             return;
         }
-        if ("새로고침".equals(displayName)) {
+        if (slot == 49) {
             player.performCommand("섬 랭킹");
+            return;
+        }
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null || meta.getLore() == null) {
             return;
         }
         String islandId = loreValue(meta, "섬 ID=");
@@ -80,7 +80,7 @@ public final class IslandRankingMenu implements Listener {
     private static void openSync(Plugin plugin, Player player, List<Ranking> levels, List<Ranking> worths, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
-            inventory.setItem(4, item(Material.GOLD_BLOCK, "섬 랭킹", "좌측: 레벨 TOP", "우측: 가치 TOP"));
+            inventory.setItem(4, item(Material.GOLD_BLOCK, message(messages, "ranking-menu-title", "섬 랭킹"), message(messages, "ranking-menu-level-side", "좌측: 레벨 TOP"), message(messages, "ranking-menu-worth-side", "우측: 가치 TOP")));
             int slot = 9;
             for (Ranking ranking : levels) {
                 inventory.setItem(slot++, rankingItem(Material.EXPERIENCE_BOTTLE, ranking, messages));
@@ -89,15 +89,19 @@ public final class IslandRankingMenu implements Listener {
             for (Ranking ranking : worths) {
                 inventory.setItem(slot++, rankingItem(Material.EMERALD, ranking, messages));
             }
-            inventory.setItem(45, item(Material.COMPASS, "공개 섬", "/섬 방문"));
-            inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 랭킹"));
-            inventory.setItem(53, item(Material.ENDER_PEARL, "랜덤 방문", "/섬 랜덤방문"));
+            inventory.setItem(45, item(Material.COMPASS, message(messages, "ranking-menu-public-islands-name", "공개 섬"), message(messages, "ranking-menu-public-islands-command", "/섬 방문")));
+            inventory.setItem(49, item(Material.CLOCK, message(messages, "ranking-menu-refresh-name", "새로고침"), message(messages, "ranking-menu-refresh-command", "/섬 랭킹")));
+            inventory.setItem(53, item(Material.ENDER_PEARL, message(messages, "ranking-menu-random-visit-name", "랜덤 방문"), message(messages, "ranking-menu-random-visit-command", "/섬 랜덤방문")));
             player.openInventory(inventory);
         });
     }
 
     private static ItemStack rankingItem(Material material, Ranking ranking, MessageRenderer messages) {
-        return item(material, ranking.label() + " #" + ranking.rank(), "섬 ID=" + ranking.islandId(), "레벨: " + ranking.level(), "가치: " + ranking.worth(), message(messages, "ranking-menu-click-to-visit", "클릭하면 방문을 시도합니다."));
+        return item(material, rankingLabel(ranking.label(), messages) + " #" + ranking.rank(), "섬 ID=" + ranking.islandId(), message(messages, "ranking-menu-level", "레벨: ") + ranking.level(), message(messages, "ranking-menu-worth", "가치: ") + ranking.worth(), message(messages, "ranking-menu-click-to-visit", "클릭하면 방문을 시도합니다."));
+    }
+
+    private static String rankingLabel(String label, MessageRenderer messages) {
+        return "worth".equals(label) ? message(messages, "ranking-menu-worth-label", "가치") : message(messages, "ranking-menu-level-label", "레벨");
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
