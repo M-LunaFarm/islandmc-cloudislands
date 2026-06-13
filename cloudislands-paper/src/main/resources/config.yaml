@@ -40,6 +40,7 @@ security:
   enforce-route-session: true
   require-velocity-forwarding: true
   forwarding-secret: "${VELOCITY_FORWARDING_SECRET}"
+  proxy-source-allowlist: []
   allow-bungee-connect-plugin-messaging: false
 
 redis:

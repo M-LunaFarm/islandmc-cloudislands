@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.RouteTicketConsumer;
+import kr.lunaf.cloudislands.paper.security.ProxySourceAllowlist;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
@@ -27,6 +28,7 @@ public final class PaperRouteSessionListener implements Listener {
     private final boolean requireRouteSession;
     private final boolean forwardingReady;
     private final String fallbackServerName;
+    private final ProxySourceAllowlist proxySourceAllowlist;
     private final Map<UUID, PlayerRouteSession> verifiedSessions = new ConcurrentHashMap<>();
 
     public PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId) {
@@ -34,14 +36,18 @@ public final class PaperRouteSessionListener implements Listener {
     }
 
     public PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId, boolean requireRouteSession) {
-        this(plugin, coreApiClient, ticketConsumer, nodeId, requireRouteSession, true, "Lobby");
+        this(plugin, coreApiClient, ticketConsumer, nodeId, requireRouteSession, true, "Lobby", new ProxySourceAllowlist(java.util.List.of()));
     }
 
     public PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId, boolean requireRouteSession, String fallbackServerName) {
-        this(plugin, coreApiClient, ticketConsumer, nodeId, requireRouteSession, true, fallbackServerName);
+        this(plugin, coreApiClient, ticketConsumer, nodeId, requireRouteSession, true, fallbackServerName, new ProxySourceAllowlist(java.util.List.of()));
     }
 
     public PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId, boolean requireRouteSession, boolean forwardingReady, String fallbackServerName) {
+        this(plugin, coreApiClient, ticketConsumer, nodeId, requireRouteSession, forwardingReady, fallbackServerName, new ProxySourceAllowlist(java.util.List.of()));
+    }
+
+    public PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId, boolean requireRouteSession, boolean forwardingReady, String fallbackServerName, ProxySourceAllowlist proxySourceAllowlist) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.ticketConsumer = ticketConsumer;
@@ -49,10 +55,16 @@ public final class PaperRouteSessionListener implements Listener {
         this.requireRouteSession = requireRouteSession;
         this.forwardingReady = forwardingReady;
         this.fallbackServerName = fallbackServerName == null || fallbackServerName.isBlank() ? "Lobby" : fallbackServerName;
+        this.proxySourceAllowlist = proxySourceAllowlist == null ? new ProxySourceAllowlist(java.util.List.of()) : proxySourceAllowlist;
     }
 
     @EventHandler
     public void onPreLogin(AsyncPlayerPreLoginEvent event) {
+        if (!proxySourceAllowlist.allows(event.getAddress())) {
+            plugin.getLogger().warning("Rejected non-proxy login source for " + event.getUniqueId() + " from " + event.getAddress().getHostAddress());
+            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, "정상적인 프록시 경로로 접속해주세요.");
+            return;
+        }
         if (!forwardingReady) {
             event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, "섬 서버 보안 설정이 완료되지 않았습니다. 관리자에게 문의해주세요.");
             return;

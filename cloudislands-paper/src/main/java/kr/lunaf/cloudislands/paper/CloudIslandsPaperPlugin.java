@@ -69,6 +69,7 @@ import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.message.TranslationManager;
 import kr.lunaf.cloudislands.paper.placeholder.CloudIslandsPlaceholderExpansion;
 import kr.lunaf.cloudislands.paper.redis.PaperRedisClient;
+import kr.lunaf.cloudislands.paper.security.ProxySourceAllowlist;
 import kr.lunaf.cloudislands.paper.session.PaperBrandingListener;
 import kr.lunaf.cloudislands.paper.session.PaperChatListener;
 import kr.lunaf.cloudislands.paper.session.PaperPlayerProfileListener;
@@ -189,7 +190,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean forwardingReady = role != AgentRole.ISLAND_NODE
             || !configBoolean("security.require-velocity-forwarding", true)
             || !resolveEnv(getConfig().getString("security.forwarding-secret", "")).isBlank();
-        getServer().getPluginManager().registerEvents(new PaperRouteSessionListener(this, client, agent.routeTickets(), nodeId, requireRouteSession, forwardingReady, fallbackServerName), this);
+        ProxySourceAllowlist proxySourceAllowlist = new ProxySourceAllowlist(getConfig().getStringList("security.proxy-source-allowlist"));
+        getServer().getPluginManager().registerEvents(new PaperRouteSessionListener(this, client, agent.routeTickets(), nodeId, requireRouteSession, forwardingReady, fallbackServerName, proxySourceAllowlist), this);
         PluginCommand admin = getCommand("ciadmin");
         int routeWaitSeconds = getConfig().getInt("routing.wait-for-activation-timeout-seconds", 20);
         if (admin != null) {
@@ -479,6 +481,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         }
         if (configBoolean("security.allow-bungee-connect-plugin-messaging", false)) {
             getLogger().warning("CloudIslands security: BungeeCord connect plugin messaging is enabled; keep it disabled unless proxy fallback transfers require it");
+        }
+        if (getConfig().getStringList("security.proxy-source-allowlist").isEmpty()) {
+            getLogger().warning("CloudIslands security: proxy source allowlist is empty; use a host firewall or set security.proxy-source-allowlist to Velocity source IPs");
         }
         if (coreApiToken().isBlank()) {
             getLogger().warning("CloudIslands security: core-api auth token is empty");
