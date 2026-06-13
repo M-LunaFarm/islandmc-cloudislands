@@ -10,11 +10,11 @@ class IslandBoostServiceTest {
     void usesConfigurableBoostFormula() {
         IslandBoostService boosts = new IslandBoostService(null);
         YamlConfiguration config = new YamlConfiguration();
-        config.set("superior-skyblock.boosts.agriculture-min", 1.0);
-        config.set("superior-skyblock.boosts.agriculture-max", 2.5);
-        config.set("superior-skyblock.boosts.factory-slot-size-divisor", 40);
-        config.set("superior-skyblock.boosts.contract-slot-worth-log-base", 10.0);
-        config.set("superior-skyblock.boosts.max-contract-slot-bonus", 4);
+        config.set("cloudislands.boosts.agriculture-min", 1.0);
+        config.set("cloudislands.boosts.agriculture-max", 2.5);
+        config.set("cloudislands.boosts.factory-slot-size-divisor", 40);
+        config.set("cloudislands.boosts.contract-slot-worth-log-base", 10.0);
+        config.set("cloudislands.boosts.max-contract-slot-bonus", 4);
         boosts.configure(config);
 
         IslandBoostService.Boosts result = boosts.boosts(new FakeIsland(3.8, 125, 100_000));
@@ -26,7 +26,7 @@ class IslandBoostServiceTest {
     }
 
     @Test
-    void fallsBackToAlternateSuperiorSkyblockMethodNames() {
+    void acceptsAlternateIslandMetricMethodNames() {
         IslandBoostService boosts = new IslandBoostService(null);
 
         IslandBoostService.Boosts result = boosts.boosts(new AlternateIsland(1.75, 90, 1000));
