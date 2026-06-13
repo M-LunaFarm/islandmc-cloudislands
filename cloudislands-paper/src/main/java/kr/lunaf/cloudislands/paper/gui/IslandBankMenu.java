@@ -79,7 +79,7 @@ public final class IslandBankMenu implements Listener {
     private static void openSync(Plugin plugin, Player player, String balance, String updatedAt, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
-            inventory.setItem(4, item(Material.GOLD_BLOCK, "잔액", "현재 잔액: " + (balance.isBlank() ? "0" : balance), updatedAt.isBlank() ? "업데이트 정보 없음" : "갱신 시각: " + updatedAt));
+            inventory.setItem(4, item(Material.GOLD_BLOCK, "잔액", message(messages, "bank-menu-current-balance", "현재 잔액: ") + (balance.isBlank() ? "0" : balance), updatedAt.isBlank() ? message(messages, "bank-menu-no-update", "업데이트 정보 없음") : message(messages, "bank-menu-updated-at", "갱신 시각: ") + updatedAt));
             inventory.setItem(10, item(Material.EMERALD, "1,000 입금", "/섬 입금 1000"));
             inventory.setItem(11, item(Material.EMERALD_BLOCK, "10,000 입금", "/섬 입금 10000"));
             inventory.setItem(13, item(Material.PAPER, "입금", message(messages, "bank-menu-deposit-usage", "사용법: /섬 입금 <금액>")));

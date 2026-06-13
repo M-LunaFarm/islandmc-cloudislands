@@ -189,6 +189,9 @@ public final class TranslationManager {
         values.put("bank-menu-load-failed", "섬 은행을 불러오지 못했습니다.");
         values.put("bank-menu-deposit-usage", "사용법: /섬 입금 <금액>");
         values.put("bank-menu-withdraw-usage", "사용법: /섬 출금 <금액>");
+        values.put("bank-menu-current-balance", "현재 잔액: ");
+        values.put("bank-menu-no-update", "업데이트 정보 없음");
+        values.put("bank-menu-updated-at", "갱신 시각: ");
         values.put("home-menu-load-failed", "섬 홈을 불러오지 못했습니다.");
         values.put("home-menu-set-usage", "사용법: /섬 셋홈 <이름>");
         values.put("home-menu-empty", "현재 등록된 섬 홈이 없습니다.");
