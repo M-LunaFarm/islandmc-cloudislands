@@ -2915,6 +2915,9 @@ public final class VelocityRoutingController {
             if (current instanceof CoreApiException coreError) {
                 return playerErrorMessage(coreError.code(), fallback);
             }
+            if (current instanceof java.io.IOException) {
+                return "현재 섬 서비스 일부 기능이 점검 중입니다.";
+            }
             current = current.getCause();
         }
         return fallback;
@@ -2959,7 +2962,7 @@ public final class VelocityRoutingController {
         }).exceptionally(error -> {
             hideBossBar(player, bossBar);
             clearFailedRoute(ticket, "ROUTE_STATUS_FAILED");
-            fallback(player, failureMessage);
+            fallback(player, routeFailureMessage(error, failureMessage));
             return null;
         });
     }

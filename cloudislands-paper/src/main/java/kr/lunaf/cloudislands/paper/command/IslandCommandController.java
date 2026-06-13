@@ -1301,6 +1301,9 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             if (current instanceof CoreApiException coreError) {
                 return playerCodeMessage(coreError.code(), fallback);
             }
+            if (current instanceof java.io.IOException) {
+                return "현재 섬 서비스 일부 기능이 점검 중입니다.";
+            }
             current = current.getCause();
         }
         return fallback;
@@ -1376,7 +1379,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             }
         }).exceptionally(error -> {
             clearRouteLoading(player);
-            message(player, failureMessage);
+            message(player, routeFailureMessage(error, failureMessage));
             return null;
         }), CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS));
     }
