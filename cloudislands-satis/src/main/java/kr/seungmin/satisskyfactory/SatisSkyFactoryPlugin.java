@@ -773,12 +773,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     public void onAddonRegistered(CloudIslandsAddonSnapshot snapshot) {
         addonRuntimeEnabled = snapshot.enabled();
         effectiveFeatures = snapshot.features();
+        publishAddonState(snapshot, "registered");
     }
 
     @Override
     public void onAddonReloaded(CloudIslandsAddonSnapshot snapshot) {
         addonRuntimeEnabled = snapshot.enabled();
         effectiveFeatures = snapshot.features();
+        publishAddonState(snapshot, "reloaded");
         getLogger().info("Reloaded CloudIslands addon config: " + snapshot.id() + " enabled=" + snapshot.enabled());
         if (!snapshot.enabled()) {
             getLogger().info("CloudIslands disabled this addon during config reload.");
@@ -790,6 +792,38 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return;
         }
         applyAddonRuntimeState();
+    }
+
+    private void publishAddonState(CloudIslandsAddonSnapshot snapshot, String reason) {
+        if (cloudIslandsApi == null || snapshot == null) {
+            return;
+        }
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("runtime-enabled", Boolean.toString(snapshot.enabled()));
+        state.put("database-shared", Boolean.toString(databaseShared()));
+        state.put("database-scope", databaseScope());
+        state.put("database-config-source", databaseConfigSource());
+        state.put("database-path", resolveDatabaseFileName());
+        state.put("database-open", Boolean.toString(database != null));
+        state.put("satis-state-schema", "3");
+        state.put("island-position-remap", "center-delta");
+        state.put("effective-features", featureState(snapshot.features()));
+        state.put("feature-warnings", featureWarnings());
+        state.put("last-sync-reason", reason == null || reason.isBlank() ? "unknown" : reason);
+        cloudIslandsApi.addons().putState(snapshot.id(), state).exceptionally(error -> {
+            getLogger().warning("Failed to publish CloudIslands Satis addon state: " + error.getMessage());
+            return Map.of();
+        });
+    }
+
+    private String featureState(Map<String, Boolean> features) {
+        if (features == null || features.isEmpty()) {
+            return "none";
+        }
+        return features.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> entry.getKey() + "=" + entry.getValue())
+                .collect(java.util.stream.Collectors.joining(","));
     }
 
     @Override
