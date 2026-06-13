@@ -1375,7 +1375,11 @@ public final class CloudIslandsCoreApplication {
         });
         route("/v1/admin/islands/snapshot", exchange -> {
             String body = readBody(exchange);
-            lifecycle(exchange, lifecycle.snapshot(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "reason", "MANUAL")));
+            String reason = JsonFields.text(body, "reason", "MANUAL");
+            if (!reason.toUpperCase(java.util.Locale.ROOT).contains("MANUAL")) {
+                reason = "MANUAL:" + (reason.isBlank() ? "snapshot" : reason);
+            }
+            lifecycle(exchange, lifecycle.snapshot(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), reason));
         });
         route("/v1/admin/islands/restore", exchange -> {
             String body = readBody(exchange);
