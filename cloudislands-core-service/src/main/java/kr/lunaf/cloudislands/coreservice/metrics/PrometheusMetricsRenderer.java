@@ -158,6 +158,14 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_paper_periodic_save_retry_queue", "gauge");
         help(out, "cloudislands_paper_periodic_save_failures_total", "Periodic island save failures observed by Paper nodes");
         type(out, "cloudislands_paper_periodic_save_failures_total", "counter");
+        help(out, "cloudislands_paper_proxy_source_rejections_total", "Paper logins rejected because the source was not an allowed proxy");
+        type(out, "cloudislands_paper_proxy_source_rejections_total", "counter");
+        help(out, "cloudislands_paper_forwarding_rejections_total", "Paper logins rejected because Velocity forwarding security was not ready");
+        type(out, "cloudislands_paper_forwarding_rejections_total", "counter");
+        help(out, "cloudislands_paper_route_session_rejections_total", "Paper logins or joins rejected because no valid route session was present");
+        type(out, "cloudislands_paper_route_session_rejections_total", "counter");
+        help(out, "cloudislands_paper_route_session_check_failures_total", "Paper route session verification failures while checking Core API");
+        type(out, "cloudislands_paper_route_session_check_failures_total", "counter");
         help(out, "cloudislands_core_token_configured", "Whether Core API token authentication has a configured token");
         type(out, "cloudislands_core_token_configured", "gauge");
         out.append("cloudislands_core_token_configured ").append(coreTokenConfigured.getAsBoolean() ? 1 : 0).append('\n');
@@ -249,6 +257,10 @@ public final class PrometheusMetricsRenderer {
             appendMetadataGauge(out, "cloudislands_island_snapshot_seconds", node, "storageUploadSeconds");
             appendMetadataGauge(out, "cloudislands_paper_periodic_save_retry_queue", node, "periodicSaveRetryQueue");
             appendMetadataGauge(out, "cloudislands_paper_periodic_save_failures_total", node, "periodicSaveFailures");
+            appendMetadataGauge(out, "cloudislands_paper_proxy_source_rejections_total", node, "proxySourceRejections");
+            appendMetadataGauge(out, "cloudislands_paper_forwarding_rejections_total", node, "forwardingRejections");
+            appendMetadataGauge(out, "cloudislands_paper_route_session_rejections_total", node, "routeSessionRejections");
+            appendMetadataGauge(out, "cloudislands_paper_route_session_check_failures_total", node, "routeSessionCheckFailures");
         }
         out.append("cloudislands_cluster_nodes_online ").append(onlineNodes).append('\n');
         out.append("cloudislands_cluster_players ").append(totalPlayers).append('\n');

@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.RouteTicketConsumer;
 import kr.lunaf.cloudislands.paper.security.ProxySourceAllowlist;
@@ -30,6 +31,10 @@ public final class PaperRouteSessionListener implements Listener {
     private final String fallbackServerName;
     private final ProxySourceAllowlist proxySourceAllowlist;
     private final Map<UUID, PlayerRouteSession> verifiedSessions = new ConcurrentHashMap<>();
+    private final AtomicLong proxySourceRejections = new AtomicLong();
+    private final AtomicLong forwardingRejections = new AtomicLong();
+    private final AtomicLong routeSessionRejections = new AtomicLong();
+    private final AtomicLong routeSessionCheckFailures = new AtomicLong();
 
     public PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId) {
         this(plugin, coreApiClient, ticketConsumer, nodeId, false);
@@ -61,11 +66,13 @@ public final class PaperRouteSessionListener implements Listener {
     @EventHandler
     public void onPreLogin(AsyncPlayerPreLoginEvent event) {
         if (!proxySourceAllowlist.allows(event.getAddress())) {
+            proxySourceRejections.incrementAndGet();
             plugin.getLogger().warning("Rejected non-proxy login source for " + event.getUniqueId() + " from " + event.getAddress().getHostAddress());
             event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, "정상적인 프록시 경로로 접속해주세요.");
             return;
         }
         if (!forwardingReady) {
+            forwardingRejections.incrementAndGet();
             event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, "섬 서버 보안 설정이 완료되지 않았습니다. 관리자에게 문의해주세요.");
             return;
         }
@@ -81,8 +88,10 @@ public final class PaperRouteSessionListener implements Listener {
                 return;
             }
         } catch (Exception exception) {
+            routeSessionCheckFailures.incrementAndGet();
             plugin.getLogger().warning("Route session pre-login check failed for " + event.getUniqueId() + ": " + exception.getMessage());
         }
+        routeSessionRejections.incrementAndGet();
         event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, "정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요.");
     }
 
@@ -158,6 +167,7 @@ public final class PaperRouteSessionListener implements Listener {
     }
 
     private void rejectDirectJoin(java.util.UUID playerUuid) {
+        routeSessionRejections.incrementAndGet();
         Bukkit.getScheduler().runTask(plugin, () -> {
             var player = Bukkit.getPlayer(playerUuid);
             if (player != null) {
@@ -185,5 +195,21 @@ public final class PaperRouteSessionListener implements Listener {
         } catch (IOException | RuntimeException ignored) {
             player.kick(Component.text("정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요."));
         }
+    }
+
+    public long proxySourceRejections() {
+        return proxySourceRejections.get();
+    }
+
+    public long forwardingRejections() {
+        return forwardingRejections.get();
+    }
+
+    public long routeSessionRejections() {
+        return routeSessionRejections.get();
+    }
+
+    public long routeSessionCheckFailures() {
+        return routeSessionCheckFailures.get();
     }
 }
