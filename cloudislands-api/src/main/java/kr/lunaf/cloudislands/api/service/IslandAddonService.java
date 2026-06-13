@@ -15,4 +15,14 @@ public interface IslandAddonService {
     CompletableFuture<Optional<CloudIslandsAddonSnapshot>> get(String id);
     CompletableFuture<List<CloudIslandsAddonSnapshot>> list();
     CompletableFuture<Boolean> isEnabled(String id);
+
+    default CompletableFuture<Map<String, Boolean>> features(String id) {
+        return get(id).thenApply(addon -> addon.map(CloudIslandsAddonSnapshot::features).orElse(Map.of()));
+    }
+
+    default CompletableFuture<Boolean> isFeatureEnabled(String id, String feature) {
+        return get(id).thenApply(addon -> addon
+            .map(snapshot -> snapshot.enabled() && snapshot.featureEnabled(feature))
+            .orElse(false));
+    }
 }

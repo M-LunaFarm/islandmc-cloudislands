@@ -18,4 +18,12 @@ public record CloudIslandsAddonSnapshot(
     public CloudIslandsAddonSnapshot(String id, String displayName, String version, boolean enabled, Instant registeredAt) {
         this(id, displayName, version, enabled, registeredAt, Map.of());
     }
+
+    public boolean featureEnabled(String key) {
+        return featureEnabled(key, true);
+    }
+
+    public boolean featureEnabled(String key, boolean fallback) {
+        return features.getOrDefault(key, fallback);
+    }
 }
