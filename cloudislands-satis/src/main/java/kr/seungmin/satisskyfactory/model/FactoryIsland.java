@@ -16,6 +16,10 @@ public final class FactoryIsland {
     private long createdAt;
     private long updatedAt;
     private int emergencyContractsUsedToday;
+    private String activeWorld = "";
+    private int activeCenterX;
+    private int activeCenterY;
+    private int activeCenterZ;
 
     public FactoryIsland(UUID islandUuid, UUID ownerUuid) {
         this.islandUuid = islandUuid;
@@ -123,5 +127,41 @@ public final class FactoryIsland {
 
     public void emergencyContractsUsedToday(int emergencyContractsUsedToday) {
         this.emergencyContractsUsedToday = emergencyContractsUsedToday;
+    }
+
+    public String activeWorld() {
+        return activeWorld;
+    }
+
+    public void activeWorld(String activeWorld) {
+        this.activeWorld = activeWorld == null ? "" : activeWorld;
+    }
+
+    public int activeCenterX() {
+        return activeCenterX;
+    }
+
+    public void activeCenterX(int activeCenterX) {
+        this.activeCenterX = activeCenterX;
+    }
+
+    public int activeCenterY() {
+        return activeCenterY;
+    }
+
+    public void activeCenterY(int activeCenterY) {
+        this.activeCenterY = activeCenterY;
+    }
+
+    public int activeCenterZ() {
+        return activeCenterZ;
+    }
+
+    public void activeCenterZ(int activeCenterZ) {
+        this.activeCenterZ = activeCenterZ;
+    }
+
+    public boolean hasActiveCenter() {
+        return activeWorld != null && !activeWorld.isBlank();
     }
 }

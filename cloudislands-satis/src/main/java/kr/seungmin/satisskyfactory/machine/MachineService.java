@@ -236,7 +236,7 @@ public final class MachineService {
         return machines.values().stream().filter(machine -> machine.islandUuid().equals(islandUuid)).toList();
     }
 
-    public boolean remapIslandWorld(UUID islandUuid, String worldName) {
+    public boolean remapIslandRegion(UUID islandUuid, String worldName, int deltaX, int deltaZ) {
         if (!loaded) {
             return false;
         }
@@ -245,11 +245,16 @@ public final class MachineService {
         }
         boolean changed = false;
         for (MachineInstance machine : byIsland(islandUuid)) {
-            if (worldName.equals(machine.location().world())) {
+            if (worldName.equals(machine.location().world()) && deltaX == 0 && deltaZ == 0) {
                 continue;
             }
             byLocation.remove(LocationKey.from(machine.location()));
-            MachineInstance remapped = copyWithLocation(machine, new BlockKey(worldName, machine.location().x(), machine.location().y(), machine.location().z()));
+            MachineInstance remapped = copyWithLocation(machine, new BlockKey(
+                    worldName,
+                    machine.location().x() + deltaX,
+                    machine.location().y(),
+                    machine.location().z() + deltaZ
+            ));
             machines.put(remapped.machineId(), remapped);
             byLocation.put(LocationKey.from(remapped.location()), remapped.machineId());
             saveLater(remapped);

@@ -28,6 +28,10 @@ public final class MigrationService {
                       last_maintenance_at INTEGER NOT NULL DEFAULT 0,
                       last_tick_at INTEGER NOT NULL DEFAULT 0,
                       emergency_contracts_used_today INTEGER NOT NULL DEFAULT 0,
+                      active_world TEXT NOT NULL DEFAULT '',
+                      active_center_x INTEGER NOT NULL DEFAULT 0,
+                      active_center_y INTEGER NOT NULL DEFAULT 0,
+                      active_center_z INTEGER NOT NULL DEFAULT 0,
                       created_at INTEGER NOT NULL,
                       updated_at INTEGER NOT NULL
                     )
@@ -186,6 +190,10 @@ public final class MigrationService {
     private void applyIncrementalMigrations(Connection connection, Statement statement) throws SQLException {
         addColumnIfMissing(connection, statement, "factory_islands", "emergency_contracts_used_today",
                 "INTEGER NOT NULL DEFAULT 0");
+        addColumnIfMissing(connection, statement, "factory_islands", "active_world", "TEXT NOT NULL DEFAULT ''");
+        addColumnIfMissing(connection, statement, "factory_islands", "active_center_x", "INTEGER NOT NULL DEFAULT 0");
+        addColumnIfMissing(connection, statement, "factory_islands", "active_center_y", "INTEGER NOT NULL DEFAULT 0");
+        addColumnIfMissing(connection, statement, "factory_islands", "active_center_z", "INTEGER NOT NULL DEFAULT 0");
         addColumnIfMissing(connection, statement, "machines", "power_network_id", "TEXT");
         addColumnIfMissing(connection, statement, "machines", "item_network_id", "TEXT");
         addColumnIfMissing(connection, statement, "machines", "linked_resource_node_id", "TEXT");

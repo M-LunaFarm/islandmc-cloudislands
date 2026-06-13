@@ -176,6 +176,10 @@ public final class DatabaseService {
         island.createdAt(rs.getLong("created_at"));
         island.updatedAt(rs.getLong("updated_at"));
         island.emergencyContractsUsedToday(rs.getInt("emergency_contracts_used_today"));
+        island.activeWorld(rs.getString("active_world"));
+        island.activeCenterX(rs.getInt("active_center_x"));
+        island.activeCenterY(rs.getInt("active_center_y"));
+        island.activeCenterZ(rs.getInt("active_center_z"));
         return island;
     }
 
@@ -188,13 +192,16 @@ public final class DatabaseService {
         try (Connection connection = connection();
              PreparedStatement statement = connection.prepareStatement("""
                      INSERT INTO factory_islands(island_uuid, owner_uuid, tier, research_points, reputation, maintenance_debt,
-                       maintenance_status, factory_score, last_maintenance_at, last_tick_at, emergency_contracts_used_today, created_at, updated_at)
-                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                       maintenance_status, factory_score, last_maintenance_at, last_tick_at, emergency_contracts_used_today,
+                       active_world, active_center_x, active_center_y, active_center_z, created_at, updated_at)
+                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                      ON CONFLICT(island_uuid) DO UPDATE SET owner_uuid=excluded.owner_uuid, tier=excluded.tier,
                        research_points=excluded.research_points, reputation=excluded.reputation,
                        maintenance_debt=excluded.maintenance_debt, maintenance_status=excluded.maintenance_status,
                        factory_score=excluded.factory_score, last_maintenance_at=excluded.last_maintenance_at,
                        last_tick_at=excluded.last_tick_at, emergency_contracts_used_today=excluded.emergency_contracts_used_today,
+                       active_world=excluded.active_world, active_center_x=excluded.active_center_x,
+                       active_center_y=excluded.active_center_y, active_center_z=excluded.active_center_z,
                        updated_at=excluded.updated_at
                      """)) {
             statement.setString(1, island.islandUuid().toString());
@@ -208,8 +215,12 @@ public final class DatabaseService {
             statement.setLong(9, island.lastMaintenanceAt());
             statement.setLong(10, island.lastTickAt());
             statement.setInt(11, island.emergencyContractsUsedToday());
-            statement.setLong(12, island.createdAt());
-            statement.setLong(13, now);
+            statement.setString(12, island.activeWorld());
+            statement.setInt(13, island.activeCenterX());
+            statement.setInt(14, island.activeCenterY());
+            statement.setInt(15, island.activeCenterZ());
+            statement.setLong(16, island.createdAt());
+            statement.setLong(17, now);
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to save factory island", exception);

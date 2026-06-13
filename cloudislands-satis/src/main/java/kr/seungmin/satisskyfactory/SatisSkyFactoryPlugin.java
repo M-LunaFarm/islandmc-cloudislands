@@ -899,12 +899,21 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return;
         }
         islands.find(islandId).ifPresent(island -> {
-            String activeWorld = activeIslandWorld(islandId);
-            if (machines != null && activeWorld != null && featureEnabled("machines")) {
-                machines.remapIslandWorld(islandId, activeWorld);
-            }
-            if (nodes != null && activeWorld != null && featureEnabled("resource-nodes")) {
-                nodes.remapIslandWorld(islandId, activeWorld);
+            org.bukkit.Location activeCenter = activeIslandCenter(islandId);
+            if (activeCenter != null && activeCenter.getWorld() != null) {
+                String activeWorld = activeCenter.getWorld().getName();
+                int deltaX = island.hasActiveCenter() ? activeCenter.getBlockX() - island.activeCenterX() : 0;
+                int deltaZ = island.hasActiveCenter() ? activeCenter.getBlockZ() - island.activeCenterZ() : 0;
+                if (machines != null && featureEnabled("machines")) {
+                    machines.remapIslandRegion(islandId, activeWorld, deltaX, deltaZ);
+                }
+                if (nodes != null && featureEnabled("resource-nodes")) {
+                    nodes.remapIslandRegion(islandId, activeWorld, deltaX, deltaZ);
+                }
+                island.activeWorld(activeWorld);
+                island.activeCenterX(activeCenter.getBlockX());
+                island.activeCenterY(activeCenter.getBlockY());
+                island.activeCenterZ(activeCenter.getBlockZ());
             }
             if (maintenance != null && featureEnabled("maintenance")) {
                 maintenance.updateStatus(island);
@@ -917,13 +926,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         });
     }
 
-    private String activeIslandWorld(UUID islandId) {
+    private org.bukkit.Location activeIslandCenter(UUID islandId) {
         if (skyblock == null) {
             return null;
         }
         return skyblock.getIslandByUuid(islandId)
                 .flatMap(skyblock::getIslandCenter)
-                .map(location -> location.getWorld() == null ? null : location.getWorld().getName())
                 .orElse(null);
     }
 
