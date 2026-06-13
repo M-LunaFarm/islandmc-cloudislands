@@ -5,6 +5,7 @@ import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -26,6 +27,16 @@ class IslandAddonServiceTest {
         assertFalse(snapshot.enabled());
         assertEquals(Map.of(), snapshot.features());
         assertEquals("IllegalStateException", snapshot.metadata().get("metadata-error"));
+    }
+
+    @Test
+    void defaultRegisterDropsNullFeatureAndMetadataEntries() {
+        CapturingAddonService service = new CapturingAddonService();
+
+        CloudIslandsAddonSnapshot snapshot = service.register(new AddonWithNullMapEntries()).join();
+
+        assertEquals(Map.of("machines", true), snapshot.features());
+        assertEquals(Map.of("mode", "ADDON"), snapshot.metadata());
     }
 
     private static final class BrokenAddon implements CloudIslandsAddon {
@@ -62,6 +73,41 @@ class IslandAddonServiceTest {
         @Override
         public void onAddonRegistered(CloudIslandsAddonSnapshot snapshot) {
             throw new IllegalStateException("callback unavailable");
+        }
+    }
+
+    private static final class AddonWithNullMapEntries implements CloudIslandsAddon {
+        @Override
+        public String addonId() {
+            return "null-map-addon";
+        }
+
+        @Override
+        public String addonDisplayName() {
+            return "Null Map Addon";
+        }
+
+        @Override
+        public String addonVersion() {
+            return "1";
+        }
+
+        @Override
+        public Map<String, Boolean> addonFeatures() {
+            Map<String, Boolean> features = new HashMap<>();
+            features.put("machines", true);
+            features.put("contracts", null);
+            features.put(null, false);
+            return features;
+        }
+
+        @Override
+        public Map<String, String> addonMetadata() {
+            Map<String, String> metadata = new HashMap<>();
+            metadata.put("mode", "ADDON");
+            metadata.put("provider", null);
+            metadata.put(null, "ignored");
+            return metadata;
         }
     }
 

@@ -200,7 +200,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (previous != null) {
                 notifyUnregistered(previous);
             }
-            AddonRegistration registration = new AddonRegistration(safeId, safeRegistrationDisplayName(displayName, safeId), safeRegistrationVersion(version), enabled, Instant.now(), Map.copyOf(features == null ? Map.of() : features), Map.copyOf(metadata == null ? Map.of() : metadata));
+            AddonRegistration registration = new AddonRegistration(safeId, safeRegistrationDisplayName(displayName, safeId), safeRegistrationVersion(version), enabled, Instant.now(), copyBooleanMap(features), copyStringMap(metadata));
             registrations.put(safeId, registration);
             CloudIslandsAddonSnapshot snapshot = snapshot(registration);
             addons.put(safeId, snapshot);
@@ -278,7 +278,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         private Map<String, Boolean> safeAddonFeatures(CloudIslandsAddon addon, String id) {
             try {
-                return Map.copyOf(addon.addonFeatures());
+                return copyBooleanMap(addon.addonFeatures());
             } catch (RuntimeException exception) {
                 plugin.getLogger().warning("CloudIslands addon feature callback failed for " + id + ": " + exception.getMessage());
                 return Map.of();
@@ -287,11 +287,37 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         private Map<String, String> safeAddonMetadata(CloudIslandsAddon addon, String id) {
             try {
-                return Map.copyOf(addon.addonMetadata());
+                return copyStringMap(addon.addonMetadata());
             } catch (RuntimeException exception) {
                 plugin.getLogger().warning("CloudIslands addon metadata callback failed for " + id + ": " + exception.getMessage());
                 return Map.of("metadata-error", exception.getClass().getSimpleName());
             }
+        }
+
+        private Map<String, Boolean> copyBooleanMap(Map<String, Boolean> source) {
+            if (source == null || source.isEmpty()) {
+                return Map.of();
+            }
+            Map<String, Boolean> copy = new HashMap<>();
+            source.forEach((key, value) -> {
+                if (key != null && value != null) {
+                    copy.put(key, value);
+                }
+            });
+            return Map.copyOf(copy);
+        }
+
+        private Map<String, String> copyStringMap(Map<String, String> source) {
+            if (source == null || source.isEmpty()) {
+                return Map.of();
+            }
+            Map<String, String> copy = new HashMap<>();
+            source.forEach((key, value) -> {
+                if (key != null && value != null) {
+                    copy.put(key, value);
+                }
+            });
+            return Map.copyOf(copy);
         }
 
         private CloudIslandsAddonSnapshot snapshot(AddonRegistration registration) {

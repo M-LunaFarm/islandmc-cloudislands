@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.api.service;
 
 import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -66,7 +67,7 @@ public interface IslandAddonService {
 
     private static Map<String, Boolean> safeAddonFeatures(CloudIslandsAddon addon) {
         try {
-            return Map.copyOf(addon.addonFeatures());
+            return copyBooleanMap(addon.addonFeatures());
         } catch (RuntimeException ignored) {
             return Map.of();
         }
@@ -74,10 +75,36 @@ public interface IslandAddonService {
 
     private static Map<String, String> safeAddonMetadata(CloudIslandsAddon addon) {
         try {
-            return Map.copyOf(addon.addonMetadata());
+            return copyStringMap(addon.addonMetadata());
         } catch (RuntimeException exception) {
             return Map.of("metadata-error", exception.getClass().getSimpleName());
         }
+    }
+
+    private static Map<String, Boolean> copyBooleanMap(Map<String, Boolean> source) {
+        if (source == null || source.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Boolean> copy = new HashMap<>();
+        source.forEach((key, value) -> {
+            if (key != null && value != null) {
+                copy.put(key, value);
+            }
+        });
+        return Map.copyOf(copy);
+    }
+
+    private static Map<String, String> copyStringMap(Map<String, String> source) {
+        if (source == null || source.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> copy = new HashMap<>();
+        source.forEach((key, value) -> {
+            if (key != null && value != null) {
+                copy.put(key, value);
+            }
+        });
+        return Map.copyOf(copy);
     }
 
     CompletableFuture<Void> unregister(String id);
