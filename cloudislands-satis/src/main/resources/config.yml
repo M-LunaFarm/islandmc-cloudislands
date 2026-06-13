@@ -1,8 +1,8 @@
 integration:
   enabled: false
   mode: ADDON
-  skyblock-provider: SUPERIOR_SKYBLOCK2
-  cloudislands-adapter: false
+  skyblock-provider: CLOUDISLANDS
+  cloudislands-adapter: true
 features:
   commands: true
   machines: true
