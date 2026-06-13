@@ -81,7 +81,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         this.messages = messages;
         this.featureEnabled = featureEnabled;
         this.adminCommand = new AdminFactoryCommand(islands, machines, definitions, storage, nodes, skyblock,
-                maintenance, research, power, itemFactory, items, messages, reload);
+                maintenance, research, power, itemFactory, items, messages, featureEnabled, reload);
     }
 
     @Override

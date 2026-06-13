@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Predicate;
 
 public final class AdminFactoryCommand {
     private final FactoryIslandService islands;
@@ -42,13 +43,14 @@ public final class AdminFactoryCommand {
     private final CustomItemFactory itemFactory;
     private final ItemRegistry items;
     private final MessageService messages;
+    private final Predicate<String> featureEnabled;
     private final Runnable reload;
 
     public AdminFactoryCommand(FactoryIslandService islands, MachineService machines, MachineDefinitionService definitions,
                                StorageService storage, ResourceNodeService nodes, SkyblockProvider skyblock,
                                MaintenanceService maintenance, ResearchService research, PowerNetworkService power,
                                CustomItemFactory itemFactory, ItemRegistry items,
-                               MessageService messages, Runnable reload) {
+                               MessageService messages, Predicate<String> featureEnabled, Runnable reload) {
         this.islands = islands;
         this.machines = machines;
         this.definitions = definitions;
@@ -61,6 +63,7 @@ public final class AdminFactoryCommand {
         this.itemFactory = itemFactory;
         this.items = items;
         this.messages = messages;
+        this.featureEnabled = featureEnabled;
         this.reload = reload;
     }
 
@@ -88,30 +91,58 @@ public final class AdminFactoryCommand {
                 reload.run();
                 messages.send(sender, "reloaded");
             }
-            case "give" -> giveMachine(sender, args);
-            case "giveitem" -> giveItem(sender, args);
+            case "give" -> {
+                if (requireFeature(sender, "machines")) {
+                    giveMachine(sender, args);
+                }
+            }
+            case "giveitem" -> {
+                if (requireFeature(sender, "machines")) {
+                    giveItem(sender, args);
+                }
+            }
             case "addresearch" -> withPlayerContext(sender, args, 2, (target, island) -> {
+                if (!requireFeature(sender, "research")) {
+                    return;
+                }
                 research.addResearch(island, parseLong(args, 3, 0));
                 islands.save(island);
                 messages.send(sender, "admin-research-updated");
             });
             case "setdebt" -> withPlayerContext(sender, args, 2, (target, island) -> {
+                if (!requireFeature(sender, "maintenance")) {
+                    return;
+                }
                 maintenance.setDebt(island, parseLong(args, 3, 0));
                 islands.save(island);
                 messages.send(sender, "admin-debt-updated");
             });
             case "charge" -> withPlayerContext(sender, args, 2, (target, island) -> {
+                if (!requireFeature(sender, "maintenance")) {
+                    return;
+                }
                 islands.context(target).ifPresent(context -> maintenance.chargeNow(island, target, context.islandRef().raw()));
                 islands.save(island);
                 messages.send(sender, "admin-maintenance-charged");
             });
             case "gennodes" -> withPlayerContext(sender, args, 2, (target, island) -> {
+                if (!requireFeature(sender, "resource-nodes")) {
+                    return;
+                }
                 nodes.generateIfMissing(island.islandUuid(), target.getLocation(), location -> isInsideIsland(location, island));
                 messages.send(sender, "admin-nodes-generated");
             });
             case "debug" -> debug(sender, args);
-            case "removehere" -> removeHere(sender);
-            case "repairhere" -> repairHere(sender);
+            case "removehere" -> {
+                if (requireFeature(sender, "machines")) {
+                    removeHere(sender);
+                }
+            }
+            case "repairhere" -> {
+                if (requireFeature(sender, "maintenance")) {
+                    repairHere(sender);
+                }
+            }
             default -> messages.send(sender, "unknown-admin-command");
         }
         return true;
@@ -275,6 +306,9 @@ public final class AdminFactoryCommand {
             if (args[2].equalsIgnoreCase("island")) {
                 messages.send(sender, "debug-island", Map.of("island", context.factoryIsland().islandUuid().toString()));
             } else if (args[2].equalsIgnoreCase("networks")) {
+                if (!requireFeature(sender, "machines")) {
+                    return;
+                }
                 var state = power.state(context.factoryIsland().islandUuid());
                 messages.send(sender, "debug-networks", Map.of(
                         "machines", String.valueOf(machines.byIsland(context.factoryIsland().islandUuid()).size()),
@@ -323,6 +357,14 @@ public final class AdminFactoryCommand {
         machine.wear(0.0);
         machine.status(MachineStatus.SLEEPING);
         machines.save(machine);
+    }
+
+    private boolean requireFeature(CommandSender sender, String feature) {
+        if (featureEnabled == null || featureEnabled.test(feature)) {
+            return true;
+        }
+        messages.send(sender, "feature-disabled", Map.of("feature", feature));
+        return false;
     }
 
     private void withPlayerContext(CommandSender sender, String[] args, int playerIndex, AdminContextConsumer consumer) {
