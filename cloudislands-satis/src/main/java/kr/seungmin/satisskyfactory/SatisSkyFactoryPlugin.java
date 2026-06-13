@@ -86,6 +86,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (!registerCloudIslandsAddon()) {
             return;
         }
+        startRuntime();
+    }
+
+    private void startRuntime() {
+        if (database != null) {
+            applyAddonRuntimeState();
+            return;
+        }
         messages = new MessageService(configs);
 
         skyblock = createSkyblockProvider();
@@ -497,6 +505,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (!snapshot.enabled()) {
             getLogger().info("CloudIslands disabled this addon during config reload.");
             getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+        if (database == null) {
+            startRuntime();
             return;
         }
         applyAddonRuntimeState();
