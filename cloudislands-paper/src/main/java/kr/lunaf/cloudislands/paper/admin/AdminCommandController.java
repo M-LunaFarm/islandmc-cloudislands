@@ -1512,6 +1512,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-addons-name-prefix", " name=") + addon.displayName()
             + adminText("admin-command-addons-version-prefix", " version=") + addon.version()
             + adminText("admin-command-addons-enabled-prefix", " enabled=") + addon.enabled()
+            + adminText("admin-command-addons-registered-prefix", " registered=") + addon.registeredAt()
+            + adminText("admin-command-addons-updated-prefix", " updated=") + addon.updatedAt()
             + addonMetadataSuffix(addon)
             + addonFeatureSuffix(addon);
     }

@@ -190,7 +190,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled, Map<String, Boolean> features, Map<String, String> metadata) {
             addonObjects.remove(id);
-            AddonRegistration registration = new AddonRegistration(id, displayName, version, enabled, Map.copyOf(features == null ? Map.of() : features), Map.copyOf(metadata == null ? Map.of() : metadata));
+            AddonRegistration registration = new AddonRegistration(id, displayName, version, enabled, Instant.now(), Map.copyOf(features == null ? Map.of() : features), Map.copyOf(metadata == null ? Map.of() : metadata));
             registrations.put(id, registration);
             CloudIslandsAddonSnapshot snapshot = snapshot(registration);
             addons.put(id, snapshot);
@@ -199,7 +199,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<CloudIslandsAddonSnapshot> register(CloudIslandsAddon addon) {
-            AddonRegistration registration = new AddonRegistration(addon.addonId(), addon.addonDisplayName(), addon.addonVersion(), addon.enabledByDefault(), Map.copyOf(addon.addonFeatures()), Map.copyOf(addon.addonMetadata()));
+            AddonRegistration registration = new AddonRegistration(addon.addonId(), addon.addonDisplayName(), addon.addonVersion(), addon.enabledByDefault(), Instant.now(), Map.copyOf(addon.addonFeatures()), Map.copyOf(addon.addonMetadata()));
             registrations.put(addon.addonId(), registration);
             addonObjects.put(addon.addonId(), addon);
             CloudIslandsAddonSnapshot snapshot = snapshot(registration);
@@ -211,7 +211,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         private CloudIslandsAddonSnapshot snapshot(AddonRegistration registration) {
             String id = registration.id();
             boolean configEnabled = plugin.getConfig().getBoolean("addons." + id + ".enabled", true);
-            return new CloudIslandsAddonSnapshot(id, registration.displayName(), registration.version(), registration.enabled() && configEnabled, Instant.now(), effectiveFeatures(id, registration.features()), effectiveMetadata(registration.metadata()));
+            return new CloudIslandsAddonSnapshot(id, registration.displayName(), registration.version(), registration.enabled() && configEnabled, registration.registeredAt(), Instant.now(), effectiveFeatures(id, registration.features()), effectiveMetadata(registration.metadata()));
         }
 
         private Map<String, Boolean> effectiveFeatures(String id, Map<String, Boolean> features) {
@@ -293,6 +293,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             String displayName,
             String version,
             boolean enabled,
+            Instant registeredAt,
             Map<String, Boolean> features,
             Map<String, String> metadata
         ) {}
