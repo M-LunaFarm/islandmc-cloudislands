@@ -1527,11 +1527,14 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private String addonDependencySuffix(CloudIslandsAddonSnapshot addon) {
-        String dependencies = addon.metadata().getOrDefault("feature-dependencies", "");
-        if (dependencies.isBlank()) {
+        if (addon.featureDependencies().isEmpty()) {
             return "";
         }
-        return adminText("admin-command-addons-dependencies-prefix", " dependencies=") + dependencies;
+        List<String> dependencies = new ArrayList<>();
+        addon.featureDependencies().entrySet().stream()
+            .sorted(java.util.Map.Entry.comparingByKey())
+            .forEach(entry -> dependencies.add(entry.getKey() + ":" + entry.getValue()));
+        return adminText("admin-command-addons-dependencies-prefix", " dependencies=") + String.join(",", dependencies);
     }
 
     private String addonMetadataSuffix(CloudIslandsAddonSnapshot addon) {
