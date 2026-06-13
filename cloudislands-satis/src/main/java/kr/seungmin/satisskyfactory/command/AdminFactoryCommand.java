@@ -62,6 +62,7 @@ public final class AdminFactoryCommand {
             "factory admin reload",
             "factory admin features",
             "factory admin integration",
+            "factory admin migration",
             "factory admin state",
             "factory admin give <player> <machineType> [amount]",
             "factory admin giveitem <player> <itemId> <amount>",
@@ -147,6 +148,11 @@ public final class AdminFactoryCommand {
             }
             case "features" -> showFeatures(sender);
             case "integration" -> showIntegration(sender);
+            case "migration" -> {
+                if (requireFeature(sender, "migration")) {
+                    showMigration(sender);
+                }
+            }
             case "state" -> {
                 if (requireFeature(sender, "addon-state")) {
                     showAddonState(sender);
@@ -222,6 +228,9 @@ public final class AdminFactoryCommand {
             values.add("debug");
             values.add("features");
             values.add("integration");
+            if (enabled("migration")) {
+                values.add("migration");
+            }
             if (enabled("addon-state")) {
                 values.add("state");
             }
@@ -545,6 +554,23 @@ public final class AdminFactoryCommand {
                 ))));
     }
 
+    private void showMigration(CommandSender sender) {
+        sender.sendMessage(messages.raw("admin-migration-title"));
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("satis-schema", "3");
+        state.put("satis-storage-key", "cloudislands-island-uuid");
+        state.put("superior-runtime-dependency", "false");
+        state.put("superior-import-path", "/ciadmin migrate-superiorskyblock2 scan|dryrun|import|verify|rollback");
+        state.put("satismc-import-mode", "cloudislands-addon-state");
+        state.put("feature-gate", "migration=" + enabled("migration"));
+        state.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                        "key", entry.getKey(),
+                        "value", entry.getValue()
+                ))));
+    }
+
     private void showAddonState(CommandSender sender) {
         sender.sendMessage(messages.raw("admin-integration-title"));
         Map<String, String> state;
@@ -604,6 +630,7 @@ public final class AdminFactoryCommand {
                 || command.contains(" addresearch ") && !enabled("research")
                 || (command.contains(" setdebt ") || command.contains(" charge ") || command.contains(" repairhere")) && !enabled("maintenance")
                 || command.contains(" gennodes ") && !enabled("resource-nodes")
+                || command.contains(" migration") && !enabled("migration")
                 || command.contains(" debug networks") && !enabled("machines");
     }
 
