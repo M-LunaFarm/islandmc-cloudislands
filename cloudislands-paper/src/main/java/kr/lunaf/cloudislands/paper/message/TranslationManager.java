@@ -261,6 +261,17 @@ public final class TranslationManager {
         values.put("invite-menu-expires-at", "만료 시각: ");
         values.put("invite-menu-left-click", "좌클릭: 초대 수락");
         values.put("invite-menu-right-click", "우클릭: 초대 거절");
+        values.put("ban-menu-load-failed", "섬 밴 목록을 불러오지 못했습니다.");
+        values.put("ban-menu-empty", "현재 밴된 방문자가 없습니다.");
+        values.put("ban-menu-detail-title", "방문자 밴 상세");
+        values.put("ban-menu-reason", "사유: ");
+        values.put("ban-menu-none", "없음");
+        values.put("ban-menu-no-created-info", "생성 정보 없음");
+        values.put("ban-menu-created-at", "생성 시각: ");
+        values.put("ban-menu-no-expire", "만료 없음");
+        values.put("ban-menu-expires-at", "만료 시각: ");
+        values.put("ban-menu-left-click", "좌클릭: 상세 보기");
+        values.put("ban-menu-right-click", "우클릭: 밴 해제");
         values.put("danger-confirm-required", "Shift+우클릭해야 실행됩니다.");
         values.put("danger-confirm-click-required", "위험 작업은 Shift+우클릭해야 실행됩니다.");
         values.put("snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다.");

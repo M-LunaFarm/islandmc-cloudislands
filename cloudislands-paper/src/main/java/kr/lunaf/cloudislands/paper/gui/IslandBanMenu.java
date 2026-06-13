@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -17,12 +18,25 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandBanMenu implements Listener {
     private static final String TITLE = "방문자 밴 목록";
+    private final MessageRenderer messages;
+
+    public IslandBanMenu() {
+        this(null);
+    }
+
+    public IslandBanMenu(MessageRenderer messages) {
+        this.messages = messages;
+    }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
+        open(plugin, client, player, islandId, null);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
         client.listIslandBans(islandId)
-            .thenAccept(body -> openSync(plugin, player, bans(body)))
+            .thenAccept(body -> openSync(plugin, player, bans(body), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("섬 밴 목록을 불러오지 못했습니다."));
+                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "ban-menu-load-failed", "섬 밴 목록을 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -58,7 +72,7 @@ public final class IslandBanMenu implements Listener {
             player.performCommand("섬 밴해제 " + bannedUuid);
             return;
         }
-        player.sendMessage("방문자 밴 상세");
+        player.sendMessage(message(messages, "ban-menu-detail-title", "방문자 밴 상세"));
         if (meta.getLore() != null) {
             for (String line : meta.getLore()) {
                 player.sendMessage("- " + line);
@@ -66,14 +80,14 @@ public final class IslandBanMenu implements Listener {
         }
     }
 
-    private static void openSync(Plugin plugin, Player player, List<Ban> bans) {
+    private static void openSync(Plugin plugin, Player player, List<Ban> bans, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
             if (bans.isEmpty()) {
-                inventory.setItem(22, item(Material.BARRIER, "밴 기록 없음", "현재 밴된 방문자가 없습니다."));
+                inventory.setItem(22, item(Material.BARRIER, "밴 기록 없음", message(messages, "ban-menu-empty", "현재 밴된 방문자가 없습니다.")));
             } else {
                 for (int index = 0; index < bans.size() && index < 45; index++) {
-                    inventory.setItem(index, banItem(bans.get(index)));
+                    inventory.setItem(index, banItem(bans.get(index), messages));
                 }
             }
             inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 밴목록"));
@@ -82,15 +96,23 @@ public final class IslandBanMenu implements Listener {
         });
     }
 
-    private static ItemStack banItem(Ban ban) {
+    private static ItemStack banItem(Ban ban, MessageRenderer messages) {
         return item(Material.BARRIER, "밴 " + shortUuid(ban.bannedUuid()),
             "대상=" + ban.bannedUuid(),
             "처리자: " + shortUuid(ban.actorUuid()),
-            "사유: " + (ban.reason().isBlank() ? "없음" : ban.reason()),
-            ban.createdAt().isBlank() ? "생성 정보 없음" : "생성 시각: " + ban.createdAt(),
-            ban.expiresAt().isBlank() ? "만료 없음" : "만료 시각: " + ban.expiresAt(),
-            "좌클릭: 상세 보기",
-            "우클릭: 밴 해제");
+            message(messages, "ban-menu-reason", "사유: ") + (ban.reason().isBlank() ? message(messages, "ban-menu-none", "없음") : ban.reason()),
+            ban.createdAt().isBlank() ? message(messages, "ban-menu-no-created-info", "생성 정보 없음") : message(messages, "ban-menu-created-at", "생성 시각: ") + ban.createdAt(),
+            ban.expiresAt().isBlank() ? message(messages, "ban-menu-no-expire", "만료 없음") : message(messages, "ban-menu-expires-at", "만료 시각: ") + ban.expiresAt(),
+            message(messages, "ban-menu-left-click", "좌클릭: 상세 보기"),
+            message(messages, "ban-menu-right-click", "우클릭: 밴 해제"));
+    }
+
+    private static String message(MessageRenderer messages, String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private static List<Ban> bans(String body) {

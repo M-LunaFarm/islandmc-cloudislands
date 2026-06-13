@@ -2334,7 +2334,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private void openIslandBanMenu(Player player) {
-        currentIsland(player, "섬 안에서만 밴 목록을 확인할 수 있습니다.").ifPresent(islandId -> IslandBanMenu.open(plugin, coreApiClient, player, islandId));
+        currentIsland(player, "섬 안에서만 밴 목록을 확인할 수 있습니다.").ifPresent(islandId -> IslandBanMenu.open(plugin, coreApiClient, player, islandId, messages));
     }
 
     private String flagToggleValue(String[] args, int index) {
