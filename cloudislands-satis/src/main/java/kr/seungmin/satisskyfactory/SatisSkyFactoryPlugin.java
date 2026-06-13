@@ -841,6 +841,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void publishLifecycleState(UUID islandId, String operation) {
+        publishLifecycleState(islandId, operation, null);
+    }
+
+    private void publishLifecycleState(UUID islandId, String operation, FactoryIsland island) {
         if (cloudIslandsApi == null || islandId == null || !featureEnabled("addon-state")) {
             return;
         }
@@ -851,6 +855,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("last-lifecycle-shared-database", Boolean.toString(databaseShared()));
         state.put("last-lifecycle-schema", "3");
         state.put("last-lifecycle-at", Instant.now().toString());
+        if (island != null && island.hasActiveCenter()) {
+            state.put("last-lifecycle-active-world", island.activeWorld());
+            state.put("last-lifecycle-active-center", island.activeCenterX() + "," + island.activeCenterY() + "," + island.activeCenterZ());
+        }
         cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
             getLogger().warning("Failed to publish CloudIslands Satis lifecycle state: " + error.getMessage());
             return Map.of();
@@ -1022,7 +1030,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 power.rebuildIsland(islandId);
             }
             islands.save(island);
-            publishLifecycleState(islandId, "synchronize");
+            publishLifecycleState(islandId, "synchronize", island);
         });
     }
 
