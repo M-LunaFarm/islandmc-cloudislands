@@ -62,6 +62,7 @@ public interface CoreApiClient {
     CompletableFuture<String> setIslandPermissionResult(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed);
     CompletableFuture<String> listIslandRoles(UUID islandId);
     CompletableFuture<String> upsertIslandRole(UUID islandId, UUID actorUuid, IslandRole role, int weight, String displayName);
+    CompletableFuture<String> resetIslandRole(UUID islandId, UUID actorUuid, IslandRole role);
     CompletableFuture<String> listIslandWarps(UUID islandId);
     CompletableFuture<String> listPublicWarps(int limit);
     CompletableFuture<Void> setIslandWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);

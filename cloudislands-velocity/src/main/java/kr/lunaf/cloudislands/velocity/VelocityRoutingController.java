@@ -590,6 +590,10 @@ public final class VelocityRoutingController {
         sendBodyResult(player, coreApiClient.upsertIslandRole(islandId, player.getUniqueId(), role, weight, displayName).thenApply(body -> "섬 역할 저장 완료: " + jsonValue(body, "role") + " weight=" + longValue(body, "weight") + " name=" + jsonValue(body, "displayName")), "섬 역할을 저장하지 못했습니다.");
     }
 
+    public void resetRole(Player player, UUID islandId, IslandRole role) {
+        sendBodyResult(player, coreApiClient.resetIslandRole(islandId, player.getUniqueId(), role).thenApply(body -> "섬 역할 초기화 완료: " + jsonValue(body, "role")), "섬 역할을 초기화하지 못했습니다.");
+    }
+
     public void listIslandLogs(Player player, UUID islandId) {
         if (rejectExplicitIslandLookup(player, islandId)) {
             return;

@@ -269,6 +269,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> resetIslandRole(UUID islandId, UUID actorUuid, IslandRole role) {
+        return postWithResultBody("/v1/islands/roles/reset", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"" + role.name() + "\"}");
+    }
+
+    @Override
     public CompletableFuture<String> listIslandWarps(UUID islandId) {
         return post("/v1/islands/warps", "{\"islandId\":\"" + islandId + "\"}");
     }

@@ -60,6 +60,8 @@ public interface IslandCommandService {
     CompletableFuture<IslandActionResult> setPermissionResult(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed);
     CompletableFuture<Void> upsertRole(UUID islandId, UUID actorUuid, IslandRole role, int weight, String displayName);
     CompletableFuture<IslandRoleSnapshot> upsertRoleResult(UUID islandId, UUID actorUuid, IslandRole role, int weight, String displayName);
+    CompletableFuture<Void> resetRole(UUID islandId, UUID actorUuid, IslandRole role);
+    CompletableFuture<IslandActionResult> resetRoleResult(UUID islandId, UUID actorUuid, IslandRole role);
     CompletableFuture<Void> setLocked(UUID islandId, UUID actorUuid, boolean locked);
     CompletableFuture<IslandActionResult> setLockedResult(UUID islandId, UUID actorUuid, boolean locked);
     CompletableFuture<Void> lockIsland(UUID islandId, UUID actorUuid);

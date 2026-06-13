@@ -19,6 +19,12 @@ public final class InMemoryIslandRoleRepository implements IslandRoleRepository 
     }
 
     @Override
+    public boolean reset(UUID islandId, IslandRole role) {
+        Map<IslandRole, IslandRoleSnapshot> islandRoles = roles.get(islandId);
+        return islandRoles != null && islandRoles.remove(role) != null;
+    }
+
+    @Override
     public List<IslandRoleSnapshot> list(UUID islandId) {
         List<IslandRoleSnapshot> snapshots = new ArrayList<>(roles.getOrDefault(islandId, Map.of()).values());
         return IslandRoleRepository.mergeDefaults(islandId, snapshots);

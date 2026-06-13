@@ -780,6 +780,17 @@ public final class CloudIslandsVelocityPlugin {
             routingController.upsertRole(player, islandId, role, weight, displayName.isBlank() ? role.name() : displayName);
             return;
         }
+        if (args[0].equalsIgnoreCase("role-reset") || args[0].equals("역할초기화")) {
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            int roleIndex = hasOptionalIslandIdArgument(args, 1) ? 2 : 1;
+            IslandRole role = args.length > roleIndex ? parseRoleOrNull(args[roleIndex]) : null;
+            if (role == null || role == IslandRole.OWNER || !role.islandMemberRole()) {
+                player.sendMessage(Component.text("초기화 가능한 멤버 역할을 입력해주세요. 예: CUSTOM_1"));
+                return;
+            }
+            routingController.resetRole(player, islandId, role);
+            return;
+        }
         if (args[0].equalsIgnoreCase("transfer") || args[0].equals("양도")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             routingController.transferOwnershipTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""));

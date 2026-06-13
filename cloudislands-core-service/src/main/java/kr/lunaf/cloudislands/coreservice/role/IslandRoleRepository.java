@@ -8,6 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandRoleSnapshot;
 
 public interface IslandRoleRepository {
     IslandRoleSnapshot upsert(UUID islandId, IslandRole role, int weight, String displayName);
+    boolean reset(UUID islandId, IslandRole role);
     List<IslandRoleSnapshot> list(UUID islandId);
 
     static List<IslandRoleSnapshot> mergeDefaults(UUID islandId, List<IslandRoleSnapshot> overrides) {

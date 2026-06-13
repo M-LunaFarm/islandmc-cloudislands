@@ -606,6 +606,24 @@ public final class CloudIslandsCoreApplication {
             events.publish(CloudIslandEventType.ISLAND_ROLE_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", role.name(), "operation", "ROLE_UPSERT"));
             write(exchange, 202, roleJson(snapshot));
         });
+        route("/v1/islands/roles/reset", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            IslandRole role = JsonFields.enumValue(IslandRole.class, body, "role", IslandRole.CUSTOM_1);
+            if (role == IslandRole.OWNER || !role.islandMemberRole()) {
+                write(exchange, 409, ApiResponses.error("ROLE_NOT_EDITABLE", "Only island member roles can be reset"));
+                return;
+            }
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.MANAGE_ROLES)) {
+                return;
+            }
+            boolean removed = roleRepository.reset(islandId, role);
+            audit.log(actorUuid, "PLAYER", "ISLAND_ROLE_RESET", "ISLAND", islandId.toString(), Map.of("role", role.name(), "removed", Boolean.toString(removed)));
+            islandLogs.append(islandId, actorUuid, "ISLAND_ROLE_RESET", Map.of("role", role.name(), "removed", Boolean.toString(removed)));
+            events.publish(CloudIslandEventType.ISLAND_ROLE_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", role.name(), "operation", "ROLE_RESET"));
+            write(exchange, 202, "{\"accepted\":true,\"code\":\"ROLE_RESET\",\"role\":\"" + role.name() + "\",\"removed\":" + removed + "}");
+        });
         route("/v1/jobs/claim", exchange -> {
             String body = readBody(exchange);
             String nodeId = JsonFields.text(body, "nodeId", "");

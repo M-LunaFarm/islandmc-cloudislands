@@ -31,6 +31,13 @@ public final class CachingIslandRoleRepository implements IslandRoleRepository {
     }
 
     @Override
+    public boolean reset(UUID islandId, IslandRole role) {
+        boolean removed = delegate.reset(islandId, role);
+        cache(islandId, delegate.list(islandId));
+        return removed;
+    }
+
+    @Override
     public List<IslandRoleSnapshot> list(UUID islandId) {
         Optional<List<IslandRoleSnapshot>> cached = cachedRoles(islandId);
         if (cached.isPresent()) {

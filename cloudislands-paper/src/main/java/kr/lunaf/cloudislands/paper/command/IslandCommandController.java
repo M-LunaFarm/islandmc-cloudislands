@@ -87,7 +87,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "members", "member-menu", "member-list", "멤버", "멤버관리", "멤버목록", "invite", "초대", "invites", "invite-menu", "invite-list", "초대목록",
         "accept", "invite-accept", "초대수락", "decline", "invite-decline", "초대거절",
         "kick", "remove-member", "추방", "trust", "신뢰", "untrust", "신뢰해제",
-        "promote", "승급", "demote", "강등", "setrole", "role-set", "역할설정", "roles", "role-menu", "role-list", "role-upsert", "role-edit", "역할", "역할목록", "역할편집", "transfer", "양도",
+        "promote", "승급", "demote", "강등", "setrole", "role-set", "역할설정", "roles", "role-menu", "role-list", "role-upsert", "role-edit", "role-reset", "역할", "역할목록", "역할편집", "역할초기화", "transfer", "양도",
         "ban", "밴", "unban", "pardon", "밴해제", "kickvisitor", "방문자추방", "bans", "ban-menu", "ban-list", "banlist", "밴목록",
         "settings", "setting", "설정",
         "flags", "flag-menu", "flag-list", "flag", "setflag", "flag-set", "플래그", "플래그설정", "플래그목록",
@@ -165,6 +165,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "섬 역할설정 <player> <role>",
         "섬 역할목록",
         "섬 역할편집 <role> <weight> <displayName>",
+        "섬 역할초기화 <role>",
         "섬 양도 <player>",
         "섬 신뢰 <player>",
         "섬 신뢰해제 <player>",
@@ -846,6 +847,19 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 return true;
             }
             upsertIslandRole(player, role, integer(args[2], role.ordinal()), joined(args, 3));
+            return true;
+        }
+        if (subcommand.equals("role-reset") || subcommand.equals("역할초기화")) {
+            if (args.length < 2) {
+                player.sendMessage("초기화할 역할을 입력해주세요.");
+                return true;
+            }
+            IslandRole role = islandRole(args[1]);
+            if (role == null || role == IslandRole.OWNER || !role.islandMemberRole()) {
+                player.sendMessage("초기화 가능한 멤버 역할을 입력해주세요. 예: CUSTOM_1");
+                return true;
+            }
+            resetIslandRole(player, role);
             return true;
         }
         if (subcommand.equals("transfer") || subcommand.equals("양도")) {
@@ -2351,6 +2365,21 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 .thenAccept(body -> message(player, "섬 역할 저장 완료: " + text(body, "role") + " weight=" + (long) decimal(body, "weight") + " name=" + text(body, "displayName")))
                 .exceptionally(error -> {
                     message(player, "섬 역할을 저장하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void resetIslandRole(Player player, IslandRole role) {
+        currentIsland(player, "섬 안에서만 역할을 초기화할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
+                player.sendMessage("섬 역할을 초기화할 권한이 없습니다.");
+                return;
+            }
+            coreApiClient.resetIslandRole(islandId, player.getUniqueId(), role)
+                .thenAccept(body -> message(player, "섬 역할 초기화 완료: " + text(body, "role")))
+                .exceptionally(error -> {
+                    message(player, "섬 역할을 초기화하지 못했습니다.");
                     return null;
                 });
         });

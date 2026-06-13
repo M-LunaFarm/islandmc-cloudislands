@@ -34,6 +34,18 @@ public final class JdbcIslandRoleRepository implements IslandRoleRepository {
     }
 
     @Override
+    public boolean reset(UUID islandId, IslandRole role) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("DELETE FROM island_roles WHERE island_id = ? AND role = ?")) {
+            statement.setObject(1, islandId);
+            statement.setString(2, role.name());
+            return statement.executeUpdate() > 0;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to reset island role", exception);
+        }
+    }
+
+    @Override
     public List<IslandRoleSnapshot> list(UUID islandId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT island_id, role, weight, display_name FROM island_roles WHERE island_id = ? ORDER BY weight, role")) {

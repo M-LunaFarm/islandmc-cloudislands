@@ -33,6 +33,7 @@ public final class IslandCommandCatalog {
             "섬 역할설정 <player> <role>",
             "섬 역할목록 [islandUuid]",
             "섬 역할편집 [islandUuid] <role> <weight> <displayName>",
+            "섬 역할초기화 [islandUuid] <role>",
             "섬 양도 <player>",
             "섬 신뢰 <player>",
             "섬 신뢰해제 <player>",
