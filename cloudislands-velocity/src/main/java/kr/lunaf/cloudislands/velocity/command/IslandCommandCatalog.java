@@ -157,7 +157,7 @@ public final class IslandCommandCatalog {
             "ciadmin migrate-superiorskyblock2 dryrun [path]",
             "ciadmin migrate-superiorskyblock2 dry-run [path]",
             "ciadmin migrate-superiorskyblock2 extract [outputPath]",
-            "ciadmin migrate-superiorskyblock2 import [path]",
+            "ciadmin migrate-superiorskyblock2 import <approvalToken>",
             "ciadmin migrate-superiorskyblock2 verify [path]",
             "ciadmin migrate-superiorskyblock2 rollback [path]"
         );

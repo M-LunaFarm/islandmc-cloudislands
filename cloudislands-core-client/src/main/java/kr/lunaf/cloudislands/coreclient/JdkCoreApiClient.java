@@ -794,7 +794,8 @@ public final class JdkCoreApiClient implements CoreApiClient {
             case "rollback" -> "rollback";
             default -> "scan";
         };
-        return postWithResultBody("/v1/admin/migrations/superiorskyblock2/" + endpoint, "{\"path\":\"" + escape(path == null ? "" : path) + "\"}");
+        String value = path == null ? "" : path;
+        return postWithResultBody("/v1/admin/migrations/superiorskyblock2/" + endpoint, "{\"path\":\"" + escape(value) + "\",\"approval\":\"" + escape(value) + "\"}");
     }
 
     @Override

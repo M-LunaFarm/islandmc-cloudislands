@@ -95,7 +95,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         "ciadmin migrate-superiorskyblock2 dryrun [path]",
         "ciadmin migrate-superiorskyblock2 dry-run [path]",
         "ciadmin migrate-superiorskyblock2 extract [outputPath]",
-        "ciadmin migrate-superiorskyblock2 import [path]",
+        "ciadmin migrate-superiorskyblock2 import <approvalToken>",
         "ciadmin migrate-superiorskyblock2 verify [path]",
         "ciadmin migrate-superiorskyblock2 rollback [path]",
         "ciadmin reload"
@@ -645,6 +645,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             sender.sendMessage("사용법: /ciadmin migrate-superiorskyblock2 scan|dryrun|dry-run|extract|import|verify|rollback [path]");
             return true;
         }
+        if (action.equalsIgnoreCase("import") && args.length < 3) {
+            sender.sendMessage("사용법: /ciadmin migrate-superiorskyblock2 import <approvalToken>");
+            return true;
+        }
         String path = args.length > 2 ? joined(args, 2) : "plugins/SuperiorSkyblock2";
         run(sender, "SuperiorSkyblock2 migration " + action, coreApiClient.migrateSuperiorSkyblock2(action, path).thenApply(this::migrationMessage));
         return true;
@@ -661,6 +665,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         String state = textValue(body, "state");
         String path = textValue(body, "path");
         String manifestPath = textValue(body, "manifestPath");
+        String approvalToken = textValue(body, "approvalToken");
         String issues = arrayValue(body, "issues");
         long manifests = longValue(body, "manifests");
         long importedIslands = longValue(body, "importedIslands");
@@ -674,6 +679,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (!manifestPath.isBlank()) {
             builder.append(" manifest=").append(manifestPath);
+        }
+        if (!approvalToken.isBlank()) {
+            builder.append(" approval=").append(approvalToken);
         }
         if (body.contains("\"canImport\"")) {
             builder.append(" canImport=").append(boolValue(body, "canImport"));

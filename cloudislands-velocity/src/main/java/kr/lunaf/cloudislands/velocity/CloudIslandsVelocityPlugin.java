@@ -397,6 +397,10 @@ public final class CloudIslandsVelocityPlugin {
         }
         if (args.length >= 1 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
             String action = args.length > 1 ? args[1] : "scan";
+            if (action.equalsIgnoreCase("import") && args.length < 3) {
+                player.sendMessage(Component.text("사용법: /ciadmin migrate-superiorskyblock2 import <approvalToken>"));
+                return;
+            }
             String path = args.length > 2 ? joinArgs(args, 2) : "";
             routingController.migrateSuperiorSkyblock2(player, action, path);
             return;

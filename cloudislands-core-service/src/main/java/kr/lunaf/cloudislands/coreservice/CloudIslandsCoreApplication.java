@@ -919,8 +919,9 @@ public final class CloudIslandsCoreApplication {
             write(exchange, 202, migrationAdmin.extractWorldBundles(JsonFields.text(body, "path", "")));
         });
         route("/v1/admin/migrations/superiorskyblock2/import", exchange -> {
+            String body = readBody(exchange);
             audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_IMPORT", "MIGRATION", "superiorskyblock2", Map.of());
-            write(exchange, 202, migrationAdmin.importLastPlan());
+            write(exchange, 202, migrationAdmin.importLastPlan(JsonFields.text(body, "approval", "")));
         });
         route("/v1/admin/migrations/superiorskyblock2/verify", exchange -> {
             audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_VERIFY", "MIGRATION", "superiorskyblock2", Map.of());

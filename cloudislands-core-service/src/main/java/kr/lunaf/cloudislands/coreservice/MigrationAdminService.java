@@ -70,6 +70,7 @@ public final class MigrationAdminService {
     private MigrationImportPlan lastPlan = new MigrationImportPlan(List.of(), List.of());
     private MigrationRollbackPlan lastRollbackPlan;
     private Path lastExtractionRoot;
+    private String lastApprovalToken = "";
 
     public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandLevelRepository levels, IslandSnapshotRepository snapshots, RollbackTarget hardRollbackTarget) {
         this(islands, metadata, playerProfiles, permissionRules, upgrades, bank, limits, missions, levels, snapshots, hardRollbackTarget, Path.of("cloudislands-storage"));
@@ -104,6 +105,7 @@ public final class MigrationAdminService {
     public synchronized String scan(String path) {
         String sourcePath = path == null || path.isBlank() ? "plugins/SuperiorSkyblock2" : path;
         lastScan = scanner.scan(Path.of(sourcePath));
+        lastApprovalToken = "";
         List<MigrationIssue> issues = new ArrayList<>(lastScan.issues());
         Path manifestPath = migrationManifestPath();
         try {
@@ -123,7 +125,8 @@ public final class MigrationAdminService {
         issues.addAll(targetConflictIssues(lastScan.manifests()));
         lastPlan = new MigrationImportPlan(lastScan.manifests(), issues);
         MigrationRunState state = lastPlan.canImport() ? MigrationRunState.DRY_RUN_PASSED : MigrationRunState.DRY_RUN_FAILED;
-        return "{\"state\":\"" + state + "\",\"manifests\":" + lastPlan.manifests().size() + ",\"canImport\":" + lastPlan.canImport() + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastPlan.issues()) + "}";
+        lastApprovalToken = lastPlan.canImport() ? java.util.UUID.randomUUID().toString() : "";
+        return "{\"state\":\"" + state + "\",\"manifests\":" + lastPlan.manifests().size() + ",\"canImport\":" + lastPlan.canImport() + (lastApprovalToken.isBlank() ? "" : ",\"approvalToken\":\"" + lastApprovalToken + "\"") + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastPlan.issues()) + "}";
     }
 
     private List<MigrationIssue> targetConflictIssues(List<MigrationManifest> manifests) {
@@ -218,9 +221,17 @@ public final class MigrationAdminService {
     }
 
     public synchronized String importLastPlan() {
+        return importLastPlan("");
+    }
+
+    public synchronized String importLastPlan(String approvalToken) {
         if (lastPlan.manifests().isEmpty()) {
             List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_PLAN_EMPTY", "run scan and dryrun before import", true));
             return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\",\"imported\":false,\"importedIslands\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+        }
+        if (lastApprovalToken.isBlank() || approvalToken == null || !lastApprovalToken.equals(approvalToken.trim())) {
+            List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_APPROVAL_REQUIRED", "run dryrun and pass the returned approval token to import", true));
+            return "{\"state\":\"" + MigrationRunState.DRY_RUN_PASSED + "\",\"imported\":false,\"importedIslands\":0" + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
         }
         long[] extractedStats = new long[] {0L, 0L, 0L};
         BundlePreflight preflight = preflightMigrationBundles(lastPlan.manifests());
@@ -299,6 +310,7 @@ public final class MigrationAdminService {
             extractedStats[2] += bundle.sizeBytes();
             playerProfiles.setPrimaryIsland(manifest.ownerUuid(), manifest.islandId());
         });
+        lastApprovalToken = "";
         lastRollbackPlan = result.rollbackPlan();
         MigrationRunState state = result.imported() ? MigrationRunState.IMPORTED : MigrationRunState.DRY_RUN_FAILED;
         return "{\"state\":\"" + state + "\",\"imported\":" + result.imported() + ",\"importedIslands\":" + result.importedIslands() + ",\"extractedBundles\":" + extractedStats[0] + ",\"extractedFiles\":" + extractedStats[1] + ",\"extractedBytes\":" + extractedStats[2] + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), result.issues())) + ",\"issues\":" + issuesJson(result.issues()) + ",\"rollbackPlan\":" + rollbackPlanJson(result.rollbackPlan()) + "}";
