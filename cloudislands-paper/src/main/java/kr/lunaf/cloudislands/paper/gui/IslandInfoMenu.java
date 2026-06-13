@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.gui;
 import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -16,12 +17,25 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandInfoMenu implements Listener {
     private static final String TITLE = "섬 정보";
+    private final MessageRenderer messages;
+
+    public IslandInfoMenu() {
+        this(null);
+    }
+
+    public IslandInfoMenu(MessageRenderer messages) {
+        this.messages = messages;
+    }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
+        open(plugin, client, player, islandId, null);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
         client.islandInfo(islandId)
             .thenAccept(body -> openSync(plugin, player, body))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("섬 정보를 불러오지 못했습니다."));
+                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "info-menu-load-failed", "섬 정보를 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -75,6 +89,14 @@ public final class IslandInfoMenu implements Listener {
             inventory.setItem(26, item(Material.OAK_DOOR, "닫기", "메뉴를 닫습니다."));
             player.openInventory(inventory);
         });
+    }
+
+    private static String message(MessageRenderer messages, String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private static ItemStack item(Material material, String name, String... lore) {

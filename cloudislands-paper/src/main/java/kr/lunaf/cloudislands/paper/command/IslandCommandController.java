@@ -1528,7 +1528,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private void openIslandInfoMenu(Player player) {
-        currentIsland(player, "섬 안에서만 정보를 확인할 수 있습니다.").ifPresent(islandId -> IslandInfoMenu.open(plugin, coreApiClient, player, islandId));
+        currentIsland(player, "섬 안에서만 정보를 확인할 수 있습니다.").ifPresent(islandId -> IslandInfoMenu.open(plugin, coreApiClient, player, islandId, messages));
     }
 
     private void showIslandWorth(Player player) {
