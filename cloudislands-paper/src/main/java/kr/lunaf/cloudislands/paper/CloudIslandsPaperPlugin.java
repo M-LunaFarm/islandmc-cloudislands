@@ -180,7 +180,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandSnapshotMenu(messages), this);
         getServer().getPluginManager().registerEvents(new IslandUpgradeMenu(), this);
         getServer().getPluginManager().registerEvents(new IslandVisitMenu(), this);
-        getServer().getPluginManager().registerEvents(new IslandWarpMenu(), this);
+        getServer().getPluginManager().registerEvents(new IslandWarpMenu(messages), this);
         this.generatorLevels = new GeneratorLevelCache(client, getConfig().getString("generators.default-key", "default"));
         CropGrowthLevelCache cropGrowthLevels = new CropGrowthLevelCache(client);
         localCaches.register("generator-levels", generatorLevels::invalidateAll);

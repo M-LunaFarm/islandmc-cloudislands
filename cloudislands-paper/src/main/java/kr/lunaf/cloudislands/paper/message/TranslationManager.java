@@ -191,6 +191,9 @@ public final class TranslationManager {
         values.put("bank-menu-withdraw-usage", "사용법: /섬 출금 <금액>");
         values.put("home-menu-load-failed", "섬 홈을 불러오지 못했습니다.");
         values.put("home-menu-set-usage", "사용법: /섬 셋홈 <이름>");
+        values.put("warp-menu-load-failed", "섬 워프를 불러오지 못했습니다.");
+        values.put("warp-menu-public-load-failed", "공개 섬 워프를 불러오지 못했습니다.");
+        values.put("warp-menu-set-usage", "사용법: /섬 워프설정 <이름>");
         values.put("danger-confirm-required", "Shift+우클릭해야 실행됩니다.");
         values.put("danger-confirm-click-required", "위험 작업은 Shift+우클릭해야 실행됩니다.");
         values.put("snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다.");

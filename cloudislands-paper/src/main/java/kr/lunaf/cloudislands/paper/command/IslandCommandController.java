@@ -429,7 +429,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return true;
         }
         if (subcommand.equals("public-warps") || subcommand.equals("publicwarplist") || subcommand.equals("공개워프목록")) {
-            IslandWarpMenu.openPublic(plugin, coreApiClient, player);
+            IslandWarpMenu.openPublic(plugin, coreApiClient, player, messages);
             return true;
         }
         if (subcommand.equals("warp")) {
@@ -1129,7 +1129,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private void openIslandWarpMenu(Player player) {
-        currentIsland(player, "섬 안에서만 워프 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandWarpMenu.open(plugin, coreApiClient, player, islandId));
+        currentIsland(player, "섬 안에서만 워프 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandWarpMenu.open(plugin, coreApiClient, player, islandId, messages));
     }
 
     private void teleportHome(Player player, String name) {

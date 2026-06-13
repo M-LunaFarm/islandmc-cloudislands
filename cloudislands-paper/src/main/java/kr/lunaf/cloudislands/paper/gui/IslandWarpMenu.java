@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -18,21 +19,38 @@ import org.bukkit.plugin.Plugin;
 public final class IslandWarpMenu implements Listener {
     private static final String TITLE = "섬 워프 관리";
     private static final String PUBLIC_TITLE = "공개 섬 워프";
+    private final MessageRenderer messages;
+
+    public IslandWarpMenu() {
+        this(null);
+    }
+
+    public IslandWarpMenu(MessageRenderer messages) {
+        this.messages = messages;
+    }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
+        open(plugin, client, player, islandId, null);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
         client.listIslandWarps(islandId)
-            .thenAccept(body -> openSync(plugin, player, TITLE, warps(body), false))
+            .thenAccept(body -> openSync(plugin, player, TITLE, warps(body), false, messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("섬 워프를 불러오지 못했습니다."));
+                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "warp-menu-load-failed", "섬 워프를 불러오지 못했습니다.")));
                 return null;
             });
     }
 
     public static void openPublic(Plugin plugin, CoreApiClient client, Player player) {
+        openPublic(plugin, client, player, null);
+    }
+
+    public static void openPublic(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
         client.listPublicWarps(45)
-            .thenAccept(body -> openSync(plugin, player, PUBLIC_TITLE, warps(body), true))
+            .thenAccept(body -> openSync(plugin, player, PUBLIC_TITLE, warps(body), true, messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("공개 섬 워프를 불러오지 못했습니다."));
+                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "warp-menu-public-load-failed", "공개 섬 워프를 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -54,7 +72,7 @@ public final class IslandWarpMenu implements Listener {
         String name = meta.getDisplayName();
         player.closeInventory();
         if (name.equals("현재 위치를 워프로 설정")) {
-            player.sendMessage("사용법: /섬 워프설정 <이름>");
+            player.sendMessage(message(messages, "warp-menu-set-usage", "사용법: /섬 워프설정 <이름>"));
             return;
         }
         if (name.equals("공개 워프 새로고침")) {
@@ -90,12 +108,12 @@ public final class IslandWarpMenu implements Listener {
         player.performCommand("섬 warp " + warpName);
     }
 
-    private static void openSync(Plugin plugin, Player player, String title, List<Warp> warps, boolean publicMenu) {
+    private static void openSync(Plugin plugin, Player player, String title, List<Warp> warps, boolean publicMenu, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, title);
             inventory.setItem(45, publicMenu
                 ? item(Material.COMPASS, "공개 워프 새로고침", "/섬 공개워프목록")
-                : item(Material.ENDER_PEARL, "현재 위치를 워프로 설정", "사용법: /섬 워프설정 <이름>"));
+                : item(Material.ENDER_PEARL, "현재 위치를 워프로 설정", message(messages, "warp-menu-set-usage", "사용법: /섬 워프설정 <이름>")));
             int slot = 0;
             for (Warp warp : warps.stream().limit(45).toList()) {
                 inventory.setItem(slot++, warpItem(warp, publicMenu));
@@ -104,6 +122,14 @@ public final class IslandWarpMenu implements Listener {
             inventory.setItem(53, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
             player.openInventory(inventory);
         });
+    }
+
+    private static String message(MessageRenderer messages, String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private static ItemStack warpItem(Warp warp, boolean publicMenu) {
