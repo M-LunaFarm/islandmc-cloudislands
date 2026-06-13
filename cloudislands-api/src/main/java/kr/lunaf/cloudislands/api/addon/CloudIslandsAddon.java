@@ -7,12 +7,18 @@ import kr.lunaf.cloudislands.api.event.CloudEvent;
 import kr.lunaf.cloudislands.api.event.IslandActivatedEvent;
 import kr.lunaf.cloudislands.api.event.IslandCreatedEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeactivateEvent;
+import kr.lunaf.cloudislands.api.event.IslandDeleteRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeletedEvent;
 import kr.lunaf.cloudislands.api.event.IslandLevelRecalculateEvent;
 import kr.lunaf.cloudislands.api.event.IslandLimitChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandMemberChangedEvent;
 import kr.lunaf.cloudislands.api.event.IslandMigratedEvent;
 import kr.lunaf.cloudislands.api.event.IslandPermissionChangeEvent;
+import kr.lunaf.cloudislands.api.event.IslandRecoveryRequiredEvent;
+import kr.lunaf.cloudislands.api.event.IslandRepairedEvent;
+import kr.lunaf.cloudislands.api.event.IslandResetEvent;
+import kr.lunaf.cloudislands.api.event.IslandRestoredEvent;
+import kr.lunaf.cloudislands.api.event.IslandRestoreRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotCreateEvent;
 import kr.lunaf.cloudislands.api.event.IslandUpgradeEvent;
 import kr.lunaf.cloudislands.api.event.IslandWorthChangeEvent;
@@ -58,6 +64,18 @@ public interface CloudIslandsAddon {
             onIslandMigrated(migrated);
         } else if (event instanceof IslandDeletedEvent deleted) {
             onIslandDeleted(deleted);
+        } else if (event instanceof IslandDeleteRequestEvent deleteRequested) {
+            onIslandDeleteRequested(deleteRequested);
+        } else if (event instanceof IslandRestoreRequestEvent restoreRequested) {
+            onIslandRestoreRequested(restoreRequested);
+        } else if (event instanceof IslandRestoredEvent restored) {
+            onIslandRestored(restored);
+        } else if (event instanceof IslandResetEvent reset) {
+            onIslandReset(reset);
+        } else if (event instanceof IslandRecoveryRequiredEvent recoveryRequired) {
+            onIslandRecoveryRequired(recoveryRequired);
+        } else if (event instanceof IslandRepairedEvent repaired) {
+            onIslandRepaired(repaired);
         } else if (event instanceof IslandMemberChangedEvent memberChanged) {
             onIslandMemberChanged(memberChanged);
         } else if (event instanceof IslandPermissionChangeEvent permissionChanged) {
@@ -91,6 +109,24 @@ public interface CloudIslandsAddon {
     }
 
     default void onIslandDeleted(IslandDeletedEvent event) {
+    }
+
+    default void onIslandDeleteRequested(IslandDeleteRequestEvent event) {
+    }
+
+    default void onIslandRestoreRequested(IslandRestoreRequestEvent event) {
+    }
+
+    default void onIslandRestored(IslandRestoredEvent event) {
+    }
+
+    default void onIslandReset(IslandResetEvent event) {
+    }
+
+    default void onIslandRecoveryRequired(IslandRecoveryRequiredEvent event) {
+    }
+
+    default void onIslandRepaired(IslandRepairedEvent event) {
     }
 
     default void onIslandMemberChanged(IslandMemberChangedEvent event) {
