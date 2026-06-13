@@ -2462,6 +2462,9 @@ public final class VelocityRoutingController {
     }
 
     private String hiddenNodeLabel(String nodeId) {
+        if (hideNodeNames) {
+            return nodeId == null || nodeId.isBlank() ? "" : " node-hidden";
+        }
         return nodeId == null || nodeId.isBlank() ? "" : " " + nodeId;
     }
 
