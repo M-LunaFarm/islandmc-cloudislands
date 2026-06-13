@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.gui;
 import java.util.ArrayList;
 import java.util.List;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -16,12 +17,25 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandInviteMenu implements Listener {
     private static final String TITLE = "섬 초대 목록";
+    private final MessageRenderer messages;
+
+    public IslandInviteMenu() {
+        this(null);
+    }
+
+    public IslandInviteMenu(MessageRenderer messages) {
+        this.messages = messages;
+    }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player) {
+        open(plugin, client, player, null);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
         client.listPendingInvites(player.getUniqueId())
-            .thenAccept(body -> openSync(plugin, player, invites(body)))
+            .thenAccept(body -> openSync(plugin, player, invites(body), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("섬 초대 목록을 불러오지 못했습니다."));
+                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "invite-menu-load-failed", "섬 초대 목록을 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -60,15 +74,15 @@ public final class IslandInviteMenu implements Listener {
         player.performCommand((event.isRightClick() ? "섬 초대거절 " : "섬 초대수락 ") + inviteId);
     }
 
-    private static void openSync(Plugin plugin, Player player, List<Invite> invites) {
+    private static void openSync(Plugin plugin, Player player, List<Invite> invites, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
             if (invites.isEmpty()) {
-                inventory.setItem(22, item(Material.BARRIER, "대기 중인 초대 없음", "받은 섬 초대가 없습니다."));
+                inventory.setItem(22, item(Material.BARRIER, "대기 중인 초대 없음", message(messages, "invite-menu-empty", "받은 섬 초대가 없습니다.")));
             } else {
                 int slot = 0;
                 for (Invite invite : invites.stream().limit(45).toList()) {
-                    inventory.setItem(slot++, inviteItem(invite));
+                    inventory.setItem(slot++, inviteItem(invite, messages));
                 }
             }
             inventory.setItem(45, item(Material.NAME_TAG, "멤버 관리", "/섬 멤버관리"));
@@ -78,15 +92,23 @@ public final class IslandInviteMenu implements Listener {
         });
     }
 
-    private static ItemStack inviteItem(Invite invite) {
+    private static ItemStack inviteItem(Invite invite, MessageRenderer messages) {
         return item(Material.WRITABLE_BOOK, "섬 초대 " + shortUuid(invite.islandId()),
             "초대 ID=" + invite.inviteId(),
             "섬 ID: " + shortUuid(invite.islandId()),
             "초대한 사람: " + shortUuid(invite.inviterUuid()),
-            invite.createdAt().isBlank() ? "생성 정보 없음" : "생성 시각: " + invite.createdAt(),
-            invite.expiresAt().isBlank() ? "만료 정보 없음" : "만료 시각: " + invite.expiresAt(),
-            "좌클릭: 초대 수락",
-            "우클릭: 초대 거절");
+            invite.createdAt().isBlank() ? message(messages, "invite-menu-no-created-info", "생성 정보 없음") : message(messages, "invite-menu-created-at", "생성 시각: ") + invite.createdAt(),
+            invite.expiresAt().isBlank() ? message(messages, "invite-menu-no-expire-info", "만료 정보 없음") : message(messages, "invite-menu-expires-at", "만료 시각: ") + invite.expiresAt(),
+            message(messages, "invite-menu-left-click", "좌클릭: 초대 수락"),
+            message(messages, "invite-menu-right-click", "우클릭: 초대 거절"));
+    }
+
+    private static String message(MessageRenderer messages, String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private static List<Invite> invites(String body) {

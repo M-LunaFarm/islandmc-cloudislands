@@ -771,7 +771,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return true;
         }
         if (subcommand.equals("invites") || subcommand.equals("invite-menu") || subcommand.equals("초대목록")) {
-            IslandInviteMenu.open(plugin, coreApiClient, player);
+            IslandInviteMenu.open(plugin, coreApiClient, player, messages);
             return true;
         }
         if (subcommand.equals("invite-list")) {

@@ -166,7 +166,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandFlagMenu(messages), this);
         getServer().getPluginManager().registerEvents(new IslandHomeMenu(messages), this);
         getServer().getPluginManager().registerEvents(new IslandInfoMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandInviteMenu(), this);
+        getServer().getPluginManager().registerEvents(new IslandInviteMenu(messages), this);
         getServer().getPluginManager().registerEvents(new IslandLimitMenu(messages), this);
         getServer().getPluginManager().registerEvents(new IslandLogMenu(), this);
         getServer().getPluginManager().registerEvents(new IslandMainMenu(), this);
