@@ -1287,9 +1287,9 @@ public final class VelocityRoutingController {
         String activeWorld = jsonValue(body, "activeWorld");
         return "Island runtime: 섬=" + shortId(islandId)
             + " state=" + (state.isBlank() ? "UNKNOWN" : state)
-            + (activeNode.isBlank() ? "" : " node=" + activeNode)
-            + (activeWorld.isBlank() ? "" : " world=" + activeWorld)
-            + (body.contains("\"cellX\":null") || body.contains("\"cellZ\":null") ? "" : " cell=" + longValue(body, "cellX") + "," + longValue(body, "cellZ"))
+            + routeNodeSuffix(activeNode)
+            + runtimeWorldSuffix(activeWorld)
+            + runtimeCellSuffix(body)
             + " fence=" + longValue(body, "fencingToken");
     }
 
@@ -2509,6 +2509,20 @@ public final class VelocityRoutingController {
             return "";
         }
         return hideNodeNames ? " server=server-hidden" : " server=" + serverName;
+    }
+
+    private String runtimeWorldSuffix(String worldName) {
+        if (worldName == null || worldName.isBlank()) {
+            return "";
+        }
+        return hideNodeNames ? " world=world-hidden" : " world=" + worldName;
+    }
+
+    private String runtimeCellSuffix(String object) {
+        if (object == null || object.contains("\"cellX\":null") || object.contains("\"cellZ\":null")) {
+            return "";
+        }
+        return hideNodeNames ? " cell=cell-hidden" : " cell=" + longValue(object, "cellX") + "," + longValue(object, "cellZ");
     }
 
     private String nodeIslandRuntimeSuffix(String object) {
