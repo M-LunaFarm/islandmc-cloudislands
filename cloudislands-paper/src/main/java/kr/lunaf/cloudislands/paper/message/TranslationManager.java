@@ -238,6 +238,12 @@ public final class TranslationManager {
         values.put("flag-menu-deny", "거부");
         values.put("flag-menu-current-value", "현재 값: ");
         values.put("flag-menu-click-actions", "좌클릭: 허용, 우클릭: 거부");
+        values.put("permission-menu-load-failed", "섬 권한을 불러오지 못했습니다.");
+        values.put("permission-menu-default", "기본값");
+        values.put("permission-menu-allow", "허용");
+        values.put("permission-menu-deny", "차단");
+        values.put("permission-menu-current-state", "현재 상태: ");
+        values.put("permission-menu-click-actions", "좌클릭: 허용, 우클릭: 차단");
         values.put("danger-confirm-required", "Shift+우클릭해야 실행됩니다.");
         values.put("danger-confirm-click-required", "위험 작업은 Shift+우클릭해야 실행됩니다.");
         values.put("snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다.");
