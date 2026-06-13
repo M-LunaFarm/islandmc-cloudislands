@@ -363,7 +363,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return true;
         }
         if (subcommand.equals("list") || subcommand.equals("my") || subcommand.equals("my-islands") || subcommand.equals("목록") || subcommand.equals("내섬")) {
-            IslandMyIslandsMenu.open(plugin, coreApiClient, player);
+            IslandMyIslandsMenu.open(plugin, coreApiClient, player, messages);
             return true;
         }
         if (subcommand.equals("delete") || subcommand.equals("삭제")) {
