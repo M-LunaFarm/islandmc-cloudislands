@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.gui;
 import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -16,6 +17,7 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandBiomeMenu implements Listener {
     private static final String TITLE = "섬 바이옴";
+    private final MessageRenderer messages;
     private static final List<String> BIOMES = List.of(
         "minecraft:plains",
         "minecraft:forest",
@@ -29,11 +31,23 @@ public final class IslandBiomeMenu implements Listener {
         "minecraft:mushroom_fields"
     );
 
+    public IslandBiomeMenu() {
+        this(null);
+    }
+
+    public IslandBiomeMenu(MessageRenderer messages) {
+        this.messages = messages;
+    }
+
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
+        open(plugin, client, player, islandId, null);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
         client.islandBiome(islandId)
-            .thenAccept(body -> openSync(plugin, player, text(body, "biomeKey")))
+            .thenAccept(body -> openSync(plugin, player, text(body, "biomeKey"), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("섬 바이옴을 불러오지 못했습니다."));
+                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "biome-menu-load-failed", "섬 바이옴을 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -76,14 +90,14 @@ public final class IslandBiomeMenu implements Listener {
         player.performCommand("섬 바이옴 " + biomeKey);
     }
 
-    private static void openSync(Plugin plugin, Player player, String currentBiome) {
+    private static void openSync(Plugin plugin, Player player, String currentBiome, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
             int slot = 9;
             for (String biome : BIOMES) {
-                inventory.setItem(slot++, biomeItem(biome, biome.equalsIgnoreCase(currentBiome)));
+                inventory.setItem(slot++, biomeItem(biome, biome.equalsIgnoreCase(currentBiome), messages));
             }
-            inventory.setItem(4, item(Material.GRASS_BLOCK, "현재 바이옴", currentBiome.isBlank() ? "설정 없음" : currentBiome));
+            inventory.setItem(4, item(Material.GRASS_BLOCK, "현재 바이옴", currentBiome.isBlank() ? message(messages, "biome-menu-not-set", "설정 없음") : currentBiome));
             inventory.setItem(22, item(Material.CLOCK, "새로고침", "/섬 바이옴"));
             inventory.setItem(24, item(Material.COMPARATOR, "설정", "/섬 설정"));
             inventory.setItem(26, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
@@ -91,9 +105,17 @@ public final class IslandBiomeMenu implements Listener {
         });
     }
 
-    private static ItemStack biomeItem(String biome, boolean selected) {
+    private static ItemStack biomeItem(String biome, boolean selected, MessageRenderer messages) {
         Material material = selected ? Material.LIME_DYE : Material.GRASS_BLOCK;
-        return item(material, biome, "biomeKey=" + biome, selected ? "현재 적용됨" : "클릭하면 이 바이옴으로 변경합니다.");
+        return item(material, biome, "biomeKey=" + biome, selected ? message(messages, "biome-menu-selected", "현재 적용됨") : message(messages, "biome-menu-click-to-change", "클릭하면 이 바이옴으로 변경합니다."));
+    }
+
+    private static String message(MessageRenderer messages, String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
