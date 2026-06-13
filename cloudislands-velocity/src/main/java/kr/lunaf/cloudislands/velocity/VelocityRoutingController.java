@@ -562,11 +562,17 @@ public final class VelocityRoutingController {
     }
 
     public void listIslandLogs(Player player, UUID islandId) {
+        if (rejectExplicitIslandLookup(player, islandId)) {
+            return;
+        }
         withResolvedIsland(player, islandId, "로그를 확인할 섬을 찾지 못했습니다.", "섬 로그를 불러오지 못했습니다.",
             resolved -> sendBodyResult(player, coreApiClient.listIslandLogs(resolved, 30).thenApply(this::islandLogListMessage), "섬 로그를 불러오지 못했습니다."));
     }
 
     public void showBank(Player player, UUID islandId) {
+        if (rejectExplicitIslandLookup(player, islandId)) {
+            return;
+        }
         withResolvedIsland(player, islandId, "은행을 확인할 섬을 찾지 못했습니다.", "섬 은행을 불러오지 못했습니다.",
             resolved -> sendBodyResult(player, coreApiClient.islandBank(resolved).thenApply(this::bankInfoMessage), "섬 은행을 불러오지 못했습니다."));
     }
@@ -605,11 +611,17 @@ public final class VelocityRoutingController {
     }
 
     public void listUpgrades(Player player, UUID islandId) {
+        if (rejectExplicitIslandLookup(player, islandId)) {
+            return;
+        }
         withResolvedIsland(player, islandId, "업그레이드를 확인할 섬을 찾지 못했습니다.", "섬 업그레이드를 불러오지 못했습니다.",
             resolved -> sendBodyResult(player, coreApiClient.listIslandUpgrades(resolved).thenApply(this::upgradeListMessage), "섬 업그레이드를 불러오지 못했습니다."));
     }
 
     public void showGenerator(Player player, UUID islandId) {
+        if (rejectExplicitIslandLookup(player, islandId)) {
+            return;
+        }
         withResolvedIsland(player, islandId, "생성기를 확인할 섬을 찾지 못했습니다.", "섬 생성기를 불러오지 못했습니다.",
             resolved -> sendBodyResult(player, coreApiClient.listIslandUpgrades(resolved).thenApply(this::generatorInfoMessage), "섬 생성기를 불러오지 못했습니다."));
     }
@@ -620,11 +632,17 @@ public final class VelocityRoutingController {
     }
 
     public void listMissions(Player player, UUID islandId) {
+        if (rejectExplicitIslandLookup(player, islandId)) {
+            return;
+        }
         withResolvedIsland(player, islandId, "미션을 확인할 섬을 찾지 못했습니다.", "미션 목록을 불러오지 못했습니다.",
             resolved -> sendBodyResult(player, coreApiClient.listIslandMissions(resolved, "MISSION").thenApply(body -> missionListMessage("섬 미션", body)), "미션 목록을 불러오지 못했습니다."));
     }
 
     public void listChallenges(Player player, UUID islandId) {
+        if (rejectExplicitIslandLookup(player, islandId)) {
+            return;
+        }
         withResolvedIsland(player, islandId, "챌린지를 확인할 섬을 찾지 못했습니다.", "챌린지 목록을 불러오지 못했습니다.",
             resolved -> sendBodyResult(player, coreApiClient.listIslandMissions(resolved, "CHALLENGE").thenApply(body -> missionListMessage("섬 챌린지", body)), "챌린지 목록을 불러오지 못했습니다."));
     }
@@ -640,6 +658,9 @@ public final class VelocityRoutingController {
     }
 
     public void listLimits(Player player, UUID islandId) {
+        if (rejectExplicitIslandLookup(player, islandId)) {
+            return;
+        }
         withResolvedIsland(player, islandId, "제한을 확인할 섬을 찾지 못했습니다.", "섬 제한을 불러오지 못했습니다.",
             resolved -> sendBodyResult(player, coreApiClient.listIslandLimits(resolved).thenApply(this::limitListMessage), "섬 제한을 불러오지 못했습니다."));
     }
@@ -662,6 +683,14 @@ public final class VelocityRoutingController {
 
     private void sendIslandChatResolved(Player player, UUID islandId, String channel, String message, String label) {
         sendBodyResult(player, coreApiClient.sendIslandChat(islandId, player.getUniqueId(), channel, message).thenApply(body -> chatResultMessage(label, body)), label + "을 전송하지 못했습니다.");
+    }
+
+    private boolean rejectExplicitIslandLookup(Player player, UUID islandId) {
+        if (islandId == null || islandId.equals(new UUID(0L, 0L))) {
+            return false;
+        }
+        player.sendMessage(Component.text("플레이어 명령에서는 섬 UUID 직접 조회를 사용할 수 없습니다."));
+        return true;
     }
 
     private void withResolvedIsland(Player player, UUID islandId, String missingMessage, String failureMessage, Consumer<UUID> action) {
