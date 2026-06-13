@@ -279,6 +279,11 @@ public final class TranslationManager {
         values.put("log-menu-actor", "처리자: ");
         values.put("log-menu-unknown", "unknown");
         values.put("log-menu-payload-empty", "payload: 없음");
+        values.put("role-menu-load-failed", "섬 역할을 불러오지 못했습니다.");
+        values.put("role-menu-edit-prefix", "역할 편집: /섬 역할편집 ");
+        values.put("role-menu-edit-suffix", " <weight> <displayName>");
+        values.put("role-menu-empty-example", "/섬 역할편집 CUSTOM_1 5 부관리자");
+        values.put("role-menu-click-edit", "클릭: 편집 명령어 안내");
         values.put("danger-confirm-required", "Shift+우클릭해야 실행됩니다.");
         values.put("danger-confirm-click-required", "위험 작업은 Shift+우클릭해야 실행됩니다.");
         values.put("snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다.");

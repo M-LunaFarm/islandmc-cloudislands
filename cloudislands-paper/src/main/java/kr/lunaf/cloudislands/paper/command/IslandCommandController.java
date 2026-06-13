@@ -2413,7 +2413,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private void openIslandRoleMenu(Player player) {
-        currentIsland(player, "섬 안에서만 역할 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandRoleMenu.open(plugin, coreApiClient, player, islandId));
+        currentIsland(player, "섬 안에서만 역할 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandRoleMenu.open(plugin, coreApiClient, player, islandId, messages));
     }
 
     private void upsertIslandRole(Player player, IslandRole role, int weight, String displayName) {

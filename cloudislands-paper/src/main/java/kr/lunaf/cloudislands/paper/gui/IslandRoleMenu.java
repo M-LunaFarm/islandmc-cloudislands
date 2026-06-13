@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -17,12 +18,25 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandRoleMenu implements Listener {
     private static final String TITLE = "섬 역할 설정";
+    private final MessageRenderer messages;
+
+    public IslandRoleMenu() {
+        this(null);
+    }
+
+    public IslandRoleMenu(MessageRenderer messages) {
+        this.messages = messages;
+    }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
+        open(plugin, client, player, islandId, null);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
         client.listIslandRoles(islandId)
-            .thenAccept(body -> openSync(plugin, player, roles(body)))
+            .thenAccept(body -> openSync(plugin, player, roles(body), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("섬 역할을 불러오지 못했습니다."));
+                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "role-menu-load-failed", "섬 역할을 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -60,19 +74,19 @@ public final class IslandRoleMenu implements Listener {
         }
         String role = loreValue(meta, "role=");
         if (!role.isBlank()) {
-            player.sendMessage("역할 편집: /섬 역할편집 " + role + " <weight> <displayName>");
+            player.sendMessage(message(messages, "role-menu-edit-prefix", "역할 편집: /섬 역할편집 ") + role + message(messages, "role-menu-edit-suffix", " <weight> <displayName>"));
         }
     }
 
-    private static void openSync(Plugin plugin, Player player, List<RoleEntry> roles) {
+    private static void openSync(Plugin plugin, Player player, List<RoleEntry> roles, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
             int slot = 0;
             for (RoleEntry role : roles.stream().limit(18).toList()) {
-                inventory.setItem(slot++, roleItem(role));
+                inventory.setItem(slot++, roleItem(role, messages));
             }
             if (roles.isEmpty()) {
-                inventory.setItem(13, item(Material.GRAY_DYE, "커스텀 역할 없음", "/섬 역할편집 CUSTOM_1 5 부관리자"));
+                inventory.setItem(13, item(Material.GRAY_DYE, "커스텀 역할 없음", message(messages, "role-menu-empty-example", "/섬 역할편집 CUSTOM_1 5 부관리자")));
             }
             inventory.setItem(18, item(Material.PAPER, "역할 목록", "/섬 역할목록"));
             inventory.setItem(19, item(Material.COMPARATOR, "권한 설정", "/섬 권한"));
@@ -82,12 +96,20 @@ public final class IslandRoleMenu implements Listener {
         });
     }
 
-    private static ItemStack roleItem(RoleEntry role) {
+    private static ItemStack roleItem(RoleEntry role, MessageRenderer messages) {
         return item(material(role.role()), role.displayName().isBlank() ? role.role() : role.displayName(),
             "role=" + role.role(),
             "weight=" + role.weight(),
             "enum=" + role.role(),
-            "클릭: 편집 명령어 안내");
+            message(messages, "role-menu-click-edit", "클릭: 편집 명령어 안내"));
+    }
+
+    private static String message(MessageRenderer messages, String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private static Material material(String role) {
