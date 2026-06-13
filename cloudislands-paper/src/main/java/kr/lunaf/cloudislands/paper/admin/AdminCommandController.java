@@ -1024,9 +1024,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + longValue(storage, "uploadFailures")
             + longValue(storage, "downloadFailures")
             + longValue(storage, "operationFailures");
-        return "(failures=" + failures
-            + ", up=" + seconds(doubleValue(storage, "uploadSeconds")) + "s"
-            + ", down=" + seconds(doubleValue(storage, "downloadSeconds")) + "s)";
+        return adminText("admin-command-storage-metric-failures-prefix", "(failures=") + failures
+            + adminText("admin-command-storage-metric-up-prefix", ", up=") + seconds(doubleValue(storage, "uploadSeconds")) + "s"
+            + adminText("admin-command-storage-metric-down-prefix", ", down=") + seconds(doubleValue(storage, "downloadSeconds")) + "s)";
     }
 
     private String nodeSweepMessage(String body) {
@@ -1046,7 +1046,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             swept.add(nodes.substring(valueStart + 1, valueEnd));
             index = valueEnd + 1;
         }
-        return "Node sweep: nodes=" + (swept.isEmpty() ? "none" : String.join(",", swept)) + " recoveryRequired=" + recoveryRequired;
+        return adminText("admin-command-node-sweep-nodes-prefix", "Node sweep: nodes=") + (swept.isEmpty() ? adminText("admin-command-none", "none") : String.join(",", swept)) + adminText("admin-command-node-sweep-recovery-prefix", " recoveryRequired=") + recoveryRequired;
     }
 
     private String jobListMessage(String body) {
@@ -1416,15 +1416,15 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-core-config-jobs-prefix", " jobs=") + textValue(body, "jobQueueMode")
             + adminText("admin-command-core-config-events-prefix", " events=") + textValue(body, "eventBusMode")
             + adminText("admin-command-core-config-storage-prefix", " storage=") + textValue(body, "storageType")
-            + " pool=" + textValue(body, "islandPool")
-            + " dbPool=" + longValue(body, "databasePoolSize")
-            + " softFull=" + textValue(body, "softFullPolicy")
-            + " hardFull=" + textValue(body, "hardFullPolicy")
-            + " migration=" + textValue(body, "migrationPolicy")
-            + " ticketTtl=" + longValue(body, "routeTicketTtlSeconds") + "s"
-            + " prepTtl=" + longValue(body, "routePreparingTicketTtlSeconds") + "s"
-            + " mtls=" + boolValue(body, "requireMtls")
-            + " ipAllowlist=" + boolValue(body, "ipAllowlistEnabled");
+            + adminText("admin-command-core-config-pool-prefix", " pool=") + textValue(body, "islandPool")
+            + adminText("admin-command-core-config-db-pool-prefix", " dbPool=") + longValue(body, "databasePoolSize")
+            + adminText("admin-command-core-config-soft-full-prefix", " softFull=") + textValue(body, "softFullPolicy")
+            + adminText("admin-command-core-config-hard-full-prefix", " hardFull=") + textValue(body, "hardFullPolicy")
+            + adminText("admin-command-core-config-migration-prefix", " migration=") + textValue(body, "migrationPolicy")
+            + adminText("admin-command-core-config-ticket-ttl-prefix", " ticketTtl=") + longValue(body, "routeTicketTtlSeconds") + "s"
+            + adminText("admin-command-core-config-prep-ttl-prefix", " prepTtl=") + longValue(body, "routePreparingTicketTtlSeconds") + "s"
+            + adminText("admin-command-core-config-mtls-prefix", " mtls=") + boolValue(body, "requireMtls")
+            + adminText("admin-command-core-config-ip-allowlist-prefix", " ipAllowlist=") + boolValue(body, "ipAllowlistEnabled");
     }
 
     private String eventListMessage(String body) {
@@ -1658,10 +1658,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         String world = textValue(object, "activeWorld");
         if (!world.isBlank()) {
-            parts.add("world=" + world);
+            parts.add(adminText("admin-command-runtime-world-compact-prefix", "world=") + world);
         }
         if (!object.contains("\"cellX\":null") && !object.contains("\"cellZ\":null")) {
-            parts.add("cell=" + longValue(object, "cellX") + "," + longValue(object, "cellZ"));
+            parts.add(adminText("admin-command-runtime-cell-compact-prefix", "cell=") + longValue(object, "cellX") + "," + longValue(object, "cellZ"));
         }
         return String.join(" ", parts);
     }
