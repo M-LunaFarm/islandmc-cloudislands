@@ -133,7 +133,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!hasAdminAccess(sender, args)) {
-            sender.sendMessage("권한이 없습니다.");
+            sender.sendMessage(adminText("admin-command-no-permission", "권한이 없습니다."));
             return true;
         }
         if (args.length == 0 || args[0].equalsIgnoreCase("status")) {
@@ -322,7 +322,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             if (sender instanceof Player player) {
                 AdminNodeMenu.open(player, nodeId, messages);
             } else {
-                sender.sendMessage("플레이어만 노드 관리 메뉴를 열 수 있습니다.");
+                sender.sendMessage(adminText("admin-command-node-menu-player-only", "플레이어만 노드 관리 메뉴를 열 수 있습니다."));
             }
             return true;
         }
@@ -359,13 +359,13 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "Node shutdown-safe", coreApiClient.shutdownNodeSafely(targetNode, args.length > 3 ? joined(args, 3) : "admin").thenApply(body -> nodeActionSummaryMessage("Node shutdown-safe", targetNode, body)));
             return true;
         }
-        sender.sendMessage("사용법: /ciadmin node menu|list|info|islands|drain|undrain|sweep|kickall|shutdown-safe [node] [limit]");
+        sender.sendMessage(adminText("admin-command-node-usage", "사용법: /ciadmin node menu|list|info|islands|drain|undrain|sweep|kickall|shutdown-safe [node] [limit]"));
         return true;
     }
 
     private boolean handleIsland(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage("사용법: /ciadmin island info|where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete <islandUuid|islandName> [값]");
+            sender.sendMessage(adminText("admin-command-island-usage", "사용법: /ciadmin island info|where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete <islandUuid|islandName> [값]"));
             return true;
         }
         if (args[1].equalsIgnoreCase("info")) {
@@ -387,7 +387,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 resolvedArgs[2] = resolvedIslandId.toString();
                 agent.plugin().getServer().getScheduler().runTask(agent.plugin(), () -> handleIsland(sender, resolvedArgs));
             }).exceptionally(error -> {
-                sender.sendMessage("섬을 찾지 못했습니다: " + args[2]);
+                sender.sendMessage(adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + args[2]);
                 return null;
             });
             return true;
@@ -400,7 +400,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             if (sender instanceof Player player) {
                 routeAdminTeleport(player, islandId);
             } else {
-                sender.sendMessage("플레이어만 섬으로 이동할 수 있습니다.");
+                sender.sendMessage(adminText("admin-command-island-tp-player-only", "플레이어만 섬으로 이동할 수 있습니다."));
             }
             return true;
         }
@@ -414,7 +414,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args[1].equalsIgnoreCase("migrate")) {
             if (args.length < 4) {
-                sender.sendMessage("대상 노드를 입력해주세요.");
+                sender.sendMessage(adminText("admin-command-target-node-required", "대상 노드를 입력해주세요."));
                 return true;
             }
             run(sender, "Island migrate", coreApiClient.migrateIsland(islandId, args[3]).thenApply(body -> actionResultMessage("Island migrate", islandId.toString(), body)));
@@ -432,12 +432,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args[1].equalsIgnoreCase("restore") || args[1].equalsIgnoreCase("rollback")) {
             if (args.length < 4) {
-                sender.sendMessage("스냅샷 번호를 입력해주세요.");
+                sender.sendMessage(adminText("admin-command-snapshot-required", "스냅샷 번호를 입력해주세요."));
                 return true;
             }
             long snapshotNo = number(args[3], 0L);
             if (snapshotNo <= 0L) {
-                sender.sendMessage("스냅샷 번호가 올바르지 않습니다: " + args[3]);
+                sender.sendMessage(adminText("admin-command-snapshot-invalid", "스냅샷 번호가 올바르지 않습니다: ") + args[3]);
                 return true;
             }
             run(sender, "Island restore", coreApiClient.restoreIslandSnapshotResult(islandId, snapshotNo).thenApply(body -> actionResultMessage("Island restore", islandId.toString(), body)));
@@ -455,13 +455,13 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "Island delete", coreApiClient.adminDeleteIsland(islandId).thenApply(body -> actionResultMessage("Island delete", islandId.toString(), body)));
             return true;
         }
-        sender.sendMessage("사용법: /ciadmin island info|where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete <islandUuid|islandName> [값]");
+        sender.sendMessage(adminText("admin-command-island-usage", "사용법: /ciadmin island info|where|tp|activate|deactivate|migrate|save|snapshot|snapshots|restore|rollback|quarantine|repair|delete <islandUuid|islandName> [값]"));
         return true;
     }
 
     private boolean handlePlayer(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage("사용법: /ciadmin player info|setisland|clearisland <playerUuid|playerName> [islandUuid]");
+            sender.sendMessage(adminText("admin-command-player-usage", "사용법: /ciadmin player info|setisland|clearisland <playerUuid|playerName> [islandUuid]"));
             return true;
         }
         resolvePlayerUuid(sender, args[2]).thenAccept(playerUuid -> {
@@ -474,7 +474,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             }
             if (args[1].equalsIgnoreCase("setisland")) {
                 if (args.length < 4) {
-                    sender.sendMessage("섬 UUID를 입력해주세요.");
+                    sender.sendMessage(adminText("admin-command-island-uuid-required", "섬 UUID를 입력해주세요."));
                     return;
                 }
                 UUID islandId = uuid(sender, args[3]);
@@ -487,9 +487,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 run(sender, "Player clearisland", coreApiClient.clearPlayerIsland(playerUuid).thenApply(body -> actionResultMessage("Player clearisland", playerUuid.toString(), body)));
                 return;
             }
-            sender.sendMessage("사용법: /ciadmin player info|setisland|clearisland <playerUuid|playerName> [islandUuid]");
+            sender.sendMessage(adminText("admin-command-player-usage", "사용법: /ciadmin player info|setisland|clearisland <playerUuid|playerName> [islandUuid]"));
         }).exceptionally(error -> {
-            sender.sendMessage("플레이어를 찾지 못했습니다: " + args[2]);
+            sender.sendMessage(adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + args[2]);
             return null;
         });
         return true;
@@ -508,7 +508,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return true;
         }
         if (args.length < 3) {
-            sender.sendMessage("작업 ID를 입력해주세요.");
+            sender.sendMessage(adminText("admin-command-job-id-required", "작업 ID를 입력해주세요."));
             return true;
         }
         UUID jobId = uuid(sender, args[2]);
@@ -523,7 +523,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "Job cancel", coreApiClient.cancelJob(jobId).thenApply(body -> jobActionMessage("cancel", body)));
             return true;
         }
-        sender.sendMessage("사용법: /ciadmin jobs list|retry <jobId>|cancel <jobId>|recover [nodeId] [minIdleMillis] [maxJobs]");
+        sender.sendMessage(adminText("admin-command-jobs-usage", "사용법: /ciadmin jobs list|retry <jobId>|cancel <jobId>|recover [nodeId] [minIdleMillis] [maxJobs]"));
         return true;
     }
 
@@ -538,13 +538,13 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "Worth rankings", coreApiClient.topIslandsByWorth(limit).thenApply(body -> rankingListMessage("Worth rankings", body)));
             return true;
         }
-        sender.sendMessage("사용법: /ciadmin rankings level|worth [limit]");
+        sender.sendMessage(adminText("admin-command-rankings-usage", "사용법: /ciadmin rankings level|worth [limit]"));
         return true;
     }
 
     private boolean handleRoute(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage("사용법: /ciadmin route debug [all|playerUuid|playerName] | ticket <ticketUuid|playerUuid|playerName> | clear <playerUuid|playerName> [ticketUuid]");
+            sender.sendMessage(adminText("admin-command-route-usage", "사용법: /ciadmin route debug [all|playerUuid|playerName] | ticket <ticketUuid|playerUuid|playerName> | clear <playerUuid|playerName> [ticketUuid]"));
             return true;
         }
         if (args[1].equalsIgnoreCase("debug")) {
@@ -558,14 +558,14 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 }
                 run(sender, "Route debug", coreApiClient.debugRoutes(playerUuid).thenApply(this::routeDebugMessage));
             }).exceptionally(error -> {
-                sender.sendMessage("플레이어를 찾지 못했습니다: " + args[2]);
+                sender.sendMessage(adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + args[2]);
                 return null;
             });
             return true;
         }
         if (args[1].equalsIgnoreCase("ticket")) {
             if (args.length < 3) {
-                sender.sendMessage("티켓 UUID, 플레이어 UUID 또는 플레이어 이름을 입력해주세요.");
+                sender.sendMessage(adminText("admin-command-route-ticket-target-required", "티켓 UUID, 플레이어 UUID 또는 플레이어 이름을 입력해주세요."));
                 return true;
             }
             UUID ticketId = uuidOrNull(args[2]);
@@ -578,7 +578,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                     }
                     run(sender, "Route ticket", coreApiClient.routeTicketForPlayer(playerUuid).thenApply(this::routeTicketMessage));
                 }).exceptionally(error -> {
-                    sender.sendMessage("플레이어를 찾지 못했습니다: " + args[2]);
+                    sender.sendMessage(adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + args[2]);
                     return null;
                 });
             }
@@ -586,7 +586,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args[1].equalsIgnoreCase("clear")) {
             if (args.length < 3) {
-                sender.sendMessage("플레이어 이름 또는 UUID를 입력해주세요.");
+                sender.sendMessage(adminText("admin-command-player-target-required", "플레이어 이름 또는 UUID를 입력해주세요."));
                 return true;
             }
             UUID ticketId = args.length > 3 ? uuid(sender, args[3]) : new UUID(0L, 0L);
@@ -599,12 +599,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 }
                 run(sender, "Route clear", coreApiClient.clearRoute(playerUuid, ticketId).thenApply(this::routeClearMessage));
             }).exceptionally(error -> {
-                sender.sendMessage("플레이어를 찾지 못했습니다: " + args[2]);
+                sender.sendMessage(adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + args[2]);
                 return null;
             });
             return true;
         }
-        sender.sendMessage("사용법: /ciadmin route debug [all|playerUuid|playerName] | ticket <ticketUuid|playerUuid|playerName> | clear <playerUuid|playerName> [ticketUuid]");
+        sender.sendMessage(adminText("admin-command-route-usage", "사용법: /ciadmin route debug [all|playerUuid|playerName] | ticket <ticketUuid|playerUuid|playerName> | clear <playerUuid|playerName> [ticketUuid]"));
         return true;
     }
 
@@ -615,14 +615,14 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args[1].equalsIgnoreCase("set")) {
             if (args.length < 6) {
-                sender.sendMessage("사용법: /ciadmin block-values set <materialKey> <worth> <levelPoints> <limit>");
+                sender.sendMessage(adminText("admin-command-block-values-set-usage", "사용법: /ciadmin block-values set <materialKey> <worth> <levelPoints> <limit>"));
                 return true;
             }
             UUID actorUuid = sender instanceof Player player ? player.getUniqueId() : new UUID(0L, 0L);
             run(sender, "Block value set", coreApiClient.setBlockValueResult(actorUuid, args[2], args[3], number(args[4], 0L), number(args[5], 0L)).thenApply(body -> actionResultMessage("Block value set", args[2], body)));
             return true;
         }
-        sender.sendMessage("사용법: /ciadmin block-values list|set <materialKey> <worth> <levelPoints> <limit>");
+        sender.sendMessage(adminText("admin-command-block-values-usage", "사용법: /ciadmin block-values list|set <materialKey> <worth> <levelPoints> <limit>"));
         return true;
     }
 
@@ -633,7 +633,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args[1].equalsIgnoreCase("upsert")) {
             if (args.length < 4) {
-                sender.sendMessage("사용법: /ciadmin template|templates upsert <id> <name> [enabled|disabled] [minNodeVersion]");
+                sender.sendMessage(adminText("admin-command-template-upsert-usage", "사용법: /ciadmin template|templates upsert <id> <name> [enabled|disabled] [minNodeVersion]"));
                 return true;
             }
             boolean enabled = args.length < 5 || booleanArgument(args[4], false);
@@ -642,7 +642,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return true;
         }
         if (args.length < 3) {
-            sender.sendMessage("템플릿 ID를 입력해주세요.");
+            sender.sendMessage(adminText("admin-command-template-id-required", "템플릿 ID를 입력해주세요."));
             return true;
         }
         if (args[1].equalsIgnoreCase("enable")) {
@@ -653,18 +653,18 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "Template disable", coreApiClient.disableTemplate(args[2]).thenApply(body -> actionResultMessage("Template disable", args[2], body)));
             return true;
         }
-        sender.sendMessage("사용법: /ciadmin template|templates list|upsert|enable|disable");
+        sender.sendMessage(adminText("admin-command-template-usage", "사용법: /ciadmin template|templates list|upsert|enable|disable"));
         return true;
     }
 
     private boolean handleSuperiorSkyblock2Migration(CommandSender sender, String[] args) {
         String action = args.length > 1 ? args[1] : "scan";
         if (!MIGRATION_COMMANDS.contains(action.toLowerCase(Locale.ROOT))) {
-            sender.sendMessage("사용법: /ciadmin migrate-superiorskyblock2 scan|dryrun|dry-run|extract|import|verify|rollback [path]");
+            sender.sendMessage(adminText("admin-command-migration-usage", "사용법: /ciadmin migrate-superiorskyblock2 scan|dryrun|dry-run|extract|import|verify|rollback [path]"));
             return true;
         }
         if (action.equalsIgnoreCase("import") && args.length < 3) {
-            sender.sendMessage("사용법: /ciadmin migrate-superiorskyblock2 import <approvalToken>");
+            sender.sendMessage(adminText("admin-command-migration-import-usage", "사용법: /ciadmin migrate-superiorskyblock2 import <approvalToken>"));
             return true;
         }
         String path = args.length > 2 ? joined(args, 2) : "plugins/SuperiorSkyblock2";
@@ -1899,6 +1899,14 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
 
     private void message(CommandSender sender, String text) {
         agent.plugin().getServer().getScheduler().runTask(agent.plugin(), () -> sender.sendMessage(text));
+    }
+
+    private String adminText(String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private void usage(CommandSender sender, String label, int page) {
