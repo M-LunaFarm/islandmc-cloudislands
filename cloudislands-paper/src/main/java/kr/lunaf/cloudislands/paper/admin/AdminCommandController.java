@@ -376,10 +376,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                     if (!addon.get().features().containsKey(args[3])) {
                         return java.util.concurrent.CompletableFuture.completedFuture(adminText("admin-command-addons-feature-invalid", "알 수 없는 addon feature입니다: ") + args[3]);
                     }
-                    agent.plugin().getConfig().set("addons." + args[2] + ".features." + args[3], enabled);
-                    agent.plugin().saveConfig();
-                    agent.plugin().reloadConfig();
-                    return api.addons().refresh(args[2]).thenApply(refreshed -> refreshed.map(this::addonInfoMessage).orElse(adminText("admin-command-addons-not-found", "Addon: not found ") + args[2]));
+                    return api.addons().setFeature(args[2], args[3], enabled)
+                        .thenApply(refreshed -> refreshed.map(this::addonInfoMessage).orElse(adminText("admin-command-addons-not-found", "Addon: not found ") + args[2]));
                 }));
                 return true;
             }
@@ -401,10 +399,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 return true;
             }
             boolean enabled = args[1].equalsIgnoreCase("enable");
-            agent.plugin().getConfig().set("addons." + args[2] + ".enabled", enabled);
-            agent.plugin().saveConfig();
-            agent.plugin().reloadConfig();
-            run(sender, "Addon " + args[1].toLowerCase(Locale.ROOT), api.addons().refresh(args[2]).thenApply(addon -> addon.map(this::addonInfoMessage).orElse(adminText("admin-command-addons-not-found", "Addon: not found ") + args[2])));
+            run(sender, "Addon " + args[1].toLowerCase(Locale.ROOT), api.addons().setEnabled(args[2], enabled).thenApply(addon -> addon.map(this::addonInfoMessage).orElse(adminText("admin-command-addons-not-found", "Addon: not found ") + args[2])));
             return true;
         }
         if (args[1].equalsIgnoreCase("reload")) {

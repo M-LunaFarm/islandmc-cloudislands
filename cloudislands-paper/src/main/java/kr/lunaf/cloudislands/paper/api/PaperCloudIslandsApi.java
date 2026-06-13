@@ -295,6 +295,32 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
+        public CompletableFuture<Optional<CloudIslandsAddonSnapshot>> setEnabled(String id, boolean enabled) {
+            if (!registrations.containsKey(id)) {
+                return CompletableFuture.completedFuture(Optional.empty());
+            }
+            plugin.getConfig().set("addons." + id + ".enabled", enabled);
+            plugin.saveConfig();
+            plugin.reloadConfig();
+            return refresh(id);
+        }
+
+        @Override
+        public CompletableFuture<Optional<CloudIslandsAddonSnapshot>> setFeature(String id, String feature, boolean enabled) {
+            AddonRegistration registration = registrations.get(id);
+            if (registration == null) {
+                return CompletableFuture.completedFuture(Optional.empty());
+            }
+            if (!effectiveFeatures(id, registration.features()).containsKey(feature)) {
+                return CompletableFuture.completedFuture(Optional.empty());
+            }
+            plugin.getConfig().set("addons." + id + ".features." + feature, enabled);
+            plugin.saveConfig();
+            plugin.reloadConfig();
+            return refresh(id);
+        }
+
+        @Override
         public CompletableFuture<Boolean> isEnabled(String id) {
             return CompletableFuture.completedFuture(Optional.ofNullable(addons.get(id)).map(CloudIslandsAddonSnapshot::enabled).orElse(false));
         }
