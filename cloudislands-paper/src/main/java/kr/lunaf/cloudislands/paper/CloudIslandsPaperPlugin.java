@@ -240,7 +240,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
                 getConfig().getString("health.bind-host", "127.0.0.1"),
                 getConfig().getInt("health.port", 8787),
                 () -> paperHealthJson(role, nodeId),
-                () -> paperMetricsText(role, nodeId)
+                () -> paperMetricsText(role, nodeId, storage)
             );
             healthService.start();
         }
@@ -348,16 +348,22 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "}";
     }
 
-    private String paperMetricsText(AgentRole role, String nodeId) {
+    private String paperMetricsText(AgentRole role, String nodeId, MeteredIslandStorage storage) {
         int active = activeIslands == null ? 0 : activeIslands.size();
         int queue = jobWorker == null ? 0 : jobWorker.activationQueue();
         int failures = jobWorker == null ? 0 : jobWorker.recentFailurePenalty();
         PaperRedisClient.PingResult redis = redisClient == null ? PaperRedisClient.PingResult.disabled() : redisClient.ping();
+        double storageUploadSeconds = storage == null ? 0.0D : storage.lastUploadSeconds();
+        double storageDownloadSeconds = storage == null ? 0.0D : storage.lastDownloadSeconds();
+        long storageFailures = storage == null ? 0L : storage.operationFailures();
         return ""
             + "cloudislands_paper_online_players " + getServer().getOnlinePlayers().size() + "\n"
             + "cloudislands_paper_active_islands{node=\"" + nodeId + "\",role=\"" + role.name() + "\"} " + active + "\n"
             + "cloudislands_paper_activation_queue{node=\"" + nodeId + "\"} " + queue + "\n"
             + "cloudislands_paper_recent_failure_penalty{node=\"" + nodeId + "\"} " + failures + "\n"
+            + "cloudislands_storage_upload_seconds{node=\"" + nodeId + "\"} " + storageUploadSeconds + "\n"
+            + "cloudislands_storage_download_seconds{node=\"" + nodeId + "\"} " + storageDownloadSeconds + "\n"
+            + "cloudislands_storage_operation_failures_total{node=\"" + nodeId + "\"} " + storageFailures + "\n"
             + "cloudislands_paper_redis_available{node=\"" + nodeId + "\"} " + (redis.available() ? 1 : 0) + "\n"
             + "cloudislands_paper_redis_latency_seconds{node=\"" + nodeId + "\"} " + redis.latencySeconds() + "\n"
             + "cloudislands_paper_redis_failures_total{node=\"" + nodeId + "\"} " + redis.failuresTotal() + "\n"
