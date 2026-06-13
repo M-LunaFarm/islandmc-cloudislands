@@ -701,6 +701,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return;
         }
         islands.find(islandId).ifPresent(island -> {
+            String activeWorld = activeIslandWorld(islandId);
+            if (machines != null && activeWorld != null && featureEnabled("machines")) {
+                machines.remapIslandWorld(islandId, activeWorld);
+            }
             if (maintenance != null && featureEnabled("maintenance")) {
                 maintenance.updateStatus(island);
             }
@@ -710,6 +714,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             }
             islands.save(island);
         });
+    }
+
+    private String activeIslandWorld(UUID islandId) {
+        if (skyblock == null) {
+            return null;
+        }
+        return skyblock.getIslandByUuid(islandId)
+                .flatMap(skyblock::getIslandCenter)
+                .map(location -> location.getWorld() == null ? null : location.getWorld().getName())
+                .orElse(null);
     }
 
     private void flushSatisIsland(UUID islandId) {

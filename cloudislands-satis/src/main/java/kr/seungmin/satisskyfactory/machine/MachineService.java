@@ -212,6 +212,53 @@ public final class MachineService {
         return machines.values().stream().filter(machine -> machine.islandUuid().equals(islandUuid)).toList();
     }
 
+    public boolean remapIslandWorld(UUID islandUuid, String worldName) {
+        if (worldName == null || worldName.isBlank()) {
+            return false;
+        }
+        boolean changed = false;
+        for (MachineInstance machine : byIsland(islandUuid)) {
+            if (worldName.equals(machine.location().world())) {
+                continue;
+            }
+            byLocation.remove(LocationKey.from(machine.location()));
+            MachineInstance remapped = copyWithLocation(machine, new BlockKey(worldName, machine.location().x(), machine.location().y(), machine.location().z()));
+            machines.put(remapped.machineId(), remapped);
+            byLocation.put(LocationKey.from(remapped.location()), remapped.machineId());
+            saveLater(remapped);
+            changed = true;
+        }
+        if (changed) {
+            revision.incrementAndGet();
+        }
+        return changed;
+    }
+
+    private MachineInstance copyWithLocation(MachineInstance machine, BlockKey location) {
+        MachineInstance copy = new MachineInstance(
+                machine.machineId(),
+                machine.islandUuid(),
+                machine.ownerUuid(),
+                machine.typeId(),
+                machine.tier(),
+                location
+        );
+        copy.direction(machine.direction());
+        copy.status(machine.status());
+        copy.inputInventoryId(machine.inputInventoryId());
+        copy.outputInventoryId(machine.outputInventoryId());
+        copy.powerNetworkId(machine.powerNetworkId());
+        copy.itemNetworkId(machine.itemNetworkId());
+        copy.linkedResourceNodeId(machine.linkedResourceNodeId());
+        copy.configJson(machine.configJson());
+        copy.selectedRecipeId(machine.selectedRecipeId());
+        copy.lastProcessAt(machine.lastProcessAt());
+        copy.wear(machine.wear());
+        copy.createdAt(machine.createdAt());
+        copy.updatedAt(machine.updatedAt());
+        return copy;
+    }
+
     public void forgetIsland(UUID islandUuid) {
         for (MachineInstance machine : byIsland(islandUuid)) {
             machines.remove(machine.machineId());

@@ -263,7 +263,8 @@ public final class DatabaseService {
                        input_inventory_id, output_inventory_id, power_network_id, item_network_id, linked_resource_node_id,
                        last_process_at, wear, config_json, created_at, updated_at)
                      VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                     ON CONFLICT(machine_id) DO UPDATE SET status=excluded.status, input_inventory_id=excluded.input_inventory_id,
+                     ON CONFLICT(machine_id) DO UPDATE SET world=excluded.world, x=excluded.x, y=excluded.y, z=excluded.z,
+                       direction=excluded.direction, status=excluded.status, input_inventory_id=excluded.input_inventory_id,
                        output_inventory_id=excluded.output_inventory_id, power_network_id=excluded.power_network_id,
                        item_network_id=excluded.item_network_id, linked_resource_node_id=excluded.linked_resource_node_id,
                        last_process_at=excluded.last_process_at, wear=excluded.wear, config_json=excluded.config_json, updated_at=excluded.updated_at
