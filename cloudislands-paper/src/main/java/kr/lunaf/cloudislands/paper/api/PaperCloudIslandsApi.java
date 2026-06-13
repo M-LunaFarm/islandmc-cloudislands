@@ -224,11 +224,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         private CloudIslandsAddonSnapshot snapshot(AddonRegistration registration) {
             String id = registration.id();
+            boolean addonDefaultEnabled = registration.enabled();
             boolean configEnabled = configuredAddonEnabled(id);
-            boolean enabled = registration.enabled() && configEnabled;
+            boolean enabled = addonDefaultEnabled && configEnabled;
             Map<String, Boolean> configuredFeatures = effectiveFeatures(registration);
             Map<String, Boolean> visibleFeatures = enabled ? configuredFeatures : disabledFeatures(configuredFeatures);
-            return new CloudIslandsAddonSnapshot(id, registration.displayName(), registration.version(), enabled, registration.registeredAt(), Instant.now(), configuredFeatures, visibleFeatures, effectiveMetadata(id, registration.metadata()));
+            return new CloudIslandsAddonSnapshot(id, registration.displayName(), registration.version(), enabled, registration.registeredAt(), Instant.now(), configuredFeatures, visibleFeatures, effectiveMetadata(id, registration.metadata(), addonDefaultEnabled, configEnabled));
         }
 
         private boolean configuredAddonEnabled(String id) {
@@ -292,9 +293,18 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return disabled;
         }
 
-        private Map<String, String> effectiveMetadata(String id, Map<String, String> metadata) {
+        private Map<String, String> effectiveMetadata(String id, Map<String, String> metadata, boolean addonDefaultEnabled, boolean parentEnabled) {
             Map<String, String> effective = new HashMap<>(metadata == null ? Map.of() : metadata);
             effective.putIfAbsent("source-node", plugin.getConfig().getString("node.id", "unknown"));
+            effective.put("addon-default-enabled", Boolean.toString(addonDefaultEnabled));
+            effective.put("parent-enabled", Boolean.toString(parentEnabled));
+            if (!addonDefaultEnabled) {
+                effective.put("disabled-reason", "addon-default");
+            } else if (!parentEnabled) {
+                effective.put("disabled-reason", "parent-config");
+            } else {
+                effective.put("disabled-reason", "none");
+            }
             if (id.equals("cloudislands-satis")) {
                 boolean hasAddonConfig = plugin.getConfig().contains("addons." + id);
                 boolean hasSatisConfig = plugin.getConfig().contains("satis");
