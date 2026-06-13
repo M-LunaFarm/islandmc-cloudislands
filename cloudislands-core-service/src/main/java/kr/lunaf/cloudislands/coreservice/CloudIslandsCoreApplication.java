@@ -2145,7 +2145,7 @@ public final class CloudIslandsCoreApplication {
     }
 
     private static String migrationDisabledJson() {
-        return "{\"code\":\"MIGRATION_DISABLED\",\"message\":\"SuperiorSkyblock2 migration is disabled by config\"}";
+        return "{\"code\":\"MIGRATION_DISABLED\",\"state\":\"DISABLED\",\"message\":\"SuperiorSkyblock2 migration is disabled by config\"}";
     }
 
     private static void logSecurityPosture(CoreServiceConfig config) {

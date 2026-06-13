@@ -820,6 +820,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         String code = textValue(body, "code");
         if (!code.isBlank()) {
+            if (code.equals("MIGRATION_DISABLED")) {
+                return adminText("admin-command-migration-disabled", "SuperiorSkyblock2 migration is disabled by config.");
+            }
             String message = textValue(body, "message");
             return adminText("admin-command-migration-failed-prefix", "Migration: failed code=") + code
                 + (message.isBlank() ? "" : adminText("admin-command-migration-message-prefix", " message=") + message);
