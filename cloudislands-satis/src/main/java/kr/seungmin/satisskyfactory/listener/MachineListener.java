@@ -42,6 +42,7 @@ public final class MachineListener implements Listener {
     private final BooleanSupplier active;
     private final BooleanSupplier resourceNodesEnabled;
     private final BooleanSupplier maintenanceEnabled;
+    private final BooleanSupplier researchEnabled;
     private final BooleanSupplier guiEnabled;
     private final JavaPlugin plugin;
     private final CustomItemFactory itemFactory;
@@ -59,7 +60,7 @@ public final class MachineListener implements Listener {
     private final FileConfiguration maintenanceConfig;
     private final IslandBoostService boosts;
 
-    public MachineListener(BooleanSupplier active, BooleanSupplier resourceNodesEnabled, BooleanSupplier maintenanceEnabled, BooleanSupplier guiEnabled,
+    public MachineListener(BooleanSupplier active, BooleanSupplier resourceNodesEnabled, BooleanSupplier maintenanceEnabled, BooleanSupplier researchEnabled, BooleanSupplier guiEnabled,
                            JavaPlugin plugin, CustomItemFactory itemFactory, MachineDefinitionService definitions, MachineService machines,
                            SkyblockProvider skyblock, FactoryIslandService islands, FactoryGuiService gui,
                            MessageService messages, ResearchService research, ResourceNodeService nodes,
@@ -69,6 +70,7 @@ public final class MachineListener implements Listener {
         this.active = active;
         this.resourceNodesEnabled = resourceNodesEnabled;
         this.maintenanceEnabled = maintenanceEnabled;
+        this.researchEnabled = researchEnabled;
         this.guiEnabled = guiEnabled;
         this.plugin = plugin;
         this.itemFactory = itemFactory;
@@ -135,7 +137,8 @@ public final class MachineListener implements Listener {
             return false;
         }
         FactoryIsland island = islands.getOrCreate(islandRef);
-        if (definition.tier() > island.tier() || !research.unlocked(island).containsAll(definition.requiredUnlocks())) {
+        if (definition.tier() > island.tier()
+                || (researchEnabled.getAsBoolean() && !research.unlocked(island).containsAll(definition.requiredUnlocks()))) {
             messages.send(player, "place-denied");
             return false;
         }

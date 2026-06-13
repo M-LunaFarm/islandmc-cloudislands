@@ -543,6 +543,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                     () -> featureEnabled("machines"),
                     () -> operationalFeatureEnabled("resource-nodes"),
                     () -> featureEnabled("maintenance"),
+                    () -> featureEnabled("research"),
                     () -> operationalFeatureEnabled("gui"),
                     this,
                     itemFactory,
