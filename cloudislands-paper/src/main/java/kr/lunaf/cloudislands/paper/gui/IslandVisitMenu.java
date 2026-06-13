@@ -49,22 +49,25 @@ public final class IslandVisitMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || !meta.hasDisplayName()) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= 54) {
             return;
         }
-        String name = meta.getDisplayName();
         player.closeInventory();
-        if (name.equals("랜덤 공개 섬")) {
+        if (slot == 4) {
             player.performCommand("섬 랜덤방문");
             return;
         }
-        if (name.equals("공개 워프 목록")) {
+        if (slot == 45) {
             player.performCommand("섬 공개워프목록");
             return;
         }
-        if (name.equals("새로고침")) {
+        if (slot == 49) {
             player.performCommand("섬 방문");
+            return;
+        }
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null) {
             return;
         }
         if (meta.getLore() == null) {
@@ -79,17 +82,17 @@ public final class IslandVisitMenu implements Listener {
     private static void openSync(Plugin plugin, Player player, List<IslandEntry> islands, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
-            inventory.setItem(4, item(Material.COMPASS, "랜덤 공개 섬", message(messages, "visit-menu-random-description", "공개된 섬 중 하나로 이동합니다.")));
+            inventory.setItem(4, item(Material.COMPASS, message(messages, "visit-menu-random-name", "랜덤 공개 섬"), message(messages, "visit-menu-random-description", "공개된 섬 중 하나로 이동합니다.")));
             if (islands.isEmpty()) {
-                inventory.setItem(22, item(Material.BARRIER, "공개 섬 없음", message(messages, "visit-menu-empty", "방문 가능한 공개 섬이 없습니다.")));
+                inventory.setItem(22, item(Material.BARRIER, message(messages, "visit-menu-empty-title", "공개 섬 없음"), message(messages, "visit-menu-empty", "방문 가능한 공개 섬이 없습니다.")));
             } else {
                 for (int index = 0; index < islands.size() && index < 36; index++) {
                     IslandEntry island = islands.get(index);
-                    inventory.setItem(index + 9, item(Material.GRASS_BLOCK, island.name(), "섬 ID=" + island.islandId(), "소유자: " + shortId(island.ownerUuid()), "레벨: " + island.level(), "가치: " + island.worth(), message(messages, "visit-menu-click-to-visit", "클릭하면 방문합니다.")));
+                    inventory.setItem(index + 9, item(Material.GRASS_BLOCK, island.name(), "섬 ID=" + island.islandId(), message(messages, "visit-menu-owner", "소유자: ") + shortId(island.ownerUuid()), message(messages, "visit-menu-level", "레벨: ") + island.level(), message(messages, "visit-menu-worth", "가치: ") + island.worth(), message(messages, "visit-menu-click-to-visit", "클릭하면 방문합니다.")));
                 }
             }
-            inventory.setItem(45, item(Material.ENDER_EYE, "공개 워프 목록", "/섬 공개워프목록"));
-            inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 방문"));
+            inventory.setItem(45, item(Material.ENDER_EYE, message(messages, "visit-menu-public-warps-name", "공개 워프 목록"), message(messages, "visit-menu-public-warps-command", "/섬 공개워프목록")));
+            inventory.setItem(49, item(Material.CLOCK, message(messages, "visit-menu-refresh-name", "새로고침"), message(messages, "visit-menu-refresh-command", "/섬 방문")));
             player.openInventory(inventory);
         });
     }

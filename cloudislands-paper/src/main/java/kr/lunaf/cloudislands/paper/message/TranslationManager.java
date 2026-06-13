@@ -318,9 +318,18 @@ public final class TranslationManager {
         values.put("my-islands-menu-public-islands-name", "공개 섬");
         values.put("my-islands-menu-public-islands-command", "/섬 방문");
         values.put("visit-menu-load-failed", "공개 섬 목록을 불러오지 못했습니다.");
+        values.put("visit-menu-random-name", "랜덤 공개 섬");
         values.put("visit-menu-empty", "방문 가능한 공개 섬이 없습니다.");
+        values.put("visit-menu-empty-title", "공개 섬 없음");
         values.put("visit-menu-random-description", "공개된 섬 중 하나로 이동합니다.");
+        values.put("visit-menu-owner", "소유자: ");
+        values.put("visit-menu-level", "레벨: ");
+        values.put("visit-menu-worth", "가치: ");
         values.put("visit-menu-click-to-visit", "클릭하면 방문합니다.");
+        values.put("visit-menu-public-warps-name", "공개 워프 목록");
+        values.put("visit-menu-public-warps-command", "/섬 공개워프목록");
+        values.put("visit-menu-refresh-name", "새로고침");
+        values.put("visit-menu-refresh-command", "/섬 방문");
         values.put("limit-menu-load-failed", "섬 제한을 불러오지 못했습니다.");
         values.put("limit-menu-empty", "현재 설정된 섬 제한이 없습니다.");
         values.put("limit-menu-no-update", "업데이트 정보 없음");
