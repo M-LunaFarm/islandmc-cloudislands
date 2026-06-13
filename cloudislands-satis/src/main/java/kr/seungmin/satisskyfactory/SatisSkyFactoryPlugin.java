@@ -712,8 +712,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     @Override
     public boolean enabledByDefault() {
         return configs.main().contains("satis.enabled")
-                ? configs.main().getBoolean("satis.enabled", false)
-                : configs.main().getBoolean("integration.enabled", false);
+                ? configs.main().getBoolean("satis.enabled", true)
+                : configs.main().getBoolean("integration.enabled", true);
     }
 
     @Override
