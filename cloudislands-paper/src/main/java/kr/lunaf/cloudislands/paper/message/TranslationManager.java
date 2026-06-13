@@ -113,6 +113,7 @@ public final class TranslationManager {
         values.put("route-session-check-failed", "섬 입장 준비를 확인하지 못했습니다.");
         values.put("route-session-preparing", "섬 입장을 준비하는 중입니다...");
         values.put("route-session-missing-fallback", "섬 입장 요청이 없어 로비로 이동합니다.");
+        values.put("limit-reached", "섬 {limit} 제한에 도달했습니다. 현재 {current}/{max}");
         return values;
     }
 

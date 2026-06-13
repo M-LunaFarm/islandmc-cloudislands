@@ -6,6 +6,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -19,13 +20,19 @@ public final class IslandLimitListener implements Listener {
     private static final long NOTICE_COOLDOWN_MILLIS = 3_000L;
     private final ProtectionController protection;
     private final IslandLimitCache limits;
+    private final MessageRenderer messages;
     private final Map<UUID, Map<String, Long>> observed = new ConcurrentHashMap<>();
     private final Map<UUID, Set<String>> seeded = new ConcurrentHashMap<>();
     private final Map<String, Long> lastLimitNotice = new ConcurrentHashMap<>();
 
     public IslandLimitListener(ProtectionController protection, IslandLimitCache limits) {
+        this(protection, limits, null);
+    }
+
+    public IslandLimitListener(ProtectionController protection, IslandLimitCache limits, MessageRenderer messages) {
         this.protection = protection;
         this.limits = limits;
+        this.messages = messages;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -72,7 +79,27 @@ public final class IslandLimitListener implements Listener {
             return;
         }
         lastLimitNotice.put(noticeKey, now);
-        player.sendMessage("섬 " + limitName(key) + " 제한에 도달했습니다. 현재 " + current + "/" + limit);
+        player.sendMessage(message("limit-reached", "섬 {limit} 제한에 도달했습니다. 현재 {current}/{max}",
+            "limit", limitName(key),
+            "current", Long.toString(current),
+            "max", Long.toString(limit)
+        ));
+    }
+
+    private String message(String key, String fallback, String... variables) {
+        if (messages == null) {
+            return render(fallback, variables);
+        }
+        String rendered = messages.plain(key, variables);
+        return rendered.isBlank() ? render(fallback, variables) : rendered;
+    }
+
+    private String render(String template, String... variables) {
+        String rendered = template == null ? "" : template;
+        for (int index = 0; index + 1 < variables.length; index += 2) {
+            rendered = rendered.replace("{" + variables[index] + "}", variables[index + 1] == null ? "" : variables[index + 1]);
+        }
+        return rendered;
     }
 
     private void seedObserved(World world, IslandRegion region, String key, Block excludedBlock) {
