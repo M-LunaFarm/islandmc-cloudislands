@@ -396,6 +396,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         private void clearFeatureAliases(String id, AddonRegistration registration, String canonicalFeature) {
             for (String alias : AddonFeatureAliases.aliasesFor(registration.metadata(), canonicalFeature)) {
                 plugin.getConfig().set("addons." + id + ".features." + alias, null);
+                if (id.equals("cloudislands-satis")) {
+                    plugin.getConfig().set("satis.features." + alias, null);
+                }
             }
         }
 
