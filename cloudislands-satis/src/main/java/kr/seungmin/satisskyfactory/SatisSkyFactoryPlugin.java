@@ -524,17 +524,21 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private Map<String, Boolean> featureSnapshot() {
         Map<String, Boolean> features = new LinkedHashMap<>();
-        features.put("commands", featureEnabled("commands"));
-        features.put("machines", featureEnabled("machines"));
-        features.put("gui", featureEnabled("gui"));
-        features.put("lifecycle", featureEnabled("lifecycle"));
-        features.put("resource-nodes", featureEnabled("resource-nodes"));
-        features.put("market", featureEnabled("market"));
-        features.put("contracts", featureEnabled("contracts"));
-        features.put("research", featureEnabled("research"));
-        features.put("maintenance", featureEnabled("maintenance"));
-        features.put("placeholders", featureEnabled("placeholders"));
+        features.put("commands", configuredFeatureEnabled("commands"));
+        features.put("machines", configuredFeatureEnabled("machines"));
+        features.put("gui", configuredFeatureEnabled("gui"));
+        features.put("lifecycle", configuredFeatureEnabled("lifecycle"));
+        features.put("resource-nodes", configuredFeatureEnabled("resource-nodes"));
+        features.put("market", configuredFeatureEnabled("market"));
+        features.put("contracts", configuredFeatureEnabled("contracts"));
+        features.put("research", configuredFeatureEnabled("research"));
+        features.put("maintenance", configuredFeatureEnabled("maintenance"));
+        features.put("placeholders", configuredFeatureEnabled("placeholders"));
         return features;
+    }
+
+    private boolean configuredFeatureEnabled(String key) {
+        return configs.main().getBoolean("features." + key, true);
     }
 
     private boolean featureEnabled(String key) {
@@ -542,6 +546,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (effective != null) {
             return effective;
         }
-        return configs.main().getBoolean("features." + key, true);
+        return configuredFeatureEnabled(key);
     }
 }
