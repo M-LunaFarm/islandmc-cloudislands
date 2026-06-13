@@ -195,7 +195,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             || !configBoolean("security.require-velocity-forwarding", true)
             || !resolveEnv(getConfig().getString("security.forwarding-secret", "")).isBlank();
         ProxySourceAllowlist proxySourceAllowlist = new ProxySourceAllowlist(getConfig().getStringList("security.proxy-source-allowlist"));
-        this.routeSessionListener = new PaperRouteSessionListener(this, client, agent.routeTickets(), nodeId, requireRouteSession, forwardingReady, fallbackServerName, proxySourceAllowlist);
+        this.routeSessionListener = new PaperRouteSessionListener(this, client, agent.routeTickets(), nodeId, requireRouteSession, forwardingReady, fallbackServerName, proxySourceAllowlist, messages);
         getServer().getPluginManager().registerEvents(routeSessionListener, this);
         PluginCommand admin = getCommand("ciadmin");
         int routeWaitSeconds = getConfig().getInt("routing.wait-for-activation-timeout-seconds", 20);

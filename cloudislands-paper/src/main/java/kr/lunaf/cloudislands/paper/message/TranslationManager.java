@@ -107,6 +107,12 @@ public final class TranslationManager {
         values.put("route-consume-loading", "섬 로딩 중");
         values.put("route-consume-preparing", "섬을 준비하는 중입니다...");
         values.put("route-consume-failed", "섬 이동 준비가 완료되지 않았습니다. 다시 시도해주세요.");
+        values.put("route-login-proxy-required", "정상적인 프록시 경로로 접속해주세요.");
+        values.put("route-login-forwarding-not-ready", "섬 서버 보안 설정이 완료되지 않았습니다. 관리자에게 문의해주세요.");
+        values.put("route-login-session-required", "정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요.");
+        values.put("route-session-check-failed", "섬 입장 준비를 확인하지 못했습니다.");
+        values.put("route-session-preparing", "섬 입장을 준비하는 중입니다...");
+        values.put("route-session-missing-fallback", "섬 입장 요청이 없어 로비로 이동합니다.");
         return values;
     }
 

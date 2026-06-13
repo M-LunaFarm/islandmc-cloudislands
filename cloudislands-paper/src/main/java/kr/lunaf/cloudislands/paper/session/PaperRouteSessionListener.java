@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.RouteTicketConsumer;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.security.ProxySourceAllowlist;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 import org.bukkit.Bukkit;
@@ -30,6 +31,7 @@ public final class PaperRouteSessionListener implements Listener {
     private final boolean forwardingReady;
     private final String fallbackServerName;
     private final ProxySourceAllowlist proxySourceAllowlist;
+    private final MessageRenderer messages;
     private final Map<UUID, PlayerRouteSession> verifiedSessions = new ConcurrentHashMap<>();
     private final AtomicLong proxySourceRejections = new AtomicLong();
     private final AtomicLong forwardingRejections = new AtomicLong();
@@ -53,6 +55,10 @@ public final class PaperRouteSessionListener implements Listener {
     }
 
     public PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId, boolean requireRouteSession, boolean forwardingReady, String fallbackServerName, ProxySourceAllowlist proxySourceAllowlist) {
+        this(plugin, coreApiClient, ticketConsumer, nodeId, requireRouteSession, forwardingReady, fallbackServerName, proxySourceAllowlist, null);
+    }
+
+    public PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId, boolean requireRouteSession, boolean forwardingReady, String fallbackServerName, ProxySourceAllowlist proxySourceAllowlist, MessageRenderer messages) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.ticketConsumer = ticketConsumer;
@@ -61,6 +67,7 @@ public final class PaperRouteSessionListener implements Listener {
         this.forwardingReady = forwardingReady;
         this.fallbackServerName = fallbackServerName == null || fallbackServerName.isBlank() ? "Lobby" : fallbackServerName;
         this.proxySourceAllowlist = proxySourceAllowlist == null ? new ProxySourceAllowlist(java.util.List.of()) : proxySourceAllowlist;
+        this.messages = messages;
     }
 
     @EventHandler
@@ -68,12 +75,12 @@ public final class PaperRouteSessionListener implements Listener {
         if (!proxySourceAllowlist.allows(event.getAddress())) {
             proxySourceRejections.incrementAndGet();
             plugin.getLogger().warning("Rejected non-proxy login source for " + event.getUniqueId() + " from " + event.getAddress().getHostAddress());
-            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, "정상적인 프록시 경로로 접속해주세요.");
+            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, message("route-login-proxy-required", "정상적인 프록시 경로로 접속해주세요."));
             return;
         }
         if (!forwardingReady) {
             forwardingRejections.incrementAndGet();
-            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, "섬 서버 보안 설정이 완료되지 않았습니다. 관리자에게 문의해주세요.");
+            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, message("route-login-forwarding-not-ready", "섬 서버 보안 설정이 완료되지 않았습니다. 관리자에게 문의해주세요."));
             return;
         }
         if (!requireRouteSession) {
@@ -92,7 +99,7 @@ public final class PaperRouteSessionListener implements Listener {
             plugin.getLogger().warning("Route session pre-login check failed for " + event.getUniqueId() + ": " + exception.getMessage());
         }
         routeSessionRejections.incrementAndGet();
-        event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, "정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요.");
+        event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, message("route-login-session-required", "정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요."));
     }
 
     @EventHandler
@@ -149,7 +156,7 @@ public final class PaperRouteSessionListener implements Listener {
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     var player = Bukkit.getPlayer(playerUuid);
                     if (player != null) {
-                        player.sendActionBar(Component.text("섬 입장 준비를 확인하지 못했습니다."));
+                        player.sendActionBar(Component.text(message("route-session-check-failed", "섬 입장 준비를 확인하지 못했습니다.")));
                     }
                 });
             }
@@ -161,7 +168,7 @@ public final class PaperRouteSessionListener implements Listener {
         Bukkit.getScheduler().runTask(plugin, () -> {
             var player = Bukkit.getPlayer(playerUuid);
             if (player != null) {
-                player.sendActionBar(Component.text("섬 입장을 준비하는 중입니다..."));
+                player.sendActionBar(Component.text(message("route-session-preparing", "섬 입장을 준비하는 중입니다...")));
             }
         });
     }
@@ -171,12 +178,12 @@ public final class PaperRouteSessionListener implements Listener {
         Bukkit.getScheduler().runTask(plugin, () -> {
             var player = Bukkit.getPlayer(playerUuid);
             if (player != null) {
-                player.sendActionBar(Component.text("섬 입장 요청이 없어 로비로 이동합니다."));
+                player.sendActionBar(Component.text(message("route-session-missing-fallback", "섬 입장 요청이 없어 로비로 이동합니다.")));
                 sendToFallback(player);
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     var stillHere = Bukkit.getPlayer(playerUuid);
                     if (stillHere != null) {
-                        stillHere.kick(Component.text("정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요."));
+                        stillHere.kick(Component.text(message("route-login-session-required", "정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요.")));
                     }
                 }, 40L);
             }
@@ -185,7 +192,7 @@ public final class PaperRouteSessionListener implements Listener {
 
     private void sendToFallback(org.bukkit.entity.Player player) {
         if (!plugin.getServer().getMessenger().isOutgoingChannelRegistered(plugin, "BungeeCord")) {
-            player.kick(Component.text("정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요."));
+            player.kick(Component.text(message("route-login-session-required", "정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요.")));
             return;
         }
         try (ByteArrayOutputStream bytes = new ByteArrayOutputStream(); DataOutputStream output = new DataOutputStream(bytes)) {
@@ -193,8 +200,16 @@ public final class PaperRouteSessionListener implements Listener {
             output.writeUTF(fallbackServerName);
             player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
         } catch (IOException | RuntimeException ignored) {
-            player.kick(Component.text("정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요."));
+            player.kick(Component.text(message("route-login-session-required", "정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요.")));
         }
+    }
+
+    private String message(String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     public long proxySourceRejections() {
