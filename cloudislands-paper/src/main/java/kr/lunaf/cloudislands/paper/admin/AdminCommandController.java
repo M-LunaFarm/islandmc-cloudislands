@@ -2200,6 +2200,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (root.equals("template")) {
             root = "templates";
         }
+        if (root.equals("migrate-superiorskyblock2") && !superiorSkyblock2MigrationEnabled()) {
+            return "";
+        }
         return switch (root) {
             case "status", "config", "cache", "addons", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
