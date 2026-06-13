@@ -290,6 +290,8 @@ public final class CloudIslandsVelocityPlugin {
             + "\"registeredServers\":" + proxy.getAllServers().size() + ","
             + "\"language\":\"" + escapeJson(config.language()) + "\","
             + "\"debug\":" + config.debug() + ","
+            + "\"modernForwardingRequired\":" + config.requireModernForwarding() + ","
+            + "\"forwardingSecretConfigured\":" + !config.forwardingSecret().isBlank() + ","
             + "\"aliases\":\"" + escapeJson(String.join(",", commandAliases)) + "\","
             + "\"routing\":\"" + escapeJson(routingController.statusSummary()) + "\""
             + "}";
@@ -302,6 +304,8 @@ public final class CloudIslandsVelocityPlugin {
             + "cloudislands_velocity_command_aliases " + commandAliases.size() + "\n"
             + "cloudislands_velocity_debug_enabled " + (config.debug() ? 1 : 0) + "\n"
             + "cloudislands_velocity_plugin_message_blocking " + (blockCloudIslandsPluginMessages ? 1 : 0) + "\n"
+            + "cloudislands_velocity_modern_forwarding_required " + (config.requireModernForwarding() ? 1 : 0) + "\n"
+            + "cloudislands_velocity_forwarding_secret_configured " + (config.forwardingSecret().isBlank() ? 0 : 1) + "\n"
             + routingController.routingMetricsText();
     }
 

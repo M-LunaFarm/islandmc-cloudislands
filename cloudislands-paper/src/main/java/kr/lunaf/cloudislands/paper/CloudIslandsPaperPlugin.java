@@ -333,6 +333,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
 
     private String paperHealthJson(AgentRole role, String nodeId) {
         PaperRedisClient.PingResult redis = redisClient == null ? PaperRedisClient.PingResult.disabled() : redisClient.ping();
+        boolean forwardingRequired = configBoolean("security.require-velocity-forwarding", true);
+        boolean forwardingSecretConfigured = !resolveEnv(getConfig().getString("security.forwarding-secret", "")).isBlank();
         return "{"
             + "\"status\":\"UP\","
             + "\"role\":\"" + role.name() + "\","
@@ -343,6 +345,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"redisAvailable\":" + redis.available() + ","
             + "\"redisLatencySeconds\":" + redis.latencySeconds() + ","
             + "\"redisFailuresTotal\":" + redis.failuresTotal() + ","
+            + "\"velocityForwardingRequired\":" + forwardingRequired + ","
+            + "\"forwardingSecretConfigured\":" + forwardingSecretConfigured + ","
             + "\"localCacheCount\":" + (localCaches == null ? 0 : localCaches.cacheCount()) + ","
             + "\"localCacheInvalidationsTotal\":" + (localCaches == null ? 0 : localCaches.invalidationsTotal())
             + "}";
@@ -356,6 +360,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         double storageUploadSeconds = storage == null ? 0.0D : storage.lastUploadSeconds();
         double storageDownloadSeconds = storage == null ? 0.0D : storage.lastDownloadSeconds();
         long storageFailures = storage == null ? 0L : storage.operationFailures();
+        boolean forwardingRequired = configBoolean("security.require-velocity-forwarding", true);
+        boolean forwardingSecretConfigured = !resolveEnv(getConfig().getString("security.forwarding-secret", "")).isBlank();
         return ""
             + "cloudislands_paper_online_players " + getServer().getOnlinePlayers().size() + "\n"
             + "cloudislands_paper_active_islands{node=\"" + nodeId + "\",role=\"" + role.name() + "\"} " + active + "\n"
@@ -369,6 +375,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_island_snapshot_seconds{node=\"" + nodeId + "\"} " + storageUploadSeconds + "\n"
             + "cloudislands_permission_checks_total{node=\"" + nodeId + "\"} " + agent.permissionCache().lookupCount() + "\n"
             + "cloudislands_permission_cache_hit_ratio{node=\"" + nodeId + "\"} " + agent.permissionCache().hitRatio() + "\n"
+            + "cloudislands_paper_velocity_forwarding_required{node=\"" + nodeId + "\"} " + (forwardingRequired ? 1 : 0) + "\n"
+            + "cloudislands_paper_forwarding_secret_configured{node=\"" + nodeId + "\"} " + (forwardingSecretConfigured ? 1 : 0) + "\n"
             + "cloudislands_redis_latency_seconds{node=\"" + nodeId + "\"} " + redis.latencySeconds() + "\n"
             + "cloudislands_paper_redis_available{node=\"" + nodeId + "\"} " + (redis.available() ? 1 : 0) + "\n"
             + "cloudislands_paper_redis_latency_seconds{node=\"" + nodeId + "\"} " + redis.latencySeconds() + "\n"
