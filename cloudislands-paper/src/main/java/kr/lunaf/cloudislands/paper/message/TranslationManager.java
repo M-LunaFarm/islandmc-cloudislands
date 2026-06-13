@@ -465,6 +465,15 @@ public final class TranslationManager {
         values.put("role-menu-edit-suffix", " <weight> <displayName>");
         values.put("role-menu-empty-example", "/섬 역할편집 CUSTOM_1 5 부관리자");
         values.put("role-menu-click-edit", "클릭: 편집 명령어 안내");
+        values.put("danger-menu-snapshot-name", "스냅샷 확인");
+        values.put("danger-menu-snapshot-command", "/섬 스냅샷");
+        values.put("danger-menu-snapshot-description", "위험 작업 전에 복구 지점을 확인합니다.");
+        values.put("danger-menu-reset-name", "섬 리셋 확인");
+        values.put("danger-menu-reset-description", "월드를 초기화하고 복구 작업을 요청합니다.");
+        values.put("danger-menu-delete-name", "섬 삭제 확인");
+        values.put("danger-menu-delete-description", "섬 삭제 작업을 요청합니다.");
+        values.put("danger-menu-back-name", "돌아가기");
+        values.put("danger-menu-back-command", "/섬 설정");
         values.put("danger-confirm-required", "Shift+우클릭해야 실행됩니다.");
         values.put("danger-confirm-click-required", "위험 작업은 Shift+우클릭해야 실행됩니다.");
         values.put("snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다.");

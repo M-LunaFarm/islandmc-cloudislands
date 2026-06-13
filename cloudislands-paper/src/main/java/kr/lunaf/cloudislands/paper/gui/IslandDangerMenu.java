@@ -10,7 +10,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 public final class IslandDangerMenu implements Listener {
     private static final String TITLE = "섬 위험 작업";
@@ -30,10 +29,10 @@ public final class IslandDangerMenu implements Listener {
 
     public static void open(Player player, MessageRenderer messages) {
         Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
-        inventory.setItem(10, item(Material.CHEST, "스냅샷 확인", "/섬 스냅샷", "위험 작업 전에 복구 지점을 확인합니다."));
-        inventory.setItem(12, item(Material.TNT, "섬 리셋 확인", "월드를 초기화하고 복구 작업을 요청합니다.", message(messages, "danger-confirm-required", "Shift+우클릭해야 실행됩니다.")));
-        inventory.setItem(14, item(Material.LAVA_BUCKET, "섬 삭제 확인", "섬 삭제 작업을 요청합니다.", message(messages, "danger-confirm-required", "Shift+우클릭해야 실행됩니다.")));
-        inventory.setItem(22, item(Material.OAK_DOOR, "돌아가기", "/섬 설정"));
+        inventory.setItem(10, item(Material.CHEST, message(messages, "danger-menu-snapshot-name", "스냅샷 확인"), message(messages, "danger-menu-snapshot-command", "/섬 스냅샷"), message(messages, "danger-menu-snapshot-description", "위험 작업 전에 복구 지점을 확인합니다.")));
+        inventory.setItem(12, item(Material.TNT, message(messages, "danger-menu-reset-name", "섬 리셋 확인"), message(messages, "danger-menu-reset-description", "월드를 초기화하고 복구 작업을 요청합니다."), message(messages, "danger-confirm-required", "Shift+우클릭해야 실행됩니다.")));
+        inventory.setItem(14, item(Material.LAVA_BUCKET, message(messages, "danger-menu-delete-name", "섬 삭제 확인"), message(messages, "danger-menu-delete-description", "섬 삭제 작업을 요청합니다."), message(messages, "danger-confirm-required", "Shift+우클릭해야 실행됩니다.")));
+        inventory.setItem(22, item(Material.OAK_DOOR, message(messages, "danger-menu-back-name", "돌아가기"), message(messages, "danger-menu-back-command", "/섬 설정")));
         player.openInventory(inventory);
     }
 
@@ -46,17 +45,16 @@ public final class IslandDangerMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || !meta.hasDisplayName()) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= 27) {
             return;
         }
-        String name = meta.getDisplayName();
         player.closeInventory();
-        if (name.equals("돌아가기")) {
+        if (slot == 22) {
             player.performCommand("섬 설정");
             return;
         }
-        if (name.equals("스냅샷 확인")) {
+        if (slot == 10) {
             player.performCommand("섬 스냅샷");
             return;
         }
@@ -64,9 +62,9 @@ public final class IslandDangerMenu implements Listener {
             player.sendMessage(message(messages, "danger-confirm-click-required", "위험 작업은 Shift+우클릭해야 실행됩니다."));
             return;
         }
-        if (name.equals("섬 리셋 확인")) {
+        if (slot == 12) {
             player.performCommand("섬 리셋 confirm");
-        } else if (name.equals("섬 삭제 확인")) {
+        } else if (slot == 14) {
             player.performCommand("섬 삭제 confirm");
         }
     }
