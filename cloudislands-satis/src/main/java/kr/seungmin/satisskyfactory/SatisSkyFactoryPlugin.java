@@ -867,8 +867,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-open", Boolean.toString(database != null));
         state.put("satis-state-schema", "3");
         state.put("island-position-remap", "center-delta");
+        state.put("configured-features", featureState(snapshot.configuredFeatures()));
         state.put("effective-features", featureState(snapshot.features()));
         state.put("operational-features", operationalFeatureState(snapshot.features()));
+        state.put("dependency-disabled-features", dependencyDisabledFeatures(snapshot));
         state.put("feature-warnings", featureWarnings(snapshot));
         state.put("last-sync-reason", reason == null || reason.isBlank() ? "unknown" : reason);
         state.put("last-sync-at", Instant.now().toString());
@@ -1338,16 +1340,33 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (!effectiveWarnings.equals("none")) {
             warnings.add(effectiveWarnings);
         }
+        dependencyDisabledFeatureMap(snapshot).forEach((feature, required) ->
+                warnings.add("dependency-disabled:" + feature + "->" + required));
+        return warnings.isEmpty() ? "none" : String.join(",", warnings);
+    }
+
+    private String dependencyDisabledFeatures(CloudIslandsAddonSnapshot snapshot) {
+        Map<String, String> disabled = dependencyDisabledFeatureMap(snapshot);
+        if (disabled.isEmpty()) {
+            return "none";
+        }
+        List<String> features = new ArrayList<>();
+        disabled.forEach((feature, required) -> features.add(feature + "->" + required));
+        return String.join(",", features);
+    }
+
+    private Map<String, String> dependencyDisabledFeatureMap(CloudIslandsAddonSnapshot snapshot) {
+        Map<String, String> disabled = new LinkedHashMap<>();
         snapshot.featureDependencies().entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .forEach(entry -> {
                     String feature = entry.getKey();
                     boolean configured = snapshot.configuredFeatures().getOrDefault(feature, true);
                     if (configured && !snapshot.featureEnabled(feature, true)) {
-                        warnings.add("dependency-disabled:" + feature + "->" + entry.getValue());
+                        disabled.put(feature, entry.getValue());
                     }
                 });
-        return warnings.isEmpty() ? "none" : String.join(",", warnings);
+        return disabled;
     }
 
     private String featureWarnings(Map<String, Boolean> features) {
