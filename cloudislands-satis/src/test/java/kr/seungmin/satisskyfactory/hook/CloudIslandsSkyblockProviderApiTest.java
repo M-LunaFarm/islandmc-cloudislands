@@ -6,15 +6,15 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class SuperiorSkyblockHookApiTest {
+class CloudIslandsSkyblockProviderApiTest {
     @Test
     void exposesGoalIslandUuidAccessors() {
-        SuperiorSkyblockHook hook = new SuperiorSkyblockHook(null);
+        CloudIslandsSkyblockProvider provider = new CloudIslandsSkyblockProvider(null);
         UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000006001");
         UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000006002");
         IslandRef island = new IslandRef(new Object(), islandUuid, ownerUuid);
 
-        assertEquals(islandUuid, hook.getIslandUuid(island));
-        assertEquals(ownerUuid, hook.getIslandOwnerUuid(island));
+        assertEquals(islandUuid, provider.getIslandUuid(island));
+        assertEquals(ownerUuid, provider.getIslandOwnerUuid(island));
     }
 }

@@ -22,11 +22,15 @@ class DefaultConfigIntegrityTest {
         YamlConfiguration messages = load("messages.yml");
         YamlConfiguration maintenance = load("maintenance.yml");
 
-        assertEquals("SatisSkyFactory", plugin.getString("name"));
+        assertEquals("CloudIslandsSatis", plugin.getString("name"));
         assertEquals("kr.seungmin.satisskyfactory.SatisSkyFactoryPlugin", plugin.getString("main"));
-        assertEquals(List.of("SuperiorSkyblock2"), plugin.getStringList("depend"));
+        assertEquals(List.of("CloudIslands", "Vault", "PlaceholderAPI"), plugin.getStringList("softdepend"));
         assertTrue(plugin.isConfigurationSection("commands.factory"));
         assertTrue(plugin.isConfigurationSection("commands.sfactory"));
+        assertTrue(config.getBoolean("satis.enabled"));
+        assertEquals("ADDON", config.getString("integration.mode"));
+        assertEquals("CLOUDISLANDS", config.getString("integration.skyblock-provider"));
+        assertTrue(config.getBoolean("integration.cloudislands-adapter"));
         assertEquals(20, config.getInt("settings.tick-period-ticks"));
         assertEquals(300, config.getInt("settings.max-machines-per-tick"));
         assertEquals(60, config.getInt("settings.max-backfill-cycles"));
@@ -40,9 +44,9 @@ class DefaultConfigIntegrityTest {
         assertEquals("data.db", config.getString("database.sqlite-file"));
         assertEquals(60, config.getInt("database.save-interval-seconds"));
         assertEquals(1200, config.getInt("settings.dirty-save-period-ticks"));
-        assertFalse(config.getBoolean("superior-skyblock.allow-coop-build"));
-        assertFalse(config.getBoolean("superior-skyblock.allow-spawn-island"));
-        assertTrue(config.getBoolean("superior-skyblock.require-island-member"));
+        assertFalse(config.getBoolean("cloudislands.allow-coop-build"));
+        assertFalse(config.getBoolean("cloudislands.allow-spawn-island"));
+        assertTrue(config.getBoolean("cloudislands.require-island-member"));
         assertTrue(config.getBoolean("visuals.particles"));
         assertFalse(config.getBoolean("visuals.display-entities"));
         assertEquals(30, config.getInt("visuals.max-display-entities-per-island"));
