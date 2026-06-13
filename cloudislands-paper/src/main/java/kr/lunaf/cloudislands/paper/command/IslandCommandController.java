@@ -764,7 +764,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("invite") || subcommand.equals("초대")) {
             if (args.length < 2) {
-                player.sendMessage("초대할 플레이어를 입력해주세요.");
+                message(player, routeMessage("input-invite-player-required", "초대할 플레이어를 입력해주세요."));
                 return true;
             }
             inviteIslandMember(player, args[1]);
@@ -780,7 +780,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("accept") || subcommand.equals("invite-accept") || subcommand.equals("초대수락")) {
             if (args.length < 2) {
-                player.sendMessage("수락할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요.");
+                message(player, routeMessage("input-invite-accept-target-required", "수락할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요."));
                 return true;
             }
             acceptIslandInviteTarget(player, args[1]);
@@ -788,7 +788,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("decline") || subcommand.equals("invite-decline") || subcommand.equals("초대거절")) {
             if (args.length < 2) {
-                player.sendMessage("거절할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요.");
+                message(player, routeMessage("input-invite-decline-target-required", "거절할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요."));
                 return true;
             }
             declineIslandInviteTarget(player, args[1]);
@@ -796,7 +796,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("kick") || subcommand.equals("remove-member") || subcommand.equals("추방")) {
             if (args.length < 2) {
-                player.sendMessage("추방할 플레이어를 입력해주세요.");
+                message(player, routeMessage("input-remove-player-required", "추방할 플레이어를 입력해주세요."));
                 return true;
             }
             removeIslandMember(player, args[1]);
@@ -804,7 +804,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("trust") || subcommand.equals("신뢰")) {
             if (args.length < 2) {
-                player.sendMessage("신뢰할 플레이어를 입력해주세요.");
+                message(player, routeMessage("input-trust-player-required", "신뢰할 플레이어를 입력해주세요."));
                 return true;
             }
             setIslandMemberRole(player, args[1], IslandRole.TRUSTED, "섬 신뢰 멤버로 설정했습니다.");
@@ -812,7 +812,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("untrust") || subcommand.equals("신뢰해제")) {
             if (args.length < 2) {
-                player.sendMessage("신뢰 해제할 플레이어를 입력해주세요.");
+                message(player, routeMessage("input-untrust-player-required", "신뢰 해제할 플레이어를 입력해주세요."));
                 return true;
             }
             setIslandMemberRole(player, args[1], IslandRole.MEMBER, "섬 신뢰를 해제했습니다.");
@@ -820,7 +820,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("promote") || subcommand.equals("승급")) {
             if (args.length < 2) {
-                player.sendMessage("승급할 플레이어를 입력해주세요.");
+                message(player, routeMessage("input-promote-player-required", "승급할 플레이어를 입력해주세요."));
                 return true;
             }
             setIslandMemberRole(player, args[1], IslandRole.MODERATOR, "섬 멤버를 승급했습니다.");
@@ -828,7 +828,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("demote") || subcommand.equals("강등")) {
             if (args.length < 2) {
-                player.sendMessage("강등할 플레이어를 입력해주세요.");
+                message(player, routeMessage("input-demote-player-required", "강등할 플레이어를 입력해주세요."));
                 return true;
             }
             setIslandMemberRole(player, args[1], IslandRole.MEMBER, "섬 멤버를 강등했습니다.");
@@ -836,12 +836,12 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("setrole") || subcommand.equals("role-set") || subcommand.equals("역할설정")) {
             if (args.length < 3) {
-                player.sendMessage("역할을 바꿀 플레이어와 역할을 입력해주세요.");
+                message(player, routeMessage("input-member-role-required", "역할을 바꿀 플레이어와 역할을 입력해주세요."));
                 return true;
             }
             IslandRole role = islandRole(args[2]);
             if (role == null || !role.islandMemberRole() || role == IslandRole.OWNER) {
-                player.sendMessage("올바른 멤버 역할을 입력해주세요. 예: MEMBER, MODERATOR, CUSTOM_1");
+                message(player, routeMessage("input-member-role-invalid", "올바른 멤버 역할을 입력해주세요. 예: MEMBER, MODERATOR, CUSTOM_1"));
                 return true;
             }
             setIslandMemberRole(player, args[1], role, "섬 멤버 역할을 " + role.name() + "(으)로 변경했습니다.");
@@ -857,12 +857,12 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("role-upsert") || subcommand.equals("role-edit") || subcommand.equals("역할편집")) {
             if (args.length < 4) {
-                player.sendMessage("역할, 가중치, 표시 이름을 입력해주세요.");
+                message(player, routeMessage("input-role-edit-required", "역할, 가중치, 표시 이름을 입력해주세요."));
                 return true;
             }
             IslandRole role = islandRole(args[1]);
             if (role == null || role == IslandRole.OWNER || !role.islandMemberRole()) {
-                player.sendMessage("편집 가능한 멤버 역할을 입력해주세요. 예: CUSTOM_1");
+                message(player, routeMessage("input-role-edit-invalid", "편집 가능한 멤버 역할을 입력해주세요. 예: CUSTOM_1"));
                 return true;
             }
             upsertIslandRole(player, role, integer(args[2], role.ordinal()), joined(args, 3));
@@ -870,12 +870,12 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("role-reset") || subcommand.equals("역할초기화")) {
             if (args.length < 2) {
-                player.sendMessage("초기화할 역할을 입력해주세요.");
+                message(player, routeMessage("input-role-reset-required", "초기화할 역할을 입력해주세요."));
                 return true;
             }
             IslandRole role = islandRole(args[1]);
             if (role == null || role == IslandRole.OWNER || !role.islandMemberRole()) {
-                player.sendMessage("초기화 가능한 멤버 역할을 입력해주세요. 예: CUSTOM_1");
+                message(player, routeMessage("input-role-reset-invalid", "초기화 가능한 멤버 역할을 입력해주세요. 예: CUSTOM_1"));
                 return true;
             }
             resetIslandRole(player, role);
@@ -883,7 +883,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("transfer") || subcommand.equals("양도")) {
             if (args.length < 2) {
-                player.sendMessage("양도할 플레이어를 입력해주세요.");
+                message(player, routeMessage("input-transfer-player-required", "양도할 플레이어를 입력해주세요."));
                 return true;
             }
             transferIslandOwnership(player, args[1]);
@@ -891,7 +891,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("ban") || subcommand.equals("밴")) {
             if (args.length < 2) {
-                player.sendMessage("밴할 플레이어를 입력해주세요.");
+                message(player, routeMessage("input-ban-player-required", "밴할 플레이어를 입력해주세요."));
                 return true;
             }
             banIslandVisitor(player, args[1], args.length > 2 ? joined(args, 2) : "");
@@ -899,7 +899,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("unban") || subcommand.equals("pardon") || subcommand.equals("밴해제")) {
             if (args.length < 2) {
-                player.sendMessage("밴 해제할 플레이어를 입력해주세요.");
+                message(player, routeMessage("input-pardon-player-required", "밴 해제할 플레이어를 입력해주세요."));
                 return true;
             }
             pardonIslandVisitor(player, args[1]);
@@ -907,7 +907,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("kickvisitor") || subcommand.equals("방문자추방")) {
             if (args.length < 2) {
-                player.sendMessage("추방할 방문자를 입력해주세요.");
+                message(player, routeMessage("input-kick-visitor-required", "추방할 방문자를 입력해주세요."));
                 return true;
             }
             kickIslandVisitor(player, args[1]);
@@ -927,7 +927,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("name") || subcommand.equals("setname") || subcommand.equals("rename") || subcommand.equals("이름") || subcommand.equals("이름설정")) {
             if (args.length < 2) {
-                player.sendMessage("새 섬 이름을 입력해주세요.");
+                message(player, routeMessage("input-island-name-required", "새 섬 이름을 입력해주세요."));
                 return true;
             }
             setIslandName(player, joined(args, 1));
@@ -963,7 +963,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("setflag") || subcommand.equals("flag-set") || subcommand.equals("플래그설정")) {
             if (args.length < 3) {
-                player.sendMessage("플래그와 값을 입력해주세요.");
+                message(player, routeMessage("input-flag-value-required", "플래그와 값을 입력해주세요."));
                 return true;
             }
             setIslandFlag(player, args[1], args[2]);
@@ -983,7 +983,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("setpermission") || subcommand.equals("permission-set") || subcommand.equals("권한설정")) {
             if (args.length < 4) {
-                player.sendMessage("역할, 권한, 허용 여부를 입력해주세요.");
+                message(player, routeMessage("input-permission-set-required", "역할, 권한, 허용 여부를 입력해주세요."));
                 return true;
             }
             setIslandPermission(player, args[1], args[2], args[3]);
@@ -2083,7 +2083,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void acceptIslandInvite(Player player, UUID inviteId) {
         if (inviteId == null) {
-            player.sendMessage("올바른 초대 ID를 입력해주세요.");
+            message(player, routeMessage("input-invite-id-invalid", "올바른 초대 ID를 입력해주세요."));
             return;
         }
         coreApiClient.acceptIslandInviteResult(inviteId, player.getUniqueId())
@@ -2109,7 +2109,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void declineIslandInvite(Player player, UUID inviteId) {
         if (inviteId == null) {
-            player.sendMessage("올바른 초대 ID를 입력해주세요.");
+            message(player, routeMessage("input-invite-id-invalid", "올바른 초대 ID를 입력해주세요."));
             return;
         }
         coreApiClient.declineIslandInviteResult(inviteId, player.getUniqueId())

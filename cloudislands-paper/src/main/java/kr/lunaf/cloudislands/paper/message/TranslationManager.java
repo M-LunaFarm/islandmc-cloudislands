@@ -151,6 +151,28 @@ public final class TranslationManager {
         values.put("input-limit-value-required", "제한 값을 입력해주세요.");
         values.put("input-snapshot-number-required", "복원할 스냅샷 번호를 입력해주세요.");
         values.put("input-snapshot-number-invalid", "올바른 스냅샷 번호를 입력해주세요.");
+        values.put("input-invite-player-required", "초대할 플레이어를 입력해주세요.");
+        values.put("input-invite-accept-target-required", "수락할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요.");
+        values.put("input-invite-decline-target-required", "거절할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요.");
+        values.put("input-invite-id-invalid", "올바른 초대 ID를 입력해주세요.");
+        values.put("input-remove-player-required", "추방할 플레이어를 입력해주세요.");
+        values.put("input-trust-player-required", "신뢰할 플레이어를 입력해주세요.");
+        values.put("input-untrust-player-required", "신뢰 해제할 플레이어를 입력해주세요.");
+        values.put("input-promote-player-required", "승급할 플레이어를 입력해주세요.");
+        values.put("input-demote-player-required", "강등할 플레이어를 입력해주세요.");
+        values.put("input-member-role-required", "역할을 바꿀 플레이어와 역할을 입력해주세요.");
+        values.put("input-member-role-invalid", "올바른 멤버 역할을 입력해주세요. 예: MEMBER, MODERATOR, CUSTOM_1");
+        values.put("input-role-edit-required", "역할, 가중치, 표시 이름을 입력해주세요.");
+        values.put("input-role-edit-invalid", "편집 가능한 멤버 역할을 입력해주세요. 예: CUSTOM_1");
+        values.put("input-role-reset-required", "초기화할 역할을 입력해주세요.");
+        values.put("input-role-reset-invalid", "초기화 가능한 멤버 역할을 입력해주세요. 예: CUSTOM_1");
+        values.put("input-transfer-player-required", "양도할 플레이어를 입력해주세요.");
+        values.put("input-ban-player-required", "밴할 플레이어를 입력해주세요.");
+        values.put("input-pardon-player-required", "밴 해제할 플레이어를 입력해주세요.");
+        values.put("input-kick-visitor-required", "추방할 방문자를 입력해주세요.");
+        values.put("input-island-name-required", "새 섬 이름을 입력해주세요.");
+        values.put("input-flag-value-required", "플래그와 값을 입력해주세요.");
+        values.put("input-permission-set-required", "역할, 권한, 허용 여부를 입력해주세요.");
         return values;
     }
 
