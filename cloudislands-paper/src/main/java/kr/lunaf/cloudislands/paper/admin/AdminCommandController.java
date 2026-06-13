@@ -867,9 +867,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private void run(CommandSender sender, String action, CompletableFuture<String> future) {
-        future.thenAccept(body -> message(sender, action + " 완료" + (body == null || body.isBlank() ? "" : ": " + body)))
+        future.thenAccept(body -> message(sender, action + adminText("admin-command-action-complete", " 완료") + (body == null || body.isBlank() ? "" : ": " + body)))
             .exceptionally(error -> {
-                message(sender, action + " 실패");
+                message(sender, action + adminText("admin-command-action-failed", " 실패"));
                 return null;
         });
     }
@@ -896,7 +896,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         boolean eligible = boolValue(body, "eligibleForNewActivation");
         String reason = textValue(body, "allocationBlockReason");
-        return "활성화 배정=" + (eligible ? "가능" : "차단(" + (reason.isBlank() ? "UNKNOWN" : reason) + ")");
+        return adminText("admin-command-activation-allocation-label", "활성화 배정=") + (eligible ? adminText("admin-command-activation-eligible", "가능") : adminText("admin-command-activation-blocked-prefix", "차단(") + (reason.isBlank() ? "UNKNOWN" : reason) + ")");
     }
 
     private String levelScanSummary(String body) {
@@ -905,22 +905,22 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return "";
         }
         List<String> parts = new ArrayList<>();
-        parts.add("레벨 스캔=" + (boolValue(scan, "running") ? "실행 중" : "대기"));
+        parts.add(adminText("admin-command-level-scan-label", "레벨 스캔=") + (boolValue(scan, "running") ? adminText("admin-command-level-scan-running", "실행 중") : adminText("admin-command-level-scan-idle", "대기")));
         String lastIsland = textValue(scan, "lastIsland");
         if (!lastIsland.isBlank()) {
-            parts.add("마지막 섬=" + lastIsland);
+            parts.add(adminText("admin-command-level-scan-last-island", "마지막 섬=") + lastIsland);
         }
         long startedAt = longValue(scan, "startedAt");
         if (startedAt > 0L) {
-            parts.add("시작=" + startedAt);
+            parts.add(adminText("admin-command-level-scan-started", "시작=") + startedAt);
         }
         long finishedAt = longValue(scan, "finishedAt");
         if (finishedAt > 0L) {
-            parts.add("완료=" + finishedAt);
+            parts.add(adminText("admin-command-level-scan-finished", "완료=") + finishedAt);
         }
         long failedAt = longValue(scan, "failedAt");
         if (failedAt > 0L) {
-            parts.add("실패=" + failedAt);
+            parts.add(adminText("admin-command-level-scan-failed", "실패=") + failedAt);
         }
         return String.join(", ", parts);
     }
@@ -934,19 +934,19 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         String state = textValue(body, "state");
         long active = longValue(body, "activeIslands");
         long max = longValue(body, "maxActiveIslands");
-        StringBuilder builder = new StringBuilder("노드 섬 현황");
+        StringBuilder builder = new StringBuilder(adminText("admin-command-node-island-status-title", "노드 섬 현황"));
         if (!id.isBlank()) {
             builder.append(" ").append(id);
         }
-        builder.append(": 활성 섬 ").append(active);
+        builder.append(adminText("admin-command-node-island-active-prefix", ": 활성 섬 ")).append(active);
         if (max > 0L) {
             builder.append('/').append(max);
         }
         if (!state.isBlank()) {
-            builder.append(", 상태=").append(state);
+            builder.append(adminText("admin-command-node-island-state-prefix", ", 상태=")).append(state);
         }
         if (!server.isBlank()) {
-            builder.append(", 서버=").append(server);
+            builder.append(adminText("admin-command-node-island-server-prefix", ", 서버=")).append(server);
         }
         return builder.toString();
     }
@@ -959,7 +959,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         long count = longValue(body, "count");
         String islands = arrayValue(body, "islands");
         if (islands.isBlank() || count == 0L) {
-            return "노드 섬 현황" + (nodeId.isBlank() ? "" : " " + nodeId) + ": 활성 섬 없음";
+            return adminText("admin-command-node-island-status-title", "노드 섬 현황") + (nodeId.isBlank() ? "" : " " + nodeId) + adminText("admin-command-node-island-none-suffix", ": 활성 섬 없음");
         }
         List<String> entries = new ArrayList<>();
         int index = 0;
@@ -979,13 +979,13 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             }
             index = objectEnd + 1;
         }
-        return "노드 섬 현황" + (nodeId.isBlank() ? "" : " " + nodeId) + ": " + (entries.isEmpty() ? "활성 섬 없음" : String.join(", ", entries));
+        return adminText("admin-command-node-island-status-title", "노드 섬 현황") + (nodeId.isBlank() ? "" : " " + nodeId) + ": " + (entries.isEmpty() ? adminText("admin-command-node-island-none", "활성 섬 없음") : String.join(", ", entries));
     }
 
     private String storageStatusMessage(String body) {
         String nodes = arrayValue(body, "nodes");
         if (nodes.isBlank()) {
-            return "Storage status: registered node 없음";
+            return adminText("admin-command-storage-no-node", "Storage status: registered node 없음");
         }
         List<String> entries = new ArrayList<>();
         int unavailable = 0;
@@ -1011,8 +1011,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             index = objectEnd + 1;
         }
         return entries.isEmpty()
-            ? "Storage status: registered node 없음"
-            : "Storage status: " + String.join(", ", entries) + " / unavailable=" + unavailable;
+            ? adminText("admin-command-storage-no-node", "Storage status: registered node 없음")
+            : adminText("admin-command-storage-status-prefix", "Storage status: ") + String.join(", ", entries) + adminText("admin-command-storage-unavailable-prefix", " / unavailable=") + unavailable;
     }
 
     private String storageMetricSuffix(String nodeObject) {
