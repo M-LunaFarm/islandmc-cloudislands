@@ -1430,7 +1430,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private String eventListMessage(String body) {
         String events = arrayValue(body, "events");
         if (events.isBlank()) {
-            return "Events: empty";
+            return adminText("admin-command-events-empty", "Events: empty");
         }
         List<String> entries = new ArrayList<>();
         int index = 0;
@@ -1460,25 +1460,25 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 nodeId = textValue(fields, "targetNode");
             }
             entries.add((type.isBlank() ? "UNKNOWN_EVENT" : type)
-                + (islandId.isBlank() ? "" : " island=" + islandId)
-                + (ticketId.isBlank() ? "" : " ticket=" + shortId(ticketId))
-                + (playerUuid.isBlank() ? "" : " player=" + shortId(playerUuid))
-                + (action.isBlank() ? "" : " action=" + action)
-                + (reason.isBlank() ? "" : " reason=" + reason)
-                + (requestedNode.isBlank() ? "" : " requestedNode=" + requestedNode)
-                + (clearedSession.isBlank() ? "" : " session=" + clearedSession)
-                + (clearedTicket.isBlank() ? "" : " ticketCleared=" + clearedTicket)
-                + (nodeId.isBlank() ? "" : " node=" + nodeId)
-                + (occurredAt.isBlank() ? "" : " at=" + occurredAt));
+                + (islandId.isBlank() ? "" : adminText("admin-command-event-island-prefix", " island=") + islandId)
+                + (ticketId.isBlank() ? "" : adminText("admin-command-event-ticket-prefix", " ticket=") + shortId(ticketId))
+                + (playerUuid.isBlank() ? "" : adminText("admin-command-event-player-prefix", " player=") + shortId(playerUuid))
+                + (action.isBlank() ? "" : adminText("admin-command-event-action-prefix", " action=") + action)
+                + (reason.isBlank() ? "" : adminText("admin-command-event-reason-prefix", " reason=") + reason)
+                + (requestedNode.isBlank() ? "" : adminText("admin-command-event-requested-node-prefix", " requestedNode=") + requestedNode)
+                + (clearedSession.isBlank() ? "" : adminText("admin-command-event-session-prefix", " session=") + clearedSession)
+                + (clearedTicket.isBlank() ? "" : adminText("admin-command-event-ticket-cleared-prefix", " ticketCleared=") + clearedTicket)
+                + (nodeId.isBlank() ? "" : adminText("admin-command-event-node-prefix", " node=") + nodeId)
+                + (occurredAt.isBlank() ? "" : adminText("admin-command-event-at-prefix", " at=") + occurredAt));
             index = objectEnd + 1;
         }
-        return entries.isEmpty() ? "Events: empty" : "Events: " + String.join(" | ", entries);
+        return entries.isEmpty() ? adminText("admin-command-events-empty", "Events: empty") : adminText("admin-command-events-prefix", "Events: ") + String.join(" | ", entries);
     }
 
     private String auditListMessage(String body) {
         String audit = arrayValue(body, "audit");
         if (audit.isBlank()) {
-            return "Audit: empty";
+            return adminText("admin-command-audit-empty", "Audit: empty");
         }
         List<String> entries = new ArrayList<>();
         int index = 0;
@@ -1498,12 +1498,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             String targetId = textValue(object, "targetId");
             String createdAt = textValue(object, "createdAt");
             entries.add((action.isBlank() ? "UNKNOWN_ACTION" : action)
-                + (targetType.isBlank() && targetId.isBlank() ? "" : " target=" + targetType + ":" + targetId)
-                + (actorType.isBlank() ? "" : " actor=" + actorType)
-                + (createdAt.isBlank() ? "" : " at=" + createdAt));
+                + (targetType.isBlank() && targetId.isBlank() ? "" : adminText("admin-command-audit-target-prefix", " target=") + targetType + ":" + targetId)
+                + (actorType.isBlank() ? "" : adminText("admin-command-audit-actor-prefix", " actor=") + actorType)
+                + (createdAt.isBlank() ? "" : adminText("admin-command-audit-at-prefix", " at=") + createdAt));
             index = objectEnd + 1;
         }
-        return entries.isEmpty() ? "Audit: empty" : "Audit: " + String.join(" | ", entries);
+        return entries.isEmpty() ? adminText("admin-command-audit-empty", "Audit: empty") : adminText("admin-command-audit-prefix", "Audit: ") + String.join(" | ", entries);
     }
 
     private String routeDebugMessage(String body) {
@@ -1513,35 +1513,35 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         List<String> ticketEntries = new ArrayList<>();
         collectSessionSummaries(sessions, sessionEntries, 5);
         collectTicketSummaries(tickets, ticketEntries, 5);
-        return "Routes: sessions=" + countObjects(sessions)
+        return adminText("admin-command-routes-sessions-prefix", "Routes: sessions=") + countObjects(sessions)
             + (sessionEntries.isEmpty() ? "" : " [" + String.join(" | ", sessionEntries) + "]")
-            + " tickets=" + countObjects(tickets)
+            + adminText("admin-command-routes-tickets-prefix", " tickets=") + countObjects(tickets)
             + (ticketEntries.isEmpty() ? "" : " [" + String.join(" | ", ticketEntries) + "]");
     }
 
     private String routeTicketMessage(String body) {
         if (body == null || body.isBlank()) {
-            return "Route ticket: not found";
+            return adminText("admin-command-route-ticket-not-found", "Route ticket: not found");
         }
         String code = textValue(body, "code");
         if (!code.isBlank()) {
-            return "Route ticket: failed code=" + code;
+            return adminText("admin-command-route-ticket-failed-prefix", "Route ticket: failed code=") + code;
         }
-        return "Route ticket: " + ticketSummary(body);
+        return adminText("admin-command-route-ticket-prefix", "Route ticket: ") + ticketSummary(body);
     }
 
     private String routeClearMessage(String body) {
         if (body == null || body.isBlank()) {
-            return "Route clear: no response";
+            return adminText("admin-command-route-clear-no-response", "Route clear: no response");
         }
         String reason = textValue(body, "reason");
-        return "Route clear: session=" + boolValue(body, "clearedSession") + " ticket=" + boolValue(body, "clearedTicket") + (reason.isBlank() ? "" : " reason=" + reason);
+        return adminText("admin-command-route-clear-session-prefix", "Route clear: session=") + boolValue(body, "clearedSession") + adminText("admin-command-route-clear-ticket-prefix", " ticket=") + boolValue(body, "clearedTicket") + (reason.isBlank() ? "" : adminText("admin-command-route-clear-reason-prefix", " reason=") + reason);
     }
 
     private String snapshotListMessage(String body) {
         String snapshots = arrayValue(body, "snapshots");
         if (snapshots.isBlank()) {
-            return "Snapshots: empty";
+            return adminText("admin-command-snapshots-empty", "Snapshots: empty");
         }
         List<String> entries = new ArrayList<>();
         int index = 0;
@@ -1562,12 +1562,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 String createdAt = textValue(object, "createdAt");
                 entries.add("#" + snapshotNo
                     + (reason.isBlank() ? "" : " " + reason)
-                    + " size=" + sizeBytes
-                    + (createdAt.isBlank() ? "" : " at=" + createdAt));
+                    + adminText("admin-command-snapshot-size-prefix", " size=") + sizeBytes
+                    + (createdAt.isBlank() ? "" : adminText("admin-command-snapshot-at-prefix", " at=") + createdAt));
             }
             index = objectEnd + 1;
         }
-        return entries.isEmpty() ? "Snapshots: empty" : "Snapshots: " + String.join(" | ", entries);
+        return entries.isEmpty() ? adminText("admin-command-snapshots-empty", "Snapshots: empty") : adminText("admin-command-snapshots-prefix", "Snapshots: ") + String.join(" | ", entries);
     }
 
     private void collectSessionSummaries(String sessions, List<String> entries, int limit) {
@@ -1588,10 +1588,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             String serverName = textValue(object, "targetServerName");
             String expiresAt = textValue(object, "expiresAt");
             entries.add(shortId(playerUuid)
-                + " ticket=" + shortId(ticketId)
-                + (nodeId.isBlank() ? "" : " node=" + nodeId)
-                + (serverName.isBlank() ? "" : " server=" + serverName)
-                + (expiresAt.isBlank() ? "" : " expires=" + expiresAt));
+                + adminText("admin-command-route-session-ticket-prefix", " ticket=") + shortId(ticketId)
+                + (nodeId.isBlank() ? "" : adminText("admin-command-route-session-node-prefix", " node=") + nodeId)
+                + (serverName.isBlank() ? "" : adminText("admin-command-route-session-server-prefix", " server=") + serverName)
+                + (expiresAt.isBlank() ? "" : adminText("admin-command-route-session-expires-prefix", " expires=") + expiresAt));
             index = objectEnd + 1;
         }
     }
@@ -1621,8 +1621,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         return shortId(ticketId)
             + " " + (action.isBlank() ? "UNKNOWN" : action)
             + " " + (state.isBlank() ? "UNKNOWN" : state)
-            + (islandId.isBlank() ? "" : " island=" + shortId(islandId))
-            + (nodeId.isBlank() ? "" : " node=" + nodeId);
+            + (islandId.isBlank() ? "" : adminText("admin-command-route-ticket-island-prefix", " island=") + shortId(islandId))
+            + (nodeId.isBlank() ? "" : adminText("admin-command-route-ticket-node-prefix", " node=") + nodeId);
     }
 
     private String shortId(String value) {
