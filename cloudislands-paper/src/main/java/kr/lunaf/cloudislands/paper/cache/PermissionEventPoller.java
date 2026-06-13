@@ -41,6 +41,7 @@ import kr.lunaf.cloudislands.paper.event.IslandMemberLeaveEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMigratedEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMigrationEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMissionCompleteEvent;
+import kr.lunaf.cloudislands.paper.event.IslandMissionProgressEvent;
 import kr.lunaf.cloudislands.paper.event.IslandPermissionChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandRecoveryRequiredEvent;
 import kr.lunaf.cloudislands.paper.event.IslandRepairedEvent;
@@ -703,6 +704,8 @@ public final class PermissionEventPoller {
             Bukkit.getPluginManager().callEvent(new IslandVisitorKickEvent(islandId, uuidField(fields, "playerUuid"), uuidField(fields, "actorUuid"), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_LIMIT_CHANGED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandLimitChangeEvent(islandId, fields.getOrDefault("limitKey", ""), longField(fields, "value"), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_MISSION_PROGRESS.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandMissionProgressEvent(islandId, fields.getOrDefault("missionKey", ""), fields.getOrDefault("kind", ""), longField(fields, "progress"), longField(fields, "goal"), longField(fields, "amount"), Boolean.TRUE.equals(booleanField(fields, "completed")), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandMissionCompleteEvent(islandId, fields.getOrDefault("missionKey", ""), fields.getOrDefault("kind", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_SNAPSHOT_REQUESTED.name())) {

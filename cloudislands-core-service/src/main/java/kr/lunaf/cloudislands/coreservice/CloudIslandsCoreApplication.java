@@ -394,6 +394,15 @@ public final class CloudIslandsCoreApplication {
                 return;
             }
             java.util.Optional<kr.lunaf.cloudislands.api.model.IslandMissionSnapshot> progressed = missionRepository.progress(islandId, actorUuid, missionKey, kind, amount);
+            progressed.ifPresent(snapshot -> events.publish(CloudIslandEventType.ISLAND_MISSION_PROGRESS.name(), Map.of(
+                "islandId", islandId.toString(),
+                "missionKey", snapshot.missionKey(),
+                "kind", snapshot.kind(),
+                "progress", Long.toString(snapshot.progress()),
+                "goal", Long.toString(snapshot.goal()),
+                "amount", Long.toString(amount),
+                "completed", Boolean.toString(snapshot.completed())
+            )));
             progressed.filter(kr.lunaf.cloudislands.api.model.IslandMissionSnapshot::completed).ifPresent(snapshot -> {
                 audit.log(actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE", "ISLAND", islandId.toString(), Map.of("missionKey", snapshot.missionKey(), "kind", snapshot.kind()));
                 islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_COMPLETE", Map.of("missionKey", snapshot.missionKey(), "kind", snapshot.kind(), "reward", snapshot.reward()));
