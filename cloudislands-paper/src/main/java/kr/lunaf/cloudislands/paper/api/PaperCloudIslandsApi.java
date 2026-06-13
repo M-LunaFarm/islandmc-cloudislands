@@ -195,11 +195,15 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled, Map<String, Boolean> features, Map<String, String> metadata) {
-            addonObjects.remove(id);
+            CloudIslandsAddon previous = addonObjects.remove(id);
+            if (previous != null) {
+                notifyUnregistered(previous);
+            }
             AddonRegistration registration = new AddonRegistration(id, displayName, version, enabled, Instant.now(), Map.copyOf(features == null ? Map.of() : features), Map.copyOf(metadata == null ? Map.of() : metadata));
             registrations.put(id, registration);
             CloudIslandsAddonSnapshot snapshot = snapshot(registration);
             addons.put(id, snapshot);
+            stopEventSubscriptionIfIdle();
             return CompletableFuture.completedFuture(snapshot);
         }
 
@@ -207,7 +211,10 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         public CompletableFuture<CloudIslandsAddonSnapshot> register(CloudIslandsAddon addon) {
             AddonRegistration registration = new AddonRegistration(addon.addonId(), addon.addonDisplayName(), addon.addonVersion(), addon.enabledByDefault(), Instant.now(), Map.copyOf(addon.addonFeatures()), Map.copyOf(addon.addonMetadata()));
             registrations.put(addon.addonId(), registration);
-            addonObjects.put(addon.addonId(), addon);
+            CloudIslandsAddon previous = addonObjects.put(addon.addonId(), addon);
+            if (previous != null && previous != addon) {
+                notifyUnregistered(previous);
+            }
             ensureEventSubscription();
             CloudIslandsAddonSnapshot snapshot = snapshot(registration);
             addons.put(addon.addonId(), snapshot);
