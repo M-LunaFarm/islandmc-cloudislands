@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.gui;
 import java.util.ArrayList;
 import java.util.List;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -16,12 +17,25 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandCreateMenu implements Listener {
     private static final String TITLE = "섬 템플릿 선택";
+    private final MessageRenderer messages;
+
+    public IslandCreateMenu() {
+        this(null);
+    }
+
+    public IslandCreateMenu(MessageRenderer messages) {
+        this.messages = messages;
+    }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player) {
+        open(plugin, client, player, null);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
         client.listTemplates()
-            .thenAccept(body -> openSync(plugin, player, templates(body)))
+            .thenAccept(body -> openSync(plugin, player, templates(body), messages))
             .exceptionally(error -> {
-                openSync(plugin, player, List.of(new Template("default", "기본 섬", true, "")));
+                openSync(plugin, player, List.of(new Template("default", message(messages, "create-menu-default-template", "기본 섬"), true, "")), messages);
                 return null;
             });
     }
@@ -63,16 +77,16 @@ public final class IslandCreateMenu implements Listener {
         player.performCommand("섬 생성 " + templateId);
     }
 
-    private static void openSync(Plugin plugin, Player player, List<Template> templates) {
+    private static void openSync(Plugin plugin, Player player, List<Template> templates, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
             List<Template> enabled = templates.stream().filter(Template::enabled).limit(14).toList();
             if (enabled.isEmpty()) {
-                enabled = List.of(new Template("default", "기본 섬", true, ""));
+                enabled = List.of(new Template("default", message(messages, "create-menu-default-template", "기본 섬"), true, ""));
             }
             int[] templateSlots = {9, 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 23, 24, 25};
             for (int index = 0; index < enabled.size() && index < templateSlots.length; index++) {
-                inventory.setItem(templateSlots[index], item(enabled.get(index)));
+                inventory.setItem(templateSlots[index], item(enabled.get(index), messages));
             }
             inventory.setItem(18, button(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
             inventory.setItem(22, button(Material.CLOCK, "템플릿 새로고침", "/섬 생성메뉴"));
@@ -80,7 +94,7 @@ public final class IslandCreateMenu implements Listener {
         });
     }
 
-    private static ItemStack item(Template template) {
+    private static ItemStack item(Template template, MessageRenderer messages) {
         ItemStack item = new ItemStack(Material.OAK_SAPLING);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
@@ -88,13 +102,21 @@ public final class IslandCreateMenu implements Listener {
             List<String> lore = new ArrayList<>();
             lore.add("templateId=" + template.id());
             if (!template.minNodeVersion().isBlank()) {
-                lore.add("필요 플랫폼 버전: " + template.minNodeVersion());
+                lore.add(message(messages, "create-menu-required-version", "필요 플랫폼 버전: ") + template.minNodeVersion());
             }
-            lore.add("클릭하면 이 템플릿으로 섬을 생성합니다.");
+            lore.add(message(messages, "create-menu-click-to-create", "클릭하면 이 템플릿으로 섬을 생성합니다."));
             meta.setLore(lore);
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    private static String message(MessageRenderer messages, String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private static ItemStack button(Material material, String name, String... lore) {

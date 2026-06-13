@@ -351,7 +351,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return true;
         }
         if (subcommand.equals("create-menu") || subcommand.equals("templates") || subcommand.equals("생성메뉴") || subcommand.equals("템플릿")) {
-            IslandCreateMenu.open(plugin, coreApiClient, player);
+            IslandCreateMenu.open(plugin, coreApiClient, player, messages);
             return true;
         }
         if (subcommand.equals("create") || subcommand.equals("생성")) {

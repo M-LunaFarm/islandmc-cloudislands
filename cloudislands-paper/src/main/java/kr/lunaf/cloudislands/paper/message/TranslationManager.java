@@ -217,6 +217,9 @@ public final class TranslationManager {
         values.put("info-menu-yes", "예");
         values.put("info-menu-no", "아니오");
         values.put("info-menu-close", "메뉴를 닫습니다.");
+        values.put("create-menu-default-template", "기본 섬");
+        values.put("create-menu-required-version", "필요 플랫폼 버전: ");
+        values.put("create-menu-click-to-create", "클릭하면 이 템플릿으로 섬을 생성합니다.");
         values.put("biome-menu-load-failed", "섬 바이옴을 불러오지 못했습니다.");
         values.put("biome-menu-not-set", "설정 없음");
         values.put("biome-menu-selected", "현재 적용됨");
