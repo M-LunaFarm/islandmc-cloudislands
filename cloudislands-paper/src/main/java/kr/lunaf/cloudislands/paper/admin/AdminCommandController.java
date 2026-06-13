@@ -13,6 +13,7 @@ import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
+import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -104,16 +105,22 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private final CoreApiClient coreApiClient;
     private final String nodeId;
     private final int routeWaitSeconds;
+    private final LocalCacheManager localCaches;
 
     public AdminCommandController(CloudIslandsPaperAgent agent, CoreApiClient coreApiClient, String nodeId) {
         this(agent, coreApiClient, nodeId, 20);
     }
 
     public AdminCommandController(CloudIslandsPaperAgent agent, CoreApiClient coreApiClient, String nodeId, int routeWaitSeconds) {
+        this(agent, coreApiClient, nodeId, routeWaitSeconds, null);
+    }
+
+    public AdminCommandController(CloudIslandsPaperAgent agent, CoreApiClient coreApiClient, String nodeId, int routeWaitSeconds, LocalCacheManager localCaches) {
         this.agent = agent;
         this.coreApiClient = coreApiClient;
         this.nodeId = nodeId;
         this.routeWaitSeconds = Math.max(1, routeWaitSeconds);
+        this.localCaches = localCaches;
     }
 
     @Override
@@ -132,7 +139,11 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return true;
         }
         if (args[0].equalsIgnoreCase("cache") && args.length > 1 && args[1].equalsIgnoreCase("clear")) {
-            agent.permissionCache().invalidateAll();
+            if (localCaches == null) {
+                agent.permissionCache().invalidateAll();
+            } else {
+                localCaches.invalidateAll();
+            }
             run(sender, "CloudIslands local cache cleared. Core cache clear", coreApiClient.clearCache().thenApply(body -> maintenanceMessage("Cache clear", body)));
             return true;
         }

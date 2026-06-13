@@ -22,6 +22,7 @@ import kr.lunaf.cloudislands.paper.activation.ShardWorldManager;
 import kr.lunaf.cloudislands.paper.admin.AdminCommandController;
 import kr.lunaf.cloudislands.paper.cache.PermissionEventPoller;
 import kr.lunaf.cloudislands.paper.cache.PermissionCacheSyncService;
+import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.command.IslandCommandController;
 import kr.lunaf.cloudislands.paper.economy.VaultEconomyBridge;
 import kr.lunaf.cloudislands.paper.generator.ConfigGeneratorRules;
@@ -103,6 +104,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private Object placeholderExpansion;
     private MessageRenderer messages;
     private PaperRedisClient redisClient;
+    private LocalCacheManager localCaches;
 
     @Override
     public void onEnable() {
@@ -122,6 +124,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             Duration.ofMillis(Math.max(1L, getConfig().getLong("core-api.timeout-ms", 3000L)))
         );
         this.agent = new CloudIslandsPaperAgent(this, role, client, nodeId);
+        this.localCaches = new LocalCacheManager();
+        localCaches.registerStats("permissions", agent.permissionCache()::invalidateAll, agent.permissionCache()::lookupCount, agent.permissionCache()::hitRatio);
         String serviceName = getConfig().getString("plugin.service-name", "CloudIslands");
         this.messages = new MessageRenderer(TranslationManager.fromConfig(getConfig(), serviceName));
         this.redisClient = PaperRedisClient.create(
@@ -135,6 +139,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getServicesManager().register(EconomyBridge.class, economyBridge, this, ServicePriority.Normal);
         registerPlaceholderExpansion(client);
         IslandLimitCache limitCache = new IslandLimitCache(client);
+        localCaches.register("limits", limitCache::invalidateAll);
         long denyMessageCooldownMs = getConfig().getLong("protection.deny-message-cooldown-ms", 1000L);
         BlockDeltaReporter blockDeltas = new BlockDeltaReporter(this, client);
         getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection(), blockDeltas, denyMessageCooldownMs, denyMessages()), this);
@@ -173,6 +178,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandWarpMenu(), this);
         this.generatorLevels = new GeneratorLevelCache(client, getConfig().getString("generators.default-key", "default"));
         CropGrowthLevelCache cropGrowthLevels = new CropGrowthLevelCache(client);
+        localCaches.register("generator-levels", generatorLevels::invalidateAll);
+        localCaches.register("crop-growth-levels", cropGrowthLevels::invalidateAll);
         getServer().getPluginManager().registerEvents(new IslandGeneratorListener(agent.protection(), ConfigGeneratorRules.load(this), generatorLevels, blockDeltas), this);
         getServer().getPluginManager().registerEvents(new IslandCropGrowthListener(agent.protection(), cropGrowthLevels), this);
         String fallbackServerName = getConfig().getString("routing.fallback-on-failure", "Lobby");
@@ -182,7 +189,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         PluginCommand admin = getCommand("ciadmin");
         int routeWaitSeconds = getConfig().getInt("routing.wait-for-activation-timeout-seconds", 20);
         if (admin != null) {
-            AdminCommandController adminController = new AdminCommandController(agent, client, nodeId, routeWaitSeconds);
+            AdminCommandController adminController = new AdminCommandController(agent, client, nodeId, routeWaitSeconds, localCaches);
             admin.setExecutor(adminController);
             admin.setTabCompleter(adminController);
         }
@@ -271,6 +278,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             redisClient.close();
             redisClient = null;
         }
+        if (localCaches != null) {
+            localCaches.invalidateAll();
+            localCaches = null;
+        }
         unregisterPlaceholderExpansion();
         if (api != null) {
             CloudIslandsProvider.clear(api);
@@ -331,7 +342,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"activationQueue\":" + (jobWorker == null ? 0 : jobWorker.activationQueue()) + ","
             + "\"redisAvailable\":" + redis.available() + ","
             + "\"redisLatencySeconds\":" + redis.latencySeconds() + ","
-            + "\"redisFailuresTotal\":" + redis.failuresTotal()
+            + "\"redisFailuresTotal\":" + redis.failuresTotal() + ","
+            + "\"localCacheCount\":" + (localCaches == null ? 0 : localCaches.cacheCount()) + ","
+            + "\"localCacheInvalidationsTotal\":" + (localCaches == null ? 0 : localCaches.invalidationsTotal())
             + "}";
     }
 
@@ -347,7 +360,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_paper_recent_failure_penalty{node=\"" + nodeId + "\"} " + failures + "\n"
             + "cloudislands_paper_redis_available{node=\"" + nodeId + "\"} " + (redis.available() ? 1 : 0) + "\n"
             + "cloudislands_paper_redis_latency_seconds{node=\"" + nodeId + "\"} " + redis.latencySeconds() + "\n"
-            + "cloudislands_paper_redis_failures_total{node=\"" + nodeId + "\"} " + redis.failuresTotal() + "\n";
+            + "cloudislands_paper_redis_failures_total{node=\"" + nodeId + "\"} " + redis.failuresTotal() + "\n"
+            + (localCaches == null ? "" : localCaches.prometheus(nodeId));
     }
 
     private String levelScanStatus(String supportedTemplates) {
@@ -366,6 +380,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
 
     private String heartbeatMetadata(String supportedTemplates, MeteredIslandStorage storage) {
         return levelScanStatus(supportedTemplates)
+            + ";localCaches=" + (localCaches == null ? "" : localCaches.namesCsv())
+            + ";localCacheInvalidations=" + (localCaches == null ? 0L : localCaches.invalidationsTotal())
             + ";permissionCacheHitRatio=" + agent.permissionCache().hitRatio()
             + ";permissionChecks=" + agent.permissionCache().lookupCount()
             + ";storageUploadSeconds=" + (storage == null ? 0.0D : storage.lastUploadSeconds())
