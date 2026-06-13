@@ -1005,6 +1005,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 && !Boolean.TRUE.equals(features.get("maintenance"))) {
             warnings.add("placeholders-without-data-features");
         }
+        if (Boolean.TRUE.equals(features.get("lifecycle"))
+                && !Boolean.TRUE.equals(features.get("machines"))
+                && !Boolean.TRUE.equals(features.get("resource-nodes"))
+                && !Boolean.TRUE.equals(features.get("market"))
+                && !Boolean.TRUE.equals(features.get("contracts"))
+                && !Boolean.TRUE.equals(features.get("research"))
+                && !Boolean.TRUE.equals(features.get("maintenance"))) {
+            warnings.add("lifecycle-without-satis-state");
+        }
         FEATURE_ALIASES.forEach((alias, canonical) -> {
             if (configFeature(canonical) && configFeatureDefined(alias) && !configFeature(alias)) {
                 warnings.add("alias-disabled:" + alias + "->" + canonical);
