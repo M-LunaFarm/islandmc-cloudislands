@@ -15,6 +15,10 @@ public record CloudIslandsAddonSnapshot(
     Map<String, String> metadata
 ) {
     public CloudIslandsAddonSnapshot {
+        id = id == null || id.isBlank() ? "unknown-addon" : id;
+        displayName = displayName == null || displayName.isBlank() ? id : displayName;
+        version = version == null || version.isBlank() ? "unknown" : version;
+        registeredAt = registeredAt == null ? Instant.EPOCH : registeredAt;
         updatedAt = updatedAt == null ? registeredAt : updatedAt;
         configuredFeatures = configuredFeatures == null ? Map.of() : Map.copyOf(configuredFeatures);
         features = features == null ? Map.of() : Map.copyOf(features);

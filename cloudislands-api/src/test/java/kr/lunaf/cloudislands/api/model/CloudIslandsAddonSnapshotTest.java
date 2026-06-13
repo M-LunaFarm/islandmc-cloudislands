@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -27,6 +28,21 @@ class CloudIslandsAddonSnapshotTest {
 
         assertFalse(disabledCanonical.featureEnabled("factories"));
         assertFalse(disabledAlias.featureEnabled("machines"));
+    }
+
+    @Test
+    void fillsMissingIdentityAndTimestamps() {
+        CloudIslandsAddonSnapshot snapshot = new CloudIslandsAddonSnapshot(null, "", "", true,
+                null, null, null, null, null);
+
+        assertEquals("unknown-addon", snapshot.id());
+        assertEquals("unknown-addon", snapshot.displayName());
+        assertEquals("unknown", snapshot.version());
+        assertEquals(Instant.EPOCH, snapshot.registeredAt());
+        assertEquals(Instant.EPOCH, snapshot.updatedAt());
+        assertEquals(Map.of(), snapshot.configuredFeatures());
+        assertEquals(Map.of(), snapshot.features());
+        assertEquals(Map.of(), snapshot.metadata());
     }
 
     private CloudIslandsAddonSnapshot snapshot(Map<String, Boolean> features, Map<String, String> metadata) {
