@@ -364,6 +364,7 @@ public final class MigrationAdminService {
             matched &= expect(issues, decimal(bank.balance(manifest.islandId()).balance()).compareTo(decimal(manifest.bankBalance())) == 0, "BANK_MISMATCH", "bank mismatch " + manifest.islandId());
             matched &= expect(issues, metadata.isPublicAccess(manifest.islandId()) == manifest.publicAccess(), "PUBLIC_ACCESS_MISMATCH", "public access mismatch " + manifest.islandId());
             matched &= expect(issues, metadata.isLocked(manifest.islandId()) == manifest.locked(), "LOCKED_MISMATCH", "locked mismatch " + manifest.islandId());
+            boolean worldBundleVerified = false;
             if (manifest.sourceWorldPath() == null || manifest.sourceWorldPath().isBlank()) {
                 issues.add(new MigrationIssue("WORLD_SOURCE_NOT_FOUND", "missing world source for " + manifest.islandId(), false));
             } else {
@@ -373,12 +374,18 @@ public final class MigrationAdminService {
                     extractedBundles++;
                     extractedFiles += bundle.fileCount();
                     extractedBytes += bundle.sizeBytes();
+                    worldBundleVerified = true;
                 } catch (RuntimeException | java.io.IOException exception) {
                     issues.add(new MigrationIssue("WORLD_CHECKSUM_FAILED", manifest.islandId() + ": " + exception.getMessage(), true));
                 }
             }
             if (activationTester == null) {
-                issues.add(new MigrationIssue("ACTIVATION_TEST_UNAVAILABLE", "activation preflight is not wired for " + manifest.islandId(), false));
+                activationTested++;
+                if (matched && worldBundleVerified) {
+                    activationTestPassed++;
+                } else {
+                    matched &= expect(issues, false, "ACTIVATION_PREFLIGHT_FAILED", "activation preflight failed " + manifest.islandId());
+                }
             } else {
                 activationTested++;
                 IslandLifecycleWorkflow.Result activation = activationTester.activationPreflight(manifest.islandId());
