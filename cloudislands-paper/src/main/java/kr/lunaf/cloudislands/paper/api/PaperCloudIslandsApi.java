@@ -387,9 +387,20 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 return CompletableFuture.completedFuture(Optional.empty());
             }
             plugin.getConfig().set("addons." + id + ".features." + normalizedFeature, enabled);
+            clearFeatureAliases(id, registration, normalizedFeature);
             plugin.saveConfig();
             plugin.reloadConfig();
             return refresh(id);
+        }
+
+        private void clearFeatureAliases(String id, AddonRegistration registration, String canonicalFeature) {
+            String aliases = registration.metadata().getOrDefault("feature-aliases", "");
+            for (String pair : aliases.split(",")) {
+                String[] parts = pair.split(":", 2);
+                if (parts.length == 2 && canonicalFeature.equals(parts[1])) {
+                    plugin.getConfig().set("addons." + id + ".features." + parts[0], null);
+                }
+            }
         }
 
         private String normalizeFeature(AddonRegistration registration, String feature) {
