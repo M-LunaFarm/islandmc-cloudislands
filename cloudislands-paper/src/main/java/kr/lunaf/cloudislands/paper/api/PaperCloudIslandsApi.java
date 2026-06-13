@@ -1572,6 +1572,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         private boolean superiorSkyblock2MigrationEnabled() {
             boolean enabled = plugin.getConfig().getBoolean("migration.superiorskyblock2.enabled", true);
+            if (plugin.getConfig().contains("migration.superiorskyblock2-enabled")) {
+                enabled = enabled && plugin.getConfig().getBoolean("migration.superiorskyblock2-enabled", true);
+            }
             if (plugin.getConfig().contains("addons.cloudislands-satis.features.migration")) {
                 enabled = enabled && plugin.getConfig().getBoolean("addons.cloudislands-satis.features.migration", true);
             }
