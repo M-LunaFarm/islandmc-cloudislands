@@ -56,6 +56,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -832,6 +833,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("effective-features", featureState(snapshot.features()));
         state.put("feature-warnings", featureWarnings());
         state.put("last-sync-reason", reason == null || reason.isBlank() ? "unknown" : reason);
+        state.put("last-sync-at", Instant.now().toString());
         cloudIslandsApi.addons().putState(snapshot.id(), state).exceptionally(error -> {
             getLogger().warning("Failed to publish CloudIslands Satis addon state: " + error.getMessage());
             return Map.of();
@@ -848,6 +850,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("last-lifecycle-database-open", Boolean.toString(database != null));
         state.put("last-lifecycle-shared-database", Boolean.toString(databaseShared()));
         state.put("last-lifecycle-schema", "3");
+        state.put("last-lifecycle-at", Instant.now().toString());
         cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
             getLogger().warning("Failed to publish CloudIslands Satis lifecycle state: " + error.getMessage());
             return Map.of();
