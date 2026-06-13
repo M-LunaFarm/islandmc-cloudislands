@@ -49,25 +49,21 @@ public final class IslandInfoMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || !meta.hasDisplayName()) {
-            return;
-        }
-        String name = meta.getDisplayName();
+        int slot = event.getRawSlot();
         player.closeInventory();
-        if (name.equals("레벨 다시 계산")) {
+        if (slot == 23) {
             player.performCommand("섬 레벨계산");
-        } else if (name.equals("섬 랭킹")) {
+        } else if (slot == 21) {
             player.performCommand("섬 랭킹");
-        } else if (name.equals("섬 로그")) {
+        } else if (slot == 22) {
             player.performCommand("섬 로그");
-        } else if (name.equals("설정")) {
+        } else if (slot == 16) {
             player.performCommand("섬 설정");
-        } else if (name.equals("새로고침")) {
+        } else if (slot == 25) {
             player.performCommand("섬 정보");
-        } else if (name.equals("메인 메뉴")) {
+        } else if (slot == 24) {
             player.performCommand("섬 메뉴");
-        } else if (name.equals("닫기")) {
+        } else if (slot == 26) {
             return;
         }
     }
@@ -75,18 +71,18 @@ public final class IslandInfoMenu implements Listener {
     private static void openSync(Plugin plugin, Player player, String body, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
-            inventory.setItem(10, item(Material.GRASS_BLOCK, "기본 정보", message(messages, "info-menu-island-name", "섬 이름: ") + fallback(text(body, "name"), message(messages, "info-menu-no-name", "이름 없음")), message(messages, "info-menu-state", "상태: ") + fallback(text(body, "state"), message(messages, "info-menu-unknown", "알 수 없음")), "섬 ID: " + shortId(text(body, "islandId"), messages)));
-            inventory.setItem(11, item(Material.EXPERIENCE_BOTTLE, "레벨", "레벨: " + number(body, "level"), "가치: " + fallback(text(body, "worth"), "0")));
-            inventory.setItem(12, item(Material.BARRIER, "공개 상태", "공개 여부: " + yesNo(bool(body, "publicAccess"), messages), "잠금 여부: " + yesNo(bool(body, "locked"), messages)));
-            inventory.setItem(13, item(Material.MAP, "크기와 경계", "섬 크기: " + number(body, "size"), "경계: " + number(body, "border")));
-            inventory.setItem(14, item(Material.PLAYER_HEAD, "소유자", "소유자: " + shortId(text(body, "ownerUuid"), messages)));
-            inventory.setItem(16, item(Material.REDSTONE_TORCH, "설정", "/섬 설정"));
-            inventory.setItem(21, item(Material.GOLD_BLOCK, "섬 랭킹", "/섬 랭킹"));
-            inventory.setItem(22, item(Material.CLOCK, "섬 로그", "/섬 로그"));
-            inventory.setItem(23, item(Material.ANVIL, "레벨 다시 계산", "/섬 레벨계산"));
-            inventory.setItem(24, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
-            inventory.setItem(25, item(Material.CLOCK, "새로고침", "/섬 정보"));
-            inventory.setItem(26, item(Material.OAK_DOOR, "닫기", message(messages, "info-menu-close", "메뉴를 닫습니다.")));
+            inventory.setItem(10, item(Material.GRASS_BLOCK, message(messages, "info-menu-basic-title", "기본 정보"), message(messages, "info-menu-island-name", "섬 이름: ") + fallback(text(body, "name"), message(messages, "info-menu-no-name", "이름 없음")), message(messages, "info-menu-state", "상태: ") + fallback(text(body, "state"), message(messages, "info-menu-unknown", "알 수 없음")), message(messages, "info-menu-island-id", "섬 ID: ") + shortId(text(body, "islandId"), messages)));
+            inventory.setItem(11, item(Material.EXPERIENCE_BOTTLE, message(messages, "info-menu-level-title", "레벨"), message(messages, "info-menu-level", "레벨: ") + number(body, "level"), message(messages, "info-menu-worth", "가치: ") + fallback(text(body, "worth"), "0")));
+            inventory.setItem(12, item(Material.BARRIER, message(messages, "info-menu-access-title", "공개 상태"), message(messages, "info-menu-public-access", "공개 여부: ") + yesNo(bool(body, "publicAccess"), messages), message(messages, "info-menu-locked", "잠금 여부: ") + yesNo(bool(body, "locked"), messages)));
+            inventory.setItem(13, item(Material.MAP, message(messages, "info-menu-size-title", "크기와 경계"), message(messages, "info-menu-size", "섬 크기: ") + number(body, "size"), message(messages, "info-menu-border", "경계: ") + number(body, "border")));
+            inventory.setItem(14, item(Material.PLAYER_HEAD, message(messages, "info-menu-owner-title", "소유자"), message(messages, "info-menu-owner", "소유자: ") + shortId(text(body, "ownerUuid"), messages)));
+            inventory.setItem(16, item(Material.REDSTONE_TORCH, message(messages, "info-menu-settings-name", "설정"), message(messages, "info-menu-settings-command", "/섬 설정")));
+            inventory.setItem(21, item(Material.GOLD_BLOCK, message(messages, "info-menu-ranking-name", "섬 랭킹"), message(messages, "info-menu-ranking-command", "/섬 랭킹")));
+            inventory.setItem(22, item(Material.CLOCK, message(messages, "info-menu-log-name", "섬 로그"), message(messages, "info-menu-log-command", "/섬 로그")));
+            inventory.setItem(23, item(Material.ANVIL, message(messages, "info-menu-recalculate-name", "레벨 다시 계산"), message(messages, "info-menu-recalculate-command", "/섬 레벨계산")));
+            inventory.setItem(24, item(Material.COMPASS, message(messages, "info-menu-main-menu-name", "메인 메뉴"), message(messages, "info-menu-main-menu-command", "/섬 메뉴")));
+            inventory.setItem(25, item(Material.CLOCK, message(messages, "info-menu-refresh-name", "새로고침"), message(messages, "info-menu-refresh-command", "/섬 정보")));
+            inventory.setItem(26, item(Material.OAK_DOOR, message(messages, "info-menu-close-name", "닫기"), message(messages, "info-menu-close", "메뉴를 닫습니다.")));
             player.openInventory(inventory);
         });
     }
