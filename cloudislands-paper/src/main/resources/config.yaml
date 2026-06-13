@@ -72,6 +72,12 @@ messages:
     visitor-ban-denied: "섬 방문자를 밴할 권한이 없습니다."
     visitor-pardon-denied: "섬 방문자 밴을 해제할 권한이 없습니다."
     visitor-kick-denied: "섬 방문자를 추방할 권한이 없습니다."
+    warp-teleport-denied: "섬 워프로 이동할 권한이 없습니다."
+    flag-set-denied: "섬 플래그를 변경할 권한이 없습니다."
+    role-edit-denied: "섬 역할을 편집할 권한이 없습니다."
+    role-reset-denied: "섬 역할을 초기화할 권한이 없습니다."
+    permission-set-denied: "섬 권한을 변경할 권한이 없습니다."
+    name-change-denied: "섬 이름을 변경할 권한이 없습니다."
   scoreboard-lines:
     - "플레이어: {player}"
     - "접속: {online}명"

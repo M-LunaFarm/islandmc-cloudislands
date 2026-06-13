@@ -1158,7 +1158,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                     }
                     coreApiClient.islandInfo(islandId).thenAccept(info -> {
                         if (!publicWarpAllowed(player, point, info) && !allowed(player, IslandPermission.INTERACT)) {
-                            message(player, "섬 워프로 이동할 권한이 없습니다.");
+                            message(player, routeMessage("warp-teleport-denied", "섬 워프로 이동할 권한이 없습니다."));
                             return;
                         }
                         teleport(player, point, "워프를 찾을 수 없습니다.", "섬 워프로 이동했습니다.");
@@ -2369,7 +2369,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void setIslandFlag(Player player, String flagName, String value) {
         currentIsland(player, "섬 안에서만 플래그를 변경할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_FLAGS)) {
-                player.sendMessage("섬 플래그를 변경할 권한이 없습니다.");
+                message(player, routeMessage("flag-set-denied", "섬 플래그를 변경할 권한이 없습니다."));
                 return;
             }
             IslandFlag flag = islandFlag(flagName);
@@ -2419,7 +2419,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void upsertIslandRole(Player player, IslandRole role, int weight, String displayName) {
         currentIsland(player, "섬 안에서만 역할을 편집할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
-                player.sendMessage("섬 역할을 편집할 권한이 없습니다.");
+                message(player, routeMessage("role-edit-denied", "섬 역할을 편집할 권한이 없습니다."));
                 return;
             }
             coreApiClient.upsertIslandRole(islandId, player.getUniqueId(), role, weight, displayName.isBlank() ? role.name() : displayName)
@@ -2434,7 +2434,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void resetIslandRole(Player player, IslandRole role) {
         currentIsland(player, "섬 안에서만 역할을 초기화할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
-                player.sendMessage("섬 역할을 초기화할 권한이 없습니다.");
+                message(player, routeMessage("role-reset-denied", "섬 역할을 초기화할 권한이 없습니다."));
                 return;
             }
             coreApiClient.resetIslandRole(islandId, player.getUniqueId(), role)
@@ -2449,7 +2449,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void setIslandPermission(Player player, String roleName, String permissionName, String allowedValue) {
         currentIsland(player, "섬 안에서만 권한을 변경할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
-                player.sendMessage("섬 권한을 변경할 권한이 없습니다.");
+                message(player, routeMessage("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
                 return;
             }
             IslandRole role = islandRole(roleName);
@@ -2475,7 +2475,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void setIslandName(Player player, String name) {
         currentIsland(player, "섬 안에서만 이름을 변경할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_FLAGS)) {
-                player.sendMessage("섬 이름을 변경할 권한이 없습니다.");
+                message(player, routeMessage("name-change-denied", "섬 이름을 변경할 권한이 없습니다."));
                 return;
             }
             coreApiClient.setIslandNameResult(islandId, player.getUniqueId(), name)
