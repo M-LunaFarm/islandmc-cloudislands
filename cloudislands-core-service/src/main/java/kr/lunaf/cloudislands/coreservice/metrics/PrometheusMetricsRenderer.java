@@ -409,6 +409,7 @@ public final class PrometheusMetricsRenderer {
         eventCounter(out, "cloudislands_island_permission_changed_total", "Island permission changes accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_PERMISSION_CHANGED);
         appendEventFieldCounters(out, "cloudislands_island_permission_changed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_PERMISSION_CHANGED, "permission");
         eventCounter(out, "cloudislands_island_role_changed_total", "Island role catalog changes accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_ROLE_CHANGED);
+        appendEventFieldCounters(out, "cloudislands_island_role_changed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_ROLE_CHANGED, "operation");
         appendEventFieldCounters(out, "cloudislands_island_role_changed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_ROLE_CHANGED, "role");
         eventCounter(out, "cloudislands_island_biome_changed_total", "Island biome changes accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_BIOME_CHANGED);
         appendEventFieldCounters(out, "cloudislands_island_biome_changed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_BIOME_CHANGED, "biomeKey");
