@@ -840,6 +840,29 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         });
     }
 
+    private void publishUnregisteredState() {
+        if (cloudIslandsApi == null || !featureEnabled("addon-state")) {
+            return;
+        }
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("runtime-enabled", "false");
+        state.put("database-shared", Boolean.toString(databaseShared()));
+        state.put("database-scope", databaseScope());
+        state.put("database-config-source", databaseConfigSource());
+        state.put("database-path", resolveDatabaseFileName());
+        state.put("database-open", Boolean.toString(database != null));
+        state.put("satis-state-schema", "3");
+        state.put("last-sync-reason", "unregistered");
+        state.put("last-sync-at", Instant.now().toString());
+        state.put("last-lifecycle-status", "unregistered");
+        state.put("last-lifecycle-operation", "unregistered");
+        state.put("last-lifecycle-at", Instant.now().toString());
+        cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
+            getLogger().warning("Failed to publish CloudIslands Satis unregister state: " + error.getMessage());
+            return Map.of();
+        });
+    }
+
     private void publishLifecycleState(UUID islandId, String operation) {
         publishLifecycleState(islandId, operation, null);
     }
@@ -903,6 +926,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onAddonUnregistered() {
+        publishUnregisteredState();
         addonRuntimeEnabled = false;
         effectiveFeatures = Map.of();
         stopRuntimeActivity();
