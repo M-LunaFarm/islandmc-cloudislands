@@ -120,6 +120,10 @@ public final class TranslationManager {
         values.put("bank-withdraw-denied", "섬 은행에서 출금할 권한이 없습니다.");
         values.put("economy-unavailable", "경제 플러그인을 찾을 수 없습니다.");
         values.put("upgrade-purchase-denied", "섬 업그레이드를 구매할 권한이 없습니다.");
+        values.put("biome-set-denied", "섬 바이옴을 변경할 권한이 없습니다.");
+        values.put("limit-set-denied", "섬 제한을 변경할 권한이 없습니다.");
+        values.put("snapshot-create-denied", "섬 스냅샷을 생성할 관리자 권한이 없습니다.");
+        values.put("snapshot-restore-denied", "섬 스냅샷을 복원할 관리자 권한이 없습니다.");
         return values;
     }
 

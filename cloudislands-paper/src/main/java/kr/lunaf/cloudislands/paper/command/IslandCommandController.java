@@ -1899,7 +1899,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void setIslandBiome(Player player, String biomeKey) {
         currentIsland(player, "섬 안에서만 바이옴을 변경할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.SET_BIOME)) {
-                player.sendMessage("섬 바이옴을 변경할 권한이 없습니다.");
+                message(player, routeMessage("biome-set-denied", "섬 바이옴을 변경할 권한이 없습니다."));
                 return;
             }
             coreApiClient.setIslandBiomeResult(islandId, player.getUniqueId(), biomeKey)
@@ -1959,7 +1959,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void setIslandLimit(Player player, String limitKey, long value) {
         currentIsland(player, "섬 안에서만 제한을 변경할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_UPGRADES)) {
-                player.sendMessage("섬 제한을 변경할 권한이 없습니다.");
+                message(player, routeMessage("limit-set-denied", "섬 제한을 변경할 권한이 없습니다."));
                 return;
             }
             coreApiClient.setIslandLimit(islandId, player.getUniqueId(), limitKey, value)
@@ -1995,7 +1995,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void requestIslandSnapshot(Player player, String reason) {
         currentIsland(player, "섬 안에서만 스냅샷을 생성할 수 있습니다.").ifPresent(islandId -> {
             if (!player.isOp()) {
-                player.sendMessage("섬 스냅샷을 생성할 관리자 권한이 없습니다.");
+                message(player, routeMessage("snapshot-create-denied", "섬 스냅샷을 생성할 관리자 권한이 없습니다."));
                 return;
             }
             coreApiClient.requestIslandSnapshotResult(islandId, reason)
@@ -2010,7 +2010,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void restoreIslandSnapshot(Player player, long snapshotNo) {
         currentIsland(player, "섬 안에서만 스냅샷을 복원할 수 있습니다.").ifPresent(islandId -> {
             if (!player.isOp()) {
-                player.sendMessage("섬 스냅샷을 복원할 관리자 권한이 없습니다.");
+                message(player, routeMessage("snapshot-restore-denied", "섬 스냅샷을 복원할 관리자 권한이 없습니다."));
                 return;
             }
             if (snapshotNo <= 0L) {
