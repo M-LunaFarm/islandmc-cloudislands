@@ -615,6 +615,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (values == null || values.isEmpty()) {
                 return state(safeId);
             }
+            if (!addonAcceptsGlobalStateWrites(safeId)) {
+                return state(safeId);
+            }
             Map<String, String> localState = new HashMap<>(readAddonState(safeId));
             Map<String, String> changedState = new HashMap<>();
             values.forEach((key, value) -> {
@@ -635,6 +638,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                     return state;
                 })
                 .exceptionally(_error -> Map.copyOf(localState));
+        }
+
+        private boolean addonAcceptsGlobalStateWrites(String id) {
+            CloudIslandsAddonSnapshot snapshot = addons.get(safeRegistrationId(id));
+            return snapshot == null || snapshot.configuredFeatureEnabled("addon-state", true);
         }
 
         @Override
