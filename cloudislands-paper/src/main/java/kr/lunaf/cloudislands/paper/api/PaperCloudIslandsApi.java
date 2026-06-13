@@ -581,13 +581,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (events == null || events.isEmpty()) {
                 return;
             }
-            List<CloudIslandsAddon> targets = List.copyOf(addonObjects.values());
+            List<Map.Entry<String, CloudIslandsAddon>> targets = List.copyOf(addonObjects.entrySet());
             for (CloudEvent event : events) {
-                for (CloudIslandsAddon addon : targets) {
-                    CloudIslandsAddonSnapshot snapshot = addons.get(addon.addonId());
+                for (Map.Entry<String, CloudIslandsAddon> target : targets) {
+                    CloudIslandsAddonSnapshot snapshot = addons.get(target.getKey());
                     if (snapshot == null || !snapshot.enabled()) {
                         continue;
                     }
+                    CloudIslandsAddon addon = target.getValue();
                     try {
                         addon.onCloudEvent(event);
                     } catch (RuntimeException exception) {

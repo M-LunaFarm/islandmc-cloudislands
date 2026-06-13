@@ -155,6 +155,15 @@ public interface CloudIslandsAddon {
     }
 
     default CompletableFuture<Void> unregister(CloudIslandsApi api) {
-        return api.addons().unregister(addonId());
+        return api.addons().unregister(safeAddonId());
+    }
+
+    private String safeAddonId() {
+        try {
+            String id = addonId();
+            return id == null || id.isBlank() ? getClass().getName() : id;
+        } catch (RuntimeException ignored) {
+            return getClass().getName();
+        }
     }
 }
