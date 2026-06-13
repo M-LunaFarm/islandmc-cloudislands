@@ -32,10 +32,12 @@ import java.util.function.Predicate;
 
 public final class AdminFactoryCommand {
     private static final int HELP_PAGE_SIZE = 8;
+    private static final List<String> FEATURE_KEYS = List.of("commands", "machines", "gui", "lifecycle", "resource-nodes", "market", "contracts", "research", "maintenance", "placeholders");
     private static final List<String> HELP_COMMANDS = List.of(
             "factory admin help [page]",
             "factory admin command list [page]",
             "factory admin reload",
+            "factory admin features",
             "factory admin give <player> <machineType> [amount]",
             "factory admin giveitem <player> <itemId> <amount>",
             "factory admin addresearch <player> <amount>",
@@ -108,6 +110,7 @@ public final class AdminFactoryCommand {
                 reload.run();
                 messages.send(sender, "reloaded");
             }
+            case "features" -> showFeatures(sender);
             case "give" -> {
                 if (requireFeature(sender, "machines")) {
                     giveMachine(sender, args);
@@ -176,6 +179,7 @@ public final class AdminFactoryCommand {
             values.add("명령어");
             values.add("명령어목록");
             values.add("debug");
+            values.add("features");
             if (enabled("machines")) {
                 values.add("give");
                 values.add("giveitem");
@@ -426,6 +430,16 @@ public final class AdminFactoryCommand {
 
     private boolean enabled(String feature) {
         return featureEnabled == null || featureEnabled.test(feature);
+    }
+
+    private void showFeatures(CommandSender sender) {
+        sender.sendMessage(messages.raw("admin-features-title"));
+        for (String feature : FEATURE_KEYS) {
+            sender.sendMessage(messages.raw("admin-features-entry", Map.of(
+                    "feature", feature,
+                    "enabled", Boolean.toString(enabled(feature))
+            )));
+        }
     }
 
     private void help(CommandSender sender, int page) {
