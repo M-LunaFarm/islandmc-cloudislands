@@ -468,6 +468,10 @@ public final class TranslationManager {
         values.put("flag-menu-default", "기본값");
         values.put("flag-menu-allow", "허용");
         values.put("flag-menu-deny", "거부");
+        values.put("flag-menu-refresh-name", "새로고침");
+        values.put("flag-menu-refresh-command", "/섬 플래그");
+        values.put("flag-menu-settings-name", "설정");
+        values.put("flag-menu-settings-command", "/섬 설정");
         values.put("flag-menu-current-value", "현재 값: ");
         values.put("flag-menu-click-actions", "좌클릭: 허용, 우클릭: 거부");
         values.put("permission-menu-load-failed", "섬 권한을 불러오지 못했습니다.");

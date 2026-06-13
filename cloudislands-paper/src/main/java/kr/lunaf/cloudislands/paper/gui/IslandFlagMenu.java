@@ -51,18 +51,21 @@ public final class IslandFlagMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || meta.getLore() == null) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= 54) {
             return;
         }
-        String displayName = meta.getDisplayName();
         player.closeInventory();
-        if ("새로고침".equals(displayName)) {
+        if (slot == 49) {
             player.performCommand("섬 플래그");
             return;
         }
-        if ("설정".equals(displayName)) {
+        if (slot == 53) {
             player.performCommand("섬 설정");
+            return;
+        }
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null || meta.getLore() == null) {
             return;
         }
         String flag = "";
@@ -85,8 +88,8 @@ public final class IslandFlagMenu implements Listener {
             for (IslandFlag flag : IslandFlag.values()) {
                 inventory.setItem(slot++, flagItem(flag, values.get(flag), messages));
             }
-            inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 플래그"));
-            inventory.setItem(53, item(Material.COMPARATOR, "설정", "/섬 설정"));
+            inventory.setItem(49, item(Material.CLOCK, message(messages, "flag-menu-refresh-name", "새로고침"), message(messages, "flag-menu-refresh-command", "/섬 플래그")));
+            inventory.setItem(53, item(Material.COMPARATOR, message(messages, "flag-menu-settings-name", "설정"), message(messages, "flag-menu-settings-command", "/섬 설정")));
             player.openInventory(inventory);
         });
     }
