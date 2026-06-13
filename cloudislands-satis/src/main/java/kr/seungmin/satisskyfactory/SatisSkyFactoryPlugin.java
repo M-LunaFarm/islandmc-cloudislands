@@ -541,10 +541,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean requiresCloudIslandsApi() {
-        String provider = configs.main().getString("integration.skyblock-provider", "CLOUDISLANDS");
-        return "CLOUDISLANDS".equalsIgnoreCase(provider)
-                || "CLOUD_ISLANDS".equalsIgnoreCase(provider)
-                || configs.main().getBoolean("integration.cloudislands-adapter", true);
+        return true;
     }
 
     private void unregisterCloudIslandsAddon() {
@@ -584,7 +581,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     public Map<String, String> addonMetadata() {
         Map<String, String> metadata = new LinkedHashMap<>();
         metadata.put("mode", configs.main().getString("integration.mode", "ADDON"));
-        metadata.put("skyblock-provider", configs.main().getString("integration.skyblock-provider", "CLOUDISLANDS"));
+        metadata.put("skyblock-provider", "CLOUDISLANDS");
         metadata.put("cloudislands-adapter", Boolean.toString(configs.main().getBoolean("integration.cloudislands-adapter", true)));
         metadata.put("database-scope", databaseScope());
         metadata.put("database-file", configuredDatabaseFileName());
