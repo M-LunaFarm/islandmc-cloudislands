@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
 public final class ContractService {
@@ -35,6 +36,7 @@ public final class ContractService {
     private final EconomyService economy;
     private final DatabaseService database;
     private final IslandBoostService boosts;
+    private final BooleanSupplier maintenanceEnabled;
     private final Map<String, ContractTemplate> templates = new HashMap<>();
     private ContractTemplate emergency;
     private int dailySlots;
@@ -44,11 +46,13 @@ public final class ContractService {
     private int emergencyDailyLimit;
     private Set<String> boostedSlotTypes = Set.of("DAILY", "WEEKLY", "STORY", "MARKET");
 
-    public ContractService(StorageService storage, EconomyService economy, DatabaseService database, IslandBoostService boosts) {
+    public ContractService(StorageService storage, EconomyService economy, DatabaseService database, IslandBoostService boosts,
+                           BooleanSupplier maintenanceEnabled) {
         this.storage = storage;
         this.economy = economy;
         this.database = database;
         this.boosts = boosts;
+        this.maintenanceEnabled = maintenanceEnabled == null ? () -> true : maintenanceEnabled;
     }
 
     public void load(FileConfiguration config) {
@@ -114,6 +118,9 @@ public final class ContractService {
     }
 
     public boolean completeEmergency(FactoryIsland island, OfflinePlayer owner) {
+        if (!maintenanceEnabled.getAsBoolean()) {
+            return false;
+        }
         if (island.maintenanceDebt() <= 0) {
             return false;
         }
@@ -139,6 +146,9 @@ public final class ContractService {
     }
 
     public Optional<ContractTemplate> emergencyTemplate() {
+        if (!maintenanceEnabled.getAsBoolean()) {
+            return Optional.empty();
+        }
         return emergencyTemplates().stream().findFirst().or(() -> Optional.ofNullable(emergency));
     }
 
@@ -250,7 +260,7 @@ public final class ContractService {
         }
         island.researchPoints(island.researchPoints() + template.research());
         island.reputation(island.reputation() + template.reputation());
-        if (template.debtRelief() > 0) {
+        if (template.debtRelief() > 0 && maintenanceEnabled.getAsBoolean()) {
             island.maintenanceDebt(Math.max(0, island.maintenanceDebt() - template.debtRelief()));
         }
         database.saveIsland(island);

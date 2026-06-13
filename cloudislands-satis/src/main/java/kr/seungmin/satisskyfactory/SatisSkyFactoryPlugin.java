@@ -160,7 +160,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         itemNetworks = new ItemNetworkService(database, machines, machineDefinitions);
         power = new PowerNetworkService(database, machines, machineDefinitions, recipes, storage);
         market = new MarketService(storage, economy, database, itemRegistry);
-        contracts = new ContractService(storage, economy, database, boosts);
+        contracts = new ContractService(storage, economy, database, boosts, () -> featureEnabled("maintenance"));
         maintenance = new MaintenanceService(machines, economy, database);
         research = new ResearchService(database, economy);
         gui = new FactoryGuiService(storage, itemRegistry, machineDefinitions, recipes, islands, research, economy, messages, this::featureEnabled);
