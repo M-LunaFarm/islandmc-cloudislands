@@ -251,6 +251,12 @@ public final class VelocityRoutingController {
         ).exceptionally(error -> null);
     }
 
+    public void clearPlayerState(UUID playerUuid) {
+        if (playerUuid != null) {
+            recentRouteRequests.remove(playerUuid);
+        }
+    }
+
     private void connectPendingSession(Player player, PlayerRouteSession session) {
         String targetServerName = session.targetServerName() == null || session.targetServerName().isBlank() ? session.targetNode() : session.targetServerName();
         RegisteredServer server = findServer(targetServerName);

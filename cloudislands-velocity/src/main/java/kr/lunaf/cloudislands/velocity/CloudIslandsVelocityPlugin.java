@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.velocity;
 import com.google.inject.Inject;
 import com.velocitypowered.api.command.CommandManager;
 import com.velocitypowered.api.command.SimpleCommand;
+import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.Subscribe;
@@ -336,6 +337,11 @@ public final class CloudIslandsVelocityPlugin {
     public void onPostLogin(PostLoginEvent event) {
         routingController.recordPlayerProfile(event.getPlayer());
         routingController.routePendingSession(event.getPlayer());
+    }
+
+    @Subscribe
+    public void onDisconnect(DisconnectEvent event) {
+        routingController.clearPlayerState(event.getPlayer().getUniqueId());
     }
 
     private void dispatchAdmin(Player player, String[] args) {
