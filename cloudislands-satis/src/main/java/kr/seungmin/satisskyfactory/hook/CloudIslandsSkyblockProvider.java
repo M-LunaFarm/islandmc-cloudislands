@@ -9,7 +9,6 @@ import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.List;
@@ -28,9 +27,8 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
 
     @Override
     public boolean enable() {
-        PluginManager plugins = plugin.getServer().getPluginManager();
         api = resolveCloudIslandsApi();
-        available = plugins.getPlugin("CloudIslands") != null && api != null;
+        available = api != null;
         if (!available) {
             plugin.getLogger().severe("CloudIslands provider selected, but CloudIslands API was not found.");
         }
