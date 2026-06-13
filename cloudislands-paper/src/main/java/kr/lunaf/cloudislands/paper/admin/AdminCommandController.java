@@ -367,6 +367,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 sender.sendMessage(adminText("admin-command-addons-feature-usage", "사용법: /ciadmin addons feature <addonId> <feature> [true|false]"));
                 return true;
             }
+            if (!ADDON_FEATURES.contains(args[3])) {
+                sender.sendMessage(adminText("admin-command-addons-feature-invalid", "알 수 없는 addon feature입니다: ") + args[3]);
+                return true;
+            }
             if (args.length > 4) {
                 boolean enabled = booleanArgument(args[4], false);
                 agent.plugin().getConfig().set("addons." + args[2] + ".features." + args[3], enabled);
