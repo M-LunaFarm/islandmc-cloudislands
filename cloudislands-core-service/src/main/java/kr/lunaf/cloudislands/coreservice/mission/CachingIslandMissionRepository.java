@@ -43,6 +43,14 @@ public final class CachingIslandMissionRepository implements IslandMissionReposi
     }
 
     @Override
+    public Optional<IslandMissionSnapshot> progress(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) {
+        String normalized = MissionCatalog.normalizeKind(kind);
+        Optional<IslandMissionSnapshot> progressed = delegate.progress(islandId, actorUuid, missionKey, normalized, amount);
+        cache(islandId, normalized, delegate.list(islandId, normalized));
+        return progressed;
+    }
+
+    @Override
     public IslandMissionSnapshot importCompleted(UUID islandId, UUID actorUuid, String missionKey, String kind) {
         String normalized = MissionCatalog.normalizeKind(kind);
         IslandMissionSnapshot imported = delegate.importCompleted(islandId, actorUuid, missionKey, normalized);

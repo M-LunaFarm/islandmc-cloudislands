@@ -36,6 +36,20 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
     }
 
     @Override
+    public Optional<IslandMissionSnapshot> progress(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) {
+        ensureDefaults(islandId);
+        Map<String, IslandMissionSnapshot> islandMissions = missions.getOrDefault(islandId, Map.of());
+        IslandMissionSnapshot current = islandMissions.get(missionKey.toLowerCase());
+        if (current == null || !current.kind().equals(MissionCatalog.normalizeKind(kind))) {
+            return Optional.empty();
+        }
+        long nextProgress = Math.min(current.goal(), current.progress() + Math.max(0L, amount));
+        IslandMissionSnapshot updated = new IslandMissionSnapshot(islandId, current.missionKey(), current.kind(), current.title(), nextProgress, current.goal(), nextProgress >= current.goal(), current.reward(), Instant.now());
+        islandMissions.put(current.missionKey(), updated);
+        return Optional.of(updated);
+    }
+
+    @Override
     public IslandMissionSnapshot importCompleted(UUID islandId, UUID actorUuid, String missionKey, String kind) {
         ensureDefaults(islandId);
         Map<String, IslandMissionSnapshot> islandMissions = missions.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>());

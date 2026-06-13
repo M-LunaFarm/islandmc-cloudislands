@@ -55,6 +55,26 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
     }
 
     @Override
+    public Optional<IslandMissionSnapshot> progress(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) {
+        ensureDefaults(islandId);
+        long safeAmount = Math.max(0L, amount);
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("UPDATE island_missions SET progress = LEAST(goal, progress + ?), completed = completed OR LEAST(goal, progress + ?) >= goal, updated_by = ?, updated_at = now() WHERE island_id = ? AND mission_key = ? AND kind = ? RETURNING island_id, mission_key, kind, title, progress, goal, completed, reward, updated_at")) {
+            statement.setLong(1, safeAmount);
+            statement.setLong(2, safeAmount);
+            statement.setObject(3, actorUuid);
+            statement.setObject(4, islandId);
+            statement.setString(5, missionKey.toLowerCase());
+            statement.setString(6, MissionCatalog.normalizeKind(kind));
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? Optional.of(snapshot(rs)) : Optional.empty();
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to progress island mission", exception);
+        }
+    }
+
+    @Override
     public IslandMissionSnapshot importCompleted(UUID islandId, UUID actorUuid, String missionKey, String kind) {
         ensureDefaults(islandId);
         String key = missionKey.toLowerCase();

@@ -383,6 +383,24 @@ public final class CloudIslandsCoreApplication {
             });
             write(exchange, completed.isPresent() ? 202 : 404, completed.map(CloudIslandsCoreApplication::missionJson).orElseGet(() -> ApiResponses.error("MISSION_NOT_FOUND", "Mission was not found")));
         });
+        route("/v1/islands/missions/progress", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            String missionKey = JsonFields.text(body, "missionKey", "");
+            String kind = JsonFields.text(body, "kind", "MISSION");
+            long amount = Math.max(0L, JsonFields.longValue(body, "amount", 1L));
+            if (!requireMember(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
+                return;
+            }
+            java.util.Optional<kr.lunaf.cloudislands.api.model.IslandMissionSnapshot> progressed = missionRepository.progress(islandId, actorUuid, missionKey, kind, amount);
+            progressed.filter(kr.lunaf.cloudislands.api.model.IslandMissionSnapshot::completed).ifPresent(snapshot -> {
+                audit.log(actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE", "ISLAND", islandId.toString(), Map.of("missionKey", snapshot.missionKey(), "kind", snapshot.kind()));
+                islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_COMPLETE", Map.of("missionKey", snapshot.missionKey(), "kind", snapshot.kind(), "reward", snapshot.reward()));
+                events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), Map.of("islandId", islandId.toString(), "missionKey", snapshot.missionKey(), "kind", snapshot.kind()));
+            });
+            write(exchange, progressed.isPresent() ? 202 : 404, progressed.map(CloudIslandsCoreApplication::missionJson).orElseGet(() -> ApiResponses.error("MISSION_NOT_FOUND", "Mission was not found")));
+        });
         route("/v1/islands/limits", exchange -> {
             String body = readBody(exchange);
             write(exchange, 200, limitsJson(limitRepository.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));

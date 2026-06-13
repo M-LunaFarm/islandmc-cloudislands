@@ -11,5 +11,6 @@ public interface IslandMissionRepository {
         return complete(islandId, actorUuid, missionKey, "MISSION");
     }
     Optional<IslandMissionSnapshot> complete(UUID islandId, UUID actorUuid, String missionKey, String kind);
+    Optional<IslandMissionSnapshot> progress(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount);
     IslandMissionSnapshot importCompleted(UUID islandId, UUID actorUuid, String missionKey, String kind);
 }

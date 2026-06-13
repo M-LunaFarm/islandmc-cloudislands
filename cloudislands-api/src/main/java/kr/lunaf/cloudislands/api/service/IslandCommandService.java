@@ -101,11 +101,21 @@ public interface IslandCommandService {
         return completeMissionResult(islandId, actorUuid, missionKey, kind).thenApply(_result -> null);
     }
     CompletableFuture<java.util.Optional<IslandMissionSnapshot>> completeMissionResult(UUID islandId, UUID actorUuid, String missionKey, String kind);
+    default CompletableFuture<Void> progressMission(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) {
+        return progressMissionResult(islandId, actorUuid, missionKey, kind, amount).thenApply(_result -> null);
+    }
+    CompletableFuture<java.util.Optional<IslandMissionSnapshot>> progressMissionResult(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount);
     default CompletableFuture<Void> completeChallenge(UUID islandId, UUID actorUuid, String challengeKey) {
         return completeMission(islandId, actorUuid, challengeKey, "CHALLENGE");
     }
     default CompletableFuture<java.util.Optional<IslandMissionSnapshot>> completeChallengeResult(UUID islandId, UUID actorUuid, String challengeKey) {
         return completeMissionResult(islandId, actorUuid, challengeKey, "CHALLENGE");
+    }
+    default CompletableFuture<Void> progressChallenge(UUID islandId, UUID actorUuid, String challengeKey, long amount) {
+        return progressMission(islandId, actorUuid, challengeKey, "CHALLENGE", amount);
+    }
+    default CompletableFuture<java.util.Optional<IslandMissionSnapshot>> progressChallengeResult(UUID islandId, UUID actorUuid, String challengeKey, long amount) {
+        return progressMissionResult(islandId, actorUuid, challengeKey, "CHALLENGE", amount);
     }
     CompletableFuture<Void> sendChat(UUID islandId, UUID actorUuid, String channel, String message);
     CompletableFuture<IslandChatResult> sendChatResult(UUID islandId, UUID actorUuid, String channel, String message);
