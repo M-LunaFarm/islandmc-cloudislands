@@ -51,8 +51,14 @@ class MigrationServiceTest {
             try (Statement statement = connection.createStatement();
                  ResultSet version = statement.executeQuery("SELECT version FROM schema_version")) {
                 assertTrue(version.next());
-                assertEquals(2, version.getInt("version"));
+                assertEquals(3, version.getInt("version"));
             }
+            assertTrue(columnNames(connection, "factory_islands").containsAll(Set.of(
+                    "active_world",
+                    "active_center_x",
+                    "active_center_y",
+                    "active_center_z"
+            )));
             assertTrue(columnNames(connection, "machines").containsAll(Set.of(
                     "power_network_id",
                     "item_network_id",

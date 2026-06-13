@@ -199,7 +199,7 @@ public final class MigrationService {
         addColumnIfMissing(connection, statement, "machines", "linked_resource_node_id", "TEXT");
         addColumnIfMissing(connection, statement, "machines", "config_json", "TEXT NOT NULL DEFAULT '{}'");
         addColumnIfMissing(connection, statement, "machines", "wear", "REAL NOT NULL DEFAULT 0");
-        statement.executeUpdate("UPDATE schema_version SET version = 2");
+        statement.executeUpdate("UPDATE schema_version SET version = 3");
     }
 
     private void addColumnIfMissing(Connection connection, Statement statement, String table, String column, String definition)

@@ -60,7 +60,7 @@ class DatabaseServiceTest {
                  Statement statement = connection.createStatement();
                  ResultSet version = statement.executeQuery("SELECT version FROM schema_version")) {
                 assertTrue(version.next());
-                assertEquals(2, version.getInt("version"));
+                assertEquals(3, version.getInt("version"));
             }
         }
     }
@@ -110,6 +110,10 @@ class DatabaseServiceTest {
             island.createdAt(500);
             island.updatedAt(600);
             island.emergencyContractsUsedToday(1);
+            island.activeWorld("ci_shard_001");
+            island.activeCenterX(1024);
+            island.activeCenterY(96);
+            island.activeCenterZ(2048);
             database.saveIsland(island);
 
             VirtualInventory input = new VirtualInventory(inputInventoryId, islandUuid, "MACHINE_INPUT", machineId.toString(), 64);
@@ -165,6 +169,10 @@ class DatabaseServiceTest {
             assertEquals(500, island.createdAt());
             assertTrue(island.updatedAt() >= 600);
             assertEquals(1, island.emergencyContractsUsedToday());
+            assertEquals("ci_shard_001", island.activeWorld());
+            assertEquals(1024, island.activeCenterX());
+            assertEquals(96, island.activeCenterY());
+            assertEquals(2048, island.activeCenterZ());
 
             VirtualInventory input = database.loadInventory(inputInventoryId).orElseThrow();
             assertEquals(16, input.amount("wheat"));
