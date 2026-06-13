@@ -22,6 +22,25 @@ addons:
       maintenance: true
       placeholders: true
 
+satis:
+  enabled: true
+  features:
+    commands: true
+    machines: true
+    factories: true
+    generators: true
+    upgrades: true
+    missions: true
+    menus: true
+    gui: true
+    lifecycle: true
+    resource-nodes: true
+    market: true
+    contracts: true
+    research: true
+    maintenance: true
+    placeholders: true
+
 messages:
   use-actionbar: true
   use-bossbar-loading: true
