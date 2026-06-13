@@ -27,6 +27,23 @@ final class AddonFeatureAliases {
                 .toList();
     }
 
+    static Map<String, String> dependencies(Map<String, String> metadata) {
+        Map<String, String> values = new java.util.HashMap<>();
+        String source = metadata == null ? "" : metadata.getOrDefault("feature-dependencies", "");
+        for (String pair : source.split(",")) {
+            String[] parts = pair.split(":", 2);
+            if (parts.length != 2) {
+                continue;
+            }
+            String feature = normalize(metadata, parts[0].trim());
+            String required = normalize(metadata, parts[1].trim());
+            if (!feature.isBlank() && !required.isBlank()) {
+                values.put(feature, required);
+            }
+        }
+        return Map.copyOf(values);
+    }
+
     private static List<Alias> aliases(Map<String, String> metadata) {
         String source = metadata == null ? "" : metadata.getOrDefault("feature-aliases", "");
         return java.util.Arrays.stream(source.split(","))

@@ -421,18 +421,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         private void applyFeatureDependencies(Map<String, Boolean> features, Map<String, String> metadata) {
-            String dependencies = metadata.getOrDefault("feature-dependencies", "");
-            for (String pair : dependencies.split(",")) {
-                String[] parts = pair.split(":", 2);
-                if (parts.length != 2 || parts[0].isBlank() || parts[1].isBlank()) {
-                    continue;
-                }
-                String feature = AddonFeatureAliases.normalize(metadata, parts[0].trim());
-                String required = AddonFeatureAliases.normalize(metadata, parts[1].trim());
+            AddonFeatureAliases.dependencies(metadata).forEach((feature, required) -> {
                 if (features.containsKey(feature) || features.containsKey(required)) {
                     features.put(feature, features.getOrDefault(feature, true) && features.getOrDefault(required, true));
                 }
-            }
+            });
         }
 
         private Map<String, Boolean> disabledFeatures(Map<String, Boolean> features) {
@@ -584,24 +577,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (AddonFeatureAliases.aliasesFor(registration.metadata(), normalized).contains(requested)) {
                 return true;
             }
-            Map<String, String> dependencies = featureDependencies(registration.metadata());
+            Map<String, String> dependencies = AddonFeatureAliases.dependencies(registration.metadata());
             return dependencies.containsKey(normalized)
                 || dependencies.containsKey(requested)
                 || dependencies.containsValue(normalized)
                 || dependencies.containsValue(requested);
-        }
-
-        private Map<String, String> featureDependencies(Map<String, String> metadata) {
-            String dependencies = metadata.getOrDefault("feature-dependencies", "");
-            Map<String, String> values = new HashMap<>();
-            for (String pair : dependencies.split(",")) {
-                String[] parts = pair.split(":", 2);
-                if (parts.length != 2 || parts[0].isBlank() || parts[1].isBlank()) {
-                    continue;
-                }
-                values.put(AddonFeatureAliases.normalize(metadata, parts[0].trim()), AddonFeatureAliases.normalize(metadata, parts[1].trim()));
-            }
-            return Map.copyOf(values);
         }
 
         private String normalizeFeature(AddonRegistration registration, String feature) {
