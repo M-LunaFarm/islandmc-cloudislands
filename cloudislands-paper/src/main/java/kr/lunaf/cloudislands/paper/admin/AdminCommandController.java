@@ -1726,9 +1726,13 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 String reason = textValue(object, "reason");
                 long sizeBytes = longValue(object, "sizeBytes");
                 String createdAt = textValue(object, "createdAt");
+                String checksum = textValue(object, "checksum");
+                String storagePath = textValue(object, "storagePath");
                 entries.add("#" + snapshotNo
                     + (reason.isBlank() ? "" : " " + reason)
                     + adminText("admin-command-snapshot-size-prefix", " size=") + sizeBytes
+                    + (checksum.isBlank() ? "" : adminText("admin-command-snapshot-checksum-prefix", " checksum=") + shortChecksum(checksum))
+                    + (storagePath.isBlank() ? "" : adminText("admin-command-snapshot-path-prefix", " path=") + storagePath)
                     + (createdAt.isBlank() ? "" : adminText("admin-command-snapshot-at-prefix", " at=") + createdAt));
             }
             index = objectEnd + 1;
@@ -1796,6 +1800,13 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return "-";
         }
         return value.length() > 8 ? value.substring(0, 8) : value;
+    }
+
+    private String shortChecksum(String checksum) {
+        if (checksum == null || checksum.isBlank()) {
+            return "";
+        }
+        return checksum.length() > 12 ? checksum.substring(0, 12) : checksum;
     }
 
     private int countObjects(String array) {

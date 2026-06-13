@@ -2742,11 +2742,23 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             long snapshotNo = (long) decimal(object, "snapshotNo");
             if (snapshotNo > 0L) {
                 String reason = text(object, "reason");
-                entries.add("#" + snapshotNo + (reason.isBlank() ? "" : " 사유=" + reason));
+                String checksum = text(object, "checksum");
+                long sizeBytes = (long) decimal(object, "sizeBytes");
+                entries.add("#" + snapshotNo
+                    + (reason.isBlank() ? "" : " 사유=" + reason)
+                    + (sizeBytes <= 0L ? "" : " 크기=" + sizeBytes)
+                    + (checksum.isBlank() ? "" : " checksum=" + shortChecksum(checksum)));
             }
             index = objectEnd + 1;
         }
         return entries.isEmpty() ? "섬 스냅샷이 없습니다." : "섬 스냅샷: " + String.join(", ", entries);
+    }
+
+    private String shortChecksum(String checksum) {
+        if (checksum == null || checksum.isBlank()) {
+            return "";
+        }
+        return checksum.length() > 12 ? checksum.substring(0, 12) : checksum;
     }
 
     private String memberListMessage(String body) {

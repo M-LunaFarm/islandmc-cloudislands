@@ -2377,9 +2377,11 @@ public final class VelocityRoutingController {
                 String reason = jsonValue(object, "reason");
                 long sizeBytes = longValue(object, "sizeBytes");
                 String createdAt = jsonValue(object, "createdAt");
+                String checksum = jsonValue(object, "checksum");
                 entries.add("#" + snapshotNo
                     + (reason.isBlank() ? "" : " 사유=" + reason)
                     + " 크기=" + sizeBytes
+                    + (checksum.isBlank() ? "" : " checksum=" + shortChecksum(checksum))
                     + (createdAt.isBlank() ? "" : " 생성=" + createdAt));
             }
             index = objectEnd + 1;
@@ -2447,6 +2449,13 @@ public final class VelocityRoutingController {
             return "-";
         }
         return value.length() > 8 ? value.substring(0, 8) : value;
+    }
+
+    private String shortChecksum(String checksum) {
+        if (checksum == null || checksum.isBlank()) {
+            return "";
+        }
+        return checksum.length() > 12 ? checksum.substring(0, 12) : checksum;
     }
 
     private int countObjects(String array) {
