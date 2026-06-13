@@ -888,12 +888,46 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             placeholderHook.unregister();
             placeholderHook = null;
         }
+        clearRuntimeCaches();
         machineListenerRegistered = unregisterListener(machineListener, machineListenerRegistered);
         machineListener = null;
         guiListenerRegistered = unregisterListener(guiListener, guiListenerRegistered);
         guiListener = null;
         lifecycleListenerRegistered = unregisterListener(lifecycleListener, lifecycleListenerRegistered);
         lifecycleListener = null;
+    }
+
+    private void clearRuntimeCaches() {
+        if (itemRegistry != null) {
+            itemRegistry.clear();
+        }
+        if (machineDefinitions != null) {
+            machineDefinitions.clear();
+        }
+        if (recipes != null) {
+            recipes.clear();
+        }
+        if (islands != null) {
+            islands.clear();
+        }
+        if (machines != null) {
+            machines.clear();
+        }
+        if (nodes != null) {
+            nodes.clear();
+        }
+        if (market != null) {
+            market.clear();
+        }
+        if (contracts != null) {
+            contracts.clear();
+        }
+        if (maintenance != null) {
+            maintenance.clear();
+        }
+        if (research != null) {
+            research.clear();
+        }
     }
 
     private void applyAddonRuntimeState() {

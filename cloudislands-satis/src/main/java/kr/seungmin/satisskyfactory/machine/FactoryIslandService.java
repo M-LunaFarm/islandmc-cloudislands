@@ -90,6 +90,10 @@ public final class FactoryIslandService {
         }
     }
 
+    public void clear() {
+        cache.clear();
+    }
+
     public void dirtySaves(DirtySaveService dirtySaves) {
         this.dirtySaves = dirtySaves;
     }
