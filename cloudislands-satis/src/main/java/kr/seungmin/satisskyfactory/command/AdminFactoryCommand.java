@@ -253,9 +253,18 @@ public final class AdminFactoryCommand {
             return filter(amountSuggestions(), args[4]);
         }
         if (args.length == 3 && args[1].equalsIgnoreCase("debug")) {
-            return filter(List.of("island", "networks"), args[2]);
+            return filter(debugTargets(), args[2]);
         }
         return new ArrayList<>();
+    }
+
+    private List<String> debugTargets() {
+        List<String> values = new ArrayList<>();
+        values.add("island");
+        if (enabled("machines")) {
+            values.add("networks");
+        }
+        return values;
     }
 
     private boolean isInsideIsland(org.bukkit.Location location, FactoryIsland island) {
