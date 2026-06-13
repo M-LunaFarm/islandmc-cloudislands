@@ -60,6 +60,13 @@ import java.util.UUID;
 
 public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIslandsAddon {
     private static final String ADDON_ID = "cloudislands-satis";
+    private static final Map<String, String> FEATURE_ALIASES = Map.of(
+            "factories", "machines",
+            "generators", "resource-nodes",
+            "upgrades", "research",
+            "missions", "contracts",
+            "menus", "gui"
+    );
     private ConfigService configs;
     private MessageService messages;
     private DatabaseService database;
@@ -747,22 +754,40 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         features.put("research", configuredFeatureEnabled("research"));
         features.put("maintenance", configuredFeatureEnabled("maintenance"));
         features.put("placeholders", configuredFeatureEnabled("placeholders"));
+        FEATURE_ALIASES.forEach((alias, canonical) -> features.put(alias, features.getOrDefault(canonical, configuredFeatureEnabled(canonical))));
         return features;
     }
 
     private boolean configuredFeatureEnabled(String key) {
-        return configs.main().getBoolean("features." + key, true);
+        String canonical = canonicalFeature(key);
+        boolean enabled = configs.main().getBoolean("features." + canonical, true);
+        for (Map.Entry<String, String> alias : FEATURE_ALIASES.entrySet()) {
+            if (alias.getValue().equals(canonical) && configs.main().contains("features." + alias.getKey())) {
+                enabled = enabled && configs.main().getBoolean("features." + alias.getKey(), true);
+            }
+        }
+        return enabled;
     }
 
     private boolean featureEnabled(String key) {
         if (!addonRuntimeEnabled) {
             return false;
         }
-        Boolean effective = effectiveFeatures.get(key);
-        if (effective != null) {
-            return effective;
+        String canonical = canonicalFeature(key);
+        boolean enabled = effectiveFeatures.getOrDefault(canonical, configuredFeatureEnabled(canonical));
+        for (Map.Entry<String, String> alias : FEATURE_ALIASES.entrySet()) {
+            if (alias.getValue().equals(canonical)) {
+                Boolean effective = effectiveFeatures.get(alias.getKey());
+                if (effective != null) {
+                    enabled = enabled && effective;
+                }
+            }
         }
-        return configuredFeatureEnabled(key);
+        return enabled;
+    }
+
+    private String canonicalFeature(String key) {
+        return FEATURE_ALIASES.getOrDefault(key, key);
     }
 
     private String resolveDatabaseFileName() {
