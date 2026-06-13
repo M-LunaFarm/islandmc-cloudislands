@@ -984,6 +984,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (Boolean.TRUE.equals(features.get("placeholders")) && !getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             warnings.add("placeholderapi-not-installed");
         }
+        FEATURE_ALIASES.forEach((alias, canonical) -> {
+            if (configFeature(canonical) && configFeatureDefined(alias) && !configFeature(alias)) {
+                warnings.add("alias-disabled:" + alias + "->" + canonical);
+            }
+        });
         return warnings.isEmpty() ? "none" : String.join(",", warnings);
     }
 
