@@ -389,7 +389,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                     return adminText("admin-command-addons-feature-invalid", "알 수 없는 addon feature입니다: ") + args[3];
                 }
                 boolean enabled = addon.get().enabled() && addon.get().featureEnabled(args[3]);
-                return adminText("admin-command-addons-feature-prefix", "Addon feature: ") + args[2] + " " + args[3] + adminText("admin-command-addons-enabled-prefix", " enabled=") + enabled;
+                return adminText("admin-command-addons-feature-prefix", "Addon feature: ") + args[2] + " " + args[3] + canonicalFeatureSuffix(addon.get(), args[3]) + adminText("admin-command-addons-enabled-prefix", " enabled=") + enabled;
             }));
             return true;
         }
@@ -2343,5 +2343,13 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             }
         }
         return aliases;
+    }
+
+    private String canonicalFeatureSuffix(CloudIslandsAddonSnapshot addon, String feature) {
+        String canonical = featureAliases(addon).get(feature);
+        if (canonical == null || canonical.equals(feature)) {
+            return "";
+        }
+        return " canonical=" + canonical;
     }
 }
