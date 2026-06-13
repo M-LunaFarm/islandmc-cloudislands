@@ -159,7 +159,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         nodes.dirtySaves(dirtySaves);
         itemNetworks = new ItemNetworkService(database, machines, machineDefinitions);
         power = new PowerNetworkService(database, machines, machineDefinitions, recipes, storage);
-        market = new MarketService(storage, economy, database, itemRegistry);
+        market = new MarketService(storage, economy, database, itemRegistry, () -> featureEnabled("maintenance"));
         contracts = new ContractService(storage, economy, database, boosts, () -> featureEnabled("maintenance"));
         maintenance = new MaintenanceService(machines, economy, database);
         research = new ResearchService(database, economy);

@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
 
 public final class MarketService {
     public record SellResult(long gross, long paidToPlayer, long debtRepaid, double serverDemandFactor,
@@ -30,6 +31,7 @@ public final class MarketService {
     private final EconomyService economy;
     private final DatabaseService database;
     private final ItemRegistry items;
+    private final BooleanSupplier maintenanceEnabled;
     private final Map<String, Long> prices = new HashMap<>();
     private final Map<String, Long> targetDailyAmounts = new HashMap<>();
     private final Map<String, Double> itemQualityFactors = new HashMap<>();
@@ -44,11 +46,13 @@ public final class MarketService {
     private double lockedDebtRepayRate = 0.70;
     private boolean lockedMarketSalesBlocked;
 
-    public MarketService(StorageService storage, EconomyService economy, DatabaseService database, ItemRegistry items) {
+    public MarketService(StorageService storage, EconomyService economy, DatabaseService database, ItemRegistry items,
+                         BooleanSupplier maintenanceEnabled) {
         this.storage = storage;
         this.economy = economy;
         this.database = database;
         this.items = items;
+        this.maintenanceEnabled = maintenanceEnabled == null ? () -> true : maintenanceEnabled;
     }
 
     public void load(FileConfiguration config) {
@@ -160,7 +164,7 @@ public final class MarketService {
     }
 
     private boolean marketBlocked(FactoryIsland island) {
-        return lockedMarketSalesBlocked && island.maintenanceStatus() == MaintenanceStatus.LOCKED;
+        return maintenanceEnabled.getAsBoolean() && lockedMarketSalesBlocked && island.maintenanceStatus() == MaintenanceStatus.LOCKED;
     }
 
     private Optional<SellResult> payout(FactoryIsland island, OfflinePlayer owner, String itemId, long amount) {
@@ -170,7 +174,7 @@ public final class MarketService {
         PriceCalculator.Factors factors = calculator().factors(itemId, amount, serverSold, personalSold);
         long gross = calculator().finalPrice(itemId, amount, serverSold, personalSold);
         long debtRepaid = 0;
-        if (island.maintenanceDebt() > 0) {
+        if (maintenanceEnabled.getAsBoolean() && island.maintenanceDebt() > 0) {
             double repayRate = island.maintenanceStatus() == MaintenanceStatus.LOCKED ? lockedDebtRepayRate : debtRepayRate;
             debtRepaid = Math.min(island.maintenanceDebt(), Math.round(gross * clamp(repayRate, 0.0, 1.0)));
         }
