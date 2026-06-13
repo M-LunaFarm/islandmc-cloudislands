@@ -53,7 +53,7 @@ public final class FactoryLifecycleListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        if (!active.getAsBoolean()) {
+        if (!active.getAsBoolean() || !lifecycleDataWritesEnabled()) {
             return;
         }
         skyblock.getIslandOf(event.getPlayer()).ifPresent(islandRef -> {
@@ -78,10 +78,10 @@ public final class FactoryLifecycleListener implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        if (!active.getAsBoolean()) {
+        if (!active.getAsBoolean() || !lifecycleDataWritesEnabled()) {
             return;
         }
-        islands.context(event.getPlayer()).ifPresent(context -> {
+        islands.existingContext(event.getPlayer()).ifPresent(context -> {
             context.factoryIsland().lastTickAt(System.currentTimeMillis());
             islands.save(context.factoryIsland());
         });
@@ -108,5 +108,9 @@ public final class FactoryLifecycleListener implements Listener {
                 power.rebuildIsland(machine.islandUuid());
             }
         }
+    }
+
+    private boolean lifecycleDataWritesEnabled() {
+        return resourceNodesEnabled.getAsBoolean() || machinesEnabled.getAsBoolean() || maintenanceEnabled.getAsBoolean();
     }
 }
