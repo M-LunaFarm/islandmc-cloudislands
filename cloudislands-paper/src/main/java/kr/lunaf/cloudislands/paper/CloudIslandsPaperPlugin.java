@@ -67,6 +67,7 @@ import kr.lunaf.cloudislands.paper.limit.IslandLimitListener;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.message.TranslationManager;
 import kr.lunaf.cloudislands.paper.placeholder.CloudIslandsPlaceholderExpansion;
+import kr.lunaf.cloudislands.paper.redis.PaperRedisClient;
 import kr.lunaf.cloudislands.paper.session.PaperBrandingListener;
 import kr.lunaf.cloudislands.paper.session.PaperChatListener;
 import kr.lunaf.cloudislands.paper.session.PaperPlayerProfileListener;
@@ -101,6 +102,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private GeneratorLevelCache generatorLevels;
     private Object placeholderExpansion;
     private MessageRenderer messages;
+    private PaperRedisClient redisClient;
 
     @Override
     public void onEnable() {
@@ -122,6 +124,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         this.agent = new CloudIslandsPaperAgent(this, role, client, nodeId);
         String serviceName = getConfig().getString("plugin.service-name", "CloudIslands");
         this.messages = new MessageRenderer(TranslationManager.fromConfig(getConfig(), serviceName));
+        this.redisClient = PaperRedisClient.create(
+            resolveEnv(getConfig().getString("redis.uri", "redis://redis.internal:6379")),
+            Duration.ofMillis(Math.max(1L, getConfig().getLong("redis.timeout-ms", 1000L)))
+        );
         this.api = new PaperCloudIslandsApi(client, agent);
         CloudIslandsProvider.set(api);
         getServer().getServicesManager().register(CloudIslandsApi.class, api, this, ServicePriority.Normal);
@@ -261,6 +267,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             healthService.stop();
             healthService = null;
         }
+        if (redisClient != null) {
+            redisClient.close();
+            redisClient = null;
+        }
         unregisterPlaceholderExpansion();
         if (api != null) {
             CloudIslandsProvider.clear(api);
@@ -311,13 +321,17 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     }
 
     private String paperHealthJson(AgentRole role, String nodeId) {
+        PaperRedisClient.PingResult redis = redisClient == null ? PaperRedisClient.PingResult.disabled() : redisClient.ping();
         return "{"
             + "\"status\":\"UP\","
             + "\"role\":\"" + role.name() + "\","
             + "\"nodeId\":\"" + nodeId + "\","
             + "\"onlinePlayers\":" + getServer().getOnlinePlayers().size() + ","
             + "\"activeIslands\":" + (activeIslands == null ? 0 : activeIslands.size()) + ","
-            + "\"activationQueue\":" + (jobWorker == null ? 0 : jobWorker.activationQueue())
+            + "\"activationQueue\":" + (jobWorker == null ? 0 : jobWorker.activationQueue()) + ","
+            + "\"redisAvailable\":" + redis.available() + ","
+            + "\"redisLatencySeconds\":" + redis.latencySeconds() + ","
+            + "\"redisFailuresTotal\":" + redis.failuresTotal()
             + "}";
     }
 
@@ -325,11 +339,15 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         int active = activeIslands == null ? 0 : activeIslands.size();
         int queue = jobWorker == null ? 0 : jobWorker.activationQueue();
         int failures = jobWorker == null ? 0 : jobWorker.recentFailurePenalty();
+        PaperRedisClient.PingResult redis = redisClient == null ? PaperRedisClient.PingResult.disabled() : redisClient.ping();
         return ""
             + "cloudislands_paper_online_players " + getServer().getOnlinePlayers().size() + "\n"
             + "cloudislands_paper_active_islands{node=\"" + nodeId + "\",role=\"" + role.name() + "\"} " + active + "\n"
             + "cloudislands_paper_activation_queue{node=\"" + nodeId + "\"} " + queue + "\n"
-            + "cloudislands_paper_recent_failure_penalty{node=\"" + nodeId + "\"} " + failures + "\n";
+            + "cloudislands_paper_recent_failure_penalty{node=\"" + nodeId + "\"} " + failures + "\n"
+            + "cloudislands_paper_redis_available{node=\"" + nodeId + "\"} " + (redis.available() ? 1 : 0) + "\n"
+            + "cloudislands_paper_redis_latency_seconds{node=\"" + nodeId + "\"} " + redis.latencySeconds() + "\n"
+            + "cloudislands_paper_redis_failures_total{node=\"" + nodeId + "\"} " + redis.failuresTotal() + "\n";
     }
 
     private String levelScanStatus(String supportedTemplates) {

@@ -43,6 +43,7 @@ security:
 
 redis:
   uri: "redis://redis.internal:6379"
+  timeout-ms: 1000
 
 storage:
   type: "S3"
