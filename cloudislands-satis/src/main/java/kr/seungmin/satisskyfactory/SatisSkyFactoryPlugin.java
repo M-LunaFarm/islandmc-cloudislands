@@ -649,6 +649,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("mode", configs.main().getString("integration.mode", "ADDON"));
         metadata.put("skyblock-provider", "CLOUDISLANDS");
         metadata.put("cloudislands-adapter", Boolean.toString(configs.main().getBoolean("integration.cloudislands-adapter", true)));
+        metadata.put("requires-cloudislands-api", Boolean.toString(requiresCloudIslandsApi()));
         metadata.put("database-scope", scope);
         metadata.put("database-config-source", databaseConfigSource());
         metadata.put("database-file", configuredDatabaseFileName());
