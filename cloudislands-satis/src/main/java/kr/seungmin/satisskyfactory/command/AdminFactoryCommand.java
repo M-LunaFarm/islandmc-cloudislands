@@ -32,7 +32,23 @@ import java.util.function.Predicate;
 
 public final class AdminFactoryCommand {
     private static final int HELP_PAGE_SIZE = 8;
-    private static final List<String> FEATURE_KEYS = List.of("commands", "machines", "gui", "lifecycle", "resource-nodes", "market", "contracts", "research", "maintenance", "placeholders");
+    private static final List<String> FEATURE_KEYS = List.of(
+            "commands",
+            "machines",
+            "factories",
+            "generators",
+            "upgrades",
+            "missions",
+            "menus",
+            "gui",
+            "lifecycle",
+            "resource-nodes",
+            "market",
+            "contracts",
+            "research",
+            "maintenance",
+            "placeholders"
+    );
     private static final List<String> HELP_COMMANDS = List.of(
             "factory admin help [page]",
             "factory admin command list [page]",
