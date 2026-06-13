@@ -58,7 +58,7 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
             return Optional.empty();
         }
         return joinOptional(() -> api.islands().getIslandAt(location.getWorld().getName(), location.getBlockX(), location.getBlockY(), location.getBlockZ()))
-                .map(this::ref);
+                .flatMap(this::ref);
     }
 
     @Override
@@ -68,11 +68,11 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
         }
         Optional<IslandSnapshot> ownedIsland = joinOptional(() -> api.islands().getIslandByOwner(player.getUniqueId()));
         if (ownedIsland.isPresent()) {
-            return ownedIsland.map(this::ref);
+            return ownedIsland.flatMap(this::ref);
         }
         return join(() -> api.players().getJoinedIslands(player.getUniqueId()))
                 .flatMap(islands -> islands.stream().findFirst())
-                .map(this::ref);
+                .flatMap(this::ref);
     }
 
     @Override
@@ -80,7 +80,7 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
         if (!available || islandUuid == null) {
             return Optional.empty();
         }
-        return joinOptional(() -> api.islands().getIsland(islandUuid)).map(this::ref);
+        return joinOptional(() -> api.islands().getIsland(islandUuid)).flatMap(this::ref);
     }
 
     @Override
@@ -143,8 +143,11 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
                 .orElse(false);
     }
 
-    private IslandRef ref(IslandSnapshot island) {
-        return new IslandRef(island, island.islandId(), island.ownerUuid());
+    private Optional<IslandRef> ref(IslandSnapshot island) {
+        if (island == null || island.islandId() == null || island.ownerUuid() == null) {
+            return Optional.empty();
+        }
+        return Optional.of(new IslandRef(island, island.islandId(), island.ownerUuid()));
     }
 
     private boolean member(List<IslandMemberSnapshot> members, UUID playerUuid) {
