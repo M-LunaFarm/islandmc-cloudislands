@@ -869,7 +869,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("island-position-remap", "center-delta");
         state.put("effective-features", featureState(snapshot.features()));
         state.put("operational-features", operationalFeatureState(snapshot.features()));
-        state.put("feature-warnings", featureWarnings());
+        state.put("feature-warnings", featureWarnings(snapshot.features()));
         state.put("last-sync-reason", reason == null || reason.isBlank() ? "unknown" : reason);
         state.put("last-sync-at", Instant.now().toString());
         cloudIslandsApi.addons().putState(snapshot.id(), state).exceptionally(error -> {
@@ -1329,7 +1329,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String featureWarnings() {
-        Map<String, Boolean> features = featureSnapshot();
+        return featureWarnings(featureSnapshot());
+    }
+
+    private String featureWarnings(Map<String, Boolean> features) {
         List<String> warnings = new ArrayList<>();
         if (Boolean.TRUE.equals(features.get("gui"))
                 && !Boolean.TRUE.equals(features.get("machines"))
