@@ -24,7 +24,8 @@ class DefaultConfigIntegrityTest {
 
         assertEquals("CloudIslandsSatis", plugin.getString("name"));
         assertEquals("kr.seungmin.satisskyfactory.SatisSkyFactoryPlugin", plugin.getString("main"));
-        assertEquals(List.of("CloudIslands", "Vault", "PlaceholderAPI"), plugin.getStringList("softdepend"));
+        assertEquals(List.of("CloudIslands"), plugin.getStringList("depend"));
+        assertEquals(List.of("Vault", "PlaceholderAPI"), plugin.getStringList("softdepend"));
         assertTrue(plugin.isConfigurationSection("commands.factory"));
         assertTrue(plugin.isConfigurationSection("commands.sfactory"));
         assertTrue(config.getBoolean("satis.enabled"));
