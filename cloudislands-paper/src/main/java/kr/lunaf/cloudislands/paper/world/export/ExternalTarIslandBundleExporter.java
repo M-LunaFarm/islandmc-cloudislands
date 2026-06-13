@@ -24,6 +24,11 @@ public final class ExternalTarIslandBundleExporter implements IslandBundleExport
 
     @Override
     public ExportedIslandBundle export(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland, Path targetDirectory) throws IOException {
+        return export(islandId, activeIsland, targetDirectory, null);
+    }
+
+    @Override
+    public ExportedIslandBundle export(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland, Path targetDirectory, IslandBundleManifest manifest) throws IOException {
         Files.createDirectories(targetDirectory);
         long snapshotNo = Instant.now().toEpochMilli();
         Path bundle = targetDirectory.resolve(String.format("%d-bundle.tar.zst", snapshotNo));
@@ -37,7 +42,7 @@ public final class ExternalTarIslandBundleExporter implements IslandBundleExport
         CellExtractionPlan extraction = new ShardCellTransferPlanner(activeIsland.islandSize())
             .extraction(islandId, activeIsland.worldName(), activeIsland.originX(), activeIsland.originZ(), staging.resolve("chunks"));
         new FileBackedCellTransfer(worldContainer).extract(extraction);
-        writeStagedManifest(islandId, activeIsland, staging.resolve("manifest.json"));
+        writeStagedManifest(islandId, activeIsland, staging.resolve("manifest.json"), manifest);
         ProcessBuilder processBuilder = new ProcessBuilder("tar", "--zstd", "-cf", bundle.toAbsolutePath().toString(), "-C", staging.toAbsolutePath().toString(), ".");
         processBuilder.redirectErrorStream(true);
         try {
@@ -53,17 +58,17 @@ public final class ExternalTarIslandBundleExporter implements IslandBundleExport
         return new ExportedIslandBundle(islandId, bundle, snapshotNo);
     }
 
-    private void writeStagedManifest(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland, Path manifestPath) throws IOException {
+    private void writeStagedManifest(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland, Path manifestPath, IslandBundleManifest source) throws IOException {
         Instant now = Instant.now();
         IslandBundleManifest manifest = new IslandBundleManifest(
             islandId,
-            new UUID(0L, 0L),
-            3,
-            "unknown",
-            activeIsland.schemaVersion(),
-            activeIsland.islandSize(),
+            source == null ? new UUID(0L, 0L) : source.ownerUuid(),
+            source == null ? 3 : source.formatVersion(),
+            source == null ? "unknown" : source.minecraftVersion(),
+            source == null ? activeIsland.schemaVersion() : source.schemaVersion(),
+            source == null ? activeIsland.islandSize() : source.size(),
             new IslandLocation(activeIsland.worldName(), 0.5D, 100.0D, 0.5D, 180.0F, 0.0F),
-            now,
+            source == null ? now : source.createdAt(),
             now,
             ""
         );

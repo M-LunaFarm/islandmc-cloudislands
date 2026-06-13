@@ -68,13 +68,13 @@ public final class IslandSaveService {
         if (!retentionPolicy.compress()) {
             throw new IOException("uncompressed snapshot bundles are not supported by the current storage format");
         }
-        IslandBundleExporter.ExportedIslandBundle exported = exporter.export(islandId, activeIsland, exportRoot.resolve(islandId.toString()));
+        IslandBundleManifest previous = baseManifest == null ? storage.readManifest(islandId) : baseManifest;
+        IslandBundleExporter.ExportedIslandBundle exported = exporter.export(islandId, activeIsland, exportRoot.resolve(islandId.toString()), previous);
         long sizeBytes = Files.size(exported.bundleFile());
         String checksum;
         try (InputStream input = Files.newInputStream(exported.bundleFile())) {
             checksum = Sha256Checksums.of(input);
         }
-        IslandBundleManifest previous = baseManifest == null ? storage.readManifest(islandId) : baseManifest;
         IslandBundleManifest manifest = new IslandBundleManifest(
             islandId,
             previous.ownerUuid(),
