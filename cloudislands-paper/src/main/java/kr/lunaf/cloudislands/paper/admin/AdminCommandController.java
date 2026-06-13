@@ -9,6 +9,7 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
@@ -28,7 +29,8 @@ import org.jetbrains.annotations.NotNull;
 public final class AdminCommandController implements CommandExecutor, TabCompleter {
     private static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "config", "cache", "addons", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
-    private static final List<String> ADDON_COMMANDS = List.of("list");
+    private static final List<String> ADDON_COMMANDS = List.of("list", "info", "feature");
+    private static final List<String> ADDON_FEATURES = List.of("commands", "machines", "gui", "lifecycle", "resource-nodes", "market", "contracts", "research", "maintenance", "placeholders");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "islands", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
     private static final List<String> PLAYER_COMMANDS = List.of("info", "setisland", "clearisland");
@@ -47,6 +49,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         "ciadmin command list [page]",
         "ciadmin cache clear",
         "ciadmin addons list",
+        "ciadmin addons info <addonId>",
+        "ciadmin addons feature <addonId> <feature>",
         "ciadmin node menu",
         "ciadmin node list",
         "ciadmin node info <node>",
@@ -240,6 +244,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (args.length == 2 && args[0].equalsIgnoreCase("addons")) {
             return matches(ADDON_COMMANDS, args[1]);
         }
+        if (args.length == 3 && args[0].equalsIgnoreCase("addons") && (args[1].equalsIgnoreCase("info") || args[1].equalsIgnoreCase("feature"))) {
+            return matches(List.of("cloudislands-satis"), args[2]);
+        }
+        if (args.length == 4 && args[0].equalsIgnoreCase("addons") && args[1].equalsIgnoreCase("feature")) {
+            return matches(ADDON_FEATURES, args[3]);
+        }
         if (args.length == 2 && args[0].equalsIgnoreCase("node")) {
             return matches(NODE_COMMANDS, args[1]);
         }
@@ -328,14 +338,32 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private boolean handleAddons(CommandSender sender, String[] args) {
-        if (args.length > 1 && !args[1].equalsIgnoreCase("list")) {
-            sender.sendMessage(adminText("admin-command-addons-usage", "사용법: /ciadmin addons list"));
+        CloudIslandsApi api = CloudIslandsProvider.get().orElse(null);
+        if (api == null) {
+            sender.sendMessage(adminText("admin-command-addons-api-missing", "CloudIslands API가 준비되지 않았습니다."));
             return true;
         }
-        CloudIslandsProvider.get().ifPresentOrElse(
-            api -> run(sender, "Addons list", api.addons().list().thenApply(this::addonListMessage)),
-            () -> sender.sendMessage(adminText("admin-command-addons-api-missing", "CloudIslands API가 준비되지 않았습니다."))
-        );
+        if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
+            run(sender, "Addons list", api.addons().list().thenApply(this::addonListMessage));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("info")) {
+            if (args.length < 3) {
+                sender.sendMessage(adminText("admin-command-addons-info-usage", "사용법: /ciadmin addons info <addonId>"));
+                return true;
+            }
+            run(sender, "Addon info", api.addons().get(args[2]).thenApply(addon -> addon.map(this::addonInfoMessage).orElse(adminText("admin-command-addons-not-found", "Addon: not found ") + args[2])));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("feature")) {
+            if (args.length < 4) {
+                sender.sendMessage(adminText("admin-command-addons-feature-usage", "사용법: /ciadmin addons feature <addonId> <feature>"));
+                return true;
+            }
+            run(sender, "Addon feature", api.addons().isFeatureEnabled(args[2], args[3]).thenApply(enabled -> adminText("admin-command-addons-feature-prefix", "Addon feature: ") + args[2] + " " + args[3] + adminText("admin-command-addons-enabled-prefix", " enabled=") + enabled));
+            return true;
+        }
+        sender.sendMessage(adminText("admin-command-addons-usage", "사용법: /ciadmin addons list|info|feature"));
         return true;
     }
 
@@ -1423,6 +1451,14 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         return adminText("admin-command-addons-total-prefix", "Addons: total=") + addons.size()
             + adminText("admin-command-addons-enabled-count-prefix", " enabled=") + enabled
             + " / " + String.join(" | ", entries);
+    }
+
+    private String addonInfoMessage(CloudIslandsAddonSnapshot addon) {
+        return adminText("admin-command-addon-info-prefix", "Addon: ") + addon.id()
+            + adminText("admin-command-addons-name-prefix", " name=") + addon.displayName()
+            + adminText("admin-command-addons-version-prefix", " version=") + addon.version()
+            + adminText("admin-command-addons-enabled-prefix", " enabled=") + addon.enabled()
+            + addonFeatureSuffix(addon);
     }
 
     private String addonFeatureSuffix(CloudIslandsAddonSnapshot addon) {
