@@ -42,6 +42,30 @@ public record CloudIslandsAddonSnapshot(
     }
 
     public boolean featureEnabled(String key, boolean fallback) {
-        return features.getOrDefault(key, fallback);
+        String canonical = canonicalFeature(key);
+        boolean enabled = features.getOrDefault(canonical, features.getOrDefault(key, fallback));
+        if (!canonical.equals(key) && features.containsKey(key)) {
+            enabled = enabled && features.get(key);
+        }
+        for (String pair : metadata.getOrDefault("feature-aliases", "").split(",")) {
+            String[] parts = pair.split(":", 2);
+            if (parts.length == 2 && parts[1].equals(canonical) && features.containsKey(parts[0])) {
+                enabled = enabled && features.get(parts[0]);
+            }
+        }
+        return enabled;
+    }
+
+    private String canonicalFeature(String key) {
+        if (key == null) {
+            return "";
+        }
+        for (String pair : metadata.getOrDefault("feature-aliases", "").split(",")) {
+            String[] parts = pair.split(":", 2);
+            if (parts.length == 2 && parts[0].equals(key)) {
+                return parts[1];
+            }
+        }
+        return key;
     }
 }
