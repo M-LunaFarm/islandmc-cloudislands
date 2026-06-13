@@ -165,6 +165,7 @@ public final class CloudIslandsCoreApplication {
     private final IslandSnapshotRepository snapshotRepository;
     private final DirtyRankingRecalculationTask rankingRecalculationTask;
     private final int snapshotKeepLatest;
+    private AuditLogger audit;
 
     public CloudIslandsCoreApplication(int port) throws IOException {
         this(CoreServiceConfig.fromEnvironment().withPort(port));
@@ -269,6 +270,7 @@ public final class CloudIslandsCoreApplication {
             : baseTemplateRepository;
         AuditLogger baseAudit = config.jdbcRepositories() ? new JdbcAuditLogger(dataSource) : new InMemoryAuditLogger();
         AuditLogger audit = redisEventWriter == null ? baseAudit : new RedisAuditLogger(baseAudit, redisEventWriter, RedisKeys.auditStream());
+        this.audit = audit;
         IslandLogRepository baseIslandLogs = config.jdbcRepositories() ? new JdbcIslandLogRepository(dataSource) : new InMemoryIslandLogRepository();
         IslandLogRepository islandLogs = config.redisEvents() || config.redisJobs()
             ? new CachingIslandLogRepository(baseIslandLogs, config.redisUri())
@@ -1944,22 +1946,27 @@ public final class CloudIslandsCoreApplication {
         server.createContext(path, exchange -> {
             String key = exchange.getRemoteAddress() == null ? "unknown" : exchange.getRemoteAddress().getAddress().getHostAddress();
             if (!rateLimiter.allow(key)) {
+                auditSecurityReject("RATE_LIMITED", path, exchange);
                 write(exchange, 429, ApiResponses.error("RATE_LIMITED", "Too many requests"));
                 return;
             }
             if (!path.equals("/health") && !tokenGuard.allowed(exchange)) {
+                auditSecurityReject("UNAUTHORIZED", path, exchange);
                 write(exchange, 401, ApiResponses.error("UNAUTHORIZED", "Missing or invalid API token"));
                 return;
             }
             if (!path.equals("/health") && !mtlsGuard.allowed(exchange)) {
+                auditSecurityReject("MTLS_REQUIRED", path, exchange);
                 write(exchange, 401, ApiResponses.error("MTLS_REQUIRED", "mTLS verification is required"));
                 return;
             }
             if (!ipAllowlist.allowed(exchange)) {
+                auditSecurityReject("IP_NOT_ALLOWED", path, exchange);
                 write(exchange, 403, ApiResponses.error("IP_NOT_ALLOWED", "Remote address is not allowed"));
                 return;
             }
             if (!adminGuard.allowed(path, exchange)) {
+                auditSecurityReject("ADMIN_PERMISSION_DENIED", path, exchange);
                 write(exchange, 403, ApiResponses.error("ADMIN_PERMISSION_DENIED", "Admin permission is required"));
                 return;
             }
@@ -1971,22 +1978,27 @@ public final class CloudIslandsCoreApplication {
         server.createContext(path, exchange -> {
             String key = exchange.getRemoteAddress() == null ? "unknown" : exchange.getRemoteAddress().getAddress().getHostAddress();
             if (!rateLimiter.allow(key)) {
+                auditSecurityReject("RATE_LIMITED", exchange.getRequestURI().getPath(), exchange);
                 write(exchange, 429, ApiResponses.error("RATE_LIMITED", "Too many requests"));
                 return;
             }
             if (!tokenGuard.allowed(exchange)) {
+                auditSecurityReject("UNAUTHORIZED", exchange.getRequestURI().getPath(), exchange);
                 write(exchange, 401, ApiResponses.error("UNAUTHORIZED", "Missing or invalid API token"));
                 return;
             }
             if (!mtlsGuard.allowed(exchange)) {
+                auditSecurityReject("MTLS_REQUIRED", exchange.getRequestURI().getPath(), exchange);
                 write(exchange, 401, ApiResponses.error("MTLS_REQUIRED", "mTLS verification is required"));
                 return;
             }
             if (!ipAllowlist.allowed(exchange)) {
+                auditSecurityReject("IP_NOT_ALLOWED", exchange.getRequestURI().getPath(), exchange);
                 write(exchange, 403, ApiResponses.error("IP_NOT_ALLOWED", "Remote address is not allowed"));
                 return;
             }
             if (!adminGuard.allowed(exchange.getRequestURI().getPath(), exchange)) {
+                auditSecurityReject("ADMIN_PERMISSION_DENIED", exchange.getRequestURI().getPath(), exchange);
                 write(exchange, 403, ApiResponses.error("ADMIN_PERMISSION_DENIED", "Admin permission is required"));
                 return;
             }
@@ -1996,6 +2008,24 @@ public final class CloudIslandsCoreApplication {
 
     private static void lifecycle(HttpExchange exchange, IslandLifecycleWorkflow.Result result) throws IOException {
         write(exchange, result.accepted() ? 202 : 409, "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\"}");
+    }
+
+    private void auditSecurityReject(String reason, String path, HttpExchange exchange) {
+        if (audit == null) {
+            return;
+        }
+        try {
+            String remote = exchange.getRemoteAddress() == null || exchange.getRemoteAddress().getAddress() == null
+                ? "unknown"
+                : exchange.getRemoteAddress().getAddress().getHostAddress();
+            audit.log(new UUID(0L, 0L), "SECURITY", "SECURITY_REJECT", "HTTP", path == null ? "" : path, Map.of(
+                "reason", reason == null ? "" : reason,
+                "method", exchange.getRequestMethod() == null ? "" : exchange.getRequestMethod(),
+                "remote", remote
+            ));
+        } catch (RuntimeException ignored) {
+            // Security rejection audit must not change the original response.
+        }
     }
 
     private static void routeResult(HttpExchange exchange, RoutePreparationResult result) throws IOException {
