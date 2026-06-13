@@ -2335,31 +2335,27 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
 
     private List<String> addonFeatureKeys(CloudIslandsAddonSnapshot addon) {
         Set<String> features = new java.util.TreeSet<>(addon.features().keySet());
-        featureAliases(addon).forEach((alias, _canonical) -> features.add(alias));
+        addon.featureAliases().forEach((alias, _canonical) -> features.add(alias));
+        addon.featureDependencies().forEach((feature, required) -> {
+            features.add(feature);
+            features.add(required);
+        });
         return List.copyOf(features);
     }
 
     private boolean addonFeatureKnown(CloudIslandsAddonSnapshot addon, String feature) {
-        if (addon.features().containsKey(feature)) {
+        String requested = feature == null ? "" : feature.trim();
+        if (addon.features().containsKey(requested)) {
             return true;
         }
-        String canonical = featureAliases(addon).get(feature);
-        return canonical != null && addon.features().containsKey(canonical);
-    }
-
-    private Map<String, String> featureAliases(CloudIslandsAddonSnapshot addon) {
-        Map<String, String> aliases = new java.util.LinkedHashMap<>();
-        for (String pair : addon.metadata().getOrDefault("feature-aliases", "").split(",")) {
-            String[] parts = pair.split(":", 2);
-            if (parts.length == 2 && !parts[0].isBlank() && !parts[1].isBlank()) {
-                aliases.put(parts[0], parts[1]);
-            }
-        }
-        return aliases;
+        String canonical = addon.featureAliases().get(requested);
+        return canonical != null && addon.features().containsKey(canonical)
+            || addon.featureDependencies().containsKey(requested)
+            || addon.featureDependencies().containsValue(requested);
     }
 
     private String canonicalFeatureSuffix(CloudIslandsAddonSnapshot addon, String feature) {
-        String canonical = featureAliases(addon).get(feature);
+        String canonical = addon.featureAliases().get(feature == null ? "" : feature.trim());
         if (canonical == null || canonical.equals(feature)) {
             return "";
         }
