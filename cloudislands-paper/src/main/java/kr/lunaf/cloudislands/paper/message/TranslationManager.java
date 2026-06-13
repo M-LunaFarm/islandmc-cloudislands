@@ -116,6 +116,9 @@ public final class TranslationManager {
         values.put("limit-reached", "섬 {limit} 제한에 도달했습니다. 현재 {current}/{max}");
         values.put("level-recalculate-denied", "섬 레벨을 계산할 권한이 없습니다.");
         values.put("level-recalculate-started", "섬 블록을 다시 확인하는 중입니다.");
+        values.put("bank-deposit-denied", "섬 은행에 입금할 권한이 없습니다.");
+        values.put("bank-withdraw-denied", "섬 은행에서 출금할 권한이 없습니다.");
+        values.put("economy-unavailable", "경제 플러그인을 찾을 수 없습니다.");
         return values;
     }
 

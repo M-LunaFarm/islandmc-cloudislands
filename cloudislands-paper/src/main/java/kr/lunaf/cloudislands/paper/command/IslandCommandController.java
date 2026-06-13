@@ -1613,7 +1613,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void depositIslandBank(Player player, String amount) {
         currentIsland(player, "섬 안에서만 은행에 입금할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.DEPOSIT_BANK)) {
-                player.sendMessage("섬 은행에 입금할 권한이 없습니다.");
+                message(player, routeMessage("bank-deposit-denied", "섬 은행에 입금할 권한이 없습니다."));
                 return;
             }
             BigDecimal parsedAmount = positiveAmount(amount);
@@ -1622,7 +1622,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 return;
             }
             if (economyBridge == null) {
-                player.sendMessage("경제 플러그인을 찾을 수 없습니다.");
+                message(player, routeMessage("economy-unavailable", "경제 플러그인을 찾을 수 없습니다."));
                 return;
             }
             String normalizedAmount = parsedAmount.toPlainString();
@@ -1652,7 +1652,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void withdrawIslandBank(Player player, String amount) {
         currentIsland(player, "섬 안에서만 은행에서 출금할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.WITHDRAW_BANK)) {
-                player.sendMessage("섬 은행에서 출금할 권한이 없습니다.");
+                message(player, routeMessage("bank-withdraw-denied", "섬 은행에서 출금할 권한이 없습니다."));
                 return;
             }
             BigDecimal parsedAmount = positiveAmount(amount);
@@ -1661,7 +1661,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 return;
             }
             if (economyBridge == null) {
-                player.sendMessage("경제 플러그인을 찾을 수 없습니다.");
+                message(player, routeMessage("economy-unavailable", "경제 플러그인을 찾을 수 없습니다."));
                 return;
             }
             String normalizedAmount = parsedAmount.toPlainString();
