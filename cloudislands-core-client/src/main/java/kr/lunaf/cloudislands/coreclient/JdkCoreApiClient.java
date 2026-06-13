@@ -997,7 +997,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (path.equals("/v1/jobs") || path.equals("/v1/jobs/claim") || path.equals("/v1/jobs/complete") || path.equals("/v1/jobs/fail") || path.equals("/v1/jobs/recover")) {
             return "JOB_MANAGE";
         }
-        if (path.equals("/v1/audit") || path.equals("/v1/events")) {
+        if (path.equals("/v1/audit") || path.equals("/v1/events") || path.equals("/metrics")) {
             return "AUDIT_READ";
         }
         if (path.equals("/v1/admin/cache/clear") || path.equals("/v1/admin/reload")) {

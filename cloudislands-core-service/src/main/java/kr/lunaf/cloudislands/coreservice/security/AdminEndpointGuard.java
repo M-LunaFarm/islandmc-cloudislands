@@ -48,7 +48,11 @@ public final class AdminEndpointGuard {
         return path.startsWith("/v1/admin")
             || path.equals("/v1/audit")
             || path.equals("/v1/events")
+            || path.equals("/metrics")
             || path.equals("/v1/jobs")
+            || path.equals("/v1/jobs/claim")
+            || path.equals("/v1/jobs/complete")
+            || path.equals("/v1/jobs/fail")
             || path.equals("/v1/jobs/recover");
     }
 
@@ -107,6 +111,7 @@ public final class AdminEndpointGuard {
         return switch (path) {
             case "/v1/audit" -> AdminPermission.AUDIT_READ;
             case "/v1/events" -> AdminPermission.AUDIT_READ;
+            case "/metrics" -> AdminPermission.AUDIT_READ;
             case "/v1/jobs", "/v1/jobs/claim", "/v1/jobs/complete", "/v1/jobs/fail", "/v1/jobs/recover" -> AdminPermission.JOB_MANAGE;
             case "/v1/admin/jobs/list", "/v1/admin/jobs/retry", "/v1/admin/jobs/cancel", "/v1/admin/jobs/recover" -> AdminPermission.JOB_MANAGE;
             case "/v1/admin/routes/debug", "/v1/admin/routes/ticket", "/v1/admin/routes/clear" -> AdminPermission.ROUTE_MANAGE;
