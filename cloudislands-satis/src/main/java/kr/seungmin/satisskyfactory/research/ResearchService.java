@@ -32,6 +32,7 @@ public final class ResearchService {
     private final BooleanSupplier maintenanceEnabled;
     private final Map<String, UnlockDefinition> unlocks = new HashMap<>();
     private boolean blockTierUpgradesWhenLimited;
+    private boolean active;
 
     public ResearchService(DatabaseService database, EconomyService economy, BooleanSupplier maintenanceEnabled) {
         this.database = database;
@@ -45,6 +46,7 @@ public final class ResearchService {
 
     public void load(FileConfiguration config, FileConfiguration maintenanceConfig) {
         unlocks.clear();
+        active = true;
         blockTierUpgradesWhenLimited = maintenanceConfig != null
                 && maintenanceConfig.getBoolean("maintenance.limited.block-upgrades", true);
         ConfigurationSection section = config.getConfigurationSection("research.unlocks");
@@ -67,10 +69,14 @@ public final class ResearchService {
 
     public void clear() {
         unlocks.clear();
+        active = false;
         blockTierUpgradesWhenLimited = false;
     }
 
     public void addResearch(FactoryIsland island, long amount) {
+        if (!active) {
+            return;
+        }
         island.researchPoints(Math.max(0, island.researchPoints() + amount));
     }
 
@@ -79,6 +85,9 @@ public final class ResearchService {
     }
 
     public UnlockResult unlock(FactoryIsland island, OfflinePlayer owner, String unlockId) {
+        if (!active) {
+            return UnlockResult.UNKNOWN;
+        }
         UnlockDefinition unlock = unlocks.get(unlockId);
         if (unlock == null) {
             return UnlockResult.UNKNOWN;
@@ -116,10 +125,16 @@ public final class ResearchService {
     }
 
     public Set<String> unlocked(FactoryIsland island) {
+        if (!active) {
+            return Set.of();
+        }
         return database.loadUnlocks(island.islandUuid());
     }
 
     public Map<String, UnlockDefinition> all() {
+        if (!active) {
+            return Map.of();
+        }
         return Map.copyOf(unlocks);
     }
 
