@@ -462,7 +462,18 @@ public final class TranslationManager {
         values.put("permission-menu-current-state", "현재 상태: ");
         values.put("permission-menu-click-actions", "좌클릭: 허용, 우클릭: 차단");
         values.put("member-menu-load-failed", "섬 멤버를 불러오지 못했습니다.");
+        values.put("member-menu-invite-name", "멤버 초대");
         values.put("member-menu-invite-usage", "사용법: /섬 초대 <플레이어>");
+        values.put("member-menu-invite-list-name", "초대 목록");
+        values.put("member-menu-invite-list-command", "/섬 초대목록");
+        values.put("member-menu-permission-name", "권한 설정");
+        values.put("member-menu-permission-command", "/섬 권한");
+        values.put("member-menu-settings-name", "설정");
+        values.put("member-menu-settings-command", "/섬 설정");
+        values.put("member-menu-refresh-name", "새로고침");
+        values.put("member-menu-refresh-command", "/섬 멤버관리");
+        values.put("member-menu-main-menu-name", "메인 메뉴");
+        values.put("member-menu-main-menu-command", "/섬 메뉴");
         values.put("member-menu-transfer-direct", "소유권 이전은 명령어로 직접 확인해주세요: /섬 양도 ");
         values.put("member-menu-no-join-info", "가입 정보 없음");
         values.put("member-menu-joined-at", "가입 시각: ");

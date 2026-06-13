@@ -50,34 +50,37 @@ public final class IslandMemberMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || !meta.hasDisplayName()) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= 54) {
             return;
         }
-        String name = meta.getDisplayName();
         player.closeInventory();
-        if (name.equals("멤버 초대")) {
+        if (slot == 45) {
             player.sendMessage(message(messages, "member-menu-invite-usage", "사용법: /섬 초대 <플레이어>"));
             return;
         }
-        if (name.equals("초대 목록")) {
+        if (slot == 46) {
             player.performCommand("섬 초대목록");
             return;
         }
-        if (name.equals("권한 설정")) {
+        if (slot == 47) {
             player.performCommand("섬 권한");
             return;
         }
-        if (name.equals("설정")) {
+        if (slot == 48) {
             player.performCommand("섬 설정");
             return;
         }
-        if (name.equals("새로고침")) {
+        if (slot == 49) {
             player.performCommand("섬 멤버관리");
             return;
         }
-        if (name.equals("메인 메뉴")) {
+        if (slot == 53) {
             player.performCommand("섬 메뉴");
+            return;
+        }
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null) {
             return;
         }
         String playerUuid = loreValue(meta, "플레이어=");
@@ -101,12 +104,12 @@ public final class IslandMemberMenu implements Listener {
     private static void openSync(Plugin plugin, Player player, List<Member> members, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
-            inventory.setItem(45, item(Material.WRITABLE_BOOK, "멤버 초대", message(messages, "member-menu-invite-usage", "사용법: /섬 초대 <플레이어>")));
-            inventory.setItem(46, item(Material.PAPER, "초대 목록", "/섬 초대목록"));
-            inventory.setItem(47, item(Material.COMPARATOR, "권한 설정", "/섬 권한"));
-            inventory.setItem(48, item(Material.REDSTONE_TORCH, "설정", "/섬 설정"));
-            inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 멤버관리"));
-            inventory.setItem(53, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
+            inventory.setItem(45, item(Material.WRITABLE_BOOK, message(messages, "member-menu-invite-name", "멤버 초대"), message(messages, "member-menu-invite-usage", "사용법: /섬 초대 <플레이어>")));
+            inventory.setItem(46, item(Material.PAPER, message(messages, "member-menu-invite-list-name", "초대 목록"), message(messages, "member-menu-invite-list-command", "/섬 초대목록")));
+            inventory.setItem(47, item(Material.COMPARATOR, message(messages, "member-menu-permission-name", "권한 설정"), message(messages, "member-menu-permission-command", "/섬 권한")));
+            inventory.setItem(48, item(Material.REDSTONE_TORCH, message(messages, "member-menu-settings-name", "설정"), message(messages, "member-menu-settings-command", "/섬 설정")));
+            inventory.setItem(49, item(Material.CLOCK, message(messages, "member-menu-refresh-name", "새로고침"), message(messages, "member-menu-refresh-command", "/섬 멤버관리")));
+            inventory.setItem(53, item(Material.COMPASS, message(messages, "member-menu-main-menu-name", "메인 메뉴"), message(messages, "member-menu-main-menu-command", "/섬 메뉴")));
             int slot = 0;
             for (Member member : members.stream().limit(45).toList()) {
                 inventory.setItem(slot++, memberItem(member, messages));
