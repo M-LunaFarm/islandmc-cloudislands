@@ -160,6 +160,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
             rebuildNetworks();
         }
         restartRuntimeTasks();
+        registerCloudIslandsAddon();
     }
 
     private void restartRuntimeTasks() {
