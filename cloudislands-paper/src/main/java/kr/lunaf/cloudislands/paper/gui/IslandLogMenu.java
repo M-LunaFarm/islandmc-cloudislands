@@ -67,28 +67,31 @@ public final class IslandLogMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || !meta.hasDisplayName()) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= 36) {
             return;
         }
-        String name = meta.getDisplayName();
-        if (name.equals("새로고침")) {
+        if (slot == 31) {
             player.closeInventory();
             player.performCommand("섬 로그");
             return;
         }
-        if (name.equals("메인 메뉴")) {
+        if (slot == 30) {
             player.closeInventory();
             player.performCommand("섬 메뉴");
             return;
         }
-        if (name.equals("설정")) {
+        if (slot == 32) {
             player.closeInventory();
             player.performCommand("섬 설정");
             return;
         }
-        if (name.equals("닫기")) {
+        if (slot == 35) {
             player.closeInventory();
+            return;
+        }
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null) {
             return;
         }
         player.sendMessage(message(messages, "log-menu-detail-title", "섬 로그 상세"));
@@ -104,17 +107,17 @@ public final class IslandLogMenu implements Listener {
             Inventory inventory = Bukkit.createInventory(null, 36, TITLE);
             List<LogEntry> entries = logs(body);
             if (entries.isEmpty()) {
-                inventory.setItem(13, item(Material.BARRIER, "로그 없음", message(messages, "log-menu-empty", "아직 기록된 섬 로그가 없습니다.")));
+                inventory.setItem(13, item(Material.BARRIER, message(messages, "log-menu-empty-title", "로그 없음"), message(messages, "log-menu-empty", "아직 기록된 섬 로그가 없습니다.")));
             } else {
                 for (int index = 0; index < entries.size() && index < 27; index++) {
                     LogEntry entry = entries.get(index);
                     inventory.setItem(index, item(material(entry.action()), (index + 1) + ". " + entry.action(), lore(entry, messages)));
                 }
             }
-            inventory.setItem(30, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
-            inventory.setItem(31, item(Material.CLOCK, "새로고침", "/섬 로그"));
-            inventory.setItem(32, item(Material.COMPARATOR, "설정", "/섬 설정"));
-            inventory.setItem(35, item(Material.OAK_DOOR, "닫기", "메뉴를 닫습니다."));
+            inventory.setItem(30, item(Material.COMPASS, message(messages, "log-menu-main-menu-name", "메인 메뉴"), message(messages, "log-menu-main-menu-command", "/섬 메뉴")));
+            inventory.setItem(31, item(Material.CLOCK, message(messages, "log-menu-refresh-name", "새로고침"), message(messages, "log-menu-refresh-command", "/섬 로그")));
+            inventory.setItem(32, item(Material.COMPARATOR, message(messages, "log-menu-settings-name", "설정"), message(messages, "log-menu-settings-command", "/섬 설정")));
+            inventory.setItem(35, item(Material.OAK_DOOR, message(messages, "log-menu-close-name", "닫기"), message(messages, "log-menu-close", "메뉴를 닫습니다.")));
             player.openInventory(inventory);
         });
     }
@@ -129,7 +132,7 @@ public final class IslandLogMenu implements Listener {
             for (Map.Entry<String, String> payload : entry.payload().entrySet()) {
                 lore.add(payload.getKey() + ": " + payload.getValue());
                 if (lore.size() >= 8) {
-                    lore.add("...");
+                    lore.add(message(messages, "log-menu-more", "..."));
                     break;
                 }
             }
