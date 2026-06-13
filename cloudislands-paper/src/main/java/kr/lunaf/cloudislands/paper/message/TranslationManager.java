@@ -99,6 +99,14 @@ public final class TranslationManager {
         values.put("boundary-visitor-return", "섬 경계 밖으로 이동할 수 없어 방문자 위치로 돌려보냈습니다.");
         values.put("flag-fly-denied", "이 섬에서는 비행할 수 없습니다.");
         values.put("flag-pvp-denied", "이 섬에서는 PVP가 비활성화되어 있습니다.");
+        values.put("route-visit-cancelled", "섬 방문이 취소되었습니다.");
+        values.put("route-arrived-visit", "방문한 섬에 도착했습니다.");
+        values.put("route-arrived-warp", "섬 워프에 도착했습니다.");
+        values.put("route-arrived-admin", "관리자 이동이 완료되었습니다.");
+        values.put("route-arrived-home", "내 섬에 도착했습니다.");
+        values.put("route-consume-loading", "섬 로딩 중");
+        values.put("route-consume-preparing", "섬을 준비하는 중입니다...");
+        values.put("route-consume-failed", "섬 이동 준비가 완료되지 않았습니다. 다시 시도해주세요.");
         return values;
     }
 

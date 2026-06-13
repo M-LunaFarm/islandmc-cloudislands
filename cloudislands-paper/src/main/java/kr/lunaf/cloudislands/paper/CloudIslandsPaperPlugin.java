@@ -132,6 +132,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         localCaches.registerStats("permissions", agent.permissionCache()::invalidateAll, agent.permissionCache()::lookupCount, agent.permissionCache()::hitRatio);
         String serviceName = getConfig().getString("plugin.service-name", "CloudIslands");
         this.messages = new MessageRenderer(TranslationManager.fromConfig(getConfig(), serviceName));
+        agent.routeTickets().setMessages(messages);
         this.redisClient = PaperRedisClient.create(
             resolveEnv(getConfig().getString("redis.uri", "redis://redis.internal:6379")),
             Duration.ofMillis(Math.max(1L, getConfig().getLong("redis.timeout-ms", 1000L)))

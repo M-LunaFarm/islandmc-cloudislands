@@ -9,6 +9,7 @@ import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
 import kr.lunaf.cloudislands.paper.event.IslandPreVisitEvent;
 import kr.lunaf.cloudislands.paper.event.IslandVisitEvent;
 import kr.lunaf.cloudislands.paper.event.RouteTicketConsumedEvent;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -23,6 +24,7 @@ public final class RouteTicketConsumer {
     private final String nodeId;
     private final java.util.Map<UUID, BossBar> loadingBars = new ConcurrentHashMap<>();
     private volatile ActiveIslandRegistry activeIslands;
+    private volatile MessageRenderer messages;
 
     public RouteTicketConsumer(Plugin plugin, CoreApiClient coreApiClient, String nodeId) {
         this.plugin = plugin;
@@ -32,6 +34,10 @@ public final class RouteTicketConsumer {
 
     public void setActiveIslands(ActiveIslandRegistry activeIslands) {
         this.activeIslands = activeIslands;
+    }
+
+    public void setMessages(MessageRenderer messages) {
+        this.messages = messages;
     }
 
     public void clearLoading(UUID playerUuid) {
@@ -86,7 +92,7 @@ public final class RouteTicketConsumer {
             Bukkit.getPluginManager().callEvent(preVisit);
             if (preVisit.isCancelled()) {
                 hideLoading(player);
-                player.sendActionBar(Component.text("섬 방문이 취소되었습니다."));
+                player.sendActionBar(Component.text(message("route-visit-cancelled", "섬 방문이 취소되었습니다.")));
                 return;
             }
         }
@@ -129,20 +135,20 @@ public final class RouteTicketConsumer {
 
     private String arrivalMessage(kr.lunaf.cloudislands.api.model.RouteAction action) {
         return switch (action) {
-            case VISIT -> "방문한 섬에 도착했습니다.";
-            case WARP -> "섬 워프에 도착했습니다.";
-            case ADMIN_TELEPORT -> "관리자 이동이 완료되었습니다.";
-            default -> "내 섬에 도착했습니다.";
+            case VISIT -> message("route-arrived-visit", "방문한 섬에 도착했습니다.");
+            case WARP -> message("route-arrived-warp", "섬 워프에 도착했습니다.");
+            case ADMIN_TELEPORT -> message("route-arrived-admin", "관리자 이동이 완료되었습니다.");
+            default -> message("route-arrived-home", "내 섬에 도착했습니다.");
         };
     }
 
     private void notifyPreparing(UUID playerUuid, int attempt) {
         Player player = Bukkit.getPlayer(playerUuid);
         if (player != null) {
-            BossBar bar = loadingBars.computeIfAbsent(playerUuid, ignored -> BossBar.bossBar(Component.text("섬 로딩 중"), 0.1F, BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS));
+            BossBar bar = loadingBars.computeIfAbsent(playerUuid, ignored -> BossBar.bossBar(Component.text(message("route-consume-loading", "섬 로딩 중")), 0.1F, BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS));
             bar.progress(Math.min(0.95F, 0.1F + (attempt / 20.0F) * 0.85F));
             player.showBossBar(bar);
-            player.sendActionBar(Component.text("섬을 준비하는 중입니다..."));
+            player.sendActionBar(Component.text(message("route-consume-preparing", "섬을 준비하는 중입니다...")));
         }
     }
 
@@ -153,7 +159,16 @@ public final class RouteTicketConsumer {
             return;
         }
         hideLoading(player);
-        player.sendActionBar(Component.text("섬 이동 준비가 완료되지 않았습니다. 다시 시도해주세요."));
+        player.sendActionBar(Component.text(message("route-consume-failed", "섬 이동 준비가 완료되지 않았습니다. 다시 시도해주세요.")));
+    }
+
+    private String message(String key, String fallback) {
+        MessageRenderer renderer = messages;
+        if (renderer == null) {
+            return fallback;
+        }
+        String rendered = renderer.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private void hideLoading(Player player) {
