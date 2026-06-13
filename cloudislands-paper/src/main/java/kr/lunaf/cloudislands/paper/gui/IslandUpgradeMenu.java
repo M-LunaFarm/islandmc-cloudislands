@@ -50,22 +50,25 @@ public final class IslandUpgradeMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || meta.getLore() == null) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= 54) {
             return;
         }
-        String displayName = meta.getDisplayName();
         player.closeInventory();
-        if ("섬 은행".equals(displayName)) {
+        if (slot == 45) {
             player.performCommand("섬 은행");
             return;
         }
-        if ("새로고침".equals(displayName)) {
+        if (slot == 49) {
             player.performCommand("섬 업그레이드");
             return;
         }
-        if ("설정".equals(displayName)) {
+        if (slot == 53) {
             player.performCommand("섬 설정");
+            return;
+        }
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null || meta.getLore() == null) {
             return;
         }
         String key = loreValue(meta, "업그레이드=");
@@ -83,11 +86,11 @@ public final class IslandUpgradeMenu implements Listener {
                 inventory.setItem(slot++, upgradeItem(upgrade, messages));
             }
             if (upgrades.isEmpty()) {
-                inventory.setItem(22, item(Material.BARRIER, "업그레이드 없음", message(messages, "upgrade-menu-empty", "Core API에 등록된 섬 업그레이드가 없습니다.")));
+                inventory.setItem(22, item(Material.BARRIER, message(messages, "upgrade-menu-empty-title", "업그레이드 없음"), message(messages, "upgrade-menu-empty", "Core API에 등록된 섬 업그레이드가 없습니다.")));
             }
-            inventory.setItem(45, item(Material.GOLD_BLOCK, "섬 은행", "/섬 은행"));
-            inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 업그레이드"));
-            inventory.setItem(53, item(Material.COMPARATOR, "설정", "/섬 설정"));
+            inventory.setItem(45, item(Material.GOLD_BLOCK, message(messages, "upgrade-menu-bank-name", "섬 은행"), message(messages, "upgrade-menu-bank-command", "/섬 은행")));
+            inventory.setItem(49, item(Material.CLOCK, message(messages, "upgrade-menu-refresh-name", "새로고침"), message(messages, "upgrade-menu-refresh-command", "/섬 업그레이드")));
+            inventory.setItem(53, item(Material.COMPARATOR, message(messages, "upgrade-menu-settings-name", "설정"), message(messages, "upgrade-menu-settings-command", "/섬 설정")));
             player.openInventory(inventory);
         });
     }
@@ -102,7 +105,7 @@ public final class IslandUpgradeMenu implements Listener {
             case "BANK_LIMIT" -> Material.GOLD_INGOT;
             default -> Material.BEACON;
         };
-        return item(material, upgrade.key(), "업그레이드=" + upgrade.key(), "유형: " + upgrade.type(), "현재 레벨: " + upgrade.level(), message(messages, "upgrade-menu-click-to-buy", "클릭하면 다음 레벨 구매를 요청합니다."));
+        return item(material, upgrade.key(), "업그레이드=" + upgrade.key(), message(messages, "upgrade-menu-type", "유형: ") + upgrade.type(), message(messages, "upgrade-menu-current-level", "현재 레벨: ") + upgrade.level(), message(messages, "upgrade-menu-click-to-buy", "클릭하면 다음 레벨 구매를 요청합니다."));
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {

@@ -351,8 +351,17 @@ public final class TranslationManager {
         values.put("mission-menu-completed", "완료됨");
         values.put("mission-menu-click-to-complete", "클릭하면 완료를 요청합니다.");
         values.put("upgrade-menu-load-failed", "섬 업그레이드를 불러오지 못했습니다.");
+        values.put("upgrade-menu-empty-title", "업그레이드 없음");
         values.put("upgrade-menu-empty", "Core API에 등록된 섬 업그레이드가 없습니다.");
+        values.put("upgrade-menu-type", "유형: ");
+        values.put("upgrade-menu-current-level", "현재 레벨: ");
         values.put("upgrade-menu-click-to-buy", "클릭하면 다음 레벨 구매를 요청합니다.");
+        values.put("upgrade-menu-bank-name", "섬 은행");
+        values.put("upgrade-menu-bank-command", "/섬 은행");
+        values.put("upgrade-menu-refresh-name", "새로고침");
+        values.put("upgrade-menu-refresh-command", "/섬 업그레이드");
+        values.put("upgrade-menu-settings-name", "설정");
+        values.put("upgrade-menu-settings-command", "/섬 설정");
         values.put("settings-menu-load-failed", "섬 설정을 불러오지 못했습니다.");
         values.put("settings-menu-current", "현재: ");
         values.put("settings-menu-public", "공개");
