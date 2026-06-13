@@ -587,11 +587,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     @Override
     public Map<String, String> addonMetadata() {
         Map<String, String> metadata = new LinkedHashMap<>();
+        String scope = databaseScope();
         metadata.put("mode", configs.main().getString("integration.mode", "ADDON"));
         metadata.put("skyblock-provider", "CLOUDISLANDS");
         metadata.put("cloudislands-adapter", Boolean.toString(configs.main().getBoolean("integration.cloudislands-adapter", true)));
-        metadata.put("database-scope", databaseScope());
+        metadata.put("database-scope", scope);
         metadata.put("database-file", configuredDatabaseFileName());
+        metadata.put("database-path", resolveDatabaseFileName());
+        metadata.put("database-shared", Boolean.toString(!scope.equals("PLUGIN_LOCAL") && !scope.equals("PLUGIN_RELATIVE_PATH")));
         return metadata;
     }
 
