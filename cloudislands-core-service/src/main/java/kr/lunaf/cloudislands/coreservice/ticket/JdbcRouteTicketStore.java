@@ -126,8 +126,11 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
         }
         RouteTicket consumed = new RouteTicket(ticket.ticketId(), ticket.playerUuid(), ticket.action(), ticket.islandId(), ticket.targetNode(), ticket.targetWorld(), RouteTicketState.CONSUMED, ticket.expiresAt(), ticket.nonce(), ticket.payload());
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE route_tickets SET state = 'CONSUMED', consumed_at = now() WHERE id = ? AND state = 'READY'")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE route_tickets SET state = 'CONSUMED', consumed_at = now() WHERE id = ? AND player_uuid = ? AND target_node = ? AND nonce = ? AND state = 'READY' AND expires_at >= now()")) {
             statement.setObject(1, ticketId);
+            statement.setObject(2, playerUuid);
+            statement.setString(3, nodeId);
+            statement.setString(4, nonce);
             return statement.executeUpdate() == 1 ? Optional.of(consumed) : Optional.empty();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to consume route ticket", exception);
