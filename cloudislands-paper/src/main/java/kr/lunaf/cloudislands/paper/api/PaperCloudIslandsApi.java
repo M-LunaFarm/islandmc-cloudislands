@@ -130,7 +130,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         this.runtime = new RuntimeService(client);
         this.status = new StatusService(agent);
         this.events = new EventService(client, agent.plugin());
-        this.admin = new AdminService(client);
+        this.admin = new AdminService(client, agent.plugin());
         this.commands = new CommandService(client);
         this.addons = new AddonService(client, agent.plugin(), events);
     }
@@ -1425,9 +1425,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
     private static final class AdminService implements IslandAdminService {
         private final CoreApiClient client;
+        private final Plugin plugin;
 
-        private AdminService(CoreApiClient client) {
+        private AdminService(CoreApiClient client, Plugin plugin) {
             this.client = client;
+            this.plugin = plugin;
         }
 
         @Override public CompletableFuture<Void> drainNode(String nodeId) { return drainNodeResult(nodeId).thenApply(_result -> null); }
@@ -1533,32 +1535,54 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<MigrationRunSnapshot> scanSuperiorSkyblock2(String path) {
-            return client.migrateSuperiorSkyblock2("scan", path).thenApply(PaperCloudIslandsApi::migrationRun);
+            return migrateSuperiorSkyblock2("scan", path);
         }
 
         @Override
         public CompletableFuture<MigrationRunSnapshot> dryRunSuperiorSkyblock2(String path) {
-            return client.migrateSuperiorSkyblock2("dryrun", path).thenApply(PaperCloudIslandsApi::migrationRun);
+            return migrateSuperiorSkyblock2("dryrun", path);
         }
 
         @Override
         public CompletableFuture<MigrationRunSnapshot> extractSuperiorSkyblock2(String outputPath) {
-            return client.migrateSuperiorSkyblock2("extract", outputPath).thenApply(PaperCloudIslandsApi::migrationRun);
+            return migrateSuperiorSkyblock2("extract", outputPath);
         }
 
         @Override
         public CompletableFuture<MigrationRunSnapshot> importSuperiorSkyblock2(String approvalToken) {
-            return client.migrateSuperiorSkyblock2("import", approvalToken).thenApply(PaperCloudIslandsApi::migrationRun);
+            return migrateSuperiorSkyblock2("import", approvalToken);
         }
 
         @Override
         public CompletableFuture<MigrationRunSnapshot> verifySuperiorSkyblock2(String path) {
-            return client.migrateSuperiorSkyblock2("verify", path).thenApply(PaperCloudIslandsApi::migrationRun);
+            return migrateSuperiorSkyblock2("verify", path);
         }
 
         @Override
         public CompletableFuture<MigrationRunSnapshot> rollbackSuperiorSkyblock2(String path) {
-            return client.migrateSuperiorSkyblock2("rollback", path).thenApply(PaperCloudIslandsApi::migrationRun);
+            return migrateSuperiorSkyblock2("rollback", path);
+        }
+
+        private CompletableFuture<MigrationRunSnapshot> migrateSuperiorSkyblock2(String action, String path) {
+            if (!superiorSkyblock2MigrationEnabled()) {
+                return CompletableFuture.completedFuture(disabledMigration(path));
+            }
+            return client.migrateSuperiorSkyblock2(action, path).thenApply(PaperCloudIslandsApi::migrationRun);
+        }
+
+        private boolean superiorSkyblock2MigrationEnabled() {
+            boolean enabled = plugin.getConfig().getBoolean("migration.superiorskyblock2.enabled", true);
+            if (plugin.getConfig().contains("addons.cloudislands-satis.features.migration")) {
+                enabled = enabled && plugin.getConfig().getBoolean("addons.cloudislands-satis.features.migration", true);
+            }
+            if (plugin.getConfig().contains("satis.features.migration")) {
+                enabled = enabled && plugin.getConfig().getBoolean("satis.features.migration", true);
+            }
+            return enabled;
+        }
+
+        private MigrationRunSnapshot disabledMigration(String path) {
+            return new MigrationRunSnapshot("DISABLED", path == null ? "" : path, 0, false, false, 0, false, 0, false, 0, List.of());
         }
     }
 
