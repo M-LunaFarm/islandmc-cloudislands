@@ -465,6 +465,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             machineListener = new MachineListener(
                     () -> featureEnabled("machines"),
                     () -> featureEnabled("resource-nodes"),
+                    () -> featureEnabled("maintenance"),
                     this,
                     itemFactory,
                     machineDefinitions,

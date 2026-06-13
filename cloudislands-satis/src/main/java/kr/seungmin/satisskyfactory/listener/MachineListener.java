@@ -41,6 +41,7 @@ import java.util.function.BooleanSupplier;
 public final class MachineListener implements Listener {
     private final BooleanSupplier active;
     private final BooleanSupplier resourceNodesEnabled;
+    private final BooleanSupplier maintenanceEnabled;
     private final JavaPlugin plugin;
     private final CustomItemFactory itemFactory;
     private final MachineDefinitionService definitions;
@@ -57,7 +58,8 @@ public final class MachineListener implements Listener {
     private final FileConfiguration maintenanceConfig;
     private final IslandBoostService boosts;
 
-    public MachineListener(BooleanSupplier active, BooleanSupplier resourceNodesEnabled, JavaPlugin plugin, CustomItemFactory itemFactory, MachineDefinitionService definitions, MachineService machines,
+    public MachineListener(BooleanSupplier active, BooleanSupplier resourceNodesEnabled, BooleanSupplier maintenanceEnabled,
+                           JavaPlugin plugin, CustomItemFactory itemFactory, MachineDefinitionService definitions, MachineService machines,
                            SkyblockProvider skyblock, FactoryIslandService islands, FactoryGuiService gui,
                            MessageService messages, ResearchService research, ResourceNodeService nodes,
                            ItemNetworkService itemNetworks,
@@ -65,6 +67,7 @@ public final class MachineListener implements Listener {
                            FileConfiguration config, FileConfiguration maintenanceConfig, IslandBoostService boosts) {
         this.active = active;
         this.resourceNodesEnabled = resourceNodesEnabled;
+        this.maintenanceEnabled = maintenanceEnabled;
         this.plugin = plugin;
         this.itemFactory = itemFactory;
         this.definitions = definitions;
@@ -131,11 +134,11 @@ public final class MachineListener implements Listener {
             messages.send(player, "place-denied");
             return false;
         }
-        if (island.maintenanceStatus() == MaintenanceStatus.LIMITED && limitedBlocksNewMachines()) {
+        if (maintenanceEnabled.getAsBoolean() && island.maintenanceStatus() == MaintenanceStatus.LIMITED && limitedBlocksNewMachines()) {
             messages.send(player, "place-denied");
             return false;
         }
-        if (island.maintenanceStatus() == MaintenanceStatus.LOCKED
+        if (maintenanceEnabled.getAsBoolean() && island.maintenanceStatus() == MaintenanceStatus.LOCKED
                 && (!lockedAllowsRecoveryMachines() || !recoveryTypes().contains(typeId))) {
             messages.send(player, "place-denied");
             return false;
