@@ -96,6 +96,10 @@ public final class FactoryGuiListener implements Listener {
         }
         event.setCancelled(true);
         if (!featureEnabled.test("gui")) {
+            if (event.getWhoClicked() instanceof Player player) {
+                messages.send(player, "feature-disabled", Map.of("feature", "gui"));
+                player.closeInventory();
+            }
             return;
         }
         if (!(event.getWhoClicked() instanceof Player player) || event.getClickedInventory() == null
