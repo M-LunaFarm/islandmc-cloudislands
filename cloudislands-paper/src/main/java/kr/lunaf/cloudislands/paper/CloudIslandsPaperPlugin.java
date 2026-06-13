@@ -101,7 +101,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
         logSecurityPosture();
-        if (configBoolean("security.allow-bungee-connect-plugin-messaging", true)) {
+        if (configBoolean("security.allow-bungee-connect-plugin-messaging", false)) {
             getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
         }
         String nodeId = getConfig().getString("node.id", "island-1");
@@ -370,8 +370,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         if (!configBoolean("security.enforce-route-session", true)) {
             getLogger().warning("CloudIslands security: route session enforcement is disabled");
         }
-        if (!configBoolean("security.allow-bungee-connect-plugin-messaging", true)) {
-            getLogger().warning("CloudIslands security: BungeeCord connect plugin messaging is disabled; proxy fallback transfers may not work");
+        if (configBoolean("security.allow-bungee-connect-plugin-messaging", false)) {
+            getLogger().warning("CloudIslands security: BungeeCord connect plugin messaging is enabled; keep it disabled unless proxy fallback transfers require it");
         }
         if (coreApiToken().isBlank()) {
             getLogger().warning("CloudIslands security: core-api auth token is empty");
