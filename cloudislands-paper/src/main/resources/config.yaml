@@ -13,6 +13,7 @@ messages:
     quit-message: "{player}님이 섬 서비스에서 나갔습니다."
     server-brand: "{service}"
     chat-prefix: "[{service}] "
+    chat-format: "{prefix}{player}: {message}"
     scoreboard-title: "{service}"
   scoreboard-lines:
     - "섬 이동: /섬"

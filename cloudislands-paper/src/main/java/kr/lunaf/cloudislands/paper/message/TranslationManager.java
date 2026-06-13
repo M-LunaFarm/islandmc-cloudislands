@@ -78,6 +78,7 @@ public final class TranslationManager {
         values.put("quit-message", "{player}님이 섬 서비스에서 나갔습니다.");
         values.put("server-brand", "{service}");
         values.put("chat-prefix", "[" + name + "] ");
+        values.put("chat-format", "{prefix}{player}: {message}");
         values.put("scoreboard-title", "{service}");
         return values;
     }
