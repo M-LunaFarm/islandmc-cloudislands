@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreservice.metrics;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 import java.util.function.LongSupplier;
 import kr.lunaf.cloudislands.api.model.NodeState;
@@ -30,8 +31,17 @@ public final class PrometheusMetricsRenderer {
     private final LongSupplier databaseQueryFailures;
     private final LongSupplier redisEventFailures;
     private final LongSupplier redisCacheFailures;
+    private final BooleanSupplier coreTokenConfigured;
+    private final BooleanSupplier adminTokenConfigured;
+    private final BooleanSupplier adminApiEnabled;
+    private final BooleanSupplier mtlsRequired;
+    private final BooleanSupplier ipAllowlistEnabled;
 
     public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures) {
+        this(nodes, jobs, tickets, runtimes, events, heartbeatTimeout, databaseQuerySeconds, databaseActiveConnections, databaseOpenedConnections, databaseConnectionFailures, databaseQueryFailures, redisEventFailures, redisCacheFailures, () -> false, () -> false, () -> false, () -> false, () -> false);
+    }
+
+    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures, BooleanSupplier coreTokenConfigured, BooleanSupplier adminTokenConfigured, BooleanSupplier adminApiEnabled, BooleanSupplier mtlsRequired, BooleanSupplier ipAllowlistEnabled) {
         this.nodes = nodes;
         this.jobs = jobs;
         this.tickets = tickets;
@@ -45,6 +55,11 @@ public final class PrometheusMetricsRenderer {
         this.databaseQueryFailures = databaseQueryFailures;
         this.redisEventFailures = redisEventFailures;
         this.redisCacheFailures = redisCacheFailures;
+        this.coreTokenConfigured = coreTokenConfigured;
+        this.adminTokenConfigured = adminTokenConfigured;
+        this.adminApiEnabled = adminApiEnabled;
+        this.mtlsRequired = mtlsRequired;
+        this.ipAllowlistEnabled = ipAllowlistEnabled;
     }
 
     public String render() {
@@ -117,6 +132,21 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_island_activation_seconds", "gauge");
         help(out, "cloudislands_island_snapshot_seconds", "Last island snapshot bundle upload duration reported by Paper heartbeat");
         type(out, "cloudislands_island_snapshot_seconds", "gauge");
+        help(out, "cloudislands_core_token_configured", "Whether Core API token authentication has a configured token");
+        type(out, "cloudislands_core_token_configured", "gauge");
+        out.append("cloudislands_core_token_configured ").append(coreTokenConfigured.getAsBoolean() ? 1 : 0).append('\n');
+        help(out, "cloudislands_admin_token_configured", "Whether admin API token authentication has a configured token");
+        type(out, "cloudislands_admin_token_configured", "gauge");
+        out.append("cloudislands_admin_token_configured ").append(adminTokenConfigured.getAsBoolean() ? 1 : 0).append('\n');
+        help(out, "cloudislands_admin_api_enabled", "Whether Core admin API endpoints are enabled");
+        type(out, "cloudislands_admin_api_enabled", "gauge");
+        out.append("cloudislands_admin_api_enabled ").append(adminApiEnabled.getAsBoolean() ? 1 : 0).append('\n');
+        help(out, "cloudislands_core_mtls_required", "Whether Core API mTLS verification is required");
+        type(out, "cloudislands_core_mtls_required", "gauge");
+        out.append("cloudislands_core_mtls_required ").append(mtlsRequired.getAsBoolean() ? 1 : 0).append('\n');
+        help(out, "cloudislands_core_ip_allowlist_enabled", "Whether Core API IP allowlist is configured");
+        type(out, "cloudislands_core_ip_allowlist_enabled", "gauge");
+        out.append("cloudislands_core_ip_allowlist_enabled ").append(ipAllowlistEnabled.getAsBoolean() ? 1 : 0).append('\n');
         Instant now = Instant.now();
         long onlineNodes = 0L;
         long totalPlayers = 0L;
