@@ -150,7 +150,38 @@ public final class AdminFactoryCommand {
 
     public List<String> complete(CommandSender sender, String[] args) {
         if (args.length == 2) {
-            return filter(List.of("reload", "give", "giveitem", "addresearch", "setdebt", "charge", "gennodes", "debug", "removehere", "repairhere"), args[1]);
+            List<String> values = new ArrayList<>();
+            values.add("reload");
+            values.add("debug");
+            if (enabled("machines")) {
+                values.add("give");
+                values.add("giveitem");
+                values.add("removehere");
+            }
+            if (enabled("research")) {
+                values.add("addresearch");
+            }
+            if (enabled("maintenance")) {
+                values.add("setdebt");
+                values.add("charge");
+                values.add("repairhere");
+            }
+            if (enabled("resource-nodes")) {
+                values.add("gennodes");
+            }
+            return filter(values, args[1]);
+        }
+        if ((args[1].equalsIgnoreCase("give") || args[1].equalsIgnoreCase("giveitem") || args[1].equalsIgnoreCase("removehere")) && !enabled("machines")) {
+            return new ArrayList<>();
+        }
+        if (args[1].equalsIgnoreCase("addresearch") && !enabled("research")) {
+            return new ArrayList<>();
+        }
+        if ((args[1].equalsIgnoreCase("setdebt") || args[1].equalsIgnoreCase("charge") || args[1].equalsIgnoreCase("repairhere")) && !enabled("maintenance")) {
+            return new ArrayList<>();
+        }
+        if (args[1].equalsIgnoreCase("gennodes") && !enabled("resource-nodes")) {
+            return new ArrayList<>();
         }
         if (args.length == 3 && needsPlayer(args[1])) {
             return filter(onlinePlayerNames(), args[2]);
@@ -360,11 +391,15 @@ public final class AdminFactoryCommand {
     }
 
     private boolean requireFeature(CommandSender sender, String feature) {
-        if (featureEnabled == null || featureEnabled.test(feature)) {
+        if (enabled(feature)) {
             return true;
         }
         messages.send(sender, "feature-disabled", Map.of("feature", feature));
         return false;
+    }
+
+    private boolean enabled(String feature) {
+        return featureEnabled == null || featureEnabled.test(feature);
     }
 
     private void withPlayerContext(CommandSender sender, String[] args, int playerIndex, AdminContextConsumer consumer) {

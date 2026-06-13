@@ -480,7 +480,44 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return filter(List.of("help", "main", "status", "machines", "storage", "deposit", "withdraw", "contracts", "market", "research", "emergency", "node", "sell", "repair", "admin"), args[0]);
+            List<String> values = new ArrayList<>();
+            values.add("help");
+            values.add("status");
+            if (enabled("gui")) {
+                values.add("main");
+                values.add("storage");
+            }
+            if (enabled("machines")) {
+                values.add("machines");
+                values.add("deposit");
+                values.add("withdraw");
+            }
+            if (enabled("contracts")) {
+                values.add("contracts");
+                values.add("emergency");
+            }
+            if (enabled("market")) {
+                values.add("market");
+                values.add("sell");
+            }
+            if (enabled("research")) {
+                values.add("research");
+            }
+            if (enabled("resource-nodes")) {
+                values.add("node");
+            }
+            if (enabled("maintenance")) {
+                values.add("repair");
+            }
+            values.add("admin");
+            return filter(values, args[0]);
+        }
+        if ((args[0].equalsIgnoreCase("sell") && !enabled("market"))
+                || ((args[0].equalsIgnoreCase("withdraw") || args[0].equalsIgnoreCase("deposit")) && !enabled("machines"))
+                || ((args[0].equalsIgnoreCase("contracts") || args[0].equalsIgnoreCase("emergency")) && !enabled("contracts"))
+                || (args[0].equalsIgnoreCase("node") && !enabled("resource-nodes"))
+                || (args[0].equalsIgnoreCase("research") && !enabled("research"))) {
+            return new ArrayList<>();
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("sell")) {
             List<String> values = new ArrayList<>();
