@@ -33,11 +33,12 @@ public final class IslandGeneratorListener implements Listener {
             return;
         }
         Block block = event.getBlock();
+        Material previous = block.getType();
         protection.islandAt(block).ifPresent(islandId -> {
             Material material = generatedMaterial(levels.profile(islandId));
             if (material != null && material.isBlock()) {
                 event.getNewState().setType(material);
-                reportReplacement(islandId, block, material);
+                reportReplacement(islandId, previous, material);
             }
         });
     }
@@ -52,19 +53,20 @@ public final class IslandGeneratorListener implements Listener {
         if (!touchesOppositeFluid(target, source)) {
             return;
         }
+        Material previous = target.getType();
         protection.islandAt(target).ifPresent(islandId -> {
             Material material = generatedMaterial(levels.profile(islandId));
             if (material != null && material.isBlock()) {
                 event.setCancelled(true);
                 target.setType(material);
-                reportReplacement(islandId, target, material);
+                reportReplacement(islandId, previous, material);
             }
         });
     }
 
-    private void reportReplacement(java.util.UUID islandId, Block block, Material material) {
-        if (!block.getType().isAir()) {
-            blockDeltas.broken(islandId, block);
+    private void reportReplacement(java.util.UUID islandId, Material previous, Material material) {
+        if (previous != null && previous.isBlock() && !previous.isAir()) {
+            blockDeltas.broken(islandId, previous);
         }
         blockDeltas.placed(islandId, material);
     }

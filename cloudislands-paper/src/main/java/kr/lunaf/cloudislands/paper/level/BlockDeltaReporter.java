@@ -24,6 +24,10 @@ public final class BlockDeltaReporter {
         report(islandId, block, -1L);
     }
 
+    public void broken(UUID islandId, Material material) {
+        report(islandId, material.getKey().toString(), -1L);
+    }
+
     public void placed(UUID islandId, Material material) {
         report(islandId, material.getKey().toString(), 1L);
     }
