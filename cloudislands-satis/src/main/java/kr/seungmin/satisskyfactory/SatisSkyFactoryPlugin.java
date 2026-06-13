@@ -867,13 +867,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         });
     }
 
-    private void publishLifecycleFailure(UUID islandId, RuntimeException exception) {
+    private void publishLifecycleFailure(UUID islandId, String operation, RuntimeException exception) {
         if (cloudIslandsApi == null || islandId == null || !featureEnabled("addon-state")) {
             return;
         }
         Map<String, String> state = new LinkedHashMap<>();
         state.put("last-lifecycle-island", islandId.toString());
-        state.put("last-lifecycle-operation", "failed");
+        state.put("last-lifecycle-operation", operation == null || operation.isBlank() ? "unknown" : operation);
         state.put("last-lifecycle-database-open", Boolean.toString(database != null));
         state.put("last-lifecycle-shared-database", Boolean.toString(databaseShared()));
         state.put("last-lifecycle-schema", "3");
@@ -910,7 +910,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandCreated(IslandCreatedEvent event) {
-        runSatisLifecycle(event.islandId(), () -> {
+        runSatisLifecycle(event.islandId(), "synchronize", () -> {
             islands.getOrCreate(new kr.seungmin.satisskyfactory.hook.IslandRef(null, event.islandId(), event.ownerUuid()));
             if (storageDataEnabled()) {
                 storage.islandStorage(event.islandId());
@@ -921,42 +921,42 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandActivated(IslandActivatedEvent event) {
-        runSatisLifecycle(event.islandId(), () -> synchronizeSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), "synchronize", () -> synchronizeSatisIsland(event.islandId()));
     }
 
     @Override
     public void onIslandDeactivated(IslandDeactivateEvent event) {
-        runSatisLifecycle(event.islandId(), () -> flushSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), "flush", () -> flushSatisIsland(event.islandId()));
     }
 
     @Override
     public void onIslandMigrated(IslandMigratedEvent event) {
-        runSatisLifecycle(event.islandId(), () -> synchronizeSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), "synchronize", () -> synchronizeSatisIsland(event.islandId()));
     }
 
     @Override
     public void onIslandDeleted(IslandDeletedEvent event) {
-        runSatisLifecycle(event.islandId(), () -> purgeSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), "purge", () -> purgeSatisIsland(event.islandId()));
     }
 
     @Override
     public void onIslandDeleteRequested(kr.lunaf.cloudislands.api.event.IslandDeleteRequestEvent event) {
-        runSatisLifecycle(event.islandId(), () -> flushSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), "flush", () -> flushSatisIsland(event.islandId()));
     }
 
     @Override
     public void onIslandRestoreRequested(kr.lunaf.cloudislands.api.event.IslandRestoreRequestEvent event) {
-        runSatisLifecycle(event.islandId(), () -> flushSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), "flush", () -> flushSatisIsland(event.islandId()));
     }
 
     @Override
     public void onIslandRestored(kr.lunaf.cloudislands.api.event.IslandRestoredEvent event) {
-        runSatisLifecycle(event.islandId(), () -> synchronizeSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), "synchronize", () -> synchronizeSatisIsland(event.islandId()));
     }
 
     @Override
     public void onIslandReset(kr.lunaf.cloudislands.api.event.IslandResetEvent event) {
-        runSatisLifecycle(event.islandId(), () -> {
+        runSatisLifecycle(event.islandId(), event.requested() ? "flush" : "purge", () -> {
             if (event.requested()) {
                 flushSatisIsland(event.islandId());
             } else {
@@ -967,50 +967,50 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandRecoveryRequired(kr.lunaf.cloudislands.api.event.IslandRecoveryRequiredEvent event) {
-        runSatisLifecycle(event.islandId(), () -> flushSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), "flush", () -> flushSatisIsland(event.islandId()));
     }
 
     @Override
     public void onIslandRepaired(kr.lunaf.cloudislands.api.event.IslandRepairedEvent event) {
-        runSatisLifecycle(event.islandId(), () -> synchronizeSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), "synchronize", () -> synchronizeSatisIsland(event.islandId()));
     }
 
     @Override
     public void onIslandMemberChanged(IslandMemberChangedEvent event) {
-        runSatisLifecycle(event.islandId(), () -> synchronizeSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), "synchronize", () -> synchronizeSatisIsland(event.islandId()));
     }
 
     @Override
     public void onIslandPermissionChanged(IslandPermissionChangeEvent event) {
-        runSatisLifecycle(event.islandId(), () -> synchronizeSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), "synchronize", () -> synchronizeSatisIsland(event.islandId()));
     }
 
     @Override
     public void onIslandLevelUpdated(IslandLevelRecalculateEvent event) {
-        runSatisLifecycle(event.islandId(), () -> synchronizeSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), "synchronize", () -> synchronizeSatisIsland(event.islandId()));
     }
 
     @Override
     public void onIslandWorthChanged(IslandWorthChangeEvent event) {
-        runSatisLifecycle(event.islandId(), () -> synchronizeSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), "synchronize", () -> synchronizeSatisIsland(event.islandId()));
     }
 
     @Override
     public void onIslandUpgradeChanged(IslandUpgradeEvent event) {
-        runSatisLifecycle(event.islandId(), () -> synchronizeSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), "synchronize", () -> synchronizeSatisIsland(event.islandId()));
     }
 
     @Override
     public void onIslandLimitChanged(IslandLimitChangeEvent event) {
-        runSatisLifecycle(event.islandId(), () -> synchronizeSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), "synchronize", () -> synchronizeSatisIsland(event.islandId()));
     }
 
     @Override
     public void onIslandSnapshotCreated(IslandSnapshotCreateEvent event) {
-        runSatisLifecycle(event.islandId(), () -> flushSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), "flush", () -> flushSatisIsland(event.islandId()));
     }
 
-    private void runSatisLifecycle(UUID islandId, Runnable action) {
+    private void runSatisLifecycle(UUID islandId, String operation, Runnable action) {
         if (islandId == null || database == null || !featureEnabled("lifecycle") || !lifecycleStateEnabled()) {
             return;
         }
@@ -1021,7 +1021,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             try {
                 action.run();
             } catch (RuntimeException exception) {
-                publishLifecycleFailure(islandId, exception);
+                publishLifecycleFailure(islandId, operation, exception);
                 getLogger().warning("CloudIslands lifecycle sync failed for " + islandId + ": " + exception.getMessage());
             }
         });
