@@ -490,7 +490,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         IslandDeactivationHandler deactivationHandler = new IslandDeactivationHandler(activeIslands, shardWorldManager, agent.protection(), saveService);
         PermissionCacheSyncService permissionSync = new PermissionCacheSyncService(this, client, agent.permissionCache());
         this.jobWorker = new PaperIslandJobWorker(this, new CoreBackedIslandJobSource(client), activationHandler, deactivationHandler, activeIslands, permissionSync, nodeId);
-        this.permissionEventPoller = new PermissionEventPoller(this, client, permissionSync, generatorLevels, cropGrowthLevels, limitCache, agent.protection(), nodeId, fallbackServerName);
+        this.permissionEventPoller = new PermissionEventPoller(this, client, permissionSync, generatorLevels, cropGrowthLevels, limitCache, agent.protection(), nodeId, fallbackServerName, messages);
         this.periodicSaveTask = new PeriodicIslandSaveTask(this, activeIslands, saveService, client, nodeId);
         this.emptyIslandSaveTask = new EmptyIslandSaveTask(this, activeIslands, agent.protection(), saveService, client);
         this.periodicLevelScanTask = new PeriodicIslandLevelScanTask(this, activeIslands, new IslandLevelScanService(this, () -> activeIslands, client));

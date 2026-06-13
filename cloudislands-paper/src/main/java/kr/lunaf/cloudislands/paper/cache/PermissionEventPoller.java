@@ -73,6 +73,7 @@ import kr.lunaf.cloudislands.paper.event.RouteTicketFailedEvent;
 import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
@@ -93,6 +94,7 @@ public final class PermissionEventPoller {
     private final CropGrowthLevelCache cropGrowthLevels;
     private final IslandLimitCache limits;
     private final ProtectionController protection;
+    private final MessageRenderer messages;
     private final String nodeId;
     private final String fallbackServerName;
     private final Set<String> seen = ConcurrentHashMap.newKeySet();
@@ -104,6 +106,10 @@ public final class PermissionEventPoller {
     private final AtomicLong chatNoRecipientBroadcasts = new AtomicLong();
 
     public PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, GeneratorLevelCache generatorLevels, CropGrowthLevelCache cropGrowthLevels, IslandLimitCache limits, ProtectionController protection, String nodeId, String fallbackServerName) {
+        this(plugin, client, permissionSync, generatorLevels, cropGrowthLevels, limits, protection, nodeId, fallbackServerName, null);
+    }
+
+    public PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, GeneratorLevelCache generatorLevels, CropGrowthLevelCache cropGrowthLevels, IslandLimitCache limits, ProtectionController protection, String nodeId, String fallbackServerName, MessageRenderer messages) {
         this.plugin = plugin;
         this.client = client;
         this.permissionSync = permissionSync;
@@ -111,6 +117,7 @@ public final class PermissionEventPoller {
         this.cropGrowthLevels = cropGrowthLevels;
         this.limits = limits;
         this.protection = protection;
+        this.messages = messages;
         this.nodeId = nodeId;
         this.fallbackServerName = fallbackServerName == null || fallbackServerName.isBlank() ? "Lobby" : fallbackServerName;
     }
@@ -310,7 +317,7 @@ public final class PermissionEventPoller {
     private void broadcastIslandChat(UUID islandId, String actorName, String channel, String chatMessage, String recipients) {
         boolean teamChannel = channel.equalsIgnoreCase("TEAM");
         String normalizedChannel = teamChannel ? "팀" : "섬";
-        String message = "[" + normalizedChannel + "] " + actorName + ": " + chatMessage;
+        String message = chatMessageLine(teamChannel, normalizedChannel, actorName, chatMessage);
         int deliveries = 0;
         for (Player online : Bukkit.getOnlinePlayers()) {
             if (teamChannel) {
@@ -331,6 +338,16 @@ public final class PermissionEventPoller {
         if (deliveries == 0) {
             chatNoRecipientBroadcasts.incrementAndGet();
         }
+    }
+
+    private String chatMessageLine(boolean teamChannel, String channelName, String actorName, String chatMessage) {
+        String key = teamChannel ? "team-chat-format" : "island-chat-format";
+        String fallback = "[" + channelName + "] " + actorName + ": " + chatMessage;
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key, "channel", channelName, "actor", actorName, "message", chatMessage);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private void handleMigrationLockState(String type, Map<String, String> fields) {

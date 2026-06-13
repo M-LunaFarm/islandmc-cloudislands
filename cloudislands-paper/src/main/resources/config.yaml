@@ -14,6 +14,8 @@ messages:
     server-brand: "{service}"
     chat-prefix: "[{service}] "
     chat-format: "{prefix}{player}: {message}"
+    island-chat-format: "[섬] {actor}: {message}"
+    team-chat-format: "[팀] {actor}: {message}"
     scoreboard-title: "{service}"
     route-loading-complete: "{target} 로딩 완료"
     route-loading-progress: "{target} 로딩 중 {progress}%"

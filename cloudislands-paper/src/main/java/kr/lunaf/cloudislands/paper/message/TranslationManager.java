@@ -79,6 +79,8 @@ public final class TranslationManager {
         values.put("server-brand", "{service}");
         values.put("chat-prefix", "[" + name + "] ");
         values.put("chat-format", "{prefix}{player}: {message}");
+        values.put("island-chat-format", "[섬] {actor}: {message}");
+        values.put("team-chat-format", "[팀] {actor}: {message}");
         values.put("scoreboard-title", "{service}");
         values.put("route-loading-complete", "{target} 로딩 완료");
         values.put("route-loading-progress", "{target} 로딩 중 {progress}%");
