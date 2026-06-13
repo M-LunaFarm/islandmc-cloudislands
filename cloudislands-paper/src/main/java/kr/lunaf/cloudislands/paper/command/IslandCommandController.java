@@ -1426,6 +1426,11 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage("섬으로 이동하지 못했습니다.");
                 return;
             }
+            if (!canUseBungeeConnect()) {
+                clearFailedRoute(ticket);
+                player.sendMessage("섬 이동 경로를 준비하지 못했습니다.");
+                return;
+            }
             try {
                 ByteArrayOutputStream bytes = new ByteArrayOutputStream();
                 DataOutputStream output = new DataOutputStream(bytes);
@@ -1433,7 +1438,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 output.writeUTF(targetServerName);
                 player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
                 player.sendMessage("섬으로 이동합니다.");
-            } catch (IOException exception) {
+            } catch (IOException | RuntimeException exception) {
                 clearFailedRoute(ticket);
                 player.sendMessage("섬으로 이동하지 못했습니다.");
             }
@@ -1464,6 +1469,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendMessage(failureMessage);
                 return;
             }
+            if (!canUseBungeeConnect()) {
+                player.sendMessage(failureMessage);
+                return;
+            }
             try {
                 ByteArrayOutputStream bytes = new ByteArrayOutputStream();
                 DataOutputStream output = new DataOutputStream(bytes);
@@ -1471,10 +1480,14 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 output.writeUTF(targetServerName);
                 player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
                 player.sendMessage(successMessage);
-            } catch (IOException exception) {
+            } catch (IOException | RuntimeException exception) {
                 player.sendMessage(failureMessage);
             }
         });
+    }
+
+    private boolean canUseBungeeConnect() {
+        return plugin.getServer().getMessenger().isOutgoingChannelRegistered(plugin, "BungeeCord");
     }
 
     private void showIslandLevel(Player player) {

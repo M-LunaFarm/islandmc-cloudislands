@@ -424,13 +424,17 @@ public final class PermissionEventPoller {
             return;
         }
         player.sendActionBar(Component.text("최적화된 섬 서버로 이동합니다."));
+        if (!canUseBungeeConnect()) {
+            migrationReturnFailed(playerUuid);
+            return;
+        }
         try {
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             DataOutputStream output = new DataOutputStream(bytes);
             output.writeUTF("Connect");
             output.writeUTF(ticket.payload().getOrDefault("targetServerName", ticket.targetNode()));
             player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
-        } catch (IOException exception) {
+        } catch (IOException | RuntimeException exception) {
             plugin.getLogger().warning("Failed to move migrating player to target node: " + exception.getMessage());
             migrationReturnFailed(playerUuid);
         }
@@ -486,13 +490,16 @@ public final class PermissionEventPoller {
                 continue;
             }
             player.sendMessage(reason);
+            if (!canUseBungeeConnect()) {
+                continue;
+            }
             try {
                 ByteArrayOutputStream bytes = new ByteArrayOutputStream();
                 DataOutputStream output = new DataOutputStream(bytes);
                 output.writeUTF("Connect");
                 output.writeUTF(fallbackServerName);
                 player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
-            } catch (IOException exception) {
+            } catch (IOException | RuntimeException exception) {
                 plugin.getLogger().warning("Failed to move island player to fallback: " + exception.getMessage());
             }
         }
@@ -528,15 +535,22 @@ public final class PermissionEventPoller {
             return;
         }
         target.sendMessage("섬에서 추방되어 로비로 이동합니다.");
+        if (!canUseBungeeConnect()) {
+            return;
+        }
         try {
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             DataOutputStream output = new DataOutputStream(bytes);
             output.writeUTF("Connect");
             output.writeUTF(fallbackServerName);
             target.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
-        } catch (IOException exception) {
+        } catch (IOException | RuntimeException exception) {
             plugin.getLogger().warning("Failed to move kicked visitor to fallback: " + exception.getMessage());
         }
+    }
+
+    private boolean canUseBungeeConnect() {
+        return plugin.getServer().getMessenger().isOutgoingChannelRegistered(plugin, "BungeeCord");
     }
 
     private void kickPlayers(String reason) {

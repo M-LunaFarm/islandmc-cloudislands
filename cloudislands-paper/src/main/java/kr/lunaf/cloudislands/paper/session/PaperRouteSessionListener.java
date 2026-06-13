@@ -162,11 +162,15 @@ public final class PaperRouteSessionListener implements Listener {
     }
 
     private void sendToFallback(org.bukkit.entity.Player player) {
+        if (!plugin.getServer().getMessenger().isOutgoingChannelRegistered(plugin, "BungeeCord")) {
+            player.kick(Component.text("정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요."));
+            return;
+        }
         try (ByteArrayOutputStream bytes = new ByteArrayOutputStream(); DataOutputStream output = new DataOutputStream(bytes)) {
             output.writeUTF("Connect");
             output.writeUTF(fallbackServerName);
             player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
-        } catch (IOException ignored) {
+        } catch (IOException | RuntimeException ignored) {
             player.kick(Component.text("정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요."));
         }
     }
