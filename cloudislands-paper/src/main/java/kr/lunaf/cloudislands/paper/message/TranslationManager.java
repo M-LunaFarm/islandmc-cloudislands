@@ -210,6 +210,13 @@ public final class TranslationManager {
         values.put("warp-menu-toggle-click", "우클릭: 공개/비공개 전환");
         values.put("warp-menu-delete-click", "Shift+우클릭: 삭제");
         values.put("info-menu-load-failed", "섬 정보를 불러오지 못했습니다.");
+        values.put("info-menu-island-name", "섬 이름: ");
+        values.put("info-menu-no-name", "이름 없음");
+        values.put("info-menu-state", "상태: ");
+        values.put("info-menu-unknown", "알 수 없음");
+        values.put("info-menu-yes", "예");
+        values.put("info-menu-no", "아니오");
+        values.put("info-menu-close", "메뉴를 닫습니다.");
         values.put("biome-menu-load-failed", "섬 바이옴을 불러오지 못했습니다.");
         values.put("biome-menu-not-set", "설정 없음");
         values.put("biome-menu-selected", "현재 적용됨");

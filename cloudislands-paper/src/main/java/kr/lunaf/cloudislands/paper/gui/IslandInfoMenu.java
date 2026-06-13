@@ -33,7 +33,7 @@ public final class IslandInfoMenu implements Listener {
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
         client.islandInfo(islandId)
-            .thenAccept(body -> openSync(plugin, player, body))
+            .thenAccept(body -> openSync(plugin, player, body, messages))
             .exceptionally(error -> {
                 plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "info-menu-load-failed", "섬 정보를 불러오지 못했습니다.")));
                 return null;
@@ -72,21 +72,21 @@ public final class IslandInfoMenu implements Listener {
         }
     }
 
-    private static void openSync(Plugin plugin, Player player, String body) {
+    private static void openSync(Plugin plugin, Player player, String body, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
-            inventory.setItem(10, item(Material.GRASS_BLOCK, "기본 정보", "섬 이름: " + fallback(text(body, "name"), "이름 없음"), "상태: " + fallback(text(body, "state"), "알 수 없음"), "섬 ID: " + shortId(text(body, "islandId"))));
+            inventory.setItem(10, item(Material.GRASS_BLOCK, "기본 정보", message(messages, "info-menu-island-name", "섬 이름: ") + fallback(text(body, "name"), message(messages, "info-menu-no-name", "이름 없음")), message(messages, "info-menu-state", "상태: ") + fallback(text(body, "state"), message(messages, "info-menu-unknown", "알 수 없음")), "섬 ID: " + shortId(text(body, "islandId"), messages)));
             inventory.setItem(11, item(Material.EXPERIENCE_BOTTLE, "레벨", "레벨: " + number(body, "level"), "가치: " + fallback(text(body, "worth"), "0")));
-            inventory.setItem(12, item(Material.BARRIER, "공개 상태", "공개 여부: " + yesNo(bool(body, "publicAccess")), "잠금 여부: " + yesNo(bool(body, "locked"))));
+            inventory.setItem(12, item(Material.BARRIER, "공개 상태", "공개 여부: " + yesNo(bool(body, "publicAccess"), messages), "잠금 여부: " + yesNo(bool(body, "locked"), messages)));
             inventory.setItem(13, item(Material.MAP, "크기와 경계", "섬 크기: " + number(body, "size"), "경계: " + number(body, "border")));
-            inventory.setItem(14, item(Material.PLAYER_HEAD, "소유자", "소유자: " + shortId(text(body, "ownerUuid"))));
+            inventory.setItem(14, item(Material.PLAYER_HEAD, "소유자", "소유자: " + shortId(text(body, "ownerUuid"), messages)));
             inventory.setItem(16, item(Material.REDSTONE_TORCH, "설정", "/섬 설정"));
             inventory.setItem(21, item(Material.GOLD_BLOCK, "섬 랭킹", "/섬 랭킹"));
             inventory.setItem(22, item(Material.CLOCK, "섬 로그", "/섬 로그"));
             inventory.setItem(23, item(Material.ANVIL, "레벨 다시 계산", "/섬 레벨계산"));
             inventory.setItem(24, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
             inventory.setItem(25, item(Material.CLOCK, "새로고침", "/섬 정보"));
-            inventory.setItem(26, item(Material.OAK_DOOR, "닫기", "메뉴를 닫습니다."));
+            inventory.setItem(26, item(Material.OAK_DOOR, "닫기", message(messages, "info-menu-close", "메뉴를 닫습니다.")));
             player.openInventory(inventory);
         });
     }
@@ -149,13 +149,13 @@ public final class IslandInfoMenu implements Listener {
         return value == null || value.isBlank() ? fallback : value;
     }
 
-    private static String yesNo(boolean value) {
-        return value ? "예" : "아니오";
+    private static String yesNo(boolean value, MessageRenderer messages) {
+        return value ? message(messages, "info-menu-yes", "예") : message(messages, "info-menu-no", "아니오");
     }
 
-    private static String shortId(String value) {
+    private static String shortId(String value, MessageRenderer messages) {
         if (value == null || value.isBlank()) {
-            return "알 수 없음";
+            return message(messages, "info-menu-unknown", "알 수 없음");
         }
         return value.length() <= 8 ? value : value.substring(0, 8);
     }
