@@ -64,6 +64,7 @@ import kr.lunaf.cloudislands.paper.level.PeriodicIslandLevelScanTask;
 import kr.lunaf.cloudislands.paper.limit.IslandEntityLimitListener;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitListener;
+import kr.lunaf.cloudislands.paper.placeholder.CloudIslandsPlaceholderExpansion;
 import kr.lunaf.cloudislands.paper.session.PaperBrandingListener;
 import kr.lunaf.cloudislands.paper.session.PaperChatListener;
 import kr.lunaf.cloudislands.paper.session.PaperPlayerProfileListener;
@@ -96,6 +97,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private CloudIslandsApi api;
     private EconomyBridge economyBridge;
     private GeneratorLevelCache generatorLevels;
+    private Object placeholderExpansion;
 
     @Override
     public void onEnable() {
@@ -120,6 +122,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getServicesManager().register(CloudIslandsApi.class, api, this, ServicePriority.Normal);
         this.economyBridge = new VaultEconomyBridge(getServer());
         getServer().getServicesManager().register(EconomyBridge.class, economyBridge, this, ServicePriority.Normal);
+        registerPlaceholderExpansion(client);
         IslandLimitCache limitCache = new IslandLimitCache(client);
         long denyMessageCooldownMs = getConfig().getLong("protection.deny-message-cooldown-ms", 1000L);
         BlockDeltaReporter blockDeltas = new BlockDeltaReporter(this, client);
@@ -253,6 +256,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             healthService.stop();
             healthService = null;
         }
+        unregisterPlaceholderExpansion();
         if (api != null) {
             CloudIslandsProvider.clear(api);
             getServer().getServicesManager().unregister(CloudIslandsApi.class, api);
@@ -270,6 +274,34 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
 
     public ActiveIslandRegistry activeIslands() {
         return activeIslands;
+    }
+
+    private void registerPlaceholderExpansion(CoreApiClient client) {
+        if (!getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return;
+        }
+        try {
+            CloudIslandsPlaceholderExpansion expansion = new CloudIslandsPlaceholderExpansion(this, client);
+            if (expansion.register()) {
+                this.placeholderExpansion = expansion;
+                getLogger().info("Registered PlaceholderAPI expansion: cloudislands");
+            }
+        } catch (LinkageError error) {
+            getLogger().warning("PlaceholderAPI was detected but the CloudIslands expansion could not be registered: " + error.getMessage());
+        }
+    }
+
+    private void unregisterPlaceholderExpansion() {
+        Object expansion = placeholderExpansion;
+        placeholderExpansion = null;
+        if (expansion == null) {
+            return;
+        }
+        try {
+            expansion.getClass().getMethod("unregister").invoke(expansion);
+        } catch (ReflectiveOperationException ignored) {
+            // PlaceholderAPI handles plugin-disable cleanup when explicit unregister is unavailable.
+        }
     }
 
     private String paperHealthJson(AgentRole role, String nodeId) {
