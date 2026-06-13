@@ -90,6 +90,9 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
         }
         return joinOptional(() -> api.islands().getRegion(island.islandUuid()))
                 .flatMap(region -> {
+                    if (region.islandId() == null || !region.islandId().equals(island.islandUuid())) {
+                        return Optional.empty();
+                    }
                     if (region.worldName() == null || region.worldName().isBlank()) {
                         return Optional.empty();
                     }
