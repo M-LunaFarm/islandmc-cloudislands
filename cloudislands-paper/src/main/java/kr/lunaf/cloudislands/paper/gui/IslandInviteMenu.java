@@ -16,6 +16,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandInviteMenu implements Listener {
+    private static final String TITLE_KEY = "invite-menu-title";
     private static final String TITLE = "섬 초대 목록";
     private final MessageRenderer messages;
 
@@ -42,7 +43,7 @@ public final class IslandInviteMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!TITLE.equals(event.getView().getTitle())) {
+        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
             return;
         }
         event.setCancelled(true);
@@ -79,7 +80,7 @@ public final class IslandInviteMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, List<Invite> invites, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
+            Inventory inventory = Bukkit.createInventory(null, 54, message(messages, TITLE_KEY, TITLE));
             if (invites.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "invite-menu-empty-title", "대기 중인 초대 없음"), message(messages, "invite-menu-empty", "받은 섬 초대가 없습니다.")));
             } else {

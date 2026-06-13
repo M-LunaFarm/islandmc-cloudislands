@@ -649,6 +649,7 @@ public final class TranslationManager {
         values.put("ranking-menu-refresh-command", "/섬 랭킹");
         values.put("ranking-menu-random-visit-name", "랜덤 방문");
         values.put("ranking-menu-random-visit-command", "/섬 랜덤방문");
+        values.put("my-islands-menu-title", "내 섬 목록");
         values.put("my-islands-menu-load-failed", "내 섬 목록을 불러오지 못했습니다.");
         values.put("my-islands-menu-empty-title", "섬 없음");
         values.put("my-islands-menu-empty", "속한 섬이 없습니다.");
@@ -802,6 +803,7 @@ public final class TranslationManager {
         values.put("member-menu-right-click", "우클릭: 강등");
         values.put("member-menu-shift-right-click", "Shift+우클릭: 추방");
         values.put("member-menu-transfer-line", "양도: /섬 양도 ");
+        values.put("invite-menu-title", "섬 초대 목록");
         values.put("invite-menu-load-failed", "섬 초대 목록을 불러오지 못했습니다.");
         values.put("invite-menu-empty-title", "대기 중인 초대 없음");
         values.put("invite-menu-empty", "받은 섬 초대가 없습니다.");
