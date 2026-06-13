@@ -211,7 +211,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             ensureEventSubscription();
             CloudIslandsAddonSnapshot snapshot = snapshot(registration);
             addons.put(addon.addonId(), snapshot);
-            addon.onAddonRegistered(snapshot);
+            notifyRegistered(addon, snapshot);
             return CompletableFuture.completedFuture(snapshot);
         }
 
@@ -256,7 +256,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             addons.remove(id);
             CloudIslandsAddon addon = addonObjects.remove(id);
             if (addon != null) {
-                addon.onAddonUnregistered();
+                notifyUnregistered(addon);
             }
             stopEventSubscriptionIfIdle();
             return CompletableFuture.completedFuture(null);
@@ -284,7 +284,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             addons.put(id, snapshot);
             CloudIslandsAddon addon = addonObjects.get(id);
             if (addon != null) {
-                addon.onAddonReloaded(snapshot);
+                notifyReloaded(addon, snapshot);
             }
             return CompletableFuture.completedFuture(Optional.of(snapshot));
         }
@@ -296,7 +296,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 addons.put(registration.id(), snapshot);
                 CloudIslandsAddon addon = addonObjects.get(registration.id());
                 if (addon != null) {
-                    addon.onAddonReloaded(snapshot);
+                    notifyReloaded(addon, snapshot);
                 }
             });
             return list();
@@ -380,6 +380,30 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                         plugin.getLogger().warning("CloudIslands addon event callback failed for " + addon.addonId() + ": " + exception.getMessage());
                     }
                 }
+            }
+        }
+
+        private void notifyRegistered(CloudIslandsAddon addon, CloudIslandsAddonSnapshot snapshot) {
+            try {
+                addon.onAddonRegistered(snapshot);
+            } catch (RuntimeException exception) {
+                plugin.getLogger().warning("CloudIslands addon register callback failed for " + addon.addonId() + ": " + exception.getMessage());
+            }
+        }
+
+        private void notifyReloaded(CloudIslandsAddon addon, CloudIslandsAddonSnapshot snapshot) {
+            try {
+                addon.onAddonReloaded(snapshot);
+            } catch (RuntimeException exception) {
+                plugin.getLogger().warning("CloudIslands addon reload callback failed for " + addon.addonId() + ": " + exception.getMessage());
+            }
+        }
+
+        private void notifyUnregistered(CloudIslandsAddon addon) {
+            try {
+                addon.onAddonUnregistered();
+            } catch (RuntimeException exception) {
+                plugin.getLogger().warning("CloudIslands addon unregister callback failed for " + addon.addonId() + ": " + exception.getMessage());
             }
         }
 
