@@ -55,7 +55,13 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
         if (!available || player == null) {
             return Optional.empty();
         }
-        return joinOptional(api.islands().getIslandByOwner(player.getUniqueId())).map(this::ref);
+        Optional<IslandSnapshot> ownedIsland = joinOptional(api.islands().getIslandByOwner(player.getUniqueId()));
+        if (ownedIsland.isPresent()) {
+            return ownedIsland.map(this::ref);
+        }
+        return join(api.players().getJoinedIslands(player.getUniqueId()))
+                .flatMap(islands -> islands.stream().findFirst())
+                .map(this::ref);
     }
 
     @Override
