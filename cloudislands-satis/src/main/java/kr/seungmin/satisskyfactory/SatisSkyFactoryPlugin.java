@@ -837,10 +837,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void flushSatisIsland(UUID islandId) {
+        synchronizeSatisIsland(islandId);
         if (dirtySaves != null) {
             dirtySaves.flushSafely();
         }
-        synchronizeSatisIsland(islandId);
     }
 
     private void purgeSatisIsland(UUID islandId) {
