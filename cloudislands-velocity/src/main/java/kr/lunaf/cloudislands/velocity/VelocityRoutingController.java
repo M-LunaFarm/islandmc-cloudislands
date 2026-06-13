@@ -13,6 +13,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -42,6 +43,10 @@ public final class VelocityRoutingController {
     private final boolean useActionBar;
     private final boolean useBossBarLoading;
     private final VelocityMessages messages;
+    private final AtomicLong routeAttempts = new AtomicLong();
+    private final AtomicLong routeSuccesses = new AtomicLong();
+    private final AtomicLong routeFailures = new AtomicLong();
+    private final AtomicLong fallbackTransfers = new AtomicLong();
     private final Set<String> seenEvents = ConcurrentHashMap.newKeySet();
     private ScheduledTask eventPollTask;
     private long lastEventSequence;
@@ -117,7 +122,18 @@ public final class VelocityRoutingController {
             + ", onlinePlayers=" + proxy.getPlayerCount()
             + ", actionbar=" + useActionBar
             + ", bossbarLoading=" + useBossBarLoading
-            + ", hideNodeNames=" + hideNodeNames;
+            + ", hideNodeNames=" + hideNodeNames
+            + ", routeAttempts=" + routeAttempts.get()
+            + ", routeSuccesses=" + routeSuccesses.get()
+            + ", routeFailures=" + routeFailures.get();
+    }
+
+    public String routingMetricsText() {
+        return ""
+            + "cloudislands_velocity_route_attempts_total " + routeAttempts.get() + "\n"
+            + "cloudislands_velocity_route_success_total " + routeSuccesses.get() + "\n"
+            + "cloudislands_velocity_route_failed_total " + routeFailures.get() + "\n"
+            + "cloudislands_velocity_fallback_transfers_total " + fallbackTransfers.get() + "\n";
     }
 
     public void resetIsland(Player player, UUID islandId, String reason) {
@@ -2805,6 +2821,7 @@ public final class VelocityRoutingController {
     }
 
     private void route(Player player, RouteTicket ticket, String failureMessage) {
+        routeAttempts.incrementAndGet();
         if (ticket == null) {
             fallback(player, failureMessage);
             return;
@@ -2905,6 +2922,7 @@ public final class VelocityRoutingController {
                 fallback(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.");
                 return;
             }
+            routeSuccesses.incrementAndGet();
             actionBar(player, arrivalMessage(ticket));
         }).exceptionally(error -> {
             clearFailedRoute(ticket, "CONNECT_EXCEPTION");
@@ -2921,8 +2939,13 @@ public final class VelocityRoutingController {
     }
 
     private void fallback(Player player, String message) {
+        routeFailures.incrementAndGet();
         player.sendMessage(Component.text(message));
-        proxy.getServer(fallbackServer).ifPresent(server -> player.createConnectionRequest(server).connectWithIndication());
+        proxy.getServer(fallbackServer).ifPresent(server -> player.createConnectionRequest(server).connectWithIndication().thenAccept(success -> {
+            if (success) {
+                fallbackTransfers.incrementAndGet();
+            }
+        }));
     }
 
     private String routeTargetName(RouteTicket ticket) {

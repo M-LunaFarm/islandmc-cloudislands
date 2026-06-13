@@ -301,7 +301,8 @@ public final class CloudIslandsVelocityPlugin {
             + "cloudislands_velocity_registered_servers " + proxy.getAllServers().size() + "\n"
             + "cloudislands_velocity_command_aliases " + commandAliases.size() + "\n"
             + "cloudislands_velocity_debug_enabled " + (config.debug() ? 1 : 0) + "\n"
-            + "cloudislands_velocity_plugin_message_blocking " + (blockCloudIslandsPluginMessages ? 1 : 0) + "\n";
+            + "cloudislands_velocity_plugin_message_blocking " + (blockCloudIslandsPluginMessages ? 1 : 0) + "\n"
+            + routingController.routingMetricsText();
     }
 
     private static String escapeJson(String value) {
