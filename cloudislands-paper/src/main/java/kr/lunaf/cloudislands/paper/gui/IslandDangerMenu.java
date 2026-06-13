@@ -10,8 +10,10 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 public final class IslandDangerMenu implements Listener {
+    private static final String TITLE_KEY = "danger-menu-title";
     private static final String TITLE = "섬 위험 작업";
     private final MessageRenderer messages;
 
@@ -28,7 +30,7 @@ public final class IslandDangerMenu implements Listener {
     }
 
     public static void open(Player player, MessageRenderer messages) {
-        Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
+        Inventory inventory = Bukkit.createInventory(null, 27, message(messages, TITLE_KEY, TITLE));
         inventory.setItem(10, item(Material.CHEST, message(messages, "danger-menu-snapshot-name", "스냅샷 확인"), message(messages, "danger-menu-snapshot-command", "/섬 스냅샷"), message(messages, "danger-menu-snapshot-description", "위험 작업 전에 복구 지점을 확인합니다.")));
         inventory.setItem(12, item(Material.TNT, message(messages, "danger-menu-reset-name", "섬 리셋 확인"), message(messages, "danger-menu-reset-description", "월드를 초기화하고 복구 작업을 요청합니다."), message(messages, "danger-confirm-required", "Shift+우클릭해야 실행됩니다.")));
         inventory.setItem(14, item(Material.LAVA_BUCKET, message(messages, "danger-menu-delete-name", "섬 삭제 확인"), message(messages, "danger-menu-delete-description", "섬 삭제 작업을 요청합니다."), message(messages, "danger-confirm-required", "Shift+우클릭해야 실행됩니다.")));
@@ -38,7 +40,7 @@ public final class IslandDangerMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!TITLE.equals(event.getView().getTitle())) {
+        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
             return;
         }
         event.setCancelled(true);

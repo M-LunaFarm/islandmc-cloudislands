@@ -13,6 +13,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 public final class AdminNodeMenu implements Listener {
+    private static final String TITLE_KEY = "admin-node-menu-title";
     private static final String TITLE = "섬 노드 관리";
     private final MessageRenderer messages;
 
@@ -29,7 +30,7 @@ public final class AdminNodeMenu implements Listener {
     }
 
     public static void open(Player player, String nodeId, MessageRenderer messages) {
-        Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
+        Inventory inventory = Bukkit.createInventory(null, 27, message(messages, TITLE_KEY, TITLE));
         inventory.setItem(10, item(Material.COMPASS, message(messages, "admin-node-menu-list-name", "노드 목록"), message(messages, "admin-node-menu-list-command", "/ciadmin node list"), message(messages, "admin-node-menu-list-description", "신규 활성화 배정 가능 여부와 차단 사유를 함께 확인합니다.")));
         inventory.setItem(11, item(Material.ENDER_EYE, message(messages, "admin-node-menu-info-name", "현재 노드 정보"), message(messages, "admin-node-menu-info-command", "/ciadmin node info ") + nodeId, message(messages, "admin-node-menu-info-description", "선택한 노드의 활성화 배정 상태를 확인합니다.")));
         inventory.setItem(12, item(Material.GRASS_BLOCK, message(messages, "admin-node-menu-islands-name", "현재 노드 섬 현황"), message(messages, "admin-node-menu-islands-command", "/ciadmin node islands ") + nodeId + " 50", message(messages, "admin-node-menu-islands-description", "활성 섬 UUID와 상태를 확인합니다."), message(messages, "admin-node-menu-islands-block-reason", "배정 차단 사유는 노드 정보에서 확인합니다.")));
@@ -48,7 +49,7 @@ public final class AdminNodeMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!TITLE.equals(event.getView().getTitle())) {
+        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
             return;
         }
         event.setCancelled(true);

@@ -202,8 +202,10 @@ public final class TranslationManager {
         values.put("main-menu-ranking-command", "/섬 랭킹");
         values.put("main-menu-admin-name", "관리자 메뉴");
         values.put("main-menu-admin-command", "/ciadmin node menu");
+        values.put("main-menu-title", "섬 메뉴");
         values.put("command-list-title", "섬 명령어 목록 ");
         values.put("command-list-suffix", " - 1 line > 1 command");
+        values.put("admin-node-menu-title", "섬 노드 관리");
         values.put("admin-node-menu-list-name", "노드 목록");
         values.put("admin-node-menu-list-command", "/ciadmin node list");
         values.put("admin-node-menu-list-description", "신규 활성화 배정 가능 여부와 차단 사유를 함께 확인합니다.");
@@ -512,6 +514,7 @@ public final class TranslationManager {
         values.put("main-menu-limit-command", "/섬 제한");
         values.put("main-menu-biome-name", "바이옴");
         values.put("main-menu-biome-command", "/섬 바이옴");
+        values.put("chat-menu-title", "섬 채팅");
         values.put("chat-menu-island-name", "섬 채팅 보내기");
         values.put("chat-menu-island-usage", "사용법: /섬 채팅 <메시지>");
         values.put("chat-menu-island-description", "섬 전체 채널로 기록됩니다.");
@@ -873,6 +876,7 @@ public final class TranslationManager {
         values.put("role-menu-weight", "weight=");
         values.put("role-menu-enum", "enum=");
         values.put("role-menu-click-edit", "클릭: 편집 명령어 안내");
+        values.put("danger-menu-title", "섬 위험 작업");
         values.put("danger-menu-snapshot-name", "스냅샷 확인");
         values.put("danger-menu-snapshot-command", "/섬 스냅샷");
         values.put("danger-menu-snapshot-description", "위험 작업 전에 복구 지점을 확인합니다.");
