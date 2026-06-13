@@ -2374,7 +2374,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             }
             IslandFlag flag = islandFlag(flagName);
             if (flag == null) {
-                player.sendMessage("올바른 섬 플래그를 입력해주세요.");
+                message(player, routeMessage("input-flag-invalid", "올바른 섬 플래그를 입력해주세요."));
                 return;
             }
             coreApiClient.setIslandFlagResult(islandId, player.getUniqueId(), flag, value)
@@ -2455,7 +2455,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             IslandRole role = islandRole(roleName);
             IslandPermission permission = islandPermission(permissionName);
             if (role == null || permission == null) {
-                player.sendMessage("올바른 역할과 권한을 입력해주세요.");
+                message(player, routeMessage("input-permission-set-invalid", "올바른 역할과 권한을 입력해주세요."));
                 return;
             }
             boolean allowed = booleanValue(allowedValue);

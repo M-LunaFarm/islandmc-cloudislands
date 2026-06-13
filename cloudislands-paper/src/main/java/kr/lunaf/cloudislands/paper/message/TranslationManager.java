@@ -172,7 +172,9 @@ public final class TranslationManager {
         values.put("input-kick-visitor-required", "추방할 방문자를 입력해주세요.");
         values.put("input-island-name-required", "새 섬 이름을 입력해주세요.");
         values.put("input-flag-value-required", "플래그와 값을 입력해주세요.");
+        values.put("input-flag-invalid", "올바른 섬 플래그를 입력해주세요.");
         values.put("input-permission-set-required", "역할, 권한, 허용 여부를 입력해주세요.");
+        values.put("input-permission-set-invalid", "올바른 역할과 권한을 입력해주세요.");
         return values;
     }
 
