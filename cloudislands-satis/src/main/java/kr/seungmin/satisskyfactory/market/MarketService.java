@@ -45,6 +45,7 @@ public final class MarketService {
     private double debtRepayRate = 0.35;
     private double lockedDebtRepayRate = 0.70;
     private boolean lockedMarketSalesBlocked;
+    private boolean active;
 
     public MarketService(StorageService storage, EconomyService economy, DatabaseService database, ItemRegistry items,
                          BooleanSupplier maintenanceEnabled) {
@@ -61,6 +62,7 @@ public final class MarketService {
 
     public void load(FileConfiguration config, FileConfiguration maintenanceConfig) {
         clear();
+        active = true;
         personalSoftCapEnabled = config.getBoolean("market.personal-soft-cap.enabled", true);
         personalSoftCap = config.isInt("market.personal-soft-cap") ? config.getInt("market.personal-soft-cap", 256) : 256;
         demandFloor = config.getDouble("market.factor-min", config.getDouble("market.demand-floor", 0.35));
@@ -95,6 +97,7 @@ public final class MarketService {
     }
 
     public void clear() {
+        active = false;
         prices.clear();
         targetDailyAmounts.clear();
         itemQualityFactors.clear();
@@ -111,10 +114,16 @@ public final class MarketService {
     }
 
     public long price(String itemId, long amount) {
+        if (!active) {
+            return 0L;
+        }
         return calculator().basePrice(itemId, amount);
     }
 
     public long price(UUID islandUuid, String itemId, long amount) {
+        if (!active) {
+            return 0L;
+        }
         String dateKey = dateKey();
         return calculator().finalPrice(
                 itemId,
@@ -125,6 +134,9 @@ public final class MarketService {
     }
 
     public Optional<SellResult> sell(FactoryIsland island, OfflinePlayer owner, String itemId, long amount) {
+        if (!active) {
+            return Optional.empty();
+        }
         if (amount <= 0 || !prices.containsKey(itemId) || marketBlocked(island)) {
             return Optional.empty();
         }
@@ -144,6 +156,9 @@ public final class MarketService {
     }
 
     public Optional<SellResult> sellDirect(FactoryIsland island, OfflinePlayer owner, String itemId, long amount) {
+        if (!active) {
+            return Optional.empty();
+        }
         if (amount <= 0 || !prices.containsKey(itemId) || marketBlocked(island)) {
             return Optional.empty();
         }
@@ -153,6 +168,9 @@ public final class MarketService {
     }
 
     public Map<String, Long> prices() {
+        if (!active) {
+            return Map.of();
+        }
         return Map.copyOf(prices);
     }
 
