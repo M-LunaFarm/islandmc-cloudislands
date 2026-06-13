@@ -61,6 +61,10 @@ public final class ProtectionController {
         return regionIndex.find(block.getWorld().getName(), block.getX(), block.getZ());
     }
 
+    public java.util.Optional<IslandRegion> region(UUID islandId) {
+        return regionIndex.findIsland(islandId);
+    }
+
     public IslandRole role(UUID islandId, UUID playerUuid) {
         return permissionCache.role(islandId, playerUuid);
     }

@@ -19,6 +19,7 @@ import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandMissionSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRankSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandRegionSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRoleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSizeSnapshot;
@@ -33,6 +34,7 @@ public interface IslandQueryService {
     CompletableFuture<Optional<IslandSnapshot>> getIsland(UUID islandId);
     CompletableFuture<Optional<IslandSnapshot>> getIslandByOwner(UUID ownerUuid);
     CompletableFuture<Optional<IslandSnapshot>> getIslandAt(String worldName, int blockX, int blockY, int blockZ);
+    CompletableFuture<Optional<IslandRegionSnapshot>> getRegion(UUID islandId);
     CompletableFuture<List<IslandMemberSnapshot>> getMembers(UUID islandId);
     CompletableFuture<List<IslandBanSnapshot>> getBans(UUID islandId);
     CompletableFuture<List<IslandInviteSnapshot>> getPendingInvites(UUID playerUuid);

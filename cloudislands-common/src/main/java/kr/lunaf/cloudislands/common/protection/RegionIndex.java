@@ -35,6 +35,13 @@ public final class RegionIndex {
             .findFirst();
     }
 
+    public Optional<IslandRegion> findIsland(UUID islandId) {
+        return regionsByChunk.values().stream()
+            .flatMap(List::stream)
+            .filter(region -> region.islandId().equals(islandId))
+            .findFirst();
+    }
+
     public int indexedChunkCount() {
         return regionsByChunk.size();
     }

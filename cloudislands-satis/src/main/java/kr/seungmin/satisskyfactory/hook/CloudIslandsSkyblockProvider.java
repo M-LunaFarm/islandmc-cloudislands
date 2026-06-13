@@ -4,6 +4,7 @@ import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.api.model.IslandRegionSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -70,13 +71,13 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
         if (!available || island == null) {
             return Optional.empty();
         }
-        return join(api.islands().getRuntime(island.islandUuid()))
-                .flatMap(runtime -> {
-                    World world = runtime.activeWorld() == null ? null : plugin.getServer().getWorld(runtime.activeWorld());
+        return joinOptional(api.islands().getRegion(island.islandUuid()))
+                .flatMap(region -> {
+                    World world = plugin.getServer().getWorld(region.worldName());
                     if (world == null) {
                         return Optional.empty();
                     }
-                    return Optional.of(new Location(world, 0.5D, 100.0D, 0.5D));
+                    return Optional.of(center(region, world));
                 });
     }
 
@@ -132,6 +133,10 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
     private boolean member(List<IslandMemberSnapshot> members, UUID playerUuid) {
         return members.stream()
                 .anyMatch(member -> playerUuid.equals(member.playerUuid()) && member.role().islandMemberRole());
+    }
+
+    private Location center(IslandRegionSnapshot region, World world) {
+        return new Location(world, region.originX() + 0.5D, 100.0D, region.originZ() + 0.5D);
     }
 
     private <T> Optional<T> join(java.util.concurrent.CompletableFuture<T> future) {

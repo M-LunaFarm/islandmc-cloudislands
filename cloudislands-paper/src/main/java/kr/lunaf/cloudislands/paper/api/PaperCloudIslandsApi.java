@@ -44,6 +44,7 @@ import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRankSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandRegionSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandRoleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
@@ -85,6 +86,7 @@ import kr.lunaf.cloudislands.api.upgrade.UpgradePurchaseSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeRuleSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
@@ -185,6 +187,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return agent.protection().islandAt(worldName, blockX, blockZ)
                 .map(this::getIsland)
                 .orElseGet(() -> CompletableFuture.completedFuture(Optional.empty()));
+        }
+
+        @Override
+        public CompletableFuture<Optional<IslandRegionSnapshot>> getRegion(UUID islandId) {
+            return CompletableFuture.completedFuture(agent.protection().region(islandId).map(PaperCloudIslandsApi::region));
         }
 
         @Override
@@ -937,6 +944,21 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             island(object).ifPresent(islands::add);
         }
         return islands;
+    }
+
+    private static IslandRegionSnapshot region(IslandRegion region) {
+        return new IslandRegionSnapshot(
+            region.islandId(),
+            region.world(),
+            region.minX(),
+            region.maxX(),
+            region.minZ(),
+            region.maxZ(),
+            region.cellX(),
+            region.cellZ(),
+            region.originX(),
+            region.originZ()
+        );
     }
 
     private static IslandBoundarySnapshot boundary(String json) {
