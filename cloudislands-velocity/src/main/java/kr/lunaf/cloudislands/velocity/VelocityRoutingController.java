@@ -2110,7 +2110,15 @@ public final class VelocityRoutingController {
             + ",m:" + seconds(doubleValue(breakdown, "msptPressure"))
             + ",q:" + seconds(doubleValue(breakdown, "activationQueuePressure"))
             + ",mem:" + seconds(doubleValue(breakdown, "memoryPressure"))
-            + ",fail:" + seconds(doubleValue(breakdown, "recentFailurePenalty"));
+            + ",fail:" + seconds(scorePartValue(breakdown, "recentFailurePressure", "recentFailurePenalty"));
+    }
+
+    private double scorePartValue(String breakdown, String primaryKey, String fallbackKey) {
+        double primary = doubleValue(breakdown, primaryKey);
+        if (primary != 0.0D || breakdown.contains("\"" + primaryKey + "\"")) {
+            return primary;
+        }
+        return doubleValue(breakdown, fallbackKey);
     }
 
     private String nodeActionSummaryMessage(String label, String nodeId, String body) {

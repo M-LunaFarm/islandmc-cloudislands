@@ -1933,7 +1933,15 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-score-mspt-prefix", ",m:") + seconds(doubleValue(breakdown, "msptPressure"))
             + adminText("admin-command-score-queue-prefix", ",q:") + seconds(doubleValue(breakdown, "activationQueuePressure"))
             + adminText("admin-command-score-memory-prefix", ",mem:") + seconds(doubleValue(breakdown, "memoryPressure"))
-            + adminText("admin-command-score-failure-prefix", ",fail:") + seconds(doubleValue(breakdown, "recentFailurePenalty"));
+            + adminText("admin-command-score-failure-prefix", ",fail:") + seconds(scorePartValue(breakdown, "recentFailurePressure", "recentFailurePenalty"));
+    }
+
+    private double scorePartValue(String breakdown, String primaryKey, String fallbackKey) {
+        double primary = doubleValue(breakdown, primaryKey);
+        if (primary != 0.0D || breakdown.contains("\"" + primaryKey + "\"")) {
+            return primary;
+        }
+        return doubleValue(breakdown, fallbackKey);
     }
 
     private String nodeActionSummaryMessage(String label, String nodeId, String body) {

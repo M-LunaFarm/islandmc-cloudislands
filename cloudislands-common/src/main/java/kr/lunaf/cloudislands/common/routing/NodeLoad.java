@@ -146,7 +146,7 @@ public record NodeLoad(
             + activationQueuePressure() * 0.15D
             + chunkLoadPressure * 0.10D
             + memoryPressure() * 0.05D
-            + recentFailurePenalty * 0.05D;
+            + recentFailurePressure() * 0.05D;
     }
 
     public double playerPressure() {
@@ -167,6 +167,10 @@ public record NodeLoad(
 
     public double memoryPressure() {
         return heapMaxMb <= 0 ? 1.0D : Math.min((double) heapUsedMb / heapMaxMb, 1.5D);
+    }
+
+    public double recentFailurePressure() {
+        return Math.min(Math.max(0, recentFailurePenalty) / 20.0D, 1.5D);
     }
 
     private static double ratio(int value, int max) {

@@ -116,7 +116,8 @@ public interface NodeRegistry {
             .append("\"activationQueuePressure\":").append(node.activationQueuePressure()).append(',')
             .append("\"chunkLoadPressure\":").append(node.chunkLoadPressure()).append(',')
             .append("\"memoryPressure\":").append(node.memoryPressure()).append(',')
-            .append("\"recentFailurePenalty\":").append(node.recentFailurePenalty())
+            .append("\"recentFailurePenalty\":").append(node.recentFailurePenalty()).append(',')
+            .append("\"recentFailurePressure\":").append(node.recentFailurePressure())
             .append('}')
             .append('}')
             .toString();
