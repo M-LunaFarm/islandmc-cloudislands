@@ -68,6 +68,7 @@ public final class SuperiorSkyblock2MigrationScanner {
             List<UUID> bannedVisitors = parseUuidList(content, "bans", "bannedPlayers", "bannedVisitors", "visitorBans");
             List<MigrationHome> homes = parseHomes(content);
             List<MigrationWarp> warps = parseWarps(content);
+            MigrationLocation islandLocation = parseIslandLocation(content, homes);
             List<MigrationFlag> flags = parseFlags(content);
             List<MigrationPermission> permissions = parsePermissions(content);
             List<MigrationUpgrade> upgrades = parseUpgrades(content);
@@ -86,7 +87,7 @@ public final class SuperiorSkyblock2MigrationScanner {
             for (MigrationMemberRole memberRole : memberRoles) {
                 allMembers.add(memberRole.playerUuid());
             }
-            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), memberRoles, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, blockValues, blockCounts, biomeKey, bankBalance, publicAccess, locked, size, level, worth, sourceWorldPath));
+            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), memberRoles, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, blockValues, blockCounts, biomeKey, bankBalance, publicAccess, locked, size, level, worth, islandLocation, sourceWorldPath));
         } catch (RuntimeException | IOException exception) {
             issues.add(new MigrationIssue("ISLAND_FILE_PARSE_FAILED", file + ": " + exception.getMessage(), true));
         }
@@ -276,6 +277,21 @@ public final class SuperiorSkyblock2MigrationScanner {
             warps.put(name.isBlank() ? "default" : name, new MigrationWarp(name.isBlank() ? "default" : name, world, x, y, z, yaw, pitch, publicAccess));
         }
         return List.copyOf(warps.values());
+    }
+
+    private MigrationLocation parseIslandLocation(String content, List<MigrationHome> homes) {
+        boolean hasExplicitLocation = containsAnyKey(content, "centerX", "centerY", "centerZ", "centerWorld", "islandX", "islandY", "islandZ", "islandWorld", "spawnX", "spawnY", "spawnZ", "spawnWorld");
+        if (!hasExplicitLocation && homes.isEmpty()) {
+            return MigrationLocation.unknown();
+        }
+        MigrationHome fallback = homes.isEmpty() ? new MigrationHome("origin", parseString(content, "world", ""), 0.5D, 100.0D, 0.5D, 180.0F, 0.0F) : homes.get(0);
+        String world = parseString(content, "centerWorld", parseString(content, "islandWorld", parseString(content, "spawnWorld", parseString(content, "world", fallback.worldName()))));
+        double x = parseDouble(content, "centerX", parseDouble(content, "islandX", parseDouble(content, "spawnX", fallback.x())));
+        double y = parseDouble(content, "centerY", parseDouble(content, "islandY", parseDouble(content, "spawnY", fallback.y())));
+        double z = parseDouble(content, "centerZ", parseDouble(content, "islandZ", parseDouble(content, "spawnZ", fallback.z())));
+        float yaw = parseFloat(content, "centerYaw", parseFloat(content, "islandYaw", parseFloat(content, "spawnYaw", fallback.yaw())));
+        float pitch = parseFloat(content, "centerPitch", parseFloat(content, "islandPitch", parseFloat(content, "spawnPitch", fallback.pitch())));
+        return new MigrationLocation(world, x, y, z, yaw, pitch, true);
     }
 
     private List<NamedLocationKey> namedLocationKeys(String content, String... roots) {

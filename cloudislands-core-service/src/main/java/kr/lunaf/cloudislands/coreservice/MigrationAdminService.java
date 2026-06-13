@@ -246,6 +246,10 @@ public final class MigrationAdminService {
             for (kr.lunaf.cloudislands.migration.MigrationHome home : manifest.homes()) {
                 metadata.upsertHome(manifest.islandId(), home.name(), new IslandLocation(home.worldName(), home.x(), home.y(), home.z(), home.yaw(), home.pitch()), manifest.ownerUuid());
             }
+            if (manifest.islandLocation().present()) {
+                kr.lunaf.cloudislands.migration.MigrationLocation location = manifest.islandLocation();
+                metadata.upsertHome(manifest.islandId(), "origin", new IslandLocation(location.worldName(), location.x(), location.y(), location.z(), location.yaw(), location.pitch()), manifest.ownerUuid());
+            }
             for (kr.lunaf.cloudislands.migration.MigrationWarp warp : manifest.warps()) {
                 metadata.upsertWarp(manifest.islandId(), warp.name(), new IslandLocation(warp.worldName(), warp.x(), warp.y(), warp.z(), warp.yaw(), warp.pitch()), warp.publicAccess(), manifest.ownerUuid());
             }
@@ -316,6 +320,7 @@ public final class MigrationAdminService {
             matched &= expect(issues, memberRolesMatch(manifest), "MEMBER_ROLE_MISMATCH", "member role mismatch " + manifest.islandId());
             matched &= expect(issues, manifest.bannedVisitors().stream().allMatch(bannedUuid -> metadata.isBanned(manifest.islandId(), bannedUuid)), "BAN_MISMATCH", "ban mismatch " + manifest.islandId());
             matched &= expect(issues, manifest.homes().stream().allMatch(home -> metadata.home(manifest.islandId(), home.name()).isPresent()), "HOME_MISMATCH", "home mismatch " + manifest.islandId());
+            matched &= expect(issues, !manifest.islandLocation().present() || originLocationMatches(manifest), "ISLAND_LOCATION_MISMATCH", "island location mismatch " + manifest.islandId());
             matched &= expect(issues, manifest.warps().stream().allMatch(warp -> metadata.warp(manifest.islandId(), warp.name()).isPresent()), "WARP_MISMATCH", "warp mismatch " + manifest.islandId());
             matched &= expect(issues, manifest.flags().stream().allMatch(flag -> flag.value().equals(metadata.flags(manifest.islandId()).values().get(IslandFlag.valueOf(flag.flagName())))), "FLAG_MISMATCH", "flag mismatch " + manifest.islandId());
             matched &= expect(issues, permissionsMatch(manifest), "PERMISSION_MISMATCH", "permission mismatch " + manifest.islandId());
@@ -423,6 +428,21 @@ public final class MigrationAdminService {
             current.put(rule.role().name() + ":" + rule.permission().name(), rule.allowed());
         }
         return manifest.permissions().stream().allMatch(permission -> Boolean.valueOf(permission.allowed()).equals(current.get(permission.roleName() + ":" + permission.permissionName())));
+    }
+
+    private boolean originLocationMatches(MigrationManifest manifest) {
+        Optional<kr.lunaf.cloudislands.api.model.IslandHomeSnapshot> origin = metadata.home(manifest.islandId(), "origin");
+        if (origin.isEmpty()) {
+            return false;
+        }
+        kr.lunaf.cloudislands.migration.MigrationLocation expected = manifest.islandLocation();
+        IslandLocation actual = origin.get().location();
+        return actual.worldName().equals(expected.worldName())
+            && Double.compare(actual.localX(), expected.x()) == 0
+            && Double.compare(actual.localY(), expected.y()) == 0
+            && Double.compare(actual.localZ(), expected.z()) == 0
+            && Float.compare(actual.yaw(), expected.yaw()) == 0
+            && Float.compare(actual.pitch(), expected.pitch()) == 0;
     }
 
     private boolean memberRolesMatch(MigrationManifest manifest) {
