@@ -1417,11 +1417,23 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             entries.add(addon.id()
                 + adminText("admin-command-addons-name-prefix", " name=") + addon.displayName()
                 + adminText("admin-command-addons-version-prefix", " version=") + addon.version()
-                + adminText("admin-command-addons-enabled-prefix", " enabled=") + addon.enabled());
+                + adminText("admin-command-addons-enabled-prefix", " enabled=") + addon.enabled()
+                + addonFeatureSuffix(addon));
         }
         return adminText("admin-command-addons-total-prefix", "Addons: total=") + addons.size()
             + adminText("admin-command-addons-enabled-count-prefix", " enabled=") + enabled
             + " / " + String.join(" | ", entries);
+    }
+
+    private String addonFeatureSuffix(CloudIslandsAddonSnapshot addon) {
+        if (addon.features().isEmpty()) {
+            return "";
+        }
+        List<String> features = new ArrayList<>();
+        addon.features().entrySet().stream()
+            .sorted(java.util.Map.Entry.comparingByKey())
+            .forEach(entry -> features.add(entry.getKey() + "=" + entry.getValue()));
+        return adminText("admin-command-addons-features-prefix", " features=") + String.join(",", features);
     }
 
     private String metricsMessage(String body) {

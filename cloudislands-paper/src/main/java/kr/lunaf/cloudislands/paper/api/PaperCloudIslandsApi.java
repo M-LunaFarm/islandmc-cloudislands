@@ -183,9 +183,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
-        public CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled) {
+        public CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled, Map<String, Boolean> features) {
             boolean configEnabled = plugin.getConfig().getBoolean("addons." + id + ".enabled", true);
-            CloudIslandsAddonSnapshot snapshot = new CloudIslandsAddonSnapshot(id, displayName, version, enabled && configEnabled, Instant.now());
+            CloudIslandsAddonSnapshot snapshot = new CloudIslandsAddonSnapshot(id, displayName, version, enabled && configEnabled, Instant.now(), features);
             addons.put(id, snapshot);
             return CompletableFuture.completedFuture(snapshot);
         }

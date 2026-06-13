@@ -38,6 +38,8 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 
 public final class SatisSkyFactoryPlugin extends JavaPlugin {
@@ -404,7 +406,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
             return;
         }
         cloudIslandsApi.addons()
-                .register(ADDON_ID, "CloudIslands Satis", getDescription().getVersion(), configs.main().getBoolean("integration.enabled", false))
+                .register(ADDON_ID, "CloudIslands Satis", getDescription().getVersion(), configs.main().getBoolean("integration.enabled", false), featureSnapshot())
                 .thenAccept(addon -> {
                     getLogger().info("Registered CloudIslands addon: " + addon.id() + " enabled=" + addon.enabled());
                     if (!addon.enabled()) {
@@ -420,6 +422,21 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
         }
         cloudIslandsApi.addons().unregister(ADDON_ID);
         cloudIslandsApi = null;
+    }
+
+    private Map<String, Boolean> featureSnapshot() {
+        Map<String, Boolean> features = new LinkedHashMap<>();
+        features.put("commands", featureEnabled("commands"));
+        features.put("machines", featureEnabled("machines"));
+        features.put("gui", featureEnabled("gui"));
+        features.put("lifecycle", featureEnabled("lifecycle"));
+        features.put("resource-nodes", featureEnabled("resource-nodes"));
+        features.put("market", featureEnabled("market"));
+        features.put("contracts", featureEnabled("contracts"));
+        features.put("research", featureEnabled("research"));
+        features.put("maintenance", featureEnabled("maintenance"));
+        features.put("placeholders", featureEnabled("placeholders"));
+        return features;
     }
 
     private boolean featureEnabled(String key) {
