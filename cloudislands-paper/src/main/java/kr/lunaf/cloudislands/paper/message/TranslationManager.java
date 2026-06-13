@@ -33,7 +33,7 @@ public final class TranslationManager {
             }
         }
         Map<String, List<String>> lines = new HashMap<>();
-        lines.put("scoreboard-lines", List.of("섬 이동: /섬", "방문: /섬 방문", "관리: /섬 설정"));
+        lines.put("scoreboard-lines", List.of("플레이어: {player}", "접속: {online}명", "섬 이동: /섬", "방문: /섬 방문", "관리: /섬 설정"));
         List<String> configuredScoreboard = config.getStringList("messages.scoreboard-lines");
         if (!configuredScoreboard.isEmpty()) {
             lines.put("scoreboard-lines", configuredScoreboard);
