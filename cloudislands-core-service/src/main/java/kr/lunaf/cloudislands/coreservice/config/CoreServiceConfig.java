@@ -39,6 +39,7 @@ public record CoreServiceConfig(
     String softFullPolicy,
     String hardFullPolicy,
     String migrationPolicy,
+    boolean superiorSkyblock2MigrationEnabled,
     Duration routeTicketTtl,
     Duration routePreparingTicketTtl,
     Duration heartbeatTimeout,
@@ -85,6 +86,7 @@ public record CoreServiceConfig(
             env("CI_SOFT_FULL_POLICY", setting(config, "routing.soft-full-policy", "AVOID_NEW_ACTIVATIONS")),
             env("CI_HARD_FULL_POLICY", setting(config, "routing.hard-full-policy", "DENY_OR_QUEUE")),
             env("CI_MIGRATION_POLICY", setting(config, "routing.migration-policy", "INACTIVE_ONLY_AUTOMATIC")),
+            bool("CI_SUPERIORSKYBLOCK2_MIGRATION_ENABLED", configBoolean(config, "migration.superiorskyblock2-enabled", configBoolean(config, "migration.enabled", true))),
             Duration.ofSeconds(integer("CI_ROUTE_TICKET_TTL_SECONDS", configInteger(config, "routing.route-ticket-ttl-seconds", 30))),
             Duration.ofSeconds(integer("CI_ROUTE_PREPARING_TICKET_TTL_SECONDS", configInteger(config, "routing.route-preparing-ticket-ttl-seconds", 120))),
             Duration.ofSeconds(integer("CI_HEARTBEAT_TIMEOUT_SECONDS", configInteger(config, "routing.heartbeat-timeout-seconds", 5))),
@@ -115,7 +117,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, databasePoolSize, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, databasePoolSize, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue);
     }
 
     private static String env(String key, String fallback) {

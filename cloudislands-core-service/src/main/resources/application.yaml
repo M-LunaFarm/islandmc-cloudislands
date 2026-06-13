@@ -24,6 +24,9 @@ routing:
   hard-full-policy: "DENY_OR_QUEUE"
   migration-policy: "INACTIVE_ONLY_AUTOMATIC"
 
+migration:
+  superiorskyblock2-enabled: true
+
 upgrades:
   file: "${CI_UPGRADES_FILE}"
 

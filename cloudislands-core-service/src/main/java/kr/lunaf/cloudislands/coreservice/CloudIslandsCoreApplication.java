@@ -1090,29 +1090,53 @@ public final class CloudIslandsCoreApplication {
             write(exchange, 202, "{\"reloaded\":true,\"clearedSessions\":" + clearedSessions + ",\"clearedTickets\":" + clearedTickets + ",\"clearedRedisKeys\":" + clearedRedisKeys + "}");
         });
         route("/v1/admin/migrations/superiorskyblock2/scan", exchange -> {
+            if (!config.superiorSkyblock2MigrationEnabled()) {
+                write(exchange, 403, migrationDisabledJson());
+                return;
+            }
             String body = readBody(exchange);
             audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_SCAN", "MIGRATION", "superiorskyblock2", Map.of());
             write(exchange, 202, migrationAdmin.scan(JsonFields.text(body, "path", "plugins/SuperiorSkyblock2")));
         });
         route("/v1/admin/migrations/superiorskyblock2/dryrun", exchange -> {
+            if (!config.superiorSkyblock2MigrationEnabled()) {
+                write(exchange, 403, migrationDisabledJson());
+                return;
+            }
             audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_DRYRUN", "MIGRATION", "superiorskyblock2", Map.of());
             write(exchange, 202, migrationAdmin.dryRun());
         });
         route("/v1/admin/migrations/superiorskyblock2/extract", exchange -> {
+            if (!config.superiorSkyblock2MigrationEnabled()) {
+                write(exchange, 403, migrationDisabledJson());
+                return;
+            }
             String body = readBody(exchange);
             audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_EXTRACT", "MIGRATION", "superiorskyblock2", Map.of());
             write(exchange, 202, migrationAdmin.extractWorldBundles(JsonFields.text(body, "path", "")));
         });
         route("/v1/admin/migrations/superiorskyblock2/import", exchange -> {
+            if (!config.superiorSkyblock2MigrationEnabled()) {
+                write(exchange, 403, migrationDisabledJson());
+                return;
+            }
             String body = readBody(exchange);
             audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_IMPORT", "MIGRATION", "superiorskyblock2", Map.of());
             write(exchange, 202, migrationAdmin.importLastPlan(JsonFields.text(body, "approval", "")));
         });
         route("/v1/admin/migrations/superiorskyblock2/verify", exchange -> {
+            if (!config.superiorSkyblock2MigrationEnabled()) {
+                write(exchange, 403, migrationDisabledJson());
+                return;
+            }
             audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_VERIFY", "MIGRATION", "superiorskyblock2", Map.of());
             write(exchange, 202, migrationAdmin.verify());
         });
         route("/v1/admin/migrations/superiorskyblock2/rollback", exchange -> {
+            if (!config.superiorSkyblock2MigrationEnabled()) {
+                write(exchange, 403, migrationDisabledJson());
+                return;
+            }
             audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_ROLLBACK", "MIGRATION", "superiorskyblock2", Map.of());
             write(exchange, 202, migrationAdmin.rollbackLastImport());
         });
@@ -2108,6 +2132,7 @@ public final class CloudIslandsCoreApplication {
             + "\"softFullPolicy\":\"" + escape(config.softFullPolicy()) + "\","
             + "\"hardFullPolicy\":\"" + escape(config.hardFullPolicy()) + "\","
             + "\"migrationPolicy\":\"" + escape(config.migrationPolicy()) + "\","
+            + "\"superiorSkyblock2MigrationEnabled\":" + config.superiorSkyblock2MigrationEnabled() + ","
             + "\"routeTicketTtlSeconds\":" + config.routeTicketTtl().toSeconds() + ","
             + "\"routePreparingTicketTtlSeconds\":" + config.routePreparingTicketTtl().toSeconds() + ","
             + "\"heartbeatTimeoutSeconds\":" + config.heartbeatTimeout().toSeconds() + ","
@@ -2117,6 +2142,10 @@ public final class CloudIslandsCoreApplication {
             + "\"requireMtls\":" + config.requireMtls() + ","
             + "\"ipAllowlistEnabled\":" + (config.ipAllowlist() != null && !config.ipAllowlist().isBlank())
             + "}";
+    }
+
+    private static String migrationDisabledJson() {
+        return "{\"code\":\"MIGRATION_DISABLED\",\"message\":\"SuperiorSkyblock2 migration is disabled by config\"}";
     }
 
     private static void logSecurityPosture(CoreServiceConfig config) {
