@@ -373,6 +373,10 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             eventSubscriptionStarting = true;
             events.listGlobalEventBatch(1).thenAccept(batch -> {
                 synchronized (this) {
+                    if (addonObjects.isEmpty()) {
+                        eventSubscriptionStarting = false;
+                        return;
+                    }
                     if (eventSubscription != null) {
                         eventSubscriptionStarting = false;
                         return;
