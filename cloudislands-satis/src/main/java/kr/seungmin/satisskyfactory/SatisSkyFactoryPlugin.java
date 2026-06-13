@@ -115,6 +115,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         effectiveFeatures = Map.of();
         if (!registerCloudIslandsAddon()) {
             installDisabledCommandHandler("addon-disabled");
+            if (requiresCloudIslandsApi() && cloudIslandsApi == null) {
+                getServer().getPluginManager().disablePlugin(this);
+            }
             return;
         }
         startRuntime();
