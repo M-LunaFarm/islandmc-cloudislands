@@ -96,6 +96,15 @@ class DatabaseServiceTest {
     }
 
     @Test
+    void connectionFailsClearlyAfterClose() {
+        DatabaseService database = new DatabaseService(tempDir.resolve("closed-db").toFile(), "data.db");
+        database.open();
+        database.close();
+
+        assertThrows(IllegalStateException.class, database::connection);
+    }
+
+    @Test
     void sqliteConnectionsUseRuntimeSafetyPragmas() throws Exception {
         try (DatabaseHandle handle = openDatabase(tempDir.resolve("pragma-db").toFile())) {
             try (Connection connection = handle.database().connection();
