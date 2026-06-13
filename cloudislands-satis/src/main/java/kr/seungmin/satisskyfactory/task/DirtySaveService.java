@@ -75,6 +75,10 @@ public final class DirtySaveService {
         inventories.remove(inventoryId);
     }
 
+    public void forgetInventories() {
+        inventories.clear();
+    }
+
     public void forgetIsland(UUID islandUuid) {
         islands.remove(islandUuid);
         machines.entrySet().removeIf(entry -> entry.getValue().islandUuid().equals(islandUuid));
@@ -92,6 +96,10 @@ public final class DirtySaveService {
 
     public void markIsland(FactoryIsland island) {
         islands.put(island.islandUuid(), snapshot(island));
+    }
+
+    public void forgetIslands() {
+        islands.clear();
     }
 
     public void flushSafely() {
