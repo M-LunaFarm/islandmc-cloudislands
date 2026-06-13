@@ -42,6 +42,19 @@ public final class DirtySaveService {
         flushSafely();
     }
 
+    public void discard() {
+        if (task != null) {
+            task.cancel();
+            task = null;
+        }
+        synchronized (flushLock) {
+            machines.clear();
+            inventories.clear();
+            nodes.clear();
+            islands.clear();
+        }
+    }
+
     public void markMachine(MachineInstance machine) {
         machines.put(machine.machineId(), snapshot(machine));
     }

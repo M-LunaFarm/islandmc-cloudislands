@@ -906,7 +906,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             maintenanceTicker = null;
         }
         if (dirtySaves != null) {
-            dirtySaves.stop();
+            dirtySaves.discard();
         }
         if (placeholderHook != null) {
             placeholderHook.unregister();
