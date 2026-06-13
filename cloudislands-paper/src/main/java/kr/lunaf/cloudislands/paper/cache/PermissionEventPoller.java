@@ -37,6 +37,7 @@ import kr.lunaf.cloudislands.paper.event.IslandLimitChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMemberChangedEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMemberJoinEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMemberLeaveEvent;
+import kr.lunaf.cloudislands.paper.event.IslandMigratedEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMigrationEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMissionCompleteEvent;
 import kr.lunaf.cloudislands.paper.event.IslandPermissionChangeEvent;
@@ -660,6 +661,7 @@ public final class PermissionEventPoller {
             Bukkit.getPluginManager().callEvent(new IslandMigrationEvent(islandId, true, fields.getOrDefault("targetNode", ""), fields.getOrDefault("phase", ""), fields.getOrDefault("worldName", ""), longField(fields, "fencingToken"), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_MIGRATED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandMigrationEvent(islandId, false, fields.getOrDefault("targetNode", ""), fields.getOrDefault("phase", ""), fields.getOrDefault("worldName", ""), longField(fields, "fencingToken"), fields));
+            Bukkit.getPluginManager().callEvent(new IslandMigratedEvent(islandId, firstPresent(fields, "fromNode", "sourceNode", "activeNode"), firstPresent(fields, "targetNode", "nodeId"), fields.getOrDefault("worldName", ""), longField(fields, "fencingToken"), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_RESTORE_REQUESTED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandRestoreRequestEvent(islandId, fields.getOrDefault("state", ""), fields.getOrDefault("targetNode", ""), longField(fields, "snapshotNo"), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_DELETE_REQUESTED.name())) {
