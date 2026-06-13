@@ -86,6 +86,11 @@ public final class TranslationManager {
         values.put("route-loading-progress", "{target} 로딩 중 {progress}%");
         values.put("route-preparing-progress", "{target}을 준비하는 중입니다... {progress}%");
         values.put("route-ready", "잠시 후 {target}으로 이동합니다.");
+        values.put("migration-notice-primary", "섬 서버를 최적화하는 중입니다...");
+        values.put("migration-notice-secondary", "잠시 후 자동으로 이동됩니다.");
+        values.put("migration-return-register-failed", "섬 이동 준비를 등록하지 못했습니다.");
+        values.put("migration-return-start", "최적화된 섬 서버로 이동합니다.");
+        values.put("migration-return-not-ready", "섬 서버 이동 준비가 완료되지 않았습니다. 잠시 후 /섬 홈을 사용해주세요.");
         return values;
     }
 

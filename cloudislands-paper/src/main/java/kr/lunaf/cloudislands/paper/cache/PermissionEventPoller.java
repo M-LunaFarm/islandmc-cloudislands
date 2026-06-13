@@ -392,8 +392,8 @@ public final class PermissionEventPoller {
     }
 
     private void notifyMigratingIslandPlayers(UUID islandId, String targetNode) {
-        String primary = "섬 서버를 최적화하는 중입니다...";
-        String secondary = "잠시 후 자동으로 이동됩니다.";
+        String primary = message("migration-notice-primary", "섬 서버를 최적화하는 중입니다...");
+        String secondary = message("migration-notice-secondary", "잠시 후 자동으로 이동됩니다.");
         for (Player player : Bukkit.getOnlinePlayers()) {
             Location location = player.getLocation();
             IslandRegion region = protection.regionAt(location.getBlock()).orElse(null);
@@ -418,7 +418,7 @@ public final class PermissionEventPoller {
         client.createMigrationReturnTicket(player.getUniqueId(), islandId, targetNode, localX, location.getY(), localZ, location.getYaw(), location.getPitch())
             .thenAccept(ticket -> waitMigrationReturnTicket(player.getUniqueId(), ticket, 0))
             .exceptionally(error -> {
-                Bukkit.getScheduler().runTask(plugin, () -> player.sendActionBar(Component.text("섬 이동 준비를 등록하지 못했습니다.")));
+                Bukkit.getScheduler().runTask(plugin, () -> player.sendActionBar(Component.text(message("migration-return-register-failed", "섬 이동 준비를 등록하지 못했습니다."))));
                 return null;
             });
     }
@@ -464,7 +464,7 @@ public final class PermissionEventPoller {
         if (player == null) {
             return;
         }
-        player.sendActionBar(Component.text("최적화된 섬 서버로 이동합니다."));
+        player.sendActionBar(Component.text(message("migration-return-start", "최적화된 섬 서버로 이동합니다.")));
         if (!canUseBungeeConnect()) {
             migrationReturnFailed(playerUuid);
             return;
@@ -484,8 +484,16 @@ public final class PermissionEventPoller {
     private void migrationReturnFailed(UUID playerUuid) {
         Player player = Bukkit.getPlayer(playerUuid);
         if (player != null) {
-            player.sendActionBar(Component.text("섬 서버 이동 준비가 완료되지 않았습니다. 잠시 후 /섬 홈을 사용해주세요."));
+            player.sendActionBar(Component.text(message("migration-return-not-ready", "섬 서버 이동 준비가 완료되지 않았습니다. 잠시 후 /섬 홈을 사용해주세요.")));
         }
+    }
+
+    private String message(String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private boolean teamRecipient(String recipients, UUID playerUuid) {
