@@ -9,10 +9,12 @@ import kr.lunaf.cloudislands.api.event.IslandCreatedEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeactivateEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeletedEvent;
 import kr.lunaf.cloudislands.api.event.IslandLevelRecalculateEvent;
+import kr.lunaf.cloudislands.api.event.IslandLimitChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandMemberChangedEvent;
 import kr.lunaf.cloudislands.api.event.IslandMigratedEvent;
 import kr.lunaf.cloudislands.api.event.IslandPermissionChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotCreateEvent;
+import kr.lunaf.cloudislands.api.event.IslandUpgradeEvent;
 import kr.lunaf.cloudislands.api.event.IslandWorthChangeEvent;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 
@@ -67,6 +69,10 @@ public interface CloudIslandsAddon {
             }
         } else if (event instanceof IslandWorthChangeEvent worthChanged) {
             onIslandWorthChanged(worthChanged);
+        } else if (event instanceof IslandUpgradeEvent upgrade) {
+            onIslandUpgradeChanged(upgrade);
+        } else if (event instanceof IslandLimitChangeEvent limit) {
+            onIslandLimitChanged(limit);
         } else if (event instanceof IslandSnapshotCreateEvent snapshotCreated) {
             onIslandSnapshotCreated(snapshotCreated);
         }
@@ -97,6 +103,12 @@ public interface CloudIslandsAddon {
     }
 
     default void onIslandWorthChanged(IslandWorthChangeEvent event) {
+    }
+
+    default void onIslandUpgradeChanged(IslandUpgradeEvent event) {
+    }
+
+    default void onIslandLimitChanged(IslandLimitChangeEvent event) {
     }
 
     default void onIslandSnapshotCreated(IslandSnapshotCreateEvent event) {

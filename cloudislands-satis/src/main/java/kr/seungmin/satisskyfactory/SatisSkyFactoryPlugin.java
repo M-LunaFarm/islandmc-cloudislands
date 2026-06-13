@@ -8,10 +8,12 @@ import kr.lunaf.cloudislands.api.event.IslandCreatedEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeactivateEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeletedEvent;
 import kr.lunaf.cloudislands.api.event.IslandLevelRecalculateEvent;
+import kr.lunaf.cloudislands.api.event.IslandLimitChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandMemberChangedEvent;
 import kr.lunaf.cloudislands.api.event.IslandMigratedEvent;
 import kr.lunaf.cloudislands.api.event.IslandPermissionChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotCreateEvent;
+import kr.lunaf.cloudislands.api.event.IslandUpgradeEvent;
 import kr.lunaf.cloudislands.api.event.IslandWorthChangeEvent;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.seungmin.satisskyfactory.command.FactoryCommand;
@@ -596,6 +598,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandWorthChanged(IslandWorthChangeEvent event) {
+        runSatisLifecycle(event.islandId(), () -> synchronizeSatisIsland(event.islandId()));
+    }
+
+    @Override
+    public void onIslandUpgradeChanged(IslandUpgradeEvent event) {
+        runSatisLifecycle(event.islandId(), () -> synchronizeSatisIsland(event.islandId()));
+    }
+
+    @Override
+    public void onIslandLimitChanged(IslandLimitChangeEvent event) {
         runSatisLifecycle(event.islandId(), () -> synchronizeSatisIsland(event.islandId()));
     }
 

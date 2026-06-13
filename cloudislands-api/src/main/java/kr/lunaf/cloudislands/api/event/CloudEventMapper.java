@@ -33,6 +33,8 @@ public final class CloudEventMapper {
             case "ISLAND_MISSION_COMPLETED" -> Optional.of(new IslandMissionCompleteEvent(uuid(fields, "islandId"), text(fields, "missionKey"), text(fields, "kind"), occurredAt));
             case "ISLAND_LEVEL_UPDATED" -> Optional.of(new IslandLevelRecalculateEvent(uuid(fields, "islandId"), longValue(fields, "level"), decimalOrNull(fields, "worth"), occurredAt));
             case "ISLAND_WORTH_CHANGED" -> Optional.of(new IslandWorthChangeEvent(uuid(fields, "islandId"), decimal(fields, "worth"), occurredAt));
+            case "ISLAND_UPGRADE" -> Optional.of(new IslandUpgradeEvent(uuid(fields, "islandId"), text(fields, "upgradeKey"), intValue(fields, "level"), occurredAt));
+            case "ISLAND_LIMIT_CHANGED" -> Optional.of(new IslandLimitChangeEvent(uuid(fields, "islandId"), firstText(fields, "limitKey", "key"), longValue(fields, "value"), occurredAt));
             case "ISLAND_SNAPSHOT_CREATED" -> Optional.of(new IslandSnapshotCreateEvent(uuid(fields, "islandId"), longValue(fields, "snapshotNo"), text(fields, "reason"), occurredAt));
             case "NODE_STATE_CHANGED" -> Optional.of(new NodeStateChangedEvent(text(fields, "nodeId"), text(fields, "state"), text(fields, "operation"), text(fields, "reason"), intValue(fields, "recoveryRequired"), occurredAt));
             case "ROUTE_TICKET_CREATED" -> Optional.of(new RouteTicketCreatedEvent(uuid(fields, "ticketId"), uuid(fields, "islandId"), uuid(fields, "playerUuid"), text(fields, "action"), text(fields, "targetNode"), text(fields, "state"), occurredAt));
