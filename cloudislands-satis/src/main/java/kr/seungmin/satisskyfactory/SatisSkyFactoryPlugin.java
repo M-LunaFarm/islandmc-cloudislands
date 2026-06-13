@@ -87,6 +87,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private PlaceholderHook placeholderHook;
     private CloudIslandsApi cloudIslandsApi;
     private boolean addonRuntimeEnabled;
+    private boolean commandsRegistered;
+    private boolean machineListenerRegistered;
+    private boolean guiListenerRegistered;
+    private boolean lifecycleListenerRegistered;
     private Map<String, Boolean> effectiveFeatures = Map.of();
 
     @Override
@@ -237,7 +241,19 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (featureEnabled("maintenance")) {
             maintenanceTicker.start(configLong("settings.maintenance-check-period-ticks", "settings.maintenance-check-interval", 1200));
         }
-        dirtySaves.start(dirtySavePeriodTicks(configs.main()));
+        if (dataWritesEnabled()) {
+            dirtySaves.start(dirtySavePeriodTicks(configs.main()));
+        }
+    }
+
+    private boolean dataWritesEnabled() {
+        return featureEnabled("machines")
+                || featureEnabled("resource-nodes")
+                || featureEnabled("market")
+                || featureEnabled("contracts")
+                || featureEnabled("research")
+                || featureEnabled("maintenance")
+                || featureEnabled("lifecycle");
     }
 
     static long dirtySavePeriodTicks(FileConfiguration config) {
@@ -325,6 +341,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void registerCommands() {
+        if (commandsRegistered || !featureEnabled("commands")) {
+            return;
+        }
         FactoryCommand command = new FactoryCommand(
                 islands,
                 machines,
@@ -355,58 +374,68 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             sfactory.setExecutor(command);
             sfactory.setTabCompleter(command);
         }
+        commandsRegistered = true;
     }
 
     private void registerListeners() {
-        getServer().getPluginManager().registerEvents(new MachineListener(
-                () -> featureEnabled("machines"),
-                this,
-                itemFactory,
-                machineDefinitions,
-                machines,
-                skyblock,
-                islands,
-                gui,
-                messages,
-                research,
-                nodes,
-                itemNetworks,
-                power,
-                configs.main(),
-                configs.file("maintenance.yml"),
-                boosts
-        ), this);
-        getServer().getPluginManager().registerEvents(new FactoryGuiListener(
-                this::featureEnabled,
-                islands,
-                skyblock,
-                contracts,
-                research,
-                gui,
-                machines,
-                recipes,
-                storage,
-                itemRegistry,
-                itemFactory,
-                market,
-                machineDefinitions,
-                maintenance,
-                itemNetworks,
-                power,
-                messages,
-                boosts,
-                this::reloadPluginConfig
-        ), this);
-        getServer().getPluginManager().registerEvents(new FactoryLifecycleListener(
-                () -> featureEnabled("lifecycle"),
-                islands,
-                skyblock,
-                nodes,
-                machines,
-                itemNetworks,
-                power,
-                maintenance
-        ), this);
+        if (!machineListenerRegistered && featureEnabled("machines")) {
+            getServer().getPluginManager().registerEvents(new MachineListener(
+                    () -> featureEnabled("machines"),
+                    this,
+                    itemFactory,
+                    machineDefinitions,
+                    machines,
+                    skyblock,
+                    islands,
+                    gui,
+                    messages,
+                    research,
+                    nodes,
+                    itemNetworks,
+                    power,
+                    configs.main(),
+                    configs.file("maintenance.yml"),
+                    boosts
+            ), this);
+            machineListenerRegistered = true;
+        }
+        if (!guiListenerRegistered && featureEnabled("gui")) {
+            getServer().getPluginManager().registerEvents(new FactoryGuiListener(
+                    this::featureEnabled,
+                    islands,
+                    skyblock,
+                    contracts,
+                    research,
+                    gui,
+                    machines,
+                    recipes,
+                    storage,
+                    itemRegistry,
+                    itemFactory,
+                    market,
+                    machineDefinitions,
+                    maintenance,
+                    itemNetworks,
+                    power,
+                    messages,
+                    boosts,
+                    this::reloadPluginConfig
+            ), this);
+            guiListenerRegistered = true;
+        }
+        if (!lifecycleListenerRegistered && featureEnabled("lifecycle")) {
+            getServer().getPluginManager().registerEvents(new FactoryLifecycleListener(
+                    () -> featureEnabled("lifecycle"),
+                    islands,
+                    skyblock,
+                    nodes,
+                    machines,
+                    itemNetworks,
+                    power,
+                    maintenance
+            ), this);
+            lifecycleListenerRegistered = true;
+        }
     }
 
     private void rebuildNetworks() {
@@ -701,6 +730,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             rebuildNetworks();
         }
         restartRuntimeTasks();
+        registerCommands();
+        registerListeners();
         refreshPlaceholders();
     }
 
