@@ -202,6 +202,13 @@ public final class TranslationManager {
         values.put("warp-menu-load-failed", "섬 워프를 불러오지 못했습니다.");
         values.put("warp-menu-public-load-failed", "공개 섬 워프를 불러오지 못했습니다.");
         values.put("warp-menu-set-usage", "사용법: /섬 워프설정 <이름>");
+        values.put("warp-menu-location", "위치: ");
+        values.put("warp-menu-public-left-click", "좌클릭: 공개 워프로 이동");
+        values.put("warp-menu-public-label", "공개 워프");
+        values.put("warp-menu-private-label", "비공개 워프");
+        values.put("warp-menu-left-click", "좌클릭: 이동");
+        values.put("warp-menu-toggle-click", "우클릭: 공개/비공개 전환");
+        values.put("warp-menu-delete-click", "Shift+우클릭: 삭제");
         values.put("info-menu-load-failed", "섬 정보를 불러오지 못했습니다.");
         values.put("biome-menu-load-failed", "섬 바이옴을 불러오지 못했습니다.");
         values.put("biome-menu-not-set", "설정 없음");

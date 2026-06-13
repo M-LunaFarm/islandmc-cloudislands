@@ -116,7 +116,7 @@ public final class IslandWarpMenu implements Listener {
                 : item(Material.ENDER_PEARL, "현재 위치를 워프로 설정", message(messages, "warp-menu-set-usage", "사용법: /섬 워프설정 <이름>")));
             int slot = 0;
             for (Warp warp : warps.stream().limit(45).toList()) {
-                inventory.setItem(slot++, warpItem(warp, publicMenu));
+                inventory.setItem(slot++, warpItem(warp, publicMenu, messages));
             }
             inventory.setItem(49, item(Material.COMPARATOR, "설정", "/섬 설정"));
             inventory.setItem(53, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
@@ -132,12 +132,12 @@ public final class IslandWarpMenu implements Listener {
         return rendered.isBlank() ? fallback : rendered;
     }
 
-    private static ItemStack warpItem(Warp warp, boolean publicMenu) {
+    private static ItemStack warpItem(Warp warp, boolean publicMenu, MessageRenderer messages) {
         Material material = warp.publicAccess() ? Material.ENDER_EYE : Material.ENDER_PEARL;
         if (publicMenu) {
-            return item(material, warp.name(), "섬 ID=" + warp.islandId(), "워프=" + warp.name(), "위치: " + (long) warp.x() + ", " + (long) warp.y() + ", " + (long) warp.z(), "좌클릭: 공개 워프로 이동");
+            return item(material, warp.name(), "섬 ID=" + warp.islandId(), "워프=" + warp.name(), message(messages, "warp-menu-location", "위치: ") + (long) warp.x() + ", " + (long) warp.y() + ", " + (long) warp.z(), message(messages, "warp-menu-public-left-click", "좌클릭: 공개 워프로 이동"));
         }
-        return item(material, warp.name(), "워프=" + warp.name(), "공개 상태: " + (warp.publicAccess() ? "공개" : "비공개"), "위치: " + (long) warp.x() + ", " + (long) warp.y() + ", " + (long) warp.z(), warp.publicAccess() ? "공개 워프" : "비공개 워프", "좌클릭: 이동", "우클릭: 공개/비공개 전환", "Shift+우클릭: 삭제");
+        return item(material, warp.name(), "워프=" + warp.name(), "공개 상태: " + (warp.publicAccess() ? "공개" : "비공개"), message(messages, "warp-menu-location", "위치: ") + (long) warp.x() + ", " + (long) warp.y() + ", " + (long) warp.z(), warp.publicAccess() ? message(messages, "warp-menu-public-label", "공개 워프") : message(messages, "warp-menu-private-label", "비공개 워프"), message(messages, "warp-menu-left-click", "좌클릭: 이동"), message(messages, "warp-menu-toggle-click", "우클릭: 공개/비공개 전환"), message(messages, "warp-menu-delete-click", "Shift+우클릭: 삭제"));
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
