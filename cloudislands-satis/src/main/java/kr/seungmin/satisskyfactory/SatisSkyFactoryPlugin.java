@@ -417,7 +417,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return true;
         }
         CloudIslandsAddonSnapshot addon = register(cloudIslandsApi).join();
-        effectiveFeatures = addon.features();
         getLogger().info("Registered CloudIslands addon: " + addon.id() + " enabled=" + addon.enabled());
         if (!addon.enabled()) {
             getLogger().info("CloudIslands disabled this addon through the parent config.");
@@ -474,6 +473,22 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("skyblock-provider", configs.main().getString("integration.skyblock-provider", "CLOUDISLANDS"));
         metadata.put("cloudislands-adapter", Boolean.toString(configs.main().getBoolean("integration.cloudislands-adapter", true)));
         return metadata;
+    }
+
+    @Override
+    public void onAddonRegistered(CloudIslandsAddonSnapshot snapshot) {
+        effectiveFeatures = snapshot.features();
+    }
+
+    @Override
+    public void onAddonReloaded(CloudIslandsAddonSnapshot snapshot) {
+        effectiveFeatures = snapshot.features();
+        getLogger().info("Reloaded CloudIslands addon config: " + snapshot.id() + " enabled=" + snapshot.enabled());
+    }
+
+    @Override
+    public void onAddonUnregistered() {
+        effectiveFeatures = Map.of();
     }
 
     private Map<String, Boolean> featureSnapshot() {

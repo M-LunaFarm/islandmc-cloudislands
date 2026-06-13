@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 
 public interface IslandAddonService {
@@ -14,6 +15,15 @@ public interface IslandAddonService {
         return register(id, displayName, version, enabled, features, Map.of());
     }
     CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled, Map<String, Boolean> features, Map<String, String> metadata);
+
+    default CompletableFuture<CloudIslandsAddonSnapshot> register(CloudIslandsAddon addon) {
+        return register(addon.addonId(), addon.addonDisplayName(), addon.addonVersion(), addon.enabledByDefault(), addon.addonFeatures(), addon.addonMetadata())
+            .thenApply(snapshot -> {
+                addon.onAddonRegistered(snapshot);
+                return snapshot;
+            });
+    }
+
     CompletableFuture<Void> unregister(String id);
     CompletableFuture<Optional<CloudIslandsAddonSnapshot>> get(String id);
     CompletableFuture<List<CloudIslandsAddonSnapshot>> list();

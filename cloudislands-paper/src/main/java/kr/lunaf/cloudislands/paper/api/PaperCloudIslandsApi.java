@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
+import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
 import kr.lunaf.cloudislands.api.model.AuditLogSnapshot;
 import kr.lunaf.cloudislands.api.model.BlockValueSnapshot;
 import kr.lunaf.cloudislands.api.model.ClaimedIslandJobSnapshot;
@@ -179,6 +180,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private static final class AddonService implements IslandAddonService {
         private final Plugin plugin;
         private final Map<String, AddonRegistration> registrations = new ConcurrentHashMap<>();
+        private final Map<String, CloudIslandsAddon> addonObjects = new ConcurrentHashMap<>();
         private final Map<String, CloudIslandsAddonSnapshot> addons = new ConcurrentHashMap<>();
 
         private AddonService(Plugin plugin) {
@@ -187,10 +189,22 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled, Map<String, Boolean> features, Map<String, String> metadata) {
+            addonObjects.remove(id);
             AddonRegistration registration = new AddonRegistration(id, displayName, version, enabled, Map.copyOf(features == null ? Map.of() : features), Map.copyOf(metadata == null ? Map.of() : metadata));
             registrations.put(id, registration);
             CloudIslandsAddonSnapshot snapshot = snapshot(registration);
             addons.put(id, snapshot);
+            return CompletableFuture.completedFuture(snapshot);
+        }
+
+        @Override
+        public CompletableFuture<CloudIslandsAddonSnapshot> register(CloudIslandsAddon addon) {
+            AddonRegistration registration = new AddonRegistration(addon.addonId(), addon.addonDisplayName(), addon.addonVersion(), addon.enabledByDefault(), Map.copyOf(addon.addonFeatures()), Map.copyOf(addon.addonMetadata()));
+            registrations.put(addon.addonId(), registration);
+            addonObjects.put(addon.addonId(), addon);
+            CloudIslandsAddonSnapshot snapshot = snapshot(registration);
+            addons.put(addon.addonId(), snapshot);
+            addon.onAddonRegistered(snapshot);
             return CompletableFuture.completedFuture(snapshot);
         }
 
@@ -216,6 +230,10 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         public CompletableFuture<Void> unregister(String id) {
             registrations.remove(id);
             addons.remove(id);
+            CloudIslandsAddon addon = addonObjects.remove(id);
+            if (addon != null) {
+                addon.onAddonUnregistered();
+            }
             return CompletableFuture.completedFuture(null);
         }
 
@@ -239,12 +257,23 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             }
             CloudIslandsAddonSnapshot snapshot = snapshot(registration);
             addons.put(id, snapshot);
+            CloudIslandsAddon addon = addonObjects.get(id);
+            if (addon != null) {
+                addon.onAddonReloaded(snapshot);
+            }
             return CompletableFuture.completedFuture(Optional.of(snapshot));
         }
 
         @Override
         public CompletableFuture<List<CloudIslandsAddonSnapshot>> refreshAll() {
-            registrations.values().forEach(registration -> addons.put(registration.id(), snapshot(registration)));
+            registrations.values().forEach(registration -> {
+                CloudIslandsAddonSnapshot snapshot = snapshot(registration);
+                addons.put(registration.id(), snapshot);
+                CloudIslandsAddon addon = addonObjects.get(registration.id());
+                if (addon != null) {
+                    addon.onAddonReloaded(snapshot);
+                }
+            });
             return list();
         }
 

@@ -24,8 +24,18 @@ public interface CloudIslandsAddon {
         return Map.of();
     }
 
+    default void onAddonRegistered(CloudIslandsAddonSnapshot snapshot) {
+    }
+
+    default void onAddonReloaded(CloudIslandsAddonSnapshot snapshot) {
+        onAddonRegistered(snapshot);
+    }
+
+    default void onAddonUnregistered() {
+    }
+
     default CompletableFuture<CloudIslandsAddonSnapshot> register(CloudIslandsApi api) {
-        return api.addons().register(addonId(), addonDisplayName(), addonVersion(), enabledByDefault(), addonFeatures(), addonMetadata());
+        return api.addons().register(this);
     }
 
     default CompletableFuture<Void> unregister(CloudIslandsApi api) {
