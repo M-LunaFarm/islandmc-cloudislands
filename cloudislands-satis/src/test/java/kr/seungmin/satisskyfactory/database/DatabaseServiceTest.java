@@ -105,6 +105,21 @@ class DatabaseServiceTest {
     }
 
     @Test
+    void openingAlreadyOpenDatabaseIsNoop() throws Exception {
+        DatabaseService database = new DatabaseService(tempDir.resolve("double-open-db").toFile(), "data.db");
+        try {
+            database.open();
+            database.open();
+
+            try (Connection connection = database.connection()) {
+                assertTrue(connection.isValid(1));
+            }
+        } finally {
+            database.close();
+        }
+    }
+
+    @Test
     void sqliteConnectionsUseRuntimeSafetyPragmas() throws Exception {
         try (DatabaseHandle handle = openDatabase(tempDir.resolve("pragma-db").toFile())) {
             try (Connection connection = handle.database().connection();
