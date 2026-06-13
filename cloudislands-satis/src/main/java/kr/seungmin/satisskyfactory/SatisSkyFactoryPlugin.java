@@ -360,11 +360,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void registerCommands() {
-        if (commandsRegistered) {
-            return;
-        }
         if (!featureEnabled("commands")) {
             installDisabledCommandHandler("commands");
+            commandsRegistered = false;
+            return;
+        }
+        if (commandsRegistered) {
             return;
         }
         FactoryCommand command = new FactoryCommand(
