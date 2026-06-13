@@ -14,6 +14,9 @@ public interface IslandStorage {
     StoredBundle writeSnapshot(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException;
     StoredBundle writeDeleteBackup(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException;
     StoredBundle writeDeleteBackupFromLatest(UUID islandId, long snapshotNo) throws IOException;
+    default StoredBundle writeDeleteBackupFromLatest(UUID islandId, long snapshotNo, String reason) throws IOException {
+        return writeDeleteBackupFromLatest(islandId, snapshotNo);
+    }
     void promoteSnapshot(UUID islandId, long snapshotNo) throws IOException;
     void promoteBundle(UUID islandId, long snapshotNo, String storagePath) throws IOException;
     int pruneSnapshots(UUID islandId, int keepLatest) throws IOException;

@@ -2382,7 +2382,7 @@ public final class CloudIslandsCoreApplication {
         }
         try {
             long snapshotNo = System.currentTimeMillis();
-            IslandStorage.StoredBundle storedBundle = deleteStorage.writeDeleteBackupFromLatest(islandId, snapshotNo);
+            IslandStorage.StoredBundle storedBundle = deleteStorage.writeDeleteBackupFromLatest(islandId, snapshotNo, reason == null || reason.isBlank() ? "BEFORE_DELETE" : reason);
             String storagePath = storedBundle.storagePath() == null || storedBundle.storagePath().isBlank()
                 ? "islands/" + islandId + "/backups/delete-" + String.format("%06d", snapshotNo) + "/bundle.tar.zst"
                 : storedBundle.storagePath();

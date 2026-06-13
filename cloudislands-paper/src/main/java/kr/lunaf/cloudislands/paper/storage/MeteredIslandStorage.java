@@ -139,9 +139,14 @@ public final class MeteredIslandStorage implements IslandStorage {
 
     @Override
     public StoredBundle writeDeleteBackupFromLatest(UUID islandId, long snapshotNo) throws IOException {
+        return writeDeleteBackupFromLatest(islandId, snapshotNo, "BEFORE_DELETE");
+    }
+
+    @Override
+    public StoredBundle writeDeleteBackupFromLatest(UUID islandId, long snapshotNo, String reason) throws IOException {
         long started = System.nanoTime();
         try {
-            return delegate.writeDeleteBackupFromLatest(islandId, snapshotNo);
+            return delegate.writeDeleteBackupFromLatest(islandId, snapshotNo, reason);
         } catch (IOException exception) {
             recordUploadFailure();
             throw exception;

@@ -71,9 +71,14 @@ public final class LocalIslandStorage implements IslandStorage {
 
     @Override
     public StoredBundle writeDeleteBackupFromLatest(UUID islandId, long snapshotNo) throws IOException {
+        return writeDeleteBackupFromLatest(islandId, snapshotNo, "BEFORE_DELETE");
+    }
+
+    @Override
+    public StoredBundle writeDeleteBackupFromLatest(UUID islandId, long snapshotNo, String reason) throws IOException {
         IslandBundleManifest manifest = readManifest(islandId);
         try (InputStream input = openLatestBundle(islandId)) {
-            return writeDeleteBackup(islandId, snapshotNo, input, manifest);
+            return writeDeleteBackup(islandId, snapshotNo, input, manifest.withSnapshotReason(reason));
         }
     }
 
