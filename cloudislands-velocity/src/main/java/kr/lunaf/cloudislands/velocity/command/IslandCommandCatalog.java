@@ -76,6 +76,8 @@ public final class IslandCommandCatalog {
             "섬 바이옴 <biomeKey>",
             "섬 은행",
             "섬 은행잔액",
+            "섬 입금 <amount>",
+            "섬 출금 <amount>",
             "섬 미션 [missionKey]",
             "섬 챌린지 [challengeKey]",
             "섬 채팅 <message>",
