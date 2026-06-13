@@ -35,6 +35,7 @@ public final class MachineService {
     private final Map<LocationKey, UUID> byLocation = new ConcurrentHashMap<>();
     private final AtomicLong revision = new AtomicLong();
     private DirtySaveService dirtySaves;
+    private boolean loaded;
 
     public MachineService(DatabaseService database, MachineDefinitionService definitions, StorageService storage) {
         this.database = database;
@@ -49,12 +50,14 @@ public final class MachineService {
             machines.put(machine.machineId(), machine);
             byLocation.put(LocationKey.from(machine.location()), machine.machineId());
         }
+        loaded = true;
         revision.incrementAndGet();
     }
 
     public void clear() {
         machines.clear();
         byLocation.clear();
+        loaded = false;
         revision.incrementAndGet();
     }
 
@@ -68,6 +71,9 @@ public final class MachineService {
     }
 
     public MachineInstance create(UUID islandUuid, UUID ownerUuid, String typeId, Location location, BlockFace direction) {
+        if (!loaded) {
+            throw new IllegalStateException("Machine service is not active");
+        }
         MachineDefinition definition = definitions.get(typeId).orElseThrow();
         MachineInstance machine = new MachineInstance(UUID.randomUUID(), islandUuid, ownerUuid, typeId, definition.tier(), BlockKey.from(location));
         machine.direction(direction);
@@ -81,12 +87,18 @@ public final class MachineService {
     }
 
     public void save(MachineInstance machine) {
+        if (!loaded) {
+            return;
+        }
         machines.put(machine.machineId(), machine);
         byLocation.put(LocationKey.from(machine.location()), machine.machineId());
         database.saveMachine(machine);
     }
 
     public void saveLater(MachineInstance machine) {
+        if (!loaded) {
+            return;
+        }
         machines.put(machine.machineId(), machine);
         byLocation.put(LocationKey.from(machine.location()), machine.machineId());
         if (dirtySaves == null) {
@@ -124,6 +136,9 @@ public final class MachineService {
     }
 
     public boolean remove(MachineInstance machine) {
+        if (!loaded) {
+            return false;
+        }
         if (hasBufferedItems(machine)) {
             return false;
         }
@@ -132,6 +147,9 @@ public final class MachineService {
     }
 
     public void forceRemove(MachineInstance machine) {
+        if (!loaded) {
+            return;
+        }
         if (!flushInventories(machine)) {
             clearInventories(machine);
         }
@@ -219,6 +237,9 @@ public final class MachineService {
     }
 
     public boolean remapIslandWorld(UUID islandUuid, String worldName) {
+        if (!loaded) {
+            return false;
+        }
         if (worldName == null || worldName.isBlank()) {
             return false;
         }
@@ -327,6 +348,9 @@ public final class MachineService {
     }
 
     public void markChunkStatus(Chunk chunk, MachineStatus status) {
+        if (!loaded) {
+            return;
+        }
         for (MachineInstance machine : byChunk(chunk)) {
             if (machine.status() == MachineStatus.BROKEN || machine.status() == status) {
                 continue;
