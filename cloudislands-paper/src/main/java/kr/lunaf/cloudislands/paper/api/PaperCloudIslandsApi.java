@@ -121,7 +121,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         this.events = new EventService(client, agent.plugin());
         this.admin = new AdminService(client);
         this.commands = new CommandService(client);
-        this.addons = new AddonService();
+        this.addons = new AddonService(agent.plugin());
     }
 
     @Override
@@ -175,11 +175,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     }
 
     private static final class AddonService implements IslandAddonService {
+        private final Plugin plugin;
         private final Map<String, CloudIslandsAddonSnapshot> addons = new ConcurrentHashMap<>();
+
+        private AddonService(Plugin plugin) {
+            this.plugin = plugin;
+        }
 
         @Override
         public CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled) {
-            CloudIslandsAddonSnapshot snapshot = new CloudIslandsAddonSnapshot(id, displayName, version, enabled, Instant.now());
+            boolean configEnabled = plugin.getConfig().getBoolean("addons." + id + ".enabled", true);
+            CloudIslandsAddonSnapshot snapshot = new CloudIslandsAddonSnapshot(id, displayName, version, enabled && configEnabled, Instant.now());
             addons.put(id, snapshot);
             return CompletableFuture.completedFuture(snapshot);
         }

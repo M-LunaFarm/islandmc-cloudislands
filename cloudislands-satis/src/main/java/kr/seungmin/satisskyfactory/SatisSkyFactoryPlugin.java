@@ -405,7 +405,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
         }
         cloudIslandsApi.addons()
                 .register(ADDON_ID, "CloudIslands Satis", getDescription().getVersion(), configs.main().getBoolean("integration.enabled", false))
-                .thenAccept(addon -> getLogger().info("Registered CloudIslands addon: " + addon.id()));
+                .thenAccept(addon -> {
+                    getLogger().info("Registered CloudIslands addon: " + addon.id() + " enabled=" + addon.enabled());
+                    if (!addon.enabled()) {
+                        getLogger().info("CloudIslands disabled this addon through the parent config.");
+                        getServer().getPluginManager().disablePlugin(this);
+                    }
+                });
     }
 
     private void unregisterCloudIslandsAddon() {

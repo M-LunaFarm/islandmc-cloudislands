@@ -2,6 +2,10 @@ plugin:
   service-name: "CloudIslands"
   language: "ko_kr"
 
+addons:
+  cloudislands-satis:
+    enabled: true
+
 messages:
   use-actionbar: true
   use-bossbar-loading: true
