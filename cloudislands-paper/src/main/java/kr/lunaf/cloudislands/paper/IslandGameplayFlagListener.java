@@ -16,7 +16,9 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
 
 public final class IslandGameplayFlagListener implements Listener {
@@ -47,6 +49,16 @@ public final class IslandGameplayFlagListener implements Listener {
             return;
         }
         event.setCancelled(protection.islandAt(player.getLocation().getBlock()).isPresent() && !islandFlagAllowed(player.getLocation().getBlock(), IslandFlag.FLY));
+    }
+
+    @EventHandler
+    public void onChangedWorld(PlayerChangedWorldEvent event) {
+        updateFlight(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        clearManagedFlight(event.getPlayer());
     }
 
     @EventHandler
@@ -112,5 +124,25 @@ public final class IslandGameplayFlagListener implements Listener {
 
     private boolean islandFlagAllowed(Block block, IslandFlag flag) {
         return protection.islandAt(block).isPresent() && protection.checkSystemFlag(block, flag).allowed();
+    }
+
+    private void updateFlight(Player player) {
+        if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) {
+            return;
+        }
+        Block block = player.getLocation().getBlock();
+        boolean allowed = protection.islandAt(block).isPresent() && islandFlagAllowed(block, IslandFlag.FLY);
+        player.setAllowFlight(allowed);
+        if (!allowed && player.isFlying()) {
+            player.setFlying(false);
+        }
+    }
+
+    private void clearManagedFlight(Player player) {
+        if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) {
+            return;
+        }
+        player.setFlying(false);
+        player.setAllowFlight(false);
     }
 }
