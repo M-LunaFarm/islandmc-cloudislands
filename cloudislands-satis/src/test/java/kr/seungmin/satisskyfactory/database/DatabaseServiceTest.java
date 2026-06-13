@@ -23,6 +23,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DatabaseServiceTest {
@@ -72,6 +73,26 @@ class DatabaseServiceTest {
             assertTrue(new File(dataFolder, "custom.sqlite").isFile());
             assertFalse(new File(dataFolder, "data.db").exists());
         }
+    }
+
+    @Test
+    void nestedSqlitePathCreatesParentDirectory() {
+        File dataFolder = tempDir.resolve("shared-parent-db").toFile();
+
+        try (DatabaseHandle ignored = openDatabase(dataFolder, "shared/satis/data.db")) {
+            assertTrue(new File(dataFolder, "shared/satis/data.db").isFile());
+        }
+    }
+
+    @Test
+    void databasePathCannotPointToDirectory() {
+        File dataFolder = tempDir.resolve("directory-db").toFile();
+        File directoryPath = new File(dataFolder, "data.db");
+        assertTrue(directoryPath.mkdirs());
+
+        DatabaseService database = new DatabaseService(dataFolder, "data.db");
+
+        assertThrows(IllegalStateException.class, database::open);
     }
 
     @Test
