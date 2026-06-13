@@ -1528,8 +1528,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         List<String> metadata = new ArrayList<>();
         addon.metadata().entrySet().stream()
+            .filter(entry -> !entry.getKey().equals("feature-aliases"))
             .sorted(java.util.Map.Entry.comparingByKey())
             .forEach(entry -> metadata.add(entry.getKey() + "=" + entry.getValue()));
+        if (metadata.isEmpty()) {
+            return "";
+        }
         return adminText("admin-command-addons-metadata-prefix", " metadata=") + String.join(",", metadata);
     }
 
