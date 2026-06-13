@@ -205,6 +205,10 @@ public final class MigrationAdminService {
     }
 
     public synchronized String extractWorldBundles(String outputPath) {
+        if (lastScan.manifests().isEmpty()) {
+            List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_SCAN_REQUIRED", "run scan before extracting SuperiorSkyblock2 worlds", true));
+            return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\",\"path\":\"\",\"manifests\":0,\"extractedBundles\":0,\"extractedFiles\":0,\"extractedBytes\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+        }
         Path targetRoot = outputPath == null || outputPath.isBlank() ? migrationBundleRoot : Path.of(outputPath);
         lastExtractionRoot = targetRoot;
         List<MigrationIssue> issues = new ArrayList<>();
@@ -328,6 +332,10 @@ public final class MigrationAdminService {
     private record BundlePreflight(Map<java.util.UUID, MigrationWorldBundle> bundles, List<MigrationIssue> issues) {}
 
     public synchronized String verify() {
+        if (lastScan.manifests().isEmpty()) {
+            List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_SCAN_REQUIRED", "run scan before verifying SuperiorSkyblock2 migration", true));
+            return "{\"state\":\"" + MigrationRunState.VERIFYING + "\",\"path\":\"\",\"reportPath\":\"\",\"passed\":false,\"expected\":0,\"imported\":0,\"extractedBundles\":0,\"extractedFiles\":0,\"extractedBytes\":0,\"activationTested\":0,\"activationTestPassed\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+        }
         List<MigrationManifest> imported = new ArrayList<>();
         List<MigrationIssue> issues = new ArrayList<>();
         Path verifyBundleRoot = lastExtractionRoot == null ? migrationBundleRoot : lastExtractionRoot;
