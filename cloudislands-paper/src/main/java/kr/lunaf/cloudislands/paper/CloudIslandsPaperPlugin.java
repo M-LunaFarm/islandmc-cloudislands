@@ -380,6 +380,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean forwardingSecretConfigured = !resolveEnv(getConfig().getString("security.forwarding-secret", "")).isBlank();
         boolean routeSessionEnforced = configBoolean("security.enforce-route-session", true) || configBoolean("routing.require-route-session", true);
         boolean proxySourceAllowlistConfigured = !getConfig().getStringList("security.proxy-source-allowlist").isEmpty();
+        PeriodicIslandLevelScanTask scanner = periodicLevelScanTask;
         return ""
             + "cloudislands_paper_online_players " + getServer().getOnlinePlayers().size() + "\n"
             + "cloudislands_paper_online_mode " + (getServer().getOnlineMode() ? 1 : 0) + "\n"
@@ -392,6 +393,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_island_save_seconds{node=\"" + nodeId + "\"} " + storageUploadSeconds + "\n"
             + "cloudislands_island_activation_seconds{node=\"" + nodeId + "\"} " + storageDownloadSeconds + "\n"
             + "cloudislands_island_snapshot_seconds{node=\"" + nodeId + "\"} " + storageUploadSeconds + "\n"
+            + "cloudislands_paper_level_scan_running{node=\"" + nodeId + "\"} " + (scanner != null && scanner.running() ? 1 : 0) + "\n"
+            + "cloudislands_paper_level_scan_last_started_at{node=\"" + nodeId + "\"} " + (scanner == null ? 0L : scanner.lastScanStartedAt()) + "\n"
+            + "cloudislands_paper_level_scan_last_finished_at{node=\"" + nodeId + "\"} " + (scanner == null ? 0L : scanner.lastScanFinishedAt()) + "\n"
+            + "cloudislands_paper_level_scan_last_failed_at{node=\"" + nodeId + "\"} " + (scanner == null ? 0L : scanner.lastScanFailedAt()) + "\n"
             + "cloudislands_permission_checks_total{node=\"" + nodeId + "\"} " + agent.permissionCache().lookupCount() + "\n"
             + "cloudislands_permission_cache_hit_ratio{node=\"" + nodeId + "\"} " + agent.permissionCache().hitRatio() + "\n"
             + "cloudislands_paper_velocity_forwarding_required{node=\"" + nodeId + "\"} " + (forwardingRequired ? 1 : 0) + "\n"
