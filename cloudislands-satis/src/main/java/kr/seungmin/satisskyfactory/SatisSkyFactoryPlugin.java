@@ -265,11 +265,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private SkyblockProvider createSkyblockProvider() {
-        String provider = configs.main().getString("integration.skyblock-provider", "SUPERIOR_SKYBLOCK2");
+        String provider = configs.main().getString("integration.skyblock-provider", "CLOUDISLANDS");
         if ("CLOUDISLANDS".equalsIgnoreCase(provider) || "CLOUD_ISLANDS".equalsIgnoreCase(provider)) {
             return new CloudIslandsSkyblockProvider(this);
         }
-        return new SuperiorSkyblockHook(this);
+        if (configs.main().getBoolean("integration.allow-superior-fallback", false)) {
+            getLogger().warning("SuperiorSkyblock2 compatibility mode is enabled. CloudIslands provider is recommended for production.");
+            return new SuperiorSkyblockHook(this);
+        }
+        getLogger().warning("Ignoring legacy skyblock provider '" + provider + "' because integration.allow-superior-fallback=false.");
+        return new CloudIslandsSkyblockProvider(this);
     }
 
     private int configInt(String primaryPath, String aliasPath, int fallback) {

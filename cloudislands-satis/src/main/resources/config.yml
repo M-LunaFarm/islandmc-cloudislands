@@ -3,6 +3,7 @@ integration:
   mode: ADDON
   skyblock-provider: CLOUDISLANDS
   cloudislands-adapter: true
+  allow-superior-fallback: false
 features:
   commands: true
   machines: true
