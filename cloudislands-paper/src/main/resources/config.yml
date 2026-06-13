@@ -6,6 +6,8 @@ addons:
   cloudislands-satis:
     enabled: true
     features:
+      # Dependencies are enforced even when a child feature is set to true:
+      # resource-nodes requires machines, market requires storage, contracts requires storage.
       commands: true
       machines: true
       storage: true
@@ -27,6 +29,8 @@ addons:
 satis:
   enabled: true
   features:
+    # Dependencies are enforced even when a child feature is set to true:
+    # resource-nodes requires machines, market requires storage, contracts requires storage.
     commands: true
     machines: true
     storage: true
