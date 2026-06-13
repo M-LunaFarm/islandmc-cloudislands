@@ -748,6 +748,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-shared", Boolean.toString(databaseShared()));
         metadata.put("satis-state-schema", "3");
         metadata.put("island-position-remap", "center-delta");
+        metadata.put("addon-state-sync", Boolean.toString(configuredFeatureEnabled("addon-state")));
         metadata.put("feature-aliases", featureAliasesMetadata());
         metadata.put("feature-warnings", featureWarnings());
         return metadata;
@@ -764,6 +765,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private Map<String, String> addonStateSnapshot() {
+        if (!featureEnabled("addon-state")) {
+            return Map.of("status", "disabled", "feature", "addon-state");
+        }
         if (cloudIslandsApi == null) {
             return addonMetadata();
         }
@@ -811,6 +815,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private void publishAddonState(CloudIslandsAddonSnapshot snapshot, String reason) {
         if (cloudIslandsApi == null || snapshot == null) {
+            return;
+        }
+        if (!featureEnabled("addon-state")) {
             return;
         }
         Map<String, String> state = new LinkedHashMap<>();
@@ -1132,6 +1139,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         features.put("research", configuredFeatureEnabled("research"));
         features.put("maintenance", configuredFeatureEnabled("maintenance"));
         features.put("placeholders", configuredFeatureEnabled("placeholders"));
+        features.put("addon-state", configuredFeatureEnabled("addon-state"));
         FEATURE_ALIASES.forEach((alias, canonical) -> features.put(alias, features.getOrDefault(canonical, configuredFeatureEnabled(canonical))));
         return features;
     }

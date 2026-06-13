@@ -16,6 +16,7 @@ satis:
     research: true
     maintenance: true
     placeholders: true
+    addon-state: true
 integration:
   mode: ADDON
   skyblock-provider: CLOUDISLANDS

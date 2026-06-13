@@ -48,7 +48,8 @@ public final class AdminFactoryCommand {
             "contracts",
             "research",
             "maintenance",
-            "placeholders"
+            "placeholders",
+            "addon-state"
     );
     private static final List<String> HELP_COMMANDS = List.of(
             "factory admin help [page]",
@@ -138,7 +139,11 @@ public final class AdminFactoryCommand {
             }
             case "features" -> showFeatures(sender);
             case "integration" -> showIntegration(sender);
-            case "state" -> showAddonState(sender);
+            case "state" -> {
+                if (requireFeature(sender, "addon-state")) {
+                    showAddonState(sender);
+                }
+            }
             case "give" -> {
                 if (requireFeature(sender, "machines")) {
                     giveMachine(sender, args);
@@ -209,7 +214,9 @@ public final class AdminFactoryCommand {
             values.add("debug");
             values.add("features");
             values.add("integration");
-            values.add("state");
+            if (enabled("addon-state")) {
+                values.add("state");
+            }
             if (enabled("machines")) {
                 values.add("give");
                 values.add("giveitem");
