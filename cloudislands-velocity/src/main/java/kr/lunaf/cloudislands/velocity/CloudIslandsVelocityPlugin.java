@@ -1095,7 +1095,7 @@ public final class CloudIslandsVelocityPlugin {
         int safePage = Math.max(1, Math.min(page, maxPage));
         int from = (safePage - 1) * pageSize;
         int to = Math.min(commands.size(), from + pageSize);
-        player.sendMessage(Component.text(title + " " + safePage + "/" + maxPage + " - 한 줄에 > 명령어 하나씩 표시"));
+        player.sendMessage(Component.text(title + " " + safePage + "/" + maxPage + " - 1 line > 1 command"));
         for (String command : commands.subList(from, to)) {
             player.sendMessage(Component.text("> /" + command));
         }
