@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -17,12 +18,25 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandHomeMenu implements Listener {
     private static final String TITLE = "섬 홈 관리";
+    private final MessageRenderer messages;
+
+    public IslandHomeMenu() {
+        this(null);
+    }
+
+    public IslandHomeMenu(MessageRenderer messages) {
+        this.messages = messages;
+    }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
+        open(plugin, client, player, islandId, null);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
         client.listIslandHomes(islandId)
-            .thenAccept(body -> openSync(plugin, player, homes(body)))
+            .thenAccept(body -> openSync(plugin, player, homes(body), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("섬 홈을 불러오지 못했습니다."));
+                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "home-menu-load-failed", "섬 홈을 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -44,7 +58,7 @@ public final class IslandHomeMenu implements Listener {
         player.closeInventory();
         if (displayName.equals("현재 위치를 홈으로 설정")) {
             if (event.isRightClick()) {
-                player.sendMessage("사용법: /섬 셋홈 <이름>");
+                player.sendMessage(message(messages, "home-menu-set-usage", "사용법: /섬 셋홈 <이름>"));
                 return;
             }
             player.performCommand("섬 셋홈 default");
@@ -68,10 +82,10 @@ public final class IslandHomeMenu implements Listener {
         }
     }
 
-    private static void openSync(Plugin plugin, Player player, List<Home> homes) {
+    private static void openSync(Plugin plugin, Player player, List<Home> homes, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
-            inventory.setItem(45, item(Material.RED_BED, "현재 위치를 홈으로 설정", "좌클릭: default 홈으로 설정", "우클릭: 사용법 보기"));
+            inventory.setItem(45, item(Material.RED_BED, "현재 위치를 홈으로 설정", "좌클릭: default 홈으로 설정", "우클릭: " + message(messages, "home-menu-set-usage", "사용법: /섬 셋홈 <이름>")));
             int slot = 0;
             for (Home home : homes.stream().limit(45).toList()) {
                 inventory.setItem(slot++, homeItem(home));
@@ -83,6 +97,14 @@ public final class IslandHomeMenu implements Listener {
             inventory.setItem(53, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
             player.openInventory(inventory);
         });
+    }
+
+    private static String message(MessageRenderer messages, String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private static ItemStack homeItem(Home home) {
