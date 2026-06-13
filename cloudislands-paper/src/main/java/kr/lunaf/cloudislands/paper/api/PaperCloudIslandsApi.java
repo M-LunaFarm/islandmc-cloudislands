@@ -221,7 +221,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             boolean enabled = registration.enabled() && configEnabled;
             Map<String, Boolean> configuredFeatures = effectiveFeatures(id, registration.features());
             Map<String, Boolean> visibleFeatures = enabled ? configuredFeatures : disabledFeatures(configuredFeatures);
-            return new CloudIslandsAddonSnapshot(id, registration.displayName(), registration.version(), enabled, registration.registeredAt(), Instant.now(), configuredFeatures, visibleFeatures, effectiveMetadata(registration.metadata()));
+            return new CloudIslandsAddonSnapshot(id, registration.displayName(), registration.version(), enabled, registration.registeredAt(), Instant.now(), configuredFeatures, visibleFeatures, effectiveMetadata(id, registration.metadata()));
         }
 
         private boolean configuredAddonEnabled(String id) {
@@ -263,9 +263,18 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return disabled;
         }
 
-        private Map<String, String> effectiveMetadata(Map<String, String> metadata) {
+        private Map<String, String> effectiveMetadata(String id, Map<String, String> metadata) {
             Map<String, String> effective = new HashMap<>(metadata == null ? Map.of() : metadata);
             effective.putIfAbsent("source-node", plugin.getConfig().getString("node.id", "unknown"));
+            if (id.equals("cloudislands-satis")) {
+                if (plugin.getConfig().contains("addons." + id)) {
+                    effective.put("parent-config-path", "addons." + id);
+                } else if (plugin.getConfig().contains("satis")) {
+                    effective.put("parent-config-path", "satis");
+                } else {
+                    effective.put("parent-config-path", "default");
+                }
+            }
             return effective;
         }
 
