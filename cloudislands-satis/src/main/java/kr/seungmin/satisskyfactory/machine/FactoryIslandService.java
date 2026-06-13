@@ -38,6 +38,17 @@ public final class FactoryIslandService {
         return Optional.of(new FactoryContext(island.get(), getOrCreate(island.get())));
     }
 
+    public Optional<FactoryContext> existingContext(Player player) {
+        if (!loaded) {
+            return Optional.empty();
+        }
+        Optional<IslandRef> island = skyblockHook.getIslandOf(player);
+        if (island.isEmpty()) {
+            return Optional.empty();
+        }
+        return find(island.get().islandUuid()).map(factoryIsland -> new FactoryContext(island.get(), factoryIsland));
+    }
+
     public void load() {
         cache.clear();
         for (FactoryIsland island : database.loadIslands()) {

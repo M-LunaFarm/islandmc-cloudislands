@@ -38,6 +38,20 @@ public final class StorageService {
         return inventory;
     }
 
+    public Optional<VirtualInventory> findIslandStorage(UUID islandUuid) {
+        Optional<VirtualInventory> cached = cache.values().stream()
+                .filter(inventory -> inventory.islandUuid().equals(islandUuid))
+                .filter(inventory -> inventory.holderType().equals("ISLAND"))
+                .filter(inventory -> inventory.holderId().equals(islandUuid.toString()))
+                .findFirst();
+        if (cached.isPresent()) {
+            return cached;
+        }
+        Optional<VirtualInventory> existing = database.findInventoryByHolder(islandUuid, "ISLAND", islandUuid.toString());
+        existing.ifPresent(inventory -> cache.put(inventory.inventoryId(), inventory));
+        return existing;
+    }
+
     public VirtualInventory createMachineInventory(UUID islandUuid, UUID machineId, String holderType, long capacity) {
         VirtualInventory inventory = new VirtualInventory(UUID.randomUUID(), islandUuid, holderType, machineId.toString(), capacity);
         saveNow(inventory);

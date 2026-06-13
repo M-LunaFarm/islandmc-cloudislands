@@ -71,7 +71,7 @@ public final class PlaceholderHook extends PlaceholderExpansion {
         if (player == null) {
             return "";
         }
-        Optional<FactoryContext> context = islands.context(player);
+        Optional<FactoryContext> context = islands.existingContext(player);
         if (context.isEmpty()) {
             return "";
         }
@@ -108,16 +108,22 @@ public final class PlaceholderHook extends PlaceholderExpansion {
             return String.valueOf(machines.byIsland(island.islandUuid()).size());
         }
         if (key.equals("storage_used")) {
-            VirtualInventory islandStorage = storage.islandStorage(island.islandUuid());
-            return String.valueOf(islandStorage.used());
+            return storage.findIslandStorage(island.islandUuid())
+                    .map(VirtualInventory::used)
+                    .map(String::valueOf)
+                    .orElse("0");
         }
         if (key.equals("storage_capacity")) {
-            VirtualInventory islandStorage = storage.islandStorage(island.islandUuid());
-            return String.valueOf(islandStorage.capacity());
+            return storage.findIslandStorage(island.islandUuid())
+                    .map(VirtualInventory::capacity)
+                    .map(String::valueOf)
+                    .orElse("0");
         }
         if (key.equals("storage_free")) {
-            VirtualInventory islandStorage = storage.islandStorage(island.islandUuid());
-            return String.valueOf(islandStorage.remainingCapacity());
+            return storage.findIslandStorage(island.islandUuid())
+                    .map(VirtualInventory::remainingCapacity)
+                    .map(String::valueOf)
+                    .orElse("0");
         }
         if (key.equals("power_ratio")) {
             PowerNetworkService.NetworkState powerState = power.state(island.islandUuid());
