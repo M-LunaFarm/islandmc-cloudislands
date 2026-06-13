@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -18,12 +19,25 @@ import org.bukkit.plugin.Plugin;
 public final class IslandMissionMenu implements Listener {
     private static final String MISSION_TITLE = "섬 미션";
     private static final String CHALLENGE_TITLE = "섬 챌린지";
+    private final MessageRenderer messages;
+
+    public IslandMissionMenu() {
+        this(null);
+    }
+
+    public IslandMissionMenu(MessageRenderer messages) {
+        this.messages = messages;
+    }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, String kind) {
+        open(plugin, client, player, islandId, kind, null);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, String kind, MessageRenderer messages) {
         client.listIslandMissions(islandId, kind)
-            .thenAccept(body -> openSync(plugin, player, kind, missions(body)))
+            .thenAccept(body -> openSync(plugin, player, kind, missions(body), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("섬 과제를 불러오지 못했습니다."));
+                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "mission-menu-load-failed", "섬 과제를 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -63,15 +77,15 @@ public final class IslandMissionMenu implements Listener {
         player.performCommand((MISSION_TITLE.equals(title) ? "섬 미션 " : "섬 챌린지 ") + missionKey);
     }
 
-    private static void openSync(Plugin plugin, Player player, String kind, List<Mission> missions) {
+    private static void openSync(Plugin plugin, Player player, String kind, List<Mission> missions, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, "CHALLENGE".equalsIgnoreCase(kind) ? CHALLENGE_TITLE : MISSION_TITLE);
             int slot = 0;
             for (Mission mission : missions.stream().limit(45).toList()) {
-                inventory.setItem(slot++, missionItem(mission));
+                inventory.setItem(slot++, missionItem(mission, messages));
             }
             if (missions.isEmpty()) {
-                inventory.setItem(22, item(Material.BARRIER, "과제 없음", "현재 표시할 섬 과제가 없습니다."));
+                inventory.setItem(22, item(Material.BARRIER, "과제 없음", message(messages, "mission-menu-empty", "현재 표시할 섬 과제가 없습니다.")));
             }
             boolean challenge = "CHALLENGE".equalsIgnoreCase(kind);
             inventory.setItem(45, item(Material.BOOK, "미션 보기", "/섬 미션"));
@@ -81,10 +95,18 @@ public final class IslandMissionMenu implements Listener {
         });
     }
 
-    private static ItemStack missionItem(Mission mission) {
+    private static ItemStack missionItem(Mission mission, MessageRenderer messages) {
         Material material = mission.completed() ? Material.LIME_DYE : Material.BOOK;
         String title = mission.title().isBlank() ? mission.key() : mission.title();
-        return item(material, title, "missionKey=" + mission.key(), "진행도: " + mission.progress() + "/" + mission.goal(), "보상: " + (mission.reward().isBlank() ? "없음" : mission.reward()), mission.completed() ? "완료됨" : "클릭하면 완료를 요청합니다.");
+        return item(material, title, "missionKey=" + mission.key(), "진행도: " + mission.progress() + "/" + mission.goal(), "보상: " + (mission.reward().isBlank() ? message(messages, "mission-menu-no-reward", "없음") : mission.reward()), mission.completed() ? message(messages, "mission-menu-completed", "완료됨") : message(messages, "mission-menu-click-to-complete", "클릭하면 완료를 요청합니다."));
+    }
+
+    private static String message(MessageRenderer messages, String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private static ItemStack item(Material material, String name, String... lore) {

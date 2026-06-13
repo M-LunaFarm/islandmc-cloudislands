@@ -1770,7 +1770,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private void openIslandMissionMenu(Player player, String kind) {
-        currentIsland(player, "섬 안에서만 과제 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandMissionMenu.open(plugin, coreApiClient, player, islandId, kind));
+        currentIsland(player, "섬 안에서만 과제 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandMissionMenu.open(plugin, coreApiClient, player, islandId, kind, messages));
     }
 
     private void completeIslandMission(Player player, String missionKey) {

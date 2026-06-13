@@ -214,6 +214,11 @@ public final class TranslationManager {
         values.put("limit-menu-left-click", "좌클릭: +1");
         values.put("limit-menu-right-click", "우클릭: -1");
         values.put("limit-menu-shift-click", "Shift+클릭: 10 단위로 조정");
+        values.put("mission-menu-load-failed", "섬 과제를 불러오지 못했습니다.");
+        values.put("mission-menu-empty", "현재 표시할 섬 과제가 없습니다.");
+        values.put("mission-menu-no-reward", "없음");
+        values.put("mission-menu-completed", "완료됨");
+        values.put("mission-menu-click-to-complete", "클릭하면 완료를 요청합니다.");
         values.put("danger-confirm-required", "Shift+우클릭해야 실행됩니다.");
         values.put("danger-confirm-click-required", "위험 작업은 Shift+우클릭해야 실행됩니다.");
         values.put("snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다.");
