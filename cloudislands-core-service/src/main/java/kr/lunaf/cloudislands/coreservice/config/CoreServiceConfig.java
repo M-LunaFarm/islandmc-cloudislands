@@ -83,7 +83,7 @@ public record CoreServiceConfig(
             Duration.ofSeconds(integer("CI_ROUTE_PREPARING_TICKET_TTL_SECONDS", configInteger(config, "routing.route-preparing-ticket-ttl-seconds", 120))),
             Duration.ofSeconds(integer("CI_HEARTBEAT_TIMEOUT_SECONDS", configInteger(config, "routing.heartbeat-timeout-seconds", 5))),
             Duration.ofSeconds(integer("CI_LEASE_SECONDS", configInteger(config, "routing.lease-duration-seconds", 30))),
-            integer("CI_SNAPSHOT_KEEP_LATEST", configInteger(config, "snapshots.keep-latest", 85)),
+            integer("CI_SNAPSHOT_KEEP_LATEST", snapshotKeepLatest(config)),
             bool("CI_ADMIN_API_ENABLED", configBoolean(config, "security.admin-api-enabled", true)),
             bool("CI_REQUIRE_MTLS", configBoolean(config, "security.require-mtls", true)),
             env("CI_MTLS_VERIFIED_HEADER", setting(config, "security.mtls-verified-header", "X-SSL-Client-Verify")),
@@ -152,6 +152,21 @@ public record CoreServiceConfig(
     private static String setting(Map<String, String> config, String key, String fallback) {
         String value = config.get(key);
         return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private static int snapshotKeepLatest(Map<String, String> config) {
+        if (config.containsKey("snapshots.keep-latest") && !config.getOrDefault("snapshots.keep-latest", "").isBlank()) {
+            return configInteger(config, "snapshots.keep-latest", 85);
+        }
+        int hourly = configInteger(config, "snapshots.keep-hourly", 24);
+        int daily = configInteger(config, "snapshots.keep-daily", 7);
+        int weekly = configInteger(config, "snapshots.keep-weekly", 4);
+        int manual = configInteger(config, "snapshots.keep-manual", 50);
+        long total = (long) Math.max(0, hourly) + Math.max(0, daily) + Math.max(0, weekly) + Math.max(0, manual);
+        if (total > Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        return Math.max(1, (int) total);
     }
 
     private static String unquote(String value) {

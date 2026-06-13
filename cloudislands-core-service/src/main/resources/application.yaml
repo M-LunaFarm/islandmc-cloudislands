@@ -31,7 +31,12 @@ block-values:
   file: "${CI_BLOCK_VALUES_FILE}"
 
 snapshots:
-  keep-latest: 85
+  keep-hourly: 24
+  keep-daily: 7
+  keep-weekly: 4
+  keep-manual: 50
+  compress: true
+  checksum: "SHA-256"
 
 security:
   require-mtls: true
