@@ -421,9 +421,10 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<Void> unregister(String id) {
-            registrations.remove(id);
-            addons.remove(id);
-            CloudIslandsAddon addon = addonObjects.remove(id);
+            String safeId = safeRegistrationId(id);
+            registrations.remove(safeId);
+            addons.remove(safeId);
+            CloudIslandsAddon addon = addonObjects.remove(safeId);
             if (addon != null) {
                 notifyUnregistered(addon);
             }
@@ -433,7 +434,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<Optional<CloudIslandsAddonSnapshot>> get(String id) {
-            return CompletableFuture.completedFuture(Optional.ofNullable(addons.get(id)));
+            return CompletableFuture.completedFuture(Optional.ofNullable(addons.get(safeRegistrationId(id))));
         }
 
         @Override
@@ -445,13 +446,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<Optional<CloudIslandsAddonSnapshot>> refresh(String id) {
-            AddonRegistration registration = registrations.get(id);
+            String safeId = safeRegistrationId(id);
+            AddonRegistration registration = registrations.get(safeId);
             if (registration == null) {
                 return CompletableFuture.completedFuture(Optional.empty());
             }
             CloudIslandsAddonSnapshot snapshot = snapshot(registration);
-            addons.put(id, snapshot);
-            CloudIslandsAddon addon = addonObjects.get(id);
+            addons.put(safeId, snapshot);
+            CloudIslandsAddon addon = addonObjects.get(safeId);
             if (addon != null) {
                 notifyReloaded(addon, snapshot);
             }
@@ -475,21 +477,23 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<Optional<CloudIslandsAddonSnapshot>> setEnabled(String id, boolean enabled) {
-            if (!registrations.containsKey(id)) {
+            String safeId = safeRegistrationId(id);
+            if (!registrations.containsKey(safeId)) {
                 return CompletableFuture.completedFuture(Optional.empty());
             }
-            plugin.getConfig().set("addons." + id + ".enabled", enabled);
-            if (id.equals("cloudislands-satis")) {
+            plugin.getConfig().set("addons." + safeId + ".enabled", enabled);
+            if (safeId.equals("cloudislands-satis")) {
                 plugin.getConfig().set("satis.enabled", enabled);
             }
             plugin.saveConfig();
             plugin.reloadConfig();
-            return refresh(id);
+            return refresh(safeId);
         }
 
         @Override
         public CompletableFuture<Optional<CloudIslandsAddonSnapshot>> setFeature(String id, String feature, boolean enabled) {
-            AddonRegistration registration = registrations.get(id);
+            String safeId = safeRegistrationId(id);
+            AddonRegistration registration = registrations.get(safeId);
             if (registration == null) {
                 return CompletableFuture.completedFuture(Optional.empty());
             }
@@ -497,14 +501,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (!effectiveFeatures(registration).containsKey(normalizedFeature)) {
                 return CompletableFuture.completedFuture(Optional.empty());
             }
-            plugin.getConfig().set("addons." + id + ".features." + normalizedFeature, enabled);
-            if (id.equals("cloudislands-satis")) {
+            plugin.getConfig().set("addons." + safeId + ".features." + normalizedFeature, enabled);
+            if (safeId.equals("cloudislands-satis")) {
                 plugin.getConfig().set("satis.features." + normalizedFeature, enabled);
             }
-            clearFeatureAliases(id, registration, normalizedFeature);
+            clearFeatureAliases(safeId, registration, normalizedFeature);
             plugin.saveConfig();
             plugin.reloadConfig();
-            return refresh(id);
+            return refresh(safeId);
         }
 
         private void clearFeatureAliases(String id, AddonRegistration registration, String canonicalFeature) {
@@ -522,7 +526,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<Boolean> isEnabled(String id) {
-                return CompletableFuture.completedFuture(Optional.ofNullable(addons.get(id)).map(CloudIslandsAddonSnapshot::enabled).orElse(false));
+            return CompletableFuture.completedFuture(Optional.ofNullable(addons.get(safeRegistrationId(id))).map(CloudIslandsAddonSnapshot::enabled).orElse(false));
         }
 
         private synchronized void syncEventSubscription() {
