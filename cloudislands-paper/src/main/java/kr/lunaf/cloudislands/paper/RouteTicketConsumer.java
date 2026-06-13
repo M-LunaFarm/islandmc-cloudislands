@@ -49,6 +49,10 @@ public final class RouteTicketConsumer {
     }
 
     private void consumeAndTeleport(UUID ticketId, UUID playerUuid, String nonce, int attempt) {
+        if (Bukkit.getPlayer(playerUuid) == null) {
+            clearRoute(playerUuid, ticketId, "PLAYER_DISCONNECTED");
+            return;
+        }
         if (attempt == 0 || attempt % 5 == 0) {
             Bukkit.getScheduler().runTask(plugin, () -> notifyPreparing(playerUuid, attempt));
         }
@@ -76,7 +80,11 @@ public final class RouteTicketConsumer {
         Player player = Bukkit.getPlayer(playerUuid);
         String worldName = ticket.targetWorld();
         World world = worldName == null ? null : Bukkit.getWorld(worldName);
-        if (player == null || world == null) {
+        if (player == null) {
+            clearRoute(playerUuid, ticket.ticketId(), "PLAYER_DISCONNECTED");
+            return;
+        }
+        if (world == null) {
             if (attempt == 0 || attempt % 5 == 0) {
                 notifyPreparing(playerUuid, attempt);
             }
@@ -176,6 +184,11 @@ public final class RouteTicketConsumer {
         if (bar != null) {
             player.hideBossBar(bar);
         }
+    }
+
+    private void clearRoute(UUID playerUuid, UUID ticketId, String reason) {
+        coreApiClient.clearRoute(playerUuid, ticketId, reason == null || reason.isBlank() ? "ROUTE_FAILED" : reason).exceptionally(error -> null);
+        loadingBars.remove(playerUuid);
     }
 
     private double decimal(java.util.Map<String, String> payload, String key, double fallback) {
