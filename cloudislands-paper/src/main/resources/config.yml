@@ -52,6 +52,7 @@ satis:
     addon-state: true
 
 migration:
+  superiorskyblock2-enabled: true
   superiorskyblock2:
     enabled: true
 
