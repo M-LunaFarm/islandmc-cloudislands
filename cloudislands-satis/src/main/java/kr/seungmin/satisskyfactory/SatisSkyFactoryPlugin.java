@@ -107,6 +107,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         addonRuntimeEnabled = false;
         effectiveFeatures = Map.of();
         if (!registerCloudIslandsAddon()) {
+            installDisabledCommandHandler("addon-disabled");
             return;
         }
         startRuntime();
@@ -351,7 +352,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void registerCommands() {
-        if (commandsRegistered || !featureEnabled("commands")) {
+        if (commandsRegistered) {
+            return;
+        }
+        if (!featureEnabled("commands")) {
+            installDisabledCommandHandler("commands");
             return;
         }
         FactoryCommand command = new FactoryCommand(
@@ -385,6 +390,26 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             sfactory.setTabCompleter(command);
         }
         commandsRegistered = true;
+    }
+
+    private void installDisabledCommandHandler(String reason) {
+        java.util.function.Consumer<PluginCommand> installer = command -> {
+            if (command == null) {
+                return;
+            }
+            command.setExecutor((sender, _command, _label, _args) -> {
+                String feature = reason == null || reason.isBlank() ? "addon" : reason;
+                if (messages != null) {
+                    messages.send(sender, "feature-disabled", Map.of("feature", feature));
+                } else {
+                    sender.sendMessage("CloudIslands Satis is disabled: " + feature);
+                }
+                return true;
+            });
+            command.setTabCompleter((_sender, _command, _alias, _args) -> java.util.List.of());
+        };
+        installer.accept(getCommand("factory"));
+        installer.accept(getCommand("sfactory"));
     }
 
     private void registerListeners() {
