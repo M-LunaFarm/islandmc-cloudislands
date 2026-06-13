@@ -67,28 +67,39 @@ public final class NodeAllocator {
     }
 
     public String readyNodeBlockReason(List<NodeLoad> nodes, Instant now, String templateId, String minNodeVersion, String pool) {
-        String fallback = "NO_READY_NODE";
         boolean anyPoolNode = false;
+        boolean anyTemplateNode = false;
+        boolean anyVersionNode = false;
+        String allocationFallback = "NO_READY_NODE";
         for (NodeLoad node : nodes) {
             if (!node.inPool(pool)) {
                 continue;
             }
             anyPoolNode = true;
             if (!node.supportsTemplate(templateId)) {
-                fallback = fallback.equals("NO_READY_NODE") ? "TEMPLATE_UNSUPPORTED" : fallback;
                 continue;
             }
+            anyTemplateNode = true;
             if (!node.satisfiesMinVersion(minNodeVersion)) {
-                fallback = fallback.equals("NO_READY_NODE") ? "NODE_VERSION_TOO_OLD" : fallback;
                 continue;
             }
+            anyVersionNode = true;
             String blockReason = newActivationBlockReason(node, now);
             if (blockReason.isBlank()) {
                 return "";
             }
-            fallback = fallback.equals("NO_READY_NODE") ? blockReason : fallback;
+            allocationFallback = preferredBlockReason(allocationFallback, blockReason);
         }
-        return anyPoolNode ? fallback : "POOL_EMPTY";
+        if (!anyPoolNode) {
+            return "POOL_EMPTY";
+        }
+        if (!anyTemplateNode) {
+            return "TEMPLATE_UNSUPPORTED";
+        }
+        if (!anyVersionNode) {
+            return "NODE_VERSION_TOO_OLD";
+        }
+        return allocationFallback;
     }
 
     private String newActivationBlockReason(NodeLoad node, Instant now) {
@@ -124,6 +135,44 @@ public final class NodeAllocator {
             return "MAX_ACTIVATION_QUEUE";
         }
         return "";
+    }
+
+    private String preferredBlockReason(String current, String next) {
+        if (current == null || current.isBlank() || current.equals("NO_READY_NODE")) {
+            return next;
+        }
+        if (next == null || next.isBlank()) {
+            return current;
+        }
+        return blockReasonPriority(next) < blockReasonPriority(current) ? next : current;
+    }
+
+    private int blockReasonPriority(String reason) {
+        if (reason == null || reason.isBlank()) {
+            return 100;
+        }
+        if (reason.equals("HEARTBEAT_MISSING") || reason.equals("HEARTBEAT_STALE")) {
+            return 10;
+        }
+        if (reason.equals("STORAGE_UNAVAILABLE")) {
+            return 20;
+        }
+        if (reason.equals("MAX_ACTIVATION_QUEUE")) {
+            return 30;
+        }
+        if (reason.equals("HARD_PLAYER_CAP") || reason.equals("STATE_HARD_FULL")) {
+            return 40;
+        }
+        if (reason.equals("MAX_ACTIVE_ISLANDS")) {
+            return 50;
+        }
+        if (reason.equals("STATE_SOFT_FULL")) {
+            return 60;
+        }
+        if (reason.startsWith("STATE_")) {
+            return 70;
+        }
+        return 80;
     }
 
     public String nodeBlockReason(NodeLoad node, Instant now, String templateId, String minNodeVersion, String pool) {
