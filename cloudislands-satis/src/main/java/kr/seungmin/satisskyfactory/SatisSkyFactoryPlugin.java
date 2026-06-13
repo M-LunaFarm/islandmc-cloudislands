@@ -411,6 +411,19 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         getLogger().info("Registered PlaceholderAPI expansion: satisskyfactory");
     }
 
+    private void refreshPlaceholders() {
+        if (!featureEnabled("placeholders")) {
+            if (placeholderHook != null) {
+                placeholderHook.unregister();
+                placeholderHook = null;
+            }
+            return;
+        }
+        if (placeholderHook == null) {
+            registerPlaceholders();
+        }
+    }
+
     private boolean registerCloudIslandsAddon() {
         cloudIslandsApi = resolveCloudIslandsApi();
         if (cloudIslandsApi == null) {
@@ -484,11 +497,29 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     public void onAddonReloaded(CloudIslandsAddonSnapshot snapshot) {
         effectiveFeatures = snapshot.features();
         getLogger().info("Reloaded CloudIslands addon config: " + snapshot.id() + " enabled=" + snapshot.enabled());
+        if (!snapshot.enabled()) {
+            getLogger().info("CloudIslands disabled this addon during config reload.");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+        applyAddonRuntimeState();
     }
 
     @Override
     public void onAddonUnregistered() {
         effectiveFeatures = Map.of();
+    }
+
+    private void applyAddonRuntimeState() {
+        if (database == null || configs == null) {
+            return;
+        }
+        loadDefinitions();
+        if (featureEnabled("machines")) {
+            rebuildNetworks();
+        }
+        restartRuntimeTasks();
+        refreshPlaceholders();
     }
 
     private Map<String, Boolean> featureSnapshot() {
