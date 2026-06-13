@@ -688,6 +688,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (values == null || values.isEmpty()) {
                 return islandState(safeId, islandId);
             }
+            if (!addonAcceptsIslandStateWrites(safeId)) {
+                return islandState(safeId, islandId);
+            }
             CompletableFuture<Map<String, String>> result = CompletableFuture.completedFuture(Map.of());
             for (Map.Entry<String, String> entry : values.entrySet()) {
                 if (entry.getKey() == null || entry.getKey().isBlank() || entry.getValue() == null) {
@@ -707,6 +710,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (key == null) {
                 return islandState(safeId, islandId);
             }
+            if (!addonAcceptsIslandStateWrites(safeId)) {
+                return islandState(safeId, islandId);
+            }
             return coreClient.removeAddonIslandState(safeId, islandId, key)
                 .thenApply(this::stateFromJson)
                 .exceptionally(_error -> Map.of());
@@ -717,7 +723,16 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (islandId == null) {
                 return CompletableFuture.completedFuture(null);
             }
-            return coreClient.clearAddonIslandState(safeRegistrationId(id), islandId).thenApply(_body -> null).exceptionally(_error -> null);
+            String safeId = safeRegistrationId(id);
+            if (!addonAcceptsIslandStateWrites(safeId)) {
+                return CompletableFuture.completedFuture(null);
+            }
+            return coreClient.clearAddonIslandState(safeId, islandId).thenApply(_body -> null).exceptionally(_error -> null);
+        }
+
+        private boolean addonAcceptsIslandStateWrites(String id) {
+            CloudIslandsAddonSnapshot snapshot = addons.get(safeRegistrationId(id));
+            return snapshot != null && snapshot.enabled();
         }
 
         private Map<String, String> stateFromJson(String json) {
