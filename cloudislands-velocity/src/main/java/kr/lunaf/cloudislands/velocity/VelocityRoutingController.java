@@ -2891,6 +2891,10 @@ public final class VelocityRoutingController {
             fallback(player, failureMessage);
             return;
         }
+        if (!playerOnline(player)) {
+            clearFailedRoute(ticket, "PLAYER_DISCONNECTED");
+            return;
+        }
         if (ticket.state().name().equals("PREPARING")) {
             String target = routeTargetName(ticket);
             actionBar(player, messages.text("route-preparing", "target", target));
@@ -2936,6 +2940,11 @@ public final class VelocityRoutingController {
     }
 
     private void waitForReadyTicket(Player player, RouteTicket ticket, String failureMessage, BossBar bossBar, int attempt) {
+        if (!playerOnline(player)) {
+            hideBossBar(player, bossBar);
+            clearFailedRoute(ticket, "PLAYER_DISCONNECTED");
+            return;
+        }
         int progress = Math.min(95, 20 + attempt);
         bossBar.progress(progress / 100.0F);
         String target = routeTargetName(ticket);
@@ -2988,6 +2997,10 @@ public final class VelocityRoutingController {
     }
 
     private void publishAndConnect(Player player, RouteTicket ticket) {
+        if (!playerOnline(player)) {
+            clearFailedRoute(ticket, "PLAYER_DISCONNECTED");
+            return;
+        }
         coreApiClient.publishRouteSession(ticket).thenRun(() -> {
             String targetServerName = ticket.payload().getOrDefault("targetServerName", ticket.targetNode());
             connectWithTicket(player, ticket, targetServerName);
@@ -2999,6 +3012,10 @@ public final class VelocityRoutingController {
     }
 
     private void connectWithTicket(Player player, RouteTicket ticket, String targetServerName) {
+        if (!playerOnline(player)) {
+            clearFailedRoute(ticket, "PLAYER_DISCONNECTED");
+            return;
+        }
         RegisteredServer server = findServer(targetServerName);
         if (server == null) {
             clearFailedRoute(ticket, "TARGET_SERVER_NOT_FOUND");
@@ -3009,6 +3026,10 @@ public final class VelocityRoutingController {
     }
 
     private void connect(Player player, RouteTicket ticket, RegisteredServer server) {
+        if (!playerOnline(player)) {
+            clearFailedRoute(ticket, "PLAYER_DISCONNECTED");
+            return;
+        }
         player.createConnectionRequest(server).connectWithIndication().thenAccept(success -> {
             if (!success) {
                 clearFailedRoute(ticket, "CONNECT_FAILED");
@@ -3029,6 +3050,10 @@ public final class VelocityRoutingController {
             return;
         }
         coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), reason == null || reason.isBlank() ? "ROUTE_FAILED" : reason).exceptionally(error -> null);
+    }
+
+    private boolean playerOnline(Player player) {
+        return player != null && proxy.getPlayer(player.getUniqueId()).isPresent();
     }
 
     private void fallback(Player player, String message) {
