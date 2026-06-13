@@ -537,7 +537,18 @@ public final class TranslationManager {
         values.put("role-menu-load-failed", "섬 역할을 불러오지 못했습니다.");
         values.put("role-menu-edit-prefix", "역할 편집: /섬 역할편집 ");
         values.put("role-menu-edit-suffix", " <weight> <displayName>");
+        values.put("role-menu-empty-title", "커스텀 역할 없음");
         values.put("role-menu-empty-example", "/섬 역할편집 CUSTOM_1 5 부관리자");
+        values.put("role-menu-list-name", "역할 목록");
+        values.put("role-menu-list-command", "/섬 역할목록");
+        values.put("role-menu-permission-name", "권한 설정");
+        values.put("role-menu-permission-command", "/섬 권한");
+        values.put("role-menu-refresh-name", "새로고침");
+        values.put("role-menu-refresh-command", "/섬 역할");
+        values.put("role-menu-settings-name", "설정");
+        values.put("role-menu-settings-command", "/섬 설정");
+        values.put("role-menu-weight", "weight=");
+        values.put("role-menu-enum", "enum=");
         values.put("role-menu-click-edit", "클릭: 편집 명령어 안내");
         values.put("danger-menu-snapshot-name", "스냅샷 확인");
         values.put("danger-menu-snapshot-command", "/섬 스냅샷");

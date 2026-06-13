@@ -50,26 +50,29 @@ public final class IslandRoleMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || !meta.hasDisplayName()) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= 27) {
             return;
         }
-        String name = meta.getDisplayName();
         player.closeInventory();
-        if (name.equals("역할 목록")) {
+        if (slot == 18) {
             player.performCommand("섬 역할목록");
             return;
         }
-        if (name.equals("권한 설정")) {
+        if (slot == 19) {
             player.performCommand("섬 권한");
             return;
         }
-        if (name.equals("설정")) {
+        if (slot == 20) {
+            player.performCommand("섬 역할");
+            return;
+        }
+        if (slot == 26) {
             player.performCommand("섬 설정");
             return;
         }
-        if (name.equals("새로고침")) {
-            player.performCommand("섬 역할");
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null) {
             return;
         }
         String role = loreValue(meta, "role=");
@@ -86,12 +89,12 @@ public final class IslandRoleMenu implements Listener {
                 inventory.setItem(slot++, roleItem(role, messages));
             }
             if (roles.isEmpty()) {
-                inventory.setItem(13, item(Material.GRAY_DYE, "커스텀 역할 없음", message(messages, "role-menu-empty-example", "/섬 역할편집 CUSTOM_1 5 부관리자")));
+                inventory.setItem(13, item(Material.GRAY_DYE, message(messages, "role-menu-empty-title", "커스텀 역할 없음"), message(messages, "role-menu-empty-example", "/섬 역할편집 CUSTOM_1 5 부관리자")));
             }
-            inventory.setItem(18, item(Material.PAPER, "역할 목록", "/섬 역할목록"));
-            inventory.setItem(19, item(Material.COMPARATOR, "권한 설정", "/섬 권한"));
-            inventory.setItem(20, item(Material.CLOCK, "새로고침", "/섬 역할"));
-            inventory.setItem(26, item(Material.REDSTONE_TORCH, "설정", "/섬 설정"));
+            inventory.setItem(18, item(Material.PAPER, message(messages, "role-menu-list-name", "역할 목록"), message(messages, "role-menu-list-command", "/섬 역할목록")));
+            inventory.setItem(19, item(Material.COMPARATOR, message(messages, "role-menu-permission-name", "권한 설정"), message(messages, "role-menu-permission-command", "/섬 권한")));
+            inventory.setItem(20, item(Material.CLOCK, message(messages, "role-menu-refresh-name", "새로고침"), message(messages, "role-menu-refresh-command", "/섬 역할")));
+            inventory.setItem(26, item(Material.REDSTONE_TORCH, message(messages, "role-menu-settings-name", "설정"), message(messages, "role-menu-settings-command", "/섬 설정")));
             player.openInventory(inventory);
         });
     }
@@ -99,8 +102,8 @@ public final class IslandRoleMenu implements Listener {
     private static ItemStack roleItem(RoleEntry role, MessageRenderer messages) {
         return item(material(role.role()), role.displayName().isBlank() ? role.role() : role.displayName(),
             "role=" + role.role(),
-            "weight=" + role.weight(),
-            "enum=" + role.role(),
+            message(messages, "role-menu-weight", "weight=") + role.weight(),
+            message(messages, "role-menu-enum", "enum=") + role.role(),
             message(messages, "role-menu-click-edit", "클릭: 편집 명령어 안내"));
     }
 
