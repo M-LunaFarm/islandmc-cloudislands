@@ -44,6 +44,7 @@ public record CoreServiceConfig(
     Duration heartbeatTimeout,
     Duration leaseDuration,
     int snapshotKeepLatest,
+    kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotRetentionPolicy,
     boolean adminApiEnabled,
     boolean requireMtls,
     String mtlsVerifiedHeader,
@@ -51,6 +52,11 @@ public record CoreServiceConfig(
 ) {
     public static CoreServiceConfig fromEnvironment() {
         Map<String, String> config = applicationConfig();
+        kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotRetentionPolicy = snapshotRetentionPolicy(config);
+        int snapshotKeepLatest = integer("CI_SNAPSHOT_KEEP_LATEST", snapshotRetentionPolicy.retainedSnapshotCount());
+        if (System.getenv("CI_SNAPSHOT_KEEP_LATEST") != null && !System.getenv("CI_SNAPSHOT_KEEP_LATEST").isBlank()) {
+            snapshotRetentionPolicy = new kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy(snapshotKeepLatest, 0, 0, 0, snapshotRetentionPolicy.compress(), snapshotRetentionPolicy.checksumAlgorithm()).normalized();
+        }
         return new CoreServiceConfig(
             env("CI_BIND", setting(config, "server.bind", "0.0.0.0")),
             integer("CI_PORT", configInteger(config, "server.port", 8443)),
@@ -83,7 +89,8 @@ public record CoreServiceConfig(
             Duration.ofSeconds(integer("CI_ROUTE_PREPARING_TICKET_TTL_SECONDS", configInteger(config, "routing.route-preparing-ticket-ttl-seconds", 120))),
             Duration.ofSeconds(integer("CI_HEARTBEAT_TIMEOUT_SECONDS", configInteger(config, "routing.heartbeat-timeout-seconds", 5))),
             Duration.ofSeconds(integer("CI_LEASE_SECONDS", configInteger(config, "routing.lease-duration-seconds", 30))),
-            integer("CI_SNAPSHOT_KEEP_LATEST", snapshotKeepLatest(config)),
+            snapshotKeepLatest,
+            snapshotRetentionPolicy,
             bool("CI_ADMIN_API_ENABLED", configBoolean(config, "security.admin-api-enabled", true)),
             bool("CI_REQUIRE_MTLS", configBoolean(config, "security.require-mtls", true)),
             env("CI_MTLS_VERIFIED_HEADER", setting(config, "security.mtls-verified-header", "X-SSL-Client-Verify")),
@@ -108,7 +115,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, databasePoolSize, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, databasePoolSize, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue);
     }
 
     private static String env(String key, String fallback) {
@@ -154,19 +161,18 @@ public record CoreServiceConfig(
         return value == null || value.isBlank() ? fallback : value;
     }
 
-    private static int snapshotKeepLatest(Map<String, String> config) {
+    private static kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotRetentionPolicy(Map<String, String> config) {
+        boolean compress = configBoolean(config, "snapshots.compress", true);
+        String checksum = setting(config, "snapshots.checksum", "SHA-256");
         if (config.containsKey("snapshots.keep-latest") && !config.getOrDefault("snapshots.keep-latest", "").isBlank()) {
-            return configInteger(config, "snapshots.keep-latest", 85);
+            int keepLatest = configInteger(config, "snapshots.keep-latest", 85);
+            return new kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy(keepLatest, 0, 0, 0, compress, checksum).normalized();
         }
         int hourly = configInteger(config, "snapshots.keep-hourly", 24);
         int daily = configInteger(config, "snapshots.keep-daily", 7);
         int weekly = configInteger(config, "snapshots.keep-weekly", 4);
         int manual = configInteger(config, "snapshots.keep-manual", 50);
-        long total = (long) Math.max(0, hourly) + Math.max(0, daily) + Math.max(0, weekly) + Math.max(0, manual);
-        if (total > Integer.MAX_VALUE) {
-            return Integer.MAX_VALUE;
-        }
-        return Math.max(1, (int) total);
+        return new kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy(hourly, daily, weekly, manual, compress, checksum).normalized();
     }
 
     private static String unquote(String value) {

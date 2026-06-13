@@ -15,6 +15,7 @@ import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
+import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 
 public final class JobCompletionService {
     private final IslandRuntimeRepository runtimes;
@@ -26,6 +27,7 @@ public final class JobCompletionService {
     private final PlayerProfileRepository playerProfiles;
     private final Duration routeTicketTtl;
     private final int snapshotKeepLatest;
+    private final SnapshotRetentionPolicy snapshotRetentionPolicy;
     private final RedisActivationLock activationLock;
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets) {
@@ -49,6 +51,10 @@ public final class JobCompletionService {
     }
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl, int snapshotKeepLatest, RedisActivationLock activationLock) {
+        this(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, new SnapshotRetentionPolicy(snapshotKeepLatest, 0, 0, 0, true, "SHA-256"), activationLock);
+    }
+
+    public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl, SnapshotRetentionPolicy snapshotRetentionPolicy, RedisActivationLock activationLock) {
         this.runtimes = runtimes;
         this.events = events;
         this.snapshots = snapshots;
@@ -57,7 +63,8 @@ public final class JobCompletionService {
         this.islands = islands;
         this.playerProfiles = playerProfiles;
         this.routeTicketTtl = routeTicketTtl == null || routeTicketTtl.isNegative() || routeTicketTtl.isZero() ? Duration.ofSeconds(30) : routeTicketTtl;
-        this.snapshotKeepLatest = Math.max(1, snapshotKeepLatest);
+        this.snapshotRetentionPolicy = snapshotRetentionPolicy == null ? SnapshotRetentionPolicy.defaultPolicy() : snapshotRetentionPolicy.normalized();
+        this.snapshotKeepLatest = this.snapshotRetentionPolicy.retainedSnapshotCount();
         this.activationLock = activationLock;
     }
 
@@ -101,7 +108,7 @@ public final class JobCompletionService {
             setIslandState(job.islandId(), IslandState.BACKUP_BEFORE_DELETE);
             if (snapshotNo > 0L) {
                 snapshots.record(job.islandId(), snapshotNo, "islands/" + job.islandId() + "/backups/delete-" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", job.payload().getOrDefault("reason", "DELETE_ISLAND"), null, job.payload().getOrDefault("checksum", ""), longValue(job.payload().get("sizeBytes")));
-                snapshots.prune(job.islandId(), snapshotKeepLatest);
+                snapshots.prune(job.islandId(), snapshotRetentionPolicy);
             }
             runtimes.setState(job.islandId(), IslandState.DELETING);
             setIslandState(job.islandId(), IslandState.DELETING);
@@ -263,7 +270,7 @@ public final class JobCompletionService {
             return;
         }
         snapshots.record(job.islandId(), snapshotNo, "islands/" + job.islandId() + "/snapshots/" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", job.payload().getOrDefault("preMutationReason", "BEFORE_MUTATION"), null, job.payload().getOrDefault("preMutationChecksum", ""), longValue(job.payload().get("preMutationSizeBytes")));
-        snapshots.prune(job.islandId(), snapshotKeepLatest);
+        snapshots.prune(job.islandId(), snapshotRetentionPolicy);
     }
 
     private long recordCompletedSnapshot(IslandJob job, String fallbackReason, boolean prune) {
@@ -273,7 +280,7 @@ public final class JobCompletionService {
         }
         snapshots.record(job.islandId(), snapshotNo, "islands/" + job.islandId() + "/snapshots/" + String.format("%06d", snapshotNo) + "/bundle.tar.zst", job.payload().getOrDefault("reason", fallbackReason), null, job.payload().getOrDefault("checksum", ""), longValue(job.payload().get("sizeBytes")));
         if (prune) {
-            snapshots.prune(job.islandId(), snapshotKeepLatest);
+            snapshots.prune(job.islandId(), snapshotRetentionPolicy);
         }
         return snapshotNo;
     }

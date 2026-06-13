@@ -8,11 +8,13 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
+import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 
 public final class CachingIslandSnapshotRepository implements IslandSnapshotRepository {
     private static final int CACHE_LIMIT = 100;
@@ -63,6 +65,20 @@ public final class CachingIslandSnapshotRepository implements IslandSnapshotRepo
     @Override
     public int prune(UUID islandId, int keepLatest) {
         int pruned = delegate.prune(islandId, keepLatest);
+        refresh(islandId);
+        return pruned;
+    }
+
+    @Override
+    public int prune(UUID islandId, SnapshotRetentionPolicy policy) {
+        int pruned = delegate.prune(islandId, policy);
+        refresh(islandId);
+        return pruned;
+    }
+
+    @Override
+    public int pruneRetaining(UUID islandId, Set<Long> retainedSnapshotNos) {
+        int pruned = delegate.pruneRetaining(islandId, retainedSnapshotNos);
         refresh(islandId);
         return pruned;
     }

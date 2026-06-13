@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
@@ -45,6 +46,17 @@ public final class InMemoryIslandSnapshotRepository implements IslandSnapshotRep
             .toList();
         int before = islandSnapshots.size();
         islandSnapshots.keySet().removeIf(snapshotNo -> !retained.contains(snapshotNo));
+        return before - islandSnapshots.size();
+    }
+
+    @Override
+    public int pruneRetaining(UUID islandId, Set<Long> retainedSnapshotNos) {
+        Map<Long, IslandSnapshotRecord> islandSnapshots = snapshots.get(islandId);
+        if (islandSnapshots == null || retainedSnapshotNos == null) {
+            return 0;
+        }
+        int before = islandSnapshots.size();
+        islandSnapshots.keySet().removeIf(snapshotNo -> !retainedSnapshotNos.contains(snapshotNo));
         return before - islandSnapshots.size();
     }
 }

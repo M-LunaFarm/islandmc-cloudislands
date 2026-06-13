@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import javax.sql.DataSource;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
@@ -77,6 +78,34 @@ public final class JdbcIslandSnapshotRepository implements IslandSnapshotReposit
             statement.setObject(1, islandId);
             statement.setObject(2, islandId);
             statement.setInt(3, Math.max(0, keepLatest));
+            return statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to prune island snapshots", exception);
+        }
+    }
+
+    @Override
+    public int pruneRetaining(UUID islandId, Set<Long> retainedSnapshotNos) {
+        if (retainedSnapshotNos == null) {
+            return 0;
+        }
+        if (retainedSnapshotNos.isEmpty()) {
+            try (Connection connection = dataSource.getConnection();
+                 PreparedStatement statement = connection.prepareStatement("DELETE FROM island_snapshots WHERE island_id = ?")) {
+                statement.setObject(1, islandId);
+                return statement.executeUpdate();
+            } catch (SQLException exception) {
+                throw new IllegalStateException("failed to prune island snapshots", exception);
+            }
+        }
+        String placeholders = String.join(", ", java.util.Collections.nCopies(retainedSnapshotNos.size(), "?"));
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("DELETE FROM island_snapshots WHERE island_id = ? AND snapshot_no NOT IN (" + placeholders + ")")) {
+            statement.setObject(1, islandId);
+            int index = 2;
+            for (Long snapshotNo : retainedSnapshotNos) {
+                statement.setLong(index++, snapshotNo);
+            }
             return statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to prune island snapshots", exception);

@@ -165,6 +165,7 @@ public final class CloudIslandsCoreApplication {
     private final IslandSnapshotRepository snapshotRepository;
     private final DirtyRankingRecalculationTask rankingRecalculationTask;
     private final int snapshotKeepLatest;
+    private final kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotRetentionPolicy;
     private AuditLogger audit;
 
     public CloudIslandsCoreApplication(int port) throws IOException {
@@ -235,6 +236,7 @@ public final class CloudIslandsCoreApplication {
             : baseSnapshotRepository;
         this.snapshotRepository = snapshotRepository;
         this.snapshotKeepLatest = Math.max(1, config.snapshotKeepLatest());
+        this.snapshotRetentionPolicy = config.snapshotRetentionPolicy();
         RankingRepository baseRankingRepository = config.jdbcRepositories() ? new JdbcRankingRepository(dataSource) : new InMemoryRankingRepository();
         RankingRepository rankingRepository = config.redisEvents() || config.redisJobs()
             ? new CachingRankingRepository(baseRankingRepository, config.redisUri())
@@ -296,7 +298,7 @@ public final class CloudIslandsCoreApplication {
             Path.of(config.storageLocalPath()),
             lifecycle
         );
-        kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotKeepLatest(), activationLock);
+        kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotRetentionPolicy(), activationLock);
         PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, tickets, runtimeRepository, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::activeConnections, meteredDataSource::openedConnections, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventWriter == null ? 0L : redisEventWriter.failuresTotal(), () -> redisCacheFailures(nodes, tickets, sessions, islandRepository, metadataRepository, playerProfiles, permissionRules, roleRepository, runtimeRepository, rankingRepository, levelRepository, bankRepository, limitRepository, missionRepository, upgradeRepository, templateRepository, snapshotRepository, islandLogs, redisCacheAdmin, activationLock, playerCreationLock, audit));
         this.nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, islandRepository, events, config.heartbeatTimeout());
         this.routeTicketExpiryMonitor = new RouteTicketExpiryMonitor(tickets, events, config.routeTicketTtl());
@@ -1241,7 +1243,7 @@ public final class CloudIslandsCoreApplication {
                 return;
             }
             snapshotRepository.record(islandId, snapshotNo, storagePath, reason, null, checksum, sizeBytes);
-            snapshotRepository.prune(islandId, snapshotKeepLatest);
+            snapshotRepository.prune(islandId, snapshotRetentionPolicy);
             events.publish(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name(), Map.of("islandId", islandId.toString(), "snapshotNo", Long.toString(snapshotNo), "reason", reason));
             write(exchange, 202, "{\"accepted\":true,\"snapshotNo\":" + snapshotNo + "}");
         });
@@ -2082,7 +2084,7 @@ public final class CloudIslandsCoreApplication {
                 ? "islands/" + islandId + "/backups/delete-" + String.format("%06d", snapshotNo) + "/bundle.tar.zst"
                 : storedBundle.storagePath();
             snapshotRepository.record(islandId, snapshotNo, storagePath, reason, null, storedBundle.checksum(), storedBundle.sizeBytes());
-            snapshotRepository.prune(islandId, snapshotKeepLatest);
+            snapshotRepository.prune(islandId, snapshotRetentionPolicy);
             deleteStorage.deleteLiveState(islandId);
             return true;
         } catch (IOException exception) {
