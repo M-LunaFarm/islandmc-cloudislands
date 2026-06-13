@@ -103,6 +103,9 @@ public final class MachineListener implements Listener {
 
     private boolean installMachine(Player player, String typeId, Block targetBlock, BlockFace direction,
                                    boolean consumeItem, EquipmentSlot hand, boolean replacePlacedBlock) {
+        if (!active.getAsBoolean()) {
+            return false;
+        }
         MachineDefinition definition = definitions.get(typeId).orElse(null);
         if (definition == null) {
             messages.send(player, "unknown-machine");
