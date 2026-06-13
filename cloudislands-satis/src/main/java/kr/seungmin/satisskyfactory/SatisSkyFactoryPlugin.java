@@ -855,6 +855,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("last-lifecycle-shared-database", Boolean.toString(databaseShared()));
         state.put("last-lifecycle-schema", "3");
         state.put("last-lifecycle-at", Instant.now().toString());
+        state.put("last-lifecycle-status", "success");
+        state.put("last-lifecycle-error", "");
         if (island != null && island.hasActiveCenter()) {
             state.put("last-lifecycle-active-world", island.activeWorld());
             state.put("last-lifecycle-active-center", island.activeCenterX() + "," + island.activeCenterY() + "," + island.activeCenterZ());
@@ -863,6 +865,30 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             getLogger().warning("Failed to publish CloudIslands Satis lifecycle state: " + error.getMessage());
             return Map.of();
         });
+    }
+
+    private void publishLifecycleFailure(UUID islandId, RuntimeException exception) {
+        if (cloudIslandsApi == null || islandId == null || !featureEnabled("addon-state")) {
+            return;
+        }
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("last-lifecycle-island", islandId.toString());
+        state.put("last-lifecycle-operation", "failed");
+        state.put("last-lifecycle-database-open", Boolean.toString(database != null));
+        state.put("last-lifecycle-shared-database", Boolean.toString(databaseShared()));
+        state.put("last-lifecycle-schema", "3");
+        state.put("last-lifecycle-at", Instant.now().toString());
+        state.put("last-lifecycle-status", "failed");
+        state.put("last-lifecycle-error", shortError(exception));
+        cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
+            getLogger().warning("Failed to publish CloudIslands Satis lifecycle failure: " + error.getMessage());
+            return Map.of();
+        });
+    }
+
+    private String shortError(RuntimeException exception) {
+        String message = exception == null || exception.getMessage() == null ? "unknown" : exception.getMessage();
+        return message.length() <= 256 ? message : message.substring(0, 256);
     }
 
     private String featureState(Map<String, Boolean> features) {
@@ -995,6 +1021,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             try {
                 action.run();
             } catch (RuntimeException exception) {
+                publishLifecycleFailure(islandId, exception);
                 getLogger().warning("CloudIslands lifecycle sync failed for " + islandId + ": " + exception.getMessage());
             }
         });
