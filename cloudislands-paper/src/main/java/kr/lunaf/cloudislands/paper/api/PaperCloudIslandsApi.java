@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.model.AuditLogSnapshot;
 import kr.lunaf.cloudislands.api.model.BlockValueSnapshot;
@@ -86,6 +88,8 @@ import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitTask;
 
 public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private final QueryService query;
@@ -103,7 +107,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         this.routing = new RoutingService(client);
         this.permissions = new PermissionService(agent);
         this.runtime = new RuntimeService(client);
-        this.events = new EventService(client);
+        this.events = new EventService(client, agent.plugin());
         this.admin = new AdminService(client);
         this.commands = new CommandService(client);
     }
@@ -661,9 +665,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
     private static final class EventService implements IslandEventService {
         private final CoreApiClient client;
+        private final Plugin plugin;
 
-        private EventService(CoreApiClient client) {
+        private EventService(CoreApiClient client, Plugin plugin) {
             this.client = client;
+            this.plugin = plugin;
         }
 
         @Override
@@ -679,6 +685,25 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<List<GlobalEventSnapshot>> listGlobalEventsSince(long sinceSeq, int limit) {
             return client.listEventsSince(sinceSeq, limit).thenApply(PaperCloudIslandsApi::events);
+        }
+
+        @Override
+        public GlobalEventSubscription subscribeGlobalEvents(long sinceSeq, int limit, long intervalTicks, Consumer<List<GlobalEventSnapshot>> listener) {
+            AtomicLong cursor = new AtomicLong(Math.max(0L, sinceSeq));
+            int safeLimit = Math.max(1, limit);
+            long safeInterval = Math.max(1L, intervalTicks);
+            BukkitTask task = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () ->
+                listGlobalEventsSince(cursor.get(), safeLimit)
+                    .thenAccept(events -> {
+                        if (events.isEmpty()) {
+                            return;
+                        }
+                        long latest = events.stream().mapToLong(GlobalEventSnapshot::sequence).max().orElse(cursor.get());
+                        cursor.set(Math.max(cursor.get(), latest));
+                        listener.accept(events);
+                    })
+                    .exceptionally(exception -> null), 1L, safeInterval);
+            return task::cancel;
         }
 
         @Override
