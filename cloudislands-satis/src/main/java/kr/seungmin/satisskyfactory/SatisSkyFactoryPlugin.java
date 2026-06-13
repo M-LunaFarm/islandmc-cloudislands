@@ -761,6 +761,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("addon-state-sync", Boolean.toString(configuredFeatureEnabled("addon-state")));
         metadata.put("feature-aliases", featureAliasesMetadata());
         metadata.put("feature-dependencies", featureDependenciesMetadata());
+        metadata.put("configured-features", featureState(featureSnapshot()));
+        metadata.put("effective-features", operationalFeatureState(featureSnapshot()));
         metadata.put("feature-warnings", featureWarnings());
         metadata.put("operational-features", operationalFeatureState(featureSnapshot()));
         return metadata;

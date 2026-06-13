@@ -498,7 +498,7 @@ public final class AdminFactoryCommand {
             )));
         }
         Map<String, String> details = featureDetails();
-        List.of("operational-features", "feature-warnings").forEach(key -> {
+        List.of("configured-features", "effective-features", "operational-features", "dependency-disabled-features", "feature-warnings").forEach(key -> {
             String value = details.get(key);
             if (value != null && !value.isBlank()) {
                 sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
@@ -512,7 +512,7 @@ public final class AdminFactoryCommand {
     private Map<String, String> featureDetails() {
         try {
             Map<String, String> state = addonState == null ? Map.of() : addonState.get();
-            if (state != null && (!blank(state.get("operational-features")) || !blank(state.get("feature-warnings")))) {
+            if (state != null && (!blank(state.get("configured-features")) || !blank(state.get("effective-features")) || !blank(state.get("operational-features")) || !blank(state.get("feature-warnings")))) {
                 return state;
             }
         } catch (RuntimeException ignored) {
