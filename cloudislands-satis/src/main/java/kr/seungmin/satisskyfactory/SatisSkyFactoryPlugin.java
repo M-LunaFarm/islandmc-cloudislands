@@ -27,7 +27,6 @@ import kr.seungmin.satisskyfactory.gui.FactoryGuiService;
 import kr.seungmin.satisskyfactory.hook.CloudIslandsSkyblockProvider;
 import kr.seungmin.satisskyfactory.hook.PlaceholderHook;
 import kr.seungmin.satisskyfactory.hook.SkyblockProvider;
-import kr.seungmin.satisskyfactory.hook.SuperiorSkyblockHook;
 import kr.seungmin.satisskyfactory.item.CustomItemFactory;
 import kr.seungmin.satisskyfactory.item.ItemRegistry;
 import kr.seungmin.satisskyfactory.listener.FactoryLifecycleListener;
@@ -285,24 +284,19 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void configureSkyblockHook() {
-        boolean allowSpawnIsland = configBoolean("superior-skyblock.allow-spawn-island", "settings.allow-spawn-island", false);
+        boolean allowSpawnIsland = configBoolean("cloudislands.allow-spawn-island", "settings.allow-spawn-island", "superior-skyblock.allow-spawn-island", false);
         skyblock.configure(
-                configBoolean("superior-skyblock.allow-coop-build", "settings.allow-coop-build", false),
-                !allowSpawnIsland && configBoolean("superior-skyblock.protect-spawn-island", "settings.protect-spawn-island", true),
-                configBoolean("superior-skyblock.require-island-member", "settings.require-island-member", true)
+                configBoolean("cloudislands.allow-coop-build", "settings.allow-coop-build", "superior-skyblock.allow-coop-build", false),
+                !allowSpawnIsland && configBoolean("cloudislands.protect-spawn-island", "settings.protect-spawn-island", "superior-skyblock.protect-spawn-island", true),
+                configBoolean("cloudislands.require-island-member", "settings.require-island-member", "superior-skyblock.require-island-member", true)
         );
     }
 
     private SkyblockProvider createSkyblockProvider() {
         String provider = configs.main().getString("integration.skyblock-provider", "CLOUDISLANDS");
-        if ("CLOUDISLANDS".equalsIgnoreCase(provider) || "CLOUD_ISLANDS".equalsIgnoreCase(provider)) {
-            return new CloudIslandsSkyblockProvider(this);
+        if (!"CLOUDISLANDS".equalsIgnoreCase(provider) && !"CLOUD_ISLANDS".equalsIgnoreCase(provider)) {
+            getLogger().warning("Ignoring legacy skyblock provider '" + provider + "'. CloudIslands Satis uses the CloudIslands API provider.");
         }
-        if (configs.main().getBoolean("integration.allow-superior-fallback", false)) {
-            getLogger().warning("SuperiorSkyblock2 compatibility mode is enabled. CloudIslands provider is recommended for production.");
-            return new SuperiorSkyblockHook(this);
-        }
-        getLogger().warning("Ignoring legacy skyblock provider '" + provider + "' because integration.allow-superior-fallback=false.");
         return new CloudIslandsSkyblockProvider(this);
     }
 
@@ -322,6 +316,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return configs.main().contains(primaryPath)
                 ? configs.main().getBoolean(primaryPath, fallback)
                 : configs.main().getBoolean(aliasPath, fallback);
+    }
+
+    private boolean configBoolean(String primaryPath, String aliasPath, String legacyPath, boolean fallback) {
+        if (configs.main().contains(primaryPath)) {
+            return configs.main().getBoolean(primaryPath, fallback);
+        }
+        if (configs.main().contains(aliasPath)) {
+            return configs.main().getBoolean(aliasPath, fallback);
+        }
+        return configs.main().getBoolean(legacyPath, fallback);
     }
 
     private double maintenanceDouble(String primaryPath, String aliasPath, double fallback) {

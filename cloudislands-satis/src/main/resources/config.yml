@@ -3,7 +3,6 @@ integration:
   mode: ADDON
   skyblock-provider: CLOUDISLANDS
   cloudislands-adapter: true
-  allow-superior-fallback: false
 features:
   commands: true
   machines: true
@@ -41,7 +40,7 @@ settings:
   allow-spawn-island: false
   require-island-member: true
   protect-spawn-island: true
-superior-skyblock:
+cloudislands:
   allow-coop-build: false
   allow-spawn-island: false
   require-island-member: true
