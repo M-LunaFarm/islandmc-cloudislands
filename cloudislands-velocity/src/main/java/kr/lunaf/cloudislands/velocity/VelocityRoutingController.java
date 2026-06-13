@@ -572,13 +572,11 @@ public final class VelocityRoutingController {
     }
 
     public void depositBank(Player player, UUID islandId, String amount) {
-        withResolvedIsland(player, islandId, "입금할 섬을 찾지 못했습니다.", "입금에 실패했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.depositIslandBank(resolved, player.getUniqueId(), amount).thenApply(body -> bankActionMessage("Bank deposit", body)), "입금에 실패했습니다."));
+        player.sendMessage(Component.text("섬 은행 입금은 경제 플러그인 연동이 필요한 작업이라 Paper Agent에서만 처리합니다."));
     }
 
     public void withdrawBank(Player player, UUID islandId, String amount) {
-        withResolvedIsland(player, islandId, "출금할 섬을 찾지 못했습니다.", "출금에 실패했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.withdrawIslandBank(resolved, player.getUniqueId(), amount).thenApply(body -> bankActionMessage("Bank withdraw", body)), "출금에 실패했습니다."));
+        player.sendMessage(Component.text("섬 은행 출금은 경제 플러그인 연동이 필요한 작업이라 Paper Agent에서만 처리합니다."));
     }
 
     public void showLevelRanking(Player player) {
