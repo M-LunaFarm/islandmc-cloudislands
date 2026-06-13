@@ -23,6 +23,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreApiException;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
 import net.kyori.adventure.bossbar.BossBar;
@@ -2903,9 +2904,20 @@ public final class VelocityRoutingController {
 
     private void routeFuture(Player player, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {
         ticketFuture.thenAccept(ticket -> route(player, ticket, failureMessage)).exceptionally(error -> {
-            fallback(player, failureMessage);
+            fallback(player, routeFailureMessage(error, failureMessage));
             return null;
         });
+    }
+
+    private String routeFailureMessage(Throwable error, String fallback) {
+        Throwable current = error;
+        while (current != null) {
+            if (current instanceof CoreApiException coreError) {
+                return playerErrorMessage(coreError.code(), fallback);
+            }
+            current = current.getCause();
+        }
+        return fallback;
     }
 
     private boolean allowRouteRequest(Player player) {
