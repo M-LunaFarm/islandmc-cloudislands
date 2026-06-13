@@ -23,6 +23,7 @@ import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
+import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 
@@ -40,6 +41,7 @@ public final class VelocityRoutingController {
     private final boolean hideNodeNames;
     private final boolean useActionBar;
     private final boolean useBossBarLoading;
+    private final VelocityMessages messages;
     private final Set<String> seenEvents = ConcurrentHashMap.newKeySet();
     private ScheduledTask eventPollTask;
     private long lastEventSequence;
@@ -61,6 +63,10 @@ public final class VelocityRoutingController {
     }
 
     public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer, int routeWaitSeconds, boolean useActionBar, boolean useBossBarLoading, boolean hideNodeNames, String islandPool, int routeTicketTtlSeconds) {
+        this(proxy, coreApiClient, fallbackServer, routeWaitSeconds, useActionBar, useBossBarLoading, hideNodeNames, islandPool, routeTicketTtlSeconds, VelocityMessages.defaults());
+    }
+
+    public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer, int routeWaitSeconds, boolean useActionBar, boolean useBossBarLoading, boolean hideNodeNames, String islandPool, int routeTicketTtlSeconds, VelocityMessages messages) {
         this.proxy = proxy;
         this.coreApiClient = coreApiClient;
         this.fallbackServer = fallbackServer;
@@ -70,6 +76,7 @@ public final class VelocityRoutingController {
         this.hideNodeNames = hideNodeNames;
         this.useActionBar = useActionBar;
         this.useBossBarLoading = useBossBarLoading;
+        this.messages = messages == null ? VelocityMessages.defaults() : messages;
     }
 
     public void createIsland(Player player, String templateId) {
@@ -79,12 +86,12 @@ public final class VelocityRoutingController {
                 player.sendMessage(Component.text(messageForCreateFailure(code)));
                 return;
             }
-            actionBar(player, "섬을 생성하고 있습니다.");
+            actionBar(player, messages.text("island-create-starting"));
             if (result.ticket() != null) {
                 route(player, result.ticket(), "섬으로 이동하지 못했습니다.");
             }
         }).exceptionally(error -> {
-            player.sendMessage(Component.text("현재 섬 서비스 일부 기능이 점검 중입니다."));
+            player.sendMessage(messages.component("island-service-maintenance"));
             return null;
         });
     }
@@ -2987,15 +2994,15 @@ public final class VelocityRoutingController {
 
     private String messageForCreateFailure(String code) {
         if (code != null && code.startsWith("NO_READY_NODE")) {
-            return "현재 섬 서비스가 혼잡합니다. 잠시 후 다시 시도해주세요.";
+            return messages.text("island-create-node-unavailable");
         }
         return switch (code) {
-            case "ALREADY_HAS_ISLAND" -> "이미 섬을 보유하고 있습니다.";
-            case "TEMPLATE_UNAVAILABLE" -> "사용할 수 없는 섬 템플릿입니다.";
-            case "CREATE_LOCKED" -> "섬 생성을 처리하는 중입니다. 잠시 후 다시 시도해주세요.";
-            case "NODE_UNAVAILABLE" -> "현재 섬 서비스가 혼잡합니다. 잠시 후 다시 시도해주세요.";
-            case "JOB_QUEUE_UNAVAILABLE", "RECOVERY_UNAVAILABLE" -> "현재 섬 서비스 일부 기능이 점검 중입니다.";
-            default -> "섬 생성에 실패했습니다.";
+            case "ALREADY_HAS_ISLAND" -> messages.text("island-create-already-has-island");
+            case "TEMPLATE_UNAVAILABLE" -> messages.text("island-create-template-unavailable");
+            case "CREATE_LOCKED" -> messages.text("island-create-locked");
+            case "NODE_UNAVAILABLE" -> messages.text("island-create-node-unavailable");
+            case "JOB_QUEUE_UNAVAILABLE", "RECOVERY_UNAVAILABLE" -> messages.text("island-service-maintenance");
+            default -> messages.text("island-create-failed");
         };
     }
 }

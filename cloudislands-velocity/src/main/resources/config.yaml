@@ -30,6 +30,16 @@ commands:
 messages:
   use-actionbar: true
   use-bossbar-loading: true
+  player-only: "플레이어만 사용할 수 있습니다."
+  no-player-permission: "섬 명령을 사용할 권한이 없습니다."
+  no-admin-permission: "섬 관리 명령을 사용할 권한이 없습니다."
+  island-create-starting: "섬을 생성하고 있습니다."
+  island-service-maintenance: "현재 섬 서비스 일부 기능이 점검 중입니다."
+  island-create-already-has-island: "이미 섬을 보유하고 있습니다."
+  island-create-template-unavailable: "사용할 수 없는 섬 템플릿입니다."
+  island-create-locked: "섬 생성을 처리하는 중입니다. 잠시 후 다시 시도해주세요."
+  island-create-node-unavailable: "현재 섬 서비스가 혼잡합니다. 잠시 후 다시 시도해주세요."
+  island-create-failed: "섬 생성에 실패했습니다."
 
 health:
   enabled: false

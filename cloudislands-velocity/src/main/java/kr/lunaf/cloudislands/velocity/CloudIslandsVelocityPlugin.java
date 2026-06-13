@@ -31,6 +31,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JdkCoreApiClient;
 import kr.lunaf.cloudislands.velocity.command.IslandCommandCatalog;
 import kr.lunaf.cloudislands.velocity.health.VelocityHealthService;
+import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
 import net.kyori.adventure.text.Component;
 import org.slf4j.Logger;
 
@@ -44,6 +45,7 @@ public final class CloudIslandsVelocityPlugin {
     private final boolean blockCloudIslandsPluginMessages;
     private final VelocityConfig config;
     private final VelocityHealthService healthService;
+    private final VelocityMessages messages;
 
     @Inject
     public CloudIslandsVelocityPlugin(ProxyServer proxy, Logger logger, @DataDirectory Path dataDirectory) {
@@ -61,7 +63,8 @@ public final class CloudIslandsVelocityPlugin {
         int routeTicketTtlSeconds = Integer.getInteger("cloudislands.routeTicketTtlSeconds", config.routeTicketTtlSeconds());
         logSecurityPosture(config, coreToken, adminToken);
         CoreApiClient client = new JdkCoreApiClient(URI.create(coreUrl), coreToken, adminToken, Duration.ofMillis(Math.max(1L, timeoutMs)));
-        this.routingController = new VelocityRoutingController(proxy, client, fallbackServer, routeWaitSeconds, config.useActionBar(), config.useBossBarLoading(), config.hideNodeNames(), islandPool, routeTicketTtlSeconds);
+        this.messages = VelocityMessages.from(config.language(), config.messages());
+        this.routingController = new VelocityRoutingController(proxy, client, fallbackServer, routeWaitSeconds, config.useActionBar(), config.useBossBarLoading(), config.hideNodeNames(), islandPool, routeTicketTtlSeconds, messages);
         this.commandAliases = config.aliases();
         this.blockCloudIslandsPluginMessages = config.blockCloudIslandsPluginMessages();
         this.healthService = new VelocityHealthService(
@@ -71,6 +74,9 @@ public final class CloudIslandsVelocityPlugin {
             () -> velocityHealthJson(),
             () -> velocityMetricsText()
         );
+        if (config.debug()) {
+            logger.info("CloudIslands Velocity config loaded: language={}, aliases={}, health={}:{}", config.language(), commandAliases, config.healthBindHost(), config.healthPort());
+        }
     }
 
     private static VelocityConfig loadConfig(Path dataDirectory, Logger logger) {
@@ -123,6 +129,8 @@ public final class CloudIslandsVelocityPlugin {
             logger.warn("Failed to load CloudIslands Velocity config, using defaults", exception);
         }
         return new VelocityConfig(
+            values.getOrDefault("plugin.language", "ko_kr"),
+            bool(values.get("plugin.debug"), false),
             values.getOrDefault("core-api.base-url", "https://core-api.internal:8443"),
             values.getOrDefault("core-api.auth-token", ""),
             values.getOrDefault("core-api.admin-token", ""),
@@ -140,8 +148,20 @@ public final class CloudIslandsVelocityPlugin {
             bool(values.get("health.enabled"), false),
             values.getOrDefault("health.bind-host", "127.0.0.1"),
             integer(values.get("health.port"), 8788),
+            messageValues(values),
             aliases.isEmpty() ? ALIASES : List.copyOf(aliases)
         );
+    }
+
+    private static Map<String, String> messageValues(Map<String, String> values) {
+        Map<String, String> messages = new HashMap<>();
+        for (Map.Entry<String, String> entry : values.entrySet()) {
+            String key = entry.getKey();
+            if (key.startsWith("messages.") && !key.equals("messages.use-actionbar") && !key.equals("messages.use-bossbar-loading")) {
+                messages.put(key.substring("messages.".length()), entry.getValue());
+            }
+        }
+        return Map.copyOf(messages);
     }
 
     private static String unquote(String value) {
@@ -203,7 +223,7 @@ public final class CloudIslandsVelocityPlugin {
         }
     }
 
-    private record VelocityConfig(String coreBaseUrl, String coreToken, String adminToken, int timeoutMs, String fallbackServer, int routeWaitSeconds, String islandPool, int routeTicketTtlSeconds, boolean hideNodeNames, boolean useActionBar, boolean useBossBarLoading, boolean requireModernForwarding, String forwardingSecret, boolean blockCloudIslandsPluginMessages, boolean healthEnabled, String healthBindHost, int healthPort, List<String> aliases) {}
+    private record VelocityConfig(String language, boolean debug, String coreBaseUrl, String coreToken, String adminToken, int timeoutMs, String fallbackServer, int routeWaitSeconds, String islandPool, int routeTicketTtlSeconds, boolean hideNodeNames, boolean useActionBar, boolean useBossBarLoading, boolean requireModernForwarding, String forwardingSecret, boolean blockCloudIslandsPluginMessages, boolean healthEnabled, String healthBindHost, int healthPort, Map<String, String> messages, List<String> aliases) {}
 
     @Subscribe
     public void onProxyInitialize(ProxyInitializeEvent event) {
@@ -212,11 +232,11 @@ public final class CloudIslandsVelocityPlugin {
             @Override
             public void execute(SimpleCommand.Invocation invocation) {
                 if (!(invocation.source() instanceof Player player)) {
-                    invocation.source().sendMessage(Component.text("플레이어만 사용할 수 있습니다."));
+                    invocation.source().sendMessage(messages.component("player-only"));
                     return;
                 }
                 if (!player.hasPermission("cloudislands.player")) {
-            player.sendMessage(Component.text("섬 명령을 사용할 권한이 없습니다."));
+            player.sendMessage(messages.component("no-player-permission"));
             return;
         }
         dispatch(player, invocation.arguments());
@@ -232,11 +252,11 @@ public final class CloudIslandsVelocityPlugin {
             @Override
             public void execute(SimpleCommand.Invocation invocation) {
                 if (!(invocation.source() instanceof Player player)) {
-                    invocation.source().sendMessage(Component.text("플레이어만 사용할 수 있습니다."));
+                    invocation.source().sendMessage(messages.component("player-only"));
                     return;
                 }
                 if (!hasAdminAccess(player, invocation.arguments())) {
-                    player.sendMessage(Component.text("섬 관리 명령을 사용할 권한이 없습니다."));
+                    player.sendMessage(messages.component("no-admin-permission"));
                     return;
                 }
                 dispatchAdmin(player, invocation.arguments());
@@ -268,6 +288,8 @@ public final class CloudIslandsVelocityPlugin {
             + "\"status\":\"UP\","
             + "\"onlinePlayers\":" + proxy.getPlayerCount() + ","
             + "\"registeredServers\":" + proxy.getAllServers().size() + ","
+            + "\"language\":\"" + escapeJson(config.language()) + "\","
+            + "\"debug\":" + config.debug() + ","
             + "\"aliases\":\"" + escapeJson(String.join(",", commandAliases)) + "\","
             + "\"routing\":\"" + escapeJson(routingController.statusSummary()) + "\""
             + "}";
@@ -278,6 +300,7 @@ public final class CloudIslandsVelocityPlugin {
             + "cloudislands_velocity_online_players " + proxy.getPlayerCount() + "\n"
             + "cloudislands_velocity_registered_servers " + proxy.getAllServers().size() + "\n"
             + "cloudislands_velocity_command_aliases " + commandAliases.size() + "\n"
+            + "cloudislands_velocity_debug_enabled " + (config.debug() ? 1 : 0) + "\n"
             + "cloudislands_velocity_plugin_message_blocking " + (blockCloudIslandsPluginMessages ? 1 : 0) + "\n";
     }
 
