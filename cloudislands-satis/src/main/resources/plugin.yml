@@ -2,8 +2,7 @@ name: CloudIslandsSatis
 main: kr.seungmin.satisskyfactory.SatisSkyFactoryPlugin
 version: ${version}
 api-version: "1.21"
-depend: [CloudIslands]
-softdepend: [SuperiorSkyblock2, Vault, PlaceholderAPI]
+softdepend: [CloudIslands, SuperiorSkyblock2, Vault, PlaceholderAPI]
 author: LeeSeungmin
 website: "mailto:admin@lunaf.kr"
 commands:
