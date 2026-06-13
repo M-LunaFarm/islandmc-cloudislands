@@ -1,5 +1,5 @@
 integration:
-  enabled: false
+  enabled: true
   mode: ADDON
   skyblock-provider: CLOUDISLANDS
   cloudislands-adapter: true

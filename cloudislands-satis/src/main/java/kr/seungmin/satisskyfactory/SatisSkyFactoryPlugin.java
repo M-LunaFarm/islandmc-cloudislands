@@ -81,10 +81,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         configs.load();
         addonRuntimeEnabled = false;
         effectiveFeatures = Map.of();
-        if (!configs.main().getBoolean("integration.enabled", false)) {
-            getLogger().info("CloudIslands Satis addon is disabled by config.");
-            return;
-        }
         if (!registerCloudIslandsAddon()) {
             return;
         }
