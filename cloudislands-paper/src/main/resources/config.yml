@@ -22,6 +22,7 @@ addons:
       research: true
       maintenance: true
       placeholders: true
+      addon-state: true
 
 satis:
   enabled: true
@@ -42,6 +43,7 @@ satis:
     research: true
     maintenance: true
     placeholders: true
+    addon-state: true
 
 messages:
   use-actionbar: true
