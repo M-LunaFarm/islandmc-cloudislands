@@ -649,6 +649,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<Map<String, String>> islandState(String id, UUID islandId) {
             String safeId = safeRegistrationId(id);
+            if (islandId == null) {
+                return CompletableFuture.completedFuture(Map.of());
+            }
             return coreClient.addonIslandState(safeId, islandId)
                 .thenApply(this::stateFromJson)
                 .exceptionally(_error -> Map.of());
@@ -657,6 +660,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<Map<String, String>> putIslandState(String id, UUID islandId, Map<String, String> values) {
             String safeId = safeRegistrationId(id);
+            if (islandId == null) {
+                return CompletableFuture.completedFuture(Map.of());
+            }
             if (values == null || values.isEmpty()) {
                 return islandState(safeId, islandId);
             }
@@ -673,6 +679,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<Map<String, String>> removeIslandState(String id, UUID islandId, String key) {
             String safeId = safeRegistrationId(id);
+            if (islandId == null) {
+                return CompletableFuture.completedFuture(Map.of());
+            }
             if (key == null) {
                 return islandState(safeId, islandId);
             }
@@ -683,6 +692,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<Void> clearIslandState(String id, UUID islandId) {
+            if (islandId == null) {
+                return CompletableFuture.completedFuture(null);
+            }
             return coreClient.clearAddonIslandState(safeRegistrationId(id), islandId).thenApply(_body -> null).exceptionally(_error -> null);
         }
 
