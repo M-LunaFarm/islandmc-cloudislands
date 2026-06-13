@@ -52,11 +52,14 @@ public final class DatabaseService {
     }
 
     public void open() {
-        dataFolder.mkdirs();
+        ensureDirectory(dataFolder, "Satis data folder");
         File database = databaseFile();
         File parent = database.getParentFile();
         if (parent != null) {
-            parent.mkdirs();
+            ensureDirectory(parent, "Satis database folder");
+        }
+        if (database.isDirectory()) {
+            throw new IllegalStateException("Satis database path points to a directory: " + database.getAbsolutePath());
         }
         SQLiteConfig sqliteConfig = new SQLiteConfig();
         sqliteConfig.enforceForeignKeys(true);
@@ -84,6 +87,18 @@ public final class DatabaseService {
     private File databaseFile() {
         File configured = new File(sqliteFileName);
         return configured.isAbsolute() ? configured : new File(dataFolder, sqliteFileName);
+    }
+
+    private void ensureDirectory(File directory, String label) {
+        if (directory.exists()) {
+            if (!directory.isDirectory()) {
+                throw new IllegalStateException(label + " is not a directory: " + directory.getAbsolutePath());
+            }
+            return;
+        }
+        if (!directory.mkdirs() && !directory.isDirectory()) {
+            throw new IllegalStateException("Failed to create " + label + ": " + directory.getAbsolutePath());
+        }
     }
 
     public void close() {
