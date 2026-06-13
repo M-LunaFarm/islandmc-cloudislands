@@ -322,9 +322,14 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         String channel = event.getIdentifier().getId();
-        if (channel.equals("cloudislands") || channel.startsWith("cloudislands:")) {
+        String identifier = event.getIdentifier().toString();
+        if (isCloudIslandsPluginMessage(channel) || isCloudIslandsPluginMessage(identifier)) {
             event.setResult(PluginMessageEvent.ForwardResult.handled());
         }
+    }
+
+    private boolean isCloudIslandsPluginMessage(String channel) {
+        return channel != null && (channel.equals("cloudislands") || channel.startsWith("cloudislands:"));
     }
 
     @Subscribe
