@@ -354,6 +354,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean routeSessionEnforced = configBoolean("security.enforce-route-session", true) || configBoolean("routing.require-route-session", true);
         boolean proxySourceAllowlistConfigured = !getConfig().getStringList("security.proxy-source-allowlist").isEmpty();
         PaperRouteSessionListener routeSessions = routeSessionListener;
+        PermissionEventPoller events = permissionEventPoller;
         return "{"
             + "\"status\":\"UP\","
             + "\"role\":\"" + role.name() + "\","
@@ -373,6 +374,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"forwardingRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.forwardingRejections()) + ","
             + "\"routeSessionRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.routeSessionRejections()) + ","
             + "\"routeSessionCheckFailuresTotal\":" + (routeSessions == null ? 0L : routeSessions.routeSessionCheckFailures()) + ","
+            + "\"chatBroadcastsTotal\":" + (events == null ? 0L : events.chatBroadcasts()) + ","
+            + "\"chatDeliveriesTotal\":" + (events == null ? 0L : events.chatDeliveries()) + ","
+            + "\"chatNoRecipientBroadcastsTotal\":" + (events == null ? 0L : events.chatNoRecipientBroadcasts()) + ","
             + "\"localCacheCount\":" + (localCaches == null ? 0 : localCaches.cacheCount()) + ","
             + "\"localCacheInvalidationsTotal\":" + (localCaches == null ? 0 : localCaches.invalidationsTotal())
             + "}";
@@ -394,6 +398,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         PeriodicIslandSaveTask saver = periodicSaveTask;
         IslandGeneratorListener generator = generatorListener;
         PaperRouteSessionListener routeSessions = routeSessionListener;
+        PermissionEventPoller events = permissionEventPoller;
         return ""
             + "cloudislands_paper_online_players " + getServer().getOnlinePlayers().size() + "\n"
             + "cloudislands_paper_online_mode " + (getServer().getOnlineMode() ? 1 : 0) + "\n"
@@ -425,6 +430,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_paper_forwarding_rejections_total{node=\"" + nodeId + "\"} " + (routeSessions == null ? 0L : routeSessions.forwardingRejections()) + "\n"
             + "cloudislands_paper_route_session_rejections_total{node=\"" + nodeId + "\"} " + (routeSessions == null ? 0L : routeSessions.routeSessionRejections()) + "\n"
             + "cloudislands_paper_route_session_check_failures_total{node=\"" + nodeId + "\"} " + (routeSessions == null ? 0L : routeSessions.routeSessionCheckFailures()) + "\n"
+            + "cloudislands_paper_chat_broadcasts_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.chatBroadcasts()) + "\n"
+            + "cloudislands_paper_chat_deliveries_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.chatDeliveries()) + "\n"
+            + "cloudislands_paper_chat_no_recipient_broadcasts_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.chatNoRecipientBroadcasts()) + "\n"
             + "cloudislands_redis_latency_seconds{node=\"" + nodeId + "\"} " + redis.latencySeconds() + "\n"
             + "cloudislands_paper_redis_available{node=\"" + nodeId + "\"} " + (redis.available() ? 1 : 0) + "\n"
             + "cloudislands_paper_redis_latency_seconds{node=\"" + nodeId + "\"} " + redis.latencySeconds() + "\n"
@@ -463,7 +471,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";proxySourceRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.proxySourceRejections())
             + ";forwardingRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.forwardingRejections())
             + ";routeSessionRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.routeSessionRejections())
-            + ";routeSessionCheckFailures=" + (routeSessionListener == null ? 0L : routeSessionListener.routeSessionCheckFailures());
+            + ";routeSessionCheckFailures=" + (routeSessionListener == null ? 0L : routeSessionListener.routeSessionCheckFailures())
+            + ";chatBroadcasts=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatBroadcasts())
+            + ";chatDeliveries=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatDeliveries())
+            + ";chatNoRecipientBroadcasts=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatNoRecipientBroadcasts());
     }
 
     private void startIslandNodeWorker(CoreApiClient client, String nodeId, IslandStorage storage, IslandLimitCache limitCache) {

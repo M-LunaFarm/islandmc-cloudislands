@@ -11,6 +11,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
@@ -98,6 +99,9 @@ public final class PermissionEventPoller {
     private final Deque<String> seenOrder = new ArrayDeque<>();
     private long lastEventSequence;
     private BukkitTask task;
+    private final AtomicLong chatBroadcasts = new AtomicLong();
+    private final AtomicLong chatDeliveries = new AtomicLong();
+    private final AtomicLong chatNoRecipientBroadcasts = new AtomicLong();
 
     public PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, GeneratorLevelCache generatorLevels, CropGrowthLevelCache cropGrowthLevels, IslandLimitCache limits, ProtectionController protection, String nodeId, String fallbackServerName) {
         this.plugin = plugin;
@@ -121,6 +125,18 @@ public final class PermissionEventPoller {
             task.cancel();
             task = null;
         }
+    }
+
+    public long chatBroadcasts() {
+        return chatBroadcasts.get();
+    }
+
+    public long chatDeliveries() {
+        return chatDeliveries.get();
+    }
+
+    public long chatNoRecipientBroadcasts() {
+        return chatNoRecipientBroadcasts.get();
     }
 
     private void poll() {
@@ -295,17 +311,25 @@ public final class PermissionEventPoller {
         boolean teamChannel = channel.equalsIgnoreCase("TEAM");
         String normalizedChannel = teamChannel ? "팀" : "섬";
         String message = "[" + normalizedChannel + "] " + actorName + ": " + chatMessage;
+        int deliveries = 0;
         for (Player online : Bukkit.getOnlinePlayers()) {
             if (teamChannel) {
                 if (teamRecipient(recipients, online.getUniqueId()) || (recipients.isBlank() && protection.memberOrTrusted(islandId, online.getUniqueId()))) {
                     online.sendMessage(message);
+                    deliveries++;
                 }
                 continue;
             }
             UUID currentIslandId = protection.islandAt(online.getLocation().getBlock()).orElse(null);
             if (islandId.equals(currentIslandId)) {
                 online.sendMessage(message);
+                deliveries++;
             }
+        }
+        chatBroadcasts.incrementAndGet();
+        chatDeliveries.addAndGet(deliveries);
+        if (deliveries == 0) {
+            chatNoRecipientBroadcasts.incrementAndGet();
         }
     }
 

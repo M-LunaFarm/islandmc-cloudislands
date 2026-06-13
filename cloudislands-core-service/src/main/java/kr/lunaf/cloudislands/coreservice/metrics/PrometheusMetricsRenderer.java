@@ -166,6 +166,12 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_paper_route_session_rejections_total", "counter");
         help(out, "cloudislands_paper_route_session_check_failures_total", "Paper route session verification failures while checking Core API");
         type(out, "cloudislands_paper_route_session_check_failures_total", "counter");
+        help(out, "cloudislands_paper_chat_broadcasts_total", "Island chat events broadcast by Paper nodes");
+        type(out, "cloudislands_paper_chat_broadcasts_total", "counter");
+        help(out, "cloudislands_paper_chat_deliveries_total", "Island chat recipient deliveries performed by Paper nodes");
+        type(out, "cloudislands_paper_chat_deliveries_total", "counter");
+        help(out, "cloudislands_paper_chat_no_recipient_broadcasts_total", "Island chat broadcasts with no online recipient on Paper nodes");
+        type(out, "cloudislands_paper_chat_no_recipient_broadcasts_total", "counter");
         help(out, "cloudislands_core_token_configured", "Whether Core API token authentication has a configured token");
         type(out, "cloudislands_core_token_configured", "gauge");
         out.append("cloudislands_core_token_configured ").append(coreTokenConfigured.getAsBoolean() ? 1 : 0).append('\n');
@@ -261,6 +267,9 @@ public final class PrometheusMetricsRenderer {
             appendMetadataGauge(out, "cloudislands_paper_forwarding_rejections_total", node, "forwardingRejections");
             appendMetadataGauge(out, "cloudislands_paper_route_session_rejections_total", node, "routeSessionRejections");
             appendMetadataGauge(out, "cloudislands_paper_route_session_check_failures_total", node, "routeSessionCheckFailures");
+            appendMetadataGauge(out, "cloudislands_paper_chat_broadcasts_total", node, "chatBroadcasts");
+            appendMetadataGauge(out, "cloudislands_paper_chat_deliveries_total", node, "chatDeliveries");
+            appendMetadataGauge(out, "cloudislands_paper_chat_no_recipient_broadcasts_total", node, "chatNoRecipientBroadcasts");
         }
         out.append("cloudislands_cluster_nodes_online ").append(onlineNodes).append('\n');
         out.append("cloudislands_cluster_players ").append(totalPlayers).append('\n');
