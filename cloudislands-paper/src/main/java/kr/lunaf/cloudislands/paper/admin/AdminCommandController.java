@@ -1052,7 +1052,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private String jobListMessage(String body) {
         String jobs = arrayValue(body, "jobs");
         if (jobs.isBlank()) {
-            return "Jobs: empty";
+            return adminText("admin-command-jobs-empty", "Jobs: empty");
         }
         int pending = 0;
         int claimed = 0;
@@ -1090,12 +1090,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             }
             index = objectEnd + 1;
         }
-        return "Jobs: total=" + total
-            + " pending=" + pending
-            + " claimed=" + claimed
-            + " failed=" + failed
-            + " done=" + done
-            + " other=" + other
+        return adminText("admin-command-jobs-total-prefix", "Jobs: total=") + total
+            + adminText("admin-command-jobs-pending-prefix", " pending=") + pending
+            + adminText("admin-command-jobs-claimed-prefix", " claimed=") + claimed
+            + adminText("admin-command-jobs-failed-prefix", " failed=") + failed
+            + adminText("admin-command-jobs-done-prefix", " done=") + done
+            + adminText("admin-command-jobs-other-prefix", " other=") + other
             + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
@@ -1107,36 +1107,36 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         long attempts = longValue(object, "attempts");
         String error = textValue(object, "error");
         String shortId = id.length() > 8 ? id.substring(0, 8) : id;
-        StringBuilder builder = new StringBuilder(shortId.isBlank() ? "job" : shortId)
+        StringBuilder builder = new StringBuilder(shortId.isBlank() ? adminText("admin-command-job-summary-default-id", "job") : shortId)
             .append(' ')
             .append(type.isBlank() ? "UNKNOWN" : type)
             .append(' ')
             .append(state.isBlank() ? "UNKNOWN" : state)
-            .append(" attempts=")
+            .append(adminText("admin-command-job-attempts-prefix", " attempts="))
             .append(attempts);
         if (!targetNode.isBlank()) {
-            builder.append(" node=").append(targetNode);
+            builder.append(adminText("admin-command-job-node-prefix", " node=")).append(targetNode);
         }
         if (!error.isBlank()) {
-            builder.append(" error=").append(error);
+            builder.append(adminText("admin-command-job-error-prefix", " error=")).append(error);
         }
         return builder.toString();
     }
 
     private String jobActionMessage(String action, String body) {
         if (body == null || body.isBlank()) {
-            return "Job " + action + ": no response";
+            return adminText("admin-command-job-prefix", "Job ") + action + adminText("admin-command-job-no-response", ": no response");
         }
         String code = textValue(body, "code");
         if (!code.isBlank()) {
-            return "Job " + action + ": failed code=" + code;
+            return adminText("admin-command-job-prefix", "Job ") + action + adminText("admin-command-job-failed-code-prefix", ": failed code=") + code;
         }
         if (body.contains("\"recovered\"")) {
             String recoveredText = textValue(body, "recovered");
             long recoveredNumber = longValue(body, "recovered");
-            return "Job recover: recovered=" + (recoveredText.isBlank() ? Long.toString(recoveredNumber) : recoveredText);
+            return adminText("admin-command-job-recover-prefix", "Job recover: recovered=") + (recoveredText.isBlank() ? Long.toString(recoveredNumber) : recoveredText);
         }
-        return "Job " + action + ": " + (boolValue(body, "ok") ? "accepted" : "not applied");
+        return adminText("admin-command-job-prefix", "Job ") + action + ": " + (boolValue(body, "ok") ? adminText("admin-command-job-accepted", "accepted") : adminText("admin-command-job-not-applied", "not applied"));
     }
 
     private String actionResultMessage(String label, String targetId, String body) {
