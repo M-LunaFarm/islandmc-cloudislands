@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import org.bukkit.Bukkit;
@@ -19,6 +20,20 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandLogMenu implements Listener {
     private static final String TITLE = "섬 로그";
+    private static final Set<String> INTERNAL_PAYLOAD_KEYS = Set.of(
+        "activenode",
+        "activeworld",
+        "cellx",
+        "cellz",
+        "fromnode",
+        "nodeid",
+        "originx",
+        "originz",
+        "sourcenode",
+        "targetnode",
+        "targetservername",
+        "worldname"
+    );
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
         client.listIslandLogs(islandId, 27)
@@ -208,10 +223,17 @@ public final class IslandLogMenu implements Listener {
             if (keyEnd < 0 || valueStart < 0 || valueEnd < 0) {
                 break;
             }
-            values.put(unescape(payload.substring(keyStart + 1, keyEnd)), unescape(payload.substring(valueStart + 1, valueEnd)));
+            String key = unescape(payload.substring(keyStart + 1, keyEnd));
+            if (!internalPayloadKey(key)) {
+                values.put(key, unescape(payload.substring(valueStart + 1, valueEnd)));
+            }
             index = valueEnd + 1;
         }
         return values;
+    }
+
+    private static boolean internalPayloadKey(String key) {
+        return key != null && INTERNAL_PAYLOAD_KEYS.contains(key.replace("-", "").replace("_", "").toLowerCase(java.util.Locale.ROOT));
     }
 
     private static int stringEnd(String value, int start) {
