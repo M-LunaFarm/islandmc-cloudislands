@@ -52,6 +52,9 @@ public final class DatabaseService {
     }
 
     public void open() {
+        if (dataSource != null && !dataSource.isClosed()) {
+            return;
+        }
         ensureDirectory(dataFolder, "Satis data folder");
         File database = databaseFile();
         File parent = database.getParentFile();
