@@ -50,29 +50,32 @@ public final class IslandLimitMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || meta.getLore() == null) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= 54) {
             return;
         }
-        String displayName = meta.getDisplayName();
         player.closeInventory();
-        if ("메인 메뉴".equals(displayName)) {
+        if (slot == 45) {
             player.performCommand("섬 메뉴");
             return;
         }
-        if ("새로고침".equals(displayName)) {
+        if (slot == 49) {
             player.performCommand("섬 제한");
             return;
         }
-        if ("설정".equals(displayName)) {
+        if (slot == 53) {
             player.performCommand("섬 설정");
+            return;
+        }
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null || meta.getLore() == null) {
             return;
         }
         String limitKey = loreValue(meta, "제한 키=");
         if (limitKey.isBlank()) {
             return;
         }
-        long value = number(loreValue(meta, "현재 값: "));
+        long value = number(loreValue(meta, "limitValue="));
         long step = event.isShiftClick() ? 10L : 1L;
         long nextValue = event.isRightClick() ? Math.max(0L, value - step) : value + step;
         player.performCommand("섬 제한설정 " + limitKey + " " + nextValue);
@@ -86,17 +89,17 @@ public final class IslandLimitMenu implements Listener {
                 inventory.setItem(slot++, limitItem(limit, messages));
             }
             if (limits.isEmpty()) {
-                inventory.setItem(22, item(Material.BARRIER, "제한 없음", message(messages, "limit-menu-empty", "현재 설정된 섬 제한이 없습니다.")));
+                inventory.setItem(22, item(Material.BARRIER, message(messages, "limit-menu-empty-title", "제한 없음"), message(messages, "limit-menu-empty", "현재 설정된 섬 제한이 없습니다.")));
             }
-            inventory.setItem(45, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
-            inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 제한"));
-            inventory.setItem(53, item(Material.COMPARATOR, "설정", "/섬 설정"));
+            inventory.setItem(45, item(Material.COMPASS, message(messages, "limit-menu-main-menu-name", "메인 메뉴"), message(messages, "limit-menu-main-menu-command", "/섬 메뉴")));
+            inventory.setItem(49, item(Material.CLOCK, message(messages, "limit-menu-refresh-name", "새로고침"), message(messages, "limit-menu-refresh-command", "/섬 제한")));
+            inventory.setItem(53, item(Material.COMPARATOR, message(messages, "limit-menu-settings-name", "설정"), message(messages, "limit-menu-settings-command", "/섬 설정")));
             player.openInventory(inventory);
         });
     }
 
     private static ItemStack limitItem(Limit limit, MessageRenderer messages) {
-        return item(Material.HOPPER, limit.key(), "제한 키=" + limit.key(), "현재 값: " + limit.value(), limit.updatedAt().isBlank() ? message(messages, "limit-menu-no-update", "업데이트 정보 없음") : "갱신 시각: " + limit.updatedAt(), message(messages, "limit-menu-left-click", "좌클릭: +1"), message(messages, "limit-menu-right-click", "우클릭: -1"), message(messages, "limit-menu-shift-click", "Shift+클릭: 10 단위로 조정"));
+        return item(Material.HOPPER, limit.key(), "제한 키=" + limit.key(), "limitValue=" + limit.value(), message(messages, "limit-menu-current-value", "현재 값: ") + limit.value(), limit.updatedAt().isBlank() ? message(messages, "limit-menu-no-update", "업데이트 정보 없음") : message(messages, "limit-menu-updated-at", "갱신 시각: ") + limit.updatedAt(), message(messages, "limit-menu-left-click", "좌클릭: +1"), message(messages, "limit-menu-right-click", "우클릭: -1"), message(messages, "limit-menu-shift-click", "Shift+클릭: 10 단위로 조정"));
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
