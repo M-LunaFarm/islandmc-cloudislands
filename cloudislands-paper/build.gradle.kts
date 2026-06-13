@@ -8,3 +8,11 @@ dependencies {
     implementation(project(":cloudislands-core-client"))
     implementation(project(":cloudislands-storage"))
 }
+
+tasks.jar {
+    archiveBaseName.set("CloudIslands-Paper")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from(configurations.runtimeClasspath.get().map {
+        if (it.isDirectory) it else zipTree(it)
+    })
+}
