@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper.gui;
 
 import java.util.List;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -15,23 +16,36 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandSettingsMenu implements Listener {
     private static final String TITLE = "섬 설정";
+    private final MessageRenderer messages;
+
+    public IslandSettingsMenu() {
+        this(null);
+    }
+
+    public IslandSettingsMenu(MessageRenderer messages) {
+        this.messages = messages;
+    }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, java.util.UUID islandId) {
+        open(plugin, client, player, islandId, null);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, java.util.UUID islandId, MessageRenderer messages) {
         client.islandInfo(islandId)
-            .thenAccept(body -> openSync(plugin, player, body))
+            .thenAccept(body -> openSync(plugin, player, body, messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("섬 설정을 불러오지 못했습니다."));
+                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "settings-menu-load-failed", "섬 설정을 불러오지 못했습니다.")));
                 return null;
             });
     }
 
-    private static void openSync(Plugin plugin, Player player, String body) {
+    private static void openSync(Plugin plugin, Player player, String body, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             boolean publicAccess = bool(body, "publicAccess");
             boolean locked = bool(body, "locked");
             Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
-            inventory.setItem(10, item(publicAccess ? Material.LIME_DYE : Material.GRAY_DYE, "공개 설정", "현재: " + (publicAccess ? "공개" : "비공개"), "좌클릭: /섬 공개", "우클릭: /섬 비공개"));
-            inventory.setItem(11, item(locked ? Material.IRON_DOOR : Material.OAK_DOOR, "잠금 설정", "현재: " + (locked ? "잠김" : "열림"), "좌클릭: /섬 잠금해제", "우클릭: /섬 잠금"));
+            inventory.setItem(10, item(publicAccess ? Material.LIME_DYE : Material.GRAY_DYE, "공개 설정", message(messages, "settings-menu-current", "현재: ") + (publicAccess ? message(messages, "settings-menu-public", "공개") : message(messages, "settings-menu-private", "비공개")), message(messages, "settings-menu-public-left-click", "좌클릭: /섬 공개"), message(messages, "settings-menu-public-right-click", "우클릭: /섬 비공개")));
+            inventory.setItem(11, item(locked ? Material.IRON_DOOR : Material.OAK_DOOR, "잠금 설정", message(messages, "settings-menu-current", "현재: ") + (locked ? message(messages, "settings-menu-locked", "잠김") : message(messages, "settings-menu-open", "열림")), message(messages, "settings-menu-lock-left-click", "좌클릭: /섬 잠금해제"), message(messages, "settings-menu-lock-right-click", "우클릭: /섬 잠금")));
             inventory.setItem(12, item(Material.NAME_TAG, "멤버 관리", "/섬 멤버"));
             inventory.setItem(13, item(Material.COMPARATOR, "권한 설정", "/섬 권한"));
             inventory.setItem(14, item(Material.REDSTONE_TORCH, "플래그 설정", "/섬 플래그"));
@@ -47,6 +61,14 @@ public final class IslandSettingsMenu implements Listener {
             inventory.setItem(26, item(Material.TNT, "위험 작업", "/섬 위험작업"));
             player.openInventory(inventory);
         });
+    }
+
+    private static String message(MessageRenderer messages, String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     @EventHandler

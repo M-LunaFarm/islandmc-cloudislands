@@ -222,6 +222,16 @@ public final class TranslationManager {
         values.put("upgrade-menu-load-failed", "섬 업그레이드를 불러오지 못했습니다.");
         values.put("upgrade-menu-empty", "Core API에 등록된 섬 업그레이드가 없습니다.");
         values.put("upgrade-menu-click-to-buy", "클릭하면 다음 레벨 구매를 요청합니다.");
+        values.put("settings-menu-load-failed", "섬 설정을 불러오지 못했습니다.");
+        values.put("settings-menu-current", "현재: ");
+        values.put("settings-menu-public", "공개");
+        values.put("settings-menu-private", "비공개");
+        values.put("settings-menu-locked", "잠김");
+        values.put("settings-menu-open", "열림");
+        values.put("settings-menu-public-left-click", "좌클릭: /섬 공개");
+        values.put("settings-menu-public-right-click", "우클릭: /섬 비공개");
+        values.put("settings-menu-lock-left-click", "좌클릭: /섬 잠금해제");
+        values.put("settings-menu-lock-right-click", "우클릭: /섬 잠금");
         values.put("danger-confirm-required", "Shift+우클릭해야 실행됩니다.");
         values.put("danger-confirm-click-required", "위험 작업은 Shift+우클릭해야 실행됩니다.");
         values.put("snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다.");
