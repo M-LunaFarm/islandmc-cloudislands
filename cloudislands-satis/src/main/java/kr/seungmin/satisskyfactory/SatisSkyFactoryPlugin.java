@@ -8,6 +8,7 @@ import kr.seungmin.satisskyfactory.database.DatabaseService;
 import kr.seungmin.satisskyfactory.economy.EconomyModeFactory;
 import kr.seungmin.satisskyfactory.economy.EconomyService;
 import kr.seungmin.satisskyfactory.gui.FactoryGuiService;
+import kr.seungmin.satisskyfactory.hook.CloudIslandsSkyblockProvider;
 import kr.seungmin.satisskyfactory.hook.PlaceholderHook;
 import kr.seungmin.satisskyfactory.hook.SkyblockProvider;
 import kr.seungmin.satisskyfactory.hook.SuperiorSkyblockHook;
@@ -74,7 +75,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
         }
         messages = new MessageService(configs);
 
-        skyblock = new SuperiorSkyblockHook(this);
+        skyblock = createSkyblockProvider();
         if (!skyblock.enable()) {
             getServer().getPluginManager().disablePlugin(this);
             return;
@@ -214,6 +215,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
                 !allowSpawnIsland && configBoolean("superior-skyblock.protect-spawn-island", "settings.protect-spawn-island", true),
                 configBoolean("superior-skyblock.require-island-member", "settings.require-island-member", true)
         );
+    }
+
+    private SkyblockProvider createSkyblockProvider() {
+        String provider = configs.main().getString("integration.skyblock-provider", "SUPERIOR_SKYBLOCK2");
+        if ("CLOUDISLANDS".equalsIgnoreCase(provider) || "CLOUD_ISLANDS".equalsIgnoreCase(provider)) {
+            return new CloudIslandsSkyblockProvider(this);
+        }
+        return new SuperiorSkyblockHook(this);
     }
 
     private int configInt(String primaryPath, String aliasPath, int fallback) {
