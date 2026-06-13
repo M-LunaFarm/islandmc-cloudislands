@@ -204,6 +204,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             rebuildNetworks();
         }
         restartRuntimeTasks();
+        registerCommands();
+        registerListeners();
+        refreshPlaceholders();
     }
 
     private void restartRuntimeTasks() {
@@ -462,7 +465,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (!getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             return;
         }
-        placeholderHook = new PlaceholderHook(this, islands, machines, storage, power, boosts, research, contracts);
+        placeholderHook = new PlaceholderHook(this, islands, machines, storage, power, boosts, research, contracts, this::featureEnabled);
         placeholderHook.register();
         getLogger().info("Registered PlaceholderAPI expansion: satisskyfactory");
     }

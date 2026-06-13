@@ -18,6 +18,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Locale;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 public final class PlaceholderHook extends PlaceholderExpansion {
     private final JavaPlugin plugin;
@@ -28,10 +29,11 @@ public final class PlaceholderHook extends PlaceholderExpansion {
     private final IslandBoostService boosts;
     private final ResearchService research;
     private final ContractService contracts;
+    private final Predicate<String> featureEnabled;
 
     public PlaceholderHook(JavaPlugin plugin, FactoryIslandService islands, MachineService machines, StorageService storage,
                            PowerNetworkService power, IslandBoostService boosts, ResearchService research,
-                           ContractService contracts) {
+                           ContractService contracts, Predicate<String> featureEnabled) {
         this.plugin = plugin;
         this.islands = islands;
         this.machines = machines;
@@ -40,6 +42,7 @@ public final class PlaceholderHook extends PlaceholderExpansion {
         this.boosts = boosts;
         this.research = research;
         this.contracts = contracts;
+        this.featureEnabled = featureEnabled;
     }
 
     @Override
@@ -74,6 +77,9 @@ public final class PlaceholderHook extends PlaceholderExpansion {
         }
         FactoryIsland island = context.get().factoryIsland();
         String key = params.toLowerCase(Locale.ROOT);
+        if (!canResolve(key)) {
+            return "";
+        }
         VirtualInventory islandStorage = storage.islandStorage(island.islandUuid());
         PowerNetworkService.NetworkState powerState = power.state(island.islandUuid());
         if (key.equals("island_uuid")) {
@@ -148,5 +154,27 @@ public final class PlaceholderHook extends PlaceholderExpansion {
             return String.valueOf(research.unlocked(island).contains(params.substring("unlocked_".length())));
         }
         return null;
+    }
+
+    private boolean canResolve(String key) {
+        if (key.equals("research") || key.startsWith("unlocked_")) {
+            return enabled("research");
+        }
+        if (key.equals("debt") || key.equals("maintenance_status") || key.equals("maintenance_score")) {
+            return enabled("maintenance");
+        }
+        if (key.equals("contracts_active") || key.equals("contract_slot_bonus")) {
+            return enabled("contracts");
+        }
+        if (key.equals("factory_score") || key.equals("machines") || key.startsWith("storage_")
+                || key.startsWith("power_") || key.startsWith("battery_") || key.equals("agriculture_boost")
+                || key.equals("machine_limit_bonus")) {
+            return enabled("machines");
+        }
+        return true;
+    }
+
+    private boolean enabled(String feature) {
+        return featureEnabled == null || featureEnabled.test(feature);
     }
 }
