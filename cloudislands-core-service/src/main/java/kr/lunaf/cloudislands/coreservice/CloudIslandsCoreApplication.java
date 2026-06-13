@@ -1786,7 +1786,7 @@ public final class CloudIslandsCoreApplication {
             metadataRepository.upsertWarp(islandId, name, location(body), publicAccess, actorUuid);
             audit.log(actorUuid, "PLAYER", "ISLAND_WARP_SET", "ISLAND", islandId.toString(), Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
             islandLogs.append(islandId, actorUuid, "ISLAND_WARP_SET", Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
-            events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name));
+            events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name, "operation", existingWarp ? "WARP_UPDATE" : "WARP_CREATE"));
             write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/islands/warps/delete", exchange -> {
@@ -1800,7 +1800,7 @@ public final class CloudIslandsCoreApplication {
             metadataRepository.deleteWarp(islandId, name);
             audit.log(actorUuid, "PLAYER", "ISLAND_WARP_DELETE", "ISLAND", islandId.toString(), Map.of("name", name));
             islandLogs.append(islandId, actorUuid, "ISLAND_WARP_DELETE", Map.of("name", name));
-            events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name));
+            events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name, "operation", "WARP_DELETE"));
             write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/islands/warps/access", exchange -> {
@@ -1819,7 +1819,7 @@ public final class CloudIslandsCoreApplication {
             metadataRepository.setWarpPublicAccess(islandId, name, publicAccess);
             audit.log(actorUuid, "PLAYER", "ISLAND_WARP_ACCESS_SET", "ISLAND", islandId.toString(), Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
             islandLogs.append(islandId, actorUuid, "ISLAND_WARP_ACCESS_SET", Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
-            events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name));
+            events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name, "operation", "WARP_ACCESS_SET", "publicAccess", Boolean.toString(publicAccess)));
             write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/islands/access", exchange -> {

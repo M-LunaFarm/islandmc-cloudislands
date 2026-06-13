@@ -415,6 +415,7 @@ public final class PrometheusMetricsRenderer {
         appendEventFieldCounters(out, "cloudislands_island_biome_changed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_BIOME_CHANGED, "biomeKey");
         eventCounter(out, "cloudislands_island_home_changed_total", "Island home changes accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_HOME_CHANGED);
         eventCounter(out, "cloudislands_island_warp_changed_total", "Island warp changes accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_WARP_CHANGED);
+        appendEventFieldCounters(out, "cloudislands_island_warp_changed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_WARP_CHANGED, "operation");
         eventCounter(out, "cloudislands_island_chat_sent_total", "Island chat messages accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_CHAT_SENT);
         appendEventFieldCounters(out, "cloudislands_island_chat_sent_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_CHAT_SENT, "channel");
         eventCounter(out, "cloudislands_island_template_changed_total", "Island template changes accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_TEMPLATE_CHANGED);

@@ -752,9 +752,9 @@ public final class PermissionEventPoller {
         String action = fields.getOrDefault("action", fields.getOrDefault("operation", ""));
         String normalized = action.toUpperCase(java.util.Locale.ROOT);
         Bukkit.getPluginManager().callEvent(new IslandWarpChangeEvent(islandId, warpName, action, fields));
-        if (normalized.equals("WARP_SET") || normalized.equals("SET") || normalized.equals("CREATE") || normalized.equals("CREATED")) {
+        if (normalized.equals("WARP_CREATE") || normalized.equals("WARP_SET") || normalized.equals("SET") || normalized.equals("CREATE") || normalized.equals("CREATED")) {
             Bukkit.getPluginManager().callEvent(new IslandWarpCreateEvent(islandId, warpName, fields));
-        } else if (normalized.equals("WARP_DELETED") || normalized.equals("DELETE") || normalized.equals("DELETED") || normalized.equals("REMOVE") || normalized.equals("REMOVED")) {
+        } else if (normalized.equals("WARP_DELETE") || normalized.equals("WARP_DELETED") || normalized.equals("DELETE") || normalized.equals("DELETED") || normalized.equals("REMOVE") || normalized.equals("REMOVED")) {
             Bukkit.getPluginManager().callEvent(new IslandWarpDeleteEvent(islandId, warpName, fields));
         }
     }
