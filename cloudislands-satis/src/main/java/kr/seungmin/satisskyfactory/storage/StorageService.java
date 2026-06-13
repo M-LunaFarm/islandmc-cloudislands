@@ -92,6 +92,10 @@ public final class StorageService {
         });
     }
 
+    public void clear() {
+        cache.clear();
+    }
+
     public void dirtySaves(DirtySaveService dirtySaves) {
         this.dirtySaves = dirtySaves;
     }
