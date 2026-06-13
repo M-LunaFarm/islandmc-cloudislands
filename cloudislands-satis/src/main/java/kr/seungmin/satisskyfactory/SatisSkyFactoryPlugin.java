@@ -72,12 +72,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private MaintenanceTickService maintenanceTicker;
     private PlaceholderHook placeholderHook;
     private CloudIslandsApi cloudIslandsApi;
+    private boolean addonRuntimeEnabled;
     private Map<String, Boolean> effectiveFeatures = Map.of();
 
     @Override
     public void onEnable() {
         configs = new ConfigService(this);
         configs.load();
+        addonRuntimeEnabled = false;
         effectiveFeatures = Map.of();
         if (!configs.main().getBoolean("integration.enabled", false)) {
             getLogger().info("CloudIslands Satis addon is disabled by config.");
@@ -169,7 +171,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         configs.load();
         effectiveFeatures = Map.of();
         if (!registerCloudIslandsAddon()) {
-            getServer().getPluginManager().disablePlugin(this);
+            stopRuntimeActivity();
             return;
         }
         configureSkyblockHook();
@@ -432,6 +434,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private boolean registerCloudIslandsAddon() {
         cloudIslandsApi = resolveCloudIslandsApi();
         if (cloudIslandsApi == null) {
+            addonRuntimeEnabled = true;
             return true;
         }
         CloudIslandsAddonSnapshot addon = register(cloudIslandsApi).join();
@@ -495,16 +498,18 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onAddonRegistered(CloudIslandsAddonSnapshot snapshot) {
+        addonRuntimeEnabled = snapshot.enabled();
         effectiveFeatures = snapshot.features();
     }
 
     @Override
     public void onAddonReloaded(CloudIslandsAddonSnapshot snapshot) {
+        addonRuntimeEnabled = snapshot.enabled();
         effectiveFeatures = snapshot.features();
         getLogger().info("Reloaded CloudIslands addon config: " + snapshot.id() + " enabled=" + snapshot.enabled());
         if (!snapshot.enabled()) {
             getLogger().info("CloudIslands disabled this addon during config reload.");
-            getServer().getPluginManager().disablePlugin(this);
+            stopRuntimeActivity();
             return;
         }
         if (database == null) {
@@ -516,7 +521,26 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onAddonUnregistered() {
+        addonRuntimeEnabled = false;
         effectiveFeatures = Map.of();
+    }
+
+    private void stopRuntimeActivity() {
+        if (ticker != null) {
+            ticker.stop();
+            ticker = null;
+        }
+        if (maintenanceTicker != null) {
+            maintenanceTicker.stop();
+            maintenanceTicker = null;
+        }
+        if (dirtySaves != null) {
+            dirtySaves.stop();
+        }
+        if (placeholderHook != null) {
+            placeholderHook.unregister();
+            placeholderHook = null;
+        }
     }
 
     private void applyAddonRuntimeState() {
@@ -551,6 +575,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean featureEnabled(String key) {
+        if (!addonRuntimeEnabled) {
+            return false;
+        }
         Boolean effective = effectiveFeatures.get(key);
         if (effective != null) {
             return effective;
