@@ -6,6 +6,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.World;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -25,13 +26,19 @@ public final class IslandEntityLimitListener implements Listener {
     private static final long NOTICE_COOLDOWN_MILLIS = 3_000L;
     private final ProtectionController protection;
     private final IslandLimitCache limits;
+    private final MessageRenderer messages;
     private final Map<UUID, Long> observedEntities = new ConcurrentHashMap<>();
     private final Set<UUID> seededEntities = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Long> lastLimitNotice = new ConcurrentHashMap<>();
 
     public IslandEntityLimitListener(ProtectionController protection, IslandLimitCache limits) {
+        this(protection, limits, null);
+    }
+
+    public IslandEntityLimitListener(ProtectionController protection, IslandLimitCache limits, MessageRenderer messages) {
         this.protection = protection;
         this.limits = limits;
+        this.messages = messages;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -145,10 +152,30 @@ public final class IslandEntityLimitListener implements Listener {
             return;
         }
         lastLimitNotice.put(islandId, now);
-        String message = "섬 엔티티 제한에 도달했습니다. 현재 " + current + "/" + limit;
+        String message = message("limit-reached", "섬 {limit} 제한에 도달했습니다. 현재 {current}/{max}",
+            "limit", "엔티티",
+            "current", Long.toString(current),
+            "max", Long.toString(limit)
+        );
         location.getWorld().getPlayers().stream()
             .filter(player -> player.getLocation().getWorld().equals(location.getWorld()))
             .filter(player -> player.getLocation().distanceSquared(location) <= 256.0D)
             .forEach(player -> player.sendMessage(message));
+    }
+
+    private String message(String key, String fallback, String... variables) {
+        if (messages == null) {
+            return render(fallback, variables);
+        }
+        String rendered = messages.plain(key, variables);
+        return rendered.isBlank() ? render(fallback, variables) : rendered;
+    }
+
+    private String render(String template, String... variables) {
+        String rendered = template == null ? "" : template;
+        for (int index = 0; index + 1 < variables.length; index += 2) {
+            rendered = rendered.replace("{" + variables[index] + "}", variables[index + 1] == null ? "" : variables[index + 1]);
+        }
+        return rendered;
     }
 }
