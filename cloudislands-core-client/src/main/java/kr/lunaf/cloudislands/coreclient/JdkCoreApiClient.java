@@ -836,14 +836,19 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> migrateSuperiorSkyblock2(String action, String path) {
-        String endpoint = switch (action.toLowerCase()) {
+        String normalizedAction = action == null || action.isBlank() ? "scan" : action.toLowerCase();
+        String endpoint = switch (normalizedAction) {
+            case "scan" -> "scan";
             case "dryrun", "dry-run" -> "dryrun";
             case "extract", "extract-worlds", "world-extract" -> "extract";
             case "import" -> "import";
             case "verify" -> "verify";
             case "rollback" -> "rollback";
-            default -> "scan";
+            default -> "";
         };
+        if (endpoint.isBlank()) {
+            return CompletableFuture.completedFuture("{\"code\":\"INVALID_MIGRATION_ACTION\",\"message\":\"Unknown SuperiorSkyblock2 migration action: " + escape(normalizedAction) + "\"}");
+        }
         String value = path == null ? "" : path;
         return postWithResultBody("/v1/admin/migrations/superiorskyblock2/" + endpoint, "{\"path\":\"" + escape(value) + "\",\"approval\":\"" + escape(value) + "\"}");
     }
