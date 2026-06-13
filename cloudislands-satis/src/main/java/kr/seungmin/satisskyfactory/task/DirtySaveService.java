@@ -271,6 +271,10 @@ public final class DirtySaveService {
         copy.createdAt(island.createdAt());
         copy.updatedAt(island.updatedAt());
         copy.emergencyContractsUsedToday(island.emergencyContractsUsedToday());
+        copy.activeWorld(island.activeWorld());
+        copy.activeCenterX(island.activeCenterX());
+        copy.activeCenterY(island.activeCenterY());
+        copy.activeCenterZ(island.activeCenterZ());
         return copy;
     }
 }
