@@ -2,6 +2,7 @@ package kr.seungmin.satisskyfactory;
 
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
+import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.seungmin.satisskyfactory.command.FactoryCommand;
 import kr.seungmin.satisskyfactory.config.ConfigService;
@@ -43,7 +44,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-public final class SatisSkyFactoryPlugin extends JavaPlugin {
+public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIslandsAddon {
     private static final String ADDON_ID = "cloudislands-satis";
     private ConfigService configs;
     private MessageService messages;
@@ -415,9 +416,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
         if (cloudIslandsApi == null) {
             return true;
         }
-        CloudIslandsAddonSnapshot addon = cloudIslandsApi.addons()
-                .register(ADDON_ID, "CloudIslands Satis", getDescription().getVersion(), configs.main().getBoolean("integration.enabled", false), featureSnapshot())
-                .join();
+        CloudIslandsAddonSnapshot addon = register(cloudIslandsApi).join();
         effectiveFeatures = addon.features();
         getLogger().info("Registered CloudIslands addon: " + addon.id() + " enabled=" + addon.enabled());
         if (!addon.enabled()) {
@@ -439,8 +438,33 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
         if (cloudIslandsApi == null) {
             return;
         }
-        cloudIslandsApi.addons().unregister(ADDON_ID);
+        unregister(cloudIslandsApi);
         cloudIslandsApi = null;
+    }
+
+    @Override
+    public String addonId() {
+        return ADDON_ID;
+    }
+
+    @Override
+    public String addonDisplayName() {
+        return "CloudIslands Satis";
+    }
+
+    @Override
+    public String addonVersion() {
+        return getDescription().getVersion();
+    }
+
+    @Override
+    public boolean enabledByDefault() {
+        return configs.main().getBoolean("integration.enabled", false);
+    }
+
+    @Override
+    public Map<String, Boolean> addonFeatures() {
+        return featureSnapshot();
     }
 
     private Map<String, Boolean> featureSnapshot() {
