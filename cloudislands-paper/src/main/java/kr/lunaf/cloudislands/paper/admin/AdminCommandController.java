@@ -660,6 +660,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         String state = textValue(body, "state");
         String path = textValue(body, "path");
+        String manifestPath = textValue(body, "manifestPath");
         String issues = arrayValue(body, "issues");
         long manifests = longValue(body, "manifests");
         long importedIslands = longValue(body, "importedIslands");
@@ -670,6 +671,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             .append(manifests);
         if (!path.isBlank()) {
             builder.append(" path=").append(path);
+        }
+        if (!manifestPath.isBlank()) {
+            builder.append(" manifest=").append(manifestPath);
         }
         if (body.contains("\"canImport\"")) {
             builder.append(" canImport=").append(boolValue(body, "canImport"));

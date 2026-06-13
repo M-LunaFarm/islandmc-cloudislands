@@ -1,8 +1,10 @@
 package kr.lunaf.cloudislands.coreservice;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -102,8 +104,16 @@ public final class MigrationAdminService {
     public synchronized String scan(String path) {
         String sourcePath = path == null || path.isBlank() ? "plugins/SuperiorSkyblock2" : path;
         lastScan = scanner.scan(Path.of(sourcePath));
+        List<MigrationIssue> issues = new ArrayList<>(lastScan.issues());
+        Path manifestPath = migrationManifestPath();
+        try {
+            writeMigrationManifestFile(sourcePath, manifestPath, lastScan.manifests());
+        } catch (java.io.IOException exception) {
+            issues.add(new MigrationIssue("MIGRATION_MANIFEST_WRITE_FAILED", exception.getMessage(), true));
+        }
+        lastScan = new SuperiorSkyblock2MigrationScanner.ScanResult(lastScan.manifests(), List.copyOf(issues));
         lastPlan = new MigrationImportPlan(lastScan.manifests(), lastScan.issues());
-        return "{\"state\":\"" + MigrationRunState.SCANNED + "\",\"path\":\"" + escape(sourcePath) + "\",\"manifests\":" + lastScan.manifests().size() + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastScan.issues()) + "}";
+        return "{\"state\":\"" + MigrationRunState.SCANNED + "\",\"path\":\"" + escape(sourcePath) + "\",\"manifestPath\":\"" + escape(manifestPath.toString()) + "\",\"manifests\":" + lastScan.manifests().size() + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastScan.issues()) + "}";
     }
 
     public synchronized String dryRun() {
@@ -516,6 +526,214 @@ public final class MigrationAdminService {
             return "null";
         }
         return "{\"runId\":\"" + plan.runId() + "\",\"importedIslandIds\":" + plan.importedIslandIds().size() + ",\"createdAt\":\"" + plan.createdAt() + "\"}";
+    }
+
+    private Path migrationManifestPath() {
+        return migrationBundleRoot.resolve("manifests").resolve("superiorskyblock2-last-scan.json");
+    }
+
+    private void writeMigrationManifestFile(String sourcePath, Path manifestPath, List<MigrationManifest> manifests) throws java.io.IOException {
+        Files.createDirectories(manifestPath.getParent());
+        Files.writeString(manifestPath, migrationManifestJson(sourcePath, manifests), StandardCharsets.UTF_8);
+    }
+
+    private String migrationManifestJson(String sourcePath, List<MigrationManifest> manifests) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("{\"source\":\"").append(escape(sourcePath)).append("\",")
+            .append("\"generatedAt\":\"").append(Instant.now()).append("\",")
+            .append("\"manifests\":[");
+        for (int index = 0; index < manifests.size(); index++) {
+            if (index > 0) {
+                builder.append(',');
+            }
+            appendManifestJson(builder, manifests.get(index));
+        }
+        return builder.append("]}").toString();
+    }
+
+    private void appendManifestJson(StringBuilder builder, MigrationManifest manifest) {
+        builder.append("{\"islandId\":\"").append(manifest.islandId()).append("\",")
+            .append("\"ownerUuid\":\"").append(manifest.ownerUuid()).append("\",")
+            .append("\"members\":").append(uuidArrayJson(manifest.members())).append(',')
+            .append("\"memberRoles\":").append(memberRolesJson(manifest)).append(',')
+            .append("\"bannedVisitors\":").append(uuidArrayJson(manifest.bannedVisitors())).append(',')
+            .append("\"islandLocation\":").append(locationJson(manifest.islandLocation())).append(',')
+            .append("\"homes\":").append(homesJson(manifest)).append(',')
+            .append("\"warps\":").append(warpsJson(manifest)).append(',')
+            .append("\"flags\":").append(flagsJson(manifest)).append(',')
+            .append("\"permissions\":").append(permissionsJson(manifest)).append(',')
+            .append("\"upgrades\":").append(upgradesJson(manifest)).append(',')
+            .append("\"limits\":").append(limitsJson(manifest)).append(',')
+            .append("\"completedMissions\":").append(missionsJson(manifest)).append(',')
+            .append("\"blockValues\":").append(blockValuesJson(manifest)).append(',')
+            .append("\"blockCounts\":").append(blockCountsJson(manifest)).append(',')
+            .append("\"biomeKey\":\"").append(escape(manifest.biomeKey())).append("\",")
+            .append("\"bankBalance\":\"").append(escape(manifest.bankBalance())).append("\",")
+            .append("\"publicAccess\":").append(manifest.publicAccess()).append(',')
+            .append("\"locked\":").append(manifest.locked()).append(',')
+            .append("\"size\":").append(manifest.size()).append(',')
+            .append("\"level\":").append(manifest.level()).append(',')
+            .append("\"worth\":\"").append(escape(manifest.worth())).append("\",")
+            .append("\"sourceWorldPath\":\"").append(escape(manifest.sourceWorldPath())).append("\"}");
+    }
+
+    private String uuidArrayJson(List<java.util.UUID> uuids) {
+        StringBuilder builder = new StringBuilder("[");
+        for (int index = 0; index < uuids.size(); index++) {
+            if (index > 0) {
+                builder.append(',');
+            }
+            builder.append('"').append(uuids.get(index)).append('"');
+        }
+        return builder.append(']').toString();
+    }
+
+    private String memberRolesJson(MigrationManifest manifest) {
+        StringBuilder builder = new StringBuilder("[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.migration.MigrationMemberRole role : manifest.memberRoles()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append("{\"playerUuid\":\"").append(role.playerUuid()).append("\",\"roleName\":\"").append(escape(role.roleName())).append("\"}");
+        }
+        return builder.append(']').toString();
+    }
+
+    private String locationJson(kr.lunaf.cloudislands.migration.MigrationLocation location) {
+        return "{\"present\":" + location.present()
+            + ",\"worldName\":\"" + escape(location.worldName())
+            + "\",\"x\":" + location.x()
+            + ",\"y\":" + location.y()
+            + ",\"z\":" + location.z()
+            + ",\"yaw\":" + location.yaw()
+            + ",\"pitch\":" + location.pitch()
+            + "}";
+    }
+
+    private String homesJson(MigrationManifest manifest) {
+        StringBuilder builder = new StringBuilder("[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.migration.MigrationHome home : manifest.homes()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append("{\"name\":\"").append(escape(home.name())).append("\",\"worldName\":\"").append(escape(home.worldName()))
+                .append("\",\"x\":").append(home.x()).append(",\"y\":").append(home.y()).append(",\"z\":").append(home.z())
+                .append(",\"yaw\":").append(home.yaw()).append(",\"pitch\":").append(home.pitch()).append('}');
+        }
+        return builder.append(']').toString();
+    }
+
+    private String warpsJson(MigrationManifest manifest) {
+        StringBuilder builder = new StringBuilder("[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.migration.MigrationWarp warp : manifest.warps()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append("{\"name\":\"").append(escape(warp.name())).append("\",\"worldName\":\"").append(escape(warp.worldName()))
+                .append("\",\"x\":").append(warp.x()).append(",\"y\":").append(warp.y()).append(",\"z\":").append(warp.z())
+                .append(",\"yaw\":").append(warp.yaw()).append(",\"pitch\":").append(warp.pitch())
+                .append(",\"publicAccess\":").append(warp.publicAccess()).append('}');
+        }
+        return builder.append(']').toString();
+    }
+
+    private String flagsJson(MigrationManifest manifest) {
+        StringBuilder builder = new StringBuilder("[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.migration.MigrationFlag flag : manifest.flags()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append("{\"flagName\":\"").append(escape(flag.flagName())).append("\",\"value\":\"").append(escape(flag.value())).append("\"}");
+        }
+        return builder.append(']').toString();
+    }
+
+    private String permissionsJson(MigrationManifest manifest) {
+        StringBuilder builder = new StringBuilder("[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.migration.MigrationPermission permission : manifest.permissions()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append("{\"roleName\":\"").append(escape(permission.roleName())).append("\",\"permissionName\":\"").append(escape(permission.permissionName()))
+                .append("\",\"allowed\":").append(permission.allowed()).append('}');
+        }
+        return builder.append(']').toString();
+    }
+
+    private String upgradesJson(MigrationManifest manifest) {
+        StringBuilder builder = new StringBuilder("[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.migration.MigrationUpgrade upgrade : manifest.upgrades()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append("{\"upgradeKey\":\"").append(escape(upgrade.upgradeKey())).append("\",\"level\":").append(upgrade.level()).append('}');
+        }
+        return builder.append(']').toString();
+    }
+
+    private String limitsJson(MigrationManifest manifest) {
+        StringBuilder builder = new StringBuilder("[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.migration.MigrationLimit limit : manifest.limits()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append("{\"limitKey\":\"").append(escape(limit.limitKey())).append("\",\"value\":").append(limit.value()).append('}');
+        }
+        return builder.append(']').toString();
+    }
+
+    private String missionsJson(MigrationManifest manifest) {
+        StringBuilder builder = new StringBuilder("[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.migration.MigrationMission mission : manifest.completedMissions()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append("{\"missionKey\":\"").append(escape(mission.missionKey())).append("\",\"kind\":\"").append(escape(mission.kind())).append("\"}");
+        }
+        return builder.append(']').toString();
+    }
+
+    private String blockValuesJson(MigrationManifest manifest) {
+        StringBuilder builder = new StringBuilder("[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.migration.MigrationBlockValue value : manifest.blockValues()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append("{\"materialKey\":\"").append(escape(value.materialKey())).append("\",\"worth\":\"").append(escape(value.worth()))
+                .append("\",\"levelPoints\":").append(value.levelPoints()).append(",\"limit\":").append(value.limit()).append('}');
+        }
+        return builder.append(']').toString();
+    }
+
+    private String blockCountsJson(MigrationManifest manifest) {
+        StringBuilder builder = new StringBuilder("[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.migration.MigrationBlockCount count : manifest.blockCounts()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append("{\"materialKey\":\"").append(escape(count.materialKey())).append("\",\"count\":").append(count.count()).append('}');
+        }
+        return builder.append(']').toString();
     }
 
     private String issuesJson(List<MigrationIssue> issues) {

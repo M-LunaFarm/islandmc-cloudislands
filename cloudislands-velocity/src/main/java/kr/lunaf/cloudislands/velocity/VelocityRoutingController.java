@@ -1003,6 +1003,7 @@ public final class VelocityRoutingController {
         }
         String state = jsonValue(body, "state");
         String path = jsonValue(body, "path");
+        String manifestPath = jsonValue(body, "manifestPath");
         String issues = arrayValue(body, "issues");
         long manifests = longValue(body, "manifests");
         long importedIslands = longValue(body, "importedIslands");
@@ -1013,6 +1014,9 @@ public final class VelocityRoutingController {
             .append(manifests);
         if (!path.isBlank()) {
             builder.append(" path=").append(path);
+        }
+        if (!manifestPath.isBlank()) {
+            builder.append(" manifest=").append(manifestPath);
         }
         if (body.contains("\"canImport\"")) {
             builder.append(" canImport=").append(boolValue(body, "canImport"));
