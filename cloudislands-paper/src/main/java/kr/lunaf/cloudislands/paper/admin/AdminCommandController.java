@@ -1673,7 +1673,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private String nodeListSummaryMessage(String body) {
         String nodes = arrayValue(body, "nodes");
         if (nodes.isBlank()) {
-            return "Nodes: empty";
+            return adminText("admin-command-nodes-empty", "Nodes: empty");
         }
         int total = 0;
         int starting = 0;
@@ -1720,15 +1720,15 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             }
             index = objectEnd + 1;
         }
-        return "Nodes: total=" + total
-            + " starting=" + starting
-            + " warming=" + warming
-            + " ready=" + ready
-            + " softFull=" + softFull
-            + " hardFull=" + hardFull
-            + " draining=" + draining
-            + " shuttingDown=" + shuttingDown
-            + " down=" + down
+        return adminText("admin-command-nodes-total-prefix", "Nodes: total=") + total
+            + adminText("admin-command-nodes-starting-prefix", " starting=") + starting
+            + adminText("admin-command-nodes-warming-prefix", " warming=") + warming
+            + adminText("admin-command-nodes-ready-prefix", " ready=") + ready
+            + adminText("admin-command-nodes-soft-full-prefix", " softFull=") + softFull
+            + adminText("admin-command-nodes-hard-full-prefix", " hardFull=") + hardFull
+            + adminText("admin-command-nodes-draining-prefix", " draining=") + draining
+            + adminText("admin-command-nodes-shutting-down-prefix", " shuttingDown=") + shuttingDown
+            + adminText("admin-command-nodes-down-prefix", " down=") + down
             + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
@@ -1745,16 +1745,16 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         long maxActivationQueue = longValue(object, "maxActivationQueue");
         boolean activationEligible = boolValue(object, "eligibleForNewActivation");
         String allocationBlockReason = textValue(object, "allocationBlockReason");
-        return (id.isBlank() ? "node" : id)
+        return (id.isBlank() ? adminText("admin-command-node-default-id", "node") : id)
             + " " + (state.isBlank() ? "UNKNOWN" : state)
-            + " players=" + players + "/" + softCap + "/" + hardCap + " reserved=" + reservedSlots
-            + " islands=" + activeIslands + "/" + maxActiveIslands
-            + " queue=" + activationQueue + "/" + maxActivationQueue
-            + " mspt=" + seconds(doubleValue(object, "mspt"))
-            + " score=" + seconds(doubleValue(object, "score"))
+            + adminText("admin-command-node-players-prefix", " players=") + players + "/" + softCap + "/" + hardCap + adminText("admin-command-node-reserved-prefix", " reserved=") + reservedSlots
+            + adminText("admin-command-node-islands-prefix", " islands=") + activeIslands + "/" + maxActiveIslands
+            + adminText("admin-command-node-queue-prefix", " queue=") + activationQueue + "/" + maxActivationQueue
+            + adminText("admin-command-node-mspt-prefix", " mspt=") + seconds(doubleValue(object, "mspt"))
+            + adminText("admin-command-node-score-prefix", " score=") + seconds(doubleValue(object, "score"))
             + scoreParts(object)
-            + " activation=" + (activationEligible ? "ok" : "blocked:" + (allocationBlockReason.isBlank() ? "UNKNOWN" : allocationBlockReason))
-            + " storage=" + (boolValue(object, "storageAvailable") ? "ok" : "down");
+            + adminText("admin-command-node-activation-prefix", " activation=") + (activationEligible ? adminText("admin-command-node-ok", "ok") : adminText("admin-command-node-blocked-prefix", "blocked:") + (allocationBlockReason.isBlank() ? "UNKNOWN" : allocationBlockReason))
+            + adminText("admin-command-node-storage-prefix", " storage=") + (boolValue(object, "storageAvailable") ? adminText("admin-command-node-ok", "ok") : adminText("admin-command-node-down", "down"));
     }
 
     private String scoreParts(String nodeObject) {
@@ -1762,23 +1762,23 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (breakdown.isBlank()) {
             return "";
         }
-        return " parts=p:" + seconds(doubleValue(breakdown, "playerPressure"))
-            + ",a:" + seconds(doubleValue(breakdown, "activeIslandPressure"))
-            + ",m:" + seconds(doubleValue(breakdown, "msptPressure"))
-            + ",q:" + seconds(doubleValue(breakdown, "activationQueuePressure"))
-            + ",mem:" + seconds(doubleValue(breakdown, "memoryPressure"))
-            + ",fail:" + seconds(doubleValue(breakdown, "recentFailurePenalty"));
+        return adminText("admin-command-score-parts-prefix", " parts=p:") + seconds(doubleValue(breakdown, "playerPressure"))
+            + adminText("admin-command-score-active-prefix", ",a:") + seconds(doubleValue(breakdown, "activeIslandPressure"))
+            + adminText("admin-command-score-mspt-prefix", ",m:") + seconds(doubleValue(breakdown, "msptPressure"))
+            + adminText("admin-command-score-queue-prefix", ",q:") + seconds(doubleValue(breakdown, "activationQueuePressure"))
+            + adminText("admin-command-score-memory-prefix", ",mem:") + seconds(doubleValue(breakdown, "memoryPressure"))
+            + adminText("admin-command-score-failure-prefix", ",fail:") + seconds(doubleValue(breakdown, "recentFailurePenalty"));
     }
 
     private String nodeActionSummaryMessage(String label, String nodeId, String body) {
         if (body == null || body.isBlank()) {
-            return label + ": accepted node=" + nodeId;
+            return label + adminText("admin-command-node-action-accepted-node-prefix", ": accepted node=") + nodeId;
         }
         String code = textValue(body, "code");
         if (!code.isBlank()) {
-            return label + ": " + (boolValue(body, "accepted") ? "accepted" : "rejected") + " node=" + nodeId + " code=" + code;
+            return label + ": " + (boolValue(body, "accepted") ? adminText("admin-command-node-action-accepted", "accepted") : adminText("admin-command-node-action-rejected", "rejected")) + adminText("admin-command-node-action-node-prefix", " node=") + nodeId + adminText("admin-command-node-action-code-prefix", " code=") + code;
         }
-        return label + ": " + (boolValue(body, "accepted") ? "accepted" : "requested") + " node=" + nodeId;
+        return label + ": " + (boolValue(body, "accepted") ? adminText("admin-command-node-action-accepted", "accepted") : adminText("admin-command-node-action-requested", "requested")) + adminText("admin-command-node-action-node-prefix", " node=") + nodeId;
     }
 
     private String arrayValue(String body, String field) {
