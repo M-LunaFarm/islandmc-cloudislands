@@ -199,6 +199,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             IslandCommandController islandController = new IslandCommandController(this, client, agent.protection(), routeWaitSeconds, fallbackServerName, levelScanService, economyBridge);
             island.setExecutor(islandController);
             island.setTabCompleter(islandController);
+            getServer().getPluginManager().registerEvents(islandController, this);
         }
         MeteredIslandStorage storage = role == AgentRole.ISLAND_NODE ? new MeteredIslandStorage(PaperStorageFactory.create(this, getConfig())) : null;
         String supportedTemplates = String.join(",", getConfig().getStringList("node.supported-templates"));

@@ -58,10 +58,14 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerKickEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
-public final class IslandCommandController implements CommandExecutor, TabCompleter {
+public final class IslandCommandController implements CommandExecutor, TabCompleter, Listener {
     private static final List<String> SUBCOMMANDS = List.of(
         "help", "도움말", "commands", "command", "command-list", "명령어", "명령어목록", "menu", "메뉴",
         "create-menu", "templates", "생성메뉴", "템플릿",
@@ -1395,6 +1399,16 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         if (bossBar != null) {
             player.hideBossBar(bossBar);
         }
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        clearRouteLoading(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onKick(PlayerKickEvent event) {
+        clearRouteLoading(event.getPlayer());
     }
 
     private void connectWithTicket(Player player, RouteTicket ticket, String targetServerName) {
