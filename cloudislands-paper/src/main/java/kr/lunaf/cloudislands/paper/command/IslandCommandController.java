@@ -450,7 +450,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 }
             }
             if (args.length < 2) {
-                player.sendMessage("워프 이름을 입력해주세요.");
+                message(player, routeMessage("input-warp-name-required", "워프 이름을 입력해주세요."));
                 return true;
             }
             teleportWarp(player, args[1]);
@@ -458,7 +458,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("setwarp") || subcommand.equals("워프설정")) {
             if (args.length < 2) {
-                player.sendMessage("워프 이름을 입력해주세요.");
+                message(player, routeMessage("input-warp-name-required", "워프 이름을 입력해주세요."));
                 return true;
             }
             setWarp(player, args[1]);
@@ -466,7 +466,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("delwarp") || subcommand.equals("deletewarp") || subcommand.equals("워프삭제")) {
             if (args.length < 2) {
-                player.sendMessage("워프 이름을 입력해주세요.");
+                message(player, routeMessage("input-warp-name-required", "워프 이름을 입력해주세요."));
                 return true;
             }
             deleteWarp(player, args[1]);
@@ -474,7 +474,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("warp-public") || subcommand.equals("publicwarp") || subcommand.equals("워프공개")) {
             if (args.length < 2) {
-                player.sendMessage("워프 이름을 입력해주세요.");
+                message(player, routeMessage("input-warp-name-required", "워프 이름을 입력해주세요."));
                 return true;
             }
             setWarpPublicAccess(player, args[1], true);
@@ -482,7 +482,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("warp-private") || subcommand.equals("privatewarp") || subcommand.equals("워프비공개")) {
             if (args.length < 2) {
-                player.sendMessage("워프 이름을 입력해주세요.");
+                message(player, routeMessage("input-warp-name-required", "워프 이름을 입력해주세요."));
                 return true;
             }
             setWarpPublicAccess(player, args[1], false);
@@ -562,7 +562,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("deposit") || subcommand.equals("bank-deposit") || subcommand.equals("입금")) {
             if (args.length < 2) {
-                player.sendMessage("입금할 금액을 입력해주세요.");
+                message(player, routeMessage("input-deposit-amount-required", "입금할 금액을 입력해주세요."));
                 return true;
             }
             depositIslandBank(player, args[1]);
@@ -570,7 +570,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("withdraw") || subcommand.equals("bank-withdraw") || subcommand.equals("출금")) {
             if (args.length < 2) {
-                player.sendMessage("출금할 금액을 입력해주세요.");
+                message(player, routeMessage("input-withdraw-amount-required", "출금할 금액을 입력해주세요."));
                 return true;
             }
             withdrawIslandBank(player, args[1]);
@@ -594,7 +594,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("buyupgrade") || subcommand.equals("upgrade-buy") || subcommand.equals("업그레이드구매")) {
             if (args.length < 2) {
-                player.sendMessage("구매할 업그레이드 키를 입력해주세요.");
+                message(player, routeMessage("input-upgrade-key-required", "구매할 업그레이드 키를 입력해주세요."));
                 return true;
             }
             purchaseIslandUpgrade(player, args[1]);
@@ -704,7 +704,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("setlimit") || subcommand.equals("limit-set") || subcommand.equals("제한설정")) {
             if (args.length < 3) {
-                player.sendMessage("제한 키와 값을 입력해주세요.");
+                message(player, routeMessage("input-limit-key-value-required", "제한 키와 값을 입력해주세요."));
                 return true;
             }
             setIslandLimit(player, args[1], longValue(args[2], 0L));
@@ -748,7 +748,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("snapshot-restore") || subcommand.equals("restore") || subcommand.equals("rollback") || subcommand.equals("스냅샷복원") || subcommand.equals("복원") || subcommand.equals("롤백")) {
             if (args.length < 2) {
-                player.sendMessage("복원할 스냅샷 번호를 입력해주세요.");
+                message(player, routeMessage("input-snapshot-number-required", "복원할 스냅샷 번호를 입력해주세요."));
                 return true;
             }
             restoreIslandSnapshot(player, longValue(args[1], 0L));
@@ -1950,7 +1950,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void setNamedIslandLimit(Player player, String limitKey, String[] args) {
         if (args.length < 2) {
-            player.sendMessage("제한 값을 입력해주세요.");
+            message(player, routeMessage("input-limit-value-required", "제한 값을 입력해주세요."));
             return;
         }
         setIslandLimit(player, limitKey, longValue(args[1], 0L));
@@ -2014,7 +2014,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 return;
             }
             if (snapshotNo <= 0L) {
-                player.sendMessage("올바른 스냅샷 번호를 입력해주세요.");
+                message(player, routeMessage("input-snapshot-number-invalid", "올바른 스냅샷 번호를 입력해주세요."));
                 return;
             }
             coreApiClient.restoreIslandSnapshotResult(islandId, snapshotNo)

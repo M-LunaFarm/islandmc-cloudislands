@@ -143,6 +143,14 @@ public final class TranslationManager {
         values.put("role-reset-denied", "섬 역할을 초기화할 권한이 없습니다.");
         values.put("permission-set-denied", "섬 권한을 변경할 권한이 없습니다.");
         values.put("name-change-denied", "섬 이름을 변경할 권한이 없습니다.");
+        values.put("input-warp-name-required", "워프 이름을 입력해주세요.");
+        values.put("input-deposit-amount-required", "입금할 금액을 입력해주세요.");
+        values.put("input-withdraw-amount-required", "출금할 금액을 입력해주세요.");
+        values.put("input-upgrade-key-required", "구매할 업그레이드 키를 입력해주세요.");
+        values.put("input-limit-key-value-required", "제한 키와 값을 입력해주세요.");
+        values.put("input-limit-value-required", "제한 값을 입력해주세요.");
+        values.put("input-snapshot-number-required", "복원할 스냅샷 번호를 입력해주세요.");
+        values.put("input-snapshot-number-invalid", "올바른 스냅샷 번호를 입력해주세요.");
         return values;
     }
 
