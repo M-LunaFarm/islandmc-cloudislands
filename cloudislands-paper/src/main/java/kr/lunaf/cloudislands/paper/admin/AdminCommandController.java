@@ -1456,6 +1456,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 + adminText("admin-command-addons-name-prefix", " name=") + addon.displayName()
                 + adminText("admin-command-addons-version-prefix", " version=") + addon.version()
                 + adminText("admin-command-addons-enabled-prefix", " enabled=") + addon.enabled()
+                + addonMetadataSuffix(addon)
                 + addonFeatureSuffix(addon));
         }
         return adminText("admin-command-addons-total-prefix", "Addons: total=") + addons.size()
@@ -1468,7 +1469,19 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-addons-name-prefix", " name=") + addon.displayName()
             + adminText("admin-command-addons-version-prefix", " version=") + addon.version()
             + adminText("admin-command-addons-enabled-prefix", " enabled=") + addon.enabled()
+            + addonMetadataSuffix(addon)
             + addonFeatureSuffix(addon);
+    }
+
+    private String addonMetadataSuffix(CloudIslandsAddonSnapshot addon) {
+        if (addon.metadata().isEmpty()) {
+            return "";
+        }
+        List<String> metadata = new ArrayList<>();
+        addon.metadata().entrySet().stream()
+            .sorted(java.util.Map.Entry.comparingByKey())
+            .forEach(entry -> metadata.add(entry.getKey() + "=" + entry.getValue()));
+        return adminText("admin-command-addons-metadata-prefix", " metadata=") + String.join(",", metadata);
     }
 
     private String addonFeatureSuffix(CloudIslandsAddonSnapshot addon) {

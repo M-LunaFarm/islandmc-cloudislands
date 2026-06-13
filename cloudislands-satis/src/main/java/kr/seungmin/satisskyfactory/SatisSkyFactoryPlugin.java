@@ -467,6 +467,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return featureSnapshot();
     }
 
+    @Override
+    public Map<String, String> addonMetadata() {
+        Map<String, String> metadata = new LinkedHashMap<>();
+        metadata.put("mode", configs.main().getString("integration.mode", "ADDON"));
+        metadata.put("skyblock-provider", configs.main().getString("integration.skyblock-provider", "CLOUDISLANDS"));
+        metadata.put("cloudislands-adapter", Boolean.toString(configs.main().getBoolean("integration.cloudislands-adapter", true)));
+        return metadata;
+    }
+
     private Map<String, Boolean> featureSnapshot() {
         Map<String, Boolean> features = new LinkedHashMap<>();
         features.put("commands", featureEnabled("commands"));

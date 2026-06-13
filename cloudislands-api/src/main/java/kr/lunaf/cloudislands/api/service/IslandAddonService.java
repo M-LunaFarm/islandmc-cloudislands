@@ -10,7 +10,10 @@ public interface IslandAddonService {
     default CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled) {
         return register(id, displayName, version, enabled, Map.of());
     }
-    CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled, Map<String, Boolean> features);
+    default CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled, Map<String, Boolean> features) {
+        return register(id, displayName, version, enabled, features, Map.of());
+    }
+    CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled, Map<String, Boolean> features, Map<String, String> metadata);
     CompletableFuture<Void> unregister(String id);
     CompletableFuture<Optional<CloudIslandsAddonSnapshot>> get(String id);
     CompletableFuture<List<CloudIslandsAddonSnapshot>> list();
@@ -26,6 +29,10 @@ public interface IslandAddonService {
 
     default CompletableFuture<Map<String, Boolean>> features(String id) {
         return get(id).thenApply(addon -> addon.map(CloudIslandsAddonSnapshot::features).orElse(Map.of()));
+    }
+
+    default CompletableFuture<Map<String, String>> metadata(String id) {
+        return get(id).thenApply(addon -> addon.map(CloudIslandsAddonSnapshot::metadata).orElse(Map.of()));
     }
 
     default CompletableFuture<Boolean> isFeatureEnabled(String id, String feature) {

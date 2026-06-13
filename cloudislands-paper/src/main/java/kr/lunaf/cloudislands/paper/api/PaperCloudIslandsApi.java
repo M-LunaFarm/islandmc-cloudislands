@@ -186,8 +186,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
-        public CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled, Map<String, Boolean> features) {
-            AddonRegistration registration = new AddonRegistration(id, displayName, version, enabled, Map.copyOf(features == null ? Map.of() : features));
+        public CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled, Map<String, Boolean> features, Map<String, String> metadata) {
+            AddonRegistration registration = new AddonRegistration(id, displayName, version, enabled, Map.copyOf(features == null ? Map.of() : features), Map.copyOf(metadata == null ? Map.of() : metadata));
             registrations.put(id, registration);
             CloudIslandsAddonSnapshot snapshot = snapshot(registration);
             addons.put(id, snapshot);
@@ -197,7 +197,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         private CloudIslandsAddonSnapshot snapshot(AddonRegistration registration) {
             String id = registration.id();
             boolean configEnabled = plugin.getConfig().getBoolean("addons." + id + ".enabled", true);
-            return new CloudIslandsAddonSnapshot(id, registration.displayName(), registration.version(), registration.enabled() && configEnabled, Instant.now(), effectiveFeatures(id, registration.features()));
+            return new CloudIslandsAddonSnapshot(id, registration.displayName(), registration.version(), registration.enabled() && configEnabled, Instant.now(), effectiveFeatures(id, registration.features()), registration.metadata());
         }
 
         private Map<String, Boolean> effectiveFeatures(String id, Map<String, Boolean> features) {
@@ -258,7 +258,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             String displayName,
             String version,
             boolean enabled,
-            Map<String, Boolean> features
+            Map<String, Boolean> features,
+            Map<String, String> metadata
         ) {}
     }
 

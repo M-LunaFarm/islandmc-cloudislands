@@ -20,8 +20,12 @@ public interface CloudIslandsAddon {
         return Map.of();
     }
 
+    default Map<String, String> addonMetadata() {
+        return Map.of();
+    }
+
     default CompletableFuture<CloudIslandsAddonSnapshot> register(CloudIslandsApi api) {
-        return api.addons().register(addonId(), addonDisplayName(), addonVersion(), enabledByDefault(), addonFeatures());
+        return api.addons().register(addonId(), addonDisplayName(), addonVersion(), enabledByDefault(), addonFeatures(), addonMetadata());
     }
 
     default CompletableFuture<Void> unregister(CloudIslandsApi api) {
