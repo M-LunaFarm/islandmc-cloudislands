@@ -495,6 +495,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 itemFactory,
                 itemRegistry,
                 messages,
+                database,
                 this::operationalFeatureEnabled,
                 this::addonMetadata,
                 this::addonStateSnapshot,

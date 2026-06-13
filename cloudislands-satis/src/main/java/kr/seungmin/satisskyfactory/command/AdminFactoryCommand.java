@@ -1,6 +1,7 @@
 package kr.seungmin.satisskyfactory.command;
 
 import kr.seungmin.satisskyfactory.config.MessageService;
+import kr.seungmin.satisskyfactory.database.DatabaseService;
 import kr.seungmin.satisskyfactory.hook.SkyblockProvider;
 import kr.seungmin.satisskyfactory.item.CustomItemFactory;
 import kr.seungmin.satisskyfactory.item.ItemRegistry;
@@ -24,6 +25,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -63,6 +65,7 @@ public final class AdminFactoryCommand {
             "factory admin features",
             "factory admin integration",
             "factory admin migration",
+            "factory admin migration import <sqlitePath>",
             "factory admin state",
             "factory admin give <player> <machineType> [amount]",
             "factory admin giveitem <player> <itemId> <amount>",
@@ -87,6 +90,7 @@ public final class AdminFactoryCommand {
     private final CustomItemFactory itemFactory;
     private final ItemRegistry items;
     private final MessageService messages;
+    private final DatabaseService database;
     private final Predicate<String> featureEnabled;
     private final Supplier<Map<String, String>> integrationMetadata;
     private final Supplier<Map<String, String>> addonState;
@@ -97,7 +101,7 @@ public final class AdminFactoryCommand {
                                StorageService storage, ResourceNodeService nodes, SkyblockProvider skyblock,
                                MaintenanceService maintenance, ResearchService research, PowerNetworkService power,
                                CustomItemFactory itemFactory, ItemRegistry items,
-                               MessageService messages, Predicate<String> featureEnabled,
+                               MessageService messages, DatabaseService database, Predicate<String> featureEnabled,
                                Supplier<Map<String, String>> integrationMetadata,
                                Supplier<Map<String, String>> addonState,
                                Function<UUID, Map<String, String>> addonIslandState,
@@ -114,6 +118,7 @@ public final class AdminFactoryCommand {
         this.itemFactory = itemFactory;
         this.items = items;
         this.messages = messages;
+        this.database = database;
         this.featureEnabled = featureEnabled;
         this.integrationMetadata = integrationMetadata;
         this.addonState = addonState;
@@ -150,7 +155,7 @@ public final class AdminFactoryCommand {
             case "integration" -> showIntegration(sender);
             case "migration" -> {
                 if (requireFeature(sender, "migration")) {
-                    showMigration(sender);
+                    handleMigration(sender, args);
                 }
             }
             case "state" -> {
@@ -254,6 +259,9 @@ public final class AdminFactoryCommand {
         }
         if (args.length == 3 && args[1].equalsIgnoreCase("command")) {
             return filter(List.of("list"), args[2]);
+        }
+        if (args.length == 3 && args[1].equalsIgnoreCase("migration") && enabled("migration")) {
+            return filter(List.of("import"), args[2]);
         }
         if ((args[1].equalsIgnoreCase("give") || args[1].equalsIgnoreCase("giveitem") || args[1].equalsIgnoreCase("removehere")) && !enabled("machines")) {
             return new ArrayList<>();
@@ -569,6 +577,46 @@ public final class AdminFactoryCommand {
                         "key", entry.getKey(),
                         "value", entry.getValue()
                 ))));
+    }
+
+    private void handleMigration(CommandSender sender, String[] args) {
+        if (args.length >= 3 && args[2].equalsIgnoreCase("import")) {
+            importLegacyDatabase(sender, args);
+            return;
+        }
+        showMigration(sender);
+    }
+
+    private void importLegacyDatabase(CommandSender sender, String[] args) {
+        if (args.length < 4) {
+            sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                    "key", "usage",
+                    "value", "/factory admin migration import <sqlitePath>"
+            )));
+            return;
+        }
+        try {
+            DatabaseService.LegacyImportResult result = database.importLegacyDatabase(new File(args[3]));
+            reload.run();
+            sender.sendMessage(messages.raw("admin-migration-title"));
+            Map<String, String> state = new LinkedHashMap<>();
+            state.put("source", result.sourcePath());
+            state.put("copied-rows", String.valueOf(result.copiedRows()));
+            state.put("copied-tables", String.join(",", result.copiedTables()));
+            state.put("skipped-tables", result.skippedTables().isEmpty() ? "none" : String.join(",", result.skippedTables()));
+            state.put("mode", "sqlite-attach-insert-ignore");
+            state.entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey())
+                    .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                            "key", entry.getKey(),
+                            "value", entry.getValue()
+                    ))));
+        } catch (RuntimeException exception) {
+            sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                    "key", "error",
+                    "value", exception.getMessage() == null ? "unknown" : exception.getMessage()
+            )));
+        }
     }
 
     private void showAddonState(CommandSender sender) {

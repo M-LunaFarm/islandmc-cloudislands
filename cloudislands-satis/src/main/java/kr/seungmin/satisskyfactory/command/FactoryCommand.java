@@ -2,6 +2,7 @@ package kr.seungmin.satisskyfactory.command;
 
 import kr.seungmin.satisskyfactory.config.MessageService;
 import kr.seungmin.satisskyfactory.contract.ContractService;
+import kr.seungmin.satisskyfactory.database.DatabaseService;
 import kr.seungmin.satisskyfactory.gui.FactoryGuiService;
 import kr.seungmin.satisskyfactory.hook.SkyblockProvider;
 import kr.seungmin.satisskyfactory.item.CustomItemFactory;
@@ -89,7 +90,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                           MarketService market, ContractService contracts,
                           MaintenanceService maintenance, ResearchService research, IslandBoostService boosts,
                           PowerNetworkService power, FactoryGuiService gui, CustomItemFactory itemFactory,
-                          ItemRegistry items, MessageService messages, Predicate<String> featureEnabled,
+                          ItemRegistry items, MessageService messages, DatabaseService database, Predicate<String> featureEnabled,
                           Supplier<Map<String, String>> integrationMetadata,
                           Supplier<Map<String, String>> addonState,
                           Function<UUID, Map<String, String>> addonIslandState,
@@ -111,7 +112,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         this.messages = messages;
         this.featureEnabled = featureEnabled;
         this.adminCommand = new AdminFactoryCommand(islands, machines, definitions, storage, nodes, skyblock,
-                maintenance, research, power, itemFactory, items, messages, featureEnabled, integrationMetadata, addonState, addonIslandState, reload);
+                maintenance, research, power, itemFactory, items, messages, database, featureEnabled, integrationMetadata, addonState, addonIslandState, reload);
     }
 
     @Override

@@ -21,8 +21,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -155,6 +157,125 @@ public final class DatabaseService {
             statement.executeUpdate();
         }
     }
+
+    public LegacyImportResult importLegacyDatabase(File sourceDatabase) {
+        if (sourceDatabase == null) {
+            throw new IllegalArgumentException("source database is required");
+        }
+        File source = sourceDatabase.isAbsolute() ? sourceDatabase : new File(dataFolder, sourceDatabase.getPath());
+        if (!source.isFile()) {
+            throw new IllegalArgumentException("legacy database does not exist: " + source.getAbsolutePath());
+        }
+        try {
+            if (source.getCanonicalFile().equals(databaseFile().getCanonicalFile())) {
+                throw new IllegalArgumentException("legacy database must be different from current database");
+            }
+        } catch (java.io.IOException exception) {
+            throw new IllegalArgumentException("failed to compare database paths: " + exception.getMessage(), exception);
+        }
+        List<String> copiedTables = new ArrayList<>();
+        List<String> skippedTables = new ArrayList<>();
+        long copiedRows = 0L;
+        try (Connection connection = connection()) {
+            attachLegacyDatabase(connection, source);
+            boolean autoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try {
+                for (String table : legacyImportTables()) {
+                    long copied = copyLegacyTable(connection, table);
+                    if (copied < 0L) {
+                        skippedTables.add(table);
+                        continue;
+                    }
+                    copiedRows += copied;
+                    copiedTables.add(table);
+                }
+                connection.commit();
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            } finally {
+                connection.setAutoCommit(autoCommit);
+                detachLegacyDatabase(connection);
+            }
+            return new LegacyImportResult(source.getAbsolutePath(), copiedRows, copiedTables, skippedTables);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to import legacy Satis database", exception);
+        }
+    }
+
+    private void attachLegacyDatabase(Connection connection, File source) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("ATTACH DATABASE ? AS legacy_satis")) {
+            statement.setString(1, source.getAbsolutePath());
+            statement.executeUpdate();
+        }
+    }
+
+    private void detachLegacyDatabase(Connection connection) {
+        try (Statement statement = connection.createStatement()) {
+            statement.executeUpdate("DETACH DATABASE legacy_satis");
+        } catch (SQLException ignored) {
+            // Best effort cleanup after import failure.
+        }
+    }
+
+    private List<String> legacyImportTables() {
+        return List.of(
+                "factory_islands",
+                "machines",
+                "virtual_inventories",
+                "virtual_inventory_items",
+                "resource_nodes",
+                "power_networks",
+                "item_networks",
+                "machine_network_links",
+                "market_daily",
+                "market_personal_daily",
+                "contracts",
+                "island_unlocks",
+                "ledger"
+        );
+    }
+
+    private long copyLegacyTable(Connection connection, String table) throws SQLException {
+        Set<String> targetColumns = tableColumns(connection, "main", table);
+        Set<String> sourceColumns = tableColumns(connection, "legacy_satis", table);
+        if (targetColumns.isEmpty() || sourceColumns.isEmpty()) {
+            return -1L;
+        }
+        List<String> commonColumns = targetColumns.stream()
+                .filter(sourceColumns::contains)
+                .toList();
+        if (commonColumns.isEmpty()) {
+            return -1L;
+        }
+        long before = tableCount(connection, table);
+        String columns = String.join(", ", commonColumns);
+        try (Statement statement = connection.createStatement()) {
+            statement.executeUpdate("INSERT OR IGNORE INTO " + table + "(" + columns + ") SELECT " + columns + " FROM legacy_satis." + table);
+        }
+        return Math.max(0L, tableCount(connection, table) - before);
+    }
+
+    private Set<String> tableColumns(Connection connection, String schema, String table) throws SQLException {
+        Set<String> columns = new LinkedHashSet<>();
+        try (Statement statement = connection.createStatement();
+             ResultSet rs = statement.executeQuery("PRAGMA " + schema + ".table_info(" + table + ")")) {
+            while (rs.next()) {
+                columns.add(rs.getString("name"));
+            }
+        }
+        return columns;
+    }
+
+    private long tableCount(Connection connection, String table) throws SQLException {
+        try (Statement statement = connection.createStatement();
+             ResultSet rs = statement.executeQuery("SELECT COUNT(*) AS count FROM " + table)) {
+            return rs.next() ? rs.getLong("count") : 0L;
+        }
+    }
+
+    public record LegacyImportResult(String sourcePath, long copiedRows, List<String> copiedTables, List<String> skippedTables) {}
 
     public Optional<FactoryIsland> findIsland(UUID islandUuid) {
         try (Connection connection = connection();
