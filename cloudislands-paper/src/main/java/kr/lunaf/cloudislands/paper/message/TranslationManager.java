@@ -124,6 +124,13 @@ public final class TranslationManager {
         values.put("limit-set-denied", "섬 제한을 변경할 권한이 없습니다.");
         values.put("snapshot-create-denied", "섬 스냅샷을 생성할 관리자 권한이 없습니다.");
         values.put("snapshot-restore-denied", "섬 스냅샷을 복원할 관리자 권한이 없습니다.");
+        values.put("home-set-denied", "섬 홈을 설정할 권한이 없습니다.");
+        values.put("home-teleport-denied", "섬 홈으로 이동할 권한이 없습니다.");
+        values.put("warp-set-denied", "섬 워프를 설정할 권한이 없습니다.");
+        values.put("warp-delete-denied", "섬 워프를 삭제할 권한이 없습니다.");
+        values.put("warp-access-denied", "섬 워프 공개 상태를 변경할 권한이 없습니다.");
+        values.put("access-change-denied", "섬 공개 상태를 변경할 권한이 없습니다.");
+        values.put("lock-change-denied", "섬 잠금 상태를 변경할 권한이 없습니다.");
         return values;
     }
 

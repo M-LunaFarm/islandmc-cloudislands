@@ -1075,7 +1075,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void setHome(Player player, String name) {
         currentIsland(player, "섬 안에서만 홈을 설정할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.SET_HOME)) {
-                player.sendMessage("섬 홈을 설정할 권한이 없습니다.");
+                message(player, routeMessage("home-set-denied", "섬 홈을 설정할 권한이 없습니다."));
                 return;
             }
             coreApiClient.setIslandHomeResult(islandId, player.getUniqueId(), name, location(player.getLocation()))
@@ -1090,7 +1090,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void setWarp(Player player, String name) {
         currentIsland(player, "섬 안에서만 워프를 설정할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_WARPS)) {
-                player.sendMessage("섬 워프를 설정할 권한이 없습니다.");
+                message(player, routeMessage("warp-set-denied", "섬 워프를 설정할 권한이 없습니다."));
                 return;
             }
             coreApiClient.setIslandWarpResult(islandId, player.getUniqueId(), name, location(player.getLocation()), false)
@@ -1135,7 +1135,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void teleportHome(Player player, String name) {
         currentIsland(player, "섬 안에서만 홈으로 이동할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.INTERACT)) {
-                player.sendMessage("섬 홈으로 이동할 권한이 없습니다.");
+                message(player, routeMessage("home-teleport-denied", "섬 홈으로 이동할 권한이 없습니다."));
                 return;
             }
             coreApiClient.listIslandHomes(islandId)
@@ -1177,7 +1177,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void deleteWarp(Player player, String name) {
         currentIsland(player, "섬 안에서만 워프를 삭제할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_WARPS)) {
-                player.sendMessage("섬 워프를 삭제할 권한이 없습니다.");
+                message(player, routeMessage("warp-delete-denied", "섬 워프를 삭제할 권한이 없습니다."));
                 return;
             }
             coreApiClient.deleteIslandWarpResult(islandId, player.getUniqueId(), name)
@@ -1192,7 +1192,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void setWarpPublicAccess(Player player, String name, boolean publicAccess) {
         currentIsland(player, "섬 안에서만 워프 공개 상태를 변경할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_WARPS)) {
-                player.sendMessage("섬 워프 공개 상태를 변경할 권한이 없습니다.");
+                message(player, routeMessage("warp-access-denied", "섬 워프 공개 상태를 변경할 권한이 없습니다."));
                 return;
             }
             coreApiClient.setIslandWarpPublicAccessResult(islandId, player.getUniqueId(), name, publicAccess)
@@ -1207,7 +1207,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void setIslandPublicAccess(Player player, boolean publicAccess) {
         currentIsland(player, "섬 안에서만 공개 상태를 변경할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_FLAGS)) {
-                player.sendMessage("섬 공개 상태를 변경할 권한이 없습니다.");
+                message(player, routeMessage("access-change-denied", "섬 공개 상태를 변경할 권한이 없습니다."));
                 return;
             }
             coreApiClient.setIslandPublicAccessResult(islandId, player.getUniqueId(), publicAccess)
@@ -1227,7 +1227,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void setIslandLocked(Player player, boolean locked) {
         currentIsland(player, "섬 안에서만 잠금 상태를 변경할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_FLAGS)) {
-                player.sendMessage("섬 잠금 상태를 변경할 권한이 없습니다.");
+                message(player, routeMessage("lock-change-denied", "섬 잠금 상태를 변경할 권한이 없습니다."));
                 return;
             }
             coreApiClient.setIslandLockedResult(islandId, player.getUniqueId(), locked)
