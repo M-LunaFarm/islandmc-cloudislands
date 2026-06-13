@@ -15,6 +15,10 @@ messages:
     chat-prefix: "[{service}] "
     chat-format: "{prefix}{player}: {message}"
     scoreboard-title: "{service}"
+    route-loading-complete: "{target} 로딩 완료"
+    route-loading-progress: "{target} 로딩 중 {progress}%"
+    route-preparing-progress: "{target}을 준비하는 중입니다... {progress}%"
+    route-ready: "잠시 후 {target}으로 이동합니다."
   scoreboard-lines:
     - "섬 이동: /섬"
     - "방문: /섬 방문"

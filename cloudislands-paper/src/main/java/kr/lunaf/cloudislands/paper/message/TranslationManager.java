@@ -80,6 +80,10 @@ public final class TranslationManager {
         values.put("chat-prefix", "[" + name + "] ");
         values.put("chat-format", "{prefix}{player}: {message}");
         values.put("scoreboard-title", "{service}");
+        values.put("route-loading-complete", "{target} 로딩 완료");
+        values.put("route-loading-progress", "{target} 로딩 중 {progress}%");
+        values.put("route-preparing-progress", "{target}을 준비하는 중입니다... {progress}%");
+        values.put("route-ready", "잠시 후 {target}으로 이동합니다.");
         return values;
     }
 

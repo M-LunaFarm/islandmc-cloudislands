@@ -49,6 +49,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandUpgradeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
 import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
@@ -192,6 +193,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private final Map<UUID, BossBar> routeBossBars = new ConcurrentHashMap<>();
     private final IslandLevelScanService levelScanService;
     private final EconomyBridge economyBridge;
+    private final MessageRenderer messages;
 
     public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection) {
         this(plugin, coreApiClient, protection, 20);
@@ -210,6 +212,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge) {
+        this(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, null);
+    }
+
+    public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.protection = protection;
@@ -217,6 +223,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         this.fallbackServerName = fallbackServerName == null || fallbackServerName.isBlank() ? "Lobby" : fallbackServerName;
         this.levelScanService = levelScanService;
         this.economyBridge = economyBridge;
+        this.messages = messages;
     }
 
     @Override
@@ -1356,8 +1363,9 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void routeTicket(Player player, RouteTicket ticket, String failureMessage, int attempt) {
         if (ticket.state().name().equals("READY")) {
-            showRouteLoading(player, 1.0f, routeTargetName(ticket) + " 로딩 완료");
-            player.sendActionBar(Component.text("잠시 후 " + routeTargetName(ticket) + "으로 이동합니다."));
+            String target = routeTargetName(ticket);
+            showRouteLoading(player, 1.0f, routeMessage("route-loading-complete", target + " 로딩 완료", "target", target));
+            player.sendActionBar(routeComponent("route-ready", "잠시 후 " + target + "으로 이동합니다.", "target", target));
             publishAndConnect(player, ticket, failureMessage);
             return;
         }
@@ -1368,8 +1376,9 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         int progress = Math.min(95, 20 + (attempt * 4));
         String target = routeTargetName(ticket);
-        showRouteLoading(player, progress / 100.0f, target + " 로딩 중 " + progress + "%");
-        player.sendActionBar(Component.text(target + "을 준비하는 중입니다... " + progress + "%"));
+        String progressValue = Integer.toString(progress);
+        showRouteLoading(player, progress / 100.0f, routeMessage("route-loading-progress", target + " 로딩 중 " + progress + "%", "target", target, "progress", progressValue));
+        player.sendActionBar(routeComponent("route-preparing-progress", target + "을 준비하는 중입니다... " + progress + "%", "target", target, "progress", progressValue));
         CompletableFuture.runAsync(() -> coreApiClient.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
             if (status.isPresent()) {
                 routeTicket(player, status.get(), failureMessage, attempt + 1);
@@ -1382,6 +1391,15 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             message(player, routeFailureMessage(error, failureMessage));
             return null;
         }), CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS));
+    }
+
+    private Component routeComponent(String key, String fallback, String... variables) {
+        return Component.text(routeMessage(key, fallback, variables));
+    }
+
+    private String routeMessage(String key, String fallback, String... variables) {
+        String rendered = messages == null ? "" : messages.plain(key, variables);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private void publishAndConnect(Player player, RouteTicket ticket, String failureMessage) {
