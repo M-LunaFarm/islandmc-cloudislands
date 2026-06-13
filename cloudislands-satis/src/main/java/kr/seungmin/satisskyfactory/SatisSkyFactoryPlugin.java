@@ -705,6 +705,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             if (machines != null && activeWorld != null && featureEnabled("machines")) {
                 machines.remapIslandWorld(islandId, activeWorld);
             }
+            if (nodes != null && activeWorld != null && featureEnabled("resource-nodes")) {
+                nodes.remapIslandWorld(islandId, activeWorld);
+            }
             if (maintenance != null && featureEnabled("maintenance")) {
                 maintenance.updateStatus(island);
             }

@@ -92,6 +92,42 @@ public final class ResourceNodeService {
         this.dirtySaves = dirtySaves;
     }
 
+    public boolean remapIslandWorld(UUID islandUuid, String worldName) {
+        if (worldName == null || worldName.isBlank()) {
+            return false;
+        }
+        List<ResourceNode> current = nodes(islandUuid);
+        boolean changed = false;
+        List<ResourceNode> updated = new ArrayList<>();
+        for (ResourceNode node : current) {
+            if (worldName.equals(node.location().world())) {
+                updated.add(node);
+                continue;
+            }
+            ResourceNode remapped = new ResourceNode(
+                    node.nodeId(),
+                    node.islandUuid(),
+                    node.nodeType(),
+                    node.resourceId(),
+                    node.purity(),
+                    node.remaining(),
+                    node.maxRemaining(),
+                    node.regenPerHour(),
+                    node.requiredMachineTier(),
+                    new BlockKey(worldName, node.location().x(), node.location().y(), node.location().z()),
+                    node.createdAt(),
+                    node.updatedAt()
+            );
+            updated.add(remapped);
+            save(remapped);
+            changed = true;
+        }
+        if (changed) {
+            nodesByIsland.put(islandUuid, updated);
+        }
+        return changed;
+    }
+
     public void forgetIsland(UUID islandUuid) {
         List<ResourceNode> removed = nodesByIsland.remove(islandUuid);
         if (removed == null || dirtySaves == null) {

@@ -784,7 +784,8 @@ public final class DatabaseService {
                      INSERT INTO resource_nodes(node_id, island_uuid, node_type, resource_id, purity, remaining, max_remaining,
                        regen_per_hour, required_machine_tier, world, x, y, z, created_at, updated_at)
                      VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                     ON CONFLICT(node_id) DO UPDATE SET remaining=excluded.remaining, updated_at=excluded.updated_at
+                     ON CONFLICT(node_id) DO UPDATE SET remaining=excluded.remaining, world=excluded.world,
+                       x=excluded.x, y=excluded.y, z=excluded.z, updated_at=excluded.updated_at
                      """)) {
             statement.setString(1, node.nodeId().toString());
             statement.setString(2, node.islandUuid().toString());
