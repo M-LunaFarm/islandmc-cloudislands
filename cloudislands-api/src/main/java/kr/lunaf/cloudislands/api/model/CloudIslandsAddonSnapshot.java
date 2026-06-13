@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.api.model;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 
 public record CloudIslandsAddonSnapshot(
@@ -20,9 +21,35 @@ public record CloudIslandsAddonSnapshot(
         version = version == null || version.isBlank() ? "unknown" : version;
         registeredAt = registeredAt == null ? Instant.EPOCH : registeredAt;
         updatedAt = updatedAt == null ? registeredAt : updatedAt;
-        configuredFeatures = configuredFeatures == null ? Map.of() : Map.copyOf(configuredFeatures);
-        features = features == null ? Map.of() : Map.copyOf(features);
-        metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
+        configuredFeatures = copyBooleanMap(configuredFeatures);
+        features = copyBooleanMap(features);
+        metadata = copyStringMap(metadata);
+    }
+
+    private static Map<String, Boolean> copyBooleanMap(Map<String, Boolean> source) {
+        if (source == null || source.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Boolean> copy = new HashMap<>();
+        source.forEach((key, value) -> {
+            if (key != null && value != null) {
+                copy.put(key, value);
+            }
+        });
+        return Map.copyOf(copy);
+    }
+
+    private static Map<String, String> copyStringMap(Map<String, String> source) {
+        if (source == null || source.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> copy = new HashMap<>();
+        source.forEach((key, value) -> {
+            if (key != null && value != null) {
+                copy.put(key, value);
+            }
+        });
+        return Map.copyOf(copy);
     }
 
     public CloudIslandsAddonSnapshot(String id, String displayName, String version, boolean enabled, Instant registeredAt) {

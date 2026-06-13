@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.api.model;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -43,6 +44,25 @@ class CloudIslandsAddonSnapshotTest {
         assertEquals(Map.of(), snapshot.configuredFeatures());
         assertEquals(Map.of(), snapshot.features());
         assertEquals(Map.of(), snapshot.metadata());
+    }
+
+    @Test
+    void dropsNullMapEntries() {
+        Map<String, Boolean> features = new HashMap<>();
+        features.put("machines", true);
+        features.put("contracts", null);
+        features.put(null, false);
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put("mode", "ADDON");
+        metadata.put("provider", null);
+        metadata.put(null, "ignored");
+
+        CloudIslandsAddonSnapshot snapshot = new CloudIslandsAddonSnapshot("addon", "Addon", "1", true,
+                Instant.EPOCH, Instant.EPOCH, features, features, metadata);
+
+        assertEquals(Map.of("machines", true), snapshot.configuredFeatures());
+        assertEquals(Map.of("machines", true), snapshot.features());
+        assertEquals(Map.of("mode", "ADDON"), snapshot.metadata());
     }
 
     private CloudIslandsAddonSnapshot snapshot(Map<String, Boolean> features, Map<String, String> metadata) {
