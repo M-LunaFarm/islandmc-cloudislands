@@ -30,6 +30,8 @@ permissions:
     default: op
   cloudislands.admin.cache:
     default: op
+  cloudislands.admin.addons:
+    default: op
   cloudislands.admin.node:
     default: op
   cloudislands.admin.island:
