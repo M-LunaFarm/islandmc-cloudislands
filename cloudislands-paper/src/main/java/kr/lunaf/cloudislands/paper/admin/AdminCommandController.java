@@ -1503,6 +1503,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 + adminText("admin-command-addons-name-prefix", " name=") + addon.displayName()
                 + adminText("admin-command-addons-version-prefix", " version=") + addon.version()
                 + adminText("admin-command-addons-enabled-prefix", " enabled=") + addon.enabled()
+                + addonDependencySuffix(addon)
                 + addonMetadataSuffix(addon)
                 + addonConfiguredFeatureSuffix(addon)
                 + addonFeatureSuffix(addon));
@@ -1519,9 +1520,18 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-addons-enabled-prefix", " enabled=") + addon.enabled()
             + adminText("admin-command-addons-registered-prefix", " registered=") + addon.registeredAt()
             + adminText("admin-command-addons-updated-prefix", " updated=") + addon.updatedAt()
+            + addonDependencySuffix(addon)
             + addonMetadataSuffix(addon)
             + addonConfiguredFeatureSuffix(addon)
             + addonFeatureSuffix(addon);
+    }
+
+    private String addonDependencySuffix(CloudIslandsAddonSnapshot addon) {
+        String dependencies = addon.metadata().getOrDefault("feature-dependencies", "");
+        if (dependencies.isBlank()) {
+            return "";
+        }
+        return adminText("admin-command-addons-dependencies-prefix", " dependencies=") + dependencies;
     }
 
     private String addonMetadataSuffix(CloudIslandsAddonSnapshot addon) {
@@ -1531,6 +1541,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         List<String> metadata = new ArrayList<>();
         addon.metadata().entrySet().stream()
             .filter(entry -> !entry.getKey().equals("feature-aliases"))
+            .filter(entry -> !entry.getKey().equals("feature-dependencies"))
             .sorted(java.util.Map.Entry.comparingByKey())
             .forEach(entry -> metadata.add(entry.getKey() + "=" + entry.getValue()));
         if (metadata.isEmpty()) {
