@@ -353,6 +353,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean forwardingSecretConfigured = !resolveEnv(getConfig().getString("security.forwarding-secret", "")).isBlank();
         boolean routeSessionEnforced = configBoolean("security.enforce-route-session", true) || configBoolean("routing.require-route-session", true);
         boolean proxySourceAllowlistConfigured = !getConfig().getStringList("security.proxy-source-allowlist").isEmpty();
+        PaperRouteSessionListener routeSessions = routeSessionListener;
         return "{"
             + "\"status\":\"UP\","
             + "\"role\":\"" + role.name() + "\","
@@ -368,6 +369,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"forwardingSecretConfigured\":" + forwardingSecretConfigured + ","
             + "\"routeSessionEnforced\":" + routeSessionEnforced + ","
             + "\"proxySourceAllowlistConfigured\":" + proxySourceAllowlistConfigured + ","
+            + "\"proxySourceRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.proxySourceRejections()) + ","
+            + "\"forwardingRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.forwardingRejections()) + ","
+            + "\"routeSessionRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.routeSessionRejections()) + ","
+            + "\"routeSessionCheckFailuresTotal\":" + (routeSessions == null ? 0L : routeSessions.routeSessionCheckFailures()) + ","
             + "\"localCacheCount\":" + (localCaches == null ? 0 : localCaches.cacheCount()) + ","
             + "\"localCacheInvalidationsTotal\":" + (localCaches == null ? 0 : localCaches.invalidationsTotal())
             + "}";
