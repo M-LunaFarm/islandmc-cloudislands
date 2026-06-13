@@ -32,6 +32,7 @@ public final class PowerNetworkService {
     private final StorageService storage;
     private final Map<UUID, NetworkState> cache = new ConcurrentHashMap<>();
     private long cycleId;
+    private boolean active;
 
     public PowerNetworkService(DatabaseService database, MachineService machines, MachineDefinitionService definitions,
                                RecipeService recipes, StorageService storage) {
@@ -43,6 +44,13 @@ public final class PowerNetworkService {
     }
 
     public void beginCycle() {
+        active = true;
+        cycleId++;
+        cache.clear();
+    }
+
+    public void clear() {
+        active = false;
         cycleId++;
         cache.clear();
     }
@@ -52,11 +60,17 @@ public final class PowerNetworkService {
     }
 
     public NetworkState state(UUID islandUuid) {
+        if (!active) {
+            return emptyState();
+        }
         NetworkState cached = cache.get(islandUuid);
         return cached == null ? calculate(islandUuid, false) : cached;
     }
 
     public List<PowerNetwork> rebuildIsland(UUID islandUuid) {
+        if (!active) {
+            return List.of();
+        }
         cache.remove(islandUuid);
         List<MachineInstance> connected = machines.byIsland(islandUuid).stream()
                 .filter(this::hasPowerRole)
@@ -95,7 +109,14 @@ public final class PowerNetworkService {
     }
 
     public List<PowerNetwork> load(UUID islandUuid) {
+        if (!active) {
+            return List.of();
+        }
         return database.loadPowerNetworks(islandUuid);
+    }
+
+    private NetworkState emptyState() {
+        return new NetworkState(cycleId, 1.0, 0.0, 0.0, 0L, 0.0);
     }
 
     private void clearIslandPowerIds(UUID islandUuid) {
