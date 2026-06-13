@@ -21,6 +21,9 @@ core-api:
 
 security:
   enforce-route-session: true
+  require-velocity-forwarding: true
+  forwarding-secret: "${VELOCITY_FORWARDING_SECRET}"
+  allow-bungee-connect-plugin-messaging: true
 
 redis:
   uri: "redis://redis.internal:6379"

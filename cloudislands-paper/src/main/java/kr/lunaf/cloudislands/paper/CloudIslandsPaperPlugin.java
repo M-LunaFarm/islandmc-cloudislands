@@ -100,7 +100,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
-        getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
+        logSecurityPosture();
+        if (configBoolean("security.allow-bungee-connect-plugin-messaging", true)) {
+            getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
+        }
         String nodeId = getConfig().getString("node.id", "island-1");
         String pool = getConfig().getString("node.pool", "island");
         String velocityServerName = getConfig().getString("node.velocity-server-name", nodeId);
@@ -355,6 +358,24 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             return envToken;
         }
         return resolveEnv(getConfig().getString("core-api.admin-token", ""));
+    }
+
+    private void logSecurityPosture() {
+        if (configBoolean("security.require-velocity-forwarding", true)) {
+            String forwardingSecret = resolveEnv(getConfig().getString("security.forwarding-secret", ""));
+            if (forwardingSecret.isBlank()) {
+                getLogger().warning("CloudIslands security: Velocity forwarding is required but security.forwarding-secret is empty");
+            }
+        }
+        if (!configBoolean("security.enforce-route-session", true)) {
+            getLogger().warning("CloudIslands security: route session enforcement is disabled");
+        }
+        if (!configBoolean("security.allow-bungee-connect-plugin-messaging", true)) {
+            getLogger().warning("CloudIslands security: BungeeCord connect plugin messaging is disabled; proxy fallback transfers may not work");
+        }
+        if (coreApiToken().isBlank()) {
+            getLogger().warning("CloudIslands security: core-api auth token is empty");
+        }
     }
 
     private String resolveEnv(String value) {

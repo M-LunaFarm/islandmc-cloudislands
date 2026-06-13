@@ -16,6 +16,11 @@ routing:
   fallback-on-failure: "Lobby"
   hide-node-names: true
 
+security:
+  require-modern-forwarding: true
+  forwarding-secret: "${VELOCITY_FORWARDING_SECRET}"
+  block-cloudislands-plugin-messages: true
+
 commands:
   aliases:
     - "is"

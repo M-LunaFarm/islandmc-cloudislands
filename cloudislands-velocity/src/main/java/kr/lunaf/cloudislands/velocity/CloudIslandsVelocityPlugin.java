@@ -40,6 +40,7 @@ public final class CloudIslandsVelocityPlugin {
     private final Logger logger;
     private final VelocityRoutingController routingController;
     private final List<String> commandAliases;
+    private final boolean blockCloudIslandsPluginMessages;
 
     @Inject
     public CloudIslandsVelocityPlugin(ProxyServer proxy, Logger logger, @DataDirectory Path dataDirectory) {
@@ -54,9 +55,11 @@ public final class CloudIslandsVelocityPlugin {
         int routeWaitSeconds = Integer.getInteger("cloudislands.routeWaitSeconds", config.routeWaitSeconds());
         String islandPool = System.getProperty("cloudislands.islandPool", config.islandPool());
         int routeTicketTtlSeconds = Integer.getInteger("cloudislands.routeTicketTtlSeconds", config.routeTicketTtlSeconds());
+        logSecurityPosture(config, coreToken, adminToken);
         CoreApiClient client = new JdkCoreApiClient(URI.create(coreUrl), coreToken, adminToken, Duration.ofMillis(Math.max(1L, timeoutMs)));
         this.routingController = new VelocityRoutingController(proxy, client, fallbackServer, routeWaitSeconds, config.useActionBar(), config.useBossBarLoading(), config.hideNodeNames(), islandPool, routeTicketTtlSeconds);
         this.commandAliases = config.aliases();
+        this.blockCloudIslandsPluginMessages = config.blockCloudIslandsPluginMessages();
     }
 
     private static VelocityConfig loadConfig(Path dataDirectory, Logger logger) {
@@ -120,6 +123,9 @@ public final class CloudIslandsVelocityPlugin {
             bool(values.get("routing.hide-node-names"), true),
             bool(values.get("messages.use-actionbar"), true),
             bool(values.get("messages.use-bossbar-loading"), true),
+            bool(values.get("security.require-modern-forwarding"), true),
+            values.getOrDefault("security.forwarding-secret", ""),
+            bool(values.get("security.block-cloudislands-plugin-messages"), true),
             aliases.isEmpty() ? ALIASES : List.copyOf(aliases)
         );
     }
@@ -168,7 +174,22 @@ public final class CloudIslandsVelocityPlugin {
         return aliases.stream().filter(alias -> !alias.equalsIgnoreCase("섬")).distinct().toArray(String[]::new);
     }
 
-    private record VelocityConfig(String coreBaseUrl, String coreToken, String adminToken, int timeoutMs, String fallbackServer, int routeWaitSeconds, String islandPool, int routeTicketTtlSeconds, boolean hideNodeNames, boolean useActionBar, boolean useBossBarLoading, List<String> aliases) {}
+    private void logSecurityPosture(VelocityConfig config, String coreToken, String adminToken) {
+        if (config.requireModernForwarding() && config.forwardingSecret().isBlank()) {
+            logger.warn("CloudIslands security: Velocity modern forwarding is required but security.forwarding-secret is empty");
+        }
+        if (coreToken == null || coreToken.isBlank()) {
+            logger.warn("CloudIslands security: core-api auth token is empty");
+        }
+        if (adminToken == null || adminToken.isBlank()) {
+            logger.warn("CloudIslands security: admin token is empty, admin Core requests will be rejected");
+        }
+        if (!config.blockCloudIslandsPluginMessages()) {
+            logger.warn("CloudIslands security: cloudislands plugin messages are not blocked at Velocity");
+        }
+    }
+
+    private record VelocityConfig(String coreBaseUrl, String coreToken, String adminToken, int timeoutMs, String fallbackServer, int routeWaitSeconds, String islandPool, int routeTicketTtlSeconds, boolean hideNodeNames, boolean useActionBar, boolean useBossBarLoading, boolean requireModernForwarding, String forwardingSecret, boolean blockCloudIslandsPluginMessages, List<String> aliases) {}
 
     @Subscribe
     public void onProxyInitialize(ProxyInitializeEvent event) {
@@ -226,6 +247,9 @@ public final class CloudIslandsVelocityPlugin {
 
     @Subscribe
     public void onPluginMessage(PluginMessageEvent event) {
+        if (!blockCloudIslandsPluginMessages) {
+            return;
+        }
         String channel = event.getIdentifier().getId();
         if (channel.equals("cloudislands") || channel.startsWith("cloudislands:")) {
             event.setResult(PluginMessageEvent.ForwardResult.handled());
