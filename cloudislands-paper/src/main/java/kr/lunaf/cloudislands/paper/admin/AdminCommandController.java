@@ -9,6 +9,8 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import kr.lunaf.cloudislands.api.CloudIslandsProvider;
+import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
@@ -24,8 +26,9 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public final class AdminCommandController implements CommandExecutor, TabCompleter {
-    private static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "config", "cache", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
+    private static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "config", "cache", "addons", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
+    private static final List<String> ADDON_COMMANDS = List.of("list");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "islands", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
     private static final List<String> PLAYER_COMMANDS = List.of("info", "setisland", "clearisland");
@@ -43,6 +46,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         "ciadmin help [page]",
         "ciadmin command list [page]",
         "ciadmin cache clear",
+        "ciadmin addons list",
         "ciadmin node menu",
         "ciadmin node list",
         "ciadmin node info <node>",
@@ -154,6 +158,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "CloudIslands local cache cleared. Core cache clear", coreApiClient.clearCache().thenApply(body -> maintenanceMessage("Cache clear", body)));
             return true;
         }
+        if (args[0].equalsIgnoreCase("addons")) {
+            return handleAddons(sender, args);
+        }
         if (args[0].equalsIgnoreCase("reload")) {
             run(sender, "Core reload", coreApiClient.reload().thenApply(body -> maintenanceMessage("Core reload", body)));
             return true;
@@ -229,6 +236,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("cache")) {
             return matches(CACHE_COMMANDS, args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("addons")) {
+            return matches(ADDON_COMMANDS, args[1]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("node")) {
             return matches(NODE_COMMANDS, args[1]);
@@ -315,6 +325,18 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return matches(onlinePlayerNames(), args[2]);
         }
         return List.of();
+    }
+
+    private boolean handleAddons(CommandSender sender, String[] args) {
+        if (args.length > 1 && !args[1].equalsIgnoreCase("list")) {
+            sender.sendMessage(adminText("admin-command-addons-usage", "사용법: /ciadmin addons list"));
+            return true;
+        }
+        CloudIslandsProvider.get().ifPresentOrElse(
+            api -> run(sender, "Addons list", api.addons().list().thenApply(this::addonListMessage)),
+            () -> sender.sendMessage(adminText("admin-command-addons-api-missing", "CloudIslands API가 준비되지 않았습니다."))
+        );
+        return true;
     }
 
     private boolean handleNode(CommandSender sender, String[] args) {
@@ -1382,6 +1404,26 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         return label + adminText("admin-command-maintenance-accepted-sessions-prefix", ": accepted sessions=") + longValue(body, "clearedSessions") + adminText("admin-command-maintenance-tickets-prefix", " tickets=") + longValue(body, "clearedTickets");
     }
 
+    private String addonListMessage(List<CloudIslandsAddonSnapshot> addons) {
+        if (addons.isEmpty()) {
+            return adminText("admin-command-addons-empty", "Addons: empty");
+        }
+        int enabled = 0;
+        List<String> entries = new ArrayList<>();
+        for (CloudIslandsAddonSnapshot addon : addons) {
+            if (addon.enabled()) {
+                enabled++;
+            }
+            entries.add(addon.id()
+                + adminText("admin-command-addons-name-prefix", " name=") + addon.displayName()
+                + adminText("admin-command-addons-version-prefix", " version=") + addon.version()
+                + adminText("admin-command-addons-enabled-prefix", " enabled=") + addon.enabled());
+        }
+        return adminText("admin-command-addons-total-prefix", "Addons: total=") + addons.size()
+            + adminText("admin-command-addons-enabled-count-prefix", " enabled=") + enabled
+            + " / " + String.join(" | ", entries);
+    }
+
     private String metricsMessage(String body) {
         if (body == null || body.isBlank()) {
             return adminText("admin-command-metrics-empty", "Core metrics: empty");
@@ -1944,7 +1986,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             root = "templates";
         }
         return switch (root) {
-            case "status", "config", "cache", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
+            case "status", "config", "cache", "addons", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
     }
