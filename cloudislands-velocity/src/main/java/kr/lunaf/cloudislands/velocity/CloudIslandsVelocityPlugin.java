@@ -151,6 +151,7 @@ public final class CloudIslandsVelocityPlugin {
             bool(values.get("health.enabled"), false),
             values.getOrDefault("health.bind-host", "127.0.0.1"),
             integer(values.get("health.port"), 8788),
+            bool(values.get("migration.superiorskyblock2-enabled"), bool(values.get("migration.enabled"), true)),
             messageValues(values),
             aliases.isEmpty() ? ALIASES : List.copyOf(aliases)
         );
@@ -226,7 +227,7 @@ public final class CloudIslandsVelocityPlugin {
         }
     }
 
-    private record VelocityConfig(String language, boolean debug, String coreBaseUrl, String coreToken, String adminToken, int timeoutMs, String fallbackServer, int routeWaitSeconds, String islandPool, int routeTicketTtlSeconds, boolean hideNodeNames, boolean useActionBar, boolean useBossBarLoading, boolean requireModernForwarding, String forwardingSecret, boolean blockCloudIslandsPluginMessages, boolean healthEnabled, String healthBindHost, int healthPort, Map<String, String> messages, List<String> aliases) {}
+    private record VelocityConfig(String language, boolean debug, String coreBaseUrl, String coreToken, String adminToken, int timeoutMs, String fallbackServer, int routeWaitSeconds, String islandPool, int routeTicketTtlSeconds, boolean hideNodeNames, boolean useActionBar, boolean useBossBarLoading, boolean requireModernForwarding, String forwardingSecret, boolean blockCloudIslandsPluginMessages, boolean healthEnabled, String healthBindHost, int healthPort, boolean superiorSkyblock2MigrationEnabled, Map<String, String> messages, List<String> aliases) {}
 
     @Subscribe
     public void onProxyInitialize(ProxyInitializeEvent event) {
@@ -355,7 +356,7 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (isCommandListRequest(args)) {
-            sendCommandList(player, "CloudIslands 관리자 명령어 목록", IslandCommandCatalog.adminCommands(), commandListPage(args), "ciadmin command list");
+            sendCommandList(player, "CloudIslands 관리자 명령어 목록", adminCommands(), commandListPage(args), "ciadmin command list");
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("info")) {
@@ -483,6 +484,10 @@ public final class CloudIslandsVelocityPlugin {
             return;
         }
         if (args.length >= 1 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
+            if (!config.superiorSkyblock2MigrationEnabled()) {
+                player.sendMessage(Component.text("SuperiorSkyblock2 migration is disabled by config."));
+                return;
+            }
             String action = args.length > 1 ? args[1] : "scan";
             if (action.equalsIgnoreCase("import") && args.length < 3) {
                 player.sendMessage(Component.text("사용법: /ciadmin migrate-superiorskyblock2 import <approvalToken>"));
@@ -568,7 +573,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.recoverJobs(player, args.length > 2 ? args[2] : "recovery", args.length > 3 ? parseLongOrZero(args[3]) : 60000L, args.length > 4 ? (int) parseLongOrZero(args[4]) : 16);
             return;
         }
-        sendCommandList(player, "CloudIslands 관리자 명령어 목록", IslandCommandCatalog.adminCommands(), 1, "ciadmin command list");
+            sendCommandList(player, "CloudIslands 관리자 명령어 목록", adminCommands(), 1, "ciadmin command list");
     }
 
     private void dispatch(Player player, String[] args) {
@@ -1302,7 +1307,7 @@ public final class CloudIslandsVelocityPlugin {
     }
 
     private List<String> adminSuggestions(String[] args) {
-        List<String> matches = suggestions(IslandCommandCatalog.adminCommands(), "ciadmin", args);
+        List<String> matches = suggestions(adminCommands(), "ciadmin", args);
         if (args.length == 3 && args[0].equalsIgnoreCase("player")) {
             addOnlinePlayerSuggestions(matches, args[2]);
         }
@@ -1339,7 +1344,7 @@ public final class CloudIslandsVelocityPlugin {
         if (args.length == 5 && args[0].equalsIgnoreCase("jobs") && args[1].equalsIgnoreCase("recover")) {
             addLiteralSuggestions(matches, args[4], List.of("16", "32", "64"));
         }
-        if (args.length == 3 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
+        if (config.superiorSkyblock2MigrationEnabled() && args.length == 3 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
             addLiteralSuggestions(matches, args[2], List.of("plugins/SuperiorSkyblock2"));
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("rankings")) {
@@ -1386,6 +1391,10 @@ public final class CloudIslandsVelocityPlugin {
             case "status", "config", "cache", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
+    }
+
+    private List<String> adminCommands() {
+        return IslandCommandCatalog.adminCommands(config.superiorSkyblock2MigrationEnabled());
     }
 
     private void addLiteralSuggestions(List<String> matches, String typed, List<String> values) {

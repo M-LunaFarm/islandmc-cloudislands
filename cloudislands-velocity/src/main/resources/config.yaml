@@ -21,6 +21,9 @@ security:
   forwarding-secret: "${VELOCITY_FORWARDING_SECRET}"
   block-cloudislands-plugin-messages: true
 
+migration:
+  superiorskyblock2-enabled: true
+
 commands:
   aliases:
     - "is"

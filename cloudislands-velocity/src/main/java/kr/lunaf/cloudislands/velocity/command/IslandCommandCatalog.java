@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.velocity.command;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public final class IslandCommandCatalog {
@@ -99,7 +100,11 @@ public final class IslandCommandCatalog {
     }
 
     public static List<String> adminCommands() {
-        return List.of(
+        return adminCommands(true);
+    }
+
+    public static List<String> adminCommands(boolean includeMigration) {
+        List<String> commands = new ArrayList<>(List.of(
             "ciadmin status",
             "ciadmin config",
             "ciadmin help [page]",
@@ -155,7 +160,12 @@ public final class IslandCommandCatalog {
             "ciadmin templates upsert <id> <name> [enabled|disabled] [minNodeVersion]",
             "ciadmin templates enable <id>",
             "ciadmin templates disable <id>",
-            "ciadmin reload",
+            "ciadmin reload"
+        ));
+        if (!includeMigration) {
+            return List.copyOf(commands);
+        }
+        commands.addAll(List.of(
             "ciadmin migrate-superiorskyblock2 scan [path]",
             "ciadmin migrate-superiorskyblock2 dryrun [path]",
             "ciadmin migrate-superiorskyblock2 dry-run [path]",
@@ -163,6 +173,7 @@ public final class IslandCommandCatalog {
             "ciadmin migrate-superiorskyblock2 import <approvalToken>",
             "ciadmin migrate-superiorskyblock2 verify [path]",
             "ciadmin migrate-superiorskyblock2 rollback [path]"
-        );
+        ));
+        return List.copyOf(commands);
     }
 }
