@@ -115,7 +115,7 @@ public final class MigrationAdminService {
         }
         lastScan = new SuperiorSkyblock2MigrationScanner.ScanResult(lastScan.manifests(), List.copyOf(issues));
         lastPlan = new MigrationImportPlan(lastScan.manifests(), lastScan.issues());
-        return "{\"state\":\"" + MigrationRunState.SCANNED + "\",\"path\":\"" + escape(sourcePath) + "\",\"manifestPath\":\"" + escape(manifestPath.toString()) + "\",\"manifests\":" + lastScan.manifests().size() + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastScan.issues()) + "}";
+        return "{\"state\":\"" + MigrationRunState.SCANNED + "\"" + migrationBoundaryFields() + ",\"path\":\"" + escape(sourcePath) + "\",\"manifestPath\":\"" + escape(manifestPath.toString()) + "\",\"manifests\":" + lastScan.manifests().size() + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastScan.issues()) + "}";
     }
 
     public synchronized String dryRun() {
@@ -135,7 +135,7 @@ public final class MigrationAdminService {
             state = MigrationRunState.DRY_RUN_FAILED;
             lastApprovalToken = "";
         }
-        return "{\"state\":\"" + state + "\",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"manifests\":" + lastPlan.manifests().size() + ",\"canImport\":" + lastPlan.canImport() + (lastApprovalToken.isBlank() ? "" : ",\"approvalToken\":\"" + lastApprovalToken + "\"") + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastPlan.issues()) + "}";
+        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"manifests\":" + lastPlan.manifests().size() + ",\"canImport\":" + lastPlan.canImport() + (lastApprovalToken.isBlank() ? "" : ",\"approvalToken\":\"" + lastApprovalToken + "\"") + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastPlan.issues()) + "}";
     }
 
     private List<MigrationIssue> targetConflictIssues(List<MigrationManifest> manifests) {
@@ -207,7 +207,7 @@ public final class MigrationAdminService {
     public synchronized String extractWorldBundles(String outputPath) {
         if (lastScan.manifests().isEmpty()) {
             List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_SCAN_REQUIRED", "run scan before extracting SuperiorSkyblock2 worlds", true));
-            return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\",\"path\":\"\",\"manifests\":0,\"extractedBundles\":0,\"extractedFiles\":0,\"extractedBytes\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+            return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\"" + migrationBoundaryFields() + ",\"path\":\"\",\"manifests\":0,\"extractedBundles\":0,\"extractedFiles\":0,\"extractedBytes\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
         }
         Path targetRoot = outputPath == null || outputPath.isBlank() ? migrationBundleRoot : Path.of(outputPath);
         lastExtractionRoot = targetRoot;
@@ -230,7 +230,11 @@ public final class MigrationAdminService {
             }
         }
         MigrationRunState state = issues.stream().anyMatch(MigrationIssue::blocking) ? MigrationRunState.EXTRACT_FAILED : MigrationRunState.EXTRACTED;
-        return "{\"state\":\"" + state + "\",\"path\":\"" + escape(targetRoot.toString()) + "\",\"manifests\":" + lastScan.manifests().size() + ",\"extractedBundles\":" + extractedBundles + ",\"extractedFiles\":" + extractedFiles + ",\"extractedBytes\":" + extractedBytes + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"path\":\"" + escape(targetRoot.toString()) + "\",\"manifests\":" + lastScan.manifests().size() + ",\"extractedBundles\":" + extractedBundles + ",\"extractedFiles\":" + extractedFiles + ",\"extractedBytes\":" + extractedBytes + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+    }
+
+    private String migrationBoundaryFields() {
+        return ",\"sourcePlugin\":\"SuperiorSkyblock2\",\"migrationInputOnly\":true,\"runtimeDependency\":false,\"targetRuntime\":\"CloudIslands\"";
     }
 
     public synchronized String importLastPlan() {
@@ -240,16 +244,16 @@ public final class MigrationAdminService {
     public synchronized String importLastPlan(String approvalToken) {
         if (lastPlan.manifests().isEmpty()) {
             List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_PLAN_EMPTY", "run scan and dryrun before import", true));
-            return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\",\"imported\":false,\"importedIslands\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+            return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\"" + migrationBoundaryFields() + ",\"imported\":false,\"importedIslands\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
         }
         if (lastApprovalToken.isBlank() || approvalToken == null || !lastApprovalToken.equals(approvalToken.trim())) {
             List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_APPROVAL_REQUIRED", "run dryrun and pass the returned approval token to import", true));
-            return "{\"state\":\"" + MigrationRunState.DRY_RUN_PASSED + "\",\"imported\":false,\"importedIslands\":0" + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+            return "{\"state\":\"" + MigrationRunState.DRY_RUN_PASSED + "\"" + migrationBoundaryFields() + ",\"imported\":false,\"importedIslands\":0" + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
         }
         long[] extractedStats = new long[] {0L, 0L, 0L};
         BundlePreflight preflight = preflightMigrationBundles(lastPlan.manifests());
         if (!preflight.issues().isEmpty()) {
-            return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\",\"imported\":false,\"importedIslands\":0,\"extractedBundles\":0,\"extractedFiles\":0,\"extractedBytes\":0" + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), preflight.issues())) + ",\"issues\":" + issuesJson(preflight.issues()) + "}";
+            return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\"" + migrationBoundaryFields() + ",\"imported\":false,\"importedIslands\":0,\"extractedBundles\":0,\"extractedFiles\":0,\"extractedBytes\":0" + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), preflight.issues())) + ",\"issues\":" + issuesJson(preflight.issues()) + "}";
         }
         Map<java.util.UUID, MigrationWorldBundle> preflightBundles = preflight.bundles();
         CloudIslandsMigrationImporter.ImportResult result = importer.importPlan(lastPlan, manifest -> {

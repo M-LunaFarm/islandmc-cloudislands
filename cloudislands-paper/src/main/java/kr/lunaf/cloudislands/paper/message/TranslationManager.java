@@ -451,6 +451,10 @@ public final class TranslationManager {
         values.put("admin-command-migration-manifest-prefix", " manifest=");
         values.put("admin-command-migration-report-prefix", " report=");
         values.put("admin-command-migration-approval-prefix", " approval=");
+        values.put("admin-command-migration-source-prefix", " source=");
+        values.put("admin-command-migration-input-only-prefix", " inputOnly=");
+        values.put("admin-command-migration-runtime-dependency-prefix", " runtimeDependency=");
+        values.put("admin-command-migration-target-runtime-prefix", " targetRuntime=");
         values.put("admin-command-migration-can-import-prefix", " canImport=");
         values.put("admin-command-migration-imported-prefix", " imported=");
         values.put("admin-command-migration-islands-prefix", " islands=");

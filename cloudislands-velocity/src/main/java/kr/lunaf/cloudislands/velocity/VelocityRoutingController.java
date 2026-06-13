@@ -1087,6 +1087,19 @@ public final class VelocityRoutingController {
         if (!approvalToken.isBlank()) {
             builder.append(" approval=").append(approvalToken);
         }
+        if (body.contains("\"sourcePlugin\"")) {
+            builder.append(" source=").append(jsonValue(body, "sourcePlugin"));
+        }
+        if (body.contains("\"migrationInputOnly\"")) {
+            builder.append(" inputOnly=").append(boolValue(body, "migrationInputOnly"));
+        }
+        if (body.contains("\"runtimeDependency\"")) {
+            builder.append(" runtimeDependency=").append(boolValue(body, "runtimeDependency"));
+        }
+        String targetRuntime = jsonValue(body, "targetRuntime");
+        if (!targetRuntime.isBlank()) {
+            builder.append(" targetRuntime=").append(targetRuntime);
+        }
         if (body.contains("\"canImport\"")) {
             builder.append(" canImport=").append(boolValue(body, "canImport"));
         }

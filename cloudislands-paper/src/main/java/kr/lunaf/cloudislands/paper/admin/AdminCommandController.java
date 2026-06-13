@@ -852,6 +852,19 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (!approvalToken.isBlank()) {
             builder.append(adminText("admin-command-migration-approval-prefix", " approval=")).append(approvalToken);
         }
+        if (body.contains("\"sourcePlugin\"")) {
+            builder.append(adminText("admin-command-migration-source-prefix", " source=")).append(textValue(body, "sourcePlugin"));
+        }
+        if (body.contains("\"migrationInputOnly\"")) {
+            builder.append(adminText("admin-command-migration-input-only-prefix", " inputOnly=")).append(boolValue(body, "migrationInputOnly"));
+        }
+        if (body.contains("\"runtimeDependency\"")) {
+            builder.append(adminText("admin-command-migration-runtime-dependency-prefix", " runtimeDependency=")).append(boolValue(body, "runtimeDependency"));
+        }
+        String targetRuntime = textValue(body, "targetRuntime");
+        if (!targetRuntime.isBlank()) {
+            builder.append(adminText("admin-command-migration-target-runtime-prefix", " targetRuntime=")).append(targetRuntime);
+        }
         if (body.contains("\"canImport\"")) {
             builder.append(adminText("admin-command-migration-can-import-prefix", " canImport=")).append(boolValue(body, "canImport"));
         }
