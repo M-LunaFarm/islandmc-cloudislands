@@ -572,8 +572,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         private boolean hasEnabledAddonObject() {
-            return addonObjects.values().stream()
-                .map(addon -> addons.get(addon.addonId()))
+            return addonObjects.keySet().stream()
+                .map(addons::get)
                 .anyMatch(snapshot -> snapshot != null && snapshot.enabled());
         }
 
