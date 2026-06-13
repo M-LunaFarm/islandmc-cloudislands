@@ -30,7 +30,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "config", "cache", "addons", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
     private static final List<String> ADDON_COMMANDS = List.of("list", "info", "feature", "enable", "disable", "reload");
-    private static final List<String> ADDON_FEATURES = List.of("commands", "machines", "gui", "lifecycle", "resource-nodes", "market", "contracts", "research", "maintenance", "placeholders");
+    private static final List<String> ADDON_FEATURES = List.of("commands", "machines", "factories", "generators", "upgrades", "missions", "menus", "gui", "lifecycle", "resource-nodes", "market", "contracts", "research", "maintenance", "placeholders");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "islands", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
     private static final List<String> PLAYER_COMMANDS = List.of("info", "setisland", "clearisland");

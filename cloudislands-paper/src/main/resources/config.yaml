@@ -8,6 +8,11 @@ addons:
     features:
       commands: true
       machines: true
+      factories: true
+      generators: true
+      upgrades: true
+      missions: true
+      menus: true
       gui: true
       lifecycle: true
       resource-nodes: true
