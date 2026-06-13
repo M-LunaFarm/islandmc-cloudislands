@@ -58,8 +58,8 @@ public final class IslandBoostService {
         double max = Math.max(settings.agricultureMin(), settings.agricultureMax());
         double crop = clamp(numberAny(rawIsland, "getCropGrowthMultiplier", "getCropGrowth", "getCropGrowthRate")
                 .orElse(1.0), min, max);
-        int size = numberAny(rawIsland, "getIslandSize", "getSize", "getRadius").map(Double::intValue).orElse(0);
-        double worth = numberAny(rawIsland, "getWorth", "getIslandWorth", "getLevel").orElse(1.0);
+        int size = numberAny(rawIsland, "getIslandSize", "getSize", "getRadius", "size").map(Double::intValue).orElse(0);
+        double worth = numberAny(rawIsland, "getWorth", "getIslandWorth", "getLevel", "worth", "level").orElse(1.0);
         int factorySlotBonus = Math.max(0, size / settings.factorySlotSizeDivisor());
         int contractSlotBonus = Math.max(0, (int) Math.floor(
                 Math.log(Math.max(1.0, worth)) / Math.log(settings.contractSlotWorthLogBase()) + 1.0e-9));
