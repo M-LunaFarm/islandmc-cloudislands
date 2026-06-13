@@ -2363,7 +2363,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private void openIslandFlagMenu(Player player) {
-        currentIsland(player, "섬 안에서만 플래그 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandFlagMenu.open(plugin, coreApiClient, player, islandId));
+        currentIsland(player, "섬 안에서만 플래그 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandFlagMenu.open(plugin, coreApiClient, player, islandId, messages));
     }
 
     private void setIslandFlag(Player player, String flagName, String value) {

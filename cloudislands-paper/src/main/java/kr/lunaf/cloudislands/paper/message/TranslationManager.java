@@ -232,6 +232,12 @@ public final class TranslationManager {
         values.put("settings-menu-public-right-click", "우클릭: /섬 비공개");
         values.put("settings-menu-lock-left-click", "좌클릭: /섬 잠금해제");
         values.put("settings-menu-lock-right-click", "우클릭: /섬 잠금");
+        values.put("flag-menu-load-failed", "섬 플래그를 불러오지 못했습니다.");
+        values.put("flag-menu-default", "기본값");
+        values.put("flag-menu-allow", "허용");
+        values.put("flag-menu-deny", "거부");
+        values.put("flag-menu-current-value", "현재 값: ");
+        values.put("flag-menu-click-actions", "좌클릭: 허용, 우클릭: 거부");
         values.put("danger-confirm-required", "Shift+우클릭해야 실행됩니다.");
         values.put("danger-confirm-click-required", "위험 작업은 Shift+우클릭해야 실행됩니다.");
         values.put("snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다.");

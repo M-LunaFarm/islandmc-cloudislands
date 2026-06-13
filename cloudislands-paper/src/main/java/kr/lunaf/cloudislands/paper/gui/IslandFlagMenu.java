@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -18,12 +19,25 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandFlagMenu implements Listener {
     private static final String TITLE = "섬 플래그 설정";
+    private final MessageRenderer messages;
+
+    public IslandFlagMenu() {
+        this(null);
+    }
+
+    public IslandFlagMenu(MessageRenderer messages) {
+        this.messages = messages;
+    }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
+        open(plugin, client, player, islandId, null);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
         client.listIslandFlags(islandId)
-            .thenAccept(body -> openSync(plugin, player, flags(body)))
+            .thenAccept(body -> openSync(plugin, player, flags(body), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("섬 플래그를 불러오지 못했습니다."));
+                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "flag-menu-load-failed", "섬 플래그를 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -64,12 +78,12 @@ public final class IslandFlagMenu implements Listener {
         player.performCommand("섬 플래그설정 " + flag + " " + (!event.isRightClick()));
     }
 
-    private static void openSync(Plugin plugin, Player player, Map<IslandFlag, String> values) {
+    private static void openSync(Plugin plugin, Player player, Map<IslandFlag, String> values, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
             int slot = 0;
             for (IslandFlag flag : IslandFlag.values()) {
-                inventory.setItem(slot++, flagItem(flag, values.get(flag)));
+                inventory.setItem(slot++, flagItem(flag, values.get(flag), messages));
             }
             inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 플래그"));
             inventory.setItem(53, item(Material.COMPARATOR, "설정", "/섬 설정"));
@@ -77,18 +91,26 @@ public final class IslandFlagMenu implements Listener {
         });
     }
 
-    private static ItemStack flagItem(IslandFlag flag, String value) {
+    private static ItemStack flagItem(IslandFlag flag, String value, MessageRenderer messages) {
         String normalized = value == null ? "" : value;
         Material material = normalized.equalsIgnoreCase("true") ? Material.LIME_DYE : normalized.equalsIgnoreCase("false") ? Material.RED_DYE : Material.GRAY_DYE;
-        String state = normalized.isBlank() ? "기본값" : normalized.equalsIgnoreCase("true") ? "허용" : normalized.equalsIgnoreCase("false") ? "거부" : normalized;
+        String state = normalized.isBlank() ? message(messages, "flag-menu-default", "기본값") : normalized.equalsIgnoreCase("true") ? message(messages, "flag-menu-allow", "허용") : normalized.equalsIgnoreCase("false") ? message(messages, "flag-menu-deny", "거부") : normalized;
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(flag.name());
-            meta.setLore(java.util.List.of("플래그=" + flag.name(), "현재 값: " + state, "좌클릭: 허용, 우클릭: 거부"));
+            meta.setLore(java.util.List.of("플래그=" + flag.name(), message(messages, "flag-menu-current-value", "현재 값: ") + state, message(messages, "flag-menu-click-actions", "좌클릭: 허용, 우클릭: 거부")));
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    private static String message(MessageRenderer messages, String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private static Map<IslandFlag, String> flags(String body) {
