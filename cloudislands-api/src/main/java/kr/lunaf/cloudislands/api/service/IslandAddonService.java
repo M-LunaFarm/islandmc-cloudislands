@@ -17,11 +17,66 @@ public interface IslandAddonService {
     CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled, Map<String, Boolean> features, Map<String, String> metadata);
 
     default CompletableFuture<CloudIslandsAddonSnapshot> register(CloudIslandsAddon addon) {
-        return register(addon.addonId(), addon.addonDisplayName(), addon.addonVersion(), addon.enabledByDefault(), addon.addonFeatures(), addon.addonMetadata())
+        return register(safeAddonId(addon), safeAddonDisplayName(addon), safeAddonVersion(addon), safeAddonEnabledByDefault(addon), safeAddonFeatures(addon), safeAddonMetadata(addon))
             .thenApply(snapshot -> {
-                addon.onAddonRegistered(snapshot);
+                try {
+                    addon.onAddonRegistered(snapshot);
+                } catch (RuntimeException ignored) {
+                    // Addon callbacks must not break the registry path.
+                }
                 return snapshot;
             });
+    }
+
+    private static String safeAddonId(CloudIslandsAddon addon) {
+        try {
+            String id = addon.addonId();
+            return id == null || id.isBlank() ? addon.getClass().getName() : id;
+        } catch (RuntimeException ignored) {
+            return addon.getClass().getName();
+        }
+    }
+
+    private static String safeAddonDisplayName(CloudIslandsAddon addon) {
+        try {
+            String displayName = addon.addonDisplayName();
+            return displayName == null || displayName.isBlank() ? safeAddonId(addon) : displayName;
+        } catch (RuntimeException ignored) {
+            return safeAddonId(addon);
+        }
+    }
+
+    private static String safeAddonVersion(CloudIslandsAddon addon) {
+        try {
+            String version = addon.addonVersion();
+            return version == null || version.isBlank() ? "unknown" : version;
+        } catch (RuntimeException ignored) {
+            return "unknown";
+        }
+    }
+
+    private static boolean safeAddonEnabledByDefault(CloudIslandsAddon addon) {
+        try {
+            return addon.enabledByDefault();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private static Map<String, Boolean> safeAddonFeatures(CloudIslandsAddon addon) {
+        try {
+            return Map.copyOf(addon.addonFeatures());
+        } catch (RuntimeException ignored) {
+            return Map.of();
+        }
+    }
+
+    private static Map<String, String> safeAddonMetadata(CloudIslandsAddon addon) {
+        try {
+            return Map.copyOf(addon.addonMetadata());
+        } catch (RuntimeException ignored) {
+            return Map.of("metadata-error", "RuntimeException");
+        }
     }
 
     CompletableFuture<Void> unregister(String id);
