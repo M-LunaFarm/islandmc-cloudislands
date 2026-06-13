@@ -1141,11 +1141,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void runSatisLifecycle(UUID islandId, String operation, Runnable action) {
-        if (islandId == null || database == null || !featureEnabled("lifecycle") || !lifecycleStateEnabled()) {
+        if (islandId == null || database == null || !featureEnabled("lifecycle")) {
             return;
         }
         getServer().getScheduler().runTask(this, () -> {
-            if (!isEnabled() || database == null || !featureEnabled("lifecycle") || !lifecycleStateEnabled()) {
+            if (!isEnabled() || database == null || !featureEnabled("lifecycle")) {
                 return;
             }
             try {
