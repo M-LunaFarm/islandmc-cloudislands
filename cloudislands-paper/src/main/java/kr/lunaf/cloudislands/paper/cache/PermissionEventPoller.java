@@ -689,7 +689,7 @@ public final class PermissionEventPoller {
         } else if (type.equals(CloudIslandEventType.ISLAND_HOME_CHANGED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandHomeChangeEvent(islandId, fields.getOrDefault("name", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_BANK_CHANGED.name())) {
-            Bukkit.getPluginManager().callEvent(new IslandBankChangeEvent(islandId, fields.getOrDefault("operation", ""), fields.getOrDefault("amount", ""), fields.getOrDefault("balance", ""), fields));
+            Bukkit.getPluginManager().callEvent(new IslandBankChangeEvent(islandId, uuidField(fields, "actorUuid"), fields.getOrDefault("operation", ""), fields.getOrDefault("amount", ""), fields.getOrDefault("balance", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_VISITOR_BAN_CHANGED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandVisitorBanChangeEvent(islandId, uuidField(fields, "playerUuid"), Boolean.TRUE.equals(booleanField(fields, "banned")), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_VISITOR_KICKED.name())) {
