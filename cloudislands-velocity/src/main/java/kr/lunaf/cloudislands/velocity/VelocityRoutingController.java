@@ -1697,6 +1697,7 @@ public final class VelocityRoutingController {
             + " softFull=" + jsonValue(body, "softFullPolicy")
             + " hardFull=" + jsonValue(body, "hardFullPolicy")
             + " migration=" + jsonValue(body, "migrationPolicy")
+            + " superiorMigration=" + boolValue(body, "superiorSkyblock2MigrationEnabled")
             + " ticketTtl=" + longValue(body, "routeTicketTtlSeconds") + "s"
             + " prepTtl=" + longValue(body, "routePreparingTicketTtlSeconds") + "s"
             + " mtls=" + boolValue(body, "requireMtls")

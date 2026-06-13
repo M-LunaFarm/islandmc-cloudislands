@@ -1655,6 +1655,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-core-config-soft-full-prefix", " softFull=") + textValue(body, "softFullPolicy")
             + adminText("admin-command-core-config-hard-full-prefix", " hardFull=") + textValue(body, "hardFullPolicy")
             + adminText("admin-command-core-config-migration-prefix", " migration=") + textValue(body, "migrationPolicy")
+            + adminText("admin-command-core-config-superior-migration-prefix", " superiorMigration=") + boolValue(body, "superiorSkyblock2MigrationEnabled")
             + adminText("admin-command-core-config-ticket-ttl-prefix", " ticketTtl=") + longValue(body, "routeTicketTtlSeconds") + "s"
             + adminText("admin-command-core-config-prep-ttl-prefix", " prepTtl=") + longValue(body, "routePreparingTicketTtlSeconds") + "s"
             + adminText("admin-command-core-config-mtls-prefix", " mtls=") + boolValue(body, "requireMtls")

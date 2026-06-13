@@ -479,6 +479,7 @@ messages:
     admin-command-core-config-soft-full-prefix: " softFull="
     admin-command-core-config-hard-full-prefix: " hardFull="
     admin-command-core-config-migration-prefix: " migration="
+    admin-command-core-config-superior-migration-prefix: " superiorMigration="
     admin-command-core-config-ticket-ttl-prefix: " ticketTtl="
     admin-command-core-config-prep-ttl-prefix: " prepTtl="
     admin-command-core-config-mtls-prefix: " mtls="
