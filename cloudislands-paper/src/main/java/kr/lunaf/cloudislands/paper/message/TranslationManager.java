@@ -119,6 +119,7 @@ public final class TranslationManager {
         values.put("bank-deposit-denied", "섬 은행에 입금할 권한이 없습니다.");
         values.put("bank-withdraw-denied", "섬 은행에서 출금할 권한이 없습니다.");
         values.put("economy-unavailable", "경제 플러그인을 찾을 수 없습니다.");
+        values.put("upgrade-purchase-denied", "섬 업그레이드를 구매할 권한이 없습니다.");
         return values;
     }
 

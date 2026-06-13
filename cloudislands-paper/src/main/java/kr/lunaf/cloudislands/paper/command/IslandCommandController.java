@@ -1738,7 +1738,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void purchaseIslandUpgrade(Player player, String upgradeKey) {
         currentIsland(player, "섬 안에서만 업그레이드를 구매할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_UPGRADES)) {
-                player.sendMessage("섬 업그레이드를 구매할 권한이 없습니다.");
+                message(player, routeMessage("upgrade-purchase-denied", "섬 업그레이드를 구매할 권한이 없습니다."));
                 return;
             }
             coreApiClient.purchaseIslandUpgrade(islandId, player.getUniqueId(), upgradeKey)
