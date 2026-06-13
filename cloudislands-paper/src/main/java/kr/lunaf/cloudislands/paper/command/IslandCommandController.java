@@ -1607,7 +1607,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private void openIslandBankMenu(Player player) {
-        currentIsland(player, "섬 안에서만 은행 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandBankMenu.open(plugin, coreApiClient, player, islandId));
+        currentIsland(player, "섬 안에서만 은행 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandBankMenu.open(plugin, coreApiClient, player, islandId, messages));
     }
 
     private void depositIslandBank(Player player, String amount) {

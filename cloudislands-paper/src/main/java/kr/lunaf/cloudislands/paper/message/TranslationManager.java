@@ -186,6 +186,9 @@ public final class TranslationManager {
         values.put("visitor-kick-target-not-on-island", "방문자 추방을 기록했습니다. 대상 플레이어는 현재 이 섬에 없습니다.");
         values.put("chat-menu-island-usage", "사용법: /섬 채팅 <메시지>");
         values.put("chat-menu-team-usage", "사용법: /섬 팀채팅 <메시지>");
+        values.put("bank-menu-load-failed", "섬 은행을 불러오지 못했습니다.");
+        values.put("bank-menu-deposit-usage", "사용법: /섬 입금 <금액>");
+        values.put("bank-menu-withdraw-usage", "사용법: /섬 출금 <금액>");
         values.put("danger-confirm-required", "Shift+우클릭해야 실행됩니다.");
         values.put("danger-confirm-click-required", "위험 작업은 Shift+우클릭해야 실행됩니다.");
         values.put("snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다.");
