@@ -332,9 +332,16 @@ public final class TranslationManager {
         values.put("create-menu-required-version", "필요 플랫폼 버전: ");
         values.put("create-menu-click-to-create", "클릭하면 이 템플릿으로 섬을 생성합니다.");
         values.put("biome-menu-load-failed", "섬 바이옴을 불러오지 못했습니다.");
+        values.put("biome-menu-current-name", "현재 바이옴");
         values.put("biome-menu-not-set", "설정 없음");
         values.put("biome-menu-selected", "현재 적용됨");
         values.put("biome-menu-click-to-change", "클릭하면 이 바이옴으로 변경합니다.");
+        values.put("biome-menu-refresh-name", "새로고침");
+        values.put("biome-menu-refresh-command", "/섬 바이옴");
+        values.put("biome-menu-settings-name", "설정");
+        values.put("biome-menu-settings-command", "/섬 설정");
+        values.put("biome-menu-main-menu-name", "메인 메뉴");
+        values.put("biome-menu-main-menu-command", "/섬 메뉴");
         values.put("ranking-menu-load-failed", "섬 랭킹을 불러오지 못했습니다.");
         values.put("ranking-menu-title", "섬 랭킹");
         values.put("ranking-menu-level-side", "좌측: 레벨 TOP");

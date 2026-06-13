@@ -61,26 +61,29 @@ public final class IslandBiomeMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || meta.getLore() == null) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= 27) {
             return;
         }
-        String displayName = meta.getDisplayName();
         player.closeInventory();
-        if ("현재 바이옴".equals(displayName)) {
+        if (slot == 4) {
             player.performCommand("섬 바이옴정보");
             return;
         }
-        if ("새로고침".equals(displayName)) {
+        if (slot == 22) {
             player.performCommand("섬 바이옴");
             return;
         }
-        if ("설정".equals(displayName)) {
+        if (slot == 24) {
             player.performCommand("섬 설정");
             return;
         }
-        if ("메인 메뉴".equals(displayName)) {
+        if (slot == 26) {
             player.performCommand("섬 메뉴");
+            return;
+        }
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null || meta.getLore() == null) {
             return;
         }
         String biomeKey = loreValue(meta, "biomeKey=");
@@ -97,10 +100,10 @@ public final class IslandBiomeMenu implements Listener {
             for (String biome : BIOMES) {
                 inventory.setItem(slot++, biomeItem(biome, biome.equalsIgnoreCase(currentBiome), messages));
             }
-            inventory.setItem(4, item(Material.GRASS_BLOCK, "현재 바이옴", currentBiome.isBlank() ? message(messages, "biome-menu-not-set", "설정 없음") : currentBiome));
-            inventory.setItem(22, item(Material.CLOCK, "새로고침", "/섬 바이옴"));
-            inventory.setItem(24, item(Material.COMPARATOR, "설정", "/섬 설정"));
-            inventory.setItem(26, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
+            inventory.setItem(4, item(Material.GRASS_BLOCK, message(messages, "biome-menu-current-name", "현재 바이옴"), currentBiome.isBlank() ? message(messages, "biome-menu-not-set", "설정 없음") : currentBiome));
+            inventory.setItem(22, item(Material.CLOCK, message(messages, "biome-menu-refresh-name", "새로고침"), message(messages, "biome-menu-refresh-command", "/섬 바이옴")));
+            inventory.setItem(24, item(Material.COMPARATOR, message(messages, "biome-menu-settings-name", "설정"), message(messages, "biome-menu-settings-command", "/섬 설정")));
+            inventory.setItem(26, item(Material.COMPASS, message(messages, "biome-menu-main-menu-name", "메인 메뉴"), message(messages, "biome-menu-main-menu-command", "/섬 메뉴")));
             player.openInventory(inventory);
         });
     }
