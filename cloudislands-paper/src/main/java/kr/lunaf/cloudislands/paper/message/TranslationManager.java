@@ -267,6 +267,18 @@ public final class TranslationManager {
         values.put("admin-command-template-usage", "사용법: /ciadmin template|templates list|upsert|enable|disable");
         values.put("admin-command-migration-usage", "사용법: /ciadmin migrate-superiorskyblock2 scan|dryrun|dry-run|extract|import|verify|rollback [path]");
         values.put("admin-command-migration-import-usage", "사용법: /ciadmin migrate-superiorskyblock2 import <approvalToken>");
+        values.put("admin-command-status-agent-prefix", "CloudIslands agent role=");
+        values.put("admin-command-status-online-prefix", "CloudIslands onlinePlayers=");
+        values.put("admin-command-route-failed", "관리자 섬 이동에 실패했습니다.");
+        values.put("admin-command-route-island-loading", "섬을 아직 이동할 수 있는 상태가 아닙니다.");
+        values.put("admin-command-route-island-not-found", "해당 섬을 찾을 수 없습니다.");
+        values.put("admin-command-route-service-maintenance", "현재 섬 서비스 일부 기능이 점검 중입니다.");
+        values.put("admin-command-route-target-missing", "섬 이동 경로를 찾을 수 없습니다.");
+        values.put("admin-command-route-connecting", "섬으로 이동합니다.");
+        values.put("admin-command-route-request-failed", "섬 이동 요청을 만들 수 없습니다.");
+        values.put("admin-command-list-title", "CloudIslands 관리자 명령어 목록 ");
+        values.put("admin-command-list-suffix", " - 1 line > 1 command");
+        values.put("admin-command-uuid-invalid", "UUID 형식이 올바르지 않습니다: ");
         values.put("main-menu-my-islands-name", "내 섬 목록");
         values.put("main-menu-my-islands-command", "/섬 목록");
         values.put("main-menu-info-name", "섬 정보");

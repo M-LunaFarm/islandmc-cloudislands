@@ -137,8 +137,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return true;
         }
         if (args.length == 0 || args[0].equalsIgnoreCase("status")) {
-            sender.sendMessage("CloudIslands agent role=" + agent.role() + " node=" + nodeId);
-            sender.sendMessage("CloudIslands onlinePlayers=" + agent.plugin().getServer().getOnlinePlayers().size() + " routeWaitSeconds=" + routeWaitSeconds);
+            sender.sendMessage(adminText("admin-command-status-agent-prefix", "CloudIslands agent role=") + agent.role() + " node=" + nodeId);
+            sender.sendMessage(adminText("admin-command-status-online-prefix", "CloudIslands onlinePlayers=") + agent.plugin().getServer().getOnlinePlayers().size() + " routeWaitSeconds=" + routeWaitSeconds);
             return true;
         }
         if (isHelpRequest(args)) {
@@ -781,9 +781,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
 
     private void routeAdminTeleport(Player player, UUID islandId) {
         coreApiClient.adminIslandTeleport(player.getUniqueId(), islandId)
-            .thenAccept(ticket -> routeTicket(player, ticket, "관리자 섬 이동에 실패했습니다.", 0))
+            .thenAccept(ticket -> routeTicket(player, ticket, adminText("admin-command-route-failed", "관리자 섬 이동에 실패했습니다."), 0))
             .exceptionally(error -> {
-                message(player, routeFailureMessage(error, "관리자 섬 이동에 실패했습니다."));
+                message(player, routeFailureMessage(error, adminText("admin-command-route-failed", "관리자 섬 이동에 실패했습니다.")));
                 return null;
             });
     }
@@ -793,13 +793,13 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         while (current != null) {
             if (current instanceof CoreApiException coreError) {
                 return switch (coreError.code()) {
-                    case "ISLAND_LOADING_FAILED" -> "섬을 아직 이동할 수 있는 상태가 아닙니다.";
-                    case "ISLAND_NOT_FOUND" -> "해당 섬을 찾을 수 없습니다.";
+                    case "ISLAND_LOADING_FAILED" -> adminText("admin-command-route-island-loading", "섬을 아직 이동할 수 있는 상태가 아닙니다.");
+                    case "ISLAND_NOT_FOUND" -> adminText("admin-command-route-island-not-found", "해당 섬을 찾을 수 없습니다.");
                     default -> fallback;
                 };
             }
             if (current instanceof IOException) {
-                return "현재 섬 서비스 일부 기능이 점검 중입니다.";
+                return adminText("admin-command-route-service-maintenance", "현재 섬 서비스 일부 기능이 점검 중입니다.");
             }
             current = current.getCause();
         }
@@ -841,7 +841,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         agent.plugin().getServer().getScheduler().runTask(agent.plugin(), () -> {
             if (targetServerName == null || targetServerName.isBlank()) {
                 clearFailedRoute(ticket, "TARGET_SERVER_NOT_FOUND");
-                player.sendMessage("섬 이동 경로를 찾을 수 없습니다.");
+                player.sendMessage(adminText("admin-command-route-target-missing", "섬 이동 경로를 찾을 수 없습니다."));
                 return;
             }
             try {
@@ -850,10 +850,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 output.writeUTF("Connect");
                 output.writeUTF(targetServerName);
                 player.sendPluginMessage(agent.plugin(), "BungeeCord", bytes.toByteArray());
-                player.sendMessage("섬으로 이동합니다.");
+                player.sendMessage(adminText("admin-command-route-connecting", "섬으로 이동합니다."));
             } catch (IOException exception) {
                 clearFailedRoute(ticket, "PLUGIN_MESSAGE_FAILED");
-                player.sendMessage("섬 이동 요청을 만들 수 없습니다.");
+                player.sendMessage(adminText("admin-command-route-request-failed", "섬 이동 요청을 만들 수 없습니다."));
             }
         });
     }
@@ -1915,7 +1915,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         int safePage = Math.max(1, Math.min(page, maxPage));
         int from = (safePage - 1) * pageSize;
         int to = Math.min(HELP_COMMANDS.size(), from + pageSize);
-        sender.sendMessage("CloudIslands 관리자 명령어 목록 " + safePage + "/" + maxPage + " - 1 line > 1 command");
+        sender.sendMessage(adminText("admin-command-list-title", "CloudIslands 관리자 명령어 목록 ") + safePage + "/" + maxPage + adminText("admin-command-list-suffix", " - 1 line > 1 command"));
         for (String command : HELP_COMMANDS.subList(from, to)) {
             sender.sendMessage("> /" + command.replaceFirst("^ciadmin", label));
         }
@@ -1974,7 +1974,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         try {
             return UUID.fromString(value);
         } catch (IllegalArgumentException exception) {
-            sender.sendMessage("UUID 형식이 올바르지 않습니다: " + value);
+            sender.sendMessage(adminText("admin-command-uuid-invalid", "UUID 형식이 올바르지 않습니다: ") + value);
             return null;
         }
     }
@@ -1995,7 +1995,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         return coreApiClient.islandInfoByName(value).thenApply(body -> {
             UUID islandId = uuidValue(body, "islandId");
             if (islandId == null) {
-                sender.sendMessage("섬을 찾지 못했습니다: " + value);
+                sender.sendMessage(adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + value);
             }
             return islandId;
         });
@@ -2012,7 +2012,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return coreApiClient.playerInfoByName(value).thenApply(body -> {
                 UUID playerUuid = uuidValue(body, "playerUuid");
                 if (playerUuid == null) {
-                    sender.sendMessage("플레이어를 찾지 못했습니다: " + value);
+                    sender.sendMessage(adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + value);
                 }
                 return playerUuid;
             });
