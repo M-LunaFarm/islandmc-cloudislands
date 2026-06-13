@@ -894,7 +894,7 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
             if (playerUuid.equals(new UUID(0L, 0L))) {
-                write(exchange, 200, "{\"sessions\":" + routeSessionsJson(sessions) + ",\"tickets\":" + tickets.toJson() + "}");
+                write(exchange, 200, "{\"sessions\":" + maskRouteNonces(routeSessionsJson(sessions)) + ",\"tickets\":" + maskRouteNonces(tickets.toJson()) + "}");
             } else {
                 PlayerRouteSession session = findAnyRouteSession(sessions, playerUuid).orElse(null);
                 RouteTicket ticket = tickets.findLatestForPlayer(playerUuid).orElse(null);
@@ -909,7 +909,7 @@ public final class CloudIslandsCoreApplication {
             RouteTicket ticket = ticketId.equals(new UUID(0L, 0L))
                 ? tickets.findLatestForPlayer(playerUuid).orElse(null)
                 : tickets.find(ticketId).orElse(null);
-            write(exchange, ticket == null ? 404 : 200, ticket == null ? ApiResponses.error("ROUTE_TICKET_NOT_FOUND", "Route ticket was not found") : RoutingOrchestrator.toJson(ticket));
+            write(exchange, ticket == null ? 404 : 200, ticket == null ? ApiResponses.error("ROUTE_TICKET_NOT_FOUND", "Route ticket was not found") : maskRouteNonces(RoutingOrchestrator.toJson(ticket)));
         });
         route("/v1/admin/routes/clear", exchange -> {
             String body = readBody(exchange);
@@ -2342,23 +2342,28 @@ public final class CloudIslandsCoreApplication {
 
     private static String routeDebugJson(UUID playerUuid, PlayerRouteSession session, RouteTicket ticket) {
         return "{\"playerUuid\":\"" + playerUuid
-            + "\",\"session\":" + (session == null ? "null" : maskRouteNonce(sessionJson(session)))
-            + ",\"ticket\":" + (ticket == null ? "null" : maskRouteNonce(RoutingOrchestrator.toJson(ticket)))
+            + "\",\"session\":" + (session == null ? "null" : maskRouteNonces(sessionJson(session)))
+            + ",\"ticket\":" + (ticket == null ? "null" : maskRouteNonces(RoutingOrchestrator.toJson(ticket)))
             + "}";
     }
 
-    private static String maskRouteNonce(String json) {
+    private static String maskRouteNonces(String json) {
         String needle = "\"nonce\":\"";
-        int start = json.indexOf(needle);
-        if (start < 0) {
+        StringBuilder masked = new StringBuilder(json);
+        int start = masked.indexOf(needle);
+        while (start >= 0) {
+            int valueStart = start + needle.length();
+            int valueEnd = masked.indexOf("\"", valueStart);
+            if (valueEnd < 0) {
+                break;
+            }
+            masked.replace(valueStart, valueEnd, "hidden");
+            start = masked.indexOf(needle, valueStart + "hidden".length());
+        }
+        if (masked.length() == json.length() && masked.indexOf(needle) < 0) {
             return json;
         }
-        int valueStart = start + needle.length();
-        int valueEnd = json.indexOf('"', valueStart);
-        if (valueEnd < 0) {
-            return json;
-        }
-        return json.substring(0, valueStart) + "hidden" + json.substring(valueEnd);
+        return masked.toString();
     }
 
     private static String routeSessionsJson(RouteSessionStore sessions) {
