@@ -120,7 +120,7 @@ public final class IslandActivationJobHandler {
             return null;
         }
         ActiveIslandRegistry.ActiveIsland activeIsland = new ActiveIslandRegistry.ActiveIsland(job.islandId(), cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), manifest.size(), manifest.schemaVersion(), Instant.now());
-        return saveService.save(job.islandId(), activeIsland);
+        return saveService.save(job.islandId(), activeIsland, manifest);
     }
 
     private IslandSaveService.SaveResult snapshotBeforeMutation(IslandJob job) throws IOException {
