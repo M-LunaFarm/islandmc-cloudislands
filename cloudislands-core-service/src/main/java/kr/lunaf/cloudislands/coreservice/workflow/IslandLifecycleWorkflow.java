@@ -181,7 +181,7 @@ public final class IslandLifecycleWorkflow {
             return new Result(false, "ISLAND_NOT_ACTIVE", runtime);
         }
         try {
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.SNAPSHOT_ISLAND, islandId, runtime.activeNode(), 20, Map.of("reason", reason), Instant.now()));
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.SNAPSHOT_ISLAND, islandId, runtime.activeNode(), 20, Map.of("reason", reason, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
         } catch (RuntimeException exception) {
             return jobQueueFailed(islandId, IslandState.ERROR_SAVING);
         }

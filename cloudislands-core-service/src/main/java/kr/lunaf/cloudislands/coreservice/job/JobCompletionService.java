@@ -96,6 +96,9 @@ public final class JobCompletionService {
             return;
         }
         if (job.type() == IslandJobType.SAVE_ISLAND || job.type() == IslandJobType.SNAPSHOT_ISLAND) {
+            if (isStaleSnapshotCompletion(job)) {
+                return;
+            }
             long snapshotNo = recordCompletedSnapshot(job, job.type().name(), true);
             if (snapshotNo > 0L) {
                 events.publish(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name(), Map.of("islandId", job.islandId().toString(), "snapshotNo", Long.toString(snapshotNo), "reason", job.payload().getOrDefault("reason", "")));
@@ -175,6 +178,26 @@ public final class JobCompletionService {
             "jobFencingToken", Long.toString(fencingToken),
             "currentFencingToken", Long.toString(current.fencingToken()),
             "error", errorMessage == null ? "" : errorMessage
+        ));
+        return true;
+    }
+
+    private boolean isStaleSnapshotCompletion(IslandJob job) {
+        long fencingToken = longValue(job.payload().get("fencingToken"));
+        if (fencingToken <= 0L) {
+            return false;
+        }
+        kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot current = runtimes.find(job.islandId()).orElse(null);
+        if (current == null || current.fencingToken() <= fencingToken) {
+            return false;
+        }
+        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
+            "islandId", job.islandId().toString(),
+            "state", current.state().name(),
+            "ignoredJob", job.jobId().toString(),
+            "jobFencingToken", Long.toString(fencingToken),
+            "currentFencingToken", Long.toString(current.fencingToken()),
+            "reason", "STALE_SNAPSHOT_FENCING_TOKEN"
         ));
         return true;
     }
