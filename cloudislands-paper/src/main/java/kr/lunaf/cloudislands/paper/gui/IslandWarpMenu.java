@@ -65,26 +65,29 @@ public final class IslandWarpMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || !meta.hasDisplayName()) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= 54) {
             return;
         }
-        String name = meta.getDisplayName();
         player.closeInventory();
-        if (name.equals("현재 위치를 워프로 설정")) {
+        if (!publicMenu && slot == 45) {
             player.sendMessage(message(messages, "warp-menu-set-usage", "사용법: /섬 워프설정 <이름>"));
             return;
         }
-        if (name.equals("공개 워프 새로고침")) {
+        if (publicMenu && slot == 45) {
             player.performCommand("섬 공개워프목록");
             return;
         }
-        if (name.equals("설정")) {
+        if (slot == 49) {
             player.performCommand("섬 설정");
             return;
         }
-        if (name.equals("메인 메뉴")) {
+        if (slot == 53) {
             player.performCommand("섬 메뉴");
+            return;
+        }
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null) {
             return;
         }
         String warpName = loreValue(meta, "워프=");
@@ -101,7 +104,7 @@ public final class IslandWarpMenu implements Listener {
             return;
         }
         if (event.isRightClick()) {
-            boolean publicAccess = loreValue(meta, "공개 상태: ").equals("공개");
+            boolean publicAccess = Boolean.parseBoolean(loreValue(meta, "warpPublic="));
             player.performCommand(publicAccess ? "섬 워프비공개 " + warpName : "섬 워프공개 " + warpName);
             return;
         }
@@ -112,14 +115,14 @@ public final class IslandWarpMenu implements Listener {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, title);
             inventory.setItem(45, publicMenu
-                ? item(Material.COMPASS, "공개 워프 새로고침", "/섬 공개워프목록")
-                : item(Material.ENDER_PEARL, "현재 위치를 워프로 설정", message(messages, "warp-menu-set-usage", "사용법: /섬 워프설정 <이름>")));
+                ? item(Material.COMPASS, message(messages, "warp-menu-public-refresh-name", "공개 워프 새로고침"), message(messages, "warp-menu-public-refresh-command", "/섬 공개워프목록"))
+                : item(Material.ENDER_PEARL, message(messages, "warp-menu-set-current-name", "현재 위치를 워프로 설정"), message(messages, "warp-menu-set-usage", "사용법: /섬 워프설정 <이름>")));
             int slot = 0;
             for (Warp warp : warps.stream().limit(45).toList()) {
                 inventory.setItem(slot++, warpItem(warp, publicMenu, messages));
             }
-            inventory.setItem(49, item(Material.COMPARATOR, "설정", "/섬 설정"));
-            inventory.setItem(53, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
+            inventory.setItem(49, item(Material.COMPARATOR, message(messages, "warp-menu-settings-name", "설정"), message(messages, "warp-menu-settings-command", "/섬 설정")));
+            inventory.setItem(53, item(Material.COMPASS, message(messages, "warp-menu-main-menu-name", "메인 메뉴"), message(messages, "warp-menu-main-menu-command", "/섬 메뉴")));
             player.openInventory(inventory);
         });
     }
@@ -137,7 +140,7 @@ public final class IslandWarpMenu implements Listener {
         if (publicMenu) {
             return item(material, warp.name(), "섬 ID=" + warp.islandId(), "워프=" + warp.name(), message(messages, "warp-menu-location", "위치: ") + (long) warp.x() + ", " + (long) warp.y() + ", " + (long) warp.z(), message(messages, "warp-menu-public-left-click", "좌클릭: 공개 워프로 이동"));
         }
-        return item(material, warp.name(), "워프=" + warp.name(), "공개 상태: " + (warp.publicAccess() ? "공개" : "비공개"), message(messages, "warp-menu-location", "위치: ") + (long) warp.x() + ", " + (long) warp.y() + ", " + (long) warp.z(), warp.publicAccess() ? message(messages, "warp-menu-public-label", "공개 워프") : message(messages, "warp-menu-private-label", "비공개 워프"), message(messages, "warp-menu-left-click", "좌클릭: 이동"), message(messages, "warp-menu-toggle-click", "우클릭: 공개/비공개 전환"), message(messages, "warp-menu-delete-click", "Shift+우클릭: 삭제"));
+        return item(material, warp.name(), "워프=" + warp.name(), "warpPublic=" + warp.publicAccess(), message(messages, "warp-menu-public-state", "공개 상태: ") + (warp.publicAccess() ? message(messages, "warp-menu-public", "공개") : message(messages, "warp-menu-private", "비공개")), message(messages, "warp-menu-location", "위치: ") + (long) warp.x() + ", " + (long) warp.y() + ", " + (long) warp.z(), warp.publicAccess() ? message(messages, "warp-menu-public-label", "공개 워프") : message(messages, "warp-menu-private-label", "비공개 워프"), message(messages, "warp-menu-left-click", "좌클릭: 이동"), message(messages, "warp-menu-toggle-click", "우클릭: 공개/비공개 전환"), message(messages, "warp-menu-delete-click", "Shift+우클릭: 삭제"));
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
