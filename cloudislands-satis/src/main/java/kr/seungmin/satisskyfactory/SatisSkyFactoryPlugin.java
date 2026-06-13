@@ -772,9 +772,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     static Map<String, String> cloudIslandsIntegrationMetadata() {
         return Map.of(
                 "origin-project", "satismc",
+                "origin-repository", "https://github.com/M-LunaFarm/satismc",
                 "addon-packaging", "external-plugin",
+                "extension-model", "superiorskyblock-style-addon",
+                "removable-addon", "true",
                 "superior-runtime-dependency", "false",
                 "cloudislands-api-only", "true",
+                "feature-gate-scope", "global-and-per-feature",
                 "config-gated", "true"
         );
     }
