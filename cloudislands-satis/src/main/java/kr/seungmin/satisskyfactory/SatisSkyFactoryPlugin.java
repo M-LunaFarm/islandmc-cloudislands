@@ -54,7 +54,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -611,6 +613,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-file", configuredDatabaseFileName());
         metadata.put("database-path", resolveDatabaseFileName());
         metadata.put("database-shared", Boolean.toString(!scope.equals("PLUGIN_LOCAL") && !scope.equals("PLUGIN_RELATIVE_PATH")));
+        metadata.put("feature-warnings", featureWarnings());
         return metadata;
     }
 
@@ -871,6 +874,28 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         features.put("placeholders", configuredFeatureEnabled("placeholders"));
         FEATURE_ALIASES.forEach((alias, canonical) -> features.put(alias, features.getOrDefault(canonical, configuredFeatureEnabled(canonical))));
         return features;
+    }
+
+    private String featureWarnings() {
+        Map<String, Boolean> features = featureSnapshot();
+        List<String> warnings = new ArrayList<>();
+        if (Boolean.TRUE.equals(features.get("gui"))
+                && !Boolean.TRUE.equals(features.get("machines"))
+                && !Boolean.TRUE.equals(features.get("market"))
+                && !Boolean.TRUE.equals(features.get("contracts"))
+                && !Boolean.TRUE.equals(features.get("research"))) {
+            warnings.add("gui-without-panels");
+        }
+        if (Boolean.TRUE.equals(features.get("market")) && !Boolean.TRUE.equals(features.get("machines"))) {
+            warnings.add("market-without-storage-commands");
+        }
+        if (Boolean.TRUE.equals(features.get("contracts")) && !Boolean.TRUE.equals(features.get("maintenance"))) {
+            warnings.add("contracts-without-maintenance-status");
+        }
+        if (Boolean.TRUE.equals(features.get("placeholders")) && !getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            warnings.add("placeholderapi-not-installed");
+        }
+        return warnings.isEmpty() ? "none" : String.join(",", warnings);
     }
 
     private boolean configuredFeatureEnabled(String key) {
