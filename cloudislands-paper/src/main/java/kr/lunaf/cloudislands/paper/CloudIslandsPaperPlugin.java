@@ -102,6 +102,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private CloudIslandsApi api;
     private EconomyBridge economyBridge;
     private GeneratorLevelCache generatorLevels;
+    private IslandGeneratorListener generatorListener;
     private Object placeholderExpansion;
     private MessageRenderer messages;
     private PaperRedisClient redisClient;
@@ -182,7 +183,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         CropGrowthLevelCache cropGrowthLevels = new CropGrowthLevelCache(client);
         localCaches.register("generator-levels", generatorLevels::invalidateAll);
         localCaches.register("crop-growth-levels", cropGrowthLevels::invalidateAll);
-        getServer().getPluginManager().registerEvents(new IslandGeneratorListener(agent.protection(), ConfigGeneratorRules.load(this), generatorLevels, blockDeltas), this);
+        this.generatorListener = new IslandGeneratorListener(agent.protection(), ConfigGeneratorRules.load(this), generatorLevels, blockDeltas);
+        getServer().getPluginManager().registerEvents(generatorListener, this);
         getServer().getPluginManager().registerEvents(new IslandCropGrowthListener(agent.protection(), cropGrowthLevels), this);
         String fallbackServerName = getConfig().getString("routing.fallback-on-failure", "Lobby");
         boolean enforceRouteSession = role == AgentRole.ISLAND_NODE && configBoolean("security.enforce-route-session", true);
@@ -285,6 +287,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             redisClient.close();
             redisClient = null;
         }
+        generatorListener = null;
         if (localCaches != null) {
             localCaches.invalidateAll();
             localCaches = null;
@@ -381,6 +384,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean routeSessionEnforced = configBoolean("security.enforce-route-session", true) || configBoolean("routing.require-route-session", true);
         boolean proxySourceAllowlistConfigured = !getConfig().getStringList("security.proxy-source-allowlist").isEmpty();
         PeriodicIslandLevelScanTask scanner = periodicLevelScanTask;
+        IslandGeneratorListener generator = generatorListener;
         return ""
             + "cloudislands_paper_online_players " + getServer().getOnlinePlayers().size() + "\n"
             + "cloudislands_paper_online_mode " + (getServer().getOnlineMode() ? 1 : 0) + "\n"
@@ -397,6 +401,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_paper_level_scan_last_started_at{node=\"" + nodeId + "\"} " + (scanner == null ? 0L : scanner.lastScanStartedAt()) + "\n"
             + "cloudislands_paper_level_scan_last_finished_at{node=\"" + nodeId + "\"} " + (scanner == null ? 0L : scanner.lastScanFinishedAt()) + "\n"
             + "cloudislands_paper_level_scan_last_failed_at{node=\"" + nodeId + "\"} " + (scanner == null ? 0L : scanner.lastScanFailedAt()) + "\n"
+            + "cloudislands_paper_generator_replacements_total{node=\"" + nodeId + "\",source=\"block_form\"} " + (generator == null ? 0L : generator.formReplacements()) + "\n"
+            + "cloudislands_paper_generator_replacements_total{node=\"" + nodeId + "\",source=\"fluid_collision\"} " + (generator == null ? 0L : generator.fluidReplacements()) + "\n"
+            + "cloudislands_paper_generator_material_failures_total{node=\"" + nodeId + "\"} " + (generator == null ? 0L : generator.materialResolveFailures()) + "\n"
             + "cloudislands_permission_checks_total{node=\"" + nodeId + "\"} " + agent.permissionCache().lookupCount() + "\n"
             + "cloudislands_permission_cache_hit_ratio{node=\"" + nodeId + "\"} " + agent.permissionCache().hitRatio() + "\n"
             + "cloudislands_paper_velocity_forwarding_required{node=\"" + nodeId + "\"} " + (forwardingRequired ? 1 : 0) + "\n"

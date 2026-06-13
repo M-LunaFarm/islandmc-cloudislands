@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper.generator;
 
 import java.util.Locale;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
 import org.bukkit.Material;
@@ -18,6 +19,9 @@ public final class IslandGeneratorListener implements Listener {
     private final GeneratorLevelCache levels;
     private final BlockDeltaReporter blockDeltas;
     private final Random random = new Random();
+    private final AtomicLong formReplacements = new AtomicLong();
+    private final AtomicLong fluidReplacements = new AtomicLong();
+    private final AtomicLong materialResolveFailures = new AtomicLong();
 
     public IslandGeneratorListener(ProtectionController protection, GeneratorRegistry registry, GeneratorLevelCache levels, BlockDeltaReporter blockDeltas) {
         this.protection = protection;
@@ -36,8 +40,9 @@ public final class IslandGeneratorListener implements Listener {
         Material previous = block.getType();
         protection.islandAt(block).ifPresent(islandId -> {
             Material material = generatedMaterial(levels.profile(islandId));
-            if (material != null && material.isBlock()) {
+            if (validGeneratedMaterial(material)) {
                 event.getNewState().setType(material);
+                formReplacements.incrementAndGet();
                 reportReplacement(islandId, previous, material);
             }
         });
@@ -56,12 +61,21 @@ public final class IslandGeneratorListener implements Listener {
         Material previous = target.getType();
         protection.islandAt(target).ifPresent(islandId -> {
             Material material = generatedMaterial(levels.profile(islandId));
-            if (material != null && material.isBlock()) {
+            if (validGeneratedMaterial(material)) {
                 event.setCancelled(true);
                 target.setType(material);
+                fluidReplacements.incrementAndGet();
                 reportReplacement(islandId, previous, material);
             }
         });
+    }
+
+    private boolean validGeneratedMaterial(Material material) {
+        if (material != null && material.isBlock()) {
+            return true;
+        }
+        materialResolveFailures.incrementAndGet();
+        return false;
     }
 
     private void reportReplacement(java.util.UUID islandId, Material previous, Material material) {
@@ -88,5 +102,17 @@ public final class IslandGeneratorListener implements Listener {
     private Material material(String materialKey) {
         String key = materialKey.toUpperCase(Locale.ROOT).replace("MINECRAFT:", "");
         return Material.matchMaterial(key);
+    }
+
+    public long formReplacements() {
+        return formReplacements.get();
+    }
+
+    public long fluidReplacements() {
+        return fluidReplacements.get();
+    }
+
+    public long materialResolveFailures() {
+        return materialResolveFailures.get();
     }
 }
