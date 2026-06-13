@@ -20,6 +20,7 @@ public final class FactoryIslandService {
     private final DatabaseService database;
     private final Map<UUID, FactoryIsland> cache = new ConcurrentHashMap<>();
     private DirtySaveService dirtySaves;
+    private boolean loaded;
 
     public FactoryIslandService(SkyblockProvider skyblockHook, DatabaseService database) {
         this.skyblockHook = skyblockHook;
@@ -27,6 +28,9 @@ public final class FactoryIslandService {
     }
 
     public Optional<FactoryContext> context(Player player) {
+        if (!loaded) {
+            return Optional.empty();
+        }
         Optional<IslandRef> island = skyblockHook.getIslandOf(player);
         if (island.isEmpty()) {
             return Optional.empty();
@@ -39,9 +43,15 @@ public final class FactoryIslandService {
         for (FactoryIsland island : database.loadIslands()) {
             cache.put(island.islandUuid(), island);
         }
+        loaded = true;
     }
 
     public FactoryIsland getOrCreate(IslandRef island) {
+        if (!loaded) {
+            FactoryIsland transientIsland = new FactoryIsland(island.islandUuid(), island.ownerUuid());
+            transientIsland.ownerUuid(island.ownerUuid());
+            return transientIsland;
+        }
         FactoryIsland factoryIsland = cache.computeIfAbsent(island.islandUuid(), uuid -> {
             FactoryIsland loaded = database.findIsland(uuid).orElseGet(() -> new FactoryIsland(uuid, island.ownerUuid()));
             loaded.ownerUuid(island.ownerUuid());
@@ -61,6 +71,9 @@ public final class FactoryIslandService {
     }
 
     public Optional<FactoryIsland> find(UUID islandUuid) {
+        if (!loaded) {
+            return Optional.empty();
+        }
         FactoryIsland cached = cache.get(islandUuid);
         if (cached != null) {
             return Optional.of(cached);
@@ -71,10 +84,16 @@ public final class FactoryIslandService {
     }
 
     public Collection<FactoryIsland> cached() {
+        if (!loaded) {
+            return java.util.List.of();
+        }
         return new ArrayList<>(cache.values());
     }
 
     public void save(FactoryIsland island) {
+        if (!loaded) {
+            return;
+        }
         cache.put(island.islandUuid(), island);
         if (dirtySaves != null) {
             dirtySaves.markIsland(island);
@@ -92,6 +111,7 @@ public final class FactoryIslandService {
 
     public void clear() {
         cache.clear();
+        loaded = false;
     }
 
     public void dirtySaves(DirtySaveService dirtySaves) {
