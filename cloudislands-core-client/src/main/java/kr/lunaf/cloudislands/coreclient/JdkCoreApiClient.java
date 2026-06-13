@@ -796,42 +796,78 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> addonState(String addonId) {
+        if (blank(addonId)) {
+            return invalidAddonState("Addon id is required");
+        }
         return post("/v1/addons/state", "{\"addonId\":\"" + escape(addonId) + "\"}");
     }
 
     @Override
     public CompletableFuture<String> putAddonState(String addonId, String key, String value) {
+        if (blank(addonId) || blank(key)) {
+            return invalidAddonState("Addon id and key are required");
+        }
         return postWithResultBody("/v1/addons/state/set", "{\"addonId\":\"" + escape(addonId) + "\",\"key\":\"" + escape(key) + "\",\"value\":\"" + escape(value) + "\"}");
     }
 
     @Override
     public CompletableFuture<String> removeAddonState(String addonId, String key) {
+        if (blank(addonId) || blank(key)) {
+            return invalidAddonState("Addon id and key are required");
+        }
         return postWithResultBody("/v1/addons/state/remove", "{\"addonId\":\"" + escape(addonId) + "\",\"key\":\"" + escape(key) + "\"}");
     }
 
     @Override
     public CompletableFuture<String> clearAddonState(String addonId) {
+        if (blank(addonId)) {
+            return invalidAddonState("Addon id is required");
+        }
         return postWithResultBody("/v1/addons/state/clear", "{\"addonId\":\"" + escape(addonId) + "\"}");
     }
 
     @Override
     public CompletableFuture<String> addonIslandState(String addonId, UUID islandId) {
+        if (blank(addonId) || missingIslandId(islandId)) {
+            return invalidAddonState("Addon id and island id are required");
+        }
         return post("/v1/addons/islands/state", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\"}");
     }
 
     @Override
     public CompletableFuture<String> putAddonIslandState(String addonId, UUID islandId, String key, String value) {
+        if (blank(addonId) || missingIslandId(islandId) || blank(key)) {
+            return invalidAddonState("Addon id, island id, and key are required");
+        }
         return postWithResultBody("/v1/addons/islands/state/set", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"key\":\"" + escape(key) + "\",\"value\":\"" + escape(value) + "\"}");
     }
 
     @Override
     public CompletableFuture<String> removeAddonIslandState(String addonId, UUID islandId, String key) {
+        if (blank(addonId) || missingIslandId(islandId) || blank(key)) {
+            return invalidAddonState("Addon id, island id, and key are required");
+        }
         return postWithResultBody("/v1/addons/islands/state/remove", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"key\":\"" + escape(key) + "\"}");
     }
 
     @Override
     public CompletableFuture<String> clearAddonIslandState(String addonId, UUID islandId) {
+        if (blank(addonId) || missingIslandId(islandId)) {
+            return invalidAddonState("Addon id and island id are required");
+        }
         return postWithResultBody("/v1/addons/islands/state/clear", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\"}");
+    }
+
+    private static boolean blank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private static boolean missingIslandId(UUID islandId) {
+        return islandId == null || islandId.equals(new UUID(0L, 0L));
+    }
+
+    private static CompletableFuture<String> invalidAddonState(String message) {
+        return CompletableFuture.completedFuture("{\"code\":\"INVALID_ADDON_STATE\",\"message\":\"" + escape(message) + "\"}");
     }
 
     @Override
