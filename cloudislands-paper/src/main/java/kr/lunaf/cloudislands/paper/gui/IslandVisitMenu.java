@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.gui;
 import java.util.ArrayList;
 import java.util.List;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -16,12 +17,25 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandVisitMenu implements Listener {
     private static final String TITLE = "섬 방문";
+    private final MessageRenderer messages;
+
+    public IslandVisitMenu() {
+        this(null);
+    }
+
+    public IslandVisitMenu(MessageRenderer messages) {
+        this.messages = messages;
+    }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player) {
+        open(plugin, client, player, null);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
         client.listPublicIslands(45)
-            .thenAccept(body -> openSync(plugin, player, islands(body)))
+            .thenAccept(body -> openSync(plugin, player, islands(body), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("공개 섬 목록을 불러오지 못했습니다."));
+                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "visit-menu-load-failed", "공개 섬 목록을 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -62,22 +76,30 @@ public final class IslandVisitMenu implements Listener {
         }
     }
 
-    private static void openSync(Plugin plugin, Player player, List<IslandEntry> islands) {
+    private static void openSync(Plugin plugin, Player player, List<IslandEntry> islands, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
-            inventory.setItem(4, item(Material.COMPASS, "랜덤 공개 섬", "공개된 섬 중 하나로 이동합니다."));
+            inventory.setItem(4, item(Material.COMPASS, "랜덤 공개 섬", message(messages, "visit-menu-random-description", "공개된 섬 중 하나로 이동합니다.")));
             if (islands.isEmpty()) {
-                inventory.setItem(22, item(Material.BARRIER, "공개 섬 없음", "방문 가능한 공개 섬이 없습니다."));
+                inventory.setItem(22, item(Material.BARRIER, "공개 섬 없음", message(messages, "visit-menu-empty", "방문 가능한 공개 섬이 없습니다.")));
             } else {
                 for (int index = 0; index < islands.size() && index < 36; index++) {
                     IslandEntry island = islands.get(index);
-                    inventory.setItem(index + 9, item(Material.GRASS_BLOCK, island.name(), "섬 ID=" + island.islandId(), "소유자: " + shortId(island.ownerUuid()), "레벨: " + island.level(), "가치: " + island.worth(), "클릭하면 방문합니다."));
+                    inventory.setItem(index + 9, item(Material.GRASS_BLOCK, island.name(), "섬 ID=" + island.islandId(), "소유자: " + shortId(island.ownerUuid()), "레벨: " + island.level(), "가치: " + island.worth(), message(messages, "visit-menu-click-to-visit", "클릭하면 방문합니다.")));
                 }
             }
             inventory.setItem(45, item(Material.ENDER_EYE, "공개 워프 목록", "/섬 공개워프목록"));
             inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 방문"));
             player.openInventory(inventory);
         });
+    }
+
+    private static String message(MessageRenderer messages, String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private static List<IslandEntry> islands(String body) {

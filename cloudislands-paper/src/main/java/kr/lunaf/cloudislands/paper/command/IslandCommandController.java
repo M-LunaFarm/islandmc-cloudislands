@@ -506,7 +506,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("visit") || subcommand.equals("방문")) {
             if (args.length < 2) {
-                IslandVisitMenu.open(plugin, coreApiClient, player);
+                IslandVisitMenu.open(plugin, coreApiClient, player, messages);
             } else if (args[1].equalsIgnoreCase("random") || args[1].equals("랜덤")) {
                 routeRandomVisit(player);
             } else {
