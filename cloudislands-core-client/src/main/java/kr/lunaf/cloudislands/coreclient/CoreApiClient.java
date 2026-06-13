@@ -107,6 +107,7 @@ public interface CoreApiClient {
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName);
     CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId);
     CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, String islandName);
+    CompletableFuture<RouteTicket> createVisitTicketForOwner(UUID visitorUuid, UUID ownerUuid);
     CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid);
     CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName);
     CompletableFuture<RouteTicket> createMigrationReturnTicket(UUID playerUuid, UUID islandId, String targetNode, double localX, double localY, double localZ, float yaw, float pitch);

@@ -166,17 +166,7 @@ public final class VelocityRoutingController {
             player.sendMessage(Component.text("방문할 플레이어를 찾을 수 없습니다."));
             return;
         }
-        coreApiClient.islandInfoByOwner(ownerUuid).thenAccept(body -> {
-            UUID islandId = parseUuid(jsonValue(body, "islandId"));
-            if (islandId.equals(new UUID(0L, 0L))) {
-                player.sendMessage(Component.text("방문할 섬을 찾을 수 없습니다."));
-                return;
-            }
-            routeVisit(player, islandId);
-        }).exceptionally(error -> {
-            player.sendMessage(Component.text("방문할 섬을 불러오지 못했습니다."));
-            return null;
-        });
+        routeFuture(player, coreApiClient.createVisitTicketForOwner(player.getUniqueId(), ownerUuid), "해당 섬에 방문할 수 없습니다.");
     }
 
     public void routeVisitName(Player player, String islandName) {
@@ -198,7 +188,12 @@ public final class VelocityRoutingController {
                 routeVisitName(player, targetName);
                 return;
             }
-            routeVisit(player, primaryIslandId);
+            UUID ownerUuid = parseUuid(jsonValue(body, "playerUuid"));
+            if (ownerUuid.equals(new UUID(0L, 0L))) {
+                routeVisit(player, primaryIslandId);
+                return;
+            }
+            routeVisitOwner(player, ownerUuid);
         }).exceptionally(error -> {
             routeVisitName(player, targetName);
             return null;

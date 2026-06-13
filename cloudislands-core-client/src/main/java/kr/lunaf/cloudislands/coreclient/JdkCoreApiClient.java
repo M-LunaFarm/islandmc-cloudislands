@@ -484,6 +484,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<RouteTicket> createVisitTicketForOwner(UUID visitorUuid, UUID ownerUuid) {
+        return postWithResultBody("/v1/routes/visit", "{\"playerUuid\":\"" + visitorUuid + "\",\"ownerUuid\":\"" + ownerUuid + "\"}").thenApply(JdkCoreApiClient::parseRouteTicketResult);
+    }
+
+    @Override
     public CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid) {
         return postWithResultBody("/v1/routes/random", "{\"playerUuid\":\"" + visitorUuid + "\"}").thenApply(JdkCoreApiClient::parseRouteTicketResult);
     }

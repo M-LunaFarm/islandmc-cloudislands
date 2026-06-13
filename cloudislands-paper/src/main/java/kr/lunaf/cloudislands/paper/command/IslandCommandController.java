@@ -1211,7 +1211,12 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         coreApiClient.playerInfoByName(target).thenAccept(body -> {
             UUID primaryIslandId = uuid(text(body, "primaryIslandId"));
             if (primaryIslandId != null) {
-                routeVisit(player, primaryIslandId);
+                UUID ownerUuid = uuid(text(body, "playerUuid"));
+                if (ownerUuid != null) {
+                    routeTicket(player, coreApiClient.createVisitTicketForOwner(player.getUniqueId(), ownerUuid), "해당 섬에 방문할 수 없습니다.");
+                } else {
+                    routeVisit(player, primaryIslandId);
+                }
                 return;
             }
             routeVisitName(player, target);

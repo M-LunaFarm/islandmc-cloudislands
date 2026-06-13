@@ -671,6 +671,11 @@ public final class CloudIslandsCoreApplication {
                 routeResult(exchange, routing.prepareVisitRouteByName(playerUuid, islandName));
                 return;
             }
+            UUID ownerUuid = JsonFields.uuid(body, "ownerUuid", new UUID(0L, 0L));
+            if (!ownerUuid.equals(new UUID(0L, 0L))) {
+                routeResult(exchange, routing.prepareVisitRouteByOwner(playerUuid, ownerUuid));
+                return;
+            }
             routeResult(exchange, routing.prepareVisitRoute(playerUuid, JsonFields.uuid(body, "islandId", new UUID(0L, 0L))));
         });
         route("/v1/routes/random", exchange -> {
