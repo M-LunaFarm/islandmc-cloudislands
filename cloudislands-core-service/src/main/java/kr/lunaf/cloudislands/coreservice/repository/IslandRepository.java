@@ -13,6 +13,7 @@ public interface IslandRepository {
     IslandSnapshot createOwnedIsland(UUID islandId, UUID ownerUuid, String templateId, String name);
     void setState(UUID islandId, IslandState state);
     void updateStats(UUID islandId, int size, long level, String worth);
+    boolean rename(UUID islandId, String name);
     boolean markDeleted(UUID islandId, UUID requesterUuid);
     Optional<IslandSnapshot> restoreDeleted(UUID islandId);
     boolean transferOwnership(UUID islandId, UUID currentOwnerUuid, UUID newOwnerUuid);

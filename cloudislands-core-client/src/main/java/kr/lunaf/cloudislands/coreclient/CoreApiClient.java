@@ -25,6 +25,8 @@ public interface CoreApiClient {
     CompletableFuture<String> islandInfo(UUID islandId);
     CompletableFuture<String> islandInfoByOwner(UUID ownerUuid);
     CompletableFuture<String> islandInfoByName(String name);
+    CompletableFuture<Void> setIslandName(UUID islandId, UUID actorUuid, String name);
+    CompletableFuture<String> setIslandNameResult(UUID islandId, UUID actorUuid, String name);
     CompletableFuture<String> listIslandMembers(UUID islandId);
     CompletableFuture<Void> setIslandMember(UUID islandId, UUID actorUuid, UUID playerUuid, IslandRole role);
     CompletableFuture<String> setIslandMemberResult(UUID islandId, UUID actorUuid, UUID playerUuid, IslandRole role);

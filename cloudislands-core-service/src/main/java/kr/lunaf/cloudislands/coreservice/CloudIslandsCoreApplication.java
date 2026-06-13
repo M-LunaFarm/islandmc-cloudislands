@@ -1616,6 +1616,33 @@ public final class CloudIslandsCoreApplication {
             events.publish(CloudIslandEventType.ISLAND_ACCESS_CHANGED.name(), Map.of("islandId", islandId.toString(), "locked", Boolean.toString(locked)));
             write(exchange, 202, ApiResponses.ok(true));
         });
+        route("/v1/islands/name", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            String name = JsonFields.text(body, "name", "").trim();
+            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, islandId, actorUuid, IslandPermission.MANAGE_FLAGS)) {
+                return;
+            }
+            if (name.length() < 2 || name.length() > 32 || name.chars().anyMatch(Character::isISOControl)) {
+                write(exchange, 400, ApiResponses.error("INVALID_ISLAND_NAME", "Island name must be 2-32 visible characters"));
+                return;
+            }
+            java.util.Optional<IslandSnapshot> duplicate = islandRepository.findByName(name);
+            if (duplicate.isPresent() && !duplicate.get().islandId().equals(islandId)) {
+                write(exchange, 409, ApiResponses.error("ISLAND_NAME_TAKEN", "Island name is already used"));
+                return;
+            }
+            boolean renamed = islandRepository.rename(islandId, name);
+            if (!renamed) {
+                write(exchange, 409, ApiResponses.error("ISLAND_RENAME_DENIED", "Island was not renamed"));
+                return;
+            }
+            audit.log(actorUuid, "PLAYER", "ISLAND_RENAME", "ISLAND", islandId.toString(), Map.of("name", name));
+            islandLogs.append(islandId, actorUuid, "ISLAND_RENAME", Map.of("name", name));
+            events.publish(CloudIslandEventType.ISLAND_RENAMED.name(), Map.of("islandId", islandId.toString(), "actorUuid", actorUuid.toString(), "name", name));
+            write(exchange, 202, "{\"accepted\":true,\"islandId\":\"" + islandId + "\",\"name\":\"" + escape(name) + "\"}");
+        });
         route("/v1/islands/flags", exchange -> {
             String body = readBody(exchange);
             write(exchange, 200, flagsJson(metadataRepository.flags(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));

@@ -49,6 +49,7 @@ public final class IslandCommandCatalog {
             "섬 피빕 [true|false|on|off]",
             "섬 공개워프 [true|false|on|off]",
             "섬 설정",
+            "섬 이름 <name>",
             "섬 권한",
             "섬 권한설정 <role> <permission> <true|false|허용|거부>",
             "섬 플래그",

@@ -84,6 +84,16 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<Void> setIslandName(UUID islandId, UUID actorUuid, String name) {
+        return setIslandNameResult(islandId, actorUuid, name).thenApply(_body -> null);
+    }
+
+    @Override
+    public CompletableFuture<String> setIslandNameResult(UUID islandId, UUID actorUuid, String name) {
+        return postWithResultBody("/v1/islands/name", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"" + escape(name) + "\"}");
+    }
+
+    @Override
     public CompletableFuture<String> listIslandMembers(UUID islandId) {
         return post("/v1/islands/members", "{\"islandId\":\"" + islandId + "\"}");
     }

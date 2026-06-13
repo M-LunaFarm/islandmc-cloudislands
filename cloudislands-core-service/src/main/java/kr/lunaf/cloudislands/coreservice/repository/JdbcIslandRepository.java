@@ -143,6 +143,20 @@ public final class JdbcIslandRepository implements IslandRepository {
     }
 
     @Override
+    public boolean rename(UUID islandId, String name) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("UPDATE islands SET name = ?, updated_at = now() WHERE id = ? AND deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM islands i2 WHERE lower(i2.name) = lower(?) AND i2.id <> ? AND i2.deleted_at IS NULL)")) {
+            statement.setString(1, name);
+            statement.setObject(2, islandId);
+            statement.setString(3, name);
+            statement.setObject(4, islandId);
+            return statement.executeUpdate() > 0;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to rename island", exception);
+        }
+    }
+
+    @Override
     public boolean markDeleted(UUID islandId, UUID requesterUuid) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("UPDATE islands SET state = 'DELETED', deleted_at = now(), updated_at = now() WHERE id = ? AND owner_uuid = ? AND deleted_at IS NULL")) {

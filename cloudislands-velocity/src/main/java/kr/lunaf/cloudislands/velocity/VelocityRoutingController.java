@@ -505,6 +505,15 @@ public final class VelocityRoutingController {
         sendActionResult(player, coreApiClient.setIslandPublicAccess(islandId, player.getUniqueId(), publicAccess), publicAccess ? "섬을 공개로 변경했습니다." : "섬을 비공개로 변경했습니다.", "섬 공개 상태를 변경하지 못했습니다.");
     }
 
+    public void setIslandName(Player player, UUID islandId, String name) {
+        if (name == null || name.isBlank()) {
+            player.sendMessage(Component.text("새 섬 이름을 입력해주세요."));
+            return;
+        }
+        withResolvedIsland(player, islandId, "이름을 변경할 섬을 찾지 못했습니다.", "섬 이름을 변경하지 못했습니다.",
+            resolved -> sendActionResult(player, coreApiClient.setIslandName(resolved, player.getUniqueId(), name), "섬 이름을 변경했습니다.", "섬 이름을 변경하지 못했습니다."));
+    }
+
     public void setFlyFlag(Player player, UUID islandId, boolean enabled) {
         sendActionResult(player, coreApiClient.setIslandFlag(islandId, player.getUniqueId(), kr.lunaf.cloudislands.api.model.IslandFlag.FLY, Boolean.toString(enabled)), enabled ? "섬 비행을 허용했습니다." : "섬 비행을 비활성화했습니다.", "섬 비행 설정을 변경하지 못했습니다.");
     }

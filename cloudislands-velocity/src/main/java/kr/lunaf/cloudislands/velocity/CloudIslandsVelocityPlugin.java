@@ -487,6 +487,14 @@ public final class CloudIslandsVelocityPlugin {
             routingController.showIslandSettings(player, islandId);
             return;
         }
+        if (args[0].equalsIgnoreCase("name") || args[0].equalsIgnoreCase("setname") || args[0].equalsIgnoreCase("rename") || args[0].equals("이름") || args[0].equals("이름설정")) {
+            if (args.length < 2) {
+                player.sendMessage(Component.text("새 섬 이름을 입력해주세요."));
+                return;
+            }
+            routingController.setIslandName(player, new UUID(0L, 0L), joinArgs(args, 1));
+            return;
+        }
         if (args[0].equalsIgnoreCase("level") || args[0].equals("레벨")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             routingController.showIslandLevel(player, islandId);

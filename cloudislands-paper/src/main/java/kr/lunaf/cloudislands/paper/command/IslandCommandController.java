@@ -145,6 +145,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "섬 채팅 <message>",
         "섬 팀채팅 <message>",
         "섬 설정",
+        "섬 이름 <name>",
         "섬 권한",
         "섬 권한설정 <role> <permission> <true|false|허용|거부>",
         "섬 플래그",
@@ -889,6 +890,14 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("settings") || subcommand.equals("setting") || subcommand.equals("설정")) {
             openIslandSettings(player);
+            return true;
+        }
+        if (subcommand.equals("name") || subcommand.equals("setname") || subcommand.equals("rename") || subcommand.equals("이름") || subcommand.equals("이름설정")) {
+            if (args.length < 2) {
+                player.sendMessage("새 섬 이름을 입력해주세요.");
+                return true;
+            }
+            setIslandName(player, joined(args, 1));
             return true;
         }
         if (subcommand.equals("fly") || subcommand.equals("비행")) {
@@ -2370,6 +2379,26 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void openIslandSettings(Player player) {
         currentIsland(player, "섬 안에서만 설정 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandSettingsMenu.open(plugin, coreApiClient, player, islandId));
+    }
+
+    private void setIslandName(Player player, String name) {
+        currentIsland(player, "섬 안에서만 이름을 변경할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.MANAGE_FLAGS)) {
+                player.sendMessage("섬 이름을 변경할 권한이 없습니다.");
+                return;
+            }
+            coreApiClient.setIslandNameResult(islandId, player.getUniqueId(), name)
+                .thenAccept(body -> {
+                    message(player, actionResultMessage("섬 이름 변경", name, body));
+                    if (!resultRejected(body)) {
+                        plugin.getServer().getScheduler().runTask(plugin, () -> player.performCommand("섬 설정"));
+                    }
+                })
+                .exceptionally(error -> {
+                    message(player, "섬 이름을 변경하지 못했습니다.");
+                    return null;
+                });
+        });
     }
 
     private java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
