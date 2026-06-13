@@ -16,6 +16,7 @@ public final class ItemNetworkService {
     private final DatabaseService database;
     private final MachineService machines;
     private final NetworkRebuildService networkRebuild;
+    private boolean active = true;
 
     public ItemNetworkService(DatabaseService database, MachineService machines, MachineDefinitionService definitions) {
         this.database = database;
@@ -24,6 +25,9 @@ public final class ItemNetworkService {
     }
 
     public List<ItemNetwork> rebuildIsland(UUID islandUuid) {
+        if (!active) {
+            return List.of();
+        }
         List<MachineInstance> islandMachines = machines.byIsland(islandUuid).stream().toList();
         NetworkRebuildService.RebuildResult result = networkRebuild.rebuild(
                 islandUuid,
@@ -44,6 +48,13 @@ public final class ItemNetworkService {
     }
 
     public List<ItemNetwork> load(UUID islandUuid) {
+        if (!active) {
+            return List.of();
+        }
         return database.loadItemNetworks(islandUuid);
+    }
+
+    public void clear() {
+        active = false;
     }
 }

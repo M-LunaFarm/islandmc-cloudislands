@@ -928,6 +928,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (machines != null) {
             machines.clear();
         }
+        if (itemNetworks != null) {
+            itemNetworks.clear();
+        }
         if (power != null) {
             power.clear();
         }
