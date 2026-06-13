@@ -14,7 +14,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.function.Supplier;
 
 public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
     private final JavaPlugin plugin;
@@ -29,7 +31,7 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
     public boolean enable() {
         api = resolveCloudIslandsApi();
         available = api != null;
-        if (!available) {
+        if (!available && plugin != null) {
             plugin.getLogger().severe("CloudIslands provider selected, but CloudIslands API was not found.");
         }
         return available;
@@ -39,6 +41,9 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
         CloudIslandsApi provider = CloudIslandsProvider.get().orElse(null);
         if (provider != null) {
             return provider;
+        }
+        if (plugin == null) {
+            return null;
         }
         return plugin.getServer().getServicesManager().load(CloudIslandsApi.class);
     }
@@ -52,7 +57,7 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
         if (!available || location == null || location.getWorld() == null) {
             return Optional.empty();
         }
-        return joinOptional(api.islands().getIslandAt(location.getWorld().getName(), location.getBlockX(), location.getBlockY(), location.getBlockZ()))
+        return joinOptional(() -> api.islands().getIslandAt(location.getWorld().getName(), location.getBlockX(), location.getBlockY(), location.getBlockZ()))
                 .map(this::ref);
     }
 
@@ -61,11 +66,11 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
         if (!available || player == null) {
             return Optional.empty();
         }
-        Optional<IslandSnapshot> ownedIsland = joinOptional(api.islands().getIslandByOwner(player.getUniqueId()));
+        Optional<IslandSnapshot> ownedIsland = joinOptional(() -> api.islands().getIslandByOwner(player.getUniqueId()));
         if (ownedIsland.isPresent()) {
             return ownedIsland.map(this::ref);
         }
-        return join(api.players().getJoinedIslands(player.getUniqueId()))
+        return join(() -> api.players().getJoinedIslands(player.getUniqueId()))
                 .flatMap(islands -> islands.stream().findFirst())
                 .map(this::ref);
     }
@@ -75,15 +80,15 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
         if (!available || islandUuid == null) {
             return Optional.empty();
         }
-        return joinOptional(api.islands().getIsland(islandUuid)).map(this::ref);
+        return joinOptional(() -> api.islands().getIsland(islandUuid)).map(this::ref);
     }
 
     @Override
     public Optional<Location> getIslandCenter(IslandRef island) {
-        if (!available || island == null) {
+        if (!available || island == null || plugin == null) {
             return Optional.empty();
         }
-        return joinOptional(api.islands().getRegion(island.islandUuid()))
+        return joinOptional(() -> api.islands().getRegion(island.islandUuid()))
                 .flatMap(region -> {
                     World world = plugin.getServer().getWorld(region.worldName());
                     if (world == null) {
@@ -111,7 +116,7 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
         if (player.hasPermission("satisskyfactory.admin")) {
             return true;
         }
-        return join(api.permissions().checkAt(player.getUniqueId(), location.getWorld().getName(), location.getBlockX(), location.getBlockY(), location.getBlockZ(), IslandPermission.BUILD))
+        return join(() -> api.permissions().checkAt(player.getUniqueId(), location.getWorld().getName(), location.getBlockX(), location.getBlockY(), location.getBlockZ(), IslandPermission.BUILD))
                 .map(result -> result.allowed())
                 .orElse(false);
     }
@@ -133,7 +138,7 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
         if (player.hasPermission("satisskyfactory.admin") || player.getUniqueId().equals(island.ownerUuid())) {
             return true;
         }
-        return join(api.islands().getMembers(island.islandUuid()))
+        return join(() -> api.islands().getMembers(island.islandUuid()))
                 .map(members -> member(members, player.getUniqueId()))
                 .orElse(false);
     }
@@ -151,18 +156,30 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
         return new Location(world, region.originX() + 0.5D, 100.0D, region.originZ() + 0.5D);
     }
 
-    private <T> Optional<T> join(java.util.concurrent.CompletableFuture<T> future) {
+    private <T> Optional<T> join(Supplier<CompletableFuture<T>> futureSupplier) {
         try {
+            CompletableFuture<T> future = futureSupplier.get();
+            if (future == null) {
+                return Optional.empty();
+            }
             return Optional.ofNullable(future.join());
         } catch (CompletionException exception) {
+            return Optional.empty();
+        } catch (RuntimeException exception) {
             return Optional.empty();
         }
     }
 
-    private <T> Optional<T> joinOptional(java.util.concurrent.CompletableFuture<Optional<T>> future) {
+    private <T> Optional<T> joinOptional(Supplier<CompletableFuture<Optional<T>>> futureSupplier) {
         try {
+            CompletableFuture<Optional<T>> future = futureSupplier.get();
+            if (future == null) {
+                return Optional.empty();
+            }
             return future.join();
         } catch (CompletionException exception) {
+            return Optional.empty();
+        } catch (RuntimeException exception) {
             return Optional.empty();
         }
     }
