@@ -333,7 +333,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("플레이어만 사용할 수 있습니다.");
+            sender.sendMessage(routeMessage("player-only-command", "플레이어만 사용할 수 있습니다."));
             return true;
         }
         if (args.length == 0) {
@@ -436,7 +436,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             if (args.length > 2) {
                 UUID islandId = uuid(args[1]);
                 if (islandId == null) {
-                    player.sendMessage("섬 UUID가 올바르지 않습니다.");
+                    message(player, routeMessage("input-island-uuid-invalid", "섬 UUID가 올바르지 않습니다."));
                     return true;
                 }
                 routeWarp(player, islandId, args[2]);
@@ -1445,12 +1445,12 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             if (targetServerName == null || targetServerName.isBlank()) {
                 clearFailedRoute(ticket, "TARGET_SERVER_NOT_FOUND");
-                player.sendMessage("섬으로 이동하지 못했습니다.");
+                message(player, routeMessage("route-command-failed", "섬으로 이동하지 못했습니다."));
                 return;
             }
             if (!canUseBungeeConnect()) {
                 clearFailedRoute(ticket, "BUNGEE_CONNECT_UNAVAILABLE");
-                player.sendMessage("섬 이동 경로를 준비하지 못했습니다.");
+                message(player, routeMessage("route-command-publish-failed", "섬 이동 경로를 준비하지 못했습니다."));
                 return;
             }
             try {
@@ -1459,10 +1459,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 output.writeUTF("Connect");
                 output.writeUTF(targetServerName);
                 player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
-                player.sendMessage("섬으로 이동합니다.");
+                message(player, routeMessage("route-command-started", "섬으로 이동합니다."));
             } catch (IOException | RuntimeException exception) {
                 clearFailedRoute(ticket, "PLUGIN_MESSAGE_FAILED");
-                player.sendMessage("섬으로 이동하지 못했습니다.");
+                message(player, routeMessage("route-command-failed", "섬으로 이동하지 못했습니다."));
             }
         });
     }
@@ -1618,7 +1618,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             }
             BigDecimal parsedAmount = positiveAmount(amount);
             if (parsedAmount == null) {
-                player.sendMessage(playerCodeMessage("INVALID_AMOUNT", "올바른 금액을 입력해주세요."));
+                player.sendMessage(playerCodeMessage("INVALID_AMOUNT", routeMessage("input-amount-invalid", "올바른 금액을 입력해주세요.")));
                 return;
             }
             if (economyBridge == null) {
@@ -1657,7 +1657,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             }
             BigDecimal parsedAmount = positiveAmount(amount);
             if (parsedAmount == null) {
-                player.sendMessage(playerCodeMessage("INVALID_AMOUNT", "올바른 금액을 입력해주세요."));
+                player.sendMessage(playerCodeMessage("INVALID_AMOUNT", routeMessage("input-amount-invalid", "올바른 금액을 입력해주세요.")));
                 return;
             }
             if (economyBridge == null) {
@@ -2289,11 +2289,11 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                             return;
                         }
                         if (plugin.getServer().getPlayer(targetUuid) == null) {
-                            player.sendMessage("방문자 추방을 기록했습니다. 대상 플레이어는 현재 온라인이 아닙니다.");
+                            message(player, routeMessage("visitor-kick-target-offline", "방문자 추방을 기록했습니다. 대상 플레이어는 현재 온라인이 아닙니다."));
                             return;
                         }
                         if (!moveVisitorToFallback(islandId, targetUuid, "섬에서 추방되어 로비로 이동합니다.", "섬에서 추방되어 로비로 이동하지 못했습니다.")) {
-                            player.sendMessage("방문자 추방을 기록했습니다. 대상 플레이어는 현재 이 섬에 없습니다.");
+                            message(player, routeMessage("visitor-kick-target-not-on-island", "방문자 추방을 기록했습니다. 대상 플레이어는 현재 이 섬에 없습니다."));
                             return;
                         }
                         player.sendMessage(actionResultMessage("섬 방문자 추방", targetUuid, body));
@@ -3033,7 +3033,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             String worldName = region.map(IslandRegion::world).orElse(point.worldName());
             World world = plugin.getServer().getWorld(worldName);
             if (world == null) {
-                player.sendMessage("대상 월드를 찾을 수 없습니다.");
+                message(player, routeMessage("route-target-world-missing", "대상 월드를 찾을 수 없습니다."));
                 return;
             }
             double targetX = region.map(value -> value.originX() + point.x()).orElse(point.x());

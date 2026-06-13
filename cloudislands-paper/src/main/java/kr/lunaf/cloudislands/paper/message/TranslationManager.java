@@ -175,6 +175,15 @@ public final class TranslationManager {
         values.put("input-flag-invalid", "올바른 섬 플래그를 입력해주세요.");
         values.put("input-permission-set-required", "역할, 권한, 허용 여부를 입력해주세요.");
         values.put("input-permission-set-invalid", "올바른 역할과 권한을 입력해주세요.");
+        values.put("player-only-command", "플레이어만 사용할 수 있습니다.");
+        values.put("input-island-uuid-invalid", "섬 UUID가 올바르지 않습니다.");
+        values.put("input-amount-invalid", "올바른 금액을 입력해주세요.");
+        values.put("route-command-failed", "섬으로 이동하지 못했습니다.");
+        values.put("route-command-publish-failed", "섬 이동 경로를 준비하지 못했습니다.");
+        values.put("route-command-started", "섬으로 이동합니다.");
+        values.put("route-target-world-missing", "대상 월드를 찾을 수 없습니다.");
+        values.put("visitor-kick-target-offline", "방문자 추방을 기록했습니다. 대상 플레이어는 현재 온라인이 아닙니다.");
+        values.put("visitor-kick-target-not-on-island", "방문자 추방을 기록했습니다. 대상 플레이어는 현재 이 섬에 없습니다.");
         return values;
     }
 
