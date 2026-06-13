@@ -866,9 +866,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private boolean configFeature(String key) {
         String satisPath = "satis.features." + key;
         String legacyPath = "features." + key;
-        return configs.main().contains(satisPath)
-                ? configs.main().getBoolean(satisPath, true)
-                : configs.main().getBoolean(legacyPath, true);
+        boolean enabled = true;
+        if (configs.main().contains(satisPath)) {
+            enabled = configs.main().getBoolean(satisPath, true);
+        }
+        if (configs.main().contains(legacyPath)) {
+            enabled = enabled && configs.main().getBoolean(legacyPath, true);
+        }
+        return enabled;
     }
 
     private boolean configFeatureDefined(String key) {
