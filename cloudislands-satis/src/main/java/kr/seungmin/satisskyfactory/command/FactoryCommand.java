@@ -161,7 +161,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                 }
             }
             case "storage" -> {
-                if (requireFeature(player, "gui")) {
+                if (requireFeature(player, "machines") && requireFeature(player, "gui")) {
                     gui.openStorage(player, island);
                 }
             }
@@ -482,7 +482,8 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean commandRequiresDisabledFeature(String command) {
-        return (command.contains(" main") || command.contains(" storage")) && !enabled("gui")
+        return command.contains(" main") && !enabled("gui")
+                || command.contains(" storage") && (!enabled("machines") || !enabled("gui"))
                 || (command.contains(" machines") || command.contains(" deposit") || command.contains(" withdraw")) && !enabled("machines")
                 || (command.contains(" market") || command.contains(" sell")) && !enabled("market")
                 || command.contains(" contracts") && !enabled("contracts")
@@ -602,6 +603,8 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             values.add("status");
             if (enabled("gui")) {
                 values.add("main");
+            }
+            if (enabled("machines") && enabled("gui")) {
                 values.add("storage");
             }
             if (enabled("machines")) {
