@@ -85,10 +85,7 @@ public final class FactoryGuiService {
         if (enabled("research")) {
             holder.action(16, "main_research", "");
             inventory.setItem(16, icon(Material.EXPERIENCE_BOTTLE, ChatColor.AQUA + "Research",
-                    List.of(ChatColor.GRAY + "Points: " + island.researchPoints(),
-                            ChatColor.GRAY + "Agriculture x" + NumberFormatter.ratio(boosts.agricultureBoost()),
-                            ChatColor.GRAY + "Machine slots +" + boosts.factorySlotBonus(),
-                            ChatColor.GRAY + "Contract slots +" + boosts.contractSlotBonus())));
+                    researchMainLore(island, boosts)));
         }
         if (player.hasPermission("satisskyfactory.admin")) {
             holder.action(8, "main_admin", "");
@@ -144,6 +141,19 @@ public final class FactoryGuiService {
             lore.add(ChatColor.GRAY + "Power ratio: " + NumberFormatter.ratio(powerState.ratio()));
         } else {
             lore.add(ChatColor.GRAY + "Machine features are disabled.");
+        }
+        return lore;
+    }
+
+    private List<String> researchMainLore(FactoryIsland island, IslandBoostService.Boosts boosts) {
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "Points: " + island.researchPoints());
+        if (enabled("machines")) {
+            lore.add(ChatColor.GRAY + "Agriculture x" + NumberFormatter.ratio(boosts.agricultureBoost()));
+            lore.add(ChatColor.GRAY + "Machine slots +" + boosts.factorySlotBonus());
+        }
+        if (enabled("contracts")) {
+            lore.add(ChatColor.GRAY + "Contract slots +" + boosts.contractSlotBonus());
         }
         return lore;
     }
