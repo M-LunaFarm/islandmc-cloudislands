@@ -84,6 +84,11 @@ public record CloudIslandsAddonSnapshot(
                 enabled = enabled && features.get(alias.getKey());
             }
         }
+        for (Map.Entry<String, String> dependency : featureDependencies().entrySet()) {
+            if (dependency.getKey().equals(canonical)) {
+                enabled = enabled && features.getOrDefault(dependency.getValue(), fallback);
+            }
+        }
         return enabled;
     }
 
