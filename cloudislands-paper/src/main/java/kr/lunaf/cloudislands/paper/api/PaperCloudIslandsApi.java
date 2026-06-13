@@ -195,16 +195,29 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled, Map<String, Boolean> features, Map<String, String> metadata) {
-            CloudIslandsAddon previous = addonObjects.remove(id);
+            String safeId = safeRegistrationId(id);
+            CloudIslandsAddon previous = addonObjects.remove(safeId);
             if (previous != null) {
                 notifyUnregistered(previous);
             }
-            AddonRegistration registration = new AddonRegistration(id, displayName, version, enabled, Instant.now(), Map.copyOf(features == null ? Map.of() : features), Map.copyOf(metadata == null ? Map.of() : metadata));
-            registrations.put(id, registration);
+            AddonRegistration registration = new AddonRegistration(safeId, safeRegistrationDisplayName(displayName, safeId), safeRegistrationVersion(version), enabled, Instant.now(), Map.copyOf(features == null ? Map.of() : features), Map.copyOf(metadata == null ? Map.of() : metadata));
+            registrations.put(safeId, registration);
             CloudIslandsAddonSnapshot snapshot = snapshot(registration);
-            addons.put(id, snapshot);
+            addons.put(safeId, snapshot);
             syncEventSubscription();
             return CompletableFuture.completedFuture(snapshot);
+        }
+
+        private String safeRegistrationId(String id) {
+            return id == null || id.isBlank() ? "manual-addon" : id;
+        }
+
+        private String safeRegistrationDisplayName(String displayName, String id) {
+            return displayName == null || displayName.isBlank() ? id : displayName;
+        }
+
+        private String safeRegistrationVersion(String version) {
+            return version == null || version.isBlank() ? "unknown" : version;
         }
 
         @Override
