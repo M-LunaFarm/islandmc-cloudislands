@@ -422,9 +422,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         private void applyFeatureDependencies(Map<String, Boolean> features, Map<String, String> metadata) {
             AddonFeatureAliases.dependencies(metadata).forEach((feature, required) -> {
-                if (features.containsKey(feature) || features.containsKey(required)) {
-                    features.put(feature, features.getOrDefault(feature, true) && features.getOrDefault(required, true));
-                }
+                features.put(feature, features.getOrDefault(feature, true) && features.getOrDefault(required, true));
             });
         }
 
