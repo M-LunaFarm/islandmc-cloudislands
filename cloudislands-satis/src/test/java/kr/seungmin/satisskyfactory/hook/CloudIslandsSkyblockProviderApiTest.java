@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class CloudIslandsSkyblockProviderApiTest {
     @Test
@@ -16,5 +17,13 @@ class CloudIslandsSkyblockProviderApiTest {
 
         assertEquals(islandUuid, provider.getIslandUuid(island));
         assertEquals(ownerUuid, provider.getIslandOwnerUuid(island));
+    }
+
+    @Test
+    void nullIslandAccessorsReturnNull() {
+        CloudIslandsSkyblockProvider provider = new CloudIslandsSkyblockProvider(null);
+
+        assertNull(provider.getIslandUuid(null));
+        assertNull(provider.getIslandOwnerUuid(null));
     }
 }
