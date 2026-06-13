@@ -191,6 +191,11 @@ public final class TranslationManager {
         values.put("bank-menu-withdraw-usage", "사용법: /섬 출금 <금액>");
         values.put("home-menu-load-failed", "섬 홈을 불러오지 못했습니다.");
         values.put("home-menu-set-usage", "사용법: /섬 셋홈 <이름>");
+        values.put("home-menu-empty", "현재 등록된 섬 홈이 없습니다.");
+        values.put("home-menu-no-created-info", "생성 정보 없음");
+        values.put("home-menu-created-at", "생성 시각: ");
+        values.put("home-menu-left-click", "좌클릭: 이 홈으로 이동");
+        values.put("home-menu-right-click", "우클릭: 현재 위치로 갱신");
         values.put("warp-menu-load-failed", "섬 워프를 불러오지 못했습니다.");
         values.put("warp-menu-public-load-failed", "공개 섬 워프를 불러오지 못했습니다.");
         values.put("warp-menu-set-usage", "사용법: /섬 워프설정 <이름>");
