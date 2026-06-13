@@ -226,13 +226,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         private boolean configuredAddonEnabled(String id) {
             String addonPath = "addons." + id + ".enabled";
+            boolean enabled = true;
             if (plugin.getConfig().contains(addonPath)) {
-                return plugin.getConfig().getBoolean(addonPath, true);
+                enabled = plugin.getConfig().getBoolean(addonPath, true);
             }
             if (id.equals("cloudislands-satis") && plugin.getConfig().contains("satis.enabled")) {
-                return plugin.getConfig().getBoolean("satis.enabled", true);
+                enabled = enabled && plugin.getConfig().getBoolean("satis.enabled", true);
             }
-            return true;
+            return enabled;
         }
 
         private Map<String, Boolean> effectiveFeatures(String id, Map<String, Boolean> features) {
@@ -241,7 +242,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 ConfigurationSection satisSection = plugin.getConfig().getConfigurationSection("satis.features");
                 if (satisSection != null) {
                     for (String key : satisSection.getKeys(false)) {
-                        effective.put(key, satisSection.getBoolean(key, effective.getOrDefault(key, true)));
+                        effective.put(key, effective.getOrDefault(key, true) && satisSection.getBoolean(key, true));
                     }
                 }
             }
@@ -250,7 +251,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 return effective;
             }
             for (String key : section.getKeys(false)) {
-                effective.put(key, section.getBoolean(key, effective.getOrDefault(key, true)));
+                effective.put(key, effective.getOrDefault(key, true) && section.getBoolean(key, true));
             }
             return effective;
         }
@@ -267,9 +268,13 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> effective = new HashMap<>(metadata == null ? Map.of() : metadata);
             effective.putIfAbsent("source-node", plugin.getConfig().getString("node.id", "unknown"));
             if (id.equals("cloudislands-satis")) {
-                if (plugin.getConfig().contains("addons." + id)) {
+                boolean hasAddonConfig = plugin.getConfig().contains("addons." + id);
+                boolean hasSatisConfig = plugin.getConfig().contains("satis");
+                if (hasAddonConfig && hasSatisConfig) {
+                    effective.put("parent-config-path", "addons." + id + ",satis");
+                } else if (hasAddonConfig) {
                     effective.put("parent-config-path", "addons." + id);
-                } else if (plugin.getConfig().contains("satis")) {
+                } else if (hasSatisConfig) {
                     effective.put("parent-config-path", "satis");
                 } else {
                     effective.put("parent-config-path", "default");
