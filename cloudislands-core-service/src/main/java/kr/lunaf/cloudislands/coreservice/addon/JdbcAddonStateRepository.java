@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import javax.sql.DataSource;
 
 public final class JdbcAddonStateRepository implements AddonStateRepository {
@@ -80,6 +81,77 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
         }
     }
 
+    @Override
+    public Map<String, String> listIsland(String addonId, UUID islandId) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT state_key, state_value FROM addon_island_state WHERE addon_id = ? AND island_id = ? ORDER BY state_key")) {
+            statement.setString(1, AddonStateRepository.safeAddonId(addonId));
+            statement.setObject(2, AddonStateRepository.safeIslandId(islandId));
+            try (ResultSet rs = statement.executeQuery()) {
+                Map<String, String> state = new HashMap<>();
+                while (rs.next()) {
+                    state.put(rs.getString("state_key"), rs.getString("state_value"));
+                }
+                return Map.copyOf(state);
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read addon island state", exception);
+        }
+    }
+
+    @Override
+    public Map<String, String> putIsland(String addonId, UUID islandId, String key, String value) {
+        String safeAddonId = AddonStateRepository.safeAddonId(addonId);
+        UUID safeIslandId = AddonStateRepository.safeIslandId(islandId);
+        String safeKey = AddonStateRepository.safeKey(key);
+        String safeValue = AddonStateRepository.safeValue(value);
+        try (Connection connection = dataSource.getConnection()) {
+            ensureIslandKeyCapacity(connection, safeAddonId, safeIslandId, safeKey);
+            try (PreparedStatement statement = connection.prepareStatement("INSERT INTO addon_island_state(addon_id, island_id, state_key, state_value) VALUES (?, ?, ?, ?) ON CONFLICT (addon_id, island_id, state_key) DO UPDATE SET state_value = EXCLUDED.state_value, updated_at = now()")) {
+                statement.setString(1, safeAddonId);
+                statement.setObject(2, safeIslandId);
+                statement.setString(3, safeKey);
+                statement.setString(4, safeValue);
+                statement.executeUpdate();
+            }
+            return listIsland(safeAddonId, safeIslandId);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to write addon island state", exception);
+        }
+    }
+
+    @Override
+    public Map<String, String> removeIsland(String addonId, UUID islandId, String key) {
+        if (key == null || key.isBlank()) {
+            return listIsland(addonId, islandId);
+        }
+        String safeAddonId = AddonStateRepository.safeAddonId(addonId);
+        UUID safeIslandId = AddonStateRepository.safeIslandId(islandId);
+        String safeKey = AddonStateRepository.safeKey(key);
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("DELETE FROM addon_island_state WHERE addon_id = ? AND island_id = ? AND state_key = ?")) {
+            statement.setString(1, safeAddonId);
+            statement.setObject(2, safeIslandId);
+            statement.setString(3, safeKey);
+            statement.executeUpdate();
+            return listIsland(safeAddonId, safeIslandId);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to remove addon island state", exception);
+        }
+    }
+
+    @Override
+    public void clearIsland(String addonId, UUID islandId) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("DELETE FROM addon_island_state WHERE addon_id = ? AND island_id = ?")) {
+            statement.setString(1, AddonStateRepository.safeAddonId(addonId));
+            statement.setObject(2, AddonStateRepository.safeIslandId(islandId));
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to clear addon island state", exception);
+        }
+    }
+
     private void ensureKeyCapacity(Connection connection, String addonId, String key) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) AS key_count, BOOL_OR(state_key = ?) AS key_exists FROM addon_state WHERE addon_id = ?")) {
             statement.setString(1, key);
@@ -92,6 +164,24 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
                 int count = rs.getInt("key_count");
                 if (!exists && count >= AddonStateRepository.MAX_KEYS_PER_ADDON) {
                     throw new IllegalArgumentException("Addon state key limit reached");
+                }
+            }
+        }
+    }
+
+    private void ensureIslandKeyCapacity(Connection connection, String addonId, UUID islandId, String key) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) AS key_count, BOOL_OR(state_key = ?) AS key_exists FROM addon_island_state WHERE addon_id = ? AND island_id = ?")) {
+            statement.setString(1, key);
+            statement.setString(2, addonId);
+            statement.setObject(3, islandId);
+            try (ResultSet rs = statement.executeQuery()) {
+                if (!rs.next()) {
+                    return;
+                }
+                boolean exists = rs.getBoolean("key_exists");
+                int count = rs.getInt("key_count");
+                if (!exists && count >= AddonStateRepository.MAX_KEYS_PER_ADDON) {
+                    throw new IllegalArgumentException("Addon island state key limit reached");
                 }
             }
         }

@@ -416,6 +416,70 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
+        route("/v1/addons/islands/state", exchange -> {
+            String body = readBody(exchange);
+            String addonId = JsonFields.text(body, "addonId", "");
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            try {
+                write(exchange, 200, addonStateJson(addonStates.listIsland(addonId, islandId)));
+            } catch (IllegalArgumentException exception) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
+            }
+        });
+        route("/v1/addons/islands/state/set", exchange -> {
+            String body = readBody(exchange);
+            String addonId = JsonFields.text(body, "addonId", "");
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            String key = JsonFields.text(body, "key", "");
+            String value = JsonFields.text(body, "value", "");
+            if (addonId.isBlank() || key.isBlank()) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id and key are required"));
+                return;
+            }
+            try {
+                Map<String, String> state = addonStates.putIsland(addonId, islandId, key, value);
+                audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_STATE_SET", "ADDON", addonId, Map.of("islandId", islandId.toString(), "key", key));
+                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", "SET", "key", key));
+                write(exchange, 202, addonStateJson(state));
+            } catch (IllegalArgumentException exception) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
+            }
+        });
+        route("/v1/addons/islands/state/remove", exchange -> {
+            String body = readBody(exchange);
+            String addonId = JsonFields.text(body, "addonId", "");
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            String key = JsonFields.text(body, "key", "");
+            if (addonId.isBlank() || key.isBlank()) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id and key are required"));
+                return;
+            }
+            try {
+                Map<String, String> state = addonStates.removeIsland(addonId, islandId, key);
+                audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_STATE_REMOVE", "ADDON", addonId, Map.of("islandId", islandId.toString(), "key", key));
+                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", "REMOVE", "key", key));
+                write(exchange, 202, addonStateJson(state));
+            } catch (IllegalArgumentException exception) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
+            }
+        });
+        route("/v1/addons/islands/state/clear", exchange -> {
+            String body = readBody(exchange);
+            String addonId = JsonFields.text(body, "addonId", "");
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            if (addonId.isBlank()) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id is required"));
+                return;
+            }
+            try {
+                addonStates.clearIsland(addonId, islandId);
+                audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_STATE_CLEAR", "ADDON", addonId, Map.of("islandId", islandId.toString()));
+                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", "CLEAR"));
+                write(exchange, 202, addonStateJson(Map.of()));
+            } catch (IllegalArgumentException exception) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
+            }
+        });
         route("/v1/rankings/level", exchange -> {
             String body = readBody(exchange);
             write(exchange, 200, rankingsJson(rankingRepository.topByLevel(queryInteger(exchange, "limit", JsonFields.integer(body, "limit", 10), 1, 100))));

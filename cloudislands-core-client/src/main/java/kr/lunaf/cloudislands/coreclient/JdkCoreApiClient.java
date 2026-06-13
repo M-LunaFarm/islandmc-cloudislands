@@ -815,6 +815,26 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> addonIslandState(String addonId, UUID islandId) {
+        return post("/v1/addons/islands/state", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> putAddonIslandState(String addonId, UUID islandId, String key, String value) {
+        return postWithResultBody("/v1/addons/islands/state/set", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"key\":\"" + escape(key) + "\",\"value\":\"" + escape(value) + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> removeAddonIslandState(String addonId, UUID islandId, String key) {
+        return postWithResultBody("/v1/addons/islands/state/remove", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"key\":\"" + escape(key) + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> clearAddonIslandState(String addonId, UUID islandId) {
+        return postWithResultBody("/v1/addons/islands/state/clear", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\"}");
+    }
+
+    @Override
     public CompletableFuture<String> migrateSuperiorSkyblock2(String action, String path) {
         String endpoint = switch (action.toLowerCase()) {
             case "dryrun", "dry-run" -> "dryrun";

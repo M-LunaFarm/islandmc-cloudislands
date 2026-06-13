@@ -173,6 +173,10 @@ public interface CoreApiClient {
     CompletableFuture<String> putAddonState(String addonId, String key, String value);
     CompletableFuture<String> removeAddonState(String addonId, String key);
     CompletableFuture<String> clearAddonState(String addonId);
+    CompletableFuture<String> addonIslandState(String addonId, UUID islandId);
+    CompletableFuture<String> putAddonIslandState(String addonId, UUID islandId, String key, String value);
+    CompletableFuture<String> removeAddonIslandState(String addonId, UUID islandId, String key);
+    CompletableFuture<String> clearAddonIslandState(String addonId, UUID islandId);
     CompletableFuture<String> migrateSuperiorSkyblock2(String action, String path);
     CompletableFuture<String> playerInfo(UUID playerUuid);
     CompletableFuture<String> playerInfoByName(String lastName);

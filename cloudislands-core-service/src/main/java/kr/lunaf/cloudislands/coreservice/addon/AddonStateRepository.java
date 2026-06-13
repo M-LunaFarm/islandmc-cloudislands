@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreservice.addon;
 
 import java.util.Map;
+import java.util.UUID;
 
 public interface AddonStateRepository {
     int MAX_ADDON_ID_LENGTH = 128;
@@ -12,6 +13,10 @@ public interface AddonStateRepository {
     Map<String, String> put(String addonId, String key, String value);
     Map<String, String> remove(String addonId, String key);
     void clear(String addonId);
+    Map<String, String> listIsland(String addonId, UUID islandId);
+    Map<String, String> putIsland(String addonId, UUID islandId, String key, String value);
+    Map<String, String> removeIsland(String addonId, UUID islandId, String key);
+    void clearIsland(String addonId, UUID islandId);
 
     static String safeAddonId(String addonId) {
         String value = addonId == null ? "" : addonId.trim();
@@ -41,6 +46,13 @@ public interface AddonStateRepository {
             throw new IllegalArgumentException("Addon state value is too long");
         }
         return safe;
+    }
+
+    static UUID safeIslandId(UUID islandId) {
+        if (islandId == null || islandId.equals(new UUID(0L, 0L))) {
+            throw new IllegalArgumentException("Island id is required");
+        }
+        return islandId;
     }
 
     static void requireKeyCapacity(Map<String, String> state, String key) {
