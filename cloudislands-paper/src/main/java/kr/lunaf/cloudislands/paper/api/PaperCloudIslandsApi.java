@@ -390,12 +390,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             ConfigurationSection section = plugin.getConfig().getConfigurationSection("addons." + id + ".features");
             if (section == null) {
                 applyFeatureAliases(effective, registration.metadata());
+                applyFeatureDependencies(effective, registration.metadata());
                 return effective;
             }
             for (String key : section.getKeys(false)) {
                 effective.put(key, effective.getOrDefault(key, true) && section.getBoolean(key, true));
             }
             applyFeatureAliases(effective, registration.metadata());
+            applyFeatureDependencies(effective, registration.metadata());
             return effective;
         }
 
@@ -412,6 +414,21 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 if (features.containsKey(alias) || features.containsKey(canonical)) {
                     features.put(alias, enabled);
                     features.put(canonical, enabled);
+                }
+            }
+        }
+
+        private void applyFeatureDependencies(Map<String, Boolean> features, Map<String, String> metadata) {
+            String dependencies = metadata.getOrDefault("feature-dependencies", "");
+            for (String pair : dependencies.split(",")) {
+                String[] parts = pair.split(":", 2);
+                if (parts.length != 2 || parts[0].isBlank() || parts[1].isBlank()) {
+                    continue;
+                }
+                String feature = AddonFeatureAliases.normalize(metadata, parts[0]);
+                String required = AddonFeatureAliases.normalize(metadata, parts[1]);
+                if (features.containsKey(feature) || features.containsKey(required)) {
+                    features.put(feature, features.getOrDefault(feature, true) && features.getOrDefault(required, true));
                 }
             }
         }

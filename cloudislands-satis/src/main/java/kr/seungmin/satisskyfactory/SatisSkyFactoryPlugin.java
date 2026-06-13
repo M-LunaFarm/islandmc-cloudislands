@@ -760,6 +760,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("island-position-remap", "center-delta");
         metadata.put("addon-state-sync", Boolean.toString(configuredFeatureEnabled("addon-state")));
         metadata.put("feature-aliases", featureAliasesMetadata());
+        metadata.put("feature-dependencies", featureDependenciesMetadata());
         metadata.put("feature-warnings", featureWarnings());
         metadata.put("operational-features", operationalFeatureState(featureSnapshot()));
         return metadata;
@@ -819,6 +820,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 .sorted(Map.Entry.comparingByKey())
                 .map(entry -> entry.getKey() + ":" + entry.getValue())
                 .collect(java.util.stream.Collectors.joining(","));
+    }
+
+    private String featureDependenciesMetadata() {
+        return "resource-nodes:machines,market:storage,contracts:storage";
     }
 
     @Override
