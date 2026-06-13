@@ -32,6 +32,7 @@ public final class VelocityRoutingController {
     private static final Pattern EVENT = Pattern.compile("\\{[^}]*\"seq\":(\\d+)[^}]*\"type\":\"([^\"]+)\"[^}]*\"fields\":\\{([^}]*)}[^}]*\"occurredAt\":\"([^\"]+)\"[^}]*}");
     private static final Pattern FIELD = Pattern.compile("\"([^\"]+)\":\"([^\"]*)\"");
     private static final int EVENT_BATCH_SIZE = 512;
+    private static final long PLAYER_ROUTE_COOLDOWN_MILLIS = 1_500L;
 
     private final ProxyServer proxy;
     private final CoreApiClient coreApiClient;
@@ -48,6 +49,7 @@ public final class VelocityRoutingController {
     private final AtomicLong routeFailures = new AtomicLong();
     private final AtomicLong fallbackTransfers = new AtomicLong();
     private final Set<String> seenEvents = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, Long> recentRouteRequests = new ConcurrentHashMap<>();
     private ScheduledTask eventPollTask;
     private long lastEventSequence;
 
@@ -85,6 +87,9 @@ public final class VelocityRoutingController {
     }
 
     public void createIsland(Player player, String templateId) {
+        if (!allowRouteRequest(player)) {
+            return;
+        }
         coreApiClient.createIsland(player.getUniqueId(), templateId).thenAccept(result -> {
             if (result == null || !result.accepted()) {
                 String code = result == null ? "FAILED" : result.code();
@@ -177,10 +182,16 @@ public final class VelocityRoutingController {
     }
 
     public void routeHome(Player player, String homeName) {
+        if (!allowRouteRequest(player)) {
+            return;
+        }
         routeFuture(player, coreApiClient.createHomeTicket(player.getUniqueId(), homeName), "현재 섬 서비스 일부 기능이 점검 중입니다.");
     }
 
     public void routeVisit(Player player, UUID targetIslandId) {
+        if (!allowRouteRequest(player)) {
+            return;
+        }
         routeFuture(player, coreApiClient.createVisitTicket(player.getUniqueId(), targetIslandId), "현재 섬 서비스가 혼잡합니다. 잠시 후 다시 시도해주세요.");
     }
 
@@ -189,12 +200,18 @@ public final class VelocityRoutingController {
             player.sendMessage(Component.text("방문할 플레이어를 찾을 수 없습니다."));
             return;
         }
+        if (!allowRouteRequest(player)) {
+            return;
+        }
         routeFuture(player, coreApiClient.createVisitTicketForOwner(player.getUniqueId(), ownerUuid), "해당 섬에 방문할 수 없습니다.");
     }
 
     public void routeVisitName(Player player, String islandName) {
         if (islandName == null || islandName.isBlank()) {
             player.sendMessage(Component.text("방문할 섬 이름을 입력해주세요."));
+            return;
+        }
+        if (!allowRouteRequest(player)) {
             return;
         }
         routeFuture(player, coreApiClient.createVisitTicket(player.getUniqueId(), islandName), "해당 섬에 방문할 수 없습니다.");
@@ -319,6 +336,9 @@ public final class VelocityRoutingController {
     }
 
     public void routeRandomVisit(Player player) {
+        if (!allowRouteRequest(player)) {
+            return;
+        }
         routeFuture(player, coreApiClient.createRandomVisitTicket(player.getUniqueId()), "방문 가능한 공개 섬을 찾지 못했습니다.");
     }
 
@@ -327,6 +347,9 @@ public final class VelocityRoutingController {
     }
 
     public void routeWarp(Player player, UUID targetIslandId, String warpName) {
+        if (!allowRouteRequest(player)) {
+            return;
+        }
         routeFuture(player, coreApiClient.createWarpTicket(player.getUniqueId(), targetIslandId, warpName), "해당 워프로 이동할 수 없습니다.");
     }
 
@@ -2863,6 +2886,18 @@ public final class VelocityRoutingController {
             fallback(player, failureMessage);
             return null;
         });
+    }
+
+    private boolean allowRouteRequest(Player player) {
+        long now = System.currentTimeMillis();
+        UUID playerUuid = player.getUniqueId();
+        Long previous = recentRouteRequests.put(playerUuid, now);
+        if (previous == null || now - previous >= PLAYER_ROUTE_COOLDOWN_MILLIS) {
+            return true;
+        }
+        recentRouteRequests.put(playerUuid, previous);
+        player.sendMessage(Component.text("섬 이동 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요."));
+        return false;
     }
 
     private void waitForReadyTicket(Player player, RouteTicket ticket, String failureMessage, BossBar bossBar, int attempt) {
