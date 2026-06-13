@@ -131,6 +131,12 @@ public final class TranslationManager {
         values.put("warp-access-denied", "섬 워프 공개 상태를 변경할 권한이 없습니다.");
         values.put("access-change-denied", "섬 공개 상태를 변경할 권한이 없습니다.");
         values.put("lock-change-denied", "섬 잠금 상태를 변경할 권한이 없습니다.");
+        values.put("member-invite-denied", "섬 멤버를 초대할 권한이 없습니다.");
+        values.put("member-remove-denied", "섬 멤버를 추방할 권한이 없습니다.");
+        values.put("member-role-denied", "섬 멤버 역할을 변경할 권한이 없습니다.");
+        values.put("visitor-ban-denied", "섬 방문자를 밴할 권한이 없습니다.");
+        values.put("visitor-pardon-denied", "섬 방문자 밴을 해제할 권한이 없습니다.");
+        values.put("visitor-kick-denied", "섬 방문자를 추방할 권한이 없습니다.");
         return values;
     }
 

@@ -2044,7 +2044,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void inviteIslandMember(Player player, String target) {
         currentIsland(player, "섬 안에서만 플레이어를 초대할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_MEMBERS)) {
-                player.sendMessage("섬 멤버를 초대할 권한이 없습니다.");
+                message(player, routeMessage("member-invite-denied", "섬 멤버를 초대할 권한이 없습니다."));
                 return;
             }
             Player online = plugin.getServer().getPlayerExact(target);
@@ -2190,7 +2190,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void removeIslandMember(Player player, String target) {
         currentIsland(player, "섬 안에서만 멤버를 추방할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_MEMBERS)) {
-                player.sendMessage("섬 멤버를 추방할 권한이 없습니다.");
+                message(player, routeMessage("member-remove-denied", "섬 멤버를 추방할 권한이 없습니다."));
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
@@ -2207,7 +2207,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void setIslandMemberRole(Player player, String target, IslandRole role, String successMessage) {
         currentIsland(player, "섬 안에서만 멤버 역할을 변경할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
-                player.sendMessage("섬 멤버 역할을 변경할 권한이 없습니다.");
+                message(player, routeMessage("member-role-denied", "섬 멤버 역할을 변경할 권한이 없습니다."));
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
@@ -2237,7 +2237,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void banIslandVisitor(Player player, String target, String reason) {
         currentIsland(player, "섬 안에서만 방문자를 밴할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.BAN_VISITOR)) {
-                player.sendMessage("섬 방문자를 밴할 권한이 없습니다.");
+                message(player, routeMessage("visitor-ban-denied", "섬 방문자를 밴할 권한이 없습니다."));
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
@@ -2261,7 +2261,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void pardonIslandVisitor(Player player, String target) {
         currentIsland(player, "섬 안에서만 방문자 밴을 해제할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.BAN_VISITOR)) {
-                player.sendMessage("섬 방문자 밴을 해제할 권한이 없습니다.");
+                message(player, routeMessage("visitor-pardon-denied", "섬 방문자 밴을 해제할 권한이 없습니다."));
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
@@ -2278,7 +2278,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void kickIslandVisitor(Player player, String target) {
         currentIsland(player, "섬 안에서만 방문자를 추방할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.KICK_VISITOR)) {
-                player.sendMessage("섬 방문자를 추방할 권한이 없습니다.");
+                message(player, routeMessage("visitor-kick-denied", "섬 방문자를 추방할 권한이 없습니다."));
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
