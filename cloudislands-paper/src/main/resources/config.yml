@@ -253,6 +253,7 @@ messages:
     admin-command-template-usage: "사용법: /ciadmin template|templates list|upsert|enable|disable"
     admin-command-migration-usage: "사용법: /ciadmin migrate-superiorskyblock2 scan|dryrun|dry-run|extract|import|verify|rollback [path]"
     admin-command-migration-import-usage: "사용법: /ciadmin migrate-superiorskyblock2 import <approvalToken>"
+    admin-command-migration-disabled: "SuperiorSkyblock2 migration is disabled by config."
     admin-command-status-agent-prefix: "CloudIslands agent role="
     admin-command-status-online-prefix: "CloudIslands onlinePlayers="
     admin-command-route-failed: "관리자 섬 이동에 실패했습니다."
@@ -478,6 +479,10 @@ messages:
     admin-command-core-config-ip-allowlist-prefix: " ipAllowlist="
     admin-command-runtime-world-compact-prefix: "world="
     admin-command-runtime-cell-compact-prefix: "cell="
+
+migration:
+  superiorskyblock2:
+    enabled: true
     main-menu-my-islands-name: "내 섬 목록"
     main-menu-my-islands-command: "/섬 목록"
     main-menu-info-name: "섬 정보"

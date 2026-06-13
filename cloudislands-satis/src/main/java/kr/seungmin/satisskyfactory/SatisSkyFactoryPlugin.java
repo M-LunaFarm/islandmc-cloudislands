@@ -1325,6 +1325,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         features.put("research", configuredFeatureEnabled("research"));
         features.put("maintenance", configuredFeatureEnabled("maintenance"));
         features.put("placeholders", configuredFeatureEnabled("placeholders"));
+        features.put("migration", configuredFeatureEnabled("migration"));
         features.put("addon-state", configuredFeatureEnabled("addon-state"));
         FEATURE_ALIASES.forEach((alias, canonical) -> features.put(alias, features.getOrDefault(canonical, configuredFeatureEnabled(canonical))));
         return features;

@@ -19,6 +19,7 @@ satis:
     research: true
     maintenance: true
     placeholders: true
+    migration: true
     addon-state: true
 integration:
   mode: ADDON

@@ -30,7 +30,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "config", "cache", "addons", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
     private static final List<String> ADDON_COMMANDS = List.of("list", "info", "feature", "enable", "disable", "reload");
-    private static final List<String> ADDON_FEATURES = List.of("commands", "machines", "storage", "factories", "generators", "upgrades", "missions", "menus", "gui", "lifecycle", "resource-nodes", "market", "contracts", "research", "maintenance", "placeholders", "addon-state");
+    private static final List<String> ADDON_FEATURES = List.of("commands", "machines", "storage", "factories", "generators", "upgrades", "missions", "menus", "gui", "lifecycle", "resource-nodes", "market", "contracts", "research", "maintenance", "placeholders", "migration", "addon-state");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "islands", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
     private static final List<String> PLAYER_COMMANDS = List.of("info", "setisland", "clearisland");
@@ -756,6 +756,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private boolean handleSuperiorSkyblock2Migration(CommandSender sender, String[] args) {
+        if (!superiorSkyblock2MigrationEnabled()) {
+            sender.sendMessage(adminText("admin-command-migration-disabled", "SuperiorSkyblock2 migration is disabled by config."));
+            return true;
+        }
         String action = args.length > 1 ? args[1] : "scan";
         if (!MIGRATION_COMMANDS.contains(action.toLowerCase(Locale.ROOT))) {
             sender.sendMessage(adminText("admin-command-migration-usage", "사용법: /ciadmin migrate-superiorskyblock2 scan|dryrun|dry-run|extract|import|verify|rollback [path]"));
@@ -768,6 +772,17 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         String path = args.length > 2 ? joined(args, 2) : "plugins/SuperiorSkyblock2";
         run(sender, "SuperiorSkyblock2 migration " + action, coreApiClient.migrateSuperiorSkyblock2(action, path).thenApply(this::migrationMessage));
         return true;
+    }
+
+    private boolean superiorSkyblock2MigrationEnabled() {
+        boolean enabled = agent.getConfig().getBoolean("migration.superiorskyblock2.enabled", true);
+        if (agent.getConfig().contains("addons.cloudislands-satis.features.migration")) {
+            enabled = enabled && agent.getConfig().getBoolean("addons.cloudislands-satis.features.migration", true);
+        }
+        if (agent.getConfig().contains("satis.features.migration")) {
+            enabled = enabled && agent.getConfig().getBoolean("satis.features.migration", true);
+        }
+        return enabled;
     }
 
     private String migrationMessage(String body) {

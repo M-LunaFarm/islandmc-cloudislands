@@ -53,6 +53,7 @@ public final class AdminFactoryCommand {
             "research",
             "maintenance",
             "placeholders",
+            "migration",
             "addon-state"
     );
     private static final List<String> HELP_COMMANDS = List.of(
