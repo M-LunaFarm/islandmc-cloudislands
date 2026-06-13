@@ -7,9 +7,7 @@ dependencies {
     compileOnly("me.clip:placeholderapi:2.11.6")
     implementation("org.xerial:sqlite-jdbc:3.46.1.0")
     implementation("com.zaxxer:HikariCP:5.1.0")
-    implementation(project(":cloudislands-api"))
-    implementation(project(":cloudislands-common"))
-    implementation(project(":cloudislands-core-client"))
+    compileOnly(project(":cloudislands-api"))
 }
 
 tasks.processResources {
