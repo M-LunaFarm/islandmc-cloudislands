@@ -184,6 +184,8 @@ public final class TranslationManager {
         values.put("route-target-world-missing", "대상 월드를 찾을 수 없습니다.");
         values.put("visitor-kick-target-offline", "방문자 추방을 기록했습니다. 대상 플레이어는 현재 온라인이 아닙니다.");
         values.put("visitor-kick-target-not-on-island", "방문자 추방을 기록했습니다. 대상 플레이어는 현재 이 섬에 없습니다.");
+        values.put("chat-menu-island-usage", "사용법: /섬 채팅 <메시지>");
+        values.put("chat-menu-team-usage", "사용법: /섬 팀채팅 <메시지>");
         return values;
     }
 

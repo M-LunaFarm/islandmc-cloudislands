@@ -638,19 +638,19 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
         if (subcommand.equals("chat") || subcommand.equals("islandchat") || subcommand.equals("채팅")) {
             if (args.length < 2) {
-                IslandChatMenu.open(player);
+                IslandChatMenu.open(player, messages);
                 return true;
             }
             sendIslandChat(player, "ISLAND", joined(args, 1), "섬 채팅");
             return true;
         }
         if (subcommand.equals("chat-menu")) {
-            IslandChatMenu.open(player);
+            IslandChatMenu.open(player, messages);
             return true;
         }
         if (subcommand.equals("teamchat") || subcommand.equals("team-chat") || subcommand.equals("팀채팅")) {
             if (args.length < 2) {
-                IslandChatMenu.open(player);
+                IslandChatMenu.open(player, messages);
                 return true;
             }
             sendIslandChat(player, "TEAM", joined(args, 1), "팀 채팅");
