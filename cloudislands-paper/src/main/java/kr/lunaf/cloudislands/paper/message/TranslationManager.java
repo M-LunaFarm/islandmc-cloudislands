@@ -202,6 +202,8 @@ public final class TranslationManager {
         values.put("main-menu-ranking-command", "/섬 랭킹");
         values.put("main-menu-admin-name", "관리자 메뉴");
         values.put("main-menu-admin-command", "/ciadmin node menu");
+        values.put("command-list-title", "섬 명령어 목록 ");
+        values.put("command-list-suffix", " - 1 line > 1 command");
         values.put("admin-node-menu-list-name", "노드 목록");
         values.put("admin-node-menu-list-command", "/ciadmin node list");
         values.put("admin-node-menu-list-description", "신규 활성화 배정 가능 여부와 차단 사유를 함께 확인합니다.");

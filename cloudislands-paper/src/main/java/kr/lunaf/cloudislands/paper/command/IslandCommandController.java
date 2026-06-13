@@ -999,7 +999,9 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         int safePage = Math.max(1, Math.min(page, maxPage));
         int from = (safePage - 1) * pageSize;
         int to = Math.min(commands.size(), from + pageSize);
-        player.sendMessage(title + " " + safePage + "/" + maxPage + " - 1 line > 1 command");
+        String headerTitle = routeMessage("command-list-title", title + " ");
+        String headerSuffix = routeMessage("command-list-suffix", " - 1 line > 1 command");
+        player.sendMessage(headerTitle + safePage + "/" + maxPage + headerSuffix);
         for (String command : commands.subList(from, to)) {
             player.sendMessage("> /" + command);
         }
