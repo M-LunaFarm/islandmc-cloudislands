@@ -12,11 +12,15 @@ public interface IslandRoutingService {
     CompletableFuture<RoutePlan> resolveHome(UUID playerUuid);
     CompletableFuture<RoutePlan> resolveHome(UUID playerUuid, String homeName);
     CompletableFuture<RoutePlan> resolveVisit(UUID visitorUuid, UUID targetIslandId);
+    CompletableFuture<RoutePlan> resolveVisitByName(UUID visitorUuid, String islandName);
+    CompletableFuture<RoutePlan> resolveVisitByOwner(UUID visitorUuid, UUID ownerUuid);
     CompletableFuture<RoutePlan> resolveRandomVisit(UUID visitorUuid);
     CompletableFuture<RoutePlan> resolveWarp(UUID playerUuid, UUID islandId, String warpName);
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid);
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName);
     CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId);
+    CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, String islandName);
+    CompletableFuture<RouteTicket> createVisitTicketForOwner(UUID visitorUuid, UUID ownerUuid);
     CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid);
     CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName);
     CompletableFuture<Void> publishRouteSession(RouteTicket ticket);

@@ -344,6 +344,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid) { return client.createHomeTicket(playerUuid); }
         @Override public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName) { return client.createHomeTicket(playerUuid, homeName); }
         @Override public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId) { return client.createVisitTicket(visitorUuid, targetIslandId); }
+        @Override public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, String islandName) { return client.createVisitTicket(visitorUuid, islandName); }
+        @Override public CompletableFuture<RouteTicket> createVisitTicketForOwner(UUID visitorUuid, UUID ownerUuid) { return client.createVisitTicketForOwner(visitorUuid, ownerUuid); }
         @Override public CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid) { return client.createRandomVisitTicket(visitorUuid); }
         @Override public CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName) { return client.createWarpTicket(playerUuid, islandId, warpName); }
         @Override public CompletableFuture<Void> publishRouteSession(RouteTicket ticket) { return publishRouteSessionResult(ticket).thenApply(_result -> null); }
@@ -354,6 +356,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<RoutePlan> resolveHome(UUID playerUuid) { return createHomeTicket(playerUuid).thenApply(PaperCloudIslandsApi::plan); }
         @Override public CompletableFuture<RoutePlan> resolveHome(UUID playerUuid, String homeName) { return createHomeTicket(playerUuid, homeName).thenApply(PaperCloudIslandsApi::plan); }
         @Override public CompletableFuture<RoutePlan> resolveVisit(UUID visitorUuid, UUID targetIslandId) { return createVisitTicket(visitorUuid, targetIslandId).thenApply(PaperCloudIslandsApi::plan); }
+        @Override public CompletableFuture<RoutePlan> resolveVisitByName(UUID visitorUuid, String islandName) { return createVisitTicket(visitorUuid, islandName).thenApply(PaperCloudIslandsApi::plan); }
+        @Override public CompletableFuture<RoutePlan> resolveVisitByOwner(UUID visitorUuid, UUID ownerUuid) { return createVisitTicketForOwner(visitorUuid, ownerUuid).thenApply(PaperCloudIslandsApi::plan); }
         @Override public CompletableFuture<RoutePlan> resolveRandomVisit(UUID visitorUuid) { return createRandomVisitTicket(visitorUuid).thenApply(PaperCloudIslandsApi::plan); }
         @Override public CompletableFuture<RoutePlan> resolveWarp(UUID playerUuid, UUID islandId, String warpName) { return createWarpTicket(playerUuid, islandId, warpName).thenApply(PaperCloudIslandsApi::plan); }
     }
