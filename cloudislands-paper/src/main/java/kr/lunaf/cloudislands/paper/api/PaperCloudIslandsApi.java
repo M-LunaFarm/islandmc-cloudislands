@@ -581,6 +581,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 .thenApply(this::stateFromJson)
                 .thenApply(state -> {
                     addonStates.put(safeId, state);
+                    writeAddonState(safeId, state);
                     return state;
                 })
                 .exceptionally(_error -> readAddonState(safeId));
@@ -608,6 +609,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return result
                 .thenApply(state -> {
                     addonStates.put(safeId, state);
+                    writeAddonState(safeId, state);
                     return state;
                 })
                 .exceptionally(_error -> Map.copyOf(localState));
@@ -617,14 +619,16 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         public CompletableFuture<Map<String, String>> removeState(String id, String key) {
             String safeId = safeRegistrationId(id);
             Map<String, String> state = new HashMap<>(readAddonState(safeId));
-            if (key != null) {
-                state.remove(key);
+            if (key == null) {
+                return CompletableFuture.completedFuture(Map.copyOf(state));
             }
+            state.remove(key);
             writeAddonState(safeId, state);
             return coreClient.removeAddonState(safeId, key)
                 .thenApply(this::stateFromJson)
                 .thenApply(coreState -> {
                     addonStates.put(safeId, coreState);
+                    writeAddonState(safeId, coreState);
                     return coreState;
                 })
                 .exceptionally(_error -> Map.copyOf(state));
