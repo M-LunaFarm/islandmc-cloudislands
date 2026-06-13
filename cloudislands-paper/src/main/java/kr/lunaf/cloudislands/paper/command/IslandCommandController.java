@@ -93,7 +93,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         "kick", "remove-member", "추방", "trust", "신뢰", "untrust", "신뢰해제",
         "promote", "승급", "demote", "강등", "setrole", "role-set", "역할설정", "roles", "role-menu", "role-list", "role-upsert", "role-edit", "role-reset", "역할", "역할목록", "역할편집", "역할초기화", "transfer", "양도",
         "ban", "밴", "unban", "pardon", "밴해제", "kickvisitor", "방문자추방", "bans", "ban-menu", "ban-list", "banlist", "밴목록",
-        "settings", "setting", "설정",
+        "settings", "setting", "설정", "name", "setname", "rename", "이름", "이름설정",
         "flags", "flag-menu", "flag-list", "flag", "setflag", "flag-set", "플래그", "플래그설정", "플래그목록",
         "permissions", "permission-menu", "permission-list", "permission", "perms", "setpermission", "permission-set", "권한", "권한설정", "권한목록"
     );
