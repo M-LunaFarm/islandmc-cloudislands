@@ -1,7 +1,8 @@
 package kr.seungmin.satisskyfactory.machine;
 
 import kr.seungmin.satisskyfactory.database.DatabaseService;
-import kr.seungmin.satisskyfactory.hook.SuperiorSkyblockHook;
+import kr.seungmin.satisskyfactory.hook.SkyblockProvider;
+import kr.seungmin.satisskyfactory.hook.IslandRef;
 import kr.seungmin.satisskyfactory.model.FactoryContext;
 import kr.seungmin.satisskyfactory.model.FactoryIsland;
 import kr.seungmin.satisskyfactory.task.DirtySaveService;
@@ -15,18 +16,18 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class FactoryIslandService {
-    private final SuperiorSkyblockHook skyblockHook;
+    private final SkyblockProvider skyblockHook;
     private final DatabaseService database;
     private final Map<UUID, FactoryIsland> cache = new ConcurrentHashMap<>();
     private DirtySaveService dirtySaves;
 
-    public FactoryIslandService(SuperiorSkyblockHook skyblockHook, DatabaseService database) {
+    public FactoryIslandService(SkyblockProvider skyblockHook, DatabaseService database) {
         this.skyblockHook = skyblockHook;
         this.database = database;
     }
 
     public Optional<FactoryContext> context(Player player) {
-        Optional<SuperiorSkyblockHook.IslandRef> island = skyblockHook.getIslandOf(player);
+        Optional<IslandRef> island = skyblockHook.getIslandOf(player);
         if (island.isEmpty()) {
             return Optional.empty();
         }
@@ -40,7 +41,7 @@ public final class FactoryIslandService {
         }
     }
 
-    public FactoryIsland getOrCreate(SuperiorSkyblockHook.IslandRef island) {
+    public FactoryIsland getOrCreate(IslandRef island) {
         FactoryIsland factoryIsland = cache.computeIfAbsent(island.islandUuid(), uuid -> {
             FactoryIsland loaded = database.findIsland(uuid).orElseGet(() -> new FactoryIsland(uuid, island.ownerUuid()));
             loaded.ownerUuid(island.ownerUuid());

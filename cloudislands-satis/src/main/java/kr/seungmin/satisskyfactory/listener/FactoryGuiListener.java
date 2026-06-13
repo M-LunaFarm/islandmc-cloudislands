@@ -4,7 +4,7 @@ import kr.seungmin.satisskyfactory.config.MessageService;
 import kr.seungmin.satisskyfactory.contract.ContractService;
 import kr.seungmin.satisskyfactory.gui.FactoryGuiHolder;
 import kr.seungmin.satisskyfactory.gui.FactoryGuiService;
-import kr.seungmin.satisskyfactory.hook.SuperiorSkyblockHook;
+import kr.seungmin.satisskyfactory.hook.SkyblockProvider;
 import kr.seungmin.satisskyfactory.item.CustomItemFactory;
 import kr.seungmin.satisskyfactory.item.ItemDefinition;
 import kr.seungmin.satisskyfactory.item.ItemRegistry;
@@ -43,7 +43,7 @@ import java.util.UUID;
 
 public final class FactoryGuiListener implements Listener {
     private final FactoryIslandService islands;
-    private final SuperiorSkyblockHook skyblock;
+    private final SkyblockProvider skyblock;
     private final ContractService contracts;
     private final ResearchService research;
     private final FactoryGuiService gui;
@@ -61,7 +61,7 @@ public final class FactoryGuiListener implements Listener {
     private final IslandBoostService boosts;
     private final Runnable reload;
 
-    public FactoryGuiListener(FactoryIslandService islands, SuperiorSkyblockHook skyblock, ContractService contracts, ResearchService research, FactoryGuiService gui,
+    public FactoryGuiListener(FactoryIslandService islands, SkyblockProvider skyblock, ContractService contracts, ResearchService research, FactoryGuiService gui,
                               MachineService machines, RecipeService recipes, StorageService storage, ItemRegistry items, CustomItemFactory itemFactory,
                               MarketService market, MachineDefinitionService definitions, MaintenanceService maintenance,
                               ItemNetworkService itemNetworks, PowerNetworkService power, MessageService messages,

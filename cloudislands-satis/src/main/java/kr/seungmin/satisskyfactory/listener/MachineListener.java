@@ -2,7 +2,8 @@ package kr.seungmin.satisskyfactory.listener;
 
 import kr.seungmin.satisskyfactory.config.MessageService;
 import kr.seungmin.satisskyfactory.gui.FactoryGuiService;
-import kr.seungmin.satisskyfactory.hook.SuperiorSkyblockHook;
+import kr.seungmin.satisskyfactory.hook.SkyblockProvider;
+import kr.seungmin.satisskyfactory.hook.IslandRef;
 import kr.seungmin.satisskyfactory.item.CustomItemFactory;
 import kr.seungmin.satisskyfactory.logistics.ItemNetworkService;
 import kr.seungmin.satisskyfactory.machine.FactoryIslandService;
@@ -41,7 +42,7 @@ public final class MachineListener implements Listener {
     private final CustomItemFactory itemFactory;
     private final MachineDefinitionService definitions;
     private final MachineService machines;
-    private final SuperiorSkyblockHook skyblock;
+    private final SkyblockProvider skyblock;
     private final FactoryIslandService islands;
     private final FactoryGuiService gui;
     private final MessageService messages;
@@ -54,7 +55,7 @@ public final class MachineListener implements Listener {
     private final IslandBoostService boosts;
 
     public MachineListener(JavaPlugin plugin, CustomItemFactory itemFactory, MachineDefinitionService definitions, MachineService machines,
-                           SuperiorSkyblockHook skyblock, FactoryIslandService islands, FactoryGuiService gui,
+                           SkyblockProvider skyblock, FactoryIslandService islands, FactoryGuiService gui,
                            MessageService messages, ResearchService research, ResourceNodeService nodes,
                            ItemNetworkService itemNetworks,
                            PowerNetworkService power,
@@ -112,7 +113,7 @@ public final class MachineListener implements Listener {
             messages.send(player, "place-denied");
             return false;
         }
-        SuperiorSkyblockHook.IslandRef islandRef = skyblock.getIslandAt(targetBlock.getLocation()).orElse(null);
+        IslandRef islandRef = skyblock.getIslandAt(targetBlock.getLocation()).orElse(null);
         if (islandRef == null) {
             messages.send(player, "no-island");
             return false;
@@ -216,7 +217,7 @@ public final class MachineListener implements Listener {
     public void onBreak(BlockBreakEvent event) {
         machines.at(event.getBlock().getLocation()).ifPresent(machine -> {
             Player player = event.getPlayer();
-            SuperiorSkyblockHook.IslandRef island = skyblock.getIslandAt(event.getBlock().getLocation()).orElse(null);
+            IslandRef island = skyblock.getIslandAt(event.getBlock().getLocation()).orElse(null);
             if (island == null || !skyblock.isPlayerIslandMember(player, island)) {
                 event.setCancelled(true);
                 messages.send(player, "not-member");
@@ -257,7 +258,7 @@ public final class MachineListener implements Listener {
         }
         machines.at(event.getClickedBlock().getLocation()).ifPresent(machine -> {
             Player player = event.getPlayer();
-            SuperiorSkyblockHook.IslandRef island = skyblock.getIslandAt(event.getClickedBlock().getLocation()).orElse(null);
+            IslandRef island = skyblock.getIslandAt(event.getClickedBlock().getLocation()).orElse(null);
             if (island == null || !skyblock.isPlayerIslandMember(player, island)) {
                 event.setCancelled(true);
                 messages.send(player, "not-member");

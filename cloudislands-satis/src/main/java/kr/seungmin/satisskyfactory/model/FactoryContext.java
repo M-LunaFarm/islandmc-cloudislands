@@ -1,6 +1,6 @@
 package kr.seungmin.satisskyfactory.model;
 
-import kr.seungmin.satisskyfactory.hook.SuperiorSkyblockHook;
+import kr.seungmin.satisskyfactory.hook.IslandRef;
 
-public record FactoryContext(SuperiorSkyblockHook.IslandRef islandRef, FactoryIsland factoryIsland) {
+public record FactoryContext(IslandRef islandRef, FactoryIsland factoryIsland) {
 }

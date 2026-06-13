@@ -1,6 +1,7 @@
 package kr.seungmin.satisskyfactory.task;
 
-import kr.seungmin.satisskyfactory.hook.SuperiorSkyblockHook;
+import kr.seungmin.satisskyfactory.hook.SkyblockProvider;
+import kr.seungmin.satisskyfactory.hook.IslandRef;
 import kr.seungmin.satisskyfactory.machine.FactoryIslandService;
 import kr.seungmin.satisskyfactory.machine.MaintenanceService;
 import kr.seungmin.satisskyfactory.model.FactoryIsland;
@@ -13,11 +14,11 @@ import org.bukkit.scheduler.BukkitTask;
 public final class MaintenanceTickService {
     private final JavaPlugin plugin;
     private final FactoryIslandService islands;
-    private final SuperiorSkyblockHook skyblock;
+    private final SkyblockProvider skyblock;
     private final MaintenanceService maintenance;
     private BukkitTask task;
 
-    public MaintenanceTickService(JavaPlugin plugin, FactoryIslandService islands, SuperiorSkyblockHook skyblock,
+    public MaintenanceTickService(JavaPlugin plugin, FactoryIslandService islands, SkyblockProvider skyblock,
                                   MaintenanceService maintenance) {
         this.plugin = plugin;
         this.islands = islands;
@@ -41,7 +42,7 @@ public final class MaintenanceTickService {
         for (FactoryIsland island : islands.cached()) {
             OfflinePlayer owner = Bukkit.getOfflinePlayer(island.ownerUuid());
             Object rawIsland = skyblock.getIslandByUuid(island.islandUuid())
-                    .map(SuperiorSkyblockHook.IslandRef::raw)
+                    .map(IslandRef::raw)
                     .orElse(null);
             maintenance.chargeIfDue(island, owner, rawIsland);
             islands.save(island);

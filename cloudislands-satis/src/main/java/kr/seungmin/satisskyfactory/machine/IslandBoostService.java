@@ -1,6 +1,6 @@
 package kr.seungmin.satisskyfactory.machine;
 
-import kr.seungmin.satisskyfactory.hook.SuperiorSkyblockHook;
+import kr.seungmin.satisskyfactory.hook.SkyblockProvider;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import java.lang.reflect.Method;
@@ -22,15 +22,15 @@ public final class IslandBoostService {
         }
     }
 
-    private final SuperiorSkyblockHook skyblock;
+    private final SkyblockProvider skyblock;
     private Settings settings = Settings.defaults();
     private Boosts fallbackBoosts = new Boosts(1.0, 0, 0);
 
-    public IslandBoostService(SuperiorSkyblockHook skyblock) {
+    public IslandBoostService(SkyblockProvider skyblock) {
         this.skyblock = skyblock;
     }
 
-    public IslandBoostService(SuperiorSkyblockHook skyblock, Settings settings, Boosts fallbackBoosts) {
+    public IslandBoostService(SkyblockProvider skyblock, Settings settings, Boosts fallbackBoosts) {
         this.skyblock = skyblock;
         this.settings = settings == null ? Settings.defaults() : settings;
         this.fallbackBoosts = fallbackBoosts == null ? new Boosts(1.0, 0, 0) : fallbackBoosts;

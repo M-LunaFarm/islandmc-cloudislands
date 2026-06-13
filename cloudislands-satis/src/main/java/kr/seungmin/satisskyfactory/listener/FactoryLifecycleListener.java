@@ -1,6 +1,6 @@
 package kr.seungmin.satisskyfactory.listener;
 
-import kr.seungmin.satisskyfactory.hook.SuperiorSkyblockHook;
+import kr.seungmin.satisskyfactory.hook.SkyblockProvider;
 import kr.seungmin.satisskyfactory.logistics.ItemNetworkService;
 import kr.seungmin.satisskyfactory.machine.FactoryIslandService;
 import kr.seungmin.satisskyfactory.machine.MachineService;
@@ -20,14 +20,14 @@ import org.bukkit.event.world.ChunkUnloadEvent;
 
 public final class FactoryLifecycleListener implements Listener {
     private final FactoryIslandService islands;
-    private final SuperiorSkyblockHook skyblock;
+    private final SkyblockProvider skyblock;
     private final ResourceNodeService nodes;
     private final MachineService machines;
     private final ItemNetworkService itemNetworks;
     private final PowerNetworkService power;
     private final MaintenanceService maintenance;
 
-    public FactoryLifecycleListener(FactoryIslandService islands, SuperiorSkyblockHook skyblock,
+    public FactoryLifecycleListener(FactoryIslandService islands, SkyblockProvider skyblock,
                                     ResourceNodeService nodes, MachineService machines, ItemNetworkService itemNetworks,
                                     PowerNetworkService power, MaintenanceService maintenance) {
         this.islands = islands;

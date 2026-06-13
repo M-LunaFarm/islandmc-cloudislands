@@ -12,7 +12,7 @@ class SuperiorSkyblockHookApiTest {
         SuperiorSkyblockHook hook = new SuperiorSkyblockHook(null);
         UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000006001");
         UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000006002");
-        SuperiorSkyblockHook.IslandRef island = new SuperiorSkyblockHook.IslandRef(new Object(), islandUuid, ownerUuid);
+        IslandRef island = new IslandRef(new Object(), islandUuid, ownerUuid);
 
         assertEquals(islandUuid, hook.getIslandUuid(island));
         assertEquals(ownerUuid, hook.getIslandOwnerUuid(island));

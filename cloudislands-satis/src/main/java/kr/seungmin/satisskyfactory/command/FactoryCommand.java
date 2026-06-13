@@ -3,7 +3,7 @@ package kr.seungmin.satisskyfactory.command;
 import kr.seungmin.satisskyfactory.config.MessageService;
 import kr.seungmin.satisskyfactory.contract.ContractService;
 import kr.seungmin.satisskyfactory.gui.FactoryGuiService;
-import kr.seungmin.satisskyfactory.hook.SuperiorSkyblockHook;
+import kr.seungmin.satisskyfactory.hook.SkyblockProvider;
 import kr.seungmin.satisskyfactory.item.CustomItemFactory;
 import kr.seungmin.satisskyfactory.item.ItemDefinition;
 import kr.seungmin.satisskyfactory.item.ItemRegistry;
@@ -43,7 +43,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     private final MachineService machines;
     private final StorageService storage;
     private final ResourceNodeService nodes;
-    private final SuperiorSkyblockHook skyblock;
+    private final SkyblockProvider skyblock;
     private final MarketService market;
     private final ContractService contracts;
     private final MaintenanceService maintenance;
@@ -57,7 +57,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     private final AdminFactoryCommand adminCommand;
 
     public FactoryCommand(FactoryIslandService islands, MachineService machines, MachineDefinitionService definitions,
-                          StorageService storage, ResourceNodeService nodes, SuperiorSkyblockHook skyblock,
+                          StorageService storage, ResourceNodeService nodes, SkyblockProvider skyblock,
                           MarketService market, ContractService contracts,
                           MaintenanceService maintenance, ResearchService research, IslandBoostService boosts,
                           PowerNetworkService power, FactoryGuiService gui, CustomItemFactory itemFactory,

@@ -1,7 +1,7 @@
 package kr.seungmin.satisskyfactory.command;
 
 import kr.seungmin.satisskyfactory.config.MessageService;
-import kr.seungmin.satisskyfactory.hook.SuperiorSkyblockHook;
+import kr.seungmin.satisskyfactory.hook.SkyblockProvider;
 import kr.seungmin.satisskyfactory.item.CustomItemFactory;
 import kr.seungmin.satisskyfactory.item.ItemRegistry;
 import kr.seungmin.satisskyfactory.machine.FactoryIslandService;
@@ -35,7 +35,7 @@ public final class AdminFactoryCommand {
     private final MachineDefinitionService definitions;
     private final StorageService storage;
     private final ResourceNodeService nodes;
-    private final SuperiorSkyblockHook skyblock;
+    private final SkyblockProvider skyblock;
     private final MaintenanceService maintenance;
     private final ResearchService research;
     private final PowerNetworkService power;
@@ -45,7 +45,7 @@ public final class AdminFactoryCommand {
     private final Runnable reload;
 
     public AdminFactoryCommand(FactoryIslandService islands, MachineService machines, MachineDefinitionService definitions,
-                               StorageService storage, ResourceNodeService nodes, SuperiorSkyblockHook skyblock,
+                               StorageService storage, ResourceNodeService nodes, SkyblockProvider skyblock,
                                MaintenanceService maintenance, ResearchService research, PowerNetworkService power,
                                CustomItemFactory itemFactory, ItemRegistry items,
                                MessageService messages, Runnable reload) {

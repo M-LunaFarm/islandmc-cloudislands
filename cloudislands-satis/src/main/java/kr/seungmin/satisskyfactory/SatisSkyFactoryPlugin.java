@@ -9,6 +9,7 @@ import kr.seungmin.satisskyfactory.economy.EconomyModeFactory;
 import kr.seungmin.satisskyfactory.economy.EconomyService;
 import kr.seungmin.satisskyfactory.gui.FactoryGuiService;
 import kr.seungmin.satisskyfactory.hook.PlaceholderHook;
+import kr.seungmin.satisskyfactory.hook.SkyblockProvider;
 import kr.seungmin.satisskyfactory.hook.SuperiorSkyblockHook;
 import kr.seungmin.satisskyfactory.item.CustomItemFactory;
 import kr.seungmin.satisskyfactory.item.ItemRegistry;
@@ -40,7 +41,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
     private ConfigService configs;
     private MessageService messages;
     private DatabaseService database;
-    private SuperiorSkyblockHook skyblock;
+    private SkyblockProvider skyblock;
     private EconomyService economy;
     private ItemRegistry itemRegistry;
     private CustomItemFactory itemFactory;

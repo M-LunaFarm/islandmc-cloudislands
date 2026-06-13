@@ -1,7 +1,7 @@
 package kr.seungmin.satisskyfactory.machine;
 
 import kr.seungmin.satisskyfactory.database.DatabaseService;
-import kr.seungmin.satisskyfactory.hook.SuperiorSkyblockHook;
+import kr.seungmin.satisskyfactory.hook.IslandRef;
 import kr.seungmin.satisskyfactory.model.FactoryIsland;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -39,8 +39,8 @@ class FactoryIslandServiceTest {
         }
     }
 
-    private SuperiorSkyblockHook.IslandRef islandRef(UUID islandUuid, UUID ownerUuid) {
-        return new SuperiorSkyblockHook.IslandRef(null, islandUuid, ownerUuid);
+    private IslandRef islandRef(UUID islandUuid, UUID ownerUuid) {
+        return new IslandRef(null, islandUuid, ownerUuid);
     }
 
     private DatabaseHandle openDatabase(String name) {

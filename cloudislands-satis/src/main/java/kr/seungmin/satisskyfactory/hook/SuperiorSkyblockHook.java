@@ -10,10 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Level;
 
-public final class SuperiorSkyblockHook {
-    public record IslandRef(Object raw, UUID islandUuid, UUID ownerUuid) {
-    }
-
+public final class SuperiorSkyblockHook implements SkyblockProvider {
     private final JavaPlugin plugin;
     private boolean available;
     private Class<?> apiClass;
