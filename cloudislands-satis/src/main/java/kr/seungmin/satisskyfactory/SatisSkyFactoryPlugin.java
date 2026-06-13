@@ -284,6 +284,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private boolean dataWritesEnabled() {
         return featureEnabled("machines")
+                || featureEnabled("storage")
                 || operationalFeatureEnabled("resource-nodes")
                 || operationalFeatureEnabled("market")
                 || operationalFeatureEnabled("contracts")
@@ -293,6 +294,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private boolean lifecycleStateEnabled() {
         return featureEnabled("machines")
+                || featureEnabled("storage")
                 || operationalFeatureEnabled("resource-nodes")
                 || operationalFeatureEnabled("market")
                 || operationalFeatureEnabled("contracts")
@@ -1210,13 +1212,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (islands != null) {
             islands.forget(islandId);
         }
-        if (machines != null) {
+        if (machines != null && featureEnabled("machines")) {
             machines.forgetIsland(islandId);
         }
-        if (storage != null) {
+        if (storage != null && storageDataEnabled()) {
             storage.forgetIsland(islandId);
         }
-        if (nodes != null) {
+        if (nodes != null && operationalFeatureEnabled("resource-nodes")) {
             nodes.forgetIsland(islandId);
         }
         if (dirtySaves != null) {
