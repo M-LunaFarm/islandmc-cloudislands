@@ -41,12 +41,20 @@ public final class PrometheusMetricsRenderer {
     private final BooleanSupplier postgresqlPublicHost;
     private final BooleanSupplier objectStoragePublicHost;
     private final BooleanSupplier objectStoragePlainHttpPublicHost;
+    private final LongSupplier rankingDirtyDrainedTotal;
+    private final LongSupplier rankingRecalculatedTotal;
+    private final LongSupplier rankingRecalculationFailuresTotal;
+    private final LongSupplier rankingRecalculationLastBatchSize;
 
     public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures) {
-        this(nodes, jobs, tickets, runtimes, events, heartbeatTimeout, databaseQuerySeconds, databaseActiveConnections, databaseOpenedConnections, databaseConnectionFailures, databaseQueryFailures, redisEventFailures, redisCacheFailures, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false);
+        this(nodes, jobs, tickets, runtimes, events, heartbeatTimeout, databaseQuerySeconds, databaseActiveConnections, databaseOpenedConnections, databaseConnectionFailures, databaseQueryFailures, redisEventFailures, redisCacheFailures, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> 0L, () -> 0L, () -> 0L, () -> 0L);
     }
 
     public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures, BooleanSupplier coreTokenConfigured, BooleanSupplier adminTokenConfigured, BooleanSupplier adminApiEnabled, BooleanSupplier mtlsRequired, BooleanSupplier ipAllowlistEnabled, BooleanSupplier publicBindWithoutIpAllowlist, BooleanSupplier redisPublicHost, BooleanSupplier postgresqlPublicHost, BooleanSupplier objectStoragePublicHost, BooleanSupplier objectStoragePlainHttpPublicHost) {
+        this(nodes, jobs, tickets, runtimes, events, heartbeatTimeout, databaseQuerySeconds, databaseActiveConnections, databaseOpenedConnections, databaseConnectionFailures, databaseQueryFailures, redisEventFailures, redisCacheFailures, coreTokenConfigured, adminTokenConfigured, adminApiEnabled, mtlsRequired, ipAllowlistEnabled, publicBindWithoutIpAllowlist, redisPublicHost, postgresqlPublicHost, objectStoragePublicHost, objectStoragePlainHttpPublicHost, () -> 0L, () -> 0L, () -> 0L, () -> 0L);
+    }
+
+    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures, BooleanSupplier coreTokenConfigured, BooleanSupplier adminTokenConfigured, BooleanSupplier adminApiEnabled, BooleanSupplier mtlsRequired, BooleanSupplier ipAllowlistEnabled, BooleanSupplier publicBindWithoutIpAllowlist, BooleanSupplier redisPublicHost, BooleanSupplier postgresqlPublicHost, BooleanSupplier objectStoragePublicHost, BooleanSupplier objectStoragePlainHttpPublicHost, LongSupplier rankingDirtyDrainedTotal, LongSupplier rankingRecalculatedTotal, LongSupplier rankingRecalculationFailuresTotal, LongSupplier rankingRecalculationLastBatchSize) {
         this.nodes = nodes;
         this.jobs = jobs;
         this.tickets = tickets;
@@ -70,6 +78,10 @@ public final class PrometheusMetricsRenderer {
         this.postgresqlPublicHost = postgresqlPublicHost;
         this.objectStoragePublicHost = objectStoragePublicHost;
         this.objectStoragePlainHttpPublicHost = objectStoragePlainHttpPublicHost;
+        this.rankingDirtyDrainedTotal = rankingDirtyDrainedTotal;
+        this.rankingRecalculatedTotal = rankingRecalculatedTotal;
+        this.rankingRecalculationFailuresTotal = rankingRecalculationFailuresTotal;
+        this.rankingRecalculationLastBatchSize = rankingRecalculationLastBatchSize;
     }
 
     public String render() {
@@ -365,6 +377,18 @@ public final class PrometheusMetricsRenderer {
         eventCounter(out, "cloudislands_island_migrated_total", "Island migrations completed by node workers", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_MIGRATED);
         eventCounter(out, "cloudislands_island_recovery_required_total", "Islands marked for recovery after node failure", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_RECOVERY_REQUIRED);
         eventCounter(out, "cloudislands_island_level_updated_total", "Island level recalculations completed by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_LEVEL_UPDATED);
+        help(out, "cloudislands_ranking_dirty_drained_total", "Dirty island rankings drained by the Core recalculation worker");
+        type(out, "cloudislands_ranking_dirty_drained_total", "counter");
+        out.append("cloudislands_ranking_dirty_drained_total ").append(rankingDirtyDrainedTotal.getAsLong()).append('\n');
+        help(out, "cloudislands_ranking_recalculated_total", "Dirty island rankings successfully recalculated by the Core worker");
+        type(out, "cloudislands_ranking_recalculated_total", "counter");
+        out.append("cloudislands_ranking_recalculated_total ").append(rankingRecalculatedTotal.getAsLong()).append('\n');
+        help(out, "cloudislands_ranking_recalculation_failures_total", "Dirty island ranking recalculation failures requeued by the Core worker");
+        type(out, "cloudislands_ranking_recalculation_failures_total", "counter");
+        out.append("cloudislands_ranking_recalculation_failures_total ").append(rankingRecalculationFailuresTotal.getAsLong()).append('\n');
+        help(out, "cloudislands_ranking_recalculation_last_batch_size", "Dirty island rankings drained in the last Core worker batch");
+        type(out, "cloudislands_ranking_recalculation_last_batch_size", "gauge");
+        out.append("cloudislands_ranking_recalculation_last_batch_size ").append(rankingRecalculationLastBatchSize.getAsLong()).append('\n');
         eventCounter(out, "cloudislands_island_blocks_changed_total", "Island block delta updates received by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_BLOCKS_CHANGED);
         eventCounter(out, "cloudislands_island_bank_changed_total", "Island bank balance changes accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_BANK_CHANGED);
         appendEventFieldCounters(out, "cloudislands_island_bank_changed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_BANK_CHANGED, "operation");

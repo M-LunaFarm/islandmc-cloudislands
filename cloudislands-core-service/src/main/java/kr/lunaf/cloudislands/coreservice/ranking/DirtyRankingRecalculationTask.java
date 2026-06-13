@@ -4,6 +4,7 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
@@ -19,6 +20,10 @@ public final class DirtyRankingRecalculationTask {
     private final IslandLevelRepository levels;
     private final IslandMetadataRepository metadata;
     private final RankingRecalculationService recalculation;
+    private final AtomicLong drainedTotal = new AtomicLong();
+    private final AtomicLong recalculatedTotal = new AtomicLong();
+    private final AtomicLong failuresTotal = new AtomicLong();
+    private final AtomicLong lastBatchSize = new AtomicLong();
 
     public DirtyRankingRecalculationTask(RankingRepository rankings, IslandLevelRepository levels, IslandMetadataRepository metadata, RankingRecalculationService recalculation) {
         this.rankings = rankings;
@@ -32,13 +37,34 @@ public final class DirtyRankingRecalculationTask {
     }
 
     public void runOnce() {
-        for (UUID islandId : rankings.drainDirty(100)) {
+        java.util.List<UUID> dirty = rankings.drainDirty(100);
+        lastBatchSize.set(dirty.size());
+        drainedTotal.addAndGet(dirty.size());
+        for (UUID islandId : dirty) {
             try {
                 recalculation.recalculate(islandId, levels.blockCounts(islandId), levels.blockValues(), metadata.members(islandId).size());
+                recalculatedTotal.incrementAndGet();
             } catch (RuntimeException exception) {
+                failuresTotal.incrementAndGet();
                 rankings.markDirty(islandId);
                 LOGGER.log(Level.WARNING, "failed to recalculate dirty island ranking " + islandId, exception);
             }
         }
+    }
+
+    public long drainedTotal() {
+        return drainedTotal.get();
+    }
+
+    public long recalculatedTotal() {
+        return recalculatedTotal.get();
+    }
+
+    public long failuresTotal() {
+        return failuresTotal.get();
+    }
+
+    public long lastBatchSize() {
+        return lastBatchSize.get();
     }
 }
