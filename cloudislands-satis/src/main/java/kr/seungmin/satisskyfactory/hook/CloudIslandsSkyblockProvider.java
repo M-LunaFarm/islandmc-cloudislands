@@ -188,7 +188,7 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
             if (future == null) {
                 return Optional.empty();
             }
-            return future.join();
+            return Optional.ofNullable(future.join()).orElse(Optional.empty());
         } catch (CompletionException exception) {
             return Optional.empty();
         } catch (RuntimeException exception) {
