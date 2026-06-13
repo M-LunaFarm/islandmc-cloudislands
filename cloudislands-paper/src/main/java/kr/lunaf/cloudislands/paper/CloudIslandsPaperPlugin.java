@@ -384,6 +384,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean routeSessionEnforced = configBoolean("security.enforce-route-session", true) || configBoolean("routing.require-route-session", true);
         boolean proxySourceAllowlistConfigured = !getConfig().getStringList("security.proxy-source-allowlist").isEmpty();
         PeriodicIslandLevelScanTask scanner = periodicLevelScanTask;
+        PeriodicIslandSaveTask saver = periodicSaveTask;
         IslandGeneratorListener generator = generatorListener;
         return ""
             + "cloudislands_paper_online_players " + getServer().getOnlinePlayers().size() + "\n"
@@ -397,6 +398,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_island_save_seconds{node=\"" + nodeId + "\"} " + storageUploadSeconds + "\n"
             + "cloudislands_island_activation_seconds{node=\"" + nodeId + "\"} " + storageDownloadSeconds + "\n"
             + "cloudislands_island_snapshot_seconds{node=\"" + nodeId + "\"} " + storageUploadSeconds + "\n"
+            + "cloudislands_paper_periodic_save_retry_queue{node=\"" + nodeId + "\"} " + (saver == null ? 0 : saver.retryQueueSize()) + "\n"
+            + "cloudislands_paper_periodic_save_failures_total{node=\"" + nodeId + "\"} " + (saver == null ? 0L : saver.failuresTotal()) + "\n"
             + "cloudislands_paper_level_scan_running{node=\"" + nodeId + "\"} " + (scanner != null && scanner.running() ? 1 : 0) + "\n"
             + "cloudislands_paper_level_scan_last_started_at{node=\"" + nodeId + "\"} " + (scanner == null ? 0L : scanner.lastScanStartedAt()) + "\n"
             + "cloudislands_paper_level_scan_last_finished_at{node=\"" + nodeId + "\"} " + (scanner == null ? 0L : scanner.lastScanFinishedAt()) + "\n"
@@ -442,7 +445,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";storageHealthCheckFailures=" + (storage == null ? 0L : storage.healthCheckFailures())
             + ";storageUploadFailures=" + (storage == null ? 0L : storage.uploadFailures())
             + ";storageDownloadFailures=" + (storage == null ? 0L : storage.downloadFailures())
-            + ";storageOperationFailures=" + (storage == null ? 0L : storage.operationFailures());
+            + ";storageOperationFailures=" + (storage == null ? 0L : storage.operationFailures())
+            + ";periodicSaveRetryQueue=" + (periodicSaveTask == null ? 0 : periodicSaveTask.retryQueueSize())
+            + ";periodicSaveFailures=" + (periodicSaveTask == null ? 0L : periodicSaveTask.failuresTotal());
     }
 
     private void startIslandNodeWorker(CoreApiClient client, String nodeId, IslandStorage storage, IslandLimitCache limitCache) {
