@@ -5,6 +5,17 @@ plugin:
 addons:
   cloudislands-satis:
     enabled: true
+    features:
+      commands: true
+      machines: true
+      gui: true
+      lifecycle: true
+      resource-nodes: true
+      market: true
+      contracts: true
+      research: true
+      maintenance: true
+      placeholders: true
 
 messages:
   use-actionbar: true

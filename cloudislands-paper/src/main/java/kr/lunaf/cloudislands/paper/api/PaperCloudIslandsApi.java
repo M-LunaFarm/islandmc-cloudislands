@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -97,6 +98,7 @@ import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.scheduler.BukkitTask;
 
 public final class PaperCloudIslandsApi implements CloudIslandsApi {
@@ -185,9 +187,21 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled, Map<String, Boolean> features) {
             boolean configEnabled = plugin.getConfig().getBoolean("addons." + id + ".enabled", true);
-            CloudIslandsAddonSnapshot snapshot = new CloudIslandsAddonSnapshot(id, displayName, version, enabled && configEnabled, Instant.now(), features);
+            CloudIslandsAddonSnapshot snapshot = new CloudIslandsAddonSnapshot(id, displayName, version, enabled && configEnabled, Instant.now(), effectiveFeatures(id, features));
             addons.put(id, snapshot);
             return CompletableFuture.completedFuture(snapshot);
+        }
+
+        private Map<String, Boolean> effectiveFeatures(String id, Map<String, Boolean> features) {
+            Map<String, Boolean> effective = new HashMap<>(features == null ? Map.of() : features);
+            ConfigurationSection section = plugin.getConfig().getConfigurationSection("addons." + id + ".features");
+            if (section == null) {
+                return effective;
+            }
+            for (String key : section.getKeys(false)) {
+                effective.put(key, section.getBoolean(key, effective.getOrDefault(key, true)));
+            }
+            return effective;
         }
 
         @Override

@@ -71,11 +71,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
     private MaintenanceTickService maintenanceTicker;
     private PlaceholderHook placeholderHook;
     private CloudIslandsApi cloudIslandsApi;
+    private Map<String, Boolean> effectiveFeatures = Map.of();
 
     @Override
     public void onEnable() {
         configs = new ConfigService(this);
         configs.load();
+        effectiveFeatures = Map.of();
         if (!configs.main().getBoolean("integration.enabled", false)) {
             getLogger().info("CloudIslands Satis addon is disabled by config.");
             return;
@@ -156,6 +158,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
 
     public void reloadPluginConfig() {
         configs.load();
+        effectiveFeatures = Map.of();
+        if (!registerCloudIslandsAddon()) {
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
         configureSkyblockHook();
         boosts.configure(configs.main());
         loadDefinitions();
@@ -163,7 +170,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
             rebuildNetworks();
         }
         restartRuntimeTasks();
-        registerCloudIslandsAddon();
     }
 
     private void restartRuntimeTasks() {
@@ -412,6 +418,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
         CloudIslandsAddonSnapshot addon = cloudIslandsApi.addons()
                 .register(ADDON_ID, "CloudIslands Satis", getDescription().getVersion(), configs.main().getBoolean("integration.enabled", false), featureSnapshot())
                 .join();
+        effectiveFeatures = addon.features();
         getLogger().info("Registered CloudIslands addon: " + addon.id() + " enabled=" + addon.enabled());
         if (!addon.enabled()) {
             getLogger().info("CloudIslands disabled this addon through the parent config.");
@@ -444,6 +451,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
     }
 
     private boolean featureEnabled(String key) {
+        Boolean effective = effectiveFeatures.get(key);
+        if (effective != null) {
+            return effective;
+        }
         return configs.main().getBoolean("features." + key, true);
     }
 }
