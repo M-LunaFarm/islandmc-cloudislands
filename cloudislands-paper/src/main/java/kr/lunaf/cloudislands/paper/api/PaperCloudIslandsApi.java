@@ -3,12 +3,14 @@ package kr.lunaf.cloudislands.paper.api;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
@@ -16,6 +18,7 @@ import kr.lunaf.cloudislands.api.model.AuditLogSnapshot;
 import kr.lunaf.cloudislands.api.model.BlockValueSnapshot;
 import kr.lunaf.cloudislands.api.model.ClaimedIslandJobSnapshot;
 import kr.lunaf.cloudislands.api.model.CloudIslandsStatusSnapshot;
+import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.lunaf.cloudislands.api.model.CoreMaintenanceResult;
 import kr.lunaf.cloudislands.api.model.GlobalEventBatchSnapshot;
 import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
@@ -73,6 +76,7 @@ import kr.lunaf.cloudislands.api.model.RoutePlan;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
 import kr.lunaf.cloudislands.api.service.IslandAdminService;
+import kr.lunaf.cloudislands.api.service.IslandAddonService;
 import kr.lunaf.cloudislands.api.service.IslandCommandService;
 import kr.lunaf.cloudislands.api.service.IslandEventService;
 import kr.lunaf.cloudislands.api.service.IslandPermissionService;
@@ -105,6 +109,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private final EventService events;
     private final AdminService admin;
     private final CommandService commands;
+    private final AddonService addons;
 
     public PaperCloudIslandsApi(CoreApiClient client, CloudIslandsPaperAgent agent) {
         this.query = new QueryService(client, agent);
@@ -116,6 +121,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         this.events = new EventService(client, agent.plugin());
         this.admin = new AdminService(client);
         this.commands = new CommandService(client);
+        this.addons = new AddonService();
     }
 
     @Override
@@ -161,6 +167,45 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     @Override
     public IslandCommandService commands() {
         return commands;
+    }
+
+    @Override
+    public IslandAddonService addons() {
+        return addons;
+    }
+
+    private static final class AddonService implements IslandAddonService {
+        private final Map<String, CloudIslandsAddonSnapshot> addons = new ConcurrentHashMap<>();
+
+        @Override
+        public CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled) {
+            CloudIslandsAddonSnapshot snapshot = new CloudIslandsAddonSnapshot(id, displayName, version, enabled, Instant.now());
+            addons.put(id, snapshot);
+            return CompletableFuture.completedFuture(snapshot);
+        }
+
+        @Override
+        public CompletableFuture<Void> unregister(String id) {
+            addons.remove(id);
+            return CompletableFuture.completedFuture(null);
+        }
+
+        @Override
+        public CompletableFuture<Optional<CloudIslandsAddonSnapshot>> get(String id) {
+            return CompletableFuture.completedFuture(Optional.ofNullable(addons.get(id)));
+        }
+
+        @Override
+        public CompletableFuture<List<CloudIslandsAddonSnapshot>> list() {
+            return CompletableFuture.completedFuture(addons.values().stream()
+                .sorted(Comparator.comparing(CloudIslandsAddonSnapshot::id))
+                .toList());
+        }
+
+        @Override
+        public CompletableFuture<Boolean> isEnabled(String id) {
+            return CompletableFuture.completedFuture(Optional.ofNullable(addons.get(id)).map(CloudIslandsAddonSnapshot::enabled).orElse(false));
+        }
     }
 
     private static final class QueryService implements IslandQueryService {

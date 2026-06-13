@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.api;
 
 import kr.lunaf.cloudislands.api.service.IslandAdminService;
+import kr.lunaf.cloudislands.api.service.IslandAddonService;
 import kr.lunaf.cloudislands.api.service.IslandCommandService;
 import kr.lunaf.cloudislands.api.service.IslandEventService;
 import kr.lunaf.cloudislands.api.service.IslandPermissionService;
@@ -20,4 +21,5 @@ public interface CloudIslandsApi {
     IslandEventService events();
     IslandAdminService admin();
     IslandCommandService commands();
+    IslandAddonService addons();
 }

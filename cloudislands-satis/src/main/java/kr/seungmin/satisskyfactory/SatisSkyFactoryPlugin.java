@@ -1,5 +1,7 @@
 package kr.seungmin.satisskyfactory;
 
+import kr.lunaf.cloudislands.api.CloudIslandsApi;
+import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.seungmin.satisskyfactory.command.FactoryCommand;
 import kr.seungmin.satisskyfactory.config.ConfigService;
 import kr.seungmin.satisskyfactory.config.MessageService;
@@ -39,6 +41,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.Set;
 
 public final class SatisSkyFactoryPlugin extends JavaPlugin {
+    private static final String ADDON_ID = "cloudislands-satis";
     private ConfigService configs;
     private MessageService messages;
     private DatabaseService database;
@@ -64,6 +67,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
     private MachineTickService ticker;
     private MaintenanceTickService maintenanceTicker;
     private PlaceholderHook placeholderHook;
+    private CloudIslandsApi cloudIslandsApi;
 
     @Override
     public void onEnable() {
@@ -121,6 +125,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
         registerCommands();
         registerListeners();
         registerPlaceholders();
+        registerCloudIslandsAddon();
         getLogger().info("SatisSkyFactory enabled using " + economy.name() + " economy.");
     }
 
@@ -138,6 +143,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
         if (placeholderHook != null) {
             placeholderHook.unregister();
         }
+        unregisterCloudIslandsAddon();
         if (database != null) {
             database.close();
         }
@@ -390,6 +396,24 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
         placeholderHook = new PlaceholderHook(this, islands, machines, storage, power, boosts, research, contracts);
         placeholderHook.register();
         getLogger().info("Registered PlaceholderAPI expansion: satisskyfactory");
+    }
+
+    private void registerCloudIslandsAddon() {
+        cloudIslandsApi = CloudIslandsProvider.get().orElse(null);
+        if (cloudIslandsApi == null) {
+            return;
+        }
+        cloudIslandsApi.addons()
+                .register(ADDON_ID, "CloudIslands Satis", getDescription().getVersion(), configs.main().getBoolean("integration.enabled", false))
+                .thenAccept(addon -> getLogger().info("Registered CloudIslands addon: " + addon.id()));
+    }
+
+    private void unregisterCloudIslandsAddon() {
+        if (cloudIslandsApi == null) {
+            return;
+        }
+        cloudIslandsApi.addons().unregister(ADDON_ID);
+        cloudIslandsApi = null;
     }
 
     private boolean featureEnabled(String key) {
