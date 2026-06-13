@@ -732,7 +732,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         private boolean addonAcceptsIslandStateWrites(String id) {
             CloudIslandsAddonSnapshot snapshot = addons.get(safeRegistrationId(id));
-            return snapshot != null && snapshot.enabled();
+            return snapshot != null && snapshot.enabled() && snapshot.featureEnabled("addon-state", true);
         }
 
         private Map<String, String> stateFromJson(String json) {
