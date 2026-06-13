@@ -37,14 +37,16 @@ public final class PrometheusMetricsRenderer {
     private final BooleanSupplier mtlsRequired;
     private final BooleanSupplier ipAllowlistEnabled;
     private final BooleanSupplier publicBindWithoutIpAllowlist;
+    private final BooleanSupplier redisPublicHost;
+    private final BooleanSupplier postgresqlPublicHost;
     private final BooleanSupplier objectStoragePublicHost;
     private final BooleanSupplier objectStoragePlainHttpPublicHost;
 
     public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures) {
-        this(nodes, jobs, tickets, runtimes, events, heartbeatTimeout, databaseQuerySeconds, databaseActiveConnections, databaseOpenedConnections, databaseConnectionFailures, databaseQueryFailures, redisEventFailures, redisCacheFailures, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false);
+        this(nodes, jobs, tickets, runtimes, events, heartbeatTimeout, databaseQuerySeconds, databaseActiveConnections, databaseOpenedConnections, databaseConnectionFailures, databaseQueryFailures, redisEventFailures, redisCacheFailures, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false);
     }
 
-    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures, BooleanSupplier coreTokenConfigured, BooleanSupplier adminTokenConfigured, BooleanSupplier adminApiEnabled, BooleanSupplier mtlsRequired, BooleanSupplier ipAllowlistEnabled, BooleanSupplier publicBindWithoutIpAllowlist, BooleanSupplier objectStoragePublicHost, BooleanSupplier objectStoragePlainHttpPublicHost) {
+    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures, BooleanSupplier coreTokenConfigured, BooleanSupplier adminTokenConfigured, BooleanSupplier adminApiEnabled, BooleanSupplier mtlsRequired, BooleanSupplier ipAllowlistEnabled, BooleanSupplier publicBindWithoutIpAllowlist, BooleanSupplier redisPublicHost, BooleanSupplier postgresqlPublicHost, BooleanSupplier objectStoragePublicHost, BooleanSupplier objectStoragePlainHttpPublicHost) {
         this.nodes = nodes;
         this.jobs = jobs;
         this.tickets = tickets;
@@ -64,6 +66,8 @@ public final class PrometheusMetricsRenderer {
         this.mtlsRequired = mtlsRequired;
         this.ipAllowlistEnabled = ipAllowlistEnabled;
         this.publicBindWithoutIpAllowlist = publicBindWithoutIpAllowlist;
+        this.redisPublicHost = redisPublicHost;
+        this.postgresqlPublicHost = postgresqlPublicHost;
         this.objectStoragePublicHost = objectStoragePublicHost;
         this.objectStoragePlainHttpPublicHost = objectStoragePlainHttpPublicHost;
     }
@@ -156,6 +160,12 @@ public final class PrometheusMetricsRenderer {
         help(out, "cloudislands_core_public_bind_without_ip_allowlist", "Whether Core API is publicly bound without an IP allowlist");
         type(out, "cloudislands_core_public_bind_without_ip_allowlist", "gauge");
         out.append("cloudislands_core_public_bind_without_ip_allowlist ").append(publicBindWithoutIpAllowlist.getAsBoolean() ? 1 : 0).append('\n');
+        help(out, "cloudislands_redis_public_host", "Whether Redis is configured with a non-internal host");
+        type(out, "cloudislands_redis_public_host", "gauge");
+        out.append("cloudislands_redis_public_host ").append(redisPublicHost.getAsBoolean() ? 1 : 0).append('\n');
+        help(out, "cloudislands_postgresql_public_host", "Whether PostgreSQL is configured with a non-internal host");
+        type(out, "cloudislands_postgresql_public_host", "gauge");
+        out.append("cloudislands_postgresql_public_host ").append(postgresqlPublicHost.getAsBoolean() ? 1 : 0).append('\n');
         help(out, "cloudislands_object_storage_public_host", "Whether object storage endpoint is configured with a non-internal host");
         type(out, "cloudislands_object_storage_public_host", "gauge");
         out.append("cloudislands_object_storage_public_host ").append(objectStoragePublicHost.getAsBoolean() ? 1 : 0).append('\n');
