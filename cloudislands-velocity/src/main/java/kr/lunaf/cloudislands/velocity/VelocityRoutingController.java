@@ -529,7 +529,11 @@ public final class VelocityRoutingController {
     }
 
     public void listFlags(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.listIslandFlags(islandId).thenApply(this::flagListMessage), "섬 플래그를 불러오지 못했습니다.");
+        if (rejectExplicitIslandLookup(player, islandId)) {
+            return;
+        }
+        withResolvedIsland(player, islandId, "플래그를 확인할 섬을 찾지 못했습니다.", "섬 플래그를 불러오지 못했습니다.",
+            resolved -> sendBodyResult(player, coreApiClient.listIslandFlags(resolved).thenApply(this::flagListMessage), "섬 플래그를 불러오지 못했습니다."));
     }
 
     public void listHomes(Player player, UUID islandId) {
@@ -546,7 +550,11 @@ public final class VelocityRoutingController {
     }
 
     public void listPermissions(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.listIslandPermissions(islandId).thenApply(this::permissionListMessage), "섬 권한을 불러오지 못했습니다.");
+        if (rejectExplicitIslandLookup(player, islandId)) {
+            return;
+        }
+        withResolvedIsland(player, islandId, "권한을 확인할 섬을 찾지 못했습니다.", "섬 권한을 불러오지 못했습니다.",
+            resolved -> sendBodyResult(player, coreApiClient.listIslandPermissions(resolved).thenApply(this::permissionListMessage), "섬 권한을 불러오지 못했습니다."));
     }
 
     public void setPermission(Player player, UUID islandId, IslandRole role, IslandPermission permission, boolean allowed) {
@@ -554,7 +562,11 @@ public final class VelocityRoutingController {
     }
 
     public void listRoles(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.listIslandRoles(islandId).thenApply(this::roleListMessage), "섬 역할을 불러오지 못했습니다.");
+        if (rejectExplicitIslandLookup(player, islandId)) {
+            return;
+        }
+        withResolvedIsland(player, islandId, "역할을 확인할 섬을 찾지 못했습니다.", "섬 역할을 불러오지 못했습니다.",
+            resolved -> sendBodyResult(player, coreApiClient.listIslandRoles(resolved).thenApply(this::roleListMessage), "섬 역할을 불러오지 못했습니다."));
     }
 
     public void upsertRole(Player player, UUID islandId, IslandRole role, int weight, String displayName) {
