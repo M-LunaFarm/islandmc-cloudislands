@@ -69,6 +69,7 @@ public final class MachineTickService {
     private final int lockedMaxOperatingTier;
     private final double breakWear;
     private final int activeParticleLimit;
+    private final BooleanSupplier active;
     private final BooleanSupplier maintenanceEnabled;
     private final BooleanSupplier resourceNodesEnabled;
     private BukkitTask task;
@@ -85,7 +86,8 @@ public final class MachineTickService {
                               double offlineEfficiency, int nodeLinkRadius, Set<String> recoveryTypes,
                               double limitedEfficiency, int limitedMaxOperatingTier,
                               double lockedRecoveryEfficiency, int lockedMaxOperatingTier, double breakWear,
-                              int activeParticleLimit, BooleanSupplier maintenanceEnabled, BooleanSupplier resourceNodesEnabled) {
+                              int activeParticleLimit, BooleanSupplier active,
+                              BooleanSupplier maintenanceEnabled, BooleanSupplier resourceNodesEnabled) {
         this.plugin = plugin;
         this.machines = machines;
         this.definitions = definitions;
@@ -109,6 +111,7 @@ public final class MachineTickService {
         this.lockedMaxOperatingTier = Math.max(1, lockedMaxOperatingTier);
         this.breakWear = Math.max(1.0, breakWear);
         this.activeParticleLimit = Math.max(0, activeParticleLimit);
+        this.active = active == null ? () -> true : active;
         this.maintenanceEnabled = maintenanceEnabled;
         this.resourceNodesEnabled = resourceNodesEnabled;
     }
@@ -126,6 +129,11 @@ public final class MachineTickService {
     }
 
     public void tick() {
+        if (!active.getAsBoolean()) {
+            activeMachineQueue.clear();
+            queuedMachines.clear();
+            return;
+        }
         power.beginCycle();
         long now = Instant.now().toEpochMilli();
         Set<UUID> touchedIslands = new HashSet<>();

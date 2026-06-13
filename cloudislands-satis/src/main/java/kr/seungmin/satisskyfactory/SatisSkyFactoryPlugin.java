@@ -260,6 +260,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                     configs.file("maintenance.yml").getInt("maintenance.locked.max-operating-tier", 1),
                     configs.file("maintenance.yml").getDouble("maintenance.break-wear", 100.0),
                     activeParticleLimit(configs.main(), configInt("settings.max-machines-per-tick", "settings.max-machines-per-cycle", 300)),
+                    () -> featureEnabled("machines"),
                     () -> featureEnabled("maintenance"),
                     () -> featureEnabled("resource-nodes")
             );
