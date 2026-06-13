@@ -49,6 +49,10 @@ public final class PowerNetworkService {
         cache.clear();
     }
 
+    public void activate() {
+        active = true;
+    }
+
     public void clear() {
         active = false;
         cycleId++;

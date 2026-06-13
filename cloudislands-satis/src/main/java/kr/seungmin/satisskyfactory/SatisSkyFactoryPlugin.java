@@ -389,6 +389,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private void refreshMachineCache() {
         if (featureEnabled("machines")) {
             machines.load();
+            if (itemNetworks != null) {
+                itemNetworks.activate();
+            }
+            if (power != null) {
+                power.activate();
+            }
         } else {
             machines.clear();
             if (itemNetworks != null) {

@@ -24,6 +24,10 @@ public final class ItemNetworkService {
         this.networkRebuild = new NetworkRebuildService(definitions);
     }
 
+    public void activate() {
+        active = true;
+    }
+
     public List<ItemNetwork> rebuildIsland(UUID islandUuid) {
         if (!active) {
             return List.of();
