@@ -50,22 +50,25 @@ public final class IslandSnapshotMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || !meta.hasDisplayName()) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= 54) {
             return;
         }
-        String name = meta.getDisplayName();
         player.closeInventory();
-        if (name.equals("새 스냅샷 생성")) {
+        if (slot == 45) {
             player.performCommand("섬 스냅샷생성 manual");
             return;
         }
-        if (name.equals("새로고침")) {
+        if (slot == 49) {
             player.performCommand("섬 스냅샷");
             return;
         }
-        if (name.equals("설정")) {
+        if (slot == 53) {
             player.performCommand("섬 설정");
+            return;
+        }
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null) {
             return;
         }
         String snapshotNo = loreValue(meta, "번호=");
@@ -98,23 +101,23 @@ public final class IslandSnapshotMenu implements Listener {
     private static void openSync(Plugin plugin, Player player, List<Snapshot> snapshots, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
-            inventory.setItem(45, item(Material.CHEST, "새 스냅샷 생성", "/섬 스냅샷생성 manual"));
-            inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 스냅샷"));
+            inventory.setItem(45, item(Material.CHEST, message(messages, "snapshot-menu-create-name", "새 스냅샷 생성"), message(messages, "snapshot-menu-create-command", "/섬 스냅샷생성 manual")));
+            inventory.setItem(49, item(Material.CLOCK, message(messages, "snapshot-menu-refresh-name", "새로고침"), message(messages, "snapshot-menu-refresh-command", "/섬 스냅샷")));
             int slot = 0;
             if (snapshots.isEmpty()) {
-                inventory.setItem(22, item(Material.BARRIER, "스냅샷 없음", message(messages, "snapshot-menu-empty", "아직 생성된 섬 스냅샷이 없습니다.")));
+                inventory.setItem(22, item(Material.BARRIER, message(messages, "snapshot-menu-empty-title", "스냅샷 없음"), message(messages, "snapshot-menu-empty", "아직 생성된 섬 스냅샷이 없습니다.")));
             } else {
                 for (Snapshot snapshot : snapshots.stream().limit(45).toList()) {
                     inventory.setItem(slot++, snapshotItem(snapshot, messages));
                 }
             }
-            inventory.setItem(53, item(Material.COMPARATOR, "설정", "/섬 설정"));
+            inventory.setItem(53, item(Material.COMPARATOR, message(messages, "snapshot-menu-settings-name", "설정"), message(messages, "snapshot-menu-settings-command", "/섬 설정")));
             player.openInventory(inventory);
         });
     }
 
     private static ItemStack snapshotItem(Snapshot snapshot, MessageRenderer messages) {
-        return item(Material.PAPER, "스냅샷 #" + snapshot.snapshotNo(), "번호=" + snapshot.snapshotNo(), message(messages, "snapshot-menu-reason", "사유: ") + (snapshot.reason().isBlank() ? message(messages, "snapshot-menu-none", "없음") : snapshot.reason()), message(messages, "snapshot-menu-size", "크기: ") + snapshot.sizeBytes() + " bytes", snapshot.createdAt().isBlank() ? message(messages, "snapshot-menu-no-created-info", "생성 정보 없음") : message(messages, "snapshot-menu-created-at", "생성 시각: ") + snapshot.createdAt(), message(messages, "snapshot-menu-left-click", "좌클릭: 상세 보기"), message(messages, "snapshot-menu-shift-right-click", "Shift+우클릭: 이 스냅샷 복원 요청"));
+        return item(Material.PAPER, message(messages, "snapshot-menu-title-prefix", "스냅샷 #") + snapshot.snapshotNo(), "번호=" + snapshot.snapshotNo(), message(messages, "snapshot-menu-reason", "사유: ") + (snapshot.reason().isBlank() ? message(messages, "snapshot-menu-none", "없음") : snapshot.reason()), message(messages, "snapshot-menu-size", "크기: ") + snapshot.sizeBytes() + message(messages, "snapshot-menu-size-unit", " bytes"), snapshot.createdAt().isBlank() ? message(messages, "snapshot-menu-no-created-info", "생성 정보 없음") : message(messages, "snapshot-menu-created-at", "생성 시각: ") + snapshot.createdAt(), message(messages, "snapshot-menu-left-click", "좌클릭: 상세 보기"), message(messages, "snapshot-menu-shift-right-click", "Shift+우클릭: 이 스냅샷 복원 요청"));
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
