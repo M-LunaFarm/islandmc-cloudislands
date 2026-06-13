@@ -54,18 +54,18 @@ public final class SuperiorSkyblock2MigrationScanner {
     private void scanFile(Path file, List<MigrationManifest> manifests, List<MigrationIssue> issues) {
         try {
             String content = Files.readString(file, StandardCharsets.UTF_8);
-            UUID islandId = parseUuid(content, "islandId", parseUuid(content, "uuid", uuidFromFilename(file)));
-            UUID ownerUuid = parseUuid(content, "owner", parseUuid(content, "ownerUuid", new UUID(0L, 0L)));
+            UUID islandId = parseUuid(content, "islandId", parseUuid(content, "islandUuid", parseUuid(content, "island_uuid", parseUuid(content, "uuid", uuidFromFilename(file)))));
+            UUID ownerUuid = parseUuid(content, "owner", parseUuid(content, "ownerUuid", parseUuid(content, "ownerUUID", parseUuid(content, "owner_uuid", parseUuid(content, "ownerUniqueId", parseUuid(content, "ownerUniqueID", new UUID(0L, 0L)))))));
             if (ownerUuid.getMostSignificantBits() == 0L && ownerUuid.getLeastSignificantBits() == 0L) {
                 issues.add(new MigrationIssue("OWNER_NOT_FOUND", "missing owner uuid in " + file, true));
                 return;
             }
-            int size = parseInt(content, "size", 300);
-            long level = parseLong(content, "level", 0L);
-            String worth = parseString(content, "worth", "0.00");
-            List<UUID> members = parseUuidList(content, "members", "islandMembers", "coopMembers", "coops");
+            int size = parseInt(content, "size", parseInt(content, "islandSize", parseInt(content, "island_size", 300)));
+            long level = parseLong(content, "level", parseLong(content, "islandLevel", parseLong(content, "island_level", 0L)));
+            String worth = parseString(content, "worth", parseString(content, "islandWorth", parseString(content, "island_worth", "0.00")));
+            List<UUID> members = parseUuidList(content, "members", "islandMembers", "teamMembers", "coopMembers", "coops", "coop");
             List<MigrationMemberRole> memberRoles = parseMemberRoles(content, ownerUuid);
-            List<UUID> bannedVisitors = parseUuidList(content, "bans", "bannedPlayers", "bannedVisitors", "visitorBans");
+            List<UUID> bannedVisitors = parseUuidList(content, "bans", "bannedPlayers", "bannedMembers", "bannedVisitors", "visitorBans", "banned_users", "banned-users");
             List<MigrationHome> homes = parseHomes(content);
             List<MigrationWarp> warps = parseWarps(content);
             MigrationLocation islandLocation = parseIslandLocation(content, homes);
@@ -377,7 +377,7 @@ public final class SuperiorSkyblock2MigrationScanner {
         addMemberRoles(content, roles, ownerUuid, "CO_OWNER", "coOwners", "coOwnerMembers", "coowners");
         addMemberRoles(content, roles, ownerUuid, "MODERATOR", "moderators", "mods", "modMembers");
         addMemberRoles(content, roles, ownerUuid, "TRUSTED", "trusted", "trustedMembers", "trustedPlayers");
-        addMemberRoles(content, roles, ownerUuid, "MEMBER", "regularMembers", "normalMembers");
+        addMemberRoles(content, roles, ownerUuid, "MEMBER", "members", "islandMembers", "teamMembers", "regularMembers", "normalMembers");
         return List.copyOf(roles);
     }
 
