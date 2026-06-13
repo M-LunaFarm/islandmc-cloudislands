@@ -2788,6 +2788,11 @@ public final class CloudIslandsCoreApplication {
     private static void write(HttpExchange exchange, int status, String body, String contentType) throws IOException {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().put("Content-Type", java.util.List.of(contentType));
+        exchange.getResponseHeaders().put("Cache-Control", java.util.List.of("no-store"));
+        exchange.getResponseHeaders().put("Pragma", java.util.List.of("no-cache"));
+        exchange.getResponseHeaders().put("X-Content-Type-Options", java.util.List.of("nosniff"));
+        exchange.getResponseHeaders().put("X-Frame-Options", java.util.List.of("DENY"));
+        exchange.getResponseHeaders().put("Referrer-Policy", java.util.List.of("no-referrer"));
         exchange.sendResponseHeaders(status, bytes.length);
         try (OutputStream response = exchange.getResponseBody()) {
             response.write(bytes);
