@@ -15,6 +15,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandSettingsMenu implements Listener {
+    private static final String TITLE_KEY = "settings-menu-title";
     private static final String TITLE = "섬 설정";
     private final MessageRenderer messages;
 
@@ -43,7 +44,7 @@ public final class IslandSettingsMenu implements Listener {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             boolean publicAccess = bool(body, "publicAccess");
             boolean locked = bool(body, "locked");
-            Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
+            Inventory inventory = Bukkit.createInventory(null, 27, message(messages, TITLE_KEY, TITLE));
             inventory.setItem(10, item(publicAccess ? Material.LIME_DYE : Material.GRAY_DYE, message(messages, "settings-menu-public-name", "공개 설정"), message(messages, "settings-menu-current", "현재: ") + (publicAccess ? message(messages, "settings-menu-public", "공개") : message(messages, "settings-menu-private", "비공개")), message(messages, "settings-menu-public-left-click", "좌클릭: /섬 공개"), message(messages, "settings-menu-public-right-click", "우클릭: /섬 비공개")));
             inventory.setItem(11, item(locked ? Material.IRON_DOOR : Material.OAK_DOOR, message(messages, "settings-menu-lock-name", "잠금 설정"), message(messages, "settings-menu-current", "현재: ") + (locked ? message(messages, "settings-menu-locked", "잠김") : message(messages, "settings-menu-open", "열림")), message(messages, "settings-menu-lock-left-click", "좌클릭: /섬 잠금해제"), message(messages, "settings-menu-lock-right-click", "우클릭: /섬 잠금")));
             inventory.setItem(12, item(Material.NAME_TAG, message(messages, "settings-menu-member-name", "멤버 관리"), message(messages, "settings-menu-member-command", "/섬 멤버")));
@@ -73,7 +74,7 @@ public final class IslandSettingsMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!TITLE.equals(event.getView().getTitle())) {
+        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
             return;
         }
         event.setCancelled(true);

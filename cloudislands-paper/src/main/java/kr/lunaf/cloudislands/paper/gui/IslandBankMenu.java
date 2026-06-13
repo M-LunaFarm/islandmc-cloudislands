@@ -16,6 +16,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandBankMenu implements Listener {
+    private static final String TITLE_KEY = "bank-menu-title";
     private static final String TITLE = "섬 은행";
     private final MessageRenderer messages;
 
@@ -42,7 +43,7 @@ public final class IslandBankMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!TITLE.equals(event.getView().getTitle())) {
+        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
             return;
         }
         event.setCancelled(true);
@@ -77,7 +78,7 @@ public final class IslandBankMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, String balance, String updatedAt, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
+            Inventory inventory = Bukkit.createInventory(null, 27, message(messages, TITLE_KEY, TITLE));
             inventory.setItem(4, item(Material.GOLD_BLOCK, message(messages, "bank-menu-balance-name", "잔액"), message(messages, "bank-menu-current-balance", "현재 잔액: ") + (balance.isBlank() ? "0" : balance), updatedAt.isBlank() ? message(messages, "bank-menu-no-update", "업데이트 정보 없음") : message(messages, "bank-menu-updated-at", "갱신 시각: ") + updatedAt));
             inventory.setItem(10, item(Material.EMERALD, message(messages, "bank-menu-deposit-1000-name", "1,000 입금"), message(messages, "bank-menu-deposit-1000-command", "/섬 입금 1000")));
             inventory.setItem(11, item(Material.EMERALD_BLOCK, message(messages, "bank-menu-deposit-10000-name", "10,000 입금"), message(messages, "bank-menu-deposit-10000-command", "/섬 입금 10000")));

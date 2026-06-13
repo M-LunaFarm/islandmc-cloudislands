@@ -16,6 +16,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandInfoMenu implements Listener {
+    private static final String TITLE_KEY = "info-menu-title";
     private static final String TITLE = "섬 정보";
     private final MessageRenderer messages;
 
@@ -42,7 +43,7 @@ public final class IslandInfoMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!TITLE.equals(event.getView().getTitle())) {
+        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
             return;
         }
         event.setCancelled(true);
@@ -70,7 +71,7 @@ public final class IslandInfoMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, String body, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
+            Inventory inventory = Bukkit.createInventory(null, 27, message(messages, TITLE_KEY, TITLE));
             inventory.setItem(10, item(Material.GRASS_BLOCK, message(messages, "info-menu-basic-title", "기본 정보"), message(messages, "info-menu-island-name", "섬 이름: ") + fallback(text(body, "name"), message(messages, "info-menu-no-name", "이름 없음")), message(messages, "info-menu-state", "상태: ") + fallback(text(body, "state"), message(messages, "info-menu-unknown", "알 수 없음")), message(messages, "info-menu-island-id", "섬 ID: ") + shortId(text(body, "islandId"), messages)));
             inventory.setItem(11, item(Material.EXPERIENCE_BOTTLE, message(messages, "info-menu-level-title", "레벨"), message(messages, "info-menu-level", "레벨: ") + number(body, "level"), message(messages, "info-menu-worth", "가치: ") + fallback(text(body, "worth"), "0")));
             inventory.setItem(12, item(Material.BARRIER, message(messages, "info-menu-access-title", "공개 상태"), message(messages, "info-menu-public-access", "공개 여부: ") + yesNo(bool(body, "publicAccess"), messages), message(messages, "info-menu-locked", "잠금 여부: ") + yesNo(bool(body, "locked"), messages)));

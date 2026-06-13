@@ -537,6 +537,7 @@ public final class TranslationManager {
         values.put("bank-menu-withdraw-name", "출금");
         values.put("bank-menu-withdraw-usage", "사용법: /섬 출금 <금액>");
         values.put("bank-menu-deposit-1000-name", "1,000 입금");
+        values.put("bank-menu-title", "섬 은행");
         values.put("bank-menu-deposit-1000-command", "/섬 입금 1000");
         values.put("bank-menu-deposit-10000-name", "10,000 입금");
         values.put("bank-menu-deposit-10000-command", "/섬 입금 10000");
@@ -589,6 +590,7 @@ public final class TranslationManager {
         values.put("warp-menu-settings-command", "/섬 설정");
         values.put("warp-menu-main-menu-name", "메인 메뉴");
         values.put("warp-menu-main-menu-command", "/섬 메뉴");
+        values.put("info-menu-title", "섬 정보");
         values.put("info-menu-load-failed", "섬 정보를 불러오지 못했습니다.");
         values.put("info-menu-island-name", "섬 이름: ");
         values.put("info-menu-island-id", "섬 ID: ");
@@ -722,6 +724,7 @@ public final class TranslationManager {
         values.put("upgrade-menu-refresh-command", "/섬 업그레이드");
         values.put("upgrade-menu-settings-name", "설정");
         values.put("upgrade-menu-settings-command", "/섬 설정");
+        values.put("settings-menu-title", "섬 설정");
         values.put("settings-menu-load-failed", "섬 설정을 불러오지 못했습니다.");
         values.put("settings-menu-public-name", "공개 설정");
         values.put("settings-menu-lock-name", "잠금 설정");
