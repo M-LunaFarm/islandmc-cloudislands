@@ -158,6 +158,7 @@ public interface CoreApiClient {
     CompletableFuture<String> listAuditLogs();
     CompletableFuture<String> metrics();
     CompletableFuture<String> coreConfig();
+    CompletableFuture<String> storageStatus();
     CompletableFuture<String> clearCache();
     CompletableFuture<String> clearCacheResult();
     CompletableFuture<String> reload();

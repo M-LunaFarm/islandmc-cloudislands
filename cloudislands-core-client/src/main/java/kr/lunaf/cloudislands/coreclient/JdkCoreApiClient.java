@@ -740,6 +740,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> storageStatus() {
+        return postWithResultBody("/v1/admin/storage", "{}");
+    }
+
+    @Override
     public CompletableFuture<String> clearCache() {
         return clearCacheResult();
     }

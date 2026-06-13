@@ -303,6 +303,7 @@ public final class CloudIslandsCoreApplication {
         route("/health", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));
         route("/metrics", exchange -> write(exchange, 200, metrics.render(), "text/plain; version=0.0.4; charset=utf-8"));
         route("/v1/admin/config", exchange -> write(exchange, 200, configSummaryJson(config)));
+        route("/v1/admin/storage", exchange -> write(exchange, 200, nodes.toJson(config.heartbeatTimeout())));
         route("/v1/nodes", exchange -> write(exchange, 200, nodes.toJson(config.heartbeatTimeout())));
         route("/v1/nodes/info", exchange -> {
             String body = readBody(exchange);

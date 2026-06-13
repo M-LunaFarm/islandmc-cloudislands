@@ -941,7 +941,7 @@ public final class VelocityRoutingController {
     }
 
     public void storageStatus(Player player) {
-        sendBodyResult(player, coreApiClient.listNodes().thenApply(this::storageStatusMessage), "Storage 상태를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.storageStatus().thenApply(this::storageStatusMessage), "Storage 상태를 불러오지 못했습니다.");
     }
 
     public void listBlockValues(Player player) {

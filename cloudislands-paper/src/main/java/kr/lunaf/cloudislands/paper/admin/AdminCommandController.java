@@ -175,7 +175,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return true;
         }
         if (args[0].equalsIgnoreCase("storage")) {
-            run(sender, "Storage status", coreApiClient.listNodes().thenApply(this::storageStatusMessage));
+            run(sender, "Storage status", coreApiClient.storageStatus().thenApply(this::storageStatusMessage));
             return true;
         }
         if (args[0].equalsIgnoreCase("block-values")) {
