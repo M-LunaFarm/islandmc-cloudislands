@@ -650,6 +650,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("skyblock-provider", "CLOUDISLANDS");
         metadata.put("cloudislands-adapter", Boolean.toString(configs.main().getBoolean("integration.cloudislands-adapter", true)));
         metadata.put("database-scope", scope);
+        metadata.put("database-config-source", databaseConfigSource());
         metadata.put("database-file", configuredDatabaseFileName());
         metadata.put("database-path", resolveDatabaseFileName());
         metadata.put("database-shared", Boolean.toString(!scope.equals("PLUGIN_LOCAL") && !scope.equals("PLUGIN_RELATIVE_PATH")));
@@ -1080,10 +1081,27 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return "PLUGIN_LOCAL";
     }
 
+    private String databaseConfigSource() {
+        String envPath = System.getenv("CLOUDISLANDS_SATIS_DB");
+        if (envPath != null && !envPath.isBlank()) {
+            return "CLOUDISLANDS_SATIS_DB";
+        }
+        String configuredPath = configs.main().getString("database.path", "");
+        if (configuredPath != null && !configuredPath.isBlank()) {
+            return "database.path";
+        }
+        String sharedDirectory = configs.main().getString("database.shared-directory", "");
+        if (sharedDirectory != null && !sharedDirectory.isBlank()) {
+            return "database.shared-directory";
+        }
+        return "database.sqlite-file";
+    }
+
     private void warnIfLocalDatabaseInCloudIslandsMode() {
         if (!requiresCloudIslandsApi() || !databaseScope().equals("PLUGIN_LOCAL")) {
             return;
         }
-        getLogger().warning("CloudIslands Satis is using a plugin-local SQLite database. Set database.shared-directory, database.path, or CLOUDISLANDS_SATIS_DB so A/B island nodes share factory state.");
+        getLogger().warning("CloudIslands Satis is using a plugin-local SQLite database from " + databaseConfigSource()
+                + ". Set database.shared-directory, database.path, or CLOUDISLANDS_SATIS_DB so A/B island nodes share factory state.");
     }
 }
