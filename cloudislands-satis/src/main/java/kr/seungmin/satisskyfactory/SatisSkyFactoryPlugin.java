@@ -187,19 +187,24 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     public void onDisable() {
         if (ticker != null) {
             ticker.stop();
+            ticker = null;
         }
         if (maintenanceTicker != null) {
             maintenanceTicker.stop();
+            maintenanceTicker = null;
         }
         if (dirtySaves != null) {
             dirtySaves.stop();
         }
         if (placeholderHook != null) {
             placeholderHook.unregister();
+            placeholderHook = null;
         }
         unregisterCloudIslandsAddon();
+        stopRuntimeActivity();
         if (database != null) {
             database.close();
+            database = null;
         }
     }
 
