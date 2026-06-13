@@ -15,6 +15,10 @@ public final class RecipeService {
         recipes.addAll(loader.load(config));
     }
 
+    public void clear() {
+        recipes.clear();
+    }
+
     public List<RecipeDefinition> recipesFor(String machineType) {
         return recipes.stream().filter(recipe -> recipe.supports(machineType)).toList();
     }

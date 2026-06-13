@@ -333,9 +333,18 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void loadDefinitions() {
-        itemRegistry.load(configs.file("items.yml"));
-        machineDefinitions.load(configs.file("machines.yml"));
-        recipes.load(configs.file("recipes.yml"));
+        if (itemDefinitionsNeeded()) {
+            itemRegistry.load(configs.file("items.yml"));
+        } else {
+            itemRegistry.clear();
+        }
+        if (featureEnabled("machines")) {
+            machineDefinitions.load(configs.file("machines.yml"));
+            recipes.load(configs.file("recipes.yml"));
+        } else {
+            machineDefinitions.clear();
+            recipes.clear();
+        }
         if (featureEnabled("resource-nodes")) {
             nodes.load(configs.file("resource-nodes.yml"));
         }
@@ -351,6 +360,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (featureEnabled("research")) {
             research.load(configs.file("research.yml"), configs.file("maintenance.yml"));
         }
+    }
+
+    private boolean itemDefinitionsNeeded() {
+        return featureEnabled("machines")
+                || featureEnabled("market")
+                || featureEnabled("contracts")
+                || featureEnabled("gui");
     }
 
     private void registerCommands() {

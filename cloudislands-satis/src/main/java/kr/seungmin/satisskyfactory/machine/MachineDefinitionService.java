@@ -18,6 +18,10 @@ public final class MachineDefinitionService {
         definitions.putAll(loader.load(config));
     }
 
+    public void clear() {
+        definitions.clear();
+    }
+
     public Optional<MachineDefinition> get(String typeId) {
         return Optional.ofNullable(definitions.get(typeId));
     }

@@ -18,6 +18,10 @@ public final class ItemRegistry {
         items.putAll(loader.load(config));
     }
 
+    public void clear() {
+        items.clear();
+    }
+
     public Optional<ItemDefinition> get(String id) {
         return Optional.ofNullable(items.get(id));
     }
