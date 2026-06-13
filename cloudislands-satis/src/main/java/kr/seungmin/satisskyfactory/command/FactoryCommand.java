@@ -86,6 +86,10 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!enabled("commands")) {
+            messages.send(sender, "feature-disabled", Map.of("feature", "commands"));
+            return true;
+        }
         if (args.length > 0 && args[0].equalsIgnoreCase("admin")) {
             return adminCommand.execute(sender, args);
         }
@@ -479,6 +483,9 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (!enabled("commands")) {
+            return new ArrayList<>();
+        }
         if (args.length == 1) {
             List<String> values = new ArrayList<>();
             values.add("help");

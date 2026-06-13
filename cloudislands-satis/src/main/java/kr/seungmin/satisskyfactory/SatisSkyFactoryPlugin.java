@@ -308,10 +308,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void registerCommands() {
-        if (!featureEnabled("commands")) {
-            getLogger().info("Satis commands are disabled by config.");
-            return;
-        }
         FactoryCommand command = new FactoryCommand(
                 islands,
                 machines,
