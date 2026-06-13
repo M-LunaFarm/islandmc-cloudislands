@@ -92,6 +92,14 @@ public final class ResourceNodeService {
         this.dirtySaves = dirtySaves;
     }
 
+    public void forgetIsland(UUID islandUuid) {
+        List<ResourceNode> removed = nodesByIsland.remove(islandUuid);
+        if (removed == null || dirtySaves == null) {
+            return;
+        }
+        dirtySaves.forgetIsland(islandUuid);
+    }
+
     private void cache(ResourceNode node) {
         nodesByIsland.compute(node.islandUuid(), (islandUuid, current) -> {
             List<ResourceNode> updated = current == null ? new ArrayList<>() : new ArrayList<>(current);

@@ -83,6 +83,13 @@ public final class FactoryIslandService {
         database.saveIsland(island);
     }
 
+    public void forget(UUID islandUuid) {
+        cache.remove(islandUuid);
+        if (dirtySaves != null) {
+            dirtySaves.forgetIsland(islandUuid);
+        }
+    }
+
     public void dirtySaves(DirtySaveService dirtySaves) {
         this.dirtySaves = dirtySaves;
     }

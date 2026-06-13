@@ -96,6 +96,44 @@ public final class DatabaseService {
         return dataSource.getConnection();
     }
 
+    public void purgeIsland(UUID islandUuid) {
+        try (Connection connection = connection()) {
+            boolean autoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try {
+                execute(connection, "DELETE FROM machine_network_links WHERE machine_id IN (SELECT machine_id FROM machines WHERE island_uuid = ?)", islandUuid);
+                execute(connection, "DELETE FROM machine_network_links WHERE network_id IN (SELECT network_id FROM item_networks WHERE island_uuid = ?)", islandUuid);
+                execute(connection, "DELETE FROM machine_network_links WHERE network_id IN (SELECT network_id FROM power_networks WHERE island_uuid = ?)", islandUuid);
+                execute(connection, "DELETE FROM virtual_inventory_items WHERE inventory_id IN (SELECT inventory_id FROM virtual_inventories WHERE island_uuid = ?)", islandUuid);
+                execute(connection, "DELETE FROM virtual_inventories WHERE island_uuid = ?", islandUuid);
+                execute(connection, "DELETE FROM machines WHERE island_uuid = ?", islandUuid);
+                execute(connection, "DELETE FROM resource_nodes WHERE island_uuid = ?", islandUuid);
+                execute(connection, "DELETE FROM power_networks WHERE island_uuid = ?", islandUuid);
+                execute(connection, "DELETE FROM item_networks WHERE island_uuid = ?", islandUuid);
+                execute(connection, "DELETE FROM market_personal_daily WHERE island_uuid = ?", islandUuid);
+                execute(connection, "DELETE FROM contracts WHERE island_uuid = ?", islandUuid);
+                execute(connection, "DELETE FROM island_unlocks WHERE island_uuid = ?", islandUuid);
+                execute(connection, "DELETE FROM ledger WHERE island_uuid = ?", islandUuid);
+                execute(connection, "DELETE FROM factory_islands WHERE island_uuid = ?", islandUuid);
+                connection.commit();
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            } finally {
+                connection.setAutoCommit(autoCommit);
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to purge factory island", exception);
+        }
+    }
+
+    private void execute(Connection connection, String sql, UUID islandUuid) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, islandUuid.toString());
+            statement.executeUpdate();
+        }
+    }
+
     public Optional<FactoryIsland> findIsland(UUID islandUuid) {
         try (Connection connection = connection();
              PreparedStatement statement = connection.prepareStatement("SELECT * FROM factory_islands WHERE island_uuid = ?")) {

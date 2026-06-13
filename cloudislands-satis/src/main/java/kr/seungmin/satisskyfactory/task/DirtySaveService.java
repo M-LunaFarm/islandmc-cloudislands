@@ -58,6 +58,13 @@ public final class DirtySaveService {
         inventories.remove(inventoryId);
     }
 
+    public void forgetIsland(UUID islandUuid) {
+        islands.remove(islandUuid);
+        machines.entrySet().removeIf(entry -> entry.getValue().islandUuid().equals(islandUuid));
+        inventories.entrySet().removeIf(entry -> entry.getValue().islandUuid().equals(islandUuid));
+        nodes.entrySet().removeIf(entry -> entry.getValue().islandUuid().equals(islandUuid));
+    }
+
     public void markNode(ResourceNode node) {
         nodes.put(node.nodeId(), snapshot(node));
     }

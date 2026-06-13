@@ -576,7 +576,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandDeleted(IslandDeletedEvent event) {
-        runSatisLifecycle(event.islandId(), () -> flushSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), () -> purgeSatisIsland(event.islandId()));
     }
 
     @Override
@@ -641,6 +641,25 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             dirtySaves.flushSafely();
         }
         synchronizeSatisIsland(islandId);
+    }
+
+    private void purgeSatisIsland(UUID islandId) {
+        if (islands != null) {
+            islands.forget(islandId);
+        }
+        if (machines != null) {
+            machines.forgetIsland(islandId);
+        }
+        if (storage != null) {
+            storage.forgetIsland(islandId);
+        }
+        if (nodes != null) {
+            nodes.forgetIsland(islandId);
+        }
+        if (dirtySaves != null) {
+            dirtySaves.forgetIsland(islandId);
+        }
+        database.purgeIsland(islandId);
     }
 
     private void stopRuntimeActivity() {

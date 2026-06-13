@@ -212,6 +212,17 @@ public final class MachineService {
         return machines.values().stream().filter(machine -> machine.islandUuid().equals(islandUuid)).toList();
     }
 
+    public void forgetIsland(UUID islandUuid) {
+        for (MachineInstance machine : byIsland(islandUuid)) {
+            machines.remove(machine.machineId());
+            byLocation.remove(LocationKey.from(machine.location()));
+            if (dirtySaves != null) {
+                dirtySaves.forgetMachine(machine.machineId());
+            }
+        }
+        revision.incrementAndGet();
+    }
+
     public long factoryScore(UUID islandUuid) {
         return factoryScore(islandUuid, 1);
     }

@@ -82,6 +82,16 @@ public final class StorageService {
         database.deleteInventory(inventoryId);
     }
 
+    public void forgetIsland(UUID islandUuid) {
+        cache.entrySet().removeIf(entry -> {
+            boolean sameIsland = entry.getValue().islandUuid().equals(islandUuid);
+            if (sameIsland && dirtySaves != null) {
+                dirtySaves.forgetInventory(entry.getKey());
+            }
+            return sameIsland;
+        });
+    }
+
     public void dirtySaves(DirtySaveService dirtySaves) {
         this.dirtySaves = dirtySaves;
     }
