@@ -91,6 +91,10 @@ public final class TranslationManager {
         values.put("migration-return-register-failed", "섬 이동 준비를 등록하지 못했습니다.");
         values.put("migration-return-start", "최적화된 섬 서버로 이동합니다.");
         values.put("migration-return-not-ready", "섬 서버 이동 준비가 완료되지 않았습니다. 잠시 후 /섬 홈을 사용해주세요.");
+        values.put("island-restore-evacuate", "섬 복원을 위해 로비로 이동합니다.");
+        values.put("island-reset-evacuate", "섬 리셋을 위해 로비로 이동합니다.");
+        values.put("island-delete-evacuate", "섬 삭제를 위해 로비로 이동합니다.");
+        values.put("island-operation-evacuate", "섬 작업을 위해 로비로 이동합니다.");
         return values;
     }
 

@@ -524,10 +524,10 @@ public final class PermissionEventPoller {
             return;
         }
         String reason = switch (type) {
-            case "ISLAND_RESTORE_REQUESTED" -> "섬 복원을 위해 로비로 이동합니다.";
-            case "ISLAND_RESET_REQUESTED" -> "섬 리셋을 위해 로비로 이동합니다.";
-            case "ISLAND_DELETE_REQUESTED" -> "섬 삭제를 위해 로비로 이동합니다.";
-            default -> "섬 작업을 위해 로비로 이동합니다.";
+            case "ISLAND_RESTORE_REQUESTED" -> message("island-restore-evacuate", "섬 복원을 위해 로비로 이동합니다.");
+            case "ISLAND_RESET_REQUESTED" -> message("island-reset-evacuate", "섬 리셋을 위해 로비로 이동합니다.");
+            case "ISLAND_DELETE_REQUESTED" -> message("island-delete-evacuate", "섬 삭제를 위해 로비로 이동합니다.");
+            default -> message("island-operation-evacuate", "섬 작업을 위해 로비로 이동합니다.");
         };
         Bukkit.getScheduler().runTask(plugin, () -> moveIslandPlayersToFallback(islandId, reason));
     }
