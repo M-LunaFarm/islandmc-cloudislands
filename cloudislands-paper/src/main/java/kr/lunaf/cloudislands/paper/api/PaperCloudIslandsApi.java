@@ -226,7 +226,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             String id = registration.id();
             boolean configEnabled = configuredAddonEnabled(id);
             boolean enabled = registration.enabled() && configEnabled;
-            Map<String, Boolean> configuredFeatures = effectiveFeatures(id, registration.features());
+            Map<String, Boolean> configuredFeatures = effectiveFeatures(registration);
             Map<String, Boolean> visibleFeatures = enabled ? configuredFeatures : disabledFeatures(configuredFeatures);
             return new CloudIslandsAddonSnapshot(id, registration.displayName(), registration.version(), enabled, registration.registeredAt(), Instant.now(), configuredFeatures, visibleFeatures, effectiveMetadata(id, registration.metadata()));
         }
@@ -243,7 +243,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return enabled;
         }
 
-        private Map<String, Boolean> effectiveFeatures(String id, Map<String, Boolean> features) {
+        private Map<String, Boolean> effectiveFeatures(AddonRegistration registration) {
+            String id = registration.id();
+            Map<String, Boolean> features = registration.features();
             Map<String, Boolean> effective = new HashMap<>(features == null ? Map.of() : features);
             if (id.equals("cloudislands-satis")) {
                 ConfigurationSection satisSection = plugin.getConfig().getConfigurationSection("satis.features");
@@ -255,12 +257,31 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             }
             ConfigurationSection section = plugin.getConfig().getConfigurationSection("addons." + id + ".features");
             if (section == null) {
+                applyFeatureAliases(effective, registration.metadata());
                 return effective;
             }
             for (String key : section.getKeys(false)) {
                 effective.put(key, effective.getOrDefault(key, true) && section.getBoolean(key, true));
             }
+            applyFeatureAliases(effective, registration.metadata());
             return effective;
+        }
+
+        private void applyFeatureAliases(Map<String, Boolean> features, Map<String, String> metadata) {
+            String aliases = metadata.getOrDefault("feature-aliases", "");
+            for (String pair : aliases.split(",")) {
+                String[] parts = pair.split(":", 2);
+                if (parts.length != 2) {
+                    continue;
+                }
+                String alias = parts[0];
+                String canonical = parts[1];
+                boolean enabled = features.getOrDefault(alias, true) && features.getOrDefault(canonical, true);
+                if (features.containsKey(alias) || features.containsKey(canonical)) {
+                    features.put(alias, enabled);
+                    features.put(canonical, enabled);
+                }
+            }
         }
 
         private Map<String, Boolean> disabledFeatures(Map<String, Boolean> features) {
@@ -361,13 +382,28 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (registration == null) {
                 return CompletableFuture.completedFuture(Optional.empty());
             }
-            if (!effectiveFeatures(id, registration.features()).containsKey(feature)) {
+            String normalizedFeature = normalizeFeature(registration, feature);
+            if (!effectiveFeatures(registration).containsKey(normalizedFeature)) {
                 return CompletableFuture.completedFuture(Optional.empty());
             }
-            plugin.getConfig().set("addons." + id + ".features." + feature, enabled);
+            plugin.getConfig().set("addons." + id + ".features." + normalizedFeature, enabled);
             plugin.saveConfig();
             plugin.reloadConfig();
             return refresh(id);
+        }
+
+        private String normalizeFeature(AddonRegistration registration, String feature) {
+            if (feature == null) {
+                return "";
+            }
+            String aliases = registration.metadata().getOrDefault("feature-aliases", "");
+            for (String pair : aliases.split(",")) {
+                String[] parts = pair.split(":", 2);
+                if (parts.length == 2 && feature.equals(parts[0])) {
+                    return parts[1];
+                }
+            }
+            return feature;
         }
 
         @Override

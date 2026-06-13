@@ -653,8 +653,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-file", configuredDatabaseFileName());
         metadata.put("database-path", resolveDatabaseFileName());
         metadata.put("database-shared", Boolean.toString(!scope.equals("PLUGIN_LOCAL") && !scope.equals("PLUGIN_RELATIVE_PATH")));
+        metadata.put("feature-aliases", featureAliasesMetadata());
         metadata.put("feature-warnings", featureWarnings());
         return metadata;
+    }
+
+    private String featureAliasesMetadata() {
+        return FEATURE_ALIASES.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> entry.getKey() + ":" + entry.getValue())
+                .collect(java.util.stream.Collectors.joining(","));
     }
 
     @Override
