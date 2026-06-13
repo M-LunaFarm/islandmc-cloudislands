@@ -71,7 +71,9 @@ public final class FactoryGuiService {
             factoryLore.add(ChatColor.GRAY + "Tier: " + island.tier());
             factoryLore.add(ChatColor.GRAY + "Machines: " + machineCount);
             if (enabled("storage")) {
-                factoryLore.add(ChatColor.GRAY + "Storage used: " + storage.islandStorage(island.islandUuid()).used());
+                factoryLore.add(ChatColor.GRAY + "Storage used: " + storage.findIslandStorage(island.islandUuid())
+                        .map(VirtualInventory::used)
+                        .orElse(0L));
             }
             inventory.setItem(10, icon(Material.CRAFTING_TABLE, ChatColor.GOLD + "Factory",
                     factoryLore));

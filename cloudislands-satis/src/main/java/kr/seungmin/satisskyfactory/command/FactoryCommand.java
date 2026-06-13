@@ -428,7 +428,9 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             messages.send(player, "status-machines", Map.of("count", String.valueOf(machines.byIsland(island.islandUuid()).size())));
         }
         if (enabled("storage")) {
-            messages.send(player, "status-storage", Map.of("used", String.valueOf(storage.islandStorage(island.islandUuid()).used())));
+            messages.send(player, "status-storage", Map.of("used", storage.findIslandStorage(island.islandUuid())
+                    .map(inventory -> String.valueOf(inventory.used()))
+                    .orElse("0")));
         }
         var boost = boosts.boosts(island.islandUuid());
         boolean contractBoostVisible = enabled("contracts") && enabled("storage");
@@ -714,8 +716,9 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         if (!(sender instanceof Player player)) {
             return itemIds();
         }
-        return islands.context(player)
-                .map(context -> storage.islandStorage(context.factoryIsland().islandUuid()).items().keySet().stream()
+        return islands.existingContext(player)
+                .flatMap(context -> storage.findIslandStorage(context.factoryIsland().islandUuid()))
+                .map(inventory -> inventory.items().keySet().stream()
                         .sorted()
                         .toList())
                 .filter(values -> !values.isEmpty())
