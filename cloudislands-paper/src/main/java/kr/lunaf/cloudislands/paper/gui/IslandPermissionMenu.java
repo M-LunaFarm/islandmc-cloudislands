@@ -53,26 +53,26 @@ public final class IslandPermissionMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null) {
-            return;
-        }
-        String displayName = meta.getDisplayName();
         player.closeInventory();
-        if ("권한 목록".equals(displayName)) {
+        int slot = event.getRawSlot();
+        if (slot == 45 || slot == 46) {
             player.performCommand("섬 권한목록");
             return;
         }
-        if ("새로고침".equals(displayName)) {
+        if (slot == 47) {
             player.performCommand("섬 권한");
             return;
         }
-        if ("설정".equals(displayName)) {
+        if (slot == 48) {
             player.performCommand("섬 설정");
             return;
         }
-        if ("역할 설정".equals(displayName)) {
+        if (slot == 53) {
             player.performCommand("섬 역할");
+            return;
+        }
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null) {
             return;
         }
         String role = loreValue(meta, "role=");
@@ -92,11 +92,11 @@ public final class IslandPermissionMenu implements Listener {
                     inventory.setItem(slot++, ruleItem(role, permission, allowed(rules, role, permission), messages));
                 }
             }
-            inventory.setItem(45, item(Material.BOOK, "전체 권한 이름", "/섬 권한목록", permissionSummary()));
-            inventory.setItem(46, item(Material.PAPER, "권한 목록", "/섬 권한목록"));
-            inventory.setItem(47, item(Material.CLOCK, "새로고침", "/섬 권한"));
-            inventory.setItem(48, item(Material.COMPARATOR, "설정", "/섬 설정"));
-            inventory.setItem(53, item(Material.NAME_TAG, "역할 설정", "/섬 역할"));
+            inventory.setItem(45, item(Material.BOOK, message(messages, "permission-menu-all-names-name", "전체 권한 이름"), message(messages, "permission-menu-all-names-command", "/섬 권한목록"), permissionSummary()));
+            inventory.setItem(46, item(Material.PAPER, message(messages, "permission-menu-list-name", "권한 목록"), message(messages, "permission-menu-list-command", "/섬 권한목록")));
+            inventory.setItem(47, item(Material.CLOCK, message(messages, "permission-menu-refresh-name", "새로고침"), message(messages, "permission-menu-refresh-command", "/섬 권한")));
+            inventory.setItem(48, item(Material.COMPARATOR, message(messages, "permission-menu-settings-name", "설정"), message(messages, "permission-menu-settings-command", "/섬 설정")));
+            inventory.setItem(53, item(Material.NAME_TAG, message(messages, "permission-menu-role-name", "역할 설정"), message(messages, "permission-menu-role-command", "/섬 역할")));
             int summarySlot = 49;
             for (Rule rule : rules.stream().limit(5).toList()) {
                 inventory.setItem(summarySlot++, ruleItem(rule.role(), rule.permission(), rule.allowed(), messages));

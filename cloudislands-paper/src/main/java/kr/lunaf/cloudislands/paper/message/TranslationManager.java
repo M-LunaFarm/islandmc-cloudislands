@@ -478,6 +478,16 @@ public final class TranslationManager {
         values.put("permission-menu-default", "기본값");
         values.put("permission-menu-allow", "허용");
         values.put("permission-menu-deny", "차단");
+        values.put("permission-menu-all-names-name", "전체 권한 이름");
+        values.put("permission-menu-all-names-command", "/섬 권한목록");
+        values.put("permission-menu-list-name", "권한 목록");
+        values.put("permission-menu-list-command", "/섬 권한목록");
+        values.put("permission-menu-refresh-name", "새로고침");
+        values.put("permission-menu-refresh-command", "/섬 권한");
+        values.put("permission-menu-settings-name", "설정");
+        values.put("permission-menu-settings-command", "/섬 설정");
+        values.put("permission-menu-role-name", "역할 설정");
+        values.put("permission-menu-role-command", "/섬 역할");
         values.put("permission-menu-current-state", "현재 상태: ");
         values.put("permission-menu-click-actions", "좌클릭: 허용, 우클릭: 차단");
         values.put("member-menu-load-failed", "섬 멤버를 불러오지 못했습니다.");
