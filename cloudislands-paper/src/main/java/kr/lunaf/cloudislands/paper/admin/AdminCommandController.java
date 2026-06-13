@@ -791,6 +791,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                     default -> fallback;
                 };
             }
+            if (current instanceof IOException) {
+                return "현재 섬 서비스 일부 기능이 점검 중입니다.";
+            }
             current = current.getCause();
         }
         return fallback;
@@ -812,7 +815,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 message(player, failureMessage);
             }
         }).exceptionally(error -> {
-            message(player, failureMessage);
+            message(player, routeFailureMessage(error, failureMessage));
             return null;
         }), CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS));
     }
@@ -821,7 +824,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         coreApiClient.publishRouteSession(ticket)
             .thenRun(() -> connectWithTicket(player, ticket, ticket.payload().getOrDefault("targetServerName", ticket.targetNode())))
             .exceptionally(error -> {
-                message(player, failureMessage);
+                message(player, routeFailureMessage(error, failureMessage));
                 return null;
             });
     }
