@@ -105,14 +105,16 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         "ciadmin templates upsert <id> <name> [enabled|disabled] [minNodeVersion]",
         "ciadmin templates enable <id>",
         "ciadmin templates disable <id>",
+        "ciadmin reload"
+    );
+    private static final List<String> MIGRATION_HELP_COMMANDS = List.of(
         "ciadmin migrate-superiorskyblock2 scan [path]",
         "ciadmin migrate-superiorskyblock2 dryrun [path]",
         "ciadmin migrate-superiorskyblock2 dry-run [path]",
         "ciadmin migrate-superiorskyblock2 extract [outputPath]",
         "ciadmin migrate-superiorskyblock2 import <approvalToken>",
         "ciadmin migrate-superiorskyblock2 verify [path]",
-        "ciadmin migrate-superiorskyblock2 rollback [path]",
-        "ciadmin reload"
+        "ciadmin migrate-superiorskyblock2 rollback [path]"
     );
     private final CloudIslandsPaperAgent agent;
     private final CoreApiClient coreApiClient;
@@ -798,6 +800,15 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         return ROOT_COMMANDS.stream()
             .filter(command -> !command.equals("migrate-superiorskyblock2"))
             .toList();
+    }
+
+    private List<String> helpCommands() {
+        if (!superiorSkyblock2MigrationEnabled()) {
+            return HELP_COMMANDS;
+        }
+        List<String> commands = new ArrayList<>(HELP_COMMANDS);
+        commands.addAll(MIGRATION_HELP_COMMANDS);
+        return commands;
     }
 
     private String migrationMessage(String body) {
@@ -2153,12 +2164,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
 
     private void usage(CommandSender sender, String label, int page) {
         int pageSize = 12;
-        int maxPage = Math.max(1, (HELP_COMMANDS.size() + pageSize - 1) / pageSize);
+        int maxPage = Math.max(1, (helpCommands().size() + pageSize - 1) / pageSize);
         int safePage = Math.max(1, Math.min(page, maxPage));
         int from = (safePage - 1) * pageSize;
-        int to = Math.min(HELP_COMMANDS.size(), from + pageSize);
+        int to = Math.min(helpCommands().size(), from + pageSize);
         sender.sendMessage(adminText("admin-command-list-title", "CloudIslands 관리자 명령어 목록 ") + safePage + "/" + maxPage + adminText("admin-command-list-suffix", " - 1 line > 1 command"));
-        for (String command : HELP_COMMANDS.subList(from, to)) {
+        for (String command : helpCommands().subList(from, to)) {
             sender.sendMessage("> /" + command.replaceFirst("^ciadmin", label));
         }
         if (safePage < maxPage) {
