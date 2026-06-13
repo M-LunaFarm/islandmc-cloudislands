@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
+import kr.lunaf.cloudislands.api.event.CloudEvent;
 import kr.lunaf.cloudislands.api.model.AuditLogSnapshot;
 import kr.lunaf.cloudislands.api.model.BlockValueSnapshot;
 import kr.lunaf.cloudislands.api.model.ClaimedIslandJobSnapshot;
@@ -86,6 +87,7 @@ import kr.lunaf.cloudislands.api.service.IslandQueryService;
 import kr.lunaf.cloudislands.api.service.IslandRoutingService;
 import kr.lunaf.cloudislands.api.service.IslandRuntimeService;
 import kr.lunaf.cloudislands.api.service.IslandStatusService;
+import kr.lunaf.cloudislands.api.service.IslandEventService.GlobalEventSubscription;
 import kr.lunaf.cloudislands.api.service.PlayerIslandService;
 import kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradePurchaseSnapshot;
@@ -124,7 +126,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         this.events = new EventService(client, agent.plugin());
         this.admin = new AdminService(client);
         this.commands = new CommandService(client);
-        this.addons = new AddonService(agent.plugin());
+        this.addons = new AddonService(agent.plugin(), events);
     }
 
     @Override
@@ -179,12 +181,16 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
     private static final class AddonService implements IslandAddonService {
         private final Plugin plugin;
+        private final IslandEventService events;
         private final Map<String, AddonRegistration> registrations = new ConcurrentHashMap<>();
         private final Map<String, CloudIslandsAddon> addonObjects = new ConcurrentHashMap<>();
         private final Map<String, CloudIslandsAddonSnapshot> addons = new ConcurrentHashMap<>();
+        private GlobalEventSubscription eventSubscription;
+        private boolean eventSubscriptionStarting;
 
-        private AddonService(Plugin plugin) {
+        private AddonService(Plugin plugin, IslandEventService events) {
             this.plugin = plugin;
+            this.events = events;
         }
 
         @Override
@@ -202,6 +208,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             AddonRegistration registration = new AddonRegistration(addon.addonId(), addon.addonDisplayName(), addon.addonVersion(), addon.enabledByDefault(), Instant.now(), Map.copyOf(addon.addonFeatures()), Map.copyOf(addon.addonMetadata()));
             registrations.put(addon.addonId(), registration);
             addonObjects.put(addon.addonId(), addon);
+            ensureEventSubscription();
             CloudIslandsAddonSnapshot snapshot = snapshot(registration);
             addons.put(addon.addonId(), snapshot);
             addon.onAddonRegistered(snapshot);
@@ -251,6 +258,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (addon != null) {
                 addon.onAddonUnregistered();
             }
+            stopEventSubscriptionIfIdle();
             return CompletableFuture.completedFuture(null);
         }
 
@@ -323,6 +331,56 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<Boolean> isEnabled(String id) {
             return CompletableFuture.completedFuture(Optional.ofNullable(addons.get(id)).map(CloudIslandsAddonSnapshot::enabled).orElse(false));
+        }
+
+        private synchronized void ensureEventSubscription() {
+            if (eventSubscription != null || eventSubscriptionStarting) {
+                return;
+            }
+            eventSubscriptionStarting = true;
+            events.listGlobalEventBatch(1).thenAccept(batch -> {
+                synchronized (this) {
+                    if (eventSubscription != null) {
+                        eventSubscriptionStarting = false;
+                        return;
+                    }
+                    eventSubscription = events.subscribeTypedGlobalEvents(batch.latestSequence(), 64, 20L, this::dispatchCloudEvents);
+                    eventSubscriptionStarting = false;
+                }
+            }).exceptionally(_error -> {
+                synchronized (this) {
+                    eventSubscriptionStarting = false;
+                }
+                return null;
+            });
+        }
+
+        private synchronized void stopEventSubscriptionIfIdle() {
+            if (!addonObjects.isEmpty() || eventSubscription == null) {
+                return;
+            }
+            eventSubscription.close();
+            eventSubscription = null;
+        }
+
+        private void dispatchCloudEvents(List<CloudEvent> events) {
+            if (events == null || events.isEmpty()) {
+                return;
+            }
+            List<CloudIslandsAddon> targets = List.copyOf(addonObjects.values());
+            for (CloudEvent event : events) {
+                for (CloudIslandsAddon addon : targets) {
+                    CloudIslandsAddonSnapshot snapshot = addons.get(addon.addonId());
+                    if (snapshot == null || !snapshot.enabled()) {
+                        continue;
+                    }
+                    try {
+                        addon.onCloudEvent(event);
+                    } catch (RuntimeException exception) {
+                        plugin.getLogger().warning("CloudIslands addon event callback failed for " + addon.addonId() + ": " + exception.getMessage());
+                    }
+                }
+            }
         }
 
         private record AddonRegistration(

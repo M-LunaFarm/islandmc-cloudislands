@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.api.event;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
@@ -23,12 +24,15 @@ public final class CloudEventMapper {
             case "ISLAND_CREATED" -> Optional.of(new IslandCreatedEvent(uuid(fields, "islandId"), uuid(fields, "ownerUuid"), occurredAt));
             case "ISLAND_DELETED" -> Optional.of(new IslandDeletedEvent(uuid(fields, "islandId"), longValue(fields, "snapshotNo"), occurredAt));
             case "ISLAND_ACTIVATED" -> Optional.of(new IslandActivatedEvent(uuid(fields, "islandId"), text(fields, "nodeId"), text(fields, "worldName"), occurredAt));
+            case "ISLAND_DEACTIVATED" -> Optional.of(new IslandDeactivateEvent(uuid(fields, "islandId"), text(fields, "nodeId"), occurredAt));
             case "ISLAND_MIGRATED" -> Optional.of(new IslandMigratedEvent(uuid(fields, "islandId"), text(fields, "fromNode"), firstText(fields, "toNode", "targetNode"), longValue(fields, "fencingToken"), occurredAt));
             case "ISLAND_MEMBER_CHANGED" -> Optional.of(new IslandMemberChangedEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), text(fields, "action"), role(fields, "oldRole"), firstRole(fields, "newRole", "role"), occurredAt));
             case "ISLAND_FLAG_CHANGED" -> Optional.of(new IslandFlagChangeEvent(uuid(fields, "islandId"), flag(fields, "flag"), text(fields, "value"), occurredAt));
+            case "ISLAND_PERMISSION_CHANGED" -> Optional.of(new IslandPermissionChangeEvent(uuid(fields, "islandId"), firstRole(fields, "role", "targetRole"), permission(fields, "permission"), nullableBool(fields, "allowed"), occurredAt));
             case "ISLAND_MISSION_PROGRESS" -> Optional.of(new IslandMissionProgressEvent(uuid(fields, "islandId"), text(fields, "missionKey"), text(fields, "kind"), longValue(fields, "progress"), longValue(fields, "goal"), longValue(fields, "amount"), bool(fields, "completed"), occurredAt));
             case "ISLAND_MISSION_COMPLETED" -> Optional.of(new IslandMissionCompleteEvent(uuid(fields, "islandId"), text(fields, "missionKey"), text(fields, "kind"), occurredAt));
             case "ISLAND_LEVEL_UPDATED" -> Optional.of(new IslandLevelRecalculateEvent(uuid(fields, "islandId"), longValue(fields, "level"), occurredAt));
+            case "ISLAND_WORTH_CHANGED" -> Optional.of(new IslandWorthChangeEvent(uuid(fields, "islandId"), decimal(fields, "worth"), occurredAt));
             case "ISLAND_SNAPSHOT_CREATED" -> Optional.of(new IslandSnapshotCreateEvent(uuid(fields, "islandId"), longValue(fields, "snapshotNo"), text(fields, "reason"), occurredAt));
             case "NODE_STATE_CHANGED" -> Optional.of(new NodeStateChangedEvent(text(fields, "nodeId"), text(fields, "state"), text(fields, "operation"), text(fields, "reason"), intValue(fields, "recoveryRequired"), occurredAt));
             case "ROUTE_TICKET_CREATED" -> Optional.of(new RouteTicketCreatedEvent(uuid(fields, "ticketId"), uuid(fields, "islandId"), uuid(fields, "playerUuid"), text(fields, "action"), text(fields, "targetNode"), text(fields, "state"), occurredAt));
@@ -110,8 +114,28 @@ public final class CloudEventMapper {
         }
     }
 
+    private static kr.lunaf.cloudislands.api.model.IslandPermission permission(Map<String, String> fields, String key) {
+        try {
+            return kr.lunaf.cloudislands.api.model.IslandPermission.valueOf(text(fields, key));
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
     private static IslandRole firstRole(Map<String, String> fields, String first, String second) {
         IslandRole value = role(fields, first);
         return value == null ? role(fields, second) : value;
+    }
+
+    private static BigDecimal decimal(Map<String, String> fields, String key) {
+        String value = text(fields, key);
+        if (value.isBlank()) {
+            return BigDecimal.ZERO;
+        }
+        try {
+            return new BigDecimal(value);
+        } catch (NumberFormatException ignored) {
+            return BigDecimal.ZERO;
+        }
     }
 }

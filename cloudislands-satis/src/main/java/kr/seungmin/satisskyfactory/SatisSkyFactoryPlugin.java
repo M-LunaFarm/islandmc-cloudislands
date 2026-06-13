@@ -3,6 +3,16 @@ package kr.seungmin.satisskyfactory;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddonBootstrap;
+import kr.lunaf.cloudislands.api.event.IslandActivatedEvent;
+import kr.lunaf.cloudislands.api.event.IslandCreatedEvent;
+import kr.lunaf.cloudislands.api.event.IslandDeactivateEvent;
+import kr.lunaf.cloudislands.api.event.IslandDeletedEvent;
+import kr.lunaf.cloudislands.api.event.IslandLevelRecalculateEvent;
+import kr.lunaf.cloudislands.api.event.IslandMemberChangedEvent;
+import kr.lunaf.cloudislands.api.event.IslandMigratedEvent;
+import kr.lunaf.cloudislands.api.event.IslandPermissionChangeEvent;
+import kr.lunaf.cloudislands.api.event.IslandSnapshotCreateEvent;
+import kr.lunaf.cloudislands.api.event.IslandWorthChangeEvent;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.seungmin.satisskyfactory.command.FactoryCommand;
 import kr.seungmin.satisskyfactory.config.ConfigService;
@@ -43,6 +53,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIslandsAddon {
     private static final String ADDON_ID = "cloudislands-satis";
@@ -527,6 +538,99 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     public void onAddonUnregistered() {
         addonRuntimeEnabled = false;
         effectiveFeatures = Map.of();
+    }
+
+    @Override
+    public void onIslandCreated(IslandCreatedEvent event) {
+        runSatisLifecycle(event.islandId(), () -> {
+            islands.getOrCreate(new kr.seungmin.satisskyfactory.hook.IslandRef(null, event.islandId(), event.ownerUuid()));
+            storage.islandStorage(event.islandId());
+            synchronizeSatisIsland(event.islandId());
+        });
+    }
+
+    @Override
+    public void onIslandActivated(IslandActivatedEvent event) {
+        runSatisLifecycle(event.islandId(), () -> synchronizeSatisIsland(event.islandId()));
+    }
+
+    @Override
+    public void onIslandDeactivated(IslandDeactivateEvent event) {
+        runSatisLifecycle(event.islandId(), () -> flushSatisIsland(event.islandId()));
+    }
+
+    @Override
+    public void onIslandMigrated(IslandMigratedEvent event) {
+        runSatisLifecycle(event.islandId(), () -> synchronizeSatisIsland(event.islandId()));
+    }
+
+    @Override
+    public void onIslandDeleted(IslandDeletedEvent event) {
+        runSatisLifecycle(event.islandId(), () -> flushSatisIsland(event.islandId()));
+    }
+
+    @Override
+    public void onIslandMemberChanged(IslandMemberChangedEvent event) {
+        runSatisLifecycle(event.islandId(), () -> synchronizeSatisIsland(event.islandId()));
+    }
+
+    @Override
+    public void onIslandPermissionChanged(IslandPermissionChangeEvent event) {
+        runSatisLifecycle(event.islandId(), () -> synchronizeSatisIsland(event.islandId()));
+    }
+
+    @Override
+    public void onIslandLevelUpdated(IslandLevelRecalculateEvent event) {
+        runSatisLifecycle(event.islandId(), () -> synchronizeSatisIsland(event.islandId()));
+    }
+
+    @Override
+    public void onIslandWorthChanged(IslandWorthChangeEvent event) {
+        runSatisLifecycle(event.islandId(), () -> synchronizeSatisIsland(event.islandId()));
+    }
+
+    @Override
+    public void onIslandSnapshotCreated(IslandSnapshotCreateEvent event) {
+        runSatisLifecycle(event.islandId(), () -> flushSatisIsland(event.islandId()));
+    }
+
+    private void runSatisLifecycle(UUID islandId, Runnable action) {
+        if (islandId == null || database == null || !featureEnabled("lifecycle")) {
+            return;
+        }
+        getServer().getScheduler().runTask(this, () -> {
+            if (!isEnabled() || database == null || !featureEnabled("lifecycle")) {
+                return;
+            }
+            try {
+                action.run();
+            } catch (RuntimeException exception) {
+                getLogger().warning("CloudIslands lifecycle sync failed for " + islandId + ": " + exception.getMessage());
+            }
+        });
+    }
+
+    private void synchronizeSatisIsland(UUID islandId) {
+        if (islands == null) {
+            return;
+        }
+        islands.find(islandId).ifPresent(island -> {
+            if (maintenance != null && featureEnabled("maintenance")) {
+                maintenance.updateStatus(island);
+            }
+            if (machines != null && itemNetworks != null && power != null && featureEnabled("machines")) {
+                itemNetworks.rebuildIsland(islandId);
+                power.rebuildIsland(islandId);
+            }
+            islands.save(island);
+        });
+    }
+
+    private void flushSatisIsland(UUID islandId) {
+        if (dirtySaves != null) {
+            dirtySaves.flushSafely();
+        }
+        synchronizeSatisIsland(islandId);
     }
 
     private void stopRuntimeActivity() {
