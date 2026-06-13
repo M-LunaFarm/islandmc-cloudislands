@@ -1,6 +1,8 @@
 package kr.lunaf.cloudislands.paper;
 
 import kr.lunaf.cloudislands.api.model.IslandFlag;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import net.kyori.adventure.text.Component;
 import org.bukkit.GameMode;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Ambient;
@@ -23,9 +25,15 @@ import org.bukkit.event.player.PlayerToggleFlightEvent;
 
 public final class IslandGameplayFlagListener implements Listener {
     private final ProtectionController protection;
+    private final MessageRenderer messages;
 
     public IslandGameplayFlagListener(ProtectionController protection) {
+        this(protection, null);
+    }
+
+    public IslandGameplayFlagListener(ProtectionController protection, MessageRenderer messages) {
         this.protection = protection;
+        this.messages = messages;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -48,7 +56,11 @@ public final class IslandGameplayFlagListener implements Listener {
         if (!event.isFlying() || player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) {
             return;
         }
-        event.setCancelled(protection.islandAt(player.getLocation().getBlock()).isPresent() && !islandFlagAllowed(player.getLocation().getBlock(), IslandFlag.FLY));
+        boolean denied = protection.islandAt(player.getLocation().getBlock()).isPresent() && !islandFlagAllowed(player.getLocation().getBlock(), IslandFlag.FLY);
+        event.setCancelled(denied);
+        if (denied) {
+            player.sendActionBar(Component.text(message("flag-fly-denied", "이 섬에서는 비행할 수 없습니다.")));
+        }
     }
 
     @EventHandler
@@ -92,6 +104,10 @@ public final class IslandGameplayFlagListener implements Listener {
         Block block = victim.getLocation().getBlock();
         if (protection.islandAt(block).isPresent() && !islandFlagAllowed(block, IslandFlag.PVP)) {
             event.setCancelled(true);
+            Player attacker = attackingPlayer(event.getDamager());
+            if (attacker != null) {
+                attacker.sendActionBar(Component.text(message("flag-pvp-denied", "이 섬에서는 PVP가 비활성화되어 있습니다.")));
+            }
         }
     }
 
@@ -124,6 +140,14 @@ public final class IslandGameplayFlagListener implements Listener {
 
     private boolean islandFlagAllowed(Block block, IslandFlag flag) {
         return protection.islandAt(block).isPresent() && protection.checkSystemFlag(block, flag).allowed();
+    }
+
+    private String message(String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private void updateFlight(Player player) {
