@@ -249,10 +249,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return matches(ADDON_COMMANDS, args[1]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("addons") && (args[1].equalsIgnoreCase("info") || args[1].equalsIgnoreCase("feature") || args[1].equalsIgnoreCase("enable") || args[1].equalsIgnoreCase("disable") || args[1].equalsIgnoreCase("reload"))) {
-            return matches(List.of("cloudislands-satis"), args[2]);
+            return matches(addonIds(), args[2]);
         }
         if (args.length == 4 && args[0].equalsIgnoreCase("addons") && args[1].equalsIgnoreCase("feature")) {
-            return matches(ADDON_FEATURES, args[3]);
+            return matches(addonFeatureKeys(args[2]), args[3]);
         }
         if (args.length == 5 && args[0].equalsIgnoreCase("addons") && args[1].equalsIgnoreCase("feature")) {
             return matches(List.of("true", "false", "on", "off", "enabled", "disabled"), args[4]);
@@ -2248,5 +2248,35 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             names.add(player.getName());
         }
         return names;
+    }
+
+    private List<String> addonIds() {
+        CloudIslandsApi api = CloudIslandsProvider.get().orElse(null);
+        if (api == null) {
+            return List.of("cloudislands-satis");
+        }
+        try {
+            List<String> ids = api.addons().list().join().stream()
+                .map(CloudIslandsAddonSnapshot::id)
+                .toList();
+            return ids.isEmpty() ? List.of("cloudislands-satis") : ids;
+        } catch (RuntimeException exception) {
+            return List.of("cloudislands-satis");
+        }
+    }
+
+    private List<String> addonFeatureKeys(String addonId) {
+        CloudIslandsApi api = CloudIslandsProvider.get().orElse(null);
+        if (api == null) {
+            return ADDON_FEATURES;
+        }
+        try {
+            return api.addons().get(addonId).join()
+                .map(addon -> addon.features().keySet().stream().sorted().toList())
+                .filter(features -> !features.isEmpty())
+                .orElse(ADDON_FEATURES);
+        } catch (RuntimeException exception) {
+            return ADDON_FEATURES;
+        }
     }
 }
