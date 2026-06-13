@@ -164,6 +164,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         loadDefinitions();
         islands.load();
         machines.load();
+        logFeatureWarnings();
         if (featureEnabled("machines")) {
             rebuildNetworks();
         }
@@ -206,6 +207,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         configureSkyblockHook();
         boosts.configure(configs.main());
         loadDefinitions();
+        logFeatureWarnings();
         if (featureEnabled("machines")) {
             rebuildNetworks();
         }
@@ -896,6 +898,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             warnings.add("placeholderapi-not-installed");
         }
         return warnings.isEmpty() ? "none" : String.join(",", warnings);
+    }
+
+    private void logFeatureWarnings() {
+        String warnings = featureWarnings();
+        if (!warnings.equals("none")) {
+            getLogger().warning("CloudIslands Satis feature warnings: " + warnings);
+        }
     }
 
     private boolean configuredFeatureEnabled(String key) {
