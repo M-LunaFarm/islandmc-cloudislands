@@ -21,6 +21,7 @@ public final class ResourceNodeService {
     private final ConcurrentHashMap<UUID, List<ResourceNode>> nodesByIsland = new ConcurrentHashMap<>();
     private NodeGenerationService nodeGeneration;
     private DirtySaveService dirtySaves;
+    private boolean enabled;
     private boolean regenerationEnabled = true;
     private long minimumRegenerationIntervalMillis = 1000L;
 
@@ -29,6 +30,7 @@ public final class ResourceNodeService {
     }
 
     public void load(FileConfiguration config) {
+        enabled = true;
         this.nodeGeneration = new NodeGenerationService(config);
         regenerationEnabled = config.getBoolean("resource-nodes.regeneration.enabled",
                 config.getBoolean("regeneration.enabled", true));
@@ -37,6 +39,7 @@ public final class ResourceNodeService {
     }
 
     public void clear() {
+        enabled = false;
         nodesByIsland.clear();
         nodeGeneration = null;
         regenerationEnabled = false;
@@ -44,6 +47,9 @@ public final class ResourceNodeService {
     }
 
     public List<ResourceNode> nodes(UUID islandUuid) {
+        if (!enabled) {
+            return List.of();
+        }
         List<ResourceNode> nodes = nodesByIsland.computeIfAbsent(islandUuid, database::loadNodes);
         List<ResourceNode> regenerated = nodes.stream().map(this::regenerate).toList();
         if (regenerated != nodes) {
@@ -57,6 +63,9 @@ public final class ResourceNodeService {
     }
 
     public List<ResourceNode> generateIfMissing(UUID islandUuid, Location origin, Predicate<Location> insideIsland) {
+        if (!enabled) {
+            return List.of();
+        }
         List<ResourceNode> existing = nodes(islandUuid);
         if (!existing.isEmpty()) {
             return existing;
@@ -86,6 +95,9 @@ public final class ResourceNodeService {
     }
 
     public void save(ResourceNode node) {
+        if (!enabled) {
+            return;
+        }
         node.updatedAt(System.currentTimeMillis());
         cache(node);
         if (dirtySaves != null) {
@@ -100,6 +112,9 @@ public final class ResourceNodeService {
     }
 
     public boolean remapIslandWorld(UUID islandUuid, String worldName) {
+        if (!enabled) {
+            return false;
+        }
         if (worldName == null || worldName.isBlank()) {
             return false;
         }
