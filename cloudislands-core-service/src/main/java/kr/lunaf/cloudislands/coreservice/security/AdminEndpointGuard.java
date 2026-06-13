@@ -54,7 +54,10 @@ public final class AdminEndpointGuard {
 
     private AdminPermissionPolicy policy(HttpExchange exchange) {
         String raw = exchange.getRequestHeaders().getFirst("X-CloudIslands-Admin-Permissions");
-        if (raw == null || raw.isBlank() || raw.trim().equals("*")) {
+        if (raw == null || raw.isBlank()) {
+            return new AdminPermissionPolicy(EnumSet.noneOf(AdminPermission.class));
+        }
+        if (raw.trim().equals("*")) {
             return AdminPermissionPolicy.all();
         }
         Set<AdminPermission> permissions = EnumSet.noneOf(AdminPermission.class);
