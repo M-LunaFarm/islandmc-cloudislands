@@ -375,7 +375,10 @@ public final class CloudIslandsCoreApplication {
                 return;
             }
             try {
-                write(exchange, 202, addonStateJson(addonStates.put(addonId, key, value)));
+                Map<String, String> state = addonStates.put(addonId, key, value);
+                audit.log(new UUID(0L, 0L), "API", "ADDON_STATE_SET", "ADDON", addonId, Map.of("key", key));
+                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "operation", "SET", "key", key));
+                write(exchange, 202, addonStateJson(state));
             } catch (IllegalArgumentException exception) {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
@@ -389,7 +392,10 @@ public final class CloudIslandsCoreApplication {
                 return;
             }
             try {
-                write(exchange, 202, addonStateJson(addonStates.remove(addonId, key)));
+                Map<String, String> state = addonStates.remove(addonId, key);
+                audit.log(new UUID(0L, 0L), "API", "ADDON_STATE_REMOVE", "ADDON", addonId, Map.of("key", key));
+                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "operation", "REMOVE", "key", key));
+                write(exchange, 202, addonStateJson(state));
             } catch (IllegalArgumentException exception) {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
@@ -403,6 +409,8 @@ public final class CloudIslandsCoreApplication {
             }
             try {
                 addonStates.clear(addonId);
+                audit.log(new UUID(0L, 0L), "API", "ADDON_STATE_CLEAR", "ADDON", addonId, Map.of());
+                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "operation", "CLEAR"));
                 write(exchange, 202, addonStateJson(Map.of()));
             } catch (IllegalArgumentException exception) {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
