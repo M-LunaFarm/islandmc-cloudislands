@@ -36,12 +36,13 @@ public final class PrometheusMetricsRenderer {
     private final BooleanSupplier adminApiEnabled;
     private final BooleanSupplier mtlsRequired;
     private final BooleanSupplier ipAllowlistEnabled;
+    private final BooleanSupplier publicBindWithoutIpAllowlist;
 
     public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures) {
-        this(nodes, jobs, tickets, runtimes, events, heartbeatTimeout, databaseQuerySeconds, databaseActiveConnections, databaseOpenedConnections, databaseConnectionFailures, databaseQueryFailures, redisEventFailures, redisCacheFailures, () -> false, () -> false, () -> false, () -> false, () -> false);
+        this(nodes, jobs, tickets, runtimes, events, heartbeatTimeout, databaseQuerySeconds, databaseActiveConnections, databaseOpenedConnections, databaseConnectionFailures, databaseQueryFailures, redisEventFailures, redisCacheFailures, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false);
     }
 
-    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures, BooleanSupplier coreTokenConfigured, BooleanSupplier adminTokenConfigured, BooleanSupplier adminApiEnabled, BooleanSupplier mtlsRequired, BooleanSupplier ipAllowlistEnabled) {
+    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures, BooleanSupplier coreTokenConfigured, BooleanSupplier adminTokenConfigured, BooleanSupplier adminApiEnabled, BooleanSupplier mtlsRequired, BooleanSupplier ipAllowlistEnabled, BooleanSupplier publicBindWithoutIpAllowlist) {
         this.nodes = nodes;
         this.jobs = jobs;
         this.tickets = tickets;
@@ -60,6 +61,7 @@ public final class PrometheusMetricsRenderer {
         this.adminApiEnabled = adminApiEnabled;
         this.mtlsRequired = mtlsRequired;
         this.ipAllowlistEnabled = ipAllowlistEnabled;
+        this.publicBindWithoutIpAllowlist = publicBindWithoutIpAllowlist;
     }
 
     public String render() {
@@ -147,6 +149,9 @@ public final class PrometheusMetricsRenderer {
         help(out, "cloudislands_core_ip_allowlist_enabled", "Whether Core API IP allowlist is configured");
         type(out, "cloudislands_core_ip_allowlist_enabled", "gauge");
         out.append("cloudislands_core_ip_allowlist_enabled ").append(ipAllowlistEnabled.getAsBoolean() ? 1 : 0).append('\n');
+        help(out, "cloudislands_core_public_bind_without_ip_allowlist", "Whether Core API is publicly bound without an IP allowlist");
+        type(out, "cloudislands_core_public_bind_without_ip_allowlist", "gauge");
+        out.append("cloudislands_core_public_bind_without_ip_allowlist ").append(publicBindWithoutIpAllowlist.getAsBoolean() ? 1 : 0).append('\n');
         Instant now = Instant.now();
         long onlineNodes = 0L;
         long totalPlayers = 0L;
