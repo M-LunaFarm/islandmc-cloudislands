@@ -88,7 +88,9 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                           MaintenanceService maintenance, ResearchService research, IslandBoostService boosts,
                           PowerNetworkService power, FactoryGuiService gui, CustomItemFactory itemFactory,
                           ItemRegistry items, MessageService messages, Predicate<String> featureEnabled,
-                          Supplier<Map<String, String>> integrationMetadata, Runnable reload) {
+                          Supplier<Map<String, String>> integrationMetadata,
+                          Supplier<Map<String, String>> addonState,
+                          Runnable reload) {
         this.islands = islands;
         this.machines = machines;
         this.storage = storage;
@@ -106,7 +108,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         this.messages = messages;
         this.featureEnabled = featureEnabled;
         this.adminCommand = new AdminFactoryCommand(islands, machines, definitions, storage, nodes, skyblock,
-                maintenance, research, power, itemFactory, items, messages, featureEnabled, integrationMetadata, reload);
+                maintenance, research, power, itemFactory, items, messages, featureEnabled, integrationMetadata, addonState, reload);
     }
 
     @Override

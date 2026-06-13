@@ -488,6 +488,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 messages,
                 this::featureEnabled,
                 this::addonMetadata,
+                this::addonStateSnapshot,
                 this::reloadPluginConfig
         );
         PluginCommand factory = getCommand("factory");
@@ -760,6 +761,20 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 "cloudislands-api-only", "true",
                 "config-gated", "true"
         );
+    }
+
+    private Map<String, String> addonStateSnapshot() {
+        if (cloudIslandsApi == null) {
+            return addonMetadata();
+        }
+        try {
+            Map<String, String> state = cloudIslandsApi.addons().state(ADDON_ID).join();
+            return state == null || state.isEmpty() ? addonMetadata() : state;
+        } catch (RuntimeException exception) {
+            Map<String, String> fallback = new LinkedHashMap<>(addonMetadata());
+            fallback.put("core-state-error", exception.getMessage() == null ? exception.getClass().getSimpleName() : exception.getMessage());
+            return fallback;
+        }
     }
 
     private String featureAliasesMetadata() {

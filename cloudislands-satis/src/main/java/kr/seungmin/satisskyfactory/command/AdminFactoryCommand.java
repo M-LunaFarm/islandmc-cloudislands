@@ -56,6 +56,7 @@ public final class AdminFactoryCommand {
             "factory admin reload",
             "factory admin features",
             "factory admin integration",
+            "factory admin state",
             "factory admin give <player> <machineType> [amount]",
             "factory admin giveitem <player> <itemId> <amount>",
             "factory admin addresearch <player> <amount>",
@@ -81,6 +82,7 @@ public final class AdminFactoryCommand {
     private final MessageService messages;
     private final Predicate<String> featureEnabled;
     private final Supplier<Map<String, String>> integrationMetadata;
+    private final Supplier<Map<String, String>> addonState;
     private final Runnable reload;
 
     public AdminFactoryCommand(FactoryIslandService islands, MachineService machines, MachineDefinitionService definitions,
@@ -88,7 +90,9 @@ public final class AdminFactoryCommand {
                                MaintenanceService maintenance, ResearchService research, PowerNetworkService power,
                                CustomItemFactory itemFactory, ItemRegistry items,
                                MessageService messages, Predicate<String> featureEnabled,
-                               Supplier<Map<String, String>> integrationMetadata, Runnable reload) {
+                               Supplier<Map<String, String>> integrationMetadata,
+                               Supplier<Map<String, String>> addonState,
+                               Runnable reload) {
         this.islands = islands;
         this.machines = machines;
         this.definitions = definitions;
@@ -103,6 +107,7 @@ public final class AdminFactoryCommand {
         this.messages = messages;
         this.featureEnabled = featureEnabled;
         this.integrationMetadata = integrationMetadata;
+        this.addonState = addonState;
         this.reload = reload;
     }
 
@@ -133,6 +138,7 @@ public final class AdminFactoryCommand {
             }
             case "features" -> showFeatures(sender);
             case "integration" -> showIntegration(sender);
+            case "state" -> showAddonState(sender);
             case "give" -> {
                 if (requireFeature(sender, "machines")) {
                     giveMachine(sender, args);
@@ -203,6 +209,7 @@ public final class AdminFactoryCommand {
             values.add("debug");
             values.add("features");
             values.add("integration");
+            values.add("state");
             if (enabled("machines")) {
                 values.add("give");
                 values.add("giveitem");
@@ -483,6 +490,22 @@ public final class AdminFactoryCommand {
             metadata = Map.of("status", "unavailable", "error", exception.getMessage() == null ? "unknown" : exception.getMessage());
         }
         metadata.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                        "key", entry.getKey(),
+                        "value", entry.getValue()
+                ))));
+    }
+
+    private void showAddonState(CommandSender sender) {
+        sender.sendMessage(messages.raw("admin-integration-title"));
+        Map<String, String> state;
+        try {
+            state = addonState == null ? Map.of() : addonState.get();
+        } catch (RuntimeException exception) {
+            state = Map.of("status", "unavailable", "error", exception.getMessage() == null ? "unknown" : exception.getMessage());
+        }
+        state.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
                         "key", entry.getKey(),
