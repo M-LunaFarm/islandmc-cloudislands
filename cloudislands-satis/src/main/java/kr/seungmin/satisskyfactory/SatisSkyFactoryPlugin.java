@@ -855,7 +855,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (cloudIslandsApi == null || snapshot == null) {
             return;
         }
-        if (!featureEnabled("addon-state")) {
+        if (!addonStateReportingEnabled(snapshot)) {
             return;
         }
         Map<String, String> state = new LinkedHashMap<>();
@@ -881,7 +881,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void publishUnregisteredState() {
-        if (cloudIslandsApi == null || !featureEnabled("addon-state")) {
+        if (cloudIslandsApi == null || !configuredFeatureEnabled("addon-state")) {
             return;
         }
         Map<String, String> state = new LinkedHashMap<>();
@@ -1332,6 +1332,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private String featureWarnings() {
         return featureWarnings(featureSnapshot());
+    }
+
+    private boolean addonStateReportingEnabled(CloudIslandsAddonSnapshot snapshot) {
+        return snapshot.configuredFeatures().getOrDefault("addon-state", configuredFeatureEnabled("addon-state"));
     }
 
     private String featureWarnings(CloudIslandsAddonSnapshot snapshot) {
