@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 public final class FactoryCommand implements CommandExecutor, TabCompleter {
     private final FactoryIslandService islands;
@@ -54,6 +55,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     private final CustomItemFactory itemFactory;
     private final ItemRegistry items;
     private final MessageService messages;
+    private final Predicate<String> featureEnabled;
     private final AdminFactoryCommand adminCommand;
 
     public FactoryCommand(FactoryIslandService islands, MachineService machines, MachineDefinitionService definitions,
@@ -61,7 +63,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                           MarketService market, ContractService contracts,
                           MaintenanceService maintenance, ResearchService research, IslandBoostService boosts,
                           PowerNetworkService power, FactoryGuiService gui, CustomItemFactory itemFactory,
-                          ItemRegistry items, MessageService messages, Runnable reload) {
+                          ItemRegistry items, MessageService messages, Predicate<String> featureEnabled, Runnable reload) {
         this.islands = islands;
         this.machines = machines;
         this.storage = storage;
@@ -77,6 +79,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         this.itemFactory = itemFactory;
         this.items = items;
         this.messages = messages;
+        this.featureEnabled = featureEnabled;
         this.adminCommand = new AdminFactoryCommand(islands, machines, definitions, storage, nodes, skyblock,
                 maintenance, research, power, itemFactory, items, messages, reload);
     }
@@ -98,20 +101,50 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         String sub = args.length == 0 ? "main" : args[0].toLowerCase(Locale.ROOT);
         FactoryContext factoryContext = context.get();
         FactoryIsland island = factoryContext.factoryIsland();
-        ensureResourceNodes(player, factoryContext);
-        maintenance.chargeIfDue(island, player, factoryContext.islandRef().raw());
+        if (enabled("resource-nodes")) {
+            ensureResourceNodes(player, factoryContext);
+        }
+        if (enabled("maintenance")) {
+            maintenance.chargeIfDue(island, player, factoryContext.islandRef().raw());
+        }
         islands.save(island);
         switch (sub) {
             case "help" -> help(player);
-            case "main" -> gui.openMain(player, island, machines.byIsland(island.islandUuid()).size(), power.state(island.islandUuid()), boosts.boosts(island.islandUuid()));
+            case "main" -> {
+                if (requireFeature(player, "gui")) {
+                    gui.openMain(player, island, machines.byIsland(island.islandUuid()).size(), power.state(island.islandUuid()), boosts.boosts(island.islandUuid()));
+                }
+            }
             case "status" -> status(player, island);
-            case "machines" -> messages.send(player, "machines-count",
-                    Map.of("count", String.valueOf(machines.byIsland(island.islandUuid()).size())));
-            case "storage" -> gui.openStorage(player, island);
-            case "deposit" -> depositHand(player, island);
-            case "withdraw" -> withdraw(player, island, args);
-            case "market" -> gui.openMarket(player, island, market);
+            case "machines" -> {
+                if (requireFeature(player, "machines")) {
+                    messages.send(player, "machines-count", Map.of("count", String.valueOf(machines.byIsland(island.islandUuid()).size())));
+                }
+            }
+            case "storage" -> {
+                if (requireFeature(player, "gui")) {
+                    gui.openStorage(player, island);
+                }
+            }
+            case "deposit" -> {
+                if (requireFeature(player, "machines")) {
+                    depositHand(player, island);
+                }
+            }
+            case "withdraw" -> {
+                if (requireFeature(player, "machines")) {
+                    withdraw(player, island, args);
+                }
+            }
+            case "market" -> {
+                if (requireFeature(player, "market") && requireFeature(player, "gui")) {
+                    gui.openMarket(player, island, market);
+                }
+            }
             case "contracts" -> {
+                if (!requireFeature(player, "contracts")) {
+                    return true;
+                }
                 if (args.length > 1 && args[1].equalsIgnoreCase("complete")) {
                     contracts.completeAny(island, player).ifPresentOrElse(active -> {
                         refreshMaintenanceStatus(island);
@@ -121,8 +154,15 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                     gui.openContracts(player, island, contracts);
                 }
             }
-            case "research" -> research(player, island, args);
+            case "research" -> {
+                if (requireFeature(player, "research")) {
+                    research(player, island, args);
+                }
+            }
             case "emergency" -> {
+                if (!requireFeature(player, "contracts")) {
+                    return true;
+                }
                 if (args.length > 1 && args[1].equalsIgnoreCase("complete")) {
                     if (contracts.completeEmergency(island, player)) {
                         maintenance.updateStatus(island);
@@ -136,14 +176,25 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                 }
             }
             case "node" -> {
+                if (!requireFeature(player, "resource-nodes")) {
+                    return true;
+                }
                 if (args.length > 1 && args[1].equalsIgnoreCase("scan")) {
                     nodes.generateIfMissing(island.islandUuid(), player.getLocation(), location -> isInsideIsland(location, island))
                             .forEach(node -> messages.send(player, "node-scan-result",
                                     Map.of("item", node.resourceId(), "location", node.location().databaseKey())));
                 }
             }
-            case "sell" -> sell(player, island, args);
-            case "repair" -> repairTarget(player, island);
+            case "sell" -> {
+                if (requireFeature(player, "market")) {
+                    sell(player, island, args);
+                }
+            }
+            case "repair" -> {
+                if (requireFeature(player, "maintenance")) {
+                    repairTarget(player, island);
+                }
+            }
             default -> help(player);
         }
         return true;
@@ -352,6 +403,18 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     private void help(Player player) {
         messages.send(player, "help-main");
         messages.send(player, "help-actions");
+    }
+
+    private boolean enabled(String feature) {
+        return featureEnabled == null || featureEnabled.test(feature);
+    }
+
+    private boolean requireFeature(Player player, String feature) {
+        if (enabled(feature)) {
+            return true;
+        }
+        messages.send(player, "feature-disabled", Map.of("feature", feature));
+        return false;
     }
 
     private void repairTarget(Player player, FactoryIsland island) {

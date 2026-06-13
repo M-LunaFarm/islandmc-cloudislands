@@ -300,6 +300,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
                 itemFactory,
                 itemRegistry,
                 messages,
+                this::featureEnabled,
                 this::reloadPluginConfig
         );
         PluginCommand factory = getCommand("factory");
