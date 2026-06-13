@@ -593,14 +593,16 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 return state(safeId);
             }
             Map<String, String> localState = new HashMap<>(readAddonState(safeId));
+            Map<String, String> changedState = new HashMap<>();
             values.forEach((key, value) -> {
                 if (key != null && !key.isBlank() && value != null) {
                     localState.put(key, value);
+                    changedState.put(key, value);
                 }
             });
             writeAddonState(safeId, localState);
             CompletableFuture<Map<String, String>> result = CompletableFuture.completedFuture(Map.copyOf(localState));
-            for (Map.Entry<String, String> entry : localState.entrySet()) {
+            for (Map.Entry<String, String> entry : changedState.entrySet()) {
                 result = result.thenCompose(_ignored -> coreClient.putAddonState(safeId, entry.getKey(), entry.getValue()).thenApply(this::stateFromJson));
             }
             return result
