@@ -17,7 +17,8 @@ public interface IslandAddonService {
     CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled, Map<String, Boolean> features, Map<String, String> metadata);
 
     default CompletableFuture<CloudIslandsAddonSnapshot> register(CloudIslandsAddon addon) {
-        return register(safeAddonId(addon), safeAddonDisplayName(addon), safeAddonVersion(addon), safeAddonEnabledByDefault(addon), safeAddonFeatures(addon), safeAddonMetadata(addon))
+        String id = safeAddonId(addon);
+        return register(id, safeAddonDisplayName(addon, id), safeAddonVersion(addon), safeAddonEnabledByDefault(addon), safeAddonFeatures(addon), safeAddonMetadata(addon))
             .thenApply(snapshot -> {
                 try {
                     addon.onAddonRegistered(snapshot);
@@ -37,12 +38,12 @@ public interface IslandAddonService {
         }
     }
 
-    private static String safeAddonDisplayName(CloudIslandsAddon addon) {
+    private static String safeAddonDisplayName(CloudIslandsAddon addon, String id) {
         try {
             String displayName = addon.addonDisplayName();
-            return displayName == null || displayName.isBlank() ? safeAddonId(addon) : displayName;
+            return displayName == null || displayName.isBlank() ? id : displayName;
         } catch (RuntimeException ignored) {
-            return safeAddonId(addon);
+            return id;
         }
     }
 
@@ -74,8 +75,8 @@ public interface IslandAddonService {
     private static Map<String, String> safeAddonMetadata(CloudIslandsAddon addon) {
         try {
             return Map.copyOf(addon.addonMetadata());
-        } catch (RuntimeException ignored) {
-            return Map.of("metadata-error", "RuntimeException");
+        } catch (RuntimeException exception) {
+            return Map.of("metadata-error", exception.getClass().getSimpleName());
         }
     }
 

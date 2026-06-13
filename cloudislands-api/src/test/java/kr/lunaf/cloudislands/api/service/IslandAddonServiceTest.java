@@ -25,7 +25,7 @@ class IslandAddonServiceTest {
         assertEquals("unknown", snapshot.version());
         assertFalse(snapshot.enabled());
         assertEquals(Map.of(), snapshot.features());
-        assertEquals("RuntimeException", snapshot.metadata().get("metadata-error"));
+        assertEquals("IllegalStateException", snapshot.metadata().get("metadata-error"));
     }
 
     private static final class BrokenAddon implements CloudIslandsAddon {
