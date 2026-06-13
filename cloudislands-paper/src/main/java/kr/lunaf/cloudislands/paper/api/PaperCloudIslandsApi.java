@@ -472,6 +472,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             String safeId = safeRegistrationId(id);
             registrations.remove(safeId);
             addons.remove(safeId);
+            addonStates.remove(safeId);
             CloudIslandsAddon addon = addonObjects.remove(safeId);
             if (addon != null) {
                 notifyUnregistered(addon);
