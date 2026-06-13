@@ -34,6 +34,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 public final class FactoryGuiService {
     private final StorageService storage;
@@ -44,10 +45,11 @@ public final class FactoryGuiService {
     private final ResearchService research;
     private final EconomyService economy;
     private final MessageService messages;
+    private final Predicate<String> featureEnabled;
 
     public FactoryGuiService(StorageService storage, ItemRegistry items, MachineDefinitionService definitions,
                              RecipeService recipes, FactoryIslandService islands, ResearchService research,
-                             EconomyService economy, MessageService messages) {
+                             EconomyService economy, MessageService messages, Predicate<String> featureEnabled) {
         this.storage = storage;
         this.items = items;
         this.definitions = definitions;
@@ -56,6 +58,7 @@ public final class FactoryGuiService {
         this.research = research;
         this.economy = economy;
         this.messages = messages;
+        this.featureEnabled = featureEnabled;
     }
 
     public void openMain(Player player, FactoryIsland island, int machineCount, PowerNetworkService.NetworkState powerState,
@@ -76,27 +79,39 @@ public final class FactoryGuiService {
                 List.of(ChatColor.GRAY + "Debt: " + island.maintenanceDebt(),
                         ChatColor.GRAY + "Status: " + island.maintenanceStatus(),
                         ChatColor.GRAY + "Reputation: " + island.reputation())));
-        inventory.setItem(16, icon(Material.EXPERIENCE_BOTTLE, ChatColor.AQUA + "Research",
-                List.of(ChatColor.GRAY + "Points: " + island.researchPoints(),
-                        ChatColor.GRAY + "Agriculture x" + NumberFormatter.ratio(boosts.agricultureBoost()),
-                        ChatColor.GRAY + "Machine slots +" + boosts.factorySlotBonus(),
-                        ChatColor.GRAY + "Contract slots +" + boosts.contractSlotBonus())));
+        if (enabled("research")) {
+            holder.action(16, "main_research", "");
+            inventory.setItem(16, icon(Material.EXPERIENCE_BOTTLE, ChatColor.AQUA + "Research",
+                    List.of(ChatColor.GRAY + "Points: " + island.researchPoints(),
+                            ChatColor.GRAY + "Agriculture x" + NumberFormatter.ratio(boosts.agricultureBoost()),
+                            ChatColor.GRAY + "Machine slots +" + boosts.factorySlotBonus(),
+                            ChatColor.GRAY + "Contract slots +" + boosts.contractSlotBonus())));
+        }
         if (player.hasPermission("satisskyfactory.admin")) {
             holder.action(8, "main_admin", "");
             inventory.setItem(8, icon(Material.COMMAND_BLOCK, ChatColor.RED + "Admin",
                     List.of(ChatColor.GRAY + "Open factory administration.")));
         }
-        holder.action(16, "main_research", "");
-        holder.action(20, "main_contracts", "");
-        inventory.setItem(20, icon(Material.WRITABLE_BOOK, ChatColor.GOLD + "Contracts",
-                List.of(ChatColor.GRAY + "Open delivery contracts.")));
-        holder.action(22, "main_market", "");
-        inventory.setItem(22, icon(Material.EMERALD, ChatColor.GREEN + "Market",
-                List.of(ChatColor.GRAY + "Sell stored factory items.")));
-        holder.action(24, "main_storage", "");
-        inventory.setItem(24, icon(Material.CHEST, ChatColor.YELLOW + "Storage",
-                List.of(ChatColor.GRAY + "Browse island virtual storage.")));
+        if (enabled("contracts")) {
+            holder.action(20, "main_contracts", "");
+            inventory.setItem(20, icon(Material.WRITABLE_BOOK, ChatColor.GOLD + "Contracts",
+                    List.of(ChatColor.GRAY + "Open delivery contracts.")));
+        }
+        if (enabled("market")) {
+            holder.action(22, "main_market", "");
+            inventory.setItem(22, icon(Material.EMERALD, ChatColor.GREEN + "Market",
+                    List.of(ChatColor.GRAY + "Sell stored factory items.")));
+        }
+        if (enabled("machines")) {
+            holder.action(24, "main_storage", "");
+            inventory.setItem(24, icon(Material.CHEST, ChatColor.YELLOW + "Storage",
+                    List.of(ChatColor.GRAY + "Browse island virtual storage.")));
+        }
         player.openInventory(inventory);
+    }
+
+    private boolean enabled(String feature) {
+        return featureEnabled == null || featureEnabled.test(feature);
     }
 
     public void openAdmin(Player player, FactoryIsland island, int machineCount, PowerNetworkService.NetworkState powerState) {
