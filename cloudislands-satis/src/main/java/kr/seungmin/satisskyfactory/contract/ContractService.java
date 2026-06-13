@@ -44,6 +44,7 @@ public final class ContractService {
     private int storySlots;
     private int marketSlots;
     private int emergencyDailyLimit;
+    private boolean active;
     private Set<String> boostedSlotTypes = Set.of("DAILY", "WEEKLY", "STORY", "MARKET");
 
     public ContractService(StorageService storage, EconomyService economy, DatabaseService database, IslandBoostService boosts,
@@ -57,6 +58,7 @@ public final class ContractService {
 
     public void load(FileConfiguration config) {
         templates.clear();
+        active = true;
         emergency = null;
         dailySlots = Math.max(1, config.getInt("contracts.daily_slots",
                 config.getInt("contracts.daily-slots-base", 3)));
@@ -82,6 +84,7 @@ public final class ContractService {
 
     public void clear() {
         templates.clear();
+        active = false;
         emergency = null;
         dailySlots = 0;
         weeklySlots = 0;
@@ -92,6 +95,9 @@ public final class ContractService {
     }
 
     public List<ActiveContract> activeContracts(FactoryIsland island) {
+        if (!active) {
+            return List.of();
+        }
         expireOldContracts(island);
         ensureDailyContracts(island);
         return database.loadContracts(island.islandUuid(), "ACTIVE").stream()
@@ -118,6 +124,9 @@ public final class ContractService {
     }
 
     public boolean completeEmergency(FactoryIsland island, OfflinePlayer owner) {
+        if (!active) {
+            return false;
+        }
         if (!maintenanceEnabled.getAsBoolean()) {
             return false;
         }
@@ -146,6 +155,9 @@ public final class ContractService {
     }
 
     public Optional<ContractTemplate> emergencyTemplate() {
+        if (!active) {
+            return Optional.empty();
+        }
         if (!maintenanceEnabled.getAsBoolean()) {
             return Optional.empty();
         }
@@ -153,14 +165,23 @@ public final class ContractService {
     }
 
     public int emergencyUsedToday(FactoryIsland island) {
+        if (!active) {
+            return 0;
+        }
         return database.countContracts(island.islandUuid(), "EMERGENCY", "COMPLETED", startOfToday());
     }
 
     public int emergencyDailyLimit() {
+        if (!active) {
+            return 0;
+        }
         return emergencyDailyLimit;
     }
 
     public Map<String, ContractTemplate> templates() {
+        if (!active) {
+            return Map.of();
+        }
         return Map.copyOf(templates);
     }
 
