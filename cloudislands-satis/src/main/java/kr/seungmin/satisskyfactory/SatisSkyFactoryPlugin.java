@@ -103,6 +103,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     public void onEnable() {
         configs = new ConfigService(this);
         configs.load();
+        messages = new MessageService(configs);
         addonRuntimeEnabled = false;
         effectiveFeatures = Map.of();
         if (!registerCloudIslandsAddon()) {
@@ -117,8 +118,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             applyAddonRuntimeState();
             return;
         }
-        messages = new MessageService(configs);
-
         skyblock = createSkyblockProvider();
         if (!skyblock.enable()) {
             getServer().getPluginManager().disablePlugin(this);
@@ -523,10 +522,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             addonRuntimeEnabled = true;
             return true;
         }
-        CloudIslandsAddonSnapshot addon = register(cloudIslandsApi).join();
-        getLogger().info("Registered CloudIslands addon: " + addon.id() + " enabled=" + addon.enabled());
-        if (!addon.enabled()) {
-            getLogger().info("CloudIslands disabled this addon through the parent config.");
+        try {
+            CloudIslandsAddonSnapshot addon = register(cloudIslandsApi).join();
+            getLogger().info("Registered CloudIslands addon: " + addon.id() + " enabled=" + addon.enabled());
+            if (!addon.enabled()) {
+                getLogger().info("CloudIslands disabled this addon through the parent config.");
+                return false;
+            }
+        } catch (RuntimeException exception) {
+            getLogger().warning("Failed to register CloudIslands Satis addon: " + exception.getMessage());
+            addonRuntimeEnabled = false;
             return false;
         }
         return true;
@@ -617,6 +622,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     public void onAddonUnregistered() {
         addonRuntimeEnabled = false;
         effectiveFeatures = Map.of();
+        stopRuntimeActivity();
     }
 
     @Override
