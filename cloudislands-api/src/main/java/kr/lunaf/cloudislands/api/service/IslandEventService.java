@@ -1,7 +1,13 @@
 package kr.lunaf.cloudislands.api.service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import kr.lunaf.cloudislands.api.event.CloudEvent;
 import kr.lunaf.cloudislands.api.event.CloudEventMapper;
@@ -13,7 +19,34 @@ public interface IslandEventService {
     CompletableFuture<List<GlobalEventSnapshot>> listGlobalEvents(int limit);
     CompletableFuture<List<GlobalEventSnapshot>> listGlobalEventsSince(long sinceSeq, int limit);
     default GlobalEventSubscription subscribeGlobalEvents(long sinceSeq, int limit, long intervalTicks, Consumer<List<GlobalEventSnapshot>> listener) {
-        throw new UnsupportedOperationException("Global event subscription is not available");
+        Objects.requireNonNull(listener, "listener");
+        AtomicLong cursor = new AtomicLong(Math.max(0L, sinceSeq));
+        int safeLimit = Math.max(1, limit);
+        long safeIntervalMillis = Math.max(50L, Math.max(1L, intervalTicks) * 50L);
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(task -> {
+            Thread thread = new Thread(task, "cloudislands-api-events");
+            thread.setDaemon(true);
+            return thread;
+        });
+        ScheduledFuture<?> future = executor.scheduleWithFixedDelay(() ->
+            listGlobalEventsSince(cursor.get(), safeLimit)
+                .thenAccept(events -> {
+                    long previousSequence = cursor.get();
+                    List<GlobalEventSnapshot> freshEvents = events.stream()
+                        .filter(event -> event.sequence() > previousSequence)
+                        .toList();
+                    if (freshEvents.isEmpty()) {
+                        return;
+                    }
+                    long latestSequence = freshEvents.stream().mapToLong(GlobalEventSnapshot::sequence).max().orElse(previousSequence);
+                    cursor.set(Math.max(cursor.get(), latestSequence));
+                    listener.accept(List.copyOf(freshEvents));
+                })
+                .exceptionally(_error -> null), 0L, safeIntervalMillis, TimeUnit.MILLISECONDS);
+        return () -> {
+            future.cancel(false);
+            executor.shutdownNow();
+        };
     }
 
     default GlobalEventSubscription subscribeGlobalEvents(Consumer<List<GlobalEventSnapshot>> listener) {
