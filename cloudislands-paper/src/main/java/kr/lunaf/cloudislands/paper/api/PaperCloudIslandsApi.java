@@ -178,6 +178,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
     private static final class AddonService implements IslandAddonService {
         private final Plugin plugin;
+        private final Map<String, AddonRegistration> registrations = new ConcurrentHashMap<>();
         private final Map<String, CloudIslandsAddonSnapshot> addons = new ConcurrentHashMap<>();
 
         private AddonService(Plugin plugin) {
@@ -186,10 +187,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled, Map<String, Boolean> features) {
-            boolean configEnabled = plugin.getConfig().getBoolean("addons." + id + ".enabled", true);
-            CloudIslandsAddonSnapshot snapshot = new CloudIslandsAddonSnapshot(id, displayName, version, enabled && configEnabled, Instant.now(), effectiveFeatures(id, features));
+            AddonRegistration registration = new AddonRegistration(id, displayName, version, enabled, Map.copyOf(features == null ? Map.of() : features));
+            registrations.put(id, registration);
+            CloudIslandsAddonSnapshot snapshot = snapshot(registration);
             addons.put(id, snapshot);
             return CompletableFuture.completedFuture(snapshot);
+        }
+
+        private CloudIslandsAddonSnapshot snapshot(AddonRegistration registration) {
+            String id = registration.id();
+            boolean configEnabled = plugin.getConfig().getBoolean("addons." + id + ".enabled", true);
+            return new CloudIslandsAddonSnapshot(id, registration.displayName(), registration.version(), registration.enabled() && configEnabled, Instant.now(), effectiveFeatures(id, registration.features()));
         }
 
         private Map<String, Boolean> effectiveFeatures(String id, Map<String, Boolean> features) {
@@ -206,6 +214,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<Void> unregister(String id) {
+            registrations.remove(id);
             addons.remove(id);
             return CompletableFuture.completedFuture(null);
         }
@@ -223,9 +232,34 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
+        public CompletableFuture<Optional<CloudIslandsAddonSnapshot>> refresh(String id) {
+            AddonRegistration registration = registrations.get(id);
+            if (registration == null) {
+                return CompletableFuture.completedFuture(Optional.empty());
+            }
+            CloudIslandsAddonSnapshot snapshot = snapshot(registration);
+            addons.put(id, snapshot);
+            return CompletableFuture.completedFuture(Optional.of(snapshot));
+        }
+
+        @Override
+        public CompletableFuture<List<CloudIslandsAddonSnapshot>> refreshAll() {
+            registrations.values().forEach(registration -> addons.put(registration.id(), snapshot(registration)));
+            return list();
+        }
+
+        @Override
         public CompletableFuture<Boolean> isEnabled(String id) {
             return CompletableFuture.completedFuture(Optional.ofNullable(addons.get(id)).map(CloudIslandsAddonSnapshot::enabled).orElse(false));
         }
+
+        private record AddonRegistration(
+            String id,
+            String displayName,
+            String version,
+            boolean enabled,
+            Map<String, Boolean> features
+        ) {}
     }
 
     private static final class QueryService implements IslandQueryService {

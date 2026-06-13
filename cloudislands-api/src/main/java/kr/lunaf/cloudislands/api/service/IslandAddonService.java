@@ -16,6 +16,14 @@ public interface IslandAddonService {
     CompletableFuture<List<CloudIslandsAddonSnapshot>> list();
     CompletableFuture<Boolean> isEnabled(String id);
 
+    default CompletableFuture<Optional<CloudIslandsAddonSnapshot>> refresh(String id) {
+        return get(id);
+    }
+
+    default CompletableFuture<List<CloudIslandsAddonSnapshot>> refreshAll() {
+        return list();
+    }
+
     default CompletableFuture<Map<String, Boolean>> features(String id) {
         return get(id).thenApply(addon -> addon.map(CloudIslandsAddonSnapshot::features).orElse(Map.of()));
     }
