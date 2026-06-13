@@ -29,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
 public final class AdminCommandController implements CommandExecutor, TabCompleter {
     private static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "config", "cache", "addons", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
-    private static final List<String> ADDON_COMMANDS = List.of("list", "info", "feature", "reload");
+    private static final List<String> ADDON_COMMANDS = List.of("list", "info", "feature", "enable", "disable", "reload");
     private static final List<String> ADDON_FEATURES = List.of("commands", "machines", "gui", "lifecycle", "resource-nodes", "market", "contracts", "research", "maintenance", "placeholders");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "islands", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
@@ -51,6 +51,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         "ciadmin addons list",
         "ciadmin addons info <addonId>",
         "ciadmin addons feature <addonId> <feature>",
+        "ciadmin addons feature <addonId> <feature> <true|false>",
+        "ciadmin addons enable <addonId>",
+        "ciadmin addons disable <addonId>",
         "ciadmin addons reload [addonId]",
         "ciadmin node menu",
         "ciadmin node list",
@@ -245,11 +248,14 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (args.length == 2 && args[0].equalsIgnoreCase("addons")) {
             return matches(ADDON_COMMANDS, args[1]);
         }
-        if (args.length == 3 && args[0].equalsIgnoreCase("addons") && (args[1].equalsIgnoreCase("info") || args[1].equalsIgnoreCase("feature") || args[1].equalsIgnoreCase("reload"))) {
+        if (args.length == 3 && args[0].equalsIgnoreCase("addons") && (args[1].equalsIgnoreCase("info") || args[1].equalsIgnoreCase("feature") || args[1].equalsIgnoreCase("enable") || args[1].equalsIgnoreCase("disable") || args[1].equalsIgnoreCase("reload"))) {
             return matches(List.of("cloudislands-satis"), args[2]);
         }
         if (args.length == 4 && args[0].equalsIgnoreCase("addons") && args[1].equalsIgnoreCase("feature")) {
             return matches(ADDON_FEATURES, args[3]);
+        }
+        if (args.length == 5 && args[0].equalsIgnoreCase("addons") && args[1].equalsIgnoreCase("feature")) {
+            return matches(List.of("true", "false", "on", "off", "enabled", "disabled"), args[4]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("node")) {
             return matches(NODE_COMMANDS, args[1]);
@@ -358,10 +364,30 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args[1].equalsIgnoreCase("feature")) {
             if (args.length < 4) {
-                sender.sendMessage(adminText("admin-command-addons-feature-usage", "사용법: /ciadmin addons feature <addonId> <feature>"));
+                sender.sendMessage(adminText("admin-command-addons-feature-usage", "사용법: /ciadmin addons feature <addonId> <feature> [true|false]"));
+                return true;
+            }
+            if (args.length > 4) {
+                boolean enabled = booleanArgument(args[4], false);
+                agent.plugin().getConfig().set("addons." + args[2] + ".features." + args[3], enabled);
+                agent.plugin().saveConfig();
+                agent.plugin().reloadConfig();
+                run(sender, "Addon feature set", api.addons().refresh(args[2]).thenApply(addon -> addon.map(this::addonInfoMessage).orElse(adminText("admin-command-addons-not-found", "Addon: not found ") + args[2])));
                 return true;
             }
             run(sender, "Addon feature", api.addons().isFeatureEnabled(args[2], args[3]).thenApply(enabled -> adminText("admin-command-addons-feature-prefix", "Addon feature: ") + args[2] + " " + args[3] + adminText("admin-command-addons-enabled-prefix", " enabled=") + enabled));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("enable") || args[1].equalsIgnoreCase("disable")) {
+            if (args.length < 3) {
+                sender.sendMessage(adminText("admin-command-addons-toggle-usage", "사용법: /ciadmin addons enable|disable <addonId>"));
+                return true;
+            }
+            boolean enabled = args[1].equalsIgnoreCase("enable");
+            agent.plugin().getConfig().set("addons." + args[2] + ".enabled", enabled);
+            agent.plugin().saveConfig();
+            agent.plugin().reloadConfig();
+            run(sender, "Addon " + args[1].toLowerCase(Locale.ROOT), api.addons().refresh(args[2]).thenApply(addon -> addon.map(this::addonInfoMessage).orElse(adminText("admin-command-addons-not-found", "Addon: not found ") + args[2])));
             return true;
         }
         if (args[1].equalsIgnoreCase("reload")) {
@@ -373,7 +399,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             }
             return true;
         }
-        sender.sendMessage(adminText("admin-command-addons-usage", "사용법: /ciadmin addons list|info|feature|reload"));
+        sender.sendMessage(adminText("admin-command-addons-usage", "사용법: /ciadmin addons list|info|feature|enable|disable|reload"));
         return true;
     }
 
