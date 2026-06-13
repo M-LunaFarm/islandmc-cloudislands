@@ -576,12 +576,32 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         private boolean registeredFeatureKnown(AddonRegistration registration, String requestedFeature, String normalizedFeature) {
             Map<String, Boolean> features = registration.features() == null ? Map.of() : registration.features();
-            String requested = requestedFeature == null ? "" : requestedFeature;
+            String requested = requestedFeature == null ? "" : requestedFeature.trim();
             String normalized = normalizedFeature == null ? "" : normalizedFeature;
             if (features.containsKey(normalized) || features.containsKey(requested)) {
                 return true;
             }
-            return AddonFeatureAliases.aliasesFor(registration.metadata(), normalized).contains(requested);
+            if (AddonFeatureAliases.aliasesFor(registration.metadata(), normalized).contains(requested)) {
+                return true;
+            }
+            Map<String, String> dependencies = featureDependencies(registration.metadata());
+            return dependencies.containsKey(normalized)
+                || dependencies.containsKey(requested)
+                || dependencies.containsValue(normalized)
+                || dependencies.containsValue(requested);
+        }
+
+        private Map<String, String> featureDependencies(Map<String, String> metadata) {
+            String dependencies = metadata.getOrDefault("feature-dependencies", "");
+            Map<String, String> values = new HashMap<>();
+            for (String pair : dependencies.split(",")) {
+                String[] parts = pair.split(":", 2);
+                if (parts.length != 2 || parts[0].isBlank() || parts[1].isBlank()) {
+                    continue;
+                }
+                values.put(AddonFeatureAliases.normalize(metadata, parts[0].trim()), AddonFeatureAliases.normalize(metadata, parts[1].trim()));
+            }
+            return Map.copyOf(values);
         }
 
         private String normalizeFeature(AddonRegistration registration, String feature) {
