@@ -1,6 +1,7 @@
 name: CloudIslandsSatis
 main: kr.seungmin.satisskyfactory.SatisSkyFactoryPlugin
 version: ${version}
+description: Official CloudIslands Satis addon without a SuperiorSkyblock2 runtime dependency
 api-version: "1.21"
 depend: [CloudIslands]
 softdepend: [Vault, PlaceholderAPI]
