@@ -370,7 +370,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             if (args.length > 1 && args[1].equalsIgnoreCase("confirm")) {
                 deleteIsland(player);
             } else {
-                IslandDangerMenu.open(player);
+                IslandDangerMenu.open(player, messages);
             }
             return true;
         }
@@ -378,12 +378,12 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             if (args.length > 1 && args[1].equalsIgnoreCase("confirm")) {
                 resetIsland(player, args.length > 2 ? joined(args, 2) : "player-reset");
             } else {
-                IslandDangerMenu.open(player);
+                IslandDangerMenu.open(player, messages);
             }
             return true;
         }
         if (subcommand.equals("danger") || subcommand.equals("위험작업")) {
-            IslandDangerMenu.open(player);
+            IslandDangerMenu.open(player, messages);
             return true;
         }
         if (subcommand.equals("sethome") || subcommand.equals("셋홈")) {
