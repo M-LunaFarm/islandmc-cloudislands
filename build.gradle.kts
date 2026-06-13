@@ -1,3 +1,5 @@
+import org.gradle.jvm.tasks.Jar
+
 plugins {
     `java-library`
 }
@@ -23,4 +25,21 @@ subprojects {
             options.compilerArgs.addAll(listOf("-Xlint:all", "-Xlint:-processing"))
         }
     }
+}
+
+tasks.register<Copy>("distPlugins") {
+    group = "distribution"
+    description = "Collects CloudIslands plugin jars, including the Satis addon."
+
+    val pluginProjects = listOf(
+        "cloudislands-paper",
+        "cloudislands-velocity",
+        "cloudislands-satis"
+    )
+    pluginProjects.forEach { projectName ->
+        val jarTask = project(":$projectName").tasks.named<Jar>("jar")
+        dependsOn(jarTask)
+        from(jarTask.flatMap { it.archiveFile })
+    }
+    into(layout.buildDirectory.dir("dist/plugins"))
 }
