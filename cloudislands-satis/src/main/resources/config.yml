@@ -1,0 +1,64 @@
+integration:
+  enabled: false
+  mode: ADDON
+  skyblock-provider: SUPERIOR_SKYBLOCK2
+  cloudislands-adapter: false
+settings:
+  language: ko_kr
+  debug: false
+  tick-interval: 20
+  tick-period-ticks: 20
+  maintenance-check-interval: 1200
+  maintenance-check-period-ticks: 1200
+  dirty-save-interval: 1200
+  dirty-save-period-ticks: 1200
+  max-machines-per-cycle: 300
+  max-machines-per-tick: 300
+  max-backfill-cycles: 60
+  offline-production:
+    enabled: true
+    max-hours: 8
+    efficiency: 0.35
+  resource-node-link-radius: 3
+  allow-coop-build: false
+  allow-spawn-island: false
+  require-island-member: true
+  protect-spawn-island: true
+superior-skyblock:
+  allow-coop-build: false
+  allow-spawn-island: false
+  require-island-member: true
+  protect-spawn-island: true
+  boosts:
+    agriculture-min: 1.0
+    agriculture-max: 3.0
+    factory-slot-size-divisor: 50
+    contract-slot-worth-log-base: 10.0
+    max-contract-slot-bonus: 0
+resource-nodes:
+  link-radius: 3
+economy:
+  mode: VAULT_PLAYER
+  use-vault: true
+  currency-symbol: "원"
+database:
+  type: SQLITE
+  sqlite-file: "data.db"
+  save-interval-seconds: 60
+visuals:
+  particles: true
+  display-entities: false
+  max-display-entities-per-island: 30
+storage:
+  default-capacity: 10000
+limits:
+  base-machines-per-island: 50
+  base-machine-limit: 50
+  machine-limit-per-island-tier: 25
+  base-network-limit: 20
+  recovery-machine-types:
+    - harvester_t1
+    - planter_t1
+    - miner_drill_t1
+    - bio_generator_t1
+    - conveyor_t1

@@ -1,0 +1,93 @@
+market:
+  factor-min: 0.55
+  factor-max: 1.35
+  demand-exponent: 0.25
+  quality-factor:
+    tags:
+      quality: 1.15
+  personal-soft-cap:
+    enabled: true
+    tiers:
+      - amount: 1000
+        factor: 1.0
+      - amount: 5000
+        factor: 0.85
+      - amount: 20000
+        factor: 0.7
+      - amount: 999999999
+        factor: 0.55
+  debt-repay-rate: 0.35
+  locked-debt-repay-rate: 0.70
+  items:
+    wheat:
+      base-price: 20
+      target-daily-amount: 5000
+    flour:
+      base-price: 60
+      target-daily-amount: 3000
+    bread_box:
+      base-price: 650
+      target-daily-amount: 500
+    quality_bread_box:
+      base-price: 800
+      target-daily-amount: 128
+    iron_ore:
+      base-price: 30
+      target-daily-amount: 6000
+    crushed_iron:
+      base-price: 45
+      target-daily-amount: 1024
+    iron_ingot:
+      base-price: 90
+      target-daily-amount: 768
+    iron_plate:
+      base-price: 140
+      target-daily-amount: 1500
+    machine_parts:
+      base-price: 300
+      target-daily-amount: 500
+    quality_machine_parts:
+      base-price: 400
+      target-daily-amount: 80
+    biofuel:
+      base-price: 50
+      target-daily-amount: 768
+    wood_log:
+      base-price: 2
+      target-daily-amount: 2048
+    wood_plank:
+      base-price: 3
+      target-daily-amount: 2048
+    wood_scrap:
+      base-price: 1
+      target-daily-amount: 2048
+    charcoal:
+      base-price: 9
+      target-daily-amount: 768
+    raw_fish:
+      base-price: 3
+      target-daily-amount: 1536
+    processed_fish:
+      base-price: 11
+      target-daily-amount: 512
+    fish_oil:
+      base-price: 24
+      target-daily-amount: 256
+    fish_waste:
+      base-price: 2
+      target-daily-amount: 1536
+    milk:
+      base-price: 8
+      target-daily-amount: 512
+    egg:
+      base-price: 4
+      target-daily-amount: 1024
+    wool:
+      base-price: 6
+      target-daily-amount: 768
+    animal_waste:
+      base-price: 2
+      target-daily-amount: 1536
+    fertilizer:
+      base-price: 14
+      target-daily-amount: 512

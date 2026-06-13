@@ -1,0 +1,77 @@
+package kr.seungmin.satisskyfactory.model;
+
+import org.bukkit.block.BlockFace;
+
+import java.util.UUID;
+
+public final class MachineInstance {
+    private final UUID machineId;
+    private final UUID islandUuid;
+    private final UUID ownerUuid;
+    private final String typeId;
+    private final int tier;
+    private final BlockKey location;
+    private BlockFace direction;
+    private MachineStatus status;
+    private UUID inputInventoryId;
+    private UUID outputInventoryId;
+    private UUID powerNetworkId;
+    private UUID itemNetworkId;
+    private UUID linkedResourceNodeId;
+    private String selectedRecipeId;
+    private String configJson;
+    private long lastProcessAt;
+    private double wear;
+    private long createdAt;
+    private long updatedAt;
+
+    public MachineInstance(UUID machineId, UUID islandUuid, UUID ownerUuid, String typeId, int tier, BlockKey location) {
+        this.machineId = machineId;
+        this.islandUuid = islandUuid;
+        this.ownerUuid = ownerUuid;
+        this.typeId = typeId;
+        this.tier = tier;
+        this.location = location;
+        this.direction = BlockFace.NORTH;
+        this.status = MachineStatus.SLEEPING;
+        this.configJson = "{}";
+        this.createdAt = System.currentTimeMillis();
+    }
+
+    public UUID machineId() { return machineId; }
+    public UUID islandUuid() { return islandUuid; }
+    public UUID ownerUuid() { return ownerUuid; }
+    public String typeId() { return typeId; }
+    public int tier() { return tier; }
+    public BlockKey location() { return location; }
+    public String world() { return location.world(); }
+    public int x() { return location.x(); }
+    public int y() { return location.y(); }
+    public int z() { return location.z(); }
+    public BlockFace direction() { return direction; }
+    public void direction(BlockFace direction) { this.direction = direction; }
+    public MachineStatus status() { return status; }
+    public void status(MachineStatus status) { this.status = status; }
+    public UUID inputInventoryId() { return inputInventoryId; }
+    public void inputInventoryId(UUID inputInventoryId) { this.inputInventoryId = inputInventoryId; }
+    public UUID outputInventoryId() { return outputInventoryId; }
+    public void outputInventoryId(UUID outputInventoryId) { this.outputInventoryId = outputInventoryId; }
+    public UUID powerNetworkId() { return powerNetworkId; }
+    public void powerNetworkId(UUID powerNetworkId) { this.powerNetworkId = powerNetworkId; }
+    public UUID itemNetworkId() { return itemNetworkId; }
+    public void itemNetworkId(UUID itemNetworkId) { this.itemNetworkId = itemNetworkId; }
+    public UUID linkedResourceNodeId() { return linkedResourceNodeId; }
+    public void linkedResourceNodeId(UUID linkedResourceNodeId) { this.linkedResourceNodeId = linkedResourceNodeId; }
+    public String selectedRecipeId() { return selectedRecipeId; }
+    public void selectedRecipeId(String selectedRecipeId) { this.selectedRecipeId = selectedRecipeId; }
+    public String configJson() { return configJson; }
+    public void configJson(String configJson) { this.configJson = configJson == null || configJson.isBlank() ? "{}" : configJson; }
+    public long lastProcessAt() { return lastProcessAt; }
+    public void lastProcessAt(long lastProcessAt) { this.lastProcessAt = lastProcessAt; }
+    public double wear() { return wear; }
+    public void wear(double wear) { this.wear = wear; }
+    public long createdAt() { return createdAt; }
+    public void createdAt(long createdAt) { this.createdAt = createdAt; }
+    public long updatedAt() { return updatedAt; }
+    public void updatedAt(long updatedAt) { this.updatedAt = updatedAt; }
+}

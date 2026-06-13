@@ -1,0 +1,164 @@
+recipes:
+  biofuel_to_power:
+    machines: [bio_generator_t1]
+    cycle-ms: 3000
+    inputs:
+      biofuel: 1
+    outputs: {}
+  flour_from_wheat:
+    machines: [grinder_t1]
+    min-tier: 1
+    cycle-ms: 3000
+    inputs:
+      wheat: 4
+    outputs:
+      flour: 1
+    power-cost: 3.0
+  crushed_iron_from_ore:
+    machines: [grinder_t1]
+    min-tier: 1
+    cycle-ms: 4000
+    inputs:
+      iron_ore: 2
+    outputs:
+      crushed_iron: 2
+    power-cost: 3.0
+  make_feed:
+    machine: grinder_t1
+    cycle-ms: 3000
+    input:
+      wheat: 2
+    output:
+      feed: 3
+    power: 5.0
+  iron_ingot_from_crushed_iron:
+    machines: [furnace_t1]
+    cycle-ms: 6000
+    inputs:
+      crushed_iron: 2
+    outputs:
+      iron_ingot: 1
+    power-cost: 5.0
+  iron_plate_from_ingot:
+    machines: [assembler_t1]
+    cycle-ms: 5000
+    power-cost: 4.0
+    inputs:
+      iron_ingot: 1
+    outputs:
+      iron_plate: 1
+  machine_parts_t1:
+    machines: [assembler_t1]
+    min-tier: 1
+    cycle-ms: 8000
+    power-cost: 5.0
+    inputs:
+      iron_plate: 4
+    outputs:
+      machine_parts: 1
+    quality-chance: 0.03
+    quality-item: quality_machine_parts
+  bread_box:
+    machines: [packager_t1]
+    min-tier: 1
+    cycle-ms: 5000
+    power-cost: 3.0
+    inputs:
+      flour: 8
+    outputs:
+      bread_box: 1
+    quality-chance: 0.05
+    quality-item: quality_bread_box
+  saw_logs:
+    machine: sawmill_t1
+    cycle-ms: 4000
+    input:
+      wood_log: 1
+    output:
+      wood_plank: 4
+      wood_scrap: 1
+    power: 5.0
+  burn_charcoal:
+    machine: charcoal_kiln_t1
+    cycle-ms: 5000
+    input:
+      wood_log: 2
+    output:
+      charcoal: 1
+    power: 4.0
+  scrap_to_biofuel:
+    machine: grinder_t1
+    cycle-ms: 3000
+    input:
+      wood_scrap: 4
+    output:
+      biofuel: 1
+    power: 5.0
+  process_fish:
+    machine: fish_processor_t1
+    cycle-ms: 4000
+    input:
+      raw_fish: 2
+    output:
+      processed_fish: 1
+      fish_waste: 1
+    power: 4.0
+  press_fish_oil:
+    machine: fish_processor_t1
+    cycle-ms: 5000
+    input:
+      raw_fish: 3
+    output:
+      fish_oil: 1
+      fish_waste: 1
+    power: 4.0
+  fish_waste_fertilizer:
+    machine: grinder_t1
+    cycle-ms: 3000
+    input:
+      fish_waste: 3
+    output:
+      fertilizer: 1
+    power: 5.0
+  auto_fish:
+    machine: auto_fisher_t1
+    cycle-ms: 5000
+    output:
+      raw_fish: 2
+      fish_waste: 1
+    power: 5.0
+  feed_pasture:
+    machine: feeder_t1
+    cycle-ms: 6000
+    input:
+      feed: 2
+    output:
+      animal_waste: 2
+      egg: 1
+    power: 3.0
+  collect_milk:
+    machine: milker_t1
+    cycle-ms: 7000
+    input:
+      feed: 1
+    output:
+      milk: 1
+      animal_waste: 1
+    power: 4.0
+  collect_eggs_wool:
+    machine: milker_t1
+    cycle-ms: 7000
+    input:
+      feed: 1
+    output:
+      egg: 1
+      wool: 1
+    power: 4.0
+  animal_waste_fertilizer:
+    machine: grinder_t1
+    cycle-ms: 3000
+    input:
+      animal_waste: 3
+    output:
+      fertilizer: 1
+    power: 5.0

@@ -1,0 +1,23 @@
+name: CloudIslandsSatis
+main: kr.seungmin.satisskyfactory.SatisSkyFactoryPlugin
+version: ${version}
+api-version: "1.21"
+softdepend: [CloudIslands, SuperiorSkyblock2, Vault, PlaceholderAPI]
+author: LeeSeungmin
+website: "mailto:admin@lunaf.kr"
+commands:
+  factory:
+    description: CloudIslands Satis command
+    usage: /factory help
+    permission: satisskyfactory.use
+  sfactory:
+    description: CloudIslands Satis command
+    usage: /sfactory help
+    permission: satisskyfactory.use
+permissions:
+  satisskyfactory.use:
+    default: true
+  satisskyfactory.admin:
+    default: op
+  satisskyfactory.debug:
+    default: op

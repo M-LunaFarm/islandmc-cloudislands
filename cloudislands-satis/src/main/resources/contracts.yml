@@ -1,0 +1,70 @@
+contracts:
+  daily-slots-base: 3
+  weekly-slots-base: 1
+  story-slots-base: 0
+  market-slots-base: 0
+  emergency-daily-limit: 5
+  boosted-slot-types: [DAILY, WEEKLY]
+  templates:
+    beginner_wheat:
+      type: DAILY
+      min-tier: 1
+      max-tier: 2
+      required:
+        wheat: 128
+      rewards:
+        money: 5000
+        research-points: 3
+        reputation: 1
+      expires-hours: 24
+    beginner_iron:
+      type: DAILY
+      min-tier: 1
+      max-tier: 2
+      required:
+        iron_ore: 128
+      rewards:
+        money: 7000
+        research-points: 4
+        reputation: 1
+      expires-hours: 24
+    bread_supply:
+      type: DAILY
+      min-tier: 1
+      required:
+        bread_box: 32
+      rewards:
+        money: 35000
+        research-points: 10
+        reputation: 5
+      expires-hours: 24
+    machine_parts_order:
+      type: WEEKLY
+      min-tier: 1
+      required:
+        machine_parts: 64
+      rewards:
+        money: 120000
+        research-points: 30
+        reputation: 20
+      expires-hours: 168
+    emergency_manual_farm:
+      type: EMERGENCY
+      min-tier: 1
+      required:
+        wheat: 64
+      rewards:
+        debt-payment: 4000
+        money: 0
+        research-points: 0
+      expires-hours: 6
+    emergency_manual_mine:
+      type: EMERGENCY
+      min-tier: 1
+      required:
+        iron_ore: 64
+      rewards:
+        debt-payment: 6000
+        money: 0
+        research-points: 0
+      expires-hours: 6

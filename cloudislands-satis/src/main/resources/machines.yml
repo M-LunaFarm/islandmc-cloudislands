@@ -1,0 +1,485 @@
+machines:
+  harvester_t1:
+    display: "§a수확기 T1"
+    industry: AGRICULTURE
+    role: PRODUCER
+    material: IRON_HOE
+    placed-block: DISPENSER
+    custom-model-data: 2001
+    tier: 1
+    input-capacity: 128
+    output-capacity: 512
+    power-consumption: 2.0
+    cycle-ms: 6000
+    cycle-ticks: 80
+    range: 3
+    factory-score: 10
+    maintenance-score: 8
+    wear-per-cycle: 0.02
+    harvest-drops:
+      WHEAT: wheat
+      CARROTS: carrot
+      POTATOES: potato
+      BEETROOTS: beetroot
+      NETHER_WART: nether_wart
+      SUGAR_CANE: sugar_cane
+  harvester_t2:
+    display: "Harvester T2"
+    material: DIAMOND_HOE
+    placed-block: DISPENSER
+    custom-model-data: 2002
+    tier: 2
+    input-capacity: 256
+    output-capacity: 1024
+    power-consumption: 8.0
+    cycle-ticks: 60
+    range: 6
+    factory-score: 24
+    maintenance-score: 20
+    wear-per-cycle: 0.035
+    harvest-drops:
+      WHEAT: wheat
+      CARROTS: carrot
+      POTATOES: potato
+      BEETROOTS: beetroot
+      NETHER_WART: nether_wart
+      SUGAR_CANE: sugar_cane
+    required-unlocks: [tier_2]
+  planter_t1:
+    display: "§a파종기 T1"
+    industry: AGRICULTURE
+    role: PRODUCER
+    material: WOODEN_HOE
+    placed-block: DROPPER
+    tier: 1
+    input-capacity: 256
+    output-capacity: 0
+    power-consumption: 1.5
+    cycle-ms: 5000
+    cycle-ticks: 80
+    range: 3
+    factory-score: 8
+    maintenance-score: 6
+    wear-per-cycle: 0.01
+    planting:
+      wheat_seeds:
+        crop: WHEAT
+        soil: FARMLAND
+      carrot:
+        crop: CARROTS
+        soil: FARMLAND
+      potato:
+        crop: POTATOES
+        soil: FARMLAND
+      beetroot_seeds:
+        crop: BEETROOTS
+        soil: FARMLAND
+      nether_wart:
+        crop: NETHER_WART
+        soil: SOUL_SAND
+  fertilizer_sprayer_t1:
+    display: "Fertilizer Sprayer T1"
+    material: DISPENSER
+    placed-block: DISPENSER
+    tier: 1
+    input-capacity: 128
+    output-capacity: 128
+    power-consumption: 4.0
+    cycle-ticks: 100
+    range: 4
+    amount-per-cycle: 8
+    factory-score: 12
+    maintenance-score: 10
+    wear-per-cycle: 0.025
+    fertilizer:
+      item: fertilizer
+      growth-per-cycle: 2
+      quality-chance: 0.08
+      quality-item: quality_crop
+  miner_drill_t1:
+    display: "§7광맥 드릴 T1"
+    industry: MINING
+    role: PRODUCER
+    material: IRON_PICKAXE
+    placed-block: BLAST_FURNACE
+    custom-model-data: 2101
+    tier: 1
+    input-capacity: 0
+    output-capacity: 512
+    power-consumption: 4.0
+    cycle-ms: 5000
+    cycle-ticks: 80
+    amount-per-cycle: 2
+    factory-score: 15
+    maintenance-score: 14
+    wear-per-cycle: 0.03
+    node-type: MINERAL
+  miner_drill_t2:
+    display: "Miner Drill T2"
+    material: DIAMOND_PICKAXE
+    placed-block: BLAST_FURNACE
+    custom-model-data: 2102
+    tier: 2
+    input-capacity: 128
+    output-capacity: 1024
+    power-consumption: 12.0
+    cycle-ticks: 60
+    amount-per-cycle: 4
+    factory-score: 32
+    maintenance-score: 28
+    wear-per-cycle: 0.045
+    node-type: MINERAL
+    required-unlocks: [tier_2]
+  grinder_t1:
+    display: "§f분쇄기 T1"
+    industry: MANUFACTURING
+    role: PROCESSOR
+    material: STONECUTTER
+    placed-block: STONECUTTER
+    tier: 1
+    input-capacity: 512
+    output-capacity: 512
+    power-consumption: 3.0
+    cycle-ms: 4000
+    cycle-ticks: 60
+    factory-score: 14
+    maintenance-score: 12
+    wear-per-cycle: 0.02
+    allowed-recipes: [flour_from_wheat, crushed_iron_from_ore, make_feed, scrap_to_biofuel, fish_waste_fertilizer, animal_waste_fertilizer]
+  furnace_t1:
+    display: "§6제련기 T1"
+    industry: MANUFACTURING
+    role: PROCESSOR
+    material: BLAST_FURNACE
+    placed-block: BLAST_FURNACE
+    tier: 1
+    input-capacity: 512
+    output-capacity: 512
+    power-consumption: 5.0
+    cycle-ms: 6000
+    cycle-ticks: 80
+    factory-score: 20
+    maintenance-score: 16
+    wear-per-cycle: 0.03
+    allowed-recipes: [iron_ingot_from_crushed_iron]
+  assembler_t1:
+    display: "§b조립기 T1"
+    industry: MANUFACTURING
+    role: PROCESSOR
+    material: CRAFTING_TABLE
+    placed-block: CRAFTING_TABLE
+    tier: 1
+    input-capacity: 512
+    output-capacity: 512
+    power-consumption: 4.0
+    cycle-ms: 8000
+    cycle-ticks: 80
+    factory-score: 20
+    maintenance-score: 22
+    wear-per-cycle: 0.03
+    allowed-recipes: [iron_plate_from_ingot, machine_parts_t1]
+  packager_t1:
+    display: "§d포장기 T1"
+    industry: MANUFACTURING
+    role: PROCESSOR
+    material: CARTOGRAPHY_TABLE
+    placed-block: CARTOGRAPHY_TABLE
+    tier: 1
+    input-capacity: 512
+    output-capacity: 512
+    power-consumption: 3.0
+    cycle-ms: 5000
+    cycle-ticks: 60
+    factory-score: 15
+    maintenance-score: 16
+    wear-per-cycle: 0.02
+    allowed-recipes: [bread_box]
+  bio_generator_t1:
+    display: "§a바이오 발전기 T1"
+    industry: POWER
+    role: GENERATOR
+    material: FURNACE
+    placed-block: FURNACE
+    custom-model-data: 2201
+    tier: 1
+    input-capacity: 256
+    output-capacity: 0
+    power-generation: 12.0
+    power-consumption: 0.0
+    cycle-ms: 5000
+    cycle-ticks: 60
+    factory-score: 12
+    maintenance-score: 14
+    wear-per-cycle: 0.01
+    allowed-recipes: [biofuel_to_power]
+  battery_t1:
+    display: "§e배터리 T1"
+    industry: POWER
+    role: BATTERY
+    material: BARREL
+    placed-block: BARREL
+    tier: 1
+    input-capacity: 64
+    output-capacity: 64
+    battery-capacity: 1000.0
+    cycle-ticks: 100
+    factory-score: 8
+    maintenance-score: 10
+    wear-per-cycle: 0.01
+  conveyor_t1:
+    display: "§7컨베이어 T1"
+    industry: LOGISTICS
+    role: LOGISTICS
+    material: HOPPER
+    placed-block: HOPPER
+    custom-model-data: 2301
+    tier: 1
+    input-capacity: 64
+    output-capacity: 64
+    power-consumption: 2.0
+    cycle-ticks: 40
+    logistics-throughput: 120
+    logistics-throughput-per-minute: 120
+    factory-score: 1
+    maintenance-score: 2
+    wear-per-cycle: 0.015
+  conveyor_t2:
+    display: "Conveyor T2"
+    material: CHAIN
+    placed-block: CHAIN
+    custom-model-data: 2302
+    tier: 2
+    input-capacity: 128
+    output-capacity: 128
+    power-consumption: 4.0
+    cycle-ticks: 30
+    logistics-throughput: 64
+    factory-score: 8
+    maintenance-score: 5
+    wear-per-cycle: 0.018
+    required-unlocks: [tier_2]
+  splitter_t1:
+    display: "Splitter T1"
+    material: HOPPER
+    placed-block: HOPPER
+    tier: 2
+    input-capacity: 128
+    output-capacity: 128
+    power-consumption: 3.0
+    cycle-ticks: 35
+    logistics-throughput: 48
+    factory-score: 6
+    maintenance-score: 4
+    wear-per-cycle: 0.018
+    required-unlocks: [smart_logistics]
+  merger_t1:
+    display: "Merger T1"
+    material: HOPPER
+    placed-block: HOPPER
+    tier: 2
+    input-capacity: 128
+    output-capacity: 128
+    power-consumption: 3.0
+    cycle-ticks: 35
+    logistics-throughput: 48
+    factory-score: 6
+    maintenance-score: 4
+    wear-per-cycle: 0.018
+    required-unlocks: [smart_logistics]
+  filter_splitter_t1:
+    display: "Filter Splitter T1"
+    material: COMPARATOR
+    placed-block: COMPARATOR
+    tier: 2
+    input-capacity: 128
+    output-capacity: 128
+    power-consumption: 4.0
+    cycle-ticks: 35
+    logistics-throughput: 48
+    logistics:
+      allowed-items: [iron_ore, crushed_iron, iron_ingot, iron_plate, machine_parts]
+      blocked-items: []
+    factory-score: 8
+    maintenance-score: 5
+    wear-per-cycle: 0.018
+    required-unlocks: [smart_logistics]
+  filter_distributor_t1:
+    display: "Filter Distributor T1"
+    material: COMPARATOR
+    placed-block: COMPARATOR
+    tier: 2
+    input-capacity: 64
+    output-capacity: 64
+    power-consumption: 2.0
+    cycle-ticks: 40
+    logistics-throughput: 24
+    logistics:
+      allowed-items: [iron_ore, crushed_iron, iron_ingot, iron_plate, machine_parts]
+      blocked-items: []
+    factory-score: 4
+    maintenance-score: 3
+    wear-per-cycle: 0.015
+    required-unlocks: [smart_logistics]
+  storage_t1:
+    display: "§e소형 가상 저장고"
+    industry: LOGISTICS
+    role: STORAGE
+    material: CHEST
+    placed-block: CHEST
+    custom-model-data: 2401
+    tier: 1
+    input-capacity: 0
+    output-capacity: 4096
+    cycle-ticks: 100
+    factory-score: 10
+    maintenance-score: 6
+    wear-per-cycle: 0.0
+  tree_farm_t1:
+    display: "Tree Farm T1"
+    industry: FORESTRY
+    role: PRODUCER
+    material: OAK_SAPLING
+    placed-block: COMPOSTER
+    tier: 1
+    input-capacity: 64
+    output-capacity: 512
+    power-consumption: 4.0
+    cycle-ticks: 100
+    amount-per-cycle: 2
+    factory-score: 10
+    maintenance-score: 8
+    wear-per-cycle: 0.03
+    node-type: FOREST
+  fish_trap_t1:
+    display: "Fish Trap T1"
+    industry: FISHING
+    role: PRODUCER
+    material: FISHING_ROD
+    placed-block: BARREL
+    tier: 1
+    input-capacity: 64
+    output-capacity: 512
+    power-consumption: 3.0
+    cycle-ticks: 120
+    amount-per-cycle: 2
+    factory-score: 10
+    maintenance-score: 8
+    wear-per-cycle: 0.025
+    node-type: FISHING
+  auto_fisher_t1:
+    display: "Auto Fisher T1"
+    industry: FISHING
+    role: PROCESSOR
+    material: FISHING_ROD
+    placed-block: BARREL
+    tier: 2
+    input-capacity: 64
+    output-capacity: 512
+    power-consumption: 5.0
+    cycle-ticks: 100
+    factory-score: 14
+    maintenance-score: 12
+    wear-per-cycle: 0.03
+    recipe-node-type: FISHING
+    recipe-node-use: 1
+    allowed-recipes: [auto_fish]
+    required-unlocks: [advanced_processing]
+  feeder_t1:
+    display: "Pasture Feeder T1"
+    industry: RANCHING
+    role: PROCESSOR
+    material: WHEAT
+    placed-block: HAY_BLOCK
+    tier: 1
+    input-capacity: 128
+    output-capacity: 512
+    power-consumption: 3.0
+    cycle-ticks: 120
+    factory-score: 10
+    maintenance-score: 8
+    wear-per-cycle: 0.025
+    recipe-node-type: PASTURE
+    recipe-node-use: 1
+    allowed-recipes: [feed_pasture]
+  collector_t1:
+    display: "Pasture Collector T1"
+    industry: RANCHING
+    role: PRODUCER
+    material: HAY_BLOCK
+    placed-block: HAY_BLOCK
+    tier: 1
+    input-capacity: 128
+    output-capacity: 512
+    power-consumption: 3.0
+    cycle-ticks: 120
+    amount-per-cycle: 1
+    factory-score: 10
+    maintenance-score: 8
+    wear-per-cycle: 0.025
+    node-type: PASTURE
+  milker_t1:
+    display: "Milker T1"
+    industry: RANCHING
+    role: PROCESSOR
+    material: BUCKET
+    placed-block: CAULDRON
+    tier: 2
+    input-capacity: 128
+    output-capacity: 512
+    power-consumption: 4.0
+    cycle-ticks: 140
+    factory-score: 14
+    maintenance-score: 12
+    wear-per-cycle: 0.03
+    recipe-node-type: PASTURE
+    recipe-node-use: 1
+    allowed-recipes: [collect_milk, collect_eggs_wool]
+    required-unlocks: [advanced_processing]
+  sawmill_t1:
+    display: "Sawmill T1"
+    industry: FORESTRY
+    role: PROCESSOR
+    material: STONECUTTER
+    placed-block: STONECUTTER
+    tier: 2
+    input-capacity: 256
+    output-capacity: 512
+    power-consumption: 5.0
+    cycle-ticks: 80
+    factory-score: 18
+    maintenance-score: 16
+    wear-per-cycle: 0.035
+    allowed-recipes: [saw_logs]
+    required-unlocks: [advanced_processing]
+  charcoal_kiln_t1:
+    display: "Charcoal Kiln T1"
+    industry: FORESTRY
+    role: PROCESSOR
+    material: SMOKER
+    placed-block: SMOKER
+    tier: 2
+    input-capacity: 256
+    output-capacity: 512
+    power-consumption: 4.0
+    cycle-ticks: 100
+    factory-score: 18
+    maintenance-score: 16
+    wear-per-cycle: 0.035
+    allowed-recipes: [burn_charcoal]
+    required-unlocks: [advanced_processing]
+  fish_processor_t1:
+    display: "Fish Processor T1"
+    industry: FISHING
+    role: PROCESSOR
+    material: BARREL
+    placed-block: BARREL
+    tier: 2
+    input-capacity: 256
+    output-capacity: 512
+    power-consumption: 4.0
+    cycle-ticks: 80
+    factory-score: 18
+    maintenance-score: 16
+    wear-per-cycle: 0.03
+    allowed-recipes: [process_fish, press_fish_oil]
+    required-unlocks: [advanced_processing]

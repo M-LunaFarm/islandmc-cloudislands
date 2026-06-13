@@ -1,0 +1,133 @@
+items:
+  wheat:
+    material: WHEAT
+    display: "밀"
+    base-price: 20
+    tags: [crop, agriculture]
+  wheat_seeds:
+    material: WHEAT_SEEDS
+    display: "Wheat Seeds"
+  carrot:
+    material: CARROT
+    display: "Carrot"
+  potato:
+    material: POTATO
+    display: "Potato"
+  beetroot:
+    material: BEETROOT
+    display: "Beetroot"
+  beetroot_seeds:
+    material: BEETROOT_SEEDS
+    display: "Beetroot Seeds"
+  nether_wart:
+    material: NETHER_WART
+    display: "Nether Wart"
+  sugar_cane:
+    material: SUGAR_CANE
+    display: "Sugar Cane"
+  flour:
+    material: SUGAR
+    display: "밀가루"
+    base-price: 60
+    tags: [processed, food]
+  bread_box:
+    material: CHEST
+    display: "포장된 빵 상자"
+    custom-model-data: 1001
+    base-price: 650
+    tags: [packaged, food]
+  quality_bread_box:
+    material: CHEST
+    display: "Quality Bread Box"
+    custom-model-data: 1003
+    base-price: 800
+    quality-enabled: true
+    tags: [quality, packaged, food]
+  iron_ore:
+    material: RAW_IRON
+    display: "철광석"
+    base-price: 30
+  crushed_iron:
+    material: GUNPOWDER
+    display: "분쇄 철광석"
+    base-price: 45
+  iron_ingot:
+    material: IRON_INGOT
+    display: "철괴"
+    base-price: 90
+  iron_plate:
+    material: LIGHT_WEIGHTED_PRESSURE_PLATE
+    display: "철판"
+    base-price: 140
+  machine_parts:
+    material: IRON_NUGGET
+    display: "기계 부품"
+    base-price: 300
+  quality_machine_parts:
+    material: IRON_NUGGET
+    display: "Quality Machine Parts"
+    custom-model-data: 1004
+    base-price: 400
+    quality-enabled: true
+    tags: [quality, manufacturing]
+  biomass:
+    material: DRIED_KELP
+    display: "바이오매스"
+    base-price: 20
+  biofuel:
+    material: BLAZE_POWDER
+    display: "바이오연료"
+    base-price: 50
+  power_charge:
+    material: REDSTONE
+    display: "Stored Power"
+    virtual-only: true
+    tags: [power, internal]
+  wood_log:
+    material: OAK_LOG
+    display: "Wood Log"
+  wood_plank:
+    material: OAK_PLANKS
+    display: "Wood Plank"
+  wood_scrap:
+    material: STICK
+    display: "Wood Scrap"
+  charcoal:
+    material: CHARCOAL
+    display: "Charcoal"
+  raw_fish:
+    material: COD
+    display: "Raw Fish"
+  processed_fish:
+    material: COOKED_COD
+    display: "Processed Fish"
+  fish_oil:
+    material: HONEY_BOTTLE
+    display: "Fish Oil"
+  fish_waste:
+    material: BONE_MEAL
+    display: "Fish Waste"
+  feed:
+    material: WHEAT
+    display: "Animal Feed"
+  milk:
+    material: MILK_BUCKET
+    display: "Milk"
+  egg:
+    material: EGG
+    display: "Egg"
+  wool:
+    material: WHITE_WOOL
+    display: "Wool"
+  animal_waste:
+    material: BROWN_DYE
+    display: "Animal Waste"
+  fertilizer:
+    material: BONE_MEAL
+    display: "Fertilizer"
+  quality_crop:
+    material: GOLDEN_CARROT
+    display: "Quality Crop"
+    custom-model-data: 1002
+    quality-enabled: true
+    tags: [quality, crop]

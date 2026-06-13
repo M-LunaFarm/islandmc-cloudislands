@@ -1,0 +1,34 @@
+research:
+  unlocks:
+    tier_2:
+      display-name: "공장 티어 2"
+      cost-research-points: 100
+      cost-money: 100000
+      required-reputation: 30
+      factory-tier: 2
+      unlocks:
+        - harvester_t2
+        - miner_drill_t2
+        - conveyor_t2
+    smart_logistics:
+      display-name: "스마트 물류"
+      cost-research-points: 60
+      cost-money: 50000
+      required-unlocks: []
+      unlocks:
+        - splitter_t1
+        - merger_t1
+        - filter_splitter_t1
+    advanced_processing:
+      display-name: "Advanced Processing"
+      cost-research-points: 160
+      cost-money: 50000
+      required-reputation: 5
+      required-unlocks: [tier_2]
+      factory-tier: 2
+      unlocks:
+        - sawmill_t1
+        - charcoal_kiln_t1
+        - auto_fisher_t1
+        - milker_t1
+        - fish_processor_t1
