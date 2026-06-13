@@ -49,6 +49,8 @@ import kr.seungmin.satisskyfactory.task.MachineTickService;
 import kr.seungmin.satisskyfactory.task.MaintenanceTickService;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -97,6 +99,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private boolean machineListenerRegistered;
     private boolean guiListenerRegistered;
     private boolean lifecycleListenerRegistered;
+    private MachineListener machineListener;
+    private FactoryGuiListener guiListener;
+    private FactoryLifecycleListener lifecycleListener;
     private Map<String, Boolean> effectiveFeatures = Map.of();
 
     @Override
@@ -417,8 +422,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void registerListeners() {
-        if (!machineListenerRegistered && featureEnabled("machines")) {
-            getServer().getPluginManager().registerEvents(new MachineListener(
+        if (!featureEnabled("machines")) {
+            machineListenerRegistered = unregisterListener(machineListener, machineListenerRegistered);
+            machineListener = null;
+        } else if (!machineListenerRegistered) {
+            machineListener = new MachineListener(
                     () -> featureEnabled("machines"),
                     this,
                     itemFactory,
@@ -435,11 +443,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                     configs.main(),
                     configs.file("maintenance.yml"),
                     boosts
-            ), this);
+            );
+            getServer().getPluginManager().registerEvents(machineListener, this);
             machineListenerRegistered = true;
         }
-        if (!guiListenerRegistered && featureEnabled("gui")) {
-            getServer().getPluginManager().registerEvents(new FactoryGuiListener(
+        if (!featureEnabled("gui")) {
+            guiListenerRegistered = unregisterListener(guiListener, guiListenerRegistered);
+            guiListener = null;
+        } else if (!guiListenerRegistered) {
+            guiListener = new FactoryGuiListener(
                     this::featureEnabled,
                     islands,
                     skyblock,
@@ -459,11 +471,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                     messages,
                     boosts,
                     this::reloadPluginConfig
-            ), this);
+            );
+            getServer().getPluginManager().registerEvents(guiListener, this);
             guiListenerRegistered = true;
         }
-        if (!lifecycleListenerRegistered && featureEnabled("lifecycle")) {
-            getServer().getPluginManager().registerEvents(new FactoryLifecycleListener(
+        if (!featureEnabled("lifecycle")) {
+            lifecycleListenerRegistered = unregisterListener(lifecycleListener, lifecycleListenerRegistered);
+            lifecycleListener = null;
+        } else if (!lifecycleListenerRegistered) {
+            lifecycleListener = new FactoryLifecycleListener(
                     () -> featureEnabled("lifecycle"),
                     islands,
                     skyblock,
@@ -472,9 +488,17 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                     itemNetworks,
                     power,
                     maintenance
-            ), this);
+            );
+            getServer().getPluginManager().registerEvents(lifecycleListener, this);
             lifecycleListenerRegistered = true;
         }
+    }
+
+    private boolean unregisterListener(Listener listener, boolean registered) {
+        if (listener != null && registered) {
+            HandlerList.unregisterAll(listener);
+        }
+        return false;
     }
 
     private void rebuildNetworks() {
@@ -820,6 +844,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             placeholderHook.unregister();
             placeholderHook = null;
         }
+        machineListenerRegistered = unregisterListener(machineListener, machineListenerRegistered);
+        machineListener = null;
+        guiListenerRegistered = unregisterListener(guiListener, guiListenerRegistered);
+        guiListener = null;
+        lifecycleListenerRegistered = unregisterListener(lifecycleListener, lifecycleListenerRegistered);
+        lifecycleListener = null;
     }
 
     private void applyAddonRuntimeState() {
