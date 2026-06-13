@@ -336,7 +336,11 @@ public final class CloudIslandsVelocityPlugin {
     }
 
     private boolean isCloudIslandsPluginMessage(String channel) {
-        return channel != null && (channel.equals("cloudislands") || channel.startsWith("cloudislands:"));
+        if (channel == null) {
+            return false;
+        }
+        String normalized = channel.trim().toLowerCase(Locale.ROOT);
+        return normalized.equals("cloudislands") || normalized.startsWith("cloudislands:");
     }
 
     @Subscribe
