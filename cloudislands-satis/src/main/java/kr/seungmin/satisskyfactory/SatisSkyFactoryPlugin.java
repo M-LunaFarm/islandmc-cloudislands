@@ -97,6 +97,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private PlaceholderHook placeholderHook;
     private CloudIslandsApi cloudIslandsApi;
     private boolean addonRuntimeEnabled;
+    private boolean cloudIslandsApiMissing;
     private boolean commandsRegistered;
     private boolean machineListenerRegistered;
     private boolean guiListenerRegistered;
@@ -115,7 +116,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         effectiveFeatures = Map.of();
         if (!registerCloudIslandsAddon()) {
             installDisabledCommandHandler("addon-disabled");
-            if (requiresCloudIslandsApi() && cloudIslandsApi == null) {
+            if (cloudIslandsApiMissing) {
                 getServer().getPluginManager().disablePlugin(this);
             }
             return;
@@ -573,11 +574,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean registerCloudIslandsAddon() {
+        cloudIslandsApiMissing = false;
         cloudIslandsApi = resolveCloudIslandsApi();
         if (cloudIslandsApi == null) {
             if (requiresCloudIslandsApi()) {
                 getLogger().severe("CloudIslands API is required for the configured Satis integration mode.");
                 addonRuntimeEnabled = false;
+                cloudIslandsApiMissing = true;
                 return false;
             }
             addonRuntimeEnabled = true;
