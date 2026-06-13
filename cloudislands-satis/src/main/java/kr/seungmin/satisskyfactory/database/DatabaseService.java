@@ -240,7 +240,7 @@ public final class DatabaseService {
     private long copyLegacyTable(Connection connection, String table) throws SQLException {
         Set<String> targetColumns = tableColumns(connection, "main", table);
         Set<String> sourceColumns = tableColumns(connection, "legacy_satis", table);
-        if (targetColumns.isEmpty() || sourceColumns.isEmpty()) {
+        if (targetColumns.isEmpty() || sourceColumns.isEmpty() || !sourceColumns.containsAll(legacyRequiredColumns(table))) {
             return -1L;
         }
         List<String> insertColumns = new ArrayList<>();
@@ -267,6 +267,24 @@ public final class DatabaseService {
             statement.executeUpdate("INSERT OR IGNORE INTO " + table + "(" + columns + ") SELECT " + expressions + " FROM legacy_satis." + table);
         }
         return Math.max(0L, tableCount(connection, table) - before);
+    }
+
+    private Set<String> legacyRequiredColumns(String table) {
+        return switch (table) {
+            case "factory_islands" -> Set.of("island_uuid", "owner_uuid");
+            case "machines" -> Set.of("machine_id", "island_uuid", "owner_uuid", "type_id", "world", "x", "y", "z");
+            case "virtual_inventories" -> Set.of("inventory_id", "island_uuid");
+            case "virtual_inventory_items" -> Set.of("inventory_id", "item_id");
+            case "resource_nodes" -> Set.of("node_id", "island_uuid", "node_type", "resource_id", "world", "x", "y", "z");
+            case "power_networks", "item_networks" -> Set.of("network_id", "island_uuid");
+            case "machine_network_links" -> Set.of("machine_id", "network_id");
+            case "market_daily" -> Set.of("item_id", "date_key");
+            case "market_personal_daily" -> Set.of("island_uuid", "item_id", "date_key");
+            case "contracts" -> Set.of("contract_id", "island_uuid", "template_id", "contract_type");
+            case "island_unlocks" -> Set.of("island_uuid", "unlock_id");
+            case "ledger" -> Set.of("ledger_id", "island_uuid");
+            default -> Set.of();
+        };
     }
 
     private String legacyImportDefaultExpression(String table, String column) {
