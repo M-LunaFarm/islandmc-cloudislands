@@ -199,6 +199,8 @@ public final class TranslationManager {
         values.put("biome-menu-not-set", "설정 없음");
         values.put("biome-menu-selected", "현재 적용됨");
         values.put("biome-menu-click-to-change", "클릭하면 이 바이옴으로 변경합니다.");
+        values.put("ranking-menu-load-failed", "섬 랭킹을 불러오지 못했습니다.");
+        values.put("ranking-menu-click-to-visit", "클릭하면 방문을 시도합니다.");
         values.put("danger-confirm-required", "Shift+우클릭해야 실행됩니다.");
         values.put("danger-confirm-click-required", "위험 작업은 Shift+우클릭해야 실행됩니다.");
         values.put("snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다.");

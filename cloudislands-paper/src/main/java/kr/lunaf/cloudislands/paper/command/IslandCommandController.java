@@ -535,7 +535,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 boolean worthRanking = args[1].equalsIgnoreCase("worth") || args[1].equals("가치");
                 listIslandRanking(player, worthRanking, rankingLimit(args, worthRanking ? 2 : 1));
             } else {
-                IslandRankingMenu.open(plugin, coreApiClient, player);
+                IslandRankingMenu.open(plugin, coreApiClient, player, messages);
             }
             return true;
         }
