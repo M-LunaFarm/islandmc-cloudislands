@@ -11,19 +11,23 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.function.BooleanSupplier;
+
 public final class MaintenanceTickService {
     private final JavaPlugin plugin;
     private final FactoryIslandService islands;
     private final SkyblockProvider skyblock;
     private final MaintenanceService maintenance;
+    private final BooleanSupplier active;
     private BukkitTask task;
 
     public MaintenanceTickService(JavaPlugin plugin, FactoryIslandService islands, SkyblockProvider skyblock,
-                                  MaintenanceService maintenance) {
+                                  MaintenanceService maintenance, BooleanSupplier active) {
         this.plugin = plugin;
         this.islands = islands;
         this.skyblock = skyblock;
         this.maintenance = maintenance;
+        this.active = active == null ? () -> true : active;
     }
 
     public void start(long intervalTicks) {
@@ -39,6 +43,9 @@ public final class MaintenanceTickService {
     }
 
     private void tick() {
+        if (!active.getAsBoolean()) {
+            return;
+        }
         for (FactoryIsland island : islands.cached()) {
             OfflinePlayer owner = Bukkit.getOfflinePlayer(island.ownerUuid());
             Object rawIsland = skyblock.getIslandByUuid(island.islandUuid())

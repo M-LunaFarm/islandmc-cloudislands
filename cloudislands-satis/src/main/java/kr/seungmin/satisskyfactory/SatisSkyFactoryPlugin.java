@@ -262,7 +262,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             );
             ticker.start(configLong("settings.tick-period-ticks", "settings.tick-interval", 20));
         }
-        maintenanceTicker = new MaintenanceTickService(this, islands, skyblock, maintenance);
+        maintenanceTicker = new MaintenanceTickService(this, islands, skyblock, maintenance, () -> featureEnabled("maintenance"));
         if (featureEnabled("maintenance")) {
             maintenanceTicker.start(configLong("settings.maintenance-check-period-ticks", "settings.maintenance-check-interval", 1200));
         }
