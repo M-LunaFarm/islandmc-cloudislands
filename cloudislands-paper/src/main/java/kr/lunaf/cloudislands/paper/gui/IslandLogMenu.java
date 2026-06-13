@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -20,6 +21,7 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandLogMenu implements Listener {
     private static final String TITLE = "섬 로그";
+    private final MessageRenderer messages;
     private static final Set<String> INTERNAL_PAYLOAD_KEYS = Set.of(
         "activenode",
         "activeworld",
@@ -35,11 +37,23 @@ public final class IslandLogMenu implements Listener {
         "worldname"
     );
 
+    public IslandLogMenu() {
+        this(null);
+    }
+
+    public IslandLogMenu(MessageRenderer messages) {
+        this.messages = messages;
+    }
+
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
+        open(plugin, client, player, islandId, null);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
         client.listIslandLogs(islandId, 27)
-            .thenAccept(body -> openSync(plugin, player, body))
+            .thenAccept(body -> openSync(plugin, player, body, messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("섬 로그를 불러오지 못했습니다."));
+                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "log-menu-load-failed", "섬 로그를 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -77,7 +91,7 @@ public final class IslandLogMenu implements Listener {
             player.closeInventory();
             return;
         }
-        player.sendMessage("섬 로그 상세");
+        player.sendMessage(message(messages, "log-menu-detail-title", "섬 로그 상세"));
         if (meta.hasLore() && meta.getLore() != null) {
             for (String line : meta.getLore()) {
                 player.sendMessage("- " + line);
@@ -85,16 +99,16 @@ public final class IslandLogMenu implements Listener {
         }
     }
 
-    private static void openSync(Plugin plugin, Player player, String body) {
+    private static void openSync(Plugin plugin, Player player, String body, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 36, TITLE);
             List<LogEntry> entries = logs(body);
             if (entries.isEmpty()) {
-                inventory.setItem(13, item(Material.BARRIER, "로그 없음", "아직 기록된 섬 로그가 없습니다."));
+                inventory.setItem(13, item(Material.BARRIER, "로그 없음", message(messages, "log-menu-empty", "아직 기록된 섬 로그가 없습니다.")));
             } else {
                 for (int index = 0; index < entries.size() && index < 27; index++) {
                     LogEntry entry = entries.get(index);
-                    inventory.setItem(index, item(material(entry.action()), (index + 1) + ". " + entry.action(), lore(entry)));
+                    inventory.setItem(index, item(material(entry.action()), (index + 1) + ". " + entry.action(), lore(entry, messages)));
                 }
             }
             inventory.setItem(30, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
@@ -105,12 +119,12 @@ public final class IslandLogMenu implements Listener {
         });
     }
 
-    private static List<String> lore(LogEntry entry) {
+    private static List<String> lore(LogEntry entry, MessageRenderer messages) {
         List<String> lore = new ArrayList<>();
-        lore.add("시간: " + fallback(entry.createdAt(), "unknown"));
-        lore.add("처리자: " + shorten(entry.actorUuid()));
+        lore.add(message(messages, "log-menu-time", "시간: ") + fallback(entry.createdAt(), message(messages, "log-menu-unknown", "unknown")));
+        lore.add(message(messages, "log-menu-actor", "처리자: ") + shorten(entry.actorUuid()));
         if (entry.payload().isEmpty()) {
-            lore.add("payload: 없음");
+            lore.add(message(messages, "log-menu-payload-empty", "payload: 없음"));
         } else {
             for (Map.Entry<String, String> payload : entry.payload().entrySet()) {
                 lore.add(payload.getKey() + ": " + payload.getValue());
@@ -121,6 +135,14 @@ public final class IslandLogMenu implements Listener {
             }
         }
         return lore;
+    }
+
+    private static String message(MessageRenderer messages, String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private static Material material(String action) {

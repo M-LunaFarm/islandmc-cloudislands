@@ -272,6 +272,13 @@ public final class TranslationManager {
         values.put("ban-menu-expires-at", "만료 시각: ");
         values.put("ban-menu-left-click", "좌클릭: 상세 보기");
         values.put("ban-menu-right-click", "우클릭: 밴 해제");
+        values.put("log-menu-load-failed", "섬 로그를 불러오지 못했습니다.");
+        values.put("log-menu-detail-title", "섬 로그 상세");
+        values.put("log-menu-empty", "아직 기록된 섬 로그가 없습니다.");
+        values.put("log-menu-time", "시간: ");
+        values.put("log-menu-actor", "처리자: ");
+        values.put("log-menu-unknown", "unknown");
+        values.put("log-menu-payload-empty", "payload: 없음");
         values.put("danger-confirm-required", "Shift+우클릭해야 실행됩니다.");
         values.put("danger-confirm-click-required", "위험 작업은 Shift+우클릭해야 실행됩니다.");
         values.put("snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다.");
