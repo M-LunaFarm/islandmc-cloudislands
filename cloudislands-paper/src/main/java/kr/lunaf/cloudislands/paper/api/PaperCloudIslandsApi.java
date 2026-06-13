@@ -644,8 +644,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
-        public CompletableFuture<MigrationRunSnapshot> importSuperiorSkyblock2(String path) {
-            return client.migrateSuperiorSkyblock2("import", path).thenApply(PaperCloudIslandsApi::migrationRun);
+        public CompletableFuture<MigrationRunSnapshot> importSuperiorSkyblock2(String approvalToken) {
+            return client.migrateSuperiorSkyblock2("import", approvalToken).thenApply(PaperCloudIslandsApi::migrationRun);
         }
 
         @Override
@@ -1403,6 +1403,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return new MigrationRunSnapshot(
             text(json, "state", ""),
             text(json, "path", ""),
+            text(json, "manifestPath", ""),
+            text(json, "reportPath", ""),
+            text(json, "approvalToken", ""),
             integer(json, "manifests", 0),
             bool(json, "canImport", false),
             bool(json, "imported", false),

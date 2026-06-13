@@ -111,7 +111,10 @@ public interface IslandAdminService {
     CompletableFuture<MigrationRunSnapshot> scanSuperiorSkyblock2(String path);
     CompletableFuture<MigrationRunSnapshot> dryRunSuperiorSkyblock2(String path);
     CompletableFuture<MigrationRunSnapshot> extractSuperiorSkyblock2(String outputPath);
-    CompletableFuture<MigrationRunSnapshot> importSuperiorSkyblock2(String path);
+    CompletableFuture<MigrationRunSnapshot> importSuperiorSkyblock2(String approvalToken);
+    default CompletableFuture<MigrationRunSnapshot> importSuperiorSkyblock2WithApproval(String approvalToken) {
+        return importSuperiorSkyblock2(approvalToken);
+    }
     CompletableFuture<MigrationRunSnapshot> verifySuperiorSkyblock2(String path);
     CompletableFuture<MigrationRunSnapshot> rollbackSuperiorSkyblock2(String path);
 

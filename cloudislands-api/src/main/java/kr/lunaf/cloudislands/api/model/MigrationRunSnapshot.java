@@ -5,6 +5,9 @@ import java.util.List;
 public record MigrationRunSnapshot(
     String state,
     String path,
+    String manifestPath,
+    String reportPath,
+    String approvalToken,
     int manifests,
     boolean canImport,
     boolean imported,
@@ -44,7 +47,7 @@ public record MigrationRunSnapshot(
         int removedIslands,
         List<MigrationIssueSnapshot> issues
     ) {
-        this(state, path, manifests, canImport, imported, importedIslands, passed, expected, rolledBack, removedIslands, 0, 0L, 0L, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, issues);
+        this(state, path, "", "", "", manifests, canImport, imported, importedIslands, passed, expected, rolledBack, removedIslands, 0, 0L, 0L, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, issues);
     }
 
     public MigrationRunSnapshot(
@@ -73,6 +76,6 @@ public record MigrationRunSnapshot(
         int warningIssues,
         List<MigrationIssueSnapshot> issues
     ) {
-        this(state, path, manifests, canImport, imported, importedIslands, passed, expected, rolledBack, removedIslands, 0, 0L, 0L, members, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, blockValues, blockCounts, blockingIssues, warningIssues, issues);
+        this(state, path, "", "", "", manifests, canImport, imported, importedIslands, passed, expected, rolledBack, removedIslands, 0, 0L, 0L, members, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, blockValues, blockCounts, blockingIssues, warningIssues, issues);
     }
 }
