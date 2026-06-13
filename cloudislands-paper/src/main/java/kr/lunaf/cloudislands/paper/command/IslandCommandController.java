@@ -1945,7 +1945,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private void openIslandLimitMenu(Player player) {
-        currentIsland(player, "섬 안에서만 제한 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandLimitMenu.open(plugin, coreApiClient, player, islandId));
+        currentIsland(player, "섬 안에서만 제한 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandLimitMenu.open(plugin, coreApiClient, player, islandId, messages));
     }
 
     private void setNamedIslandLimit(Player player, String limitKey, String[] args) {

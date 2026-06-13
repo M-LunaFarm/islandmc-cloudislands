@@ -208,6 +208,12 @@ public final class TranslationManager {
         values.put("visit-menu-empty", "방문 가능한 공개 섬이 없습니다.");
         values.put("visit-menu-random-description", "공개된 섬 중 하나로 이동합니다.");
         values.put("visit-menu-click-to-visit", "클릭하면 방문합니다.");
+        values.put("limit-menu-load-failed", "섬 제한을 불러오지 못했습니다.");
+        values.put("limit-menu-empty", "현재 설정된 섬 제한이 없습니다.");
+        values.put("limit-menu-no-update", "업데이트 정보 없음");
+        values.put("limit-menu-left-click", "좌클릭: +1");
+        values.put("limit-menu-right-click", "우클릭: -1");
+        values.put("limit-menu-shift-click", "Shift+클릭: 10 단위로 조정");
         values.put("danger-confirm-required", "Shift+우클릭해야 실행됩니다.");
         values.put("danger-confirm-click-required", "위험 작업은 Shift+우클릭해야 실행됩니다.");
         values.put("snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다.");

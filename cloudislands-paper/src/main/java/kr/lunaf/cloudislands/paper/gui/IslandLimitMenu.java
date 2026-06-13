@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -17,12 +18,25 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandLimitMenu implements Listener {
     private static final String TITLE = "섬 제한";
+    private final MessageRenderer messages;
+
+    public IslandLimitMenu() {
+        this(null);
+    }
+
+    public IslandLimitMenu(MessageRenderer messages) {
+        this.messages = messages;
+    }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
+        open(plugin, client, player, islandId, null);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
         client.listIslandLimits(islandId)
-            .thenAccept(body -> openSync(plugin, player, limits(body)))
+            .thenAccept(body -> openSync(plugin, player, limits(body), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("섬 제한을 불러오지 못했습니다."));
+                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "limit-menu-load-failed", "섬 제한을 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -64,15 +78,15 @@ public final class IslandLimitMenu implements Listener {
         player.performCommand("섬 제한설정 " + limitKey + " " + nextValue);
     }
 
-    private static void openSync(Plugin plugin, Player player, List<Limit> limits) {
+    private static void openSync(Plugin plugin, Player player, List<Limit> limits, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
             int slot = 0;
             for (Limit limit : limits.stream().limit(45).toList()) {
-                inventory.setItem(slot++, limitItem(limit));
+                inventory.setItem(slot++, limitItem(limit, messages));
             }
             if (limits.isEmpty()) {
-                inventory.setItem(22, item(Material.BARRIER, "제한 없음", "현재 설정된 섬 제한이 없습니다."));
+                inventory.setItem(22, item(Material.BARRIER, "제한 없음", message(messages, "limit-menu-empty", "현재 설정된 섬 제한이 없습니다.")));
             }
             inventory.setItem(45, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
             inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 제한"));
@@ -81,8 +95,16 @@ public final class IslandLimitMenu implements Listener {
         });
     }
 
-    private static ItemStack limitItem(Limit limit) {
-        return item(Material.HOPPER, limit.key(), "제한 키=" + limit.key(), "현재 값: " + limit.value(), limit.updatedAt().isBlank() ? "업데이트 정보 없음" : "갱신 시각: " + limit.updatedAt(), "좌클릭: +1", "우클릭: -1", "Shift+클릭: 10 단위로 조정");
+    private static ItemStack limitItem(Limit limit, MessageRenderer messages) {
+        return item(Material.HOPPER, limit.key(), "제한 키=" + limit.key(), "현재 값: " + limit.value(), limit.updatedAt().isBlank() ? message(messages, "limit-menu-no-update", "업데이트 정보 없음") : "갱신 시각: " + limit.updatedAt(), message(messages, "limit-menu-left-click", "좌클릭: +1"), message(messages, "limit-menu-right-click", "우클릭: -1"), message(messages, "limit-menu-shift-click", "Shift+클릭: 10 단위로 조정"));
+    }
+
+    private static String message(MessageRenderer messages, String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
