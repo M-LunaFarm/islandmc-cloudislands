@@ -288,8 +288,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 || operationalFeatureEnabled("market")
                 || operationalFeatureEnabled("contracts")
                 || featureEnabled("research")
-                || featureEnabled("maintenance")
-                || (featureEnabled("lifecycle") && lifecycleStateEnabled());
+                || featureEnabled("maintenance");
     }
 
     private boolean lifecycleStateEnabled() {
