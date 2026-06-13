@@ -117,7 +117,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (!registerCloudIslandsAddon()) {
             installDisabledCommandHandler("addon-disabled");
             if (cloudIslandsApiMissing) {
-                getServer().getPluginManager().disablePlugin(this);
+                getServer().getScheduler().runTask(this, () -> getServer().getPluginManager().disablePlugin(this));
             }
             return;
         }
