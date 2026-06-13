@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -17,12 +18,25 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandSnapshotMenu implements Listener {
     private static final String TITLE = "섬 스냅샷";
+    private final MessageRenderer messages;
+
+    public IslandSnapshotMenu() {
+        this(null);
+    }
+
+    public IslandSnapshotMenu(MessageRenderer messages) {
+        this.messages = messages;
+    }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
+        open(plugin, client, player, islandId, null);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
         client.listIslandSnapshots(islandId, 20)
             .thenAccept(body -> openSync(plugin, player, snapshots(body)))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("섬 스냅샷을 불러오지 못했습니다."));
+                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -61,7 +75,7 @@ public final class IslandSnapshotMenu implements Listener {
                 return;
             }
             if (event.isRightClick()) {
-                player.sendMessage("스냅샷 복원은 Shift+우클릭해야 실행됩니다.");
+                player.sendMessage(message(messages, "snapshot-restore-confirm-required", "스냅샷 복원은 Shift+우클릭해야 실행됩니다."));
                 return;
             }
             player.sendMessage("스냅샷 상세");
@@ -71,6 +85,14 @@ public final class IslandSnapshotMenu implements Listener {
                 }
             }
         }
+    }
+
+    private static String message(MessageRenderer messages, String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private static void openSync(Plugin plugin, Player player, List<Snapshot> snapshots) {

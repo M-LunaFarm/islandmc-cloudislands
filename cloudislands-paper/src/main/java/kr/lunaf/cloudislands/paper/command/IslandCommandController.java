@@ -1989,7 +1989,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private void openIslandSnapshotMenu(Player player) {
-        currentIsland(player, "섬 안에서만 스냅샷 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandSnapshotMenu.open(plugin, coreApiClient, player, islandId));
+        currentIsland(player, "섬 안에서만 스냅샷 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandSnapshotMenu.open(plugin, coreApiClient, player, islandId, messages));
     }
 
     private void requestIslandSnapshot(Player player, String reason) {

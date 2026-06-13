@@ -123,6 +123,8 @@ messages:
     chat-menu-team-usage: "사용법: /섬 팀채팅 <메시지>"
     danger-confirm-required: "Shift+우클릭해야 실행됩니다."
     danger-confirm-click-required: "위험 작업은 Shift+우클릭해야 실행됩니다."
+    snapshot-menu-load-failed: "섬 스냅샷을 불러오지 못했습니다."
+    snapshot-restore-confirm-required: "스냅샷 복원은 Shift+우클릭해야 실행됩니다."
   scoreboard-lines:
     - "플레이어: {player}"
     - "접속: {online}명"

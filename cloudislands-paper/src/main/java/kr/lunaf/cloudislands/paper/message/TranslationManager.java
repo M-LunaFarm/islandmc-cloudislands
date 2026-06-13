@@ -188,6 +188,8 @@ public final class TranslationManager {
         values.put("chat-menu-team-usage", "사용법: /섬 팀채팅 <메시지>");
         values.put("danger-confirm-required", "Shift+우클릭해야 실행됩니다.");
         values.put("danger-confirm-click-required", "위험 작업은 Shift+우클릭해야 실행됩니다.");
+        values.put("snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다.");
+        values.put("snapshot-restore-confirm-required", "스냅샷 복원은 Shift+우클릭해야 실행됩니다.");
         return values;
     }
 
