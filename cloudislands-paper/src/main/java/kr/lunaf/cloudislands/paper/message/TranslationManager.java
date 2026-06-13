@@ -244,6 +244,15 @@ public final class TranslationManager {
         values.put("permission-menu-deny", "차단");
         values.put("permission-menu-current-state", "현재 상태: ");
         values.put("permission-menu-click-actions", "좌클릭: 허용, 우클릭: 차단");
+        values.put("member-menu-load-failed", "섬 멤버를 불러오지 못했습니다.");
+        values.put("member-menu-invite-usage", "사용법: /섬 초대 <플레이어>");
+        values.put("member-menu-transfer-direct", "소유권 이전은 명령어로 직접 확인해주세요: /섬 양도 ");
+        values.put("member-menu-no-join-info", "가입 정보 없음");
+        values.put("member-menu-joined-at", "가입 시각: ");
+        values.put("member-menu-left-click", "좌클릭: 승급");
+        values.put("member-menu-right-click", "우클릭: 강등");
+        values.put("member-menu-shift-right-click", "Shift+우클릭: 추방");
+        values.put("member-menu-transfer-line", "양도: /섬 양도 ");
         values.put("danger-confirm-required", "Shift+우클릭해야 실행됩니다.");
         values.put("danger-confirm-click-required", "위험 작업은 Shift+우클릭해야 실행됩니다.");
         values.put("snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다.");

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -17,12 +18,25 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandMemberMenu implements Listener {
     private static final String TITLE = "섬 멤버 관리";
+    private final MessageRenderer messages;
+
+    public IslandMemberMenu() {
+        this(null);
+    }
+
+    public IslandMemberMenu(MessageRenderer messages) {
+        this.messages = messages;
+    }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
+        open(plugin, client, player, islandId, null);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
         client.listIslandMembers(islandId)
-            .thenAccept(body -> openSync(plugin, player, members(body)))
+            .thenAccept(body -> openSync(plugin, player, members(body), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("섬 멤버를 불러오지 못했습니다."));
+                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "member-menu-load-failed", "섬 멤버를 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -43,7 +57,7 @@ public final class IslandMemberMenu implements Listener {
         String name = meta.getDisplayName();
         player.closeInventory();
         if (name.equals("멤버 초대")) {
-            player.sendMessage("사용법: /섬 초대 <플레이어>");
+            player.sendMessage(message(messages, "member-menu-invite-usage", "사용법: /섬 초대 <플레이어>"));
             return;
         }
         if (name.equals("초대 목록")) {
@@ -80,14 +94,14 @@ public final class IslandMemberMenu implements Listener {
                 player.performCommand("섬 승급 " + playerUuid);
                 return;
             }
-            player.sendMessage("소유권 이전은 명령어로 직접 확인해주세요: /섬 양도 " + playerUuid);
+            player.sendMessage(message(messages, "member-menu-transfer-direct", "소유권 이전은 명령어로 직접 확인해주세요: /섬 양도 ") + playerUuid);
         }
     }
 
-    private static void openSync(Plugin plugin, Player player, List<Member> members) {
+    private static void openSync(Plugin plugin, Player player, List<Member> members, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
-            inventory.setItem(45, item(Material.WRITABLE_BOOK, "멤버 초대", "사용법: /섬 초대 <플레이어>"));
+            inventory.setItem(45, item(Material.WRITABLE_BOOK, "멤버 초대", message(messages, "member-menu-invite-usage", "사용법: /섬 초대 <플레이어>")));
             inventory.setItem(46, item(Material.PAPER, "초대 목록", "/섬 초대목록"));
             inventory.setItem(47, item(Material.COMPARATOR, "권한 설정", "/섬 권한"));
             inventory.setItem(48, item(Material.REDSTONE_TORCH, "설정", "/섬 설정"));
@@ -95,13 +109,13 @@ public final class IslandMemberMenu implements Listener {
             inventory.setItem(53, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
             int slot = 0;
             for (Member member : members.stream().limit(45).toList()) {
-                inventory.setItem(slot++, memberItem(member));
+                inventory.setItem(slot++, memberItem(member, messages));
             }
             player.openInventory(inventory);
         });
     }
 
-    private static ItemStack memberItem(Member member) {
+    private static ItemStack memberItem(Member member, MessageRenderer messages) {
         Material material = switch (member.role()) {
             case "OWNER" -> Material.NETHER_STAR;
             case "CO_OWNER" -> Material.DIAMOND;
@@ -111,11 +125,19 @@ public final class IslandMemberMenu implements Listener {
         };
         return item(material, member.role() + " " + shortUuid(member.playerUuid()),
             "플레이어=" + member.playerUuid(),
-            member.joinedAt().isBlank() ? "가입 정보 없음" : "가입 시각: " + member.joinedAt(),
-            "좌클릭: 승급",
-            "우클릭: 강등",
-            "Shift+우클릭: 추방",
-            "양도: /섬 양도 " + member.playerUuid());
+            member.joinedAt().isBlank() ? message(messages, "member-menu-no-join-info", "가입 정보 없음") : message(messages, "member-menu-joined-at", "가입 시각: ") + member.joinedAt(),
+            message(messages, "member-menu-left-click", "좌클릭: 승급"),
+            message(messages, "member-menu-right-click", "우클릭: 강등"),
+            message(messages, "member-menu-shift-right-click", "Shift+우클릭: 추방"),
+            message(messages, "member-menu-transfer-line", "양도: /섬 양도 ") + member.playerUuid());
+    }
+
+    private static String message(MessageRenderer messages, String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
