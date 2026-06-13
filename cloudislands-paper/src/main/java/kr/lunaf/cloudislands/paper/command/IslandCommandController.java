@@ -1390,6 +1390,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             connectWithTicket(player, ticket, ticket.payload().getOrDefault("targetServerName", ticket.targetNode()));
         }).exceptionally(error -> {
             clearRouteLoading(player);
+            clearFailedRoute(ticket, "SESSION_PUBLISH_FAILED");
             message(player, failureMessage);
             return null;
         });
@@ -1425,12 +1426,12 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void connectWithTicket(Player player, RouteTicket ticket, String targetServerName) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             if (targetServerName == null || targetServerName.isBlank()) {
-                clearFailedRoute(ticket);
+                clearFailedRoute(ticket, "TARGET_SERVER_NOT_FOUND");
                 player.sendMessage("섬으로 이동하지 못했습니다.");
                 return;
             }
             if (!canUseBungeeConnect()) {
-                clearFailedRoute(ticket);
+                clearFailedRoute(ticket, "BUNGEE_CONNECT_UNAVAILABLE");
                 player.sendMessage("섬 이동 경로를 준비하지 못했습니다.");
                 return;
             }
@@ -1442,14 +1443,18 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
                 player.sendMessage("섬으로 이동합니다.");
             } catch (IOException | RuntimeException exception) {
-                clearFailedRoute(ticket);
+                clearFailedRoute(ticket, "PLUGIN_MESSAGE_FAILED");
                 player.sendMessage("섬으로 이동하지 못했습니다.");
             }
         });
     }
 
     private void clearFailedRoute(RouteTicket ticket) {
-        coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), "PLUGIN_MESSAGE_FAILED").exceptionally(error -> null);
+        clearFailedRoute(ticket, "PLUGIN_MESSAGE_FAILED");
+    }
+
+    private void clearFailedRoute(RouteTicket ticket, String reason) {
+        coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), reason == null || reason.isBlank() ? "PLUGIN_MESSAGE_FAILED" : reason).exceptionally(error -> null);
     }
 
     private String routeTargetName(RouteTicket ticket) {

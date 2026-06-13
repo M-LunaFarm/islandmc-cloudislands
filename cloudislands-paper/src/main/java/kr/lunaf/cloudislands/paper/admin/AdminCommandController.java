@@ -824,6 +824,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         coreApiClient.publishRouteSession(ticket)
             .thenRun(() -> connectWithTicket(player, ticket, ticket.payload().getOrDefault("targetServerName", ticket.targetNode())))
             .exceptionally(error -> {
+                clearFailedRoute(ticket, "SESSION_PUBLISH_FAILED");
                 message(player, routeFailureMessage(error, failureMessage));
                 return null;
             });
@@ -832,7 +833,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private void connectWithTicket(Player player, RouteTicket ticket, String targetServerName) {
         agent.plugin().getServer().getScheduler().runTask(agent.plugin(), () -> {
             if (targetServerName == null || targetServerName.isBlank()) {
-                clearFailedRoute(ticket);
+                clearFailedRoute(ticket, "TARGET_SERVER_NOT_FOUND");
                 player.sendMessage("섬 이동 경로를 찾을 수 없습니다.");
                 return;
             }
@@ -844,14 +845,18 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 player.sendPluginMessage(agent.plugin(), "BungeeCord", bytes.toByteArray());
                 player.sendMessage("섬으로 이동합니다.");
             } catch (IOException exception) {
-                clearFailedRoute(ticket);
+                clearFailedRoute(ticket, "PLUGIN_MESSAGE_FAILED");
                 player.sendMessage("섬 이동 요청을 만들 수 없습니다.");
             }
         });
     }
 
     private void clearFailedRoute(RouteTicket ticket) {
-        coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), "PLUGIN_MESSAGE_FAILED").exceptionally(error -> null);
+        clearFailedRoute(ticket, "PLUGIN_MESSAGE_FAILED");
+    }
+
+    private void clearFailedRoute(RouteTicket ticket, String reason) {
+        coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), reason == null || reason.isBlank() ? "PLUGIN_MESSAGE_FAILED" : reason).exceptionally(error -> null);
     }
 
     private void run(CommandSender sender, String action, CompletableFuture<String> future) {
