@@ -38,24 +38,12 @@ public final class IslandBoostService {
 
     public void configure(FileConfiguration config) {
         settings = new Settings(
-                Math.max(0.0, doubleValue(config, "cloudislands.boosts.agriculture-min", "superior-skyblock.boosts.agriculture-min", 1.0)),
-                Math.max(0.0, doubleValue(config, "cloudislands.boosts.agriculture-max", "superior-skyblock.boosts.agriculture-max", 3.0)),
-                Math.max(1, intValue(config, "cloudislands.boosts.factory-slot-size-divisor", "superior-skyblock.boosts.factory-slot-size-divisor", 50)),
-                Math.max(1.01, doubleValue(config, "cloudislands.boosts.contract-slot-worth-log-base", "superior-skyblock.boosts.contract-slot-worth-log-base", 10.0)),
-                Math.max(0, intValue(config, "cloudislands.boosts.max-contract-slot-bonus", "superior-skyblock.boosts.max-contract-slot-bonus", 0))
+                Math.max(0.0, config.getDouble("cloudislands.boosts.agriculture-min", 1.0)),
+                Math.max(0.0, config.getDouble("cloudislands.boosts.agriculture-max", 3.0)),
+                Math.max(1, config.getInt("cloudislands.boosts.factory-slot-size-divisor", 50)),
+                Math.max(1.01, config.getDouble("cloudislands.boosts.contract-slot-worth-log-base", 10.0)),
+                Math.max(0, config.getInt("cloudislands.boosts.max-contract-slot-bonus", 0))
         );
-    }
-
-    private double doubleValue(FileConfiguration config, String primaryPath, String legacyPath, double fallback) {
-        return config.contains(primaryPath)
-                ? config.getDouble(primaryPath, fallback)
-                : config.getDouble(legacyPath, fallback);
-    }
-
-    private int intValue(FileConfiguration config, String primaryPath, String legacyPath, int fallback) {
-        return config.contains(primaryPath)
-                ? config.getInt(primaryPath, fallback)
-                : config.getInt(legacyPath, fallback);
     }
 
     public Boosts boosts(UUID islandUuid) {

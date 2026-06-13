@@ -288,11 +288,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void configureSkyblockHook() {
-        boolean allowSpawnIsland = configBoolean("cloudislands.allow-spawn-island", "settings.allow-spawn-island", "superior-skyblock.allow-spawn-island", false);
+        boolean allowSpawnIsland = configBoolean("cloudislands.allow-spawn-island", "settings.allow-spawn-island", false);
         skyblock.configure(
-                configBoolean("cloudislands.allow-coop-build", "settings.allow-coop-build", "superior-skyblock.allow-coop-build", false),
-                !allowSpawnIsland && configBoolean("cloudislands.protect-spawn-island", "settings.protect-spawn-island", "superior-skyblock.protect-spawn-island", true),
-                configBoolean("cloudislands.require-island-member", "settings.require-island-member", "superior-skyblock.require-island-member", true)
+                configBoolean("cloudislands.allow-coop-build", "settings.allow-coop-build", false),
+                !allowSpawnIsland && configBoolean("cloudislands.protect-spawn-island", "settings.protect-spawn-island", true),
+                configBoolean("cloudislands.require-island-member", "settings.require-island-member", true)
         );
     }
 
@@ -320,16 +320,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return configs.main().contains(primaryPath)
                 ? configs.main().getBoolean(primaryPath, fallback)
                 : configs.main().getBoolean(aliasPath, fallback);
-    }
-
-    private boolean configBoolean(String primaryPath, String aliasPath, String legacyPath, boolean fallback) {
-        if (configs.main().contains(primaryPath)) {
-            return configs.main().getBoolean(primaryPath, fallback);
-        }
-        if (configs.main().contains(aliasPath)) {
-            return configs.main().getBoolean(aliasPath, fallback);
-        }
-        return configs.main().getBoolean(legacyPath, fallback);
     }
 
     private double maintenanceDouble(String primaryPath, String aliasPath, double fallback) {
