@@ -23,6 +23,7 @@ import kr.seungmin.satisskyfactory.contract.ContractService;
 import kr.seungmin.satisskyfactory.database.DatabaseService;
 import kr.seungmin.satisskyfactory.economy.EconomyModeFactory;
 import kr.seungmin.satisskyfactory.economy.EconomyService;
+import kr.seungmin.satisskyfactory.gui.FactoryGuiHolder;
 import kr.seungmin.satisskyfactory.gui.FactoryGuiService;
 import kr.seungmin.satisskyfactory.hook.CloudIslandsSkyblockProvider;
 import kr.seungmin.satisskyfactory.hook.PlaceholderHook;
@@ -49,6 +50,7 @@ import kr.seungmin.satisskyfactory.task.MachineTickService;
 import kr.seungmin.satisskyfactory.task.MaintenanceTickService;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -544,6 +546,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             machineListenerRegistered = true;
         }
         if (!featureEnabled("gui")) {
+            closeOpenFactoryGuis();
             guiListenerRegistered = unregisterListener(guiListener, guiListenerRegistered);
             guiListener = null;
         } else if (!guiListenerRegistered) {
@@ -598,6 +601,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             HandlerList.unregisterAll(listener);
         }
         return false;
+    }
+
+    private void closeOpenFactoryGuis() {
+        for (Player player : getServer().getOnlinePlayers()) {
+            if (player.getOpenInventory().getTopInventory().getHolder() instanceof FactoryGuiHolder) {
+                player.closeInventory();
+            }
+        }
     }
 
     private void rebuildNetworks() {
@@ -960,6 +971,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             placeholderHook.unregister();
             placeholderHook = null;
         }
+        closeOpenFactoryGuis();
         clearRuntimeCaches();
         machineListenerRegistered = unregisterListener(machineListener, machineListenerRegistered);
         machineListener = null;
@@ -1016,6 +1028,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return;
         }
         loadDefinitions();
+        refreshIslandCache();
         refreshMachineCache();
         if (featureEnabled("machines")) {
             rebuildNetworks();
