@@ -367,19 +367,32 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 sender.sendMessage(adminText("admin-command-addons-feature-usage", "사용법: /ciadmin addons feature <addonId> <feature> [true|false]"));
                 return true;
             }
-            if (!ADDON_FEATURES.contains(args[3])) {
-                sender.sendMessage(adminText("admin-command-addons-feature-invalid", "알 수 없는 addon feature입니다: ") + args[3]);
-                return true;
-            }
             if (args.length > 4) {
                 boolean enabled = booleanArgument(args[4], false);
-                agent.plugin().getConfig().set("addons." + args[2] + ".features." + args[3], enabled);
-                agent.plugin().saveConfig();
-                agent.plugin().reloadConfig();
-                run(sender, "Addon feature set", api.addons().refresh(args[2]).thenApply(addon -> addon.map(this::addonInfoMessage).orElse(adminText("admin-command-addons-not-found", "Addon: not found ") + args[2])));
+                run(sender, "Addon feature set", api.addons().get(args[2]).thenCompose(addon -> {
+                    if (addon.isEmpty()) {
+                        return java.util.concurrent.CompletableFuture.completedFuture(adminText("admin-command-addons-not-found", "Addon: not found ") + args[2]);
+                    }
+                    if (!addon.get().features().containsKey(args[3])) {
+                        return java.util.concurrent.CompletableFuture.completedFuture(adminText("admin-command-addons-feature-invalid", "알 수 없는 addon feature입니다: ") + args[3]);
+                    }
+                    agent.plugin().getConfig().set("addons." + args[2] + ".features." + args[3], enabled);
+                    agent.plugin().saveConfig();
+                    agent.plugin().reloadConfig();
+                    return api.addons().refresh(args[2]).thenApply(refreshed -> refreshed.map(this::addonInfoMessage).orElse(adminText("admin-command-addons-not-found", "Addon: not found ") + args[2]));
+                }));
                 return true;
             }
-            run(sender, "Addon feature", api.addons().isFeatureEnabled(args[2], args[3]).thenApply(enabled -> adminText("admin-command-addons-feature-prefix", "Addon feature: ") + args[2] + " " + args[3] + adminText("admin-command-addons-enabled-prefix", " enabled=") + enabled));
+            run(sender, "Addon feature", api.addons().get(args[2]).thenApply(addon -> {
+                if (addon.isEmpty()) {
+                    return adminText("admin-command-addons-not-found", "Addon: not found ") + args[2];
+                }
+                if (!addon.get().features().containsKey(args[3])) {
+                    return adminText("admin-command-addons-feature-invalid", "알 수 없는 addon feature입니다: ") + args[3];
+                }
+                boolean enabled = addon.get().enabled() && addon.get().featureEnabled(args[3]);
+                return adminText("admin-command-addons-feature-prefix", "Addon feature: ") + args[2] + " " + args[3] + adminText("admin-command-addons-enabled-prefix", " enabled=") + enabled;
+            }));
             return true;
         }
         if (args[1].equalsIgnoreCase("enable") || args[1].equalsIgnoreCase("disable")) {
