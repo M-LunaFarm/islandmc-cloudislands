@@ -2,6 +2,7 @@ package kr.seungmin.satisskyfactory;
 
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
+import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.seungmin.satisskyfactory.command.FactoryCommand;
 import kr.seungmin.satisskyfactory.config.ConfigService;
 import kr.seungmin.satisskyfactory.config.MessageService;
@@ -79,6 +80,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
             getLogger().info("CloudIslands Satis addon is disabled by config.");
             return;
         }
+        if (!registerCloudIslandsAddon()) {
+            return;
+        }
         messages = new MessageService(configs);
 
         skyblock = createSkyblockProvider();
@@ -127,7 +131,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
         registerCommands();
         registerListeners();
         registerPlaceholders();
-        registerCloudIslandsAddon();
         getLogger().info("SatisSkyFactory enabled using " + economy.name() + " economy.");
     }
 
@@ -401,20 +404,20 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
         getLogger().info("Registered PlaceholderAPI expansion: satisskyfactory");
     }
 
-    private void registerCloudIslandsAddon() {
+    private boolean registerCloudIslandsAddon() {
         cloudIslandsApi = CloudIslandsProvider.get().orElse(null);
         if (cloudIslandsApi == null) {
-            return;
+            return true;
         }
-        cloudIslandsApi.addons()
+        CloudIslandsAddonSnapshot addon = cloudIslandsApi.addons()
                 .register(ADDON_ID, "CloudIslands Satis", getDescription().getVersion(), configs.main().getBoolean("integration.enabled", false), featureSnapshot())
-                .thenAccept(addon -> {
-                    getLogger().info("Registered CloudIslands addon: " + addon.id() + " enabled=" + addon.enabled());
-                    if (!addon.enabled()) {
-                        getLogger().info("CloudIslands disabled this addon through the parent config.");
-                        getServer().getPluginManager().disablePlugin(this);
-                    }
-                });
+                .join();
+        getLogger().info("Registered CloudIslands addon: " + addon.id() + " enabled=" + addon.enabled());
+        if (!addon.enabled()) {
+            getLogger().info("CloudIslands disabled this addon through the parent config.");
+            return false;
+        }
+        return true;
     }
 
     private void unregisterCloudIslandsAddon() {
