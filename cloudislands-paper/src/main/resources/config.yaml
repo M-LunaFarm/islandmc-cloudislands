@@ -19,6 +19,9 @@ core-api:
   admin-token: "${CI_ADMIN_TOKEN}"
   timeout-ms: 3000
 
+security:
+  enforce-route-session: true
+
 redis:
   uri: "redis://redis.internal:6379"
 
