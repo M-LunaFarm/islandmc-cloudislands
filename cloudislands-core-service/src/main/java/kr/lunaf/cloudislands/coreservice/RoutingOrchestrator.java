@@ -92,6 +92,15 @@ public final class RoutingOrchestrator {
             .orElseGet(() -> rejectRoute(404, "ISLAND_NOT_FOUND", "Island was not found", playerUuid, islandId, RouteAction.VISIT));
     }
 
+    public RoutePreparationResult prepareVisitRouteByName(UUID playerUuid, String islandName) {
+        if (islandName == null || islandName.isBlank()) {
+            return rejectRoute(404, "ISLAND_NOT_FOUND", "Island was not found", playerUuid, null, RouteAction.VISIT);
+        }
+        return islands.findByName(islandName)
+            .map(island -> visitAllowed(playerUuid, island))
+            .orElseGet(() -> rejectRoute(404, "ISLAND_NOT_FOUND", "Island was not found", playerUuid, null, RouteAction.VISIT));
+    }
+
     public RoutePreparationResult prepareRandomVisitRoute(UUID playerUuid) {
         List<UUID> candidates = new ArrayList<>(metadata.publicIslandIds(64));
         Collections.shuffle(candidates);

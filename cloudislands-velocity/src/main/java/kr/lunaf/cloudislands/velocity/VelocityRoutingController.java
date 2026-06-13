@@ -184,17 +184,7 @@ public final class VelocityRoutingController {
             player.sendMessage(Component.text("방문할 섬 이름을 입력해주세요."));
             return;
         }
-        coreApiClient.islandInfoByName(islandName).thenAccept(body -> {
-            UUID islandId = parseUuid(jsonValue(body, "islandId"));
-            if (islandId.equals(new UUID(0L, 0L))) {
-                player.sendMessage(Component.text("방문할 섬을 찾을 수 없습니다."));
-                return;
-            }
-            routeVisit(player, islandId);
-        }).exceptionally(error -> {
-            player.sendMessage(Component.text("방문할 섬을 불러오지 못했습니다."));
-            return null;
-        });
+        routeFuture(player, coreApiClient.createVisitTicket(player.getUniqueId(), islandName), "해당 섬에 방문할 수 없습니다.");
     }
 
     public void routeVisitNamedTarget(Player player, String targetName) {

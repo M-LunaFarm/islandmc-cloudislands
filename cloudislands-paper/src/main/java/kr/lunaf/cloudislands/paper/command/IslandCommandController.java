@@ -1222,17 +1222,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private void routeVisitName(Player player, String islandName) {
-        coreApiClient.islandInfoByName(islandName).thenAccept(body -> {
-            UUID islandId = uuid(text(body, "islandId"));
-            if (islandId == null) {
-                message(player, "방문할 섬을 찾을 수 없습니다.");
-                return;
-            }
-            routeVisit(player, islandId);
-        }).exceptionally(error -> {
-            message(player, "방문할 섬을 불러오지 못했습니다.");
-            return null;
-        });
+        routeTicket(player, coreApiClient.createVisitTicket(player.getUniqueId(), islandName), "해당 섬에 방문할 수 없습니다.");
     }
 
     private void routeVisit(Player player, UUID islandId) {

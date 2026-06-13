@@ -665,7 +665,13 @@ public final class CloudIslandsCoreApplication {
         });
         route("/v1/routes/visit", exchange -> {
             String body = readBody(exchange);
-            routeResult(exchange, routing.prepareVisitRoute(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), JsonFields.uuid(body, "islandId", new UUID(0L, 0L))));
+            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
+            String islandName = JsonFields.text(body, "islandName", "");
+            if (!islandName.isBlank()) {
+                routeResult(exchange, routing.prepareVisitRouteByName(playerUuid, islandName));
+                return;
+            }
+            routeResult(exchange, routing.prepareVisitRoute(playerUuid, JsonFields.uuid(body, "islandId", new UUID(0L, 0L))));
         });
         route("/v1/routes/random", exchange -> {
             String body = readBody(exchange);
