@@ -863,6 +863,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void stopRuntimeActivity() {
+        installDisabledCommandHandler("addon");
+        commandsRegistered = false;
         if (ticker != null) {
             ticker.stop();
             ticker = null;
