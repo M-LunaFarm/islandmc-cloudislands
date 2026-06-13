@@ -1,0 +1,115 @@
+package kr.lunaf.cloudislands.api.event;
+
+import java.time.Instant;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
+import kr.lunaf.cloudislands.api.model.IslandRole;
+
+public final class CloudEventMapper {
+    private static final UUID NIL_UUID = new UUID(0L, 0L);
+
+    private CloudEventMapper() {}
+
+    public static Optional<CloudEvent> map(GlobalEventSnapshot snapshot) {
+        if (snapshot == null || snapshot.type() == null || snapshot.type().isBlank()) {
+            return Optional.empty();
+        }
+        Map<String, String> fields = snapshot.fields() == null ? Map.of() : snapshot.fields();
+        Instant occurredAt = snapshot.occurredAt();
+        return switch (snapshot.type()) {
+            case "ISLAND_CREATED" -> Optional.of(new IslandCreatedEvent(uuid(fields, "islandId"), uuid(fields, "ownerUuid"), occurredAt));
+            case "ISLAND_DELETED" -> Optional.of(new IslandDeletedEvent(uuid(fields, "islandId"), longValue(fields, "snapshotNo"), occurredAt));
+            case "ISLAND_ACTIVATED" -> Optional.of(new IslandActivatedEvent(uuid(fields, "islandId"), text(fields, "nodeId"), text(fields, "worldName"), occurredAt));
+            case "ISLAND_MIGRATED" -> Optional.of(new IslandMigratedEvent(uuid(fields, "islandId"), text(fields, "fromNode"), firstText(fields, "toNode", "targetNode"), longValue(fields, "fencingToken"), occurredAt));
+            case "ISLAND_MEMBER_CHANGED" -> Optional.of(new IslandMemberChangedEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), text(fields, "action"), role(fields, "oldRole"), firstRole(fields, "newRole", "role"), occurredAt));
+            case "ISLAND_FLAG_CHANGED" -> Optional.of(new IslandFlagChangeEvent(uuid(fields, "islandId"), flag(fields, "flag"), text(fields, "value"), occurredAt));
+            case "ISLAND_LEVEL_UPDATED" -> Optional.of(new IslandLevelRecalculateEvent(uuid(fields, "islandId"), longValue(fields, "level"), occurredAt));
+            case "ISLAND_SNAPSHOT_CREATED" -> Optional.of(new IslandSnapshotCreateEvent(uuid(fields, "islandId"), longValue(fields, "snapshotNo"), text(fields, "reason"), occurredAt));
+            case "NODE_STATE_CHANGED" -> Optional.of(new NodeStateChangedEvent(text(fields, "nodeId"), text(fields, "state"), text(fields, "operation"), text(fields, "reason"), intValue(fields, "recoveryRequired"), occurredAt));
+            case "ROUTE_TICKET_CREATED" -> Optional.of(new RouteTicketCreatedEvent(uuid(fields, "ticketId"), uuid(fields, "islandId"), uuid(fields, "playerUuid"), text(fields, "action"), text(fields, "targetNode"), text(fields, "state"), occurredAt));
+            case "ROUTE_SESSION_PUBLISHED" -> Optional.of(new RouteSessionPublishedEvent(uuid(fields, "ticketId"), uuid(fields, "islandId"), uuid(fields, "playerUuid"), text(fields, "action"), text(fields, "targetNode"), occurredAt));
+            case "ROUTE_TICKET_CONSUMED" -> Optional.of(new RouteTicketConsumedGlobalEvent(uuid(fields, "ticketId"), uuid(fields, "islandId"), uuid(fields, "playerUuid"), text(fields, "action"), text(fields, "targetNode"), occurredAt));
+            case "ROUTE_TICKET_FAILED" -> Optional.of(new RouteTicketFailedEvent(uuid(fields, "ticketId"), uuid(fields, "islandId"), uuid(fields, "playerUuid"), text(fields, "action"), text(fields, "targetNode"), text(fields, "reason"), occurredAt));
+            case "ROUTE_TICKET_CLEARED" -> Optional.of(new RouteTicketClearedEvent(uuid(fields, "ticketId"), uuid(fields, "playerUuid"), text(fields, "reason"), bool(fields, "clearedSession"), bool(fields, "clearedTicket"), occurredAt));
+            case "ISLAND_TEMPLATE_CHANGED" -> Optional.of(new IslandTemplateChangeEvent(text(fields, "templateId"), nullableBool(fields, "enabled"), text(fields, "operation"), text(fields, "minNodeVersion"), occurredAt));
+            case "CORE_CACHE_CLEARED" -> Optional.of(new CoreCacheClearEvent(text(fields, "scope"), intValue(fields, "sessions"), intValue(fields, "tickets"), intValue(fields, "redisKeys"), occurredAt));
+            case "CORE_RELOADED" -> Optional.of(new CoreReloadEvent(intValue(fields, "clearedSessions"), intValue(fields, "clearedTickets"), intValue(fields, "clearedRedisKeys"), occurredAt));
+            default -> Optional.empty();
+        };
+    }
+
+    private static String text(Map<String, String> fields, String key) {
+        return fields.getOrDefault(key, "");
+    }
+
+    private static String firstText(Map<String, String> fields, String first, String second) {
+        String value = text(fields, first);
+        return value.isBlank() ? text(fields, second) : value;
+    }
+
+    private static UUID uuid(Map<String, String> fields, String key) {
+        String value = text(fields, key);
+        if (value.isBlank()) {
+            return NIL_UUID;
+        }
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException ignored) {
+            return NIL_UUID;
+        }
+    }
+
+    private static UUID firstUuid(Map<String, String> fields, String first, String second) {
+        UUID value = uuid(fields, first);
+        return value.equals(NIL_UUID) ? uuid(fields, second) : value;
+    }
+
+    private static long longValue(Map<String, String> fields, String key) {
+        try {
+            return Long.parseLong(text(fields, key));
+        } catch (NumberFormatException ignored) {
+            return 0L;
+        }
+    }
+
+    private static int intValue(Map<String, String> fields, String key) {
+        try {
+            return Integer.parseInt(text(fields, key));
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
+    }
+
+    private static boolean bool(Map<String, String> fields, String key) {
+        return Boolean.parseBoolean(text(fields, key));
+    }
+
+    private static Boolean nullableBool(Map<String, String> fields, String key) {
+        String value = text(fields, key);
+        return value.isBlank() ? null : Boolean.parseBoolean(value);
+    }
+
+    private static IslandFlag flag(Map<String, String> fields, String key) {
+        try {
+            return IslandFlag.valueOf(text(fields, key));
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
+    private static IslandRole role(Map<String, String> fields, String key) {
+        try {
+            return IslandRole.valueOf(text(fields, key));
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
+    private static IslandRole firstRole(Map<String, String> fields, String first, String second) {
+        IslandRole value = role(fields, first);
+        return value == null ? role(fields, second) : value;
+    }
+}
