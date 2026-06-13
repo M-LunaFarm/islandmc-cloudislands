@@ -26,12 +26,14 @@ class DefaultConfigIntegrityTest {
         assertEquals("kr.seungmin.satisskyfactory.SatisSkyFactoryPlugin", plugin.getString("main"));
         assertEquals(List.of("CloudIslands"), plugin.getStringList("depend"));
         assertEquals(List.of("Vault", "PlaceholderAPI"), plugin.getStringList("softdepend"));
+        assertFalse(plugin.saveToString().contains("Superior"));
         assertTrue(plugin.isConfigurationSection("commands.factory"));
         assertTrue(plugin.isConfigurationSection("commands.sfactory"));
         assertTrue(config.getBoolean("satis.enabled"));
         assertEquals("ADDON", config.getString("integration.mode"));
         assertEquals("CLOUDISLANDS", config.getString("integration.skyblock-provider"));
         assertTrue(config.getBoolean("integration.cloudislands-adapter"));
+        assertFalse(config.saveToString().contains("Superior"));
         assertEquals(20, config.getInt("settings.tick-period-ticks"));
         assertEquals(300, config.getInt("settings.max-machines-per-tick"));
         assertEquals(60, config.getInt("settings.max-backfill-cycles"));
@@ -42,6 +44,7 @@ class DefaultConfigIntegrityTest {
         assertTrue(config.getBoolean("economy.use-vault"));
         assertEquals("원", config.getString("economy.currency-symbol"));
         assertEquals("SQLITE", config.getString("database.type"));
+        assertEquals("../CloudIslands/satis-state", config.getString("database.shared-directory"));
         assertEquals("data.db", config.getString("database.sqlite-file"));
         assertEquals(60, config.getInt("database.save-interval-seconds"));
         assertEquals(1200, config.getInt("settings.dirty-save-period-ticks"));
