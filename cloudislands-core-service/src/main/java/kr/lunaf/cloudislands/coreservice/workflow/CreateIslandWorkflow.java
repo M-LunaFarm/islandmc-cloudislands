@@ -81,6 +81,7 @@ public final class CreateIslandWorkflow {
             publishTicketFailure(ownerUuid, null, "CREATE_LOCKED");
             return new CreateIslandResult(false, "CREATE_LOCKED", null, null);
         }
+        try {
         if (islands.findByOwner(ownerUuid).isPresent()) {
             releaseCreationLock(lease);
             publishTicketFailure(ownerUuid, null, "ALREADY_HAS_ISLAND");
@@ -118,7 +119,12 @@ public final class CreateIslandWorkflow {
             "pitch", "0.0"
         )));
         events.publish(CloudIslandEventType.ROUTE_TICKET_CREATED.name(), Map.of("ticketId", ticket.ticketId().toString(), "islandId", islandId.toString(), "playerUuid", ownerUuid.toString(), "action", ticket.action().name(), "targetNode", ticket.targetNode(), "state", ticket.state().name()));
+        releaseCreationLock(lease);
         return new CreateIslandResult(true, "CREATING", island, ticket);
+        } catch (RuntimeException exception) {
+            releaseCreationLock(lease);
+            throw exception;
+        }
     }
 
     private void publishTicketFailure(UUID playerUuid, UUID islandId, String reason) {
