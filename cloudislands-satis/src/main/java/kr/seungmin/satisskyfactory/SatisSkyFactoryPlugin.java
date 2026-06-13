@@ -112,7 +112,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
         loadDefinitions();
         islands.load();
         machines.load();
-        rebuildNetworks();
+        if (featureEnabled("machines")) {
+            rebuildNetworks();
+        }
 
         restartRuntimeTasks();
 
@@ -146,7 +148,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
         configureSkyblockHook();
         boosts.configure(configs.main());
         loadDefinitions();
-        rebuildNetworks();
+        if (featureEnabled("machines")) {
+            rebuildNetworks();
+        }
         restartRuntimeTasks();
     }
 
@@ -160,34 +164,38 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
         if (dirtySaves != null) {
             dirtySaves.stop();
         }
-        ticker = new MachineTickService(
-                this,
-                machines,
-                machineDefinitions,
-                storage,
-                recipes,
-                research,
-                nodes,
-                power,
-                boosts,
-                islands,
-                configInt("settings.max-machines-per-tick", "settings.max-machines-per-cycle", 300),
-                configs.main().getInt("settings.max-backfill-cycles", 60),
-                configs.main().getBoolean("settings.offline-production.enabled", true),
-                Math.max(0L, configs.main().getLong("settings.offline-production.max-hours", 8)) * 60L * 60L * 1000L,
-                configs.main().getDouble("settings.offline-production.efficiency", 0.35),
-                configInt("resource-nodes.link-radius", "settings.resource-node-link-radius", 3),
-                Set.copyOf(configs.main().getStringList("limits.recovery-machine-types")),
-                maintenanceDouble("maintenance.limited.efficiency", "maintenance.limited-efficiency", 0.5),
-                configs.file("maintenance.yml").getInt("maintenance.limited.max-operating-tier", 2),
-                configs.file("maintenance.yml").getDouble("maintenance.locked.recovery-efficiency", 0.30),
-                configs.file("maintenance.yml").getInt("maintenance.locked.max-operating-tier", 1),
-                configs.file("maintenance.yml").getDouble("maintenance.break-wear", 100.0),
-                activeParticleLimit(configs.main(), configInt("settings.max-machines-per-tick", "settings.max-machines-per-cycle", 300))
-        );
-        ticker.start(configLong("settings.tick-period-ticks", "settings.tick-interval", 20));
+        if (featureEnabled("machines")) {
+            ticker = new MachineTickService(
+                    this,
+                    machines,
+                    machineDefinitions,
+                    storage,
+                    recipes,
+                    research,
+                    nodes,
+                    power,
+                    boosts,
+                    islands,
+                    configInt("settings.max-machines-per-tick", "settings.max-machines-per-cycle", 300),
+                    configs.main().getInt("settings.max-backfill-cycles", 60),
+                    configs.main().getBoolean("settings.offline-production.enabled", true),
+                    Math.max(0L, configs.main().getLong("settings.offline-production.max-hours", 8)) * 60L * 60L * 1000L,
+                    configs.main().getDouble("settings.offline-production.efficiency", 0.35),
+                    configInt("resource-nodes.link-radius", "settings.resource-node-link-radius", 3),
+                    Set.copyOf(configs.main().getStringList("limits.recovery-machine-types")),
+                    maintenanceDouble("maintenance.limited.efficiency", "maintenance.limited-efficiency", 0.5),
+                    configs.file("maintenance.yml").getInt("maintenance.limited.max-operating-tier", 2),
+                    configs.file("maintenance.yml").getDouble("maintenance.locked.recovery-efficiency", 0.30),
+                    configs.file("maintenance.yml").getInt("maintenance.locked.max-operating-tier", 1),
+                    configs.file("maintenance.yml").getDouble("maintenance.break-wear", 100.0),
+                    activeParticleLimit(configs.main(), configInt("settings.max-machines-per-tick", "settings.max-machines-per-cycle", 300))
+            );
+            ticker.start(configLong("settings.tick-period-ticks", "settings.tick-interval", 20));
+        }
         maintenanceTicker = new MaintenanceTickService(this, islands, skyblock, maintenance);
-        maintenanceTicker.start(configLong("settings.maintenance-check-period-ticks", "settings.maintenance-check-interval", 1200));
+        if (featureEnabled("maintenance")) {
+            maintenanceTicker.start(configLong("settings.maintenance-check-period-ticks", "settings.maintenance-check-interval", 1200));
+        }
         dirtySaves.start(dirtySavePeriodTicks(configs.main()));
     }
 
@@ -253,14 +261,28 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
         itemRegistry.load(configs.file("items.yml"));
         machineDefinitions.load(configs.file("machines.yml"));
         recipes.load(configs.file("recipes.yml"));
-        nodes.load(configs.file("resource-nodes.yml"));
-        market.load(configs.file("market.yml"), configs.file("maintenance.yml"));
-        contracts.load(configs.file("contracts.yml"));
-        maintenance.load(configs.file("maintenance.yml"));
-        research.load(configs.file("research.yml"), configs.file("maintenance.yml"));
+        if (featureEnabled("resource-nodes")) {
+            nodes.load(configs.file("resource-nodes.yml"));
+        }
+        if (featureEnabled("market")) {
+            market.load(configs.file("market.yml"), configs.file("maintenance.yml"));
+        }
+        if (featureEnabled("contracts")) {
+            contracts.load(configs.file("contracts.yml"));
+        }
+        if (featureEnabled("maintenance")) {
+            maintenance.load(configs.file("maintenance.yml"));
+        }
+        if (featureEnabled("research")) {
+            research.load(configs.file("research.yml"), configs.file("maintenance.yml"));
+        }
     }
 
     private void registerCommands() {
+        if (!featureEnabled("commands")) {
+            getLogger().info("Satis commands are disabled by config.");
+            return;
+        }
         FactoryCommand command = new FactoryCommand(
                 islands,
                 machines,
@@ -293,52 +315,58 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
     }
 
     private void registerListeners() {
-        getServer().getPluginManager().registerEvents(new MachineListener(
-                this,
-                itemFactory,
-                machineDefinitions,
-                machines,
-                skyblock,
-                islands,
-                gui,
-                messages,
-                research,
-                nodes,
-                itemNetworks,
-                power,
-                configs.main(),
-                configs.file("maintenance.yml"),
-                boosts
-        ), this);
-        getServer().getPluginManager().registerEvents(new FactoryGuiListener(
-                islands,
-                skyblock,
-                contracts,
-                research,
-                gui,
-                machines,
-                recipes,
-                storage,
-                itemRegistry,
-                itemFactory,
-                market,
-                machineDefinitions,
-                maintenance,
-                itemNetworks,
-                power,
-                messages,
-                boosts,
-                this::reloadPluginConfig
-        ), this);
-        getServer().getPluginManager().registerEvents(new FactoryLifecycleListener(
-                islands,
-                skyblock,
-                nodes,
-                machines,
-                itemNetworks,
-                power,
-                maintenance
-        ), this);
+        if (featureEnabled("machines")) {
+            getServer().getPluginManager().registerEvents(new MachineListener(
+                    this,
+                    itemFactory,
+                    machineDefinitions,
+                    machines,
+                    skyblock,
+                    islands,
+                    gui,
+                    messages,
+                    research,
+                    nodes,
+                    itemNetworks,
+                    power,
+                    configs.main(),
+                    configs.file("maintenance.yml"),
+                    boosts
+            ), this);
+        }
+        if (featureEnabled("gui")) {
+            getServer().getPluginManager().registerEvents(new FactoryGuiListener(
+                    islands,
+                    skyblock,
+                    contracts,
+                    research,
+                    gui,
+                    machines,
+                    recipes,
+                    storage,
+                    itemRegistry,
+                    itemFactory,
+                    market,
+                    machineDefinitions,
+                    maintenance,
+                    itemNetworks,
+                    power,
+                    messages,
+                    boosts,
+                    this::reloadPluginConfig
+            ), this);
+        }
+        if (featureEnabled("lifecycle")) {
+            getServer().getPluginManager().registerEvents(new FactoryLifecycleListener(
+                    islands,
+                    skyblock,
+                    nodes,
+                    machines,
+                    itemNetworks,
+                    power,
+                    maintenance
+            ), this);
+        }
     }
 
     private void rebuildNetworks() {
@@ -352,11 +380,18 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
     }
 
     private void registerPlaceholders() {
+        if (!featureEnabled("placeholders")) {
+            return;
+        }
         if (!getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             return;
         }
         placeholderHook = new PlaceholderHook(this, islands, machines, storage, power, boosts, research, contracts);
         placeholderHook.register();
         getLogger().info("Registered PlaceholderAPI expansion: satisskyfactory");
+    }
+
+    private boolean featureEnabled(String key) {
+        return configs.main().getBoolean("features." + key, true);
     }
 }
