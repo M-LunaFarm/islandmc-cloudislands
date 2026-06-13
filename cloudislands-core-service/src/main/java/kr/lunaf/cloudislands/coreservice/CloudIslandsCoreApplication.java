@@ -359,6 +359,10 @@ public final class CloudIslandsCoreApplication {
         route("/v1/addons/state", exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
+            if (addonId.isBlank()) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id is required"));
+                return;
+            }
             try {
                 write(exchange, 200, addonStateJson(addonStates.list(addonId)));
             } catch (IllegalArgumentException exception) {
@@ -420,6 +424,10 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            if (addonId.isBlank() || islandId.equals(new UUID(0L, 0L))) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id and island id are required"));
+                return;
+            }
             try {
                 write(exchange, 200, addonStateJson(addonStates.listIsland(addonId, islandId)));
             } catch (IllegalArgumentException exception) {
@@ -432,8 +440,8 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             String key = JsonFields.text(body, "key", "");
             String value = JsonFields.text(body, "value", "");
-            if (addonId.isBlank() || key.isBlank()) {
-                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id and key are required"));
+            if (addonId.isBlank() || islandId.equals(new UUID(0L, 0L)) || key.isBlank()) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id, island id, and key are required"));
                 return;
             }
             try {
@@ -450,8 +458,8 @@ public final class CloudIslandsCoreApplication {
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             String key = JsonFields.text(body, "key", "");
-            if (addonId.isBlank() || key.isBlank()) {
-                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id and key are required"));
+            if (addonId.isBlank() || islandId.equals(new UUID(0L, 0L)) || key.isBlank()) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id, island id, and key are required"));
                 return;
             }
             try {
@@ -467,8 +475,8 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            if (addonId.isBlank()) {
-                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id is required"));
+            if (addonId.isBlank() || islandId.equals(new UUID(0L, 0L))) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id and island id are required"));
                 return;
             }
             try {
