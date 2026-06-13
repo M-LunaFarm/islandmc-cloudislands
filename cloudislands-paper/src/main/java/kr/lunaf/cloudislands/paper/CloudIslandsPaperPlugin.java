@@ -335,10 +335,12 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         PaperRedisClient.PingResult redis = redisClient == null ? PaperRedisClient.PingResult.disabled() : redisClient.ping();
         boolean forwardingRequired = configBoolean("security.require-velocity-forwarding", true);
         boolean forwardingSecretConfigured = !resolveEnv(getConfig().getString("security.forwarding-secret", "")).isBlank();
+        boolean routeSessionEnforced = configBoolean("security.enforce-route-session", true) || configBoolean("routing.require-route-session", true);
         return "{"
             + "\"status\":\"UP\","
             + "\"role\":\"" + role.name() + "\","
             + "\"nodeId\":\"" + nodeId + "\","
+            + "\"onlineMode\":" + getServer().getOnlineMode() + ","
             + "\"onlinePlayers\":" + getServer().getOnlinePlayers().size() + ","
             + "\"activeIslands\":" + (activeIslands == null ? 0 : activeIslands.size()) + ","
             + "\"activationQueue\":" + (jobWorker == null ? 0 : jobWorker.activationQueue()) + ","
@@ -347,6 +349,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"redisFailuresTotal\":" + redis.failuresTotal() + ","
             + "\"velocityForwardingRequired\":" + forwardingRequired + ","
             + "\"forwardingSecretConfigured\":" + forwardingSecretConfigured + ","
+            + "\"routeSessionEnforced\":" + routeSessionEnforced + ","
             + "\"localCacheCount\":" + (localCaches == null ? 0 : localCaches.cacheCount()) + ","
             + "\"localCacheInvalidationsTotal\":" + (localCaches == null ? 0 : localCaches.invalidationsTotal())
             + "}";
@@ -362,8 +365,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         long storageFailures = storage == null ? 0L : storage.operationFailures();
         boolean forwardingRequired = configBoolean("security.require-velocity-forwarding", true);
         boolean forwardingSecretConfigured = !resolveEnv(getConfig().getString("security.forwarding-secret", "")).isBlank();
+        boolean routeSessionEnforced = configBoolean("security.enforce-route-session", true) || configBoolean("routing.require-route-session", true);
         return ""
             + "cloudislands_paper_online_players " + getServer().getOnlinePlayers().size() + "\n"
+            + "cloudislands_paper_online_mode " + (getServer().getOnlineMode() ? 1 : 0) + "\n"
             + "cloudislands_paper_active_islands{node=\"" + nodeId + "\",role=\"" + role.name() + "\"} " + active + "\n"
             + "cloudislands_paper_activation_queue{node=\"" + nodeId + "\"} " + queue + "\n"
             + "cloudislands_paper_recent_failure_penalty{node=\"" + nodeId + "\"} " + failures + "\n"
@@ -377,6 +382,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_permission_cache_hit_ratio{node=\"" + nodeId + "\"} " + agent.permissionCache().hitRatio() + "\n"
             + "cloudislands_paper_velocity_forwarding_required{node=\"" + nodeId + "\"} " + (forwardingRequired ? 1 : 0) + "\n"
             + "cloudislands_paper_forwarding_secret_configured{node=\"" + nodeId + "\"} " + (forwardingSecretConfigured ? 1 : 0) + "\n"
+            + "cloudislands_paper_route_session_enforced{node=\"" + nodeId + "\"} " + (routeSessionEnforced ? 1 : 0) + "\n"
             + "cloudislands_redis_latency_seconds{node=\"" + nodeId + "\"} " + redis.latencySeconds() + "\n"
             + "cloudislands_paper_redis_available{node=\"" + nodeId + "\"} " + (redis.available() ? 1 : 0) + "\n"
             + "cloudislands_paper_redis_latency_seconds{node=\"" + nodeId + "\"} " + redis.latencySeconds() + "\n"
