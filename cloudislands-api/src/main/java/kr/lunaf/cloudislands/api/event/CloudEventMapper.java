@@ -26,7 +26,7 @@ public final class CloudEventMapper {
             case "ISLAND_DELETE_REQUESTED" -> Optional.of(new IslandDeleteRequestEvent(uuid(fields, "islandId"), firstText(fields, "targetNode", "nodeId"), text(fields, "reason"), occurredAt));
             case "ISLAND_ACTIVATED" -> Optional.of(new IslandActivatedEvent(uuid(fields, "islandId"), text(fields, "nodeId"), text(fields, "worldName"), occurredAt));
             case "ISLAND_DEACTIVATED" -> Optional.of(new IslandDeactivateEvent(uuid(fields, "islandId"), text(fields, "nodeId"), occurredAt));
-            case "ISLAND_MIGRATED" -> Optional.of(new IslandMigratedEvent(uuid(fields, "islandId"), text(fields, "fromNode"), firstText(fields, "toNode", "targetNode"), longValue(fields, "fencingToken"), occurredAt));
+            case "ISLAND_MIGRATED" -> Optional.of(new IslandMigratedEvent(uuid(fields, "islandId"), text(fields, "fromNode"), firstText(fields, "toNode", "targetNode"), text(fields, "worldName"), longValue(fields, "fencingToken"), occurredAt));
             case "ISLAND_RESTORE_REQUESTED" -> Optional.of(new IslandRestoreRequestEvent(uuid(fields, "islandId"), text(fields, "state"), firstText(fields, "targetNode", "nodeId"), longValue(fields, "snapshotNo"), occurredAt));
             case "ISLAND_RESTORED" -> Optional.of(new IslandRestoredEvent(uuid(fields, "islandId"), longValue(fields, "snapshotNo"), text(fields, "state"), occurredAt));
             case "ISLAND_RESET_REQUESTED" -> Optional.of(new IslandResetEvent(uuid(fields, "islandId"), true, text(fields, "state"), firstText(fields, "targetNode", "nodeId"), text(fields, "reason"), occurredAt));
