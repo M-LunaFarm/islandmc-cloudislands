@@ -15,6 +15,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiException;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -106,6 +107,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private final String nodeId;
     private final int routeWaitSeconds;
     private final LocalCacheManager localCaches;
+    private final MessageRenderer messages;
 
     public AdminCommandController(CloudIslandsPaperAgent agent, CoreApiClient coreApiClient, String nodeId) {
         this(agent, coreApiClient, nodeId, 20);
@@ -116,11 +118,16 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     public AdminCommandController(CloudIslandsPaperAgent agent, CoreApiClient coreApiClient, String nodeId, int routeWaitSeconds, LocalCacheManager localCaches) {
+        this(agent, coreApiClient, nodeId, routeWaitSeconds, localCaches, null);
+    }
+
+    public AdminCommandController(CloudIslandsPaperAgent agent, CoreApiClient coreApiClient, String nodeId, int routeWaitSeconds, LocalCacheManager localCaches, MessageRenderer messages) {
         this.agent = agent;
         this.coreApiClient = coreApiClient;
         this.nodeId = nodeId;
         this.routeWaitSeconds = Math.max(1, routeWaitSeconds);
         this.localCaches = localCaches;
+        this.messages = messages;
     }
 
     @Override
@@ -313,7 +320,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private boolean handleNode(CommandSender sender, String[] args) {
         if (args.length > 1 && args[1].equalsIgnoreCase("menu")) {
             if (sender instanceof Player player) {
-                AdminNodeMenu.open(player, nodeId);
+                AdminNodeMenu.open(player, nodeId, messages);
             } else {
                 sender.sendMessage("플레이어만 노드 관리 메뉴를 열 수 있습니다.");
             }

@@ -156,7 +156,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandGameplayFlagListener(agent.protection(), messages), this);
         getServer().getPluginManager().registerEvents(new IslandLimitListener(agent.protection(), limitCache, messages), this);
         getServer().getPluginManager().registerEvents(new IslandEntityLimitListener(agent.protection(), limitCache, messages), this);
-        getServer().getPluginManager().registerEvents(new AdminNodeMenu(), this);
+        getServer().getPluginManager().registerEvents(new AdminNodeMenu(messages), this);
         getServer().getPluginManager().registerEvents(new IslandBankMenu(messages), this);
         getServer().getPluginManager().registerEvents(new IslandBanMenu(messages), this);
         getServer().getPluginManager().registerEvents(new IslandBiomeMenu(messages), this);
@@ -200,7 +200,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         PluginCommand admin = getCommand("ciadmin");
         int routeWaitSeconds = getConfig().getInt("routing.wait-for-activation-timeout-seconds", 20);
         if (admin != null) {
-            AdminCommandController adminController = new AdminCommandController(agent, client, nodeId, routeWaitSeconds, localCaches);
+            AdminCommandController adminController = new AdminCommandController(agent, client, nodeId, routeWaitSeconds, localCaches, messages);
             admin.setExecutor(adminController);
             admin.setTabCompleter(adminController);
         }
