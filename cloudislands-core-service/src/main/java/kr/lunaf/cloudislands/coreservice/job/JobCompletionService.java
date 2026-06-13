@@ -141,7 +141,13 @@ public final class JobCompletionService {
             }
             recordPreMutationSnapshot(job);
             setIslandState(job.islandId(), IslandState.ACTIVE);
-            events.publish(CloudIslandEventType.ISLAND_MIGRATED.name(), Map.of("islandId", job.islandId().toString(), "targetNode", job.targetNode() == null ? "" : job.targetNode(), "worldName", worldName));
+            events.publish(CloudIslandEventType.ISLAND_MIGRATED.name(), Map.of(
+                "islandId", job.islandId().toString(),
+                "fromNode", job.payload().getOrDefault("sourceNode", ""),
+                "targetNode", job.targetNode() == null ? "" : job.targetNode(),
+                "worldName", worldName,
+                "fencingToken", job.payload().getOrDefault("fencingToken", "0")
+            ));
             releaseMigrationLock(job);
         }
     }
@@ -357,6 +363,7 @@ public final class JobCompletionService {
         String fencingToken = job.payload().getOrDefault("migrationFencingToken", job.payload().getOrDefault("fencingToken", "0"));
         java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
         payload.put("fencingToken", fencingToken);
+        payload.put("sourceNode", job.targetNode() == null ? "" : job.targetNode());
         payload.put("worldName", job.payload().getOrDefault("worldName", "ci_shard_001"));
         payload.put("cellX", job.payload().getOrDefault("cellX", "0"));
         payload.put("cellZ", job.payload().getOrDefault("cellZ", "0"));
@@ -365,7 +372,14 @@ public final class JobCompletionService {
         payload.put("sourceSnapshotChecksum", job.payload().getOrDefault("checksum", ""));
         payload.put("sourceSnapshotSizeBytes", job.payload().getOrDefault("sizeBytes", "0"));
         jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.MIGRATE_ISLAND, job.islandId(), targetNode, 10, Map.copyOf(payload), Instant.now()));
-        events.publish(CloudIslandEventType.ISLAND_MIGRATE_REQUESTED.name(), Map.of("islandId", job.islandId().toString(), "targetNode", targetNode, "phase", "ACTIVATE_TARGET"));
+        events.publish(CloudIslandEventType.ISLAND_MIGRATE_REQUESTED.name(), Map.of(
+            "islandId", job.islandId().toString(),
+            "sourceNode", job.targetNode() == null ? "" : job.targetNode(),
+            "targetNode", targetNode,
+            "phase", "ACTIVATE_TARGET",
+            "worldName", payload.get("worldName"),
+            "fencingToken", fencingToken
+        ));
     }
 
     private long longValue(String value) {
