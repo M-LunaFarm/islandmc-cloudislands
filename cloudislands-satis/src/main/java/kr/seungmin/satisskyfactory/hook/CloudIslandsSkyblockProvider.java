@@ -90,6 +90,9 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
         }
         return joinOptional(() -> api.islands().getRegion(island.islandUuid()))
                 .flatMap(region -> {
+                    if (region.worldName() == null || region.worldName().isBlank()) {
+                        return Optional.empty();
+                    }
                     World world = plugin.getServer().getWorld(region.worldName());
                     if (world == null) {
                         return Optional.empty();
@@ -152,7 +155,10 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
 
     private boolean member(List<IslandMemberSnapshot> members, UUID playerUuid) {
         return members.stream()
-                .anyMatch(member -> playerUuid.equals(member.playerUuid()) && member.role().islandMemberRole());
+                .anyMatch(member -> member != null
+                        && member.role() != null
+                        && playerUuid.equals(member.playerUuid())
+                        && member.role().islandMemberRole());
     }
 
     private Location center(IslandRegionSnapshot region, World world) {
