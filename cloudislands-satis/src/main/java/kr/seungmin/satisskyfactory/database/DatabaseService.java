@@ -104,10 +104,14 @@ public final class DatabaseService {
     public void close() {
         if (dataSource != null) {
             dataSource.close();
+            dataSource = null;
         }
     }
 
     public Connection connection() throws SQLException {
+        if (dataSource == null || dataSource.isClosed()) {
+            throw new IllegalStateException("Satis database is not open");
+        }
         return dataSource.getConnection();
     }
 
