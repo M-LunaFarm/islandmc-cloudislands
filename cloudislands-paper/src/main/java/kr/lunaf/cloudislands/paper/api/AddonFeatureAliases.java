@@ -11,12 +11,13 @@ final class AddonFeatureAliases {
         if (feature == null) {
             return "";
         }
+        String requested = feature.trim();
         for (Alias alias : aliases(metadata)) {
-            if (feature.equals(alias.alias())) {
+            if (requested.equals(alias.alias())) {
                 return alias.canonical();
             }
         }
-        return feature;
+        return requested;
     }
 
     static List<String> aliasesFor(Map<String, String> metadata, String canonicalFeature) {
