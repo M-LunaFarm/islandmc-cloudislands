@@ -326,7 +326,12 @@ public final class FactoryGuiListener implements Listener {
                     "battery", state.batteryStored() + "/" + state.batteryCapacity()
             ));
         }
-        gui.openAdmin(player, island, machines.byIsland(island.islandUuid()).size(), power.state(island.islandUuid()));
+        gui.openAdmin(
+                player,
+                island,
+                featureEnabled.test("machines") ? machines.byIsland(island.islandUuid()).size() : 0,
+                featureEnabled.test("machines") ? power.state(island.islandUuid()) : null
+        );
     }
 
     private void withdrawStorageItem(Player player, FactoryIsland island, String itemId, int page, long requested) {
