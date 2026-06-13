@@ -461,9 +461,16 @@ public final class TranslationManager {
         values.put("admin-command-migration-files-prefix", " files=");
         values.put("admin-command-migration-bytes-prefix", " bytes=");
         values.put("admin-command-migration-members-prefix", " members=");
+        values.put("admin-command-migration-bans-prefix", " bans=");
         values.put("admin-command-migration-homes-prefix", " homes=");
         values.put("admin-command-migration-warps-prefix", " warps=");
+        values.put("admin-command-migration-flags-prefix", " flags=");
         values.put("admin-command-migration-perms-prefix", " perms=");
+        values.put("admin-command-migration-upgrades-prefix", " upgrades=");
+        values.put("admin-command-migration-limits-prefix", " limits=");
+        values.put("admin-command-migration-missions-prefix", " missions=");
+        values.put("admin-command-migration-block-values-prefix", " blockValues=");
+        values.put("admin-command-migration-block-counts-prefix", " blockCounts=");
         values.put("admin-command-migration-blocking-prefix", " blocking=");
         values.put("admin-command-migration-warnings-prefix", " warnings=");
         values.put("admin-command-issues-zero", " issues=0");

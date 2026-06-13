@@ -831,9 +831,16 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (body.contains("\"members\"")) {
             builder.append(adminText("admin-command-migration-members-prefix", " members=")).append(longValue(body, "members"))
+                .append(adminText("admin-command-migration-bans-prefix", " bans=")).append(longValue(body, "bannedVisitors"))
                 .append(adminText("admin-command-migration-homes-prefix", " homes=")).append(longValue(body, "homes"))
                 .append(adminText("admin-command-migration-warps-prefix", " warps=")).append(longValue(body, "warps"))
-                .append(adminText("admin-command-migration-perms-prefix", " perms=")).append(longValue(body, "permissions"));
+                .append(adminText("admin-command-migration-flags-prefix", " flags=")).append(longValue(body, "flags"))
+                .append(adminText("admin-command-migration-perms-prefix", " perms=")).append(longValue(body, "permissions"))
+                .append(adminText("admin-command-migration-upgrades-prefix", " upgrades=")).append(longValue(body, "upgrades"))
+                .append(adminText("admin-command-migration-limits-prefix", " limits=")).append(longValue(body, "limits"))
+                .append(adminText("admin-command-migration-missions-prefix", " missions=")).append(longValue(body, "completedMissions"))
+                .append(adminText("admin-command-migration-block-values-prefix", " blockValues=")).append(longValue(body, "blockValues"))
+                .append(adminText("admin-command-migration-block-counts-prefix", " blockCounts=")).append(longValue(body, "blockCounts"));
         }
         if (body.contains("\"blockingIssues\"")) {
             builder.append(adminText("admin-command-migration-blocking-prefix", " blocking=")).append(longValue(body, "blockingIssues"))
