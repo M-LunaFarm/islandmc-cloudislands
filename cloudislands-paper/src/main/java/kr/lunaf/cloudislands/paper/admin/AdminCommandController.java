@@ -776,7 +776,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         String code = textValue(body, "code");
         if (!code.isBlank()) {
-            return adminText("admin-command-migration-failed-prefix", "Migration: failed code=") + code;
+            String message = textValue(body, "message");
+            return adminText("admin-command-migration-failed-prefix", "Migration: failed code=") + code
+                + (message.isBlank() ? "" : adminText("admin-command-migration-message-prefix", " message=") + message);
         }
         String state = textValue(body, "state");
         String path = textValue(body, "path");

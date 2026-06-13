@@ -1056,7 +1056,8 @@ public final class VelocityRoutingController {
         }
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
-            return "Migration: failed code=" + code;
+            String message = jsonValue(body, "message");
+            return "Migration: failed code=" + code + (message.isBlank() ? "" : " message=" + message);
         }
         String state = jsonValue(body, "state");
         String path = jsonValue(body, "path");
