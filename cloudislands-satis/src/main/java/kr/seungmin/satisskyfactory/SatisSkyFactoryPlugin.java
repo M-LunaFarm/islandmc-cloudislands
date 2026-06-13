@@ -337,6 +337,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private void registerListeners() {
         if (featureEnabled("machines")) {
             getServer().getPluginManager().registerEvents(new MachineListener(
+                    () -> featureEnabled("machines"),
                     this,
                     itemFactory,
                     machineDefinitions,
@@ -356,6 +357,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (featureEnabled("gui")) {
             getServer().getPluginManager().registerEvents(new FactoryGuiListener(
+                    () -> featureEnabled("gui"),
                     islands,
                     skyblock,
                     contracts,
@@ -378,6 +380,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (featureEnabled("lifecycle")) {
             getServer().getPluginManager().registerEvents(new FactoryLifecycleListener(
+                    () -> featureEnabled("lifecycle"),
                     islands,
                     skyblock,
                     nodes,

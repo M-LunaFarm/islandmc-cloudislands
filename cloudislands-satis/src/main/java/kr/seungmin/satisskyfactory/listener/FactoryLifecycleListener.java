@@ -18,7 +18,10 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 
+import java.util.function.BooleanSupplier;
+
 public final class FactoryLifecycleListener implements Listener {
+    private final BooleanSupplier active;
     private final FactoryIslandService islands;
     private final SkyblockProvider skyblock;
     private final ResourceNodeService nodes;
@@ -27,9 +30,10 @@ public final class FactoryLifecycleListener implements Listener {
     private final PowerNetworkService power;
     private final MaintenanceService maintenance;
 
-    public FactoryLifecycleListener(FactoryIslandService islands, SkyblockProvider skyblock,
+    public FactoryLifecycleListener(BooleanSupplier active, FactoryIslandService islands, SkyblockProvider skyblock,
                                     ResourceNodeService nodes, MachineService machines, ItemNetworkService itemNetworks,
                                     PowerNetworkService power, MaintenanceService maintenance) {
+        this.active = active;
         this.islands = islands;
         this.skyblock = skyblock;
         this.nodes = nodes;
@@ -41,6 +45,9 @@ public final class FactoryLifecycleListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
+        if (!active.getAsBoolean()) {
+            return;
+        }
         skyblock.getIslandOf(event.getPlayer()).ifPresent(islandRef -> {
             FactoryIsland island = islands.getOrCreate(islandRef);
             island.lastTickAt(System.currentTimeMillis());
@@ -57,6 +64,9 @@ public final class FactoryLifecycleListener implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
+        if (!active.getAsBoolean()) {
+            return;
+        }
         islands.context(event.getPlayer()).ifPresent(context -> {
             context.factoryIsland().lastTickAt(System.currentTimeMillis());
             islands.save(context.factoryIsland());
@@ -65,11 +75,17 @@ public final class FactoryLifecycleListener implements Listener {
 
     @EventHandler
     public void onChunkUnload(ChunkUnloadEvent event) {
+        if (!active.getAsBoolean()) {
+            return;
+        }
         machines.markChunkStatus(event.getChunk(), MachineStatus.CHUNK_UNLOADED);
     }
 
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
+        if (!active.getAsBoolean()) {
+            return;
+        }
         for (MachineInstance machine : machines.byChunk(event.getChunk())) {
             if (machine.status() == MachineStatus.CHUNK_UNLOADED) {
                 machine.status(MachineStatus.SLEEPING);

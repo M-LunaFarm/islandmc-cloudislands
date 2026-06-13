@@ -40,8 +40,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
 
 public final class FactoryGuiListener implements Listener {
+    private final BooleanSupplier active;
     private final FactoryIslandService islands;
     private final SkyblockProvider skyblock;
     private final ContractService contracts;
@@ -61,11 +63,12 @@ public final class FactoryGuiListener implements Listener {
     private final IslandBoostService boosts;
     private final Runnable reload;
 
-    public FactoryGuiListener(FactoryIslandService islands, SkyblockProvider skyblock, ContractService contracts, ResearchService research, FactoryGuiService gui,
+    public FactoryGuiListener(BooleanSupplier active, FactoryIslandService islands, SkyblockProvider skyblock, ContractService contracts, ResearchService research, FactoryGuiService gui,
                               MachineService machines, RecipeService recipes, StorageService storage, ItemRegistry items, CustomItemFactory itemFactory,
                               MarketService market, MachineDefinitionService definitions, MaintenanceService maintenance,
                               ItemNetworkService itemNetworks, PowerNetworkService power, MessageService messages,
                               IslandBoostService boosts, Runnable reload) {
+        this.active = active;
         this.islands = islands;
         this.skyblock = skyblock;
         this.contracts = contracts;
@@ -92,6 +95,9 @@ public final class FactoryGuiListener implements Listener {
             return;
         }
         event.setCancelled(true);
+        if (!active.getAsBoolean()) {
+            return;
+        }
         if (!(event.getWhoClicked() instanceof Player player) || event.getClickedInventory() == null
                 || !event.getClickedInventory().equals(event.getInventory())) {
             return;

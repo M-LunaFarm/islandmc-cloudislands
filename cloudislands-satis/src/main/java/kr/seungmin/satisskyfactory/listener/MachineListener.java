@@ -36,8 +36,10 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 
 public final class MachineListener implements Listener {
+    private final BooleanSupplier active;
     private final JavaPlugin plugin;
     private final CustomItemFactory itemFactory;
     private final MachineDefinitionService definitions;
@@ -54,12 +56,13 @@ public final class MachineListener implements Listener {
     private final FileConfiguration maintenanceConfig;
     private final IslandBoostService boosts;
 
-    public MachineListener(JavaPlugin plugin, CustomItemFactory itemFactory, MachineDefinitionService definitions, MachineService machines,
+    public MachineListener(BooleanSupplier active, JavaPlugin plugin, CustomItemFactory itemFactory, MachineDefinitionService definitions, MachineService machines,
                            SkyblockProvider skyblock, FactoryIslandService islands, FactoryGuiService gui,
                            MessageService messages, ResearchService research, ResourceNodeService nodes,
                            ItemNetworkService itemNetworks,
                            PowerNetworkService power,
                            FileConfiguration config, FileConfiguration maintenanceConfig, IslandBoostService boosts) {
+        this.active = active;
         this.plugin = plugin;
         this.itemFactory = itemFactory;
         this.definitions = definitions;
@@ -79,6 +82,9 @@ public final class MachineListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent event) {
+        if (!active.getAsBoolean()) {
+            return;
+        }
         Player player = event.getPlayer();
         itemFactory.machineType(event.getItemInHand()).ifPresent(typeId -> {
             event.setCancelled(true);
@@ -215,6 +221,9 @@ public final class MachineListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBreak(BlockBreakEvent event) {
+        if (!active.getAsBoolean()) {
+            return;
+        }
         machines.at(event.getBlock().getLocation()).ifPresent(machine -> {
             Player player = event.getPlayer();
             IslandRef island = skyblock.getIslandAt(event.getBlock().getLocation()).orElse(null);
@@ -243,6 +252,9 @@ public final class MachineListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent event) {
+        if (!active.getAsBoolean()) {
+            return;
+        }
         if (event.getClickedBlock() == null || event.getHand() != EquipmentSlot.HAND) {
             return;
         }
