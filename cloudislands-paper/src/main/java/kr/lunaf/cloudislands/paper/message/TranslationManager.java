@@ -95,6 +95,8 @@ public final class TranslationManager {
         values.put("island-reset-evacuate", "섬 리셋을 위해 로비로 이동합니다.");
         values.put("island-delete-evacuate", "섬 삭제를 위해 로비로 이동합니다.");
         values.put("island-operation-evacuate", "섬 작업을 위해 로비로 이동합니다.");
+        values.put("boundary-member-return", "섬 경계 밖으로 이동할 수 없어 섬 스폰으로 돌려보냈습니다.");
+        values.put("boundary-visitor-return", "섬 경계 밖으로 이동할 수 없어 방문자 위치로 돌려보냈습니다.");
         return values;
     }
 

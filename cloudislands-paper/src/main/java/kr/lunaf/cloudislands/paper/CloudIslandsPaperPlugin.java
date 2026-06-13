@@ -147,7 +147,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         long denyMessageCooldownMs = getConfig().getLong("protection.deny-message-cooldown-ms", 1000L);
         BlockDeltaReporter blockDeltas = new BlockDeltaReporter(this, client);
         getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection(), blockDeltas, denyMessageCooldownMs, denyMessages()), this);
-        getServer().getPluginManager().registerEvents(new IslandBoundaryListener(agent.protection()), this);
+        getServer().getPluginManager().registerEvents(new IslandBoundaryListener(agent.protection(), messages), this);
         getServer().getPluginManager().registerEvents(new PaperPlayerProfileListener(client), this);
         getServer().getPluginManager().registerEvents(new PaperBrandingListener(this, messages), this);
         getServer().getPluginManager().registerEvents(new PaperChatListener(messages), this);
