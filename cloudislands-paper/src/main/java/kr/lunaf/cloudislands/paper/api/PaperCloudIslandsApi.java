@@ -15,6 +15,7 @@ import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.model.AuditLogSnapshot;
 import kr.lunaf.cloudislands.api.model.BlockValueSnapshot;
 import kr.lunaf.cloudislands.api.model.ClaimedIslandJobSnapshot;
+import kr.lunaf.cloudislands.api.model.CloudIslandsStatusSnapshot;
 import kr.lunaf.cloudislands.api.model.CoreMaintenanceResult;
 import kr.lunaf.cloudislands.api.model.GlobalEventBatchSnapshot;
 import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
@@ -77,6 +78,7 @@ import kr.lunaf.cloudislands.api.service.IslandPermissionService;
 import kr.lunaf.cloudislands.api.service.IslandQueryService;
 import kr.lunaf.cloudislands.api.service.IslandRoutingService;
 import kr.lunaf.cloudislands.api.service.IslandRuntimeService;
+import kr.lunaf.cloudislands.api.service.IslandStatusService;
 import kr.lunaf.cloudislands.api.service.PlayerIslandService;
 import kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradePurchaseSnapshot;
@@ -97,6 +99,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private final RoutingService routing;
     private final PermissionService permissions;
     private final RuntimeService runtime;
+    private final StatusService status;
     private final EventService events;
     private final AdminService admin;
     private final CommandService commands;
@@ -107,6 +110,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         this.routing = new RoutingService(client);
         this.permissions = new PermissionService(agent);
         this.runtime = new RuntimeService(client);
+        this.status = new StatusService(agent);
         this.events = new EventService(client, agent.plugin());
         this.admin = new AdminService(client);
         this.commands = new CommandService(client);
@@ -135,6 +139,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     @Override
     public IslandRuntimeService runtime() {
         return runtime;
+    }
+
+    @Override
+    public IslandStatusService status() {
+        return status;
     }
 
     @Override
@@ -295,6 +304,73 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<IslandBankSnapshot> getBank(UUID islandId) {
             return client.islandBank(islandId).thenApply(PaperCloudIslandsApi::bank);
+        }
+    }
+
+    private static final class StatusService implements IslandStatusService {
+        private final CloudIslandsPaperAgent agent;
+
+        private StatusService(CloudIslandsPaperAgent agent) {
+            this.agent = agent;
+        }
+
+        @Override
+        public CompletableFuture<CloudIslandsStatusSnapshot> current() {
+            org.bukkit.plugin.Plugin plugin = agent.plugin();
+            kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin paperPlugin = (kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin) plugin;
+            org.bukkit.configuration.file.FileConfiguration config = paperPlugin.getConfig();
+            int activeIslands = paperPlugin.activeIslands() == null ? 0 : paperPlugin.activeIslands().size();
+            int activationQueue = paperPlugin.jobWorker() == null ? 0 : paperPlugin.jobWorker().activationQueue();
+            return CompletableFuture.completedFuture(new CloudIslandsStatusSnapshot(
+                "paper",
+                agent.role().name(),
+                config.getString("node.id", ""),
+                plugin.getDescription().getVersion(),
+                true,
+                !resolved(config.getString("core-api.auth-token", "")).isBlank() || envPresent("CI_CORE_TOKEN"),
+                !resolved(config.getString("core-api.admin-token", "")).isBlank() || envPresent("CI_ADMIN_TOKEN"),
+                configBoolean(config, "security.require-velocity-forwarding", true),
+                !resolved(config.getString("security.forwarding-secret", "")).isBlank() || envPresent("VELOCITY_FORWARDING_SECRET"),
+                configBoolean(config, "security.enforce-route-session", true) || configBoolean(config, "routing.require-route-session", true),
+                plugin.getServer().getOnlinePlayers().size(),
+                activeIslands,
+                activationQueue,
+                Instant.now()
+            ));
+        }
+
+        private static boolean configBoolean(org.bukkit.configuration.file.FileConfiguration config, String path, boolean fallback) {
+            if (!config.contains(path)) {
+                return fallback;
+            }
+            Object raw = config.get(path);
+            if (raw instanceof Boolean value) {
+                return value;
+            }
+            String normalized = String.valueOf(raw).trim().toLowerCase(java.util.Locale.ROOT);
+            if (normalized.equals("true") || normalized.equals("yes") || normalized.equals("on") || normalized.equals("1") || normalized.equals("enable") || normalized.equals("enabled") || normalized.equals("켜기") || normalized.equals("허용") || normalized.equals("활성")) {
+                return true;
+            }
+            if (normalized.equals("false") || normalized.equals("no") || normalized.equals("off") || normalized.equals("0") || normalized.equals("disable") || normalized.equals("disabled") || normalized.equals("끄기") || normalized.equals("거부") || normalized.equals("비활성")) {
+                return false;
+            }
+            return fallback;
+        }
+
+        private static String resolved(String value) {
+            if (value == null) {
+                return "";
+            }
+            String trimmed = value.trim();
+            if (trimmed.startsWith("${") && trimmed.endsWith("}")) {
+                return System.getenv().getOrDefault(trimmed.substring(2, trimmed.length() - 1), "");
+            }
+            return trimmed;
+        }
+
+        private static boolean envPresent(String name) {
+            String value = System.getenv(name);
+            return value != null && !value.isBlank();
         }
     }
 

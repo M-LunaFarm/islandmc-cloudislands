@@ -303,6 +303,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         return activeIslands;
     }
 
+    public PaperIslandJobWorker jobWorker() {
+        return jobWorker;
+    }
+
     private void registerPlaceholderExpansion(CoreApiClient client) {
         if (!getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             return;
