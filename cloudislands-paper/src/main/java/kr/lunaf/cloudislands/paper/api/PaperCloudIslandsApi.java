@@ -358,8 +358,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             boolean addonDefaultEnabled = registration.enabled();
             boolean configEnabled = configuredAddonEnabled(id);
             boolean enabled = addonDefaultEnabled && configEnabled;
-            Map<String, Boolean> configuredFeatures = effectiveFeatures(registration);
-            Map<String, Boolean> visibleFeatures = enabled ? configuredFeatures : disabledFeatures(configuredFeatures);
+            Map<String, Boolean> configuredFeatures = configuredFeatures(registration);
+            Map<String, Boolean> visibleFeatures = enabled ? effectiveFeatures(configuredFeatures, registration.metadata()) : disabledFeatures(configuredFeatures);
             return new CloudIslandsAddonSnapshot(id, registration.displayName(), registration.version(), enabled, registration.registeredAt(), Instant.now(), configuredFeatures, visibleFeatures, effectiveMetadata(id, registration.metadata(), addonDefaultEnabled, configEnabled));
         }
 
@@ -375,7 +375,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return enabled;
         }
 
-        private Map<String, Boolean> effectiveFeatures(AddonRegistration registration) {
+        private Map<String, Boolean> configuredFeatures(AddonRegistration registration) {
             String id = registration.id();
             Map<String, Boolean> features = registration.features();
             Map<String, Boolean> effective = new HashMap<>(features == null ? Map.of() : features);
@@ -390,16 +390,20 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             ConfigurationSection section = plugin.getConfig().getConfigurationSection("addons." + id + ".features");
             if (section == null) {
                 applyFeatureAliases(effective, registration.metadata());
-                applyFeatureDependencies(effective, registration.metadata());
-                applyFeatureAliases(effective, registration.metadata());
                 return effective;
             }
             for (String key : section.getKeys(false)) {
                 effective.put(key, effective.getOrDefault(key, true) && section.getBoolean(key, true));
             }
             applyFeatureAliases(effective, registration.metadata());
-            applyFeatureDependencies(effective, registration.metadata());
-            applyFeatureAliases(effective, registration.metadata());
+            return effective;
+        }
+
+        private Map<String, Boolean> effectiveFeatures(Map<String, Boolean> configuredFeatures, Map<String, String> metadata) {
+            Map<String, Boolean> effective = new HashMap<>(configuredFeatures == null ? Map.of() : configuredFeatures);
+            applyFeatureAliases(effective, metadata);
+            applyFeatureDependencies(effective, metadata);
+            applyFeatureAliases(effective, metadata);
             return effective;
         }
 

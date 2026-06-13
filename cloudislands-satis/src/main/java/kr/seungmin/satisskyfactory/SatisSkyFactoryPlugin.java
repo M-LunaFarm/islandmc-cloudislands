@@ -869,7 +869,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("island-position-remap", "center-delta");
         state.put("effective-features", featureState(snapshot.features()));
         state.put("operational-features", operationalFeatureState(snapshot.features()));
-        state.put("feature-warnings", featureWarnings(snapshot.features()));
+        state.put("feature-warnings", featureWarnings(snapshot));
         state.put("last-sync-reason", reason == null || reason.isBlank() ? "unknown" : reason);
         state.put("last-sync-at", Instant.now().toString());
         cloudIslandsApi.addons().putState(snapshot.id(), state).exceptionally(error -> {
@@ -1330,6 +1330,24 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private String featureWarnings() {
         return featureWarnings(featureSnapshot());
+    }
+
+    private String featureWarnings(CloudIslandsAddonSnapshot snapshot) {
+        List<String> warnings = new ArrayList<>();
+        String effectiveWarnings = featureWarnings(snapshot.features());
+        if (!effectiveWarnings.equals("none")) {
+            warnings.add(effectiveWarnings);
+        }
+        snapshot.featureDependencies().entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> {
+                    String feature = entry.getKey();
+                    boolean configured = snapshot.configuredFeatures().getOrDefault(feature, true);
+                    if (configured && !snapshot.featureEnabled(feature, true)) {
+                        warnings.add("dependency-disabled:" + feature + "->" + entry.getValue());
+                    }
+                });
+        return warnings.isEmpty() ? "none" : String.join(",", warnings);
     }
 
     private String featureWarnings(Map<String, Boolean> features) {
