@@ -211,7 +211,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         private CloudIslandsAddonSnapshot snapshot(AddonRegistration registration) {
             String id = registration.id();
             boolean configEnabled = plugin.getConfig().getBoolean("addons." + id + ".enabled", true);
-            return new CloudIslandsAddonSnapshot(id, registration.displayName(), registration.version(), registration.enabled() && configEnabled, Instant.now(), effectiveFeatures(id, registration.features()), registration.metadata());
+            return new CloudIslandsAddonSnapshot(id, registration.displayName(), registration.version(), registration.enabled() && configEnabled, Instant.now(), effectiveFeatures(id, registration.features()), effectiveMetadata(registration.metadata()));
         }
 
         private Map<String, Boolean> effectiveFeatures(String id, Map<String, Boolean> features) {
@@ -223,6 +223,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             for (String key : section.getKeys(false)) {
                 effective.put(key, section.getBoolean(key, effective.getOrDefault(key, true)));
             }
+            return effective;
+        }
+
+        private Map<String, String> effectiveMetadata(Map<String, String> metadata) {
+            Map<String, String> effective = new HashMap<>(metadata == null ? Map.of() : metadata);
+            effective.putIfAbsent("source-node", plugin.getConfig().getString("node.id", "unknown"));
             return effective;
         }
 
