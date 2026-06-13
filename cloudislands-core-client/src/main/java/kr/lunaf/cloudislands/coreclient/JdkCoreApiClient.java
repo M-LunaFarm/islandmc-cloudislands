@@ -937,9 +937,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
             .header("Authorization", "Bearer " + authToken)
             .header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(body));
-        if (!adminToken.isBlank() && adminProtected(path)) {
-            builder.header("X-CloudIslands-Admin-Token", adminToken);
-        }
+        addAdminHeaders(builder, path);
         HttpRequest request = builder.build();
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
             .thenApply(response -> response.statusCode() >= 200 && response.statusCode() < 300 ? response.body() : "");
@@ -951,9 +949,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
             .header("Authorization", "Bearer " + authToken)
             .header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(body));
-        if (!adminToken.isBlank() && adminProtected(path)) {
-            builder.header("X-CloudIslands-Admin-Token", adminToken);
-        }
+        addAdminHeaders(builder, path);
         HttpRequest request = builder.build();
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
             .thenApply(response -> response.statusCode() >= 200 && response.statusCode() < 500 ? response.body() : "");
@@ -983,6 +979,90 @@ public final class JdkCoreApiClient implements CoreApiClient {
             || path.equals("/v1/jobs/complete")
             || path.equals("/v1/jobs/fail")
             || path.equals("/v1/jobs/recover");
+    }
+
+    private void addAdminHeaders(HttpRequest.Builder builder, String path) {
+        if (adminToken.isBlank() || !adminProtected(path)) {
+            return;
+        }
+        builder.header("X-CloudIslands-Admin-Token", adminToken);
+        String permission = adminPermission(path);
+        if (!permission.isBlank()) {
+            builder.header("X-CloudIslands-Admin-Permissions", permission);
+        }
+    }
+
+    private String adminPermission(String path) {
+        if (path.equals("/v1/jobs") || path.equals("/v1/jobs/claim") || path.equals("/v1/jobs/complete") || path.equals("/v1/jobs/fail") || path.equals("/v1/jobs/recover")) {
+            return "JOB_MANAGE";
+        }
+        if (path.equals("/v1/audit") || path.equals("/v1/events")) {
+            return "AUDIT_READ";
+        }
+        if (path.equals("/v1/admin/cache/clear") || path.equals("/v1/admin/reload")) {
+            return "CACHE_CLEAR";
+        }
+        if (path.startsWith("/v1/admin/migrations/")) {
+            return "MIGRATION_MANAGE";
+        }
+        if (path.startsWith("/v1/admin/players/")) {
+            return "PLAYER_MANAGE";
+        }
+        if (path.startsWith("/v1/admin/templates/")) {
+            return "TEMPLATE_MANAGE";
+        }
+        if (path.startsWith("/v1/admin/routes/")) {
+            return "ROUTE_MANAGE";
+        }
+        if (path.startsWith("/v1/admin/block-values")) {
+            return "ECONOMY_MANAGE";
+        }
+        if (path.startsWith("/v1/admin/nodes/")) {
+            if (path.endsWith("/drain") || path.endsWith("/sweep")) {
+                return "NODE_DRAIN";
+            }
+            if (path.endsWith("/undrain")) {
+                return "NODE_UNDRAIN";
+            }
+            if (path.endsWith("/kickall")) {
+                return "NODE_KICK";
+            }
+            if (path.endsWith("/shutdown-safe")) {
+                return "NODE_SHUTDOWN";
+            }
+            return "AUDIT_READ";
+        }
+        if (path.startsWith("/v1/admin/islands/")) {
+            if (path.endsWith("/activate")) {
+                return "ISLAND_ACTIVATE";
+            }
+            if (path.endsWith("/deactivate")) {
+                return "ISLAND_DEACTIVATE";
+            }
+            if (path.endsWith("/migrate")) {
+                return "ISLAND_MIGRATE";
+            }
+            if (path.endsWith("/snapshot")) {
+                return "ISLAND_SNAPSHOT";
+            }
+            if (path.endsWith("/restore")) {
+                return "ISLAND_RESTORE";
+            }
+            if (path.endsWith("/quarantine")) {
+                return "ISLAND_QUARANTINE";
+            }
+            if (path.endsWith("/delete")) {
+                return "ISLAND_DELETE";
+            }
+            if (path.endsWith("/repair")) {
+                return "ISLAND_REPAIR";
+            }
+            if (path.endsWith("/tp")) {
+                return "ISLAND_TELEPORT";
+            }
+            return "AUDIT_READ";
+        }
+        return path.startsWith("/v1/admin") ? "AUDIT_READ" : "";
     }
 
     private static String text(String json, String field, String fallback) {
