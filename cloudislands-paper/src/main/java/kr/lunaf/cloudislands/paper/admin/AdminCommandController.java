@@ -1283,7 +1283,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private String blockValueListMessage(String body) {
         String values = arrayValue(body, "values");
         if (values.isBlank()) {
-            return "Block values: empty";
+            return adminText("admin-command-block-values-empty", "Block values: empty");
         }
         List<String> entries = new ArrayList<>();
         int total = 0;
@@ -1301,19 +1301,19 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             if (entries.size() < 10) {
                 String object = values.substring(objectStart, objectEnd + 1);
                 entries.add(textValue(object, "materialKey")
-                    + " worth=" + textValue(object, "worth")
-                    + " level=" + longValue(object, "levelPoints")
-                    + " limit=" + longValue(object, "limit"));
+                    + adminText("admin-command-block-values-worth-prefix", " worth=") + textValue(object, "worth")
+                    + adminText("admin-command-block-values-level-prefix", " level=") + longValue(object, "levelPoints")
+                    + adminText("admin-command-block-values-limit-prefix", " limit=") + longValue(object, "limit"));
             }
             index = objectEnd + 1;
         }
-        return "Block values: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+        return adminText("admin-command-block-values-total-prefix", "Block values: total=") + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     private String templateListMessage(String body) {
         String templates = arrayValue(body, "templates");
         if (templates.isBlank()) {
-            return "Templates: empty";
+            return adminText("admin-command-templates-empty", "Templates: empty");
         }
         List<String> entries = new ArrayList<>();
         int total = 0;
@@ -1336,18 +1336,18 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             if (entries.size() < 10) {
                 String minNodeVersion = textValue(object, "minNodeVersion");
                 entries.add(textValue(object, "id")
-                    + " " + (boolValue(object, "enabled") ? "enabled" : "disabled")
-                    + (minNodeVersion.isBlank() ? "" : " min=" + minNodeVersion));
+                    + " " + (boolValue(object, "enabled") ? adminText("admin-command-template-enabled", "enabled") : adminText("admin-command-template-disabled", "disabled"))
+                    + (minNodeVersion.isBlank() ? "" : adminText("admin-command-template-min-prefix", " min=") + minNodeVersion));
             }
             index = objectEnd + 1;
         }
-        return "Templates: total=" + total + " enabled=" + enabled + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+        return adminText("admin-command-templates-total-prefix", "Templates: total=") + total + adminText("admin-command-templates-enabled-prefix", " enabled=") + enabled + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     private String upgradeRulesMessage(String body) {
         String rules = arrayValue(body, "rules");
         if (rules.isBlank()) {
-            return "Upgrade rules: empty";
+            return adminText("admin-command-upgrade-rules-empty", "Upgrade rules: empty");
         }
         List<String> entries = new ArrayList<>();
         int total = 0;
@@ -1365,26 +1365,26 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             if (entries.size() < 10) {
                 String object = rules.substring(objectStart, objectEnd + 1);
                 entries.add(textValue(object, "upgradeKey")
-                    + " type=" + textValue(object, "type")
-                    + " max=" + longValue(object, "maxLevel")
-                    + " base=" + textValue(object, "baseCost"));
+                    + adminText("admin-command-upgrade-rules-type-prefix", " type=") + textValue(object, "type")
+                    + adminText("admin-command-upgrade-rules-max-prefix", " max=") + longValue(object, "maxLevel")
+                    + adminText("admin-command-upgrade-rules-base-prefix", " base=") + textValue(object, "baseCost"));
             }
             index = objectEnd + 1;
         }
-        return "Upgrade rules: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+        return adminText("admin-command-upgrade-rules-total-prefix", "Upgrade rules: total=") + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     private String maintenanceMessage(String label, String body) {
         String code = textValue(body, "code");
         if (!code.isBlank()) {
-            return label + ": failed code=" + code;
+            return label + adminText("admin-command-maintenance-failed-code-prefix", ": failed code=") + code;
         }
-        return label + ": accepted sessions=" + longValue(body, "clearedSessions") + " tickets=" + longValue(body, "clearedTickets");
+        return label + adminText("admin-command-maintenance-accepted-sessions-prefix", ": accepted sessions=") + longValue(body, "clearedSessions") + adminText("admin-command-maintenance-tickets-prefix", " tickets=") + longValue(body, "clearedTickets");
     }
 
     private String metricsMessage(String body) {
         if (body == null || body.isBlank()) {
-            return "Core metrics: empty";
+            return adminText("admin-command-metrics-empty", "Core metrics: empty");
         }
         int samples = 0;
         List<String> names = new ArrayList<>();
@@ -1404,18 +1404,18 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 }
             }
         }
-        return "Core metrics: samples=" + samples + (names.isEmpty() ? "" : " / " + String.join(", ", names));
+        return adminText("admin-command-metrics-samples-prefix", "Core metrics: samples=") + samples + (names.isEmpty() ? "" : " / " + String.join(", ", names));
     }
 
     private String coreConfigMessage(String body) {
         String code = textValue(body, "code");
         if (!code.isBlank()) {
-            return "Core config: failed code=" + code;
+            return adminText("admin-command-core-config-failed-prefix", "Core config: failed code=") + code;
         }
-        return "Core config: repo=" + textValue(body, "repositoryMode")
-            + " jobs=" + textValue(body, "jobQueueMode")
-            + " events=" + textValue(body, "eventBusMode")
-            + " storage=" + textValue(body, "storageType")
+        return adminText("admin-command-core-config-repo-prefix", "Core config: repo=") + textValue(body, "repositoryMode")
+            + adminText("admin-command-core-config-jobs-prefix", " jobs=") + textValue(body, "jobQueueMode")
+            + adminText("admin-command-core-config-events-prefix", " events=") + textValue(body, "eventBusMode")
+            + adminText("admin-command-core-config-storage-prefix", " storage=") + textValue(body, "storageType")
             + " pool=" + textValue(body, "islandPool")
             + " dbPool=" + longValue(body, "databasePoolSize")
             + " softFull=" + textValue(body, "softFullPolicy")
