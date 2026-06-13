@@ -128,9 +128,11 @@ public final class FactoryGuiService {
         holder.action(12, "admin_debug_island", "");
         inventory.setItem(12, icon(Material.MAP, ChatColor.AQUA + "Island Debug",
                 List.of(ChatColor.GRAY + "Send island id to chat.")));
-        holder.action(14, "admin_debug_networks", "");
-        inventory.setItem(14, icon(Material.REDSTONE, ChatColor.RED + "Network Debug",
-                List.of(ChatColor.GRAY + "Send power and machine state to chat.")));
+        if (enabled("machines")) {
+            holder.action(14, "admin_debug_networks", "");
+            inventory.setItem(14, icon(Material.REDSTONE, ChatColor.RED + "Network Debug",
+                    List.of(ChatColor.GRAY + "Send power and machine state to chat.")));
+        }
         holder.action(22, "admin_back", "");
         inventory.setItem(22, icon(Material.ARROW, ChatColor.YELLOW + "Back",
                 List.of(ChatColor.GRAY + "Return to the main factory menu.")));
