@@ -111,7 +111,7 @@ public final class ResourceNodeService {
         this.dirtySaves = dirtySaves;
     }
 
-    public boolean remapIslandRegion(UUID islandUuid, String worldName, int deltaX, int deltaZ) {
+    public boolean remapIslandRegion(UUID islandUuid, String worldName, int deltaX, int deltaY, int deltaZ) {
         if (!enabled) {
             return false;
         }
@@ -122,7 +122,7 @@ public final class ResourceNodeService {
         boolean changed = false;
         List<ResourceNode> updated = new ArrayList<>();
         for (ResourceNode node : current) {
-            if (worldName.equals(node.location().world()) && deltaX == 0 && deltaZ == 0) {
+            if (worldName.equals(node.location().world()) && deltaX == 0 && deltaY == 0 && deltaZ == 0) {
                 updated.add(node);
                 continue;
             }
@@ -136,7 +136,7 @@ public final class ResourceNodeService {
                     node.maxRemaining(),
                     node.regenPerHour(),
                     node.requiredMachineTier(),
-                    new BlockKey(worldName, node.location().x() + deltaX, node.location().y(), node.location().z() + deltaZ),
+                    new BlockKey(worldName, node.location().x() + deltaX, node.location().y() + deltaY, node.location().z() + deltaZ),
                     node.createdAt(),
                     node.updatedAt()
             );

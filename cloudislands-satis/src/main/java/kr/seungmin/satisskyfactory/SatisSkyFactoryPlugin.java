@@ -907,12 +907,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             if (activeCenter != null && activeCenter.getWorld() != null) {
                 String activeWorld = activeCenter.getWorld().getName();
                 int deltaX = island.hasActiveCenter() ? activeCenter.getBlockX() - island.activeCenterX() : 0;
+                int deltaY = island.hasActiveCenter() ? activeCenter.getBlockY() - island.activeCenterY() : 0;
                 int deltaZ = island.hasActiveCenter() ? activeCenter.getBlockZ() - island.activeCenterZ() : 0;
                 if (machines != null && featureEnabled("machines")) {
-                    machines.remapIslandRegion(islandId, activeWorld, deltaX, deltaZ);
+                    machines.remapIslandRegion(islandId, activeWorld, deltaX, deltaY, deltaZ);
                 }
                 if (nodes != null && featureEnabled("resource-nodes")) {
-                    nodes.remapIslandRegion(islandId, activeWorld, deltaX, deltaZ);
+                    nodes.remapIslandRegion(islandId, activeWorld, deltaX, deltaY, deltaZ);
                 }
                 island.activeWorld(activeWorld);
                 island.activeCenterX(activeCenter.getBlockX());
