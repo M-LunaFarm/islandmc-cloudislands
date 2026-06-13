@@ -40,6 +40,11 @@ messages:
   island-create-locked: "섬 생성을 처리하는 중입니다. 잠시 후 다시 시도해주세요."
   island-create-node-unavailable: "현재 섬 서비스가 혼잡합니다. 잠시 후 다시 시도해주세요."
   island-create-failed: "섬 생성에 실패했습니다."
+  route-preparing: "{target}을 준비하는 중입니다."
+  route-loading-title: "{target} 로딩 중"
+  route-loading-progress: "{target} 로딩 중 {progress}%"
+  route-preparing-progress: "{target}을 준비하는 중입니다... {progress}%"
+  route-ready: "잠시 후 {target}으로 이동합니다."
 
 health:
   enabled: false

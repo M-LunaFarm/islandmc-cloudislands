@@ -2893,8 +2893,8 @@ public final class VelocityRoutingController {
         }
         if (ticket.state().name().equals("PREPARING")) {
             String target = routeTargetName(ticket);
-            actionBar(player, target + "을 준비하는 중입니다.");
-            BossBar bossBar = BossBar.bossBar(Component.text(target + " 로딩 중"), 0.2F, BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
+            actionBar(player, messages.text("route-preparing", "target", target));
+            BossBar bossBar = BossBar.bossBar(messages.component("route-loading-title", "target", target), 0.2F, BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
             showBossBar(player, bossBar);
             waitForReadyTicket(player, ticket, failureMessage, bossBar, 0);
             return;
@@ -2916,7 +2916,7 @@ public final class VelocityRoutingController {
                 return playerErrorMessage(coreError.code(), fallback);
             }
             if (current instanceof java.io.IOException) {
-                return "현재 섬 서비스 일부 기능이 점검 중입니다.";
+                return messages.text("island-service-maintenance");
             }
             current = current.getCause();
         }
@@ -2939,15 +2939,17 @@ public final class VelocityRoutingController {
         int progress = Math.min(95, 20 + attempt);
         bossBar.progress(progress / 100.0F);
         String target = routeTargetName(ticket);
-        bossBar.name(Component.text(target + " 로딩 중 " + progress + "%"));
-        actionBar(player, target + "을 준비하는 중입니다... " + progress + "%");
+        String progressValue = Integer.toString(progress);
+        bossBar.name(messages.component("route-loading-progress", "target", target, "progress", progressValue));
+        actionBar(player, messages.text("route-preparing-progress", "target", target, "progress", progressValue));
         coreApiClient.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
             Optional<RouteTicket> ready = status.filter(value -> value.state().name().equals("READY"));
             if (ready.isPresent()) {
                 bossBar.progress(1.0F);
                 String readyTarget = routeTargetName(ready.get());
-                bossBar.name(Component.text("잠시 후 " + readyTarget + "으로 이동합니다."));
-                actionBar(player, "잠시 후 " + readyTarget + "으로 이동합니다.");
+                Component readyMessage = messages.component("route-ready", "target", readyTarget);
+                bossBar.name(readyMessage);
+                actionBar(player, messages.text("route-ready", "target", readyTarget));
                 hideBossBar(player, bossBar);
                 publishAndConnect(player, ready.get());
                 return;

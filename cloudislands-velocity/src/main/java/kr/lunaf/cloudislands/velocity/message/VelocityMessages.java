@@ -30,6 +30,11 @@ public final class VelocityMessages {
         values.put("island-create-locked", "섬 생성을 처리하는 중입니다. 잠시 후 다시 시도해주세요.");
         values.put("island-create-node-unavailable", "현재 섬 서비스가 혼잡합니다. 잠시 후 다시 시도해주세요.");
         values.put("island-create-failed", "섬 생성에 실패했습니다.");
+        values.put("route-preparing", "{target}을 준비하는 중입니다.");
+        values.put("route-loading-title", "{target} 로딩 중");
+        values.put("route-loading-progress", "{target} 로딩 중 {progress}%");
+        values.put("route-preparing-progress", "{target}을 준비하는 중입니다... {progress}%");
+        values.put("route-ready", "잠시 후 {target}으로 이동합니다.");
         if (configured != null) {
             for (Map.Entry<String, String> entry : configured.entrySet()) {
                 if (entry.getValue() != null) {
