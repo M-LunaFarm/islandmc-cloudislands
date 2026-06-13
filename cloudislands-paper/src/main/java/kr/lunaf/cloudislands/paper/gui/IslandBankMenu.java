@@ -49,29 +49,28 @@ public final class IslandBankMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || !meta.hasDisplayName()) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= 27) {
             return;
         }
-        String name = meta.getDisplayName();
         player.closeInventory();
-        if (name.equals("입금")) {
+        if (slot == 13) {
             player.sendMessage(message(messages, "bank-menu-deposit-usage", "사용법: /섬 입금 <금액>"));
-        } else if (name.equals("1,000 입금")) {
+        } else if (slot == 10) {
             player.performCommand("섬 입금 1000");
-        } else if (name.equals("10,000 입금")) {
+        } else if (slot == 11) {
             player.performCommand("섬 입금 10000");
-        } else if (name.equals("출금")) {
+        } else if (slot == 17) {
             player.sendMessage(message(messages, "bank-menu-withdraw-usage", "사용법: /섬 출금 <금액>"));
-        } else if (name.equals("1,000 출금")) {
+        } else if (slot == 15) {
             player.performCommand("섬 출금 1000");
-        } else if (name.equals("10,000 출금")) {
+        } else if (slot == 16) {
             player.performCommand("섬 출금 10000");
-        } else if (name.equals("잔액 새로고침")) {
+        } else if (slot == 22) {
             player.performCommand("섬 은행");
-        } else if (name.equals("메인 메뉴")) {
+        } else if (slot == 18) {
             player.performCommand("섬 메뉴");
-        } else if (name.equals("설정")) {
+        } else if (slot == 26) {
             player.performCommand("섬 설정");
         }
     }
@@ -79,16 +78,16 @@ public final class IslandBankMenu implements Listener {
     private static void openSync(Plugin plugin, Player player, String balance, String updatedAt, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
-            inventory.setItem(4, item(Material.GOLD_BLOCK, "잔액", message(messages, "bank-menu-current-balance", "현재 잔액: ") + (balance.isBlank() ? "0" : balance), updatedAt.isBlank() ? message(messages, "bank-menu-no-update", "업데이트 정보 없음") : message(messages, "bank-menu-updated-at", "갱신 시각: ") + updatedAt));
-            inventory.setItem(10, item(Material.EMERALD, "1,000 입금", "/섬 입금 1000"));
-            inventory.setItem(11, item(Material.EMERALD_BLOCK, "10,000 입금", "/섬 입금 10000"));
-            inventory.setItem(13, item(Material.PAPER, "입금", message(messages, "bank-menu-deposit-usage", "사용법: /섬 입금 <금액>")));
-            inventory.setItem(15, item(Material.REDSTONE, "1,000 출금", "/섬 출금 1000"));
-            inventory.setItem(16, item(Material.REDSTONE_BLOCK, "10,000 출금", "/섬 출금 10000"));
-            inventory.setItem(17, item(Material.PAPER, "출금", message(messages, "bank-menu-withdraw-usage", "사용법: /섬 출금 <금액>")));
-            inventory.setItem(18, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
-            inventory.setItem(22, item(Material.CLOCK, "잔액 새로고침", "/섬 은행"));
-            inventory.setItem(26, item(Material.COMPARATOR, "설정", "/섬 설정"));
+            inventory.setItem(4, item(Material.GOLD_BLOCK, message(messages, "bank-menu-balance-name", "잔액"), message(messages, "bank-menu-current-balance", "현재 잔액: ") + (balance.isBlank() ? "0" : balance), updatedAt.isBlank() ? message(messages, "bank-menu-no-update", "업데이트 정보 없음") : message(messages, "bank-menu-updated-at", "갱신 시각: ") + updatedAt));
+            inventory.setItem(10, item(Material.EMERALD, message(messages, "bank-menu-deposit-1000-name", "1,000 입금"), message(messages, "bank-menu-deposit-1000-command", "/섬 입금 1000")));
+            inventory.setItem(11, item(Material.EMERALD_BLOCK, message(messages, "bank-menu-deposit-10000-name", "10,000 입금"), message(messages, "bank-menu-deposit-10000-command", "/섬 입금 10000")));
+            inventory.setItem(13, item(Material.PAPER, message(messages, "bank-menu-deposit-name", "입금"), message(messages, "bank-menu-deposit-usage", "사용법: /섬 입금 <금액>")));
+            inventory.setItem(15, item(Material.REDSTONE, message(messages, "bank-menu-withdraw-1000-name", "1,000 출금"), message(messages, "bank-menu-withdraw-1000-command", "/섬 출금 1000")));
+            inventory.setItem(16, item(Material.REDSTONE_BLOCK, message(messages, "bank-menu-withdraw-10000-name", "10,000 출금"), message(messages, "bank-menu-withdraw-10000-command", "/섬 출금 10000")));
+            inventory.setItem(17, item(Material.PAPER, message(messages, "bank-menu-withdraw-name", "출금"), message(messages, "bank-menu-withdraw-usage", "사용법: /섬 출금 <금액>")));
+            inventory.setItem(18, item(Material.COMPASS, message(messages, "bank-menu-main-menu-name", "메인 메뉴"), message(messages, "bank-menu-main-menu-command", "/섬 메뉴")));
+            inventory.setItem(22, item(Material.CLOCK, message(messages, "bank-menu-refresh-name", "잔액 새로고침"), message(messages, "bank-menu-refresh-command", "/섬 은행")));
+            inventory.setItem(26, item(Material.COMPARATOR, message(messages, "bank-menu-settings-name", "설정"), message(messages, "bank-menu-settings-command", "/섬 설정")));
             player.openInventory(inventory);
         });
     }
