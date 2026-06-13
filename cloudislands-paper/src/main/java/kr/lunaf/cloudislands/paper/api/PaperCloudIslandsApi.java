@@ -427,8 +427,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 if (parts.length != 2 || parts[0].isBlank() || parts[1].isBlank()) {
                     continue;
                 }
-                String feature = AddonFeatureAliases.normalize(metadata, parts[0]);
-                String required = AddonFeatureAliases.normalize(metadata, parts[1]);
+                String feature = AddonFeatureAliases.normalize(metadata, parts[0].trim());
+                String required = AddonFeatureAliases.normalize(metadata, parts[1].trim());
                 if (features.containsKey(feature) || features.containsKey(required)) {
                     features.put(feature, features.getOrDefault(feature, true) && features.getOrDefault(required, true));
                 }

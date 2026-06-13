@@ -31,6 +31,7 @@ final class AddonFeatureAliases {
         return java.util.Arrays.stream(source.split(","))
                 .map(pair -> pair.split(":", 2))
                 .filter(parts -> parts.length == 2)
+                .map(parts -> new String[] {parts[0].trim(), parts[1].trim()})
                 .filter(parts -> !parts[0].isBlank() && !parts[1].isBlank())
                 .map(parts -> new Alias(parts[0], parts[1]))
                 .toList();
