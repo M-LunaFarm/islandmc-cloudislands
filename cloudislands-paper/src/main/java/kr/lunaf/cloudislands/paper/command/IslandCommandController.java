@@ -1578,10 +1578,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void recalculateIslandLevel(Player player) {
         currentIsland(player, "섬 안에서만 레벨을 계산할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.START_LEVEL_CALC)) {
-                player.sendMessage("섬 레벨을 계산할 권한이 없습니다.");
+                message(player, routeMessage("level-recalculate-denied", "섬 레벨을 계산할 권한이 없습니다."));
                 return;
             }
-            player.sendActionBar(Component.text("섬 블록을 다시 확인하는 중입니다."));
+            player.sendActionBar(Component.text(routeMessage("level-recalculate-started", "섬 블록을 다시 확인하는 중입니다.")));
             CompletableFuture<Void> rescan = levelScanService == null ? CompletableFuture.completedFuture(null) : levelScanService.rescanIsland(islandId);
             rescan.thenCompose(ignored -> coreApiClient.recalculateIslandLevel(islandId, player.getUniqueId()))
                 .thenAccept(body -> {
