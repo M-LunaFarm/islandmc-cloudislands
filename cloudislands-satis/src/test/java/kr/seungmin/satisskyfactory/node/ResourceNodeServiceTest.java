@@ -67,6 +67,38 @@ class ResourceNodeServiceTest {
         }
     }
 
+    @Test
+    void remapIslandRegionMovesNodesByCenterDelta() {
+        UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000000721");
+        UUID nodeId = UUID.fromString("00000000-0000-0000-0000-000000000722");
+        try (DatabaseHandle handle = openDatabase("remap-region-db")) {
+            ResourceNode node = new ResourceNode(nodeId, islandUuid, "MINERAL", "iron_ore", 1.0,
+                    100, 250, 60, 1, new BlockKey("world", 4, 64, 8), 0, 0);
+            handle.database().saveNode(node);
+            ResourceNodeService nodes = new ResourceNodeService(handle.database());
+            nodes.load(config(false, 0));
+
+            nodes.remapIslandRegion(islandUuid, "ci_shard_002", 1024, 16, -2048);
+
+            ResourceNode remapped = nodes.nodes(islandUuid).stream()
+                    .filter(candidate -> candidate.nodeId().equals(nodeId))
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals("ci_shard_002", remapped.world());
+            assertEquals(1028, remapped.x());
+            assertEquals(80, remapped.y());
+            assertEquals(-2040, remapped.z());
+            ResourceNode persisted = handle.database().loadNodes(islandUuid).stream()
+                    .filter(candidate -> candidate.nodeId().equals(nodeId))
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals("ci_shard_002", persisted.world());
+            assertEquals(1028, persisted.x());
+            assertEquals(80, persisted.y());
+            assertEquals(-2040, persisted.z());
+        }
+    }
+
     private DatabaseHandle openDatabase(String name) {
         DatabaseService database = new DatabaseService(tempDir.resolve(name).toFile());
         database.open();

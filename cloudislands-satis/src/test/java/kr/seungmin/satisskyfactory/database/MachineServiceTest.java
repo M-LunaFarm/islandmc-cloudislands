@@ -131,6 +131,31 @@ class MachineServiceTest {
         }
     }
 
+    @Test
+    void remapIslandRegionMovesMachinesByCenterDelta() {
+        try (DatabaseHandle handle = openDatabase("remap-region")) {
+            StorageService storage = new StorageService(handle.database(), 1000);
+            MachineService machines = new MachineService(handle.database(), new MachineDefinitionService(), storage);
+            MachineBundle bundle = machineWithInput(storage, machines, "00000000-0000-0000-0000-000000004601");
+
+            assertTrue(machines.remapIslandRegion(bundle.machine().islandUuid(), "ci_shard_002", 1024, 16, -2048));
+
+            MachineInstance remapped = machines.find(bundle.machine().machineId()).orElseThrow();
+            assertEquals("ci_shard_002", remapped.world());
+            assertEquals(1024, remapped.x());
+            assertEquals(80, remapped.y());
+            assertEquals(-2048, remapped.z());
+            MachineInstance persisted = handle.database().loadMachines().stream()
+                    .filter(machine -> machine.machineId().equals(bundle.machine().machineId()))
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals("ci_shard_002", persisted.world());
+            assertEquals(1024, persisted.x());
+            assertEquals(80, persisted.y());
+            assertEquals(-2048, persisted.z());
+        }
+    }
+
     private MachineBundle machineWithInput(StorageService storage, MachineService machines, String machineUuid) {
         UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000004900");
         UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000004901");
