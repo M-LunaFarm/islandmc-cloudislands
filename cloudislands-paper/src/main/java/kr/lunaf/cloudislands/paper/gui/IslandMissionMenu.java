@@ -52,22 +52,25 @@ public final class IslandMissionMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || meta.getLore() == null) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= 54) {
             return;
         }
-        String displayName = meta.getDisplayName();
         player.closeInventory();
-        if ("미션 보기".equals(displayName)) {
+        if (slot == 45) {
             player.performCommand("섬 미션");
             return;
         }
-        if ("챌린지 보기".equals(displayName)) {
+        if (slot == 53) {
             player.performCommand("섬 챌린지");
             return;
         }
-        if ("새로고침".equals(displayName)) {
+        if (slot == 49) {
             player.performCommand(MISSION_TITLE.equals(title) ? "섬 미션" : "섬 챌린지");
+            return;
+        }
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null || meta.getLore() == null) {
             return;
         }
         String missionKey = loreValue(meta, "missionKey=");
@@ -85,12 +88,12 @@ public final class IslandMissionMenu implements Listener {
                 inventory.setItem(slot++, missionItem(mission, messages));
             }
             if (missions.isEmpty()) {
-                inventory.setItem(22, item(Material.BARRIER, "과제 없음", message(messages, "mission-menu-empty", "현재 표시할 섬 과제가 없습니다.")));
+                inventory.setItem(22, item(Material.BARRIER, message(messages, "mission-menu-empty-title", "과제 없음"), message(messages, "mission-menu-empty", "현재 표시할 섬 과제가 없습니다.")));
             }
             boolean challenge = "CHALLENGE".equalsIgnoreCase(kind);
-            inventory.setItem(45, item(Material.BOOK, "미션 보기", "/섬 미션"));
-            inventory.setItem(49, item(Material.CLOCK, "새로고침", challenge ? "/섬 챌린지" : "/섬 미션"));
-            inventory.setItem(53, item(Material.WRITABLE_BOOK, "챌린지 보기", "/섬 챌린지"));
+            inventory.setItem(45, item(Material.BOOK, message(messages, "mission-menu-mission-name", "미션 보기"), message(messages, "mission-menu-mission-command", "/섬 미션")));
+            inventory.setItem(49, item(Material.CLOCK, message(messages, "mission-menu-refresh-name", "새로고침"), challenge ? message(messages, "mission-menu-challenge-command", "/섬 챌린지") : message(messages, "mission-menu-mission-command", "/섬 미션")));
+            inventory.setItem(53, item(Material.WRITABLE_BOOK, message(messages, "mission-menu-challenge-name", "챌린지 보기"), message(messages, "mission-menu-challenge-command", "/섬 챌린지")));
             player.openInventory(inventory);
         });
     }
@@ -98,7 +101,7 @@ public final class IslandMissionMenu implements Listener {
     private static ItemStack missionItem(Mission mission, MessageRenderer messages) {
         Material material = mission.completed() ? Material.LIME_DYE : Material.BOOK;
         String title = mission.title().isBlank() ? mission.key() : mission.title();
-        return item(material, title, "missionKey=" + mission.key(), "진행도: " + mission.progress() + "/" + mission.goal(), "보상: " + (mission.reward().isBlank() ? message(messages, "mission-menu-no-reward", "없음") : mission.reward()), mission.completed() ? message(messages, "mission-menu-completed", "완료됨") : message(messages, "mission-menu-click-to-complete", "클릭하면 완료를 요청합니다."));
+        return item(material, title, "missionKey=" + mission.key(), message(messages, "mission-menu-progress", "진행도: ") + mission.progress() + "/" + mission.goal(), message(messages, "mission-menu-reward", "보상: ") + (mission.reward().isBlank() ? message(messages, "mission-menu-no-reward", "없음") : mission.reward()), mission.completed() ? message(messages, "mission-menu-completed", "완료됨") : message(messages, "mission-menu-click-to-complete", "클릭하면 완료를 요청합니다."));
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {

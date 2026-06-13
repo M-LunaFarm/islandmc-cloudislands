@@ -395,10 +395,18 @@ public final class TranslationManager {
         values.put("limit-menu-settings-name", "설정");
         values.put("limit-menu-settings-command", "/섬 설정");
         values.put("mission-menu-load-failed", "섬 과제를 불러오지 못했습니다.");
+        values.put("mission-menu-empty-title", "과제 없음");
         values.put("mission-menu-empty", "현재 표시할 섬 과제가 없습니다.");
+        values.put("mission-menu-progress", "진행도: ");
+        values.put("mission-menu-reward", "보상: ");
         values.put("mission-menu-no-reward", "없음");
         values.put("mission-menu-completed", "완료됨");
         values.put("mission-menu-click-to-complete", "클릭하면 완료를 요청합니다.");
+        values.put("mission-menu-mission-name", "미션 보기");
+        values.put("mission-menu-mission-command", "/섬 미션");
+        values.put("mission-menu-refresh-name", "새로고침");
+        values.put("mission-menu-challenge-name", "챌린지 보기");
+        values.put("mission-menu-challenge-command", "/섬 챌린지");
         values.put("upgrade-menu-load-failed", "섬 업그레이드를 불러오지 못했습니다.");
         values.put("upgrade-menu-empty-title", "업그레이드 없음");
         values.put("upgrade-menu-empty", "Core API에 등록된 섬 업그레이드가 없습니다.");
