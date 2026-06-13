@@ -205,7 +205,7 @@ public final class FactoryGuiListener implements Listener {
         }
         if (action.type().equals("complete_emergency")) {
             if (contracts.completeEmergency(island, player)) {
-                maintenance.updateStatus(island);
+                refreshMaintenanceStatus(island);
                 islands.save(island);
                 messages.send(player, "emergency-contract-completed");
             } else {
@@ -381,6 +381,9 @@ public final class FactoryGuiListener implements Listener {
     }
 
     private void refreshMaintenanceStatus(FactoryIsland island) {
+        if (!featureEnabled.test("maintenance")) {
+            return;
+        }
         maintenance.updateStatus(island);
         islands.save(island);
     }

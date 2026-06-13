@@ -291,6 +291,9 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     }
 
     private void refreshMaintenanceStatus(FactoryIsland island) {
+        if (!enabled("maintenance")) {
+            return;
+        }
         maintenance.updateStatus(island);
         islands.save(island);
     }
