@@ -29,12 +29,20 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
     @Override
     public boolean enable() {
         PluginManager plugins = plugin.getServer().getPluginManager();
-        api = CloudIslandsProvider.get().orElse(null);
+        api = resolveCloudIslandsApi();
         available = plugins.getPlugin("CloudIslands") != null && api != null;
         if (!available) {
             plugin.getLogger().severe("CloudIslands provider selected, but CloudIslands API was not found.");
         }
         return available;
+    }
+
+    private CloudIslandsApi resolveCloudIslandsApi() {
+        CloudIslandsApi provider = CloudIslandsProvider.get().orElse(null);
+        if (provider != null) {
+            return provider;
+        }
+        return plugin.getServer().getServicesManager().load(CloudIslandsApi.class);
     }
 
     @Override

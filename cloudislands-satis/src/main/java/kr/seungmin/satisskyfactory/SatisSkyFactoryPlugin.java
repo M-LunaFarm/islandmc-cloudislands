@@ -411,7 +411,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
     }
 
     private boolean registerCloudIslandsAddon() {
-        cloudIslandsApi = CloudIslandsProvider.get().orElse(null);
+        cloudIslandsApi = resolveCloudIslandsApi();
         if (cloudIslandsApi == null) {
             return true;
         }
@@ -425,6 +425,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin {
             return false;
         }
         return true;
+    }
+
+    private CloudIslandsApi resolveCloudIslandsApi() {
+        CloudIslandsApi api = CloudIslandsProvider.get().orElse(null);
+        if (api != null) {
+            return api;
+        }
+        return getServer().getServicesManager().load(CloudIslandsApi.class);
     }
 
     private void unregisterCloudIslandsAddon() {
