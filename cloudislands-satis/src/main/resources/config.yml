@@ -1,24 +1,25 @@
-integration:
+satis:
   enabled: true
+  features:
+    commands: true
+    machines: true
+    factories: true
+    generators: true
+    upgrades: true
+    missions: true
+    menus: true
+    gui: true
+    lifecycle: true
+    resource-nodes: true
+    market: true
+    contracts: true
+    research: true
+    maintenance: true
+    placeholders: true
+integration:
   mode: ADDON
   skyblock-provider: CLOUDISLANDS
   cloudislands-adapter: true
-features:
-  commands: true
-  machines: true
-  factories: true
-  generators: true
-  upgrades: true
-  missions: true
-  menus: true
-  gui: true
-  lifecycle: true
-  resource-nodes: true
-  market: true
-  contracts: true
-  research: true
-  maintenance: true
-  placeholders: true
 settings:
   language: ko_kr
   debug: false

@@ -569,7 +569,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public boolean enabledByDefault() {
-        return configs.main().getBoolean("integration.enabled", false);
+        return configs.main().contains("satis.enabled")
+                ? configs.main().getBoolean("satis.enabled", false)
+                : configs.main().getBoolean("integration.enabled", false);
     }
 
     @Override
@@ -842,13 +844,25 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private boolean configuredFeatureEnabled(String key) {
         String canonical = canonicalFeature(key);
-        boolean enabled = configs.main().getBoolean("features." + canonical, true);
+        boolean enabled = configFeature(canonical);
         for (Map.Entry<String, String> alias : FEATURE_ALIASES.entrySet()) {
-            if (alias.getValue().equals(canonical) && configs.main().contains("features." + alias.getKey())) {
-                enabled = enabled && configs.main().getBoolean("features." + alias.getKey(), true);
+            if (alias.getValue().equals(canonical) && configFeatureDefined(alias.getKey())) {
+                enabled = enabled && configFeature(alias.getKey());
             }
         }
         return enabled;
+    }
+
+    private boolean configFeature(String key) {
+        String satisPath = "satis.features." + key;
+        String legacyPath = "features." + key;
+        return configs.main().contains(satisPath)
+                ? configs.main().getBoolean(satisPath, true)
+                : configs.main().getBoolean(legacyPath, true);
+    }
+
+    private boolean configFeatureDefined(String key) {
+        return configs.main().contains("satis.features." + key) || configs.main().contains("features." + key);
     }
 
     private boolean featureEnabled(String key) {
