@@ -518,6 +518,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             lifecycleListener = new FactoryLifecycleListener(
                     () -> featureEnabled("lifecycle"),
                     () -> featureEnabled("resource-nodes"),
+                    () -> featureEnabled("machines"),
+                    () -> featureEnabled("maintenance"),
                     islands,
                     skyblock,
                     nodes,

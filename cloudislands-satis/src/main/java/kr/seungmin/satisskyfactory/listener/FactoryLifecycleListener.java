@@ -23,6 +23,8 @@ import java.util.function.BooleanSupplier;
 public final class FactoryLifecycleListener implements Listener {
     private final BooleanSupplier active;
     private final BooleanSupplier resourceNodesEnabled;
+    private final BooleanSupplier machinesEnabled;
+    private final BooleanSupplier maintenanceEnabled;
     private final FactoryIslandService islands;
     private final SkyblockProvider skyblock;
     private final ResourceNodeService nodes;
@@ -31,11 +33,15 @@ public final class FactoryLifecycleListener implements Listener {
     private final PowerNetworkService power;
     private final MaintenanceService maintenance;
 
-    public FactoryLifecycleListener(BooleanSupplier active, BooleanSupplier resourceNodesEnabled, FactoryIslandService islands, SkyblockProvider skyblock,
+    public FactoryLifecycleListener(BooleanSupplier active, BooleanSupplier resourceNodesEnabled,
+                                    BooleanSupplier machinesEnabled, BooleanSupplier maintenanceEnabled,
+                                    FactoryIslandService islands, SkyblockProvider skyblock,
                                     ResourceNodeService nodes, MachineService machines, ItemNetworkService itemNetworks,
                                     PowerNetworkService power, MaintenanceService maintenance) {
         this.active = active;
         this.resourceNodesEnabled = resourceNodesEnabled;
+        this.machinesEnabled = machinesEnabled;
+        this.maintenanceEnabled = maintenanceEnabled;
         this.islands = islands;
         this.skyblock = skyblock;
         this.nodes = nodes;
@@ -59,9 +65,13 @@ public final class FactoryLifecycleListener implements Listener {
                         .map(ref -> ref.islandUuid().equals(island.islandUuid()))
                         .orElse(false));
             }
-            maintenance.updateStatus(island);
-            itemNetworks.rebuildIsland(island.islandUuid());
-            power.rebuildIsland(island.islandUuid());
+            if (maintenanceEnabled.getAsBoolean()) {
+                maintenance.updateStatus(island);
+            }
+            if (machinesEnabled.getAsBoolean()) {
+                itemNetworks.rebuildIsland(island.islandUuid());
+                power.rebuildIsland(island.islandUuid());
+            }
             islands.save(island);
         });
     }
@@ -79,7 +89,7 @@ public final class FactoryLifecycleListener implements Listener {
 
     @EventHandler
     public void onChunkUnload(ChunkUnloadEvent event) {
-        if (!active.getAsBoolean()) {
+        if (!active.getAsBoolean() || !machinesEnabled.getAsBoolean()) {
             return;
         }
         machines.markChunkStatus(event.getChunk(), MachineStatus.CHUNK_UNLOADED);
@@ -87,7 +97,7 @@ public final class FactoryLifecycleListener implements Listener {
 
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
-        if (!active.getAsBoolean()) {
+        if (!active.getAsBoolean() || !machinesEnabled.getAsBoolean()) {
             return;
         }
         for (MachineInstance machine : machines.byChunk(event.getChunk())) {
