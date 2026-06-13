@@ -1,8 +1,8 @@
 package kr.seungmin.satisskyfactory;
 
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
-import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
+import kr.lunaf.cloudislands.api.addon.CloudIslandsAddonBootstrap;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.seungmin.satisskyfactory.command.FactoryCommand;
 import kr.seungmin.satisskyfactory.config.ConfigService;
@@ -427,7 +427,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private CloudIslandsApi resolveCloudIslandsApi() {
-        CloudIslandsApi api = CloudIslandsProvider.get().orElse(null);
+        CloudIslandsApi api = CloudIslandsAddonBootstrap.findApi().orElse(null);
         if (api != null) {
             return api;
         }
