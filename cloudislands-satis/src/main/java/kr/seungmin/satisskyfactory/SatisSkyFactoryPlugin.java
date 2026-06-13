@@ -491,6 +491,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 this::featureEnabled,
                 this::addonMetadata,
                 this::addonStateSnapshot,
+                this::addonIslandStateSnapshot,
                 this::reloadPluginConfig
         );
         PluginCommand factory = getCommand("factory");
@@ -911,7 +912,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             getLogger().warning("Failed to publish CloudIslands Satis lifecycle state: " + error.getMessage());
             return Map.of();
         });
-        publishIslandLifecycleState(islandId, operation, island, "success", "");
+        if (!"purge".equalsIgnoreCase(operation)) {
+            publishIslandLifecycleState(islandId, operation, island, "success", "");
+        }
     }
 
     private void publishLifecycleFailure(UUID islandId, String operation, RuntimeException exception) {
@@ -954,6 +957,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         cloudIslandsApi.addons().putIslandState(ADDON_ID, islandId, state).exceptionally(publishError -> {
             getLogger().warning("Failed to publish CloudIslands Satis island state: " + publishError.getMessage());
             return Map.of();
+        });
+    }
+
+    private void clearIslandLifecycleState(UUID islandId) {
+        if (cloudIslandsApi == null || islandId == null || !featureEnabled("addon-state")) {
+            return;
+        }
+        cloudIslandsApi.addons().clearIslandState(ADDON_ID, islandId).exceptionally(error -> {
+            getLogger().warning("Failed to clear CloudIslands Satis island state: " + error.getMessage());
+            return null;
         });
     }
 
@@ -1172,6 +1185,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         database.purgeIsland(islandId);
         publishLifecycleState(islandId, "purge");
+        clearIslandLifecycleState(islandId);
     }
 
     private void stopRuntimeActivity() {
