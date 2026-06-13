@@ -301,6 +301,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 || featureEnabled("maintenance");
     }
 
+    private boolean lifecycleListenerNeeded() {
+        return featureEnabled("lifecycle")
+                && (featureEnabled("machines")
+                || operationalFeatureEnabled("resource-nodes")
+                || featureEnabled("maintenance"));
+    }
+
     private boolean storageDataEnabled() {
         return featureEnabled("storage")
                 || featureEnabled("machines");
@@ -584,12 +591,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             getServer().getPluginManager().registerEvents(guiListener, this);
             guiListenerRegistered = true;
         }
-        if (!featureEnabled("lifecycle") || !lifecycleStateEnabled()) {
+        if (!lifecycleListenerNeeded()) {
             lifecycleListenerRegistered = unregisterListener(lifecycleListener, lifecycleListenerRegistered);
             lifecycleListener = null;
         } else if (!lifecycleListenerRegistered) {
             lifecycleListener = new FactoryLifecycleListener(
-                    () -> featureEnabled("lifecycle") && lifecycleStateEnabled(),
+                    this::lifecycleListenerNeeded,
                     () -> operationalFeatureEnabled("resource-nodes"),
                     () -> featureEnabled("machines"),
                     () -> featureEnabled("maintenance"),
