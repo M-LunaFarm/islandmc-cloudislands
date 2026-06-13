@@ -495,6 +495,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                     notifyReloaded(addon, snapshot);
                 }
             });
+            addons.keySet().removeIf(id -> !registrations.containsKey(id));
             syncEventSubscription();
             return list();
         }
