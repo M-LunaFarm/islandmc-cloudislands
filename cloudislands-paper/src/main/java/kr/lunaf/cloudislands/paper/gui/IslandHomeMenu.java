@@ -50,13 +50,12 @@ public final class IslandHomeMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || !meta.hasDisplayName()) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= 54) {
             return;
         }
-        String displayName = meta.getDisplayName();
         player.closeInventory();
-        if (displayName.equals("현재 위치를 홈으로 설정")) {
+        if (slot == 45) {
             if (event.isRightClick()) {
                 player.sendMessage(message(messages, "home-menu-set-usage", "사용법: /섬 셋홈 <이름>"));
                 return;
@@ -64,12 +63,16 @@ public final class IslandHomeMenu implements Listener {
             player.performCommand("섬 셋홈 default");
             return;
         }
-        if (displayName.equals("설정")) {
+        if (slot == 49) {
             player.performCommand("섬 설정");
             return;
         }
-        if (displayName.equals("메인 메뉴")) {
+        if (slot == 53) {
             player.performCommand("섬 메뉴");
+            return;
+        }
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null) {
             return;
         }
         String homeName = loreValue(meta, "homeName=");
@@ -85,16 +88,16 @@ public final class IslandHomeMenu implements Listener {
     private static void openSync(Plugin plugin, Player player, List<Home> homes, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
-            inventory.setItem(45, item(Material.RED_BED, "현재 위치를 홈으로 설정", "좌클릭: default 홈으로 설정", "우클릭: " + message(messages, "home-menu-set-usage", "사용법: /섬 셋홈 <이름>")));
+            inventory.setItem(45, item(Material.RED_BED, message(messages, "home-menu-set-current-name", "현재 위치를 홈으로 설정"), message(messages, "home-menu-set-default-click", "좌클릭: default 홈으로 설정"), message(messages, "home-menu-set-named-click", "우클릭: ") + message(messages, "home-menu-set-usage", "사용법: /섬 셋홈 <이름>")));
             int slot = 0;
             for (Home home : homes.stream().limit(45).toList()) {
                 inventory.setItem(slot++, homeItem(home, messages));
             }
             if (homes.isEmpty()) {
-                inventory.setItem(22, item(Material.BARRIER, "홈 없음", message(messages, "home-menu-empty", "현재 등록된 섬 홈이 없습니다.")));
+                inventory.setItem(22, item(Material.BARRIER, message(messages, "home-menu-empty-title", "홈 없음"), message(messages, "home-menu-empty", "현재 등록된 섬 홈이 없습니다.")));
             }
-            inventory.setItem(49, item(Material.COMPARATOR, "설정", "/섬 설정"));
-            inventory.setItem(53, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
+            inventory.setItem(49, item(Material.COMPARATOR, message(messages, "home-menu-settings-name", "설정"), message(messages, "home-menu-settings-command", "/섬 설정")));
+            inventory.setItem(53, item(Material.COMPASS, message(messages, "home-menu-main-menu-name", "메인 메뉴"), message(messages, "home-menu-main-menu-command", "/섬 메뉴")));
             player.openInventory(inventory);
         });
     }
@@ -108,7 +111,7 @@ public final class IslandHomeMenu implements Listener {
     }
 
     private static ItemStack homeItem(Home home, MessageRenderer messages) {
-        return item(Material.GREEN_BED, home.name(), "homeName=" + home.name(), "위치: " + (long) home.x() + ", " + (long) home.y() + ", " + (long) home.z(), home.createdAt().isBlank() ? message(messages, "home-menu-no-created-info", "생성 정보 없음") : message(messages, "home-menu-created-at", "생성 시각: ") + home.createdAt(), message(messages, "home-menu-left-click", "좌클릭: 이 홈으로 이동"), message(messages, "home-menu-right-click", "우클릭: 현재 위치로 갱신"));
+        return item(Material.GREEN_BED, home.name(), "homeName=" + home.name(), message(messages, "home-menu-location", "위치: ") + (long) home.x() + ", " + (long) home.y() + ", " + (long) home.z(), home.createdAt().isBlank() ? message(messages, "home-menu-no-created-info", "생성 정보 없음") : message(messages, "home-menu-created-at", "생성 시각: ") + home.createdAt(), message(messages, "home-menu-left-click", "좌클릭: 이 홈으로 이동"), message(messages, "home-menu-right-click", "우클릭: 현재 위치로 갱신"));
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
