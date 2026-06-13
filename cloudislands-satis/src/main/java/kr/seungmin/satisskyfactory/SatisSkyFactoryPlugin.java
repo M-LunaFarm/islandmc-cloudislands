@@ -356,7 +356,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 boosts
         ), this);
         getServer().getPluginManager().registerEvents(new FactoryGuiListener(
-                () -> featureEnabled("gui"),
+                this::featureEnabled,
                 islands,
                 skyblock,
                 contracts,

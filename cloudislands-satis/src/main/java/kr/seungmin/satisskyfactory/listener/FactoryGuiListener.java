@@ -40,10 +40,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 
 public final class FactoryGuiListener implements Listener {
-    private final BooleanSupplier active;
+    private final Predicate<String> featureEnabled;
     private final FactoryIslandService islands;
     private final SkyblockProvider skyblock;
     private final ContractService contracts;
@@ -63,12 +63,12 @@ public final class FactoryGuiListener implements Listener {
     private final IslandBoostService boosts;
     private final Runnable reload;
 
-    public FactoryGuiListener(BooleanSupplier active, FactoryIslandService islands, SkyblockProvider skyblock, ContractService contracts, ResearchService research, FactoryGuiService gui,
+    public FactoryGuiListener(Predicate<String> featureEnabled, FactoryIslandService islands, SkyblockProvider skyblock, ContractService contracts, ResearchService research, FactoryGuiService gui,
                               MachineService machines, RecipeService recipes, StorageService storage, ItemRegistry items, CustomItemFactory itemFactory,
                               MarketService market, MachineDefinitionService definitions, MaintenanceService maintenance,
                               ItemNetworkService itemNetworks, PowerNetworkService power, MessageService messages,
                               IslandBoostService boosts, Runnable reload) {
-        this.active = active;
+        this.featureEnabled = featureEnabled;
         this.islands = islands;
         this.skyblock = skyblock;
         this.contracts = contracts;
@@ -95,7 +95,7 @@ public final class FactoryGuiListener implements Listener {
             return;
         }
         event.setCancelled(true);
-        if (!active.getAsBoolean()) {
+        if (!featureEnabled.test("gui")) {
             return;
         }
         if (!(event.getWhoClicked() instanceof Player player) || event.getClickedInventory() == null
@@ -120,6 +120,12 @@ public final class FactoryGuiListener implements Listener {
         }
         if (!canUseIslandGui(player, island)) {
             messages.send(player, "not-member");
+            player.closeInventory();
+            return;
+        }
+        String requiredFeature = requiredFeature(action.type());
+        if (requiredFeature != null && !featureEnabled.test(requiredFeature)) {
+            messages.send(player, "feature-disabled", Map.of("feature", requiredFeature));
             player.closeInventory();
             return;
         }
@@ -244,6 +250,24 @@ public final class FactoryGuiListener implements Listener {
             machine(holder).ifPresentOrElse(machine -> reclaimMachine(player, island, machine),
                     () -> messages.send(player, "machine-unavailable"));
         }
+    }
+
+    private String requiredFeature(String actionType) {
+        if (actionType.equals("market_page") || actionType.equals("main_market") || actionType.equals("sell_market_item")) {
+            return "market";
+        }
+        if (actionType.equals("main_contracts") || actionType.equals("contracts_back") || actionType.equals("contract_detail")
+                || actionType.equals("complete_contract") || actionType.equals("complete_emergency")) {
+            return "contracts";
+        }
+        if (actionType.equals("main_research") || actionType.equals("unlock_research")) {
+            return "research";
+        }
+        if (actionType.equals("deposit_hand") || actionType.equals("deposit_machine_input") || actionType.equals("withdraw_machine_input")
+                || actionType.equals("withdraw_machine_output") || actionType.equals("select_recipe") || actionType.equals("reclaim_machine")) {
+            return "machines";
+        }
+        return null;
     }
 
     private Optional<MachineInstance> machine(FactoryGuiHolder holder) {
