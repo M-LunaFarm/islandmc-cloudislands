@@ -81,12 +81,35 @@ public final class DirtySaveService {
         }
     }
 
+    public void flushIslandSafely(UUID islandUuid) {
+        try {
+            flushIsland(islandUuid);
+        } catch (RuntimeException exception) {
+            plugin.getLogger().warning("Dirty save flush failed for island " + islandUuid + ": " + exception.getMessage());
+        }
+    }
+
     private void flush() {
         synchronized (flushLock) {
             saveBatch("inventory", drain(inventories), inventories, database::saveInventory);
             saveBatch("machine", drain(machines), machines, database::saveMachine);
             saveBatch("node", drain(nodes), nodes, database::saveNode);
             saveBatch("island", drain(islands), islands, database::saveIsland);
+        }
+    }
+
+    private void flushIsland(UUID islandUuid) {
+        if (islandUuid == null) {
+            return;
+        }
+        synchronized (flushLock) {
+            saveBatch("inventory", drainIsland(inventories, islandUuid), inventories, database::saveInventory);
+            saveBatch("machine", drainIsland(machines, islandUuid), machines, database::saveMachine);
+            saveBatch("node", drainIsland(nodes, islandUuid), nodes, database::saveNode);
+            FactoryIsland island = islands.remove(islandUuid);
+            if (island != null) {
+                saveBatch("island", Map.of(islandUuid, island), islands, database::saveIsland);
+            }
         }
     }
 
@@ -105,6 +128,30 @@ public final class DirtySaveService {
         Map<UUID, T> snapshot = Map.copyOf(source);
         snapshot.forEach((id, value) -> source.remove(id, value));
         return snapshot;
+    }
+
+    private <T> Map<UUID, T> drainIsland(Map<UUID, T> source, UUID islandUuid) {
+        Map<UUID, T> snapshot = source.entrySet().stream()
+                .filter(entry -> islandUuid.equals(islandUuid(entry.getValue())))
+                .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        snapshot.forEach((id, value) -> source.remove(id, value));
+        return snapshot;
+    }
+
+    private UUID islandUuid(Object value) {
+        if (value instanceof MachineInstance machine) {
+            return machine.islandUuid();
+        }
+        if (value instanceof VirtualInventory inventory) {
+            return inventory.islandUuid();
+        }
+        if (value instanceof ResourceNode node) {
+            return node.islandUuid();
+        }
+        if (value instanceof FactoryIsland island) {
+            return island.islandUuid();
+        }
+        return null;
     }
 
     private MachineInstance snapshot(MachineInstance machine) {
