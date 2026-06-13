@@ -44,21 +44,21 @@ public final class IslandSettingsMenu implements Listener {
             boolean publicAccess = bool(body, "publicAccess");
             boolean locked = bool(body, "locked");
             Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
-            inventory.setItem(10, item(publicAccess ? Material.LIME_DYE : Material.GRAY_DYE, "공개 설정", message(messages, "settings-menu-current", "현재: ") + (publicAccess ? message(messages, "settings-menu-public", "공개") : message(messages, "settings-menu-private", "비공개")), message(messages, "settings-menu-public-left-click", "좌클릭: /섬 공개"), message(messages, "settings-menu-public-right-click", "우클릭: /섬 비공개")));
-            inventory.setItem(11, item(locked ? Material.IRON_DOOR : Material.OAK_DOOR, "잠금 설정", message(messages, "settings-menu-current", "현재: ") + (locked ? message(messages, "settings-menu-locked", "잠김") : message(messages, "settings-menu-open", "열림")), message(messages, "settings-menu-lock-left-click", "좌클릭: /섬 잠금해제"), message(messages, "settings-menu-lock-right-click", "우클릭: /섬 잠금")));
-            inventory.setItem(12, item(Material.NAME_TAG, "멤버 관리", "/섬 멤버"));
-            inventory.setItem(13, item(Material.COMPARATOR, "권한 설정", "/섬 권한"));
-            inventory.setItem(14, item(Material.REDSTONE_TORCH, "플래그 설정", "/섬 플래그"));
-            inventory.setItem(15, item(Material.ENDER_PEARL, "워프 관리", "/섬 워프"));
-            inventory.setItem(16, item(Material.BARRIER, "방문자 밴", "/섬 밴목록"));
-            inventory.setItem(17, item(Material.NAME_TAG, "역할 설정", "/섬 역할"));
-            inventory.setItem(18, item(Material.GOLD_BLOCK, "은행", "/섬 은행"));
-            inventory.setItem(19, item(Material.BEACON, "업그레이드", "/섬 업그레이드"));
-            inventory.setItem(20, item(Material.GRASS_BLOCK, "바이옴", "/섬 바이옴"));
-            inventory.setItem(21, item(Material.HOPPER, "제한", "/섬 제한"));
-            inventory.setItem(22, item(Material.CHEST, "스냅샷", "/섬 스냅샷"));
-            inventory.setItem(23, item(Material.MAP, "섬 정보", "/섬 정보"));
-            inventory.setItem(26, item(Material.TNT, "위험 작업", "/섬 위험작업"));
+            inventory.setItem(10, item(publicAccess ? Material.LIME_DYE : Material.GRAY_DYE, message(messages, "settings-menu-public-name", "공개 설정"), message(messages, "settings-menu-current", "현재: ") + (publicAccess ? message(messages, "settings-menu-public", "공개") : message(messages, "settings-menu-private", "비공개")), message(messages, "settings-menu-public-left-click", "좌클릭: /섬 공개"), message(messages, "settings-menu-public-right-click", "우클릭: /섬 비공개")));
+            inventory.setItem(11, item(locked ? Material.IRON_DOOR : Material.OAK_DOOR, message(messages, "settings-menu-lock-name", "잠금 설정"), message(messages, "settings-menu-current", "현재: ") + (locked ? message(messages, "settings-menu-locked", "잠김") : message(messages, "settings-menu-open", "열림")), message(messages, "settings-menu-lock-left-click", "좌클릭: /섬 잠금해제"), message(messages, "settings-menu-lock-right-click", "우클릭: /섬 잠금")));
+            inventory.setItem(12, item(Material.NAME_TAG, message(messages, "settings-menu-member-name", "멤버 관리"), message(messages, "settings-menu-member-command", "/섬 멤버")));
+            inventory.setItem(13, item(Material.COMPARATOR, message(messages, "settings-menu-permission-name", "권한 설정"), message(messages, "settings-menu-permission-command", "/섬 권한")));
+            inventory.setItem(14, item(Material.REDSTONE_TORCH, message(messages, "settings-menu-flag-name", "플래그 설정"), message(messages, "settings-menu-flag-command", "/섬 플래그")));
+            inventory.setItem(15, item(Material.ENDER_PEARL, message(messages, "settings-menu-warp-name", "워프 관리"), message(messages, "settings-menu-warp-command", "/섬 워프")));
+            inventory.setItem(16, item(Material.BARRIER, message(messages, "settings-menu-ban-name", "방문자 밴"), message(messages, "settings-menu-ban-command", "/섬 밴목록")));
+            inventory.setItem(17, item(Material.NAME_TAG, message(messages, "settings-menu-role-name", "역할 설정"), message(messages, "settings-menu-role-command", "/섬 역할")));
+            inventory.setItem(18, item(Material.GOLD_BLOCK, message(messages, "settings-menu-bank-name", "은행"), message(messages, "settings-menu-bank-command", "/섬 은행")));
+            inventory.setItem(19, item(Material.BEACON, message(messages, "settings-menu-upgrade-name", "업그레이드"), message(messages, "settings-menu-upgrade-command", "/섬 업그레이드")));
+            inventory.setItem(20, item(Material.GRASS_BLOCK, message(messages, "settings-menu-biome-name", "바이옴"), message(messages, "settings-menu-biome-command", "/섬 바이옴")));
+            inventory.setItem(21, item(Material.HOPPER, message(messages, "settings-menu-limit-name", "제한"), message(messages, "settings-menu-limit-command", "/섬 제한")));
+            inventory.setItem(22, item(Material.CHEST, message(messages, "settings-menu-snapshot-name", "스냅샷"), message(messages, "settings-menu-snapshot-command", "/섬 스냅샷")));
+            inventory.setItem(23, item(Material.MAP, message(messages, "settings-menu-info-name", "섬 정보"), message(messages, "settings-menu-info-command", "/섬 정보")));
+            inventory.setItem(26, item(Material.TNT, message(messages, "settings-menu-danger-name", "위험 작업"), message(messages, "settings-menu-danger-command", "/섬 위험작업")));
             player.openInventory(inventory);
         });
     }
@@ -80,41 +80,40 @@ public final class IslandSettingsMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || !meta.hasDisplayName()) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= 27) {
             return;
         }
-        String name = meta.getDisplayName();
         player.closeInventory();
-        if (name.equals("공개 설정")) {
+        if (slot == 10) {
             player.performCommand(event.isRightClick() ? "섬 비공개" : "섬 공개");
-        } else if (name.equals("잠금 설정")) {
+        } else if (slot == 11) {
             player.performCommand(event.isRightClick() ? "섬 잠금" : "섬 잠금해제");
-        } else if (name.equals("멤버 관리")) {
+        } else if (slot == 12) {
             player.performCommand("섬 멤버관리");
-        } else if (name.equals("권한 설정")) {
+        } else if (slot == 13) {
             player.performCommand("섬 권한");
-        } else if (name.equals("역할 설정")) {
-            player.performCommand("섬 역할");
-        } else if (name.equals("플래그 설정")) {
+        } else if (slot == 14) {
             player.performCommand("섬 플래그");
-        } else if (name.equals("워프 관리")) {
+        } else if (slot == 15) {
             player.performCommand("섬 워프");
-        } else if (name.equals("방문자 밴")) {
+        } else if (slot == 16) {
             player.performCommand("섬 밴목록");
-        } else if (name.equals("은행")) {
+        } else if (slot == 17) {
+            player.performCommand("섬 역할");
+        } else if (slot == 18) {
             player.performCommand("섬 은행");
-        } else if (name.equals("업그레이드")) {
+        } else if (slot == 19) {
             player.performCommand("섬 업그레이드");
-        } else if (name.equals("바이옴")) {
+        } else if (slot == 20) {
             player.performCommand("섬 바이옴");
-        } else if (name.equals("제한")) {
+        } else if (slot == 21) {
             player.performCommand("섬 제한");
-        } else if (name.equals("스냅샷")) {
+        } else if (slot == 22) {
             player.performCommand("섬 스냅샷");
-        } else if (name.equals("섬 정보")) {
+        } else if (slot == 23) {
             player.performCommand("섬 정보");
-        } else if (name.equals("위험 작업")) {
+        } else if (slot == 26) {
             player.performCommand("섬 위험작업");
         }
     }
