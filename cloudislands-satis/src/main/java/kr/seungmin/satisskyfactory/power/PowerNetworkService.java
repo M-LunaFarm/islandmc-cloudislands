@@ -60,6 +60,9 @@ public final class PowerNetworkService {
     }
 
     public double powerRatio(UUID islandUuid) {
+        if (!active) {
+            return emptyState().ratio();
+        }
         return cache.computeIfAbsent(islandUuid, uuid -> calculate(uuid, true)).ratio();
     }
 
