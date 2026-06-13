@@ -56,36 +56,91 @@ class CloudIslandsAddonBootstrapTest {
         }
     }
 
+    @Test
+    void addonRegistrationFutureFailureIsIgnored() {
+        CloudIslandsApi api = apiWithFailingAddonFutures();
+        CloudIslandsProvider.set(api);
+        try {
+            assertFalse(CloudIslandsAddonBootstrap.registerIfAvailable(new MinimalAddon()).join().isPresent());
+        } finally {
+            CloudIslandsProvider.clear(api);
+        }
+    }
+
+    @Test
+    void addonUnregistrationFutureFailureIsIgnored() {
+        CloudIslandsApi api = apiWithFailingAddonFutures();
+        CloudIslandsProvider.set(api);
+        try {
+            assertFalse(CloudIslandsAddonBootstrap.unregisterIfAvailable(new MinimalAddon()).join());
+        } finally {
+            CloudIslandsProvider.clear(api);
+        }
+    }
+
     private CloudIslandsApi apiWithThrowingAddons() {
+        return apiWithAddons(new IslandAddonService() {
+            @Override
+            public CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled, Map<String, Boolean> features, Map<String, String> metadata) {
+                throw new IllegalStateException("registry unavailable");
+            }
+
+            @Override
+            public CompletableFuture<Void> unregister(String id) {
+                throw new IllegalStateException("registry unavailable");
+            }
+
+            @Override
+            public CompletableFuture<Optional<CloudIslandsAddonSnapshot>> get(String id) {
+                return CompletableFuture.completedFuture(Optional.empty());
+            }
+
+            @Override
+            public CompletableFuture<List<CloudIslandsAddonSnapshot>> list() {
+                return CompletableFuture.completedFuture(List.of());
+            }
+
+            @Override
+            public CompletableFuture<Boolean> isEnabled(String id) {
+                return CompletableFuture.completedFuture(false);
+            }
+        });
+    }
+
+    private CloudIslandsApi apiWithFailingAddonFutures() {
+        return apiWithAddons(new IslandAddonService() {
+            @Override
+            public CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled, Map<String, Boolean> features, Map<String, String> metadata) {
+                return CompletableFuture.failedFuture(new IllegalStateException("registry unavailable"));
+            }
+
+            @Override
+            public CompletableFuture<Void> unregister(String id) {
+                return CompletableFuture.failedFuture(new IllegalStateException("registry unavailable"));
+            }
+
+            @Override
+            public CompletableFuture<Optional<CloudIslandsAddonSnapshot>> get(String id) {
+                return CompletableFuture.completedFuture(Optional.empty());
+            }
+
+            @Override
+            public CompletableFuture<List<CloudIslandsAddonSnapshot>> list() {
+                return CompletableFuture.completedFuture(List.of());
+            }
+
+            @Override
+            public CompletableFuture<Boolean> isEnabled(String id) {
+                return CompletableFuture.completedFuture(false);
+            }
+        });
+    }
+
+    private CloudIslandsApi apiWithAddons(IslandAddonService addons) {
         return new CloudIslandsApi() {
             @Override
             public IslandAddonService addons() {
-                return new IslandAddonService() {
-                    @Override
-                    public CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled, Map<String, Boolean> features, Map<String, String> metadata) {
-                        throw new IllegalStateException("registry unavailable");
-                    }
-
-                    @Override
-                    public CompletableFuture<Void> unregister(String id) {
-                        throw new IllegalStateException("registry unavailable");
-                    }
-
-                    @Override
-                    public CompletableFuture<Optional<CloudIslandsAddonSnapshot>> get(String id) {
-                        return CompletableFuture.completedFuture(Optional.empty());
-                    }
-
-                    @Override
-                    public CompletableFuture<List<CloudIslandsAddonSnapshot>> list() {
-                        return CompletableFuture.completedFuture(List.of());
-                    }
-
-                    @Override
-                    public CompletableFuture<Boolean> isEnabled(String id) {
-                        return CompletableFuture.completedFuture(false);
-                    }
-                };
+                return addons;
             }
 
             @Override public IslandQueryService islands() { throw new UnsupportedOperationException(); }
