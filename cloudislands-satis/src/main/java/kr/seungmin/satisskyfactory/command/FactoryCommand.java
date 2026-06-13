@@ -37,7 +37,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Predicate;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public final class FactoryCommand implements CommandExecutor, TabCompleter {
@@ -90,6 +92,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                           ItemRegistry items, MessageService messages, Predicate<String> featureEnabled,
                           Supplier<Map<String, String>> integrationMetadata,
                           Supplier<Map<String, String>> addonState,
+                          Function<UUID, Map<String, String>> addonIslandState,
                           Runnable reload) {
         this.islands = islands;
         this.machines = machines;
@@ -108,7 +111,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         this.messages = messages;
         this.featureEnabled = featureEnabled;
         this.adminCommand = new AdminFactoryCommand(islands, machines, definitions, storage, nodes, skyblock,
-                maintenance, research, power, itemFactory, items, messages, featureEnabled, integrationMetadata, addonState, reload);
+                maintenance, research, power, itemFactory, items, messages, featureEnabled, integrationMetadata, addonState, addonIslandState, reload);
     }
 
     @Override

@@ -25,9 +25,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -84,6 +87,7 @@ public final class AdminFactoryCommand {
     private final Predicate<String> featureEnabled;
     private final Supplier<Map<String, String>> integrationMetadata;
     private final Supplier<Map<String, String>> addonState;
+    private final Function<UUID, Map<String, String>> addonIslandState;
     private final Runnable reload;
 
     public AdminFactoryCommand(FactoryIslandService islands, MachineService machines, MachineDefinitionService definitions,
@@ -93,6 +97,7 @@ public final class AdminFactoryCommand {
                                MessageService messages, Predicate<String> featureEnabled,
                                Supplier<Map<String, String>> integrationMetadata,
                                Supplier<Map<String, String>> addonState,
+                               Function<UUID, Map<String, String>> addonIslandState,
                                Runnable reload) {
         this.islands = islands;
         this.machines = machines;
@@ -109,6 +114,7 @@ public final class AdminFactoryCommand {
         this.featureEnabled = featureEnabled;
         this.integrationMetadata = integrationMetadata;
         this.addonState = addonState;
+        this.addonIslandState = addonIslandState;
         this.reload = reload;
     }
 
@@ -512,7 +518,19 @@ public final class AdminFactoryCommand {
         } catch (RuntimeException exception) {
             state = Map.of("status", "unavailable", "error", exception.getMessage() == null ? "unknown" : exception.getMessage());
         }
-        state.entrySet().stream()
+        Map<String, String> visible = new LinkedHashMap<>(state);
+        if (sender instanceof Player player && addonIslandState != null) {
+            islands.context(player).ifPresent(context -> {
+                Map<String, String> islandState;
+                try {
+                    islandState = addonIslandState.apply(context.factoryIsland().islandUuid());
+                } catch (RuntimeException exception) {
+                    islandState = Map.of("status", "unavailable", "error", exception.getMessage() == null ? "unknown" : exception.getMessage());
+                }
+                islandState.forEach((key, value) -> visible.put("island." + key, value));
+            });
+        }
+        visible.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
                         "key", entry.getKey(),

@@ -40,6 +40,7 @@ import kr.seungmin.satisskyfactory.machine.MachineDefinitionService;
 import kr.seungmin.satisskyfactory.machine.MachineService;
 import kr.seungmin.satisskyfactory.machine.MaintenanceService;
 import kr.seungmin.satisskyfactory.market.MarketService;
+import kr.seungmin.satisskyfactory.model.FactoryIsland;
 import kr.seungmin.satisskyfactory.node.ResourceNodeService;
 import kr.seungmin.satisskyfactory.power.PowerNetworkService;
 import kr.seungmin.satisskyfactory.recipe.RecipeService;
@@ -782,6 +783,28 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
     }
 
+    private Map<String, String> addonIslandStateSnapshot(UUID islandId) {
+        if (!featureEnabled("addon-state")) {
+            return Map.of("status", "disabled", "feature", "addon-state");
+        }
+        if (cloudIslandsApi == null || islandId == null) {
+            return Map.of();
+        }
+        try {
+            Map<String, String> state = cloudIslandsApi.addons().islandState(ADDON_ID, islandId).join();
+            if (state == null || state.isEmpty()) {
+                return Map.of("status", "empty", "island", islandId.toString());
+            }
+            return state;
+        } catch (RuntimeException exception) {
+            Map<String, String> fallback = new LinkedHashMap<>();
+            fallback.put("status", "unavailable");
+            fallback.put("island", islandId.toString());
+            fallback.put("core-state-error", exception.getMessage() == null ? exception.getClass().getSimpleName() : exception.getMessage());
+            return fallback;
+        }
+    }
+
     private String featureAliasesMetadata() {
         return FEATURE_ALIASES.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
@@ -888,6 +911,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             getLogger().warning("Failed to publish CloudIslands Satis lifecycle state: " + error.getMessage());
             return Map.of();
         });
+        publishIslandLifecycleState(islandId, operation, island, "success", "");
     }
 
     private void publishLifecycleFailure(UUID islandId, String operation, RuntimeException exception) {
@@ -905,6 +929,30 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("last-lifecycle-error", shortError(exception));
         cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
             getLogger().warning("Failed to publish CloudIslands Satis lifecycle failure: " + error.getMessage());
+            return Map.of();
+        });
+        publishIslandLifecycleState(islandId, operation, null, "failed", shortError(exception));
+    }
+
+    private void publishIslandLifecycleState(UUID islandId, String operation, FactoryIsland island, String status, String error) {
+        if (cloudIslandsApi == null || islandId == null || !featureEnabled("addon-state")) {
+            return;
+        }
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("island", islandId.toString());
+        state.put("operation", operation == null || operation.isBlank() ? "unknown" : operation);
+        state.put("status", status == null || status.isBlank() ? "unknown" : status);
+        state.put("error", error == null ? "" : error);
+        state.put("database-open", Boolean.toString(database != null));
+        state.put("shared-database", Boolean.toString(databaseShared()));
+        state.put("schema", "3");
+        state.put("updated-at", Instant.now().toString());
+        if (island != null && island.hasActiveCenter()) {
+            state.put("active-world", island.activeWorld());
+            state.put("active-center", island.activeCenterX() + "," + island.activeCenterY() + "," + island.activeCenterZ());
+        }
+        cloudIslandsApi.addons().putIslandState(ADDON_ID, islandId, state).exceptionally(publishError -> {
+            getLogger().warning("Failed to publish CloudIslands Satis island state: " + publishError.getMessage());
             return Map.of();
         });
     }
