@@ -134,7 +134,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
         database = new DatabaseService(this, resolveDatabaseFileName());
         database.open();
-        warnIfLocalDatabaseInCloudIslandsMode();
+        warnIfUnsharedDatabaseInCloudIslandsMode();
         getLogger().info("Satis database path: " + database.databasePath().getAbsolutePath());
 
         economy = EconomyModeFactory.create(this, configs.main());
@@ -1097,11 +1097,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return "database.sqlite-file";
     }
 
-    private void warnIfLocalDatabaseInCloudIslandsMode() {
-        if (!requiresCloudIslandsApi() || !databaseScope().equals("PLUGIN_LOCAL")) {
+    private void warnIfUnsharedDatabaseInCloudIslandsMode() {
+        String scope = databaseScope();
+        boolean shared = !scope.equals("PLUGIN_LOCAL") && !scope.equals("PLUGIN_RELATIVE_PATH");
+        if (!requiresCloudIslandsApi() || shared) {
             return;
         }
-        getLogger().warning("CloudIslands Satis is using a plugin-local SQLite database from " + databaseConfigSource()
+        getLogger().warning("CloudIslands Satis is using an unshared SQLite database from " + databaseConfigSource()
+                + " (scope=" + scope + ")"
                 + ". Set database.shared-directory, database.path, or CLOUDISLANDS_SATIS_DB so A/B island nodes share factory state.");
     }
 }
