@@ -371,6 +371,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             nodes.load(configs.file("resource-nodes.yml"));
         } else {
             nodes.clear();
+            if (dirtySaves != null) {
+                dirtySaves.forgetNodes();
+            }
         }
         if (featureEnabled("market")) {
             market.load(configs.file("market.yml"), configs.file("maintenance.yml"));
@@ -412,6 +415,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             }
         } else {
             machines.clear();
+            if (dirtySaves != null) {
+                dirtySaves.forgetMachines();
+            }
             if (itemNetworks != null) {
                 itemNetworks.clear();
             }

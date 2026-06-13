@@ -63,6 +63,10 @@ public final class DirtySaveService {
         machines.remove(machineId);
     }
 
+    public void forgetMachines() {
+        machines.clear();
+    }
+
     public void markInventory(VirtualInventory inventory) {
         inventories.put(inventory.inventoryId(), snapshot(inventory));
     }
@@ -80,6 +84,10 @@ public final class DirtySaveService {
 
     public void markNode(ResourceNode node) {
         nodes.put(node.nodeId(), snapshot(node));
+    }
+
+    public void forgetNodes() {
+        nodes.clear();
     }
 
     public void markIsland(FactoryIsland island) {
