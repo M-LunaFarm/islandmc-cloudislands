@@ -219,6 +219,9 @@ public final class TranslationManager {
         values.put("mission-menu-no-reward", "없음");
         values.put("mission-menu-completed", "완료됨");
         values.put("mission-menu-click-to-complete", "클릭하면 완료를 요청합니다.");
+        values.put("upgrade-menu-load-failed", "섬 업그레이드를 불러오지 못했습니다.");
+        values.put("upgrade-menu-empty", "Core API에 등록된 섬 업그레이드가 없습니다.");
+        values.put("upgrade-menu-click-to-buy", "클릭하면 다음 레벨 구매를 요청합니다.");
         values.put("danger-confirm-required", "Shift+우클릭해야 실행됩니다.");
         values.put("danger-confirm-click-required", "위험 작업은 Shift+우클릭해야 실행됩니다.");
         values.put("snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다.");

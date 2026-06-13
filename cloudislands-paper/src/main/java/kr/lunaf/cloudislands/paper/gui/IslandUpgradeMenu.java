@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -17,12 +18,25 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandUpgradeMenu implements Listener {
     private static final String TITLE = "섬 업그레이드";
+    private final MessageRenderer messages;
+
+    public IslandUpgradeMenu() {
+        this(null);
+    }
+
+    public IslandUpgradeMenu(MessageRenderer messages) {
+        this.messages = messages;
+    }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
+        open(plugin, client, player, islandId, null);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
         client.listIslandUpgrades(islandId)
-            .thenAccept(body -> openSync(plugin, player, upgrades(body)))
+            .thenAccept(body -> openSync(plugin, player, upgrades(body), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage("섬 업그레이드를 불러오지 못했습니다."));
+                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "upgrade-menu-load-failed", "섬 업그레이드를 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -61,15 +75,15 @@ public final class IslandUpgradeMenu implements Listener {
         player.performCommand("섬 업그레이드 " + key);
     }
 
-    private static void openSync(Plugin plugin, Player player, List<Upgrade> upgrades) {
+    private static void openSync(Plugin plugin, Player player, List<Upgrade> upgrades, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
             int slot = 0;
             for (Upgrade upgrade : upgrades.stream().limit(45).toList()) {
-                inventory.setItem(slot++, upgradeItem(upgrade));
+                inventory.setItem(slot++, upgradeItem(upgrade, messages));
             }
             if (upgrades.isEmpty()) {
-                inventory.setItem(22, item(Material.BARRIER, "업그레이드 없음", "Core API에 등록된 섬 업그레이드가 없습니다."));
+                inventory.setItem(22, item(Material.BARRIER, "업그레이드 없음", message(messages, "upgrade-menu-empty", "Core API에 등록된 섬 업그레이드가 없습니다.")));
             }
             inventory.setItem(45, item(Material.GOLD_BLOCK, "섬 은행", "/섬 은행"));
             inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 업그레이드"));
@@ -78,7 +92,7 @@ public final class IslandUpgradeMenu implements Listener {
         });
     }
 
-    private static ItemStack upgradeItem(Upgrade upgrade) {
+    private static ItemStack upgradeItem(Upgrade upgrade, MessageRenderer messages) {
         Material material = switch (upgrade.type()) {
             case "ISLAND_SIZE" -> Material.GRASS_BLOCK;
             case "MAX_MEMBERS" -> Material.NAME_TAG;
@@ -88,7 +102,15 @@ public final class IslandUpgradeMenu implements Listener {
             case "BANK_LIMIT" -> Material.GOLD_INGOT;
             default -> Material.BEACON;
         };
-        return item(material, upgrade.key(), "업그레이드=" + upgrade.key(), "유형: " + upgrade.type(), "현재 레벨: " + upgrade.level(), "클릭하면 다음 레벨 구매를 요청합니다.");
+        return item(material, upgrade.key(), "업그레이드=" + upgrade.key(), "유형: " + upgrade.type(), "현재 레벨: " + upgrade.level(), message(messages, "upgrade-menu-click-to-buy", "클릭하면 다음 레벨 구매를 요청합니다."));
+    }
+
+    private static String message(MessageRenderer messages, String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
