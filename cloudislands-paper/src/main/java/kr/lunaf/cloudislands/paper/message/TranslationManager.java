@@ -73,6 +73,7 @@ public final class TranslationManager {
         String name = serviceName == null || serviceName.isBlank() ? "CloudIslands" : serviceName;
         values.put("tab-header", "{service}");
         values.put("tab-footer", "섬을 준비하고 있습니다. /섬 으로 이동과 관리를 시작하세요.");
+        values.put("tab-player-name", "{player}");
         values.put("join-message", "{player}님이 섬 서비스에 접속했습니다.");
         values.put("quit-message", "{player}님이 섬 서비스에서 나갔습니다.");
         values.put("server-brand", "{service}");

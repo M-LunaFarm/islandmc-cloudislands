@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.session;
 import java.nio.charset.StandardCharsets;
 import net.kyori.adventure.text.Component;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -20,7 +21,8 @@ public final class PaperBrandingListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        event.getPlayer().sendPlayerListHeaderAndFooter(messages.component("tab-header"), messages.component("tab-footer"));
+        applyTabList(event.getPlayer());
+        refreshTabList();
         event.joinMessage(messages.component("join-message", "player", event.getPlayer().getName()));
         String brand = messages.plain("server-brand");
         if (!brand.isBlank()) {
@@ -32,6 +34,19 @@ public final class PaperBrandingListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         event.quitMessage(messages.component("quit-message", "player", event.getPlayer().getName()));
+        plugin.getServer().getScheduler().runTask(plugin, this::refreshTabList);
+    }
+
+    private void refreshTabList() {
+        for (Player player : plugin.getServer().getOnlinePlayers()) {
+            applyTabList(player);
+        }
+    }
+
+    private void applyTabList(Player player) {
+        player.sendPlayerListHeaderAndFooter(messages.component("tab-header"), messages.component("tab-footer"));
+        Component playerName = messages.component("tab-player-name", "player", player.getName());
+        player.playerListName(playerName);
     }
 
     private byte[] brandPayload(String brand) {
