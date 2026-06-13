@@ -654,7 +654,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void refreshPlaceholders() {
-        if (!featureEnabled("placeholders")) {
+        if (!featureEnabled("placeholders") || !getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             if (placeholderHook != null) {
                 placeholderHook.unregister();
                 placeholderHook = null;
