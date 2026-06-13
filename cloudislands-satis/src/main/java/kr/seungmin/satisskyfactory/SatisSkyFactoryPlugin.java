@@ -574,12 +574,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             getServer().getPluginManager().registerEvents(guiListener, this);
             guiListenerRegistered = true;
         }
-        if (!featureEnabled("lifecycle")) {
+        if (!featureEnabled("lifecycle") || !lifecycleStateEnabled()) {
             lifecycleListenerRegistered = unregisterListener(lifecycleListener, lifecycleListenerRegistered);
             lifecycleListener = null;
         } else if (!lifecycleListenerRegistered) {
             lifecycleListener = new FactoryLifecycleListener(
-                    () -> featureEnabled("lifecycle"),
+                    () -> featureEnabled("lifecycle") && lifecycleStateEnabled(),
                     () -> featureEnabled("resource-nodes"),
                     () -> featureEnabled("machines"),
                     () -> featureEnabled("maintenance"),
