@@ -950,6 +950,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-open", Boolean.toString(database != null));
         state.put("shared-database", Boolean.toString(databaseShared()));
         state.put("schema", "3");
+        state.put("operational-features", operationalFeatureState(effectiveFeatures));
         state.put("updated-at", Instant.now().toString());
         if (island != null && island.hasActiveCenter()) {
             state.put("active-world", island.activeWorld());
