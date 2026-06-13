@@ -158,12 +158,22 @@ public final class FactoryGuiListener implements Listener {
                 messages.send(player, "no-permission");
                 return;
             }
-            gui.openAdmin(player, island, machines.byIsland(island.islandUuid()).size(), power.state(island.islandUuid()));
+            gui.openAdmin(
+                    player,
+                    island,
+                    featureEnabled.test("machines") ? machines.byIsland(island.islandUuid()).size() : 0,
+                    featureEnabled.test("machines") ? power.state(island.islandUuid()) : null
+            );
             return;
         }
         if (action.type().equals("admin_back")) {
-            gui.openMain(player, island, machines.byIsland(island.islandUuid()).size(), power.state(island.islandUuid()),
-                    boosts.boosts(island.islandUuid()));
+            gui.openMain(
+                    player,
+                    island,
+                    featureEnabled.test("machines") ? machines.byIsland(island.islandUuid()).size() : 0,
+                    featureEnabled.test("machines") ? power.state(island.islandUuid()) : null,
+                    boosts.boosts(island.islandUuid())
+            );
             return;
         }
         if (action.type().startsWith("admin_")) {

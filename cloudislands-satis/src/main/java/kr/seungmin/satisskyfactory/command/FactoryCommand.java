@@ -145,7 +145,13 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             case "help", "commands", "command", "command-list", "명령어", "명령어목록" -> help(player, label, helpPage(args));
             case "main" -> {
                 if (requireFeature(player, "gui")) {
-                    gui.openMain(player, island, machines.byIsland(island.islandUuid()).size(), power.state(island.islandUuid()), boosts.boosts(island.islandUuid()));
+                    gui.openMain(
+                            player,
+                            island,
+                            enabled("machines") ? machines.byIsland(island.islandUuid()).size() : 0,
+                            enabled("machines") ? power.state(island.islandUuid()) : null,
+                            boosts.boosts(island.islandUuid())
+                    );
                 }
             }
             case "status" -> status(player, island);

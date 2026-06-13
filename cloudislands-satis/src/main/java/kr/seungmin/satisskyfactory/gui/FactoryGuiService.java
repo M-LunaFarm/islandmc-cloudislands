@@ -66,15 +66,20 @@ public final class FactoryGuiService {
         FactoryGuiHolder holder = new FactoryGuiHolder("main", island.islandUuid(), null);
         Inventory inventory = Bukkit.createInventory(holder, 27, title("main-title", "SatisSkyFactory"));
         holder.inventory(inventory);
-        inventory.setItem(10, icon(Material.CRAFTING_TABLE, ChatColor.GOLD + "Factory",
-                List.of(ChatColor.GRAY + "Tier: " + island.tier(),
-                        ChatColor.GRAY + "Machines: " + machineCount,
-                        ChatColor.GRAY + "Storage used: " + storage.islandStorage(island.islandUuid()).used())));
-        inventory.setItem(12, icon(Material.REDSTONE, ChatColor.RED + "Power",
-                List.of(ChatColor.GRAY + "Ratio: " + NumberFormatter.ratio(powerState.ratio()),
-                        ChatColor.GRAY + "Generation: " + NumberFormatter.decimal(powerState.generation(), 1),
-                        ChatColor.GRAY + "Consumption: " + NumberFormatter.decimal(powerState.consumption(), 1),
-                        ChatColor.GRAY + "Battery: " + NumberFormatter.decimal(powerState.batteryStored(), 1) + "/" + NumberFormatter.whole(powerState.batteryCapacity()))));
+        if (enabled("machines") && powerState != null) {
+            inventory.setItem(10, icon(Material.CRAFTING_TABLE, ChatColor.GOLD + "Factory",
+                    List.of(ChatColor.GRAY + "Tier: " + island.tier(),
+                            ChatColor.GRAY + "Machines: " + machineCount,
+                            ChatColor.GRAY + "Storage used: " + storage.islandStorage(island.islandUuid()).used())));
+            inventory.setItem(12, icon(Material.REDSTONE, ChatColor.RED + "Power",
+                    List.of(ChatColor.GRAY + "Ratio: " + NumberFormatter.ratio(powerState.ratio()),
+                            ChatColor.GRAY + "Generation: " + NumberFormatter.decimal(powerState.generation(), 1),
+                            ChatColor.GRAY + "Consumption: " + NumberFormatter.decimal(powerState.consumption(), 1),
+                            ChatColor.GRAY + "Battery: " + NumberFormatter.decimal(powerState.batteryStored(), 1) + "/" + NumberFormatter.whole(powerState.batteryCapacity()))));
+        } else {
+            inventory.setItem(10, icon(Material.CRAFTING_TABLE, ChatColor.DARK_GRAY + "Factory",
+                    List.of(ChatColor.GRAY + "Machine features are disabled.")));
+        }
         inventory.setItem(14, icon(Material.EMERALD, ChatColor.GREEN + "Economy",
                 economyLore(island)));
         if (enabled("research")) {
@@ -131,14 +136,24 @@ public final class FactoryGuiService {
         return lore;
     }
 
+    private List<String> adminLore(FactoryIsland island, int machineCount, PowerNetworkService.NetworkState powerState) {
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "Island: " + island.islandUuid());
+        if (enabled("machines") && powerState != null) {
+            lore.add(ChatColor.GRAY + "Machines: " + machineCount);
+            lore.add(ChatColor.GRAY + "Power ratio: " + NumberFormatter.ratio(powerState.ratio()));
+        } else {
+            lore.add(ChatColor.GRAY + "Machine features are disabled.");
+        }
+        return lore;
+    }
+
     public void openAdmin(Player player, FactoryIsland island, int machineCount, PowerNetworkService.NetworkState powerState) {
         FactoryGuiHolder holder = new FactoryGuiHolder("admin", island.islandUuid(), null);
         Inventory inventory = Bukkit.createInventory(holder, 27, title("admin-title", "Factory Admin"));
         holder.inventory(inventory);
         inventory.setItem(4, icon(Material.COMMAND_BLOCK, ChatColor.RED + "Admin",
-                List.of(ChatColor.GRAY + "Island: " + island.islandUuid(),
-                        ChatColor.GRAY + "Machines: " + machineCount,
-                        ChatColor.GRAY + "Power ratio: " + NumberFormatter.ratio(powerState.ratio()))));
+                adminLore(island, machineCount, powerState)));
         holder.action(10, "admin_reload", "");
         inventory.setItem(10, icon(Material.REDSTONE_TORCH, ChatColor.YELLOW + "Reload",
                 List.of(ChatColor.GRAY + "Reload configs and rebuild networks.")));
