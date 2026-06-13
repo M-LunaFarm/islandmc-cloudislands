@@ -1204,56 +1204,56 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private String islandInfoMessage(String body) {
         String code = textValue(body, "code");
         if (!code.isBlank()) {
-            return "Island: failed code=" + code;
+            return adminText("admin-command-island-info-failed-prefix", "Island: failed code=") + code;
         }
         String islandId = textValue(body, "islandId");
         String ownerUuid = textValue(body, "ownerUuid");
         String name = textValue(body, "name");
         String state = textValue(body, "state");
-        return "Island: id=" + shortId(islandId)
-            + " owner=" + shortId(ownerUuid)
-            + (name.isBlank() ? "" : " name=" + name)
-            + " state=" + (state.isBlank() ? "UNKNOWN" : state)
-            + " size=" + longValue(body, "size")
-            + " level=" + longValue(body, "level")
-            + " worth=" + textValue(body, "worth")
-            + " public=" + boolValue(body, "publicAccess");
+        return adminText("admin-command-island-info-id-prefix", "Island: id=") + shortId(islandId)
+            + adminText("admin-command-island-info-owner-prefix", " owner=") + shortId(ownerUuid)
+            + (name.isBlank() ? "" : adminText("admin-command-island-info-name-prefix", " name=") + name)
+            + adminText("admin-command-island-info-state-prefix", " state=") + (state.isBlank() ? "UNKNOWN" : state)
+            + adminText("admin-command-island-info-size-prefix", " size=") + longValue(body, "size")
+            + adminText("admin-command-island-info-level-prefix", " level=") + longValue(body, "level")
+            + adminText("admin-command-island-info-worth-prefix", " worth=") + textValue(body, "worth")
+            + adminText("admin-command-island-info-public-prefix", " public=") + boolValue(body, "publicAccess");
     }
 
     private String runtimeInfoMessage(String body) {
         String code = textValue(body, "code");
         if (!code.isBlank()) {
-            return "Island runtime: failed code=" + code;
+            return adminText("admin-command-runtime-failed-prefix", "Island runtime: failed code=") + code;
         }
         String islandId = textValue(body, "islandId");
         String state = textValue(body, "state");
         String activeNode = textValue(body, "activeNode");
         String activeWorld = textValue(body, "activeWorld");
-        return "Island runtime: island=" + shortId(islandId)
-            + " state=" + (state.isBlank() ? "UNKNOWN" : state)
-            + (activeNode.isBlank() ? "" : " node=" + activeNode)
-            + (activeWorld.isBlank() ? "" : " world=" + activeWorld)
-            + (body.contains("\"cellX\":null") || body.contains("\"cellZ\":null") ? "" : " cell=" + longValue(body, "cellX") + "," + longValue(body, "cellZ"))
-            + " fence=" + longValue(body, "fencingToken");
+        return adminText("admin-command-runtime-island-prefix", "Island runtime: island=") + shortId(islandId)
+            + adminText("admin-command-runtime-state-prefix", " state=") + (state.isBlank() ? "UNKNOWN" : state)
+            + (activeNode.isBlank() ? "" : adminText("admin-command-runtime-node-prefix", " node=") + activeNode)
+            + (activeWorld.isBlank() ? "" : adminText("admin-command-runtime-world-prefix", " world=") + activeWorld)
+            + (body.contains("\"cellX\":null") || body.contains("\"cellZ\":null") ? "" : adminText("admin-command-runtime-cell-prefix", " cell=") + longValue(body, "cellX") + "," + longValue(body, "cellZ"))
+            + adminText("admin-command-runtime-fence-prefix", " fence=") + longValue(body, "fencingToken");
     }
 
     private String playerInfoMessage(String body) {
         String code = textValue(body, "code");
         if (!code.isBlank()) {
-            return "Player: failed code=" + code;
+            return adminText("admin-command-player-info-failed-prefix", "Player: failed code=") + code;
         }
         String playerUuid = textValue(body, "playerUuid");
         String lastName = textValue(body, "lastName");
         String islandId = textValue(body, "primaryIslandId");
-        return "Player: uuid=" + shortId(playerUuid)
-            + (lastName.isBlank() ? "" : " name=" + lastName)
-            + (islandId.isBlank() ? " island=none" : " island=" + shortId(islandId));
+        return adminText("admin-command-player-info-uuid-prefix", "Player: uuid=") + shortId(playerUuid)
+            + (lastName.isBlank() ? "" : adminText("admin-command-player-info-name-prefix", " name=") + lastName)
+            + (islandId.isBlank() ? adminText("admin-command-player-info-island-none", " island=none") : adminText("admin-command-player-info-island-prefix", " island=") + shortId(islandId));
     }
 
     private String rankingListMessage(String label, String body) {
         String rankings = arrayValue(body, "rankings");
         if (rankings.isBlank()) {
-            return label + ": empty";
+            return label + adminText("admin-command-ranking-empty-suffix", ": empty");
         }
         List<String> entries = new ArrayList<>();
         int total = 0;
@@ -1272,12 +1272,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 String object = rankings.substring(objectStart, objectEnd + 1);
                 entries.add("#" + total
                     + " " + shortId(textValue(object, "islandId"))
-                    + " level=" + longValue(object, "level")
-                    + " worth=" + textValue(object, "worth"));
+                    + adminText("admin-command-ranking-level-prefix", " level=") + longValue(object, "level")
+                    + adminText("admin-command-ranking-worth-prefix", " worth=") + textValue(object, "worth"));
             }
             index = objectEnd + 1;
         }
-        return label + ": total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+        return label + adminText("admin-command-ranking-total-prefix", ": total=") + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     private String blockValueListMessage(String body) {
