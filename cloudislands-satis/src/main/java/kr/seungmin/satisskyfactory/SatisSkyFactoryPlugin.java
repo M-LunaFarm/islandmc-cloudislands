@@ -281,6 +281,21 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 || featureEnabled("lifecycle");
     }
 
+    private boolean lifecycleStateEnabled() {
+        return featureEnabled("machines")
+                || featureEnabled("resource-nodes")
+                || featureEnabled("market")
+                || featureEnabled("contracts")
+                || featureEnabled("research")
+                || featureEnabled("maintenance");
+    }
+
+    private boolean storageDataEnabled() {
+        return featureEnabled("machines")
+                || featureEnabled("market")
+                || featureEnabled("contracts");
+    }
+
     static long dirtySavePeriodTicks(FileConfiguration config) {
         if (config.contains("database.save-interval-seconds")) {
             return Math.max(1L, config.getLong("database.save-interval-seconds", 60L) * 20L);
@@ -723,7 +738,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     public void onIslandCreated(IslandCreatedEvent event) {
         runSatisLifecycle(event.islandId(), () -> {
             islands.getOrCreate(new kr.seungmin.satisskyfactory.hook.IslandRef(null, event.islandId(), event.ownerUuid()));
-            storage.islandStorage(event.islandId());
+            if (storageDataEnabled()) {
+                storage.islandStorage(event.islandId());
+            }
             synchronizeSatisIsland(event.islandId());
         });
     }
@@ -820,11 +837,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void runSatisLifecycle(UUID islandId, Runnable action) {
-        if (islandId == null || database == null || !featureEnabled("lifecycle")) {
+        if (islandId == null || database == null || !featureEnabled("lifecycle") || !lifecycleStateEnabled()) {
             return;
         }
         getServer().getScheduler().runTask(this, () -> {
-            if (!isEnabled() || database == null || !featureEnabled("lifecycle")) {
+            if (!isEnabled() || database == null || !featureEnabled("lifecycle") || !lifecycleStateEnabled()) {
                 return;
             }
             try {
