@@ -39,6 +39,20 @@ class IslandAddonServiceTest {
         assertEquals(Map.of("mode", "ADDON"), snapshot.metadata());
     }
 
+    @Test
+    void defaultRegisterHandlesNullAddon() {
+        CapturingAddonService service = new CapturingAddonService();
+
+        CloudIslandsAddonSnapshot snapshot = service.register((CloudIslandsAddon) null).join();
+
+        assertEquals("null-addon", snapshot.id());
+        assertEquals("null-addon", snapshot.displayName());
+        assertEquals("unknown", snapshot.version());
+        assertFalse(snapshot.enabled());
+        assertEquals(Map.of(), snapshot.features());
+        assertEquals("NullAddon", snapshot.metadata().get("metadata-error"));
+    }
+
     private static final class BrokenAddon implements CloudIslandsAddon {
         @Override
         public String addonId() {

@@ -225,29 +225,41 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             String id = safeAddonId(addon);
             AddonRegistration registration = new AddonRegistration(id, safeAddonDisplayName(addon, id), safeAddonVersion(addon), safeAddonEnabledByDefault(addon), Instant.now(), safeAddonFeatures(addon, id), safeAddonMetadata(addon, id));
             registrations.put(id, registration);
-            CloudIslandsAddon previous = addonObjects.put(id, addon);
+            CloudIslandsAddon previous = addon == null ? addonObjects.remove(id) : addonObjects.put(id, addon);
             if (previous != null && previous != addon) {
                 notifyUnregistered(previous);
             }
             CloudIslandsAddonSnapshot snapshot = snapshot(registration);
             addons.put(id, snapshot);
-            notifyRegistered(addon, snapshot);
+            if (addon != null) {
+                notifyRegistered(addon, snapshot);
+            }
             syncEventSubscription();
             return CompletableFuture.completedFuture(snapshot);
         }
 
         private String safeAddonId(CloudIslandsAddon addon) {
+            if (addon == null) {
+                return fallbackAddonId(addon);
+            }
             try {
                 String id = addon.addonId();
                 return id == null || id.isBlank() ? addon.getClass().getName() : id;
             } catch (RuntimeException exception) {
-                String id = addon.getClass().getName();
+                String id = fallbackAddonId(addon);
                 plugin.getLogger().warning("CloudIslands addon id callback failed for " + id + ": " + exception.getMessage());
                 return id;
             }
         }
 
+        private String fallbackAddonId(CloudIslandsAddon addon) {
+            return addon == null ? "null-addon" : addon.getClass().getName();
+        }
+
         private String safeAddonDisplayName(CloudIslandsAddon addon, String id) {
+            if (addon == null) {
+                return id;
+            }
             try {
                 String displayName = addon.addonDisplayName();
                 return displayName == null || displayName.isBlank() ? id : displayName;
@@ -258,25 +270,34 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         private String safeAddonVersion(CloudIslandsAddon addon) {
+            if (addon == null) {
+                return "unknown";
+            }
             try {
                 String version = addon.addonVersion();
                 return version == null || version.isBlank() ? "unknown" : version;
             } catch (RuntimeException exception) {
-                plugin.getLogger().warning("CloudIslands addon version callback failed for " + addon.getClass().getName() + ": " + exception.getMessage());
+                plugin.getLogger().warning("CloudIslands addon version callback failed for " + fallbackAddonId(addon) + ": " + exception.getMessage());
                 return "unknown";
             }
         }
 
         private boolean safeAddonEnabledByDefault(CloudIslandsAddon addon) {
+            if (addon == null) {
+                return false;
+            }
             try {
                 return addon.enabledByDefault();
             } catch (RuntimeException exception) {
-                plugin.getLogger().warning("CloudIslands addon enabled callback failed for " + addon.getClass().getName() + ": " + exception.getMessage());
+                plugin.getLogger().warning("CloudIslands addon enabled callback failed for " + fallbackAddonId(addon) + ": " + exception.getMessage());
                 return false;
             }
         }
 
         private Map<String, Boolean> safeAddonFeatures(CloudIslandsAddon addon, String id) {
+            if (addon == null) {
+                return Map.of();
+            }
             try {
                 return copyBooleanMap(addon.addonFeatures());
             } catch (RuntimeException exception) {
@@ -286,6 +307,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         private Map<String, String> safeAddonMetadata(CloudIslandsAddon addon, String id) {
+            if (addon == null) {
+                return Map.of("metadata-error", "NullAddon");
+            }
             try {
                 return copyStringMap(addon.addonMetadata());
             } catch (RuntimeException exception) {

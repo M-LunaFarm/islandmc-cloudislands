@@ -31,15 +31,25 @@ public interface IslandAddonService {
     }
 
     private static String safeAddonId(CloudIslandsAddon addon) {
+        if (addon == null) {
+            return fallbackAddonId(addon);
+        }
         try {
             String id = addon.addonId();
             return id == null || id.isBlank() ? addon.getClass().getName() : id;
         } catch (RuntimeException ignored) {
-            return addon.getClass().getName();
+            return fallbackAddonId(addon);
         }
     }
 
+    private static String fallbackAddonId(CloudIslandsAddon addon) {
+        return addon == null ? "null-addon" : addon.getClass().getName();
+    }
+
     private static String safeAddonDisplayName(CloudIslandsAddon addon, String id) {
+        if (addon == null) {
+            return id;
+        }
         try {
             String displayName = addon.addonDisplayName();
             return displayName == null || displayName.isBlank() ? id : displayName;
@@ -49,6 +59,9 @@ public interface IslandAddonService {
     }
 
     private static String safeAddonVersion(CloudIslandsAddon addon) {
+        if (addon == null) {
+            return "unknown";
+        }
         try {
             String version = addon.addonVersion();
             return version == null || version.isBlank() ? "unknown" : version;
@@ -58,6 +71,9 @@ public interface IslandAddonService {
     }
 
     private static boolean safeAddonEnabledByDefault(CloudIslandsAddon addon) {
+        if (addon == null) {
+            return false;
+        }
         try {
             return addon.enabledByDefault();
         } catch (RuntimeException ignored) {
@@ -66,6 +82,9 @@ public interface IslandAddonService {
     }
 
     private static Map<String, Boolean> safeAddonFeatures(CloudIslandsAddon addon) {
+        if (addon == null) {
+            return Map.of();
+        }
         try {
             return copyBooleanMap(addon.addonFeatures());
         } catch (RuntimeException ignored) {
@@ -74,6 +93,9 @@ public interface IslandAddonService {
     }
 
     private static Map<String, String> safeAddonMetadata(CloudIslandsAddon addon) {
+        if (addon == null) {
+            return Map.of("metadata-error", "NullAddon");
+        }
         try {
             return copyStringMap(addon.addonMetadata());
         } catch (RuntimeException exception) {
