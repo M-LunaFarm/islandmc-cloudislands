@@ -94,6 +94,7 @@ public final class JdbcIslandRepository implements IslandRepository {
             }
             createOwnerMember(connection, islandId, ownerUuid);
             createRuntime(connection, islandId, "CREATING");
+            setPrimaryIsland(connection, ownerUuid, islandId);
             connection.commit();
             return new IslandSnapshot(islandId, ownerUuid, name, IslandState.CREATING, 300, 0L, "0.00", false, Instant.now(), Instant.now());
         } catch (SQLException exception) {
@@ -266,6 +267,14 @@ public final class JdbcIslandRepository implements IslandRepository {
             runtime.setObject(1, islandId);
             runtime.setString(2, state);
             runtime.executeUpdate();
+        }
+    }
+
+    private void setPrimaryIsland(Connection connection, UUID ownerUuid, UUID islandId) throws SQLException {
+        try (PreparedStatement profile = connection.prepareStatement("UPDATE player_profiles SET primary_island_id = ?, updated_at = now() WHERE uuid = ?")) {
+            profile.setObject(1, islandId);
+            profile.setObject(2, ownerUuid);
+            profile.executeUpdate();
         }
     }
 
