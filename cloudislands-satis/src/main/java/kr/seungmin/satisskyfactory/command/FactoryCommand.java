@@ -431,11 +431,12 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             messages.send(player, "status-storage", Map.of("used", String.valueOf(storage.islandStorage(island.islandUuid()).used())));
         }
         var boost = boosts.boosts(island.islandUuid());
-        if (enabled("machines") || enabled("contracts")) {
+        boolean contractBoostVisible = enabled("contracts") && enabled("storage");
+        if (enabled("machines") || contractBoostVisible) {
             messages.send(player, "status-boosts", Map.of(
-                    "agriculture", NumberFormatter.ratio(boost.agricultureBoost()),
-                    "machine", String.valueOf(boost.factorySlotBonus()),
-                    "contract", String.valueOf(boost.contractSlotBonus())));
+                    "agriculture", enabled("machines") ? NumberFormatter.ratio(boost.agricultureBoost()) : "0",
+                    "machine", enabled("machines") ? String.valueOf(boost.factorySlotBonus()) : "0",
+                    "contract", contractBoostVisible ? String.valueOf(boost.contractSlotBonus()) : "0"));
         }
     }
 
