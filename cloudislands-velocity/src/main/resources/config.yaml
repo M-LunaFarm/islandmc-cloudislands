@@ -30,3 +30,8 @@ commands:
 messages:
   use-actionbar: true
   use-bossbar-loading: true
+
+health:
+  enabled: false
+  bind-host: "127.0.0.1"
+  port: 8788

@@ -30,6 +30,7 @@ import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JdkCoreApiClient;
 import kr.lunaf.cloudislands.velocity.command.IslandCommandCatalog;
+import kr.lunaf.cloudislands.velocity.health.VelocityHealthService;
 import net.kyori.adventure.text.Component;
 import org.slf4j.Logger;
 
@@ -41,12 +42,15 @@ public final class CloudIslandsVelocityPlugin {
     private final VelocityRoutingController routingController;
     private final List<String> commandAliases;
     private final boolean blockCloudIslandsPluginMessages;
+    private final VelocityConfig config;
+    private final VelocityHealthService healthService;
 
     @Inject
     public CloudIslandsVelocityPlugin(ProxyServer proxy, Logger logger, @DataDirectory Path dataDirectory) {
         this.proxy = proxy;
         this.logger = logger;
         VelocityConfig config = loadConfig(dataDirectory, logger);
+        this.config = config;
         String coreUrl = System.getProperty("cloudislands.core", config.coreBaseUrl());
         String coreToken = System.getenv().getOrDefault("CI_CORE_TOKEN", config.coreToken());
         String adminToken = System.getenv().getOrDefault("CI_ADMIN_TOKEN", config.adminToken());
@@ -60,6 +64,13 @@ public final class CloudIslandsVelocityPlugin {
         this.routingController = new VelocityRoutingController(proxy, client, fallbackServer, routeWaitSeconds, config.useActionBar(), config.useBossBarLoading(), config.hideNodeNames(), islandPool, routeTicketTtlSeconds);
         this.commandAliases = config.aliases();
         this.blockCloudIslandsPluginMessages = config.blockCloudIslandsPluginMessages();
+        this.healthService = new VelocityHealthService(
+            logger,
+            config.healthBindHost(),
+            config.healthPort(),
+            () -> velocityHealthJson(),
+            () -> velocityMetricsText()
+        );
     }
 
     private static VelocityConfig loadConfig(Path dataDirectory, Logger logger) {
@@ -126,6 +137,9 @@ public final class CloudIslandsVelocityPlugin {
             bool(values.get("security.require-modern-forwarding"), true),
             values.getOrDefault("security.forwarding-secret", ""),
             bool(values.get("security.block-cloudislands-plugin-messages"), true),
+            bool(values.get("health.enabled"), false),
+            values.getOrDefault("health.bind-host", "127.0.0.1"),
+            integer(values.get("health.port"), 8788),
             aliases.isEmpty() ? ALIASES : List.copyOf(aliases)
         );
     }
@@ -189,7 +203,7 @@ public final class CloudIslandsVelocityPlugin {
         }
     }
 
-    private record VelocityConfig(String coreBaseUrl, String coreToken, String adminToken, int timeoutMs, String fallbackServer, int routeWaitSeconds, String islandPool, int routeTicketTtlSeconds, boolean hideNodeNames, boolean useActionBar, boolean useBossBarLoading, boolean requireModernForwarding, String forwardingSecret, boolean blockCloudIslandsPluginMessages, List<String> aliases) {}
+    private record VelocityConfig(String coreBaseUrl, String coreToken, String adminToken, int timeoutMs, String fallbackServer, int routeWaitSeconds, String islandPool, int routeTicketTtlSeconds, boolean hideNodeNames, boolean useActionBar, boolean useBossBarLoading, boolean requireModernForwarding, String forwardingSecret, boolean blockCloudIslandsPluginMessages, boolean healthEnabled, String healthBindHost, int healthPort, List<String> aliases) {}
 
     @Subscribe
     public void onProxyInitialize(ProxyInitializeEvent event) {
@@ -237,12 +251,41 @@ public final class CloudIslandsVelocityPlugin {
             }
         });
         routingController.startEventPolling(this);
+        if (config.healthEnabled()) {
+            healthService.start();
+        }
         logger.info("CloudIslands Velocity router enabled with aliases {}", commandAliases);
     }
 
     @Subscribe
     public void onProxyShutdown(ProxyShutdownEvent event) {
         routingController.stopEventPolling();
+        healthService.stop();
+    }
+
+    private String velocityHealthJson() {
+        return "{"
+            + "\"status\":\"UP\","
+            + "\"onlinePlayers\":" + proxy.getPlayerCount() + ","
+            + "\"registeredServers\":" + proxy.getAllServers().size() + ","
+            + "\"aliases\":\"" + escapeJson(String.join(",", commandAliases)) + "\","
+            + "\"routing\":\"" + escapeJson(routingController.statusSummary()) + "\""
+            + "}";
+    }
+
+    private String velocityMetricsText() {
+        return ""
+            + "cloudislands_velocity_online_players " + proxy.getPlayerCount() + "\n"
+            + "cloudislands_velocity_registered_servers " + proxy.getAllServers().size() + "\n"
+            + "cloudislands_velocity_command_aliases " + commandAliases.size() + "\n"
+            + "cloudislands_velocity_plugin_message_blocking " + (blockCloudIslandsPluginMessages ? 1 : 0) + "\n";
+    }
+
+    private static String escapeJson(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     @Subscribe
