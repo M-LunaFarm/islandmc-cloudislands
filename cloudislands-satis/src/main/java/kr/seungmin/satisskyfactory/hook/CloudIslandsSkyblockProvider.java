@@ -100,12 +100,12 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
 
     @Override
     public UUID getIslandUuid(IslandRef island) {
-        return island.islandUuid();
+        return island == null ? null : island.islandUuid();
     }
 
     @Override
     public UUID getIslandOwnerUuid(IslandRef island) {
-        return island.ownerUuid();
+        return island == null ? null : island.ownerUuid();
     }
 
     @Override
@@ -132,7 +132,7 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
 
     @Override
     public boolean isPlayerIslandMember(Player player, IslandRef island) {
-        if (player == null || island == null) {
+        if (!available || player == null || island == null) {
             return false;
         }
         if (player.hasPermission("satisskyfactory.admin") || player.getUniqueId().equals(island.ownerUuid())) {
