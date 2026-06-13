@@ -1,4 +1,5 @@
 import org.gradle.jvm.tasks.Jar
+import org.gradle.api.tasks.bundling.Zip
 
 plugins {
     `java-library`
@@ -42,4 +43,16 @@ tasks.register<Copy>("distPlugins") {
         from(jarTask.flatMap { it.archiveFile })
     }
     into(layout.buildDirectory.dir("dist/plugins"))
+}
+
+tasks.register<Zip>("distBundle") {
+    group = "distribution"
+    description = "Packages CloudIslands plugin jars, including the Satis addon."
+    dependsOn(tasks.named("distPlugins"))
+    archiveBaseName.set("cloudislands-plugins")
+    archiveVersion.set(project.version.toString())
+    from(layout.buildDirectory.dir("dist/plugins")) {
+        into("plugins")
+    }
+    destinationDirectory.set(layout.buildDirectory.dir("dist"))
 }
