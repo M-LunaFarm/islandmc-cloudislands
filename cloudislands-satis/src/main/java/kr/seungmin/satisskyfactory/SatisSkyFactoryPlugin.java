@@ -285,8 +285,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private boolean dataWritesEnabled() {
         return featureEnabled("machines")
                 || featureEnabled("resource-nodes")
-                || featureEnabled("market")
-                || featureEnabled("contracts")
+                || (featureEnabled("market") && featureEnabled("storage"))
+                || (featureEnabled("contracts") && featureEnabled("storage"))
                 || featureEnabled("research")
                 || featureEnabled("maintenance")
                 || (featureEnabled("lifecycle") && lifecycleStateEnabled());
@@ -295,8 +295,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private boolean lifecycleStateEnabled() {
         return featureEnabled("machines")
                 || featureEnabled("resource-nodes")
-                || featureEnabled("market")
-                || featureEnabled("contracts")
+                || (featureEnabled("market") && featureEnabled("storage"))
+                || (featureEnabled("contracts") && featureEnabled("storage"))
                 || featureEnabled("research")
                 || featureEnabled("maintenance");
     }

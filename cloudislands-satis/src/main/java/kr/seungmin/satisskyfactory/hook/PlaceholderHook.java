@@ -171,7 +171,7 @@ public final class PlaceholderHook extends PlaceholderExpansion {
             return enabled("maintenance");
         }
         if (key.equals("contracts_active") || key.equals("contract_slot_bonus")) {
-            return enabled("contracts");
+            return enabled("contracts") && enabled("storage");
         }
         if (key.startsWith("storage_")) {
             return enabled("storage");
