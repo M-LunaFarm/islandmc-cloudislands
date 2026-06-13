@@ -644,7 +644,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             if (enabled("resource-nodes")) {
                 values.add("node");
             }
-            if (enabled("maintenance")) {
+            if (enabled("maintenance") && enabled("storage")) {
                 values.add("repair");
             }
             values.add("admin");
@@ -658,6 +658,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                 || ((args[0].equalsIgnoreCase("withdraw") || args[0].equalsIgnoreCase("deposit")) && !enabled("storage"))
                 || (args[0].equalsIgnoreCase("contracts") && (!enabled("contracts") || !enabled("storage")))
                 || (args[0].equalsIgnoreCase("emergency") && (!enabled("contracts") || !enabled("maintenance") || !enabled("storage")))
+                || (args[0].equalsIgnoreCase("repair") && (!enabled("maintenance") || !enabled("storage")))
                 || (args[0].equalsIgnoreCase("node") && !enabled("resource-nodes"))
                 || (args[0].equalsIgnoreCase("research") && !enabled("research"))) {
             return new ArrayList<>();
