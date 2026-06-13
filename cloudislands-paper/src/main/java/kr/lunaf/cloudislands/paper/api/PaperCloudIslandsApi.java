@@ -646,6 +646,46 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return coreClient.clearAddonState(safeId).thenApply(_body -> null).exceptionally(_error -> null);
         }
 
+        @Override
+        public CompletableFuture<Map<String, String>> islandState(String id, UUID islandId) {
+            String safeId = safeRegistrationId(id);
+            return coreClient.addonIslandState(safeId, islandId)
+                .thenApply(this::stateFromJson)
+                .exceptionally(_error -> Map.of());
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> putIslandState(String id, UUID islandId, Map<String, String> values) {
+            String safeId = safeRegistrationId(id);
+            if (values == null || values.isEmpty()) {
+                return islandState(safeId, islandId);
+            }
+            CompletableFuture<Map<String, String>> result = CompletableFuture.completedFuture(Map.of());
+            for (Map.Entry<String, String> entry : values.entrySet()) {
+                if (entry.getKey() == null || entry.getKey().isBlank() || entry.getValue() == null) {
+                    continue;
+                }
+                result = result.thenCompose(_ignored -> coreClient.putAddonIslandState(safeId, islandId, entry.getKey(), entry.getValue()).thenApply(this::stateFromJson));
+            }
+            return result.exceptionally(_error -> Map.of());
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> removeIslandState(String id, UUID islandId, String key) {
+            String safeId = safeRegistrationId(id);
+            if (key == null) {
+                return islandState(safeId, islandId);
+            }
+            return coreClient.removeAddonIslandState(safeId, islandId, key)
+                .thenApply(this::stateFromJson)
+                .exceptionally(_error -> Map.of());
+        }
+
+        @Override
+        public CompletableFuture<Void> clearIslandState(String id, UUID islandId) {
+            return coreClient.clearAddonIslandState(safeRegistrationId(id), islandId).thenApply(_body -> null).exceptionally(_error -> null);
+        }
+
         private Map<String, String> stateFromJson(String json) {
             if (json == null || json.isBlank()) {
                 return Map.of();

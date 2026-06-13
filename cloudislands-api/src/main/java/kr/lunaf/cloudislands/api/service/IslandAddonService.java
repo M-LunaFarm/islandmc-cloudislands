@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
@@ -189,6 +190,36 @@ public interface IslandAddonService {
     }
 
     default CompletableFuture<Void> clearState(String id) {
+        return CompletableFuture.completedFuture(null);
+    }
+
+    default CompletableFuture<Map<String, String>> islandState(String id, UUID islandId) {
+        return CompletableFuture.completedFuture(Map.of());
+    }
+
+    default CompletableFuture<Optional<String>> islandState(String id, UUID islandId, String key) {
+        if (key == null) {
+            return CompletableFuture.completedFuture(Optional.empty());
+        }
+        return islandState(id, islandId).thenApply(values -> Optional.ofNullable(values.get(key)));
+    }
+
+    default CompletableFuture<Map<String, String>> putIslandState(String id, UUID islandId, Map<String, String> values) {
+        return islandState(id, islandId);
+    }
+
+    default CompletableFuture<Optional<String>> putIslandState(String id, UUID islandId, String key, String value) {
+        if (key == null || value == null) {
+            return CompletableFuture.completedFuture(Optional.empty());
+        }
+        return putIslandState(id, islandId, Map.of(key, value)).thenApply(values -> Optional.ofNullable(values.get(key)));
+    }
+
+    default CompletableFuture<Map<String, String>> removeIslandState(String id, UUID islandId, String key) {
+        return islandState(id, islandId);
+    }
+
+    default CompletableFuture<Void> clearIslandState(String id, UUID islandId) {
         return CompletableFuture.completedFuture(null);
     }
 
