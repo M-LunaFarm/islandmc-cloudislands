@@ -86,7 +86,7 @@ public final class IslandProtectionListener implements Listener {
         boolean blocked = denied(event.getPlayer(), event.getBlock(), IslandPermission.BREAK);
         event.setCancelled(blocked);
         if (!blocked) {
-            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.broken(islandId, event.getBlock()));
+            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.broken(islandId, event.getPlayer().getUniqueId(), event.getBlock()));
         }
     }
 
@@ -95,7 +95,7 @@ public final class IslandProtectionListener implements Listener {
         boolean blocked = denied(event.getPlayer(), event.getBlock(), IslandPermission.BUILD);
         event.setCancelled(blocked);
         if (!blocked) {
-            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.placed(islandId, event.getBlock()));
+            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.placed(islandId, event.getPlayer().getUniqueId(), event.getBlock()));
         }
     }
 
@@ -105,7 +105,7 @@ public final class IslandProtectionListener implements Listener {
         event.setCancelled(blocked);
         if (!blocked) {
             event.getReplacedBlockStates().forEach(state ->
-                protection.islandAt(state.getBlock()).ifPresent(islandId -> blockDeltas.placed(islandId, state.getBlock())));
+                protection.islandAt(state.getBlock()).ifPresent(islandId -> blockDeltas.placed(islandId, event.getPlayer().getUniqueId(), state.getBlock())));
         }
     }
 
@@ -132,7 +132,7 @@ public final class IslandProtectionListener implements Listener {
         event.setCancelled(blocked);
         Material liquid = bucketLiquid(event.getBucket());
         if (!blocked && liquid != null) {
-            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.placed(islandId, liquid));
+            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.placed(islandId, event.getPlayer().getUniqueId(), liquid));
         }
     }
 
@@ -141,7 +141,7 @@ public final class IslandProtectionListener implements Listener {
         boolean blocked = denied(event.getPlayer(), event.getBlock(), IslandPermission.BREAK_LIQUID);
         event.setCancelled(blocked);
         if (!blocked && (event.getBlock().getType() == Material.WATER || event.getBlock().getType() == Material.LAVA)) {
-            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.broken(islandId, event.getBlock()));
+            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.broken(islandId, event.getPlayer().getUniqueId(), event.getBlock()));
         }
     }
 

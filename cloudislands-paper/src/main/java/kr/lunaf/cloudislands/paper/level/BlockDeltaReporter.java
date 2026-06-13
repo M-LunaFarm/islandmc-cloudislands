@@ -20,8 +20,18 @@ public final class BlockDeltaReporter {
         report(islandId, block, 1L);
     }
 
+    public void placed(UUID islandId, UUID actorUuid, Block block) {
+        report(islandId, block, 1L);
+        progressPlaced(islandId, actorUuid, block.getType());
+    }
+
     public void broken(UUID islandId, Block block) {
         report(islandId, block, -1L);
+    }
+
+    public void broken(UUID islandId, UUID actorUuid, Block block) {
+        report(islandId, block, -1L);
+        progressBroken(islandId, actorUuid);
     }
 
     public void broken(UUID islandId, Material material) {
@@ -30,6 +40,11 @@ public final class BlockDeltaReporter {
 
     public void placed(UUID islandId, Material material) {
         report(islandId, material.getKey().toString(), 1L);
+    }
+
+    public void placed(UUID islandId, UUID actorUuid, Material material) {
+        report(islandId, material.getKey().toString(), 1L);
+        progressPlaced(islandId, actorUuid, material);
     }
 
     public void entityPlaced(UUID islandId, EntityType entityType) {
@@ -46,5 +61,41 @@ public final class BlockDeltaReporter {
 
     private void report(UUID islandId, String materialKey, long delta) {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> client.recordBlockDelta(islandId, materialKey, delta));
+    }
+
+    private void progressPlaced(UUID islandId, UUID actorUuid, Material material) {
+        if (actorUuid == null) {
+            return;
+        }
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            client.progressIslandMission(islandId, actorUuid, "first_blocks", "MISSION", 1L).exceptionally(error -> null);
+            client.progressIslandMission(islandId, actorUuid, "daily_builder", "CHALLENGE", 1L).exceptionally(error -> null);
+            if (isFarmBlock(material)) {
+                client.progressIslandMission(islandId, actorUuid, "starter_farm", "MISSION", 1L).exceptionally(error -> null);
+            }
+        });
+    }
+
+    private void progressBroken(UUID islandId, UUID actorUuid) {
+        if (actorUuid == null) {
+            return;
+        }
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () ->
+            client.progressIslandMission(islandId, actorUuid, "daily_miner", "CHALLENGE", 1L).exceptionally(error -> null));
+    }
+
+    private boolean isFarmBlock(Material material) {
+        String key = material.getKey().getKey();
+        return key.equals("wheat")
+            || key.equals("carrots")
+            || key.equals("potatoes")
+            || key.equals("beetroots")
+            || key.equals("pumpkin_stem")
+            || key.equals("melon_stem")
+            || key.equals("sugar_cane")
+            || key.equals("cactus")
+            || key.equals("bamboo")
+            || key.equals("cocoa")
+            || key.equals("nether_wart");
     }
 }
