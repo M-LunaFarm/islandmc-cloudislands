@@ -2342,9 +2342,23 @@ public final class CloudIslandsCoreApplication {
 
     private static String routeDebugJson(UUID playerUuid, PlayerRouteSession session, RouteTicket ticket) {
         return "{\"playerUuid\":\"" + playerUuid
-            + "\",\"session\":" + (session == null ? "null" : sessionJson(session))
-            + ",\"ticket\":" + (ticket == null ? "null" : RoutingOrchestrator.toJson(ticket))
+            + "\",\"session\":" + (session == null ? "null" : maskRouteNonce(sessionJson(session)))
+            + ",\"ticket\":" + (ticket == null ? "null" : maskRouteNonce(RoutingOrchestrator.toJson(ticket)))
             + "}";
+    }
+
+    private static String maskRouteNonce(String json) {
+        String needle = "\"nonce\":\"";
+        int start = json.indexOf(needle);
+        if (start < 0) {
+            return json;
+        }
+        int valueStart = start + needle.length();
+        int valueEnd = json.indexOf('"', valueStart);
+        if (valueEnd < 0) {
+            return json;
+        }
+        return json.substring(0, valueStart) + "hidden" + json.substring(valueEnd);
     }
 
     private static String routeSessionsJson(RouteSessionStore sessions) {
