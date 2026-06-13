@@ -719,7 +719,15 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             setNamedIslandLimit(player, "REDSTONE", args);
             return true;
         }
-        if (subcommand.equals("snapshot") || subcommand.equals("snapshots") || subcommand.equals("snapshot-menu") || subcommand.equals("스냅샷")) {
+        if (subcommand.equals("snapshot") || subcommand.equals("스냅샷")) {
+            if (args.length > 1) {
+                requestIslandSnapshot(player, joined(args, 1));
+            } else {
+                openIslandSnapshotMenu(player);
+            }
+            return true;
+        }
+        if (subcommand.equals("snapshots") || subcommand.equals("snapshot-menu")) {
             openIslandSnapshotMenu(player);
             return true;
         }
