@@ -217,15 +217,34 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         private CloudIslandsAddonSnapshot snapshot(AddonRegistration registration) {
             String id = registration.id();
-            boolean configEnabled = plugin.getConfig().getBoolean("addons." + id + ".enabled", true);
+            boolean configEnabled = configuredAddonEnabled(id);
             boolean enabled = registration.enabled() && configEnabled;
             Map<String, Boolean> configuredFeatures = effectiveFeatures(id, registration.features());
             Map<String, Boolean> visibleFeatures = enabled ? configuredFeatures : disabledFeatures(configuredFeatures);
             return new CloudIslandsAddonSnapshot(id, registration.displayName(), registration.version(), enabled, registration.registeredAt(), Instant.now(), configuredFeatures, visibleFeatures, effectiveMetadata(registration.metadata()));
         }
 
+        private boolean configuredAddonEnabled(String id) {
+            String addonPath = "addons." + id + ".enabled";
+            if (plugin.getConfig().contains(addonPath)) {
+                return plugin.getConfig().getBoolean(addonPath, true);
+            }
+            if (id.equals("cloudislands-satis") && plugin.getConfig().contains("satis.enabled")) {
+                return plugin.getConfig().getBoolean("satis.enabled", true);
+            }
+            return true;
+        }
+
         private Map<String, Boolean> effectiveFeatures(String id, Map<String, Boolean> features) {
             Map<String, Boolean> effective = new HashMap<>(features == null ? Map.of() : features);
+            if (id.equals("cloudislands-satis")) {
+                ConfigurationSection satisSection = plugin.getConfig().getConfigurationSection("satis.features");
+                if (satisSection != null) {
+                    for (String key : satisSection.getKeys(false)) {
+                        effective.put(key, satisSection.getBoolean(key, effective.getOrDefault(key, true)));
+                    }
+                }
+            }
             ConfigurationSection section = plugin.getConfig().getConfigurationSection("addons." + id + ".features");
             if (section == null) {
                 return effective;
