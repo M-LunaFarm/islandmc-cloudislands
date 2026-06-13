@@ -753,6 +753,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("addon-state-sync", Boolean.toString(configuredFeatureEnabled("addon-state")));
         metadata.put("feature-aliases", featureAliasesMetadata());
         metadata.put("feature-warnings", featureWarnings());
+        metadata.put("operational-features", operationalFeatureState(featureSnapshot()));
         return metadata;
     }
 
@@ -854,6 +855,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("satis-state-schema", "3");
         state.put("island-position-remap", "center-delta");
         state.put("effective-features", featureState(snapshot.features()));
+        state.put("operational-features", operationalFeatureState(snapshot.features()));
         state.put("feature-warnings", featureWarnings());
         state.put("last-sync-reason", reason == null || reason.isBlank() ? "unknown" : reason);
         state.put("last-sync-at", Instant.now().toString());
@@ -982,6 +984,27 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 .sorted(Map.Entry.comparingByKey())
                 .map(entry -> entry.getKey() + "=" + entry.getValue())
                 .collect(java.util.stream.Collectors.joining(","));
+    }
+
+    private String operationalFeatureState(Map<String, Boolean> features) {
+        return featureState(operationalFeatureSnapshot(features));
+    }
+
+    private Map<String, Boolean> operationalFeatureSnapshot(Map<String, Boolean> features) {
+        Map<String, Boolean> operational = new LinkedHashMap<>(features == null ? Map.of() : features);
+        boolean machinesEnabled = Boolean.TRUE.equals(operational.get("machines"));
+        boolean storageEnabled = Boolean.TRUE.equals(operational.get("storage"));
+        operational.computeIfPresent("resource-nodes", (_key, enabled) -> enabled && machinesEnabled);
+        operational.computeIfPresent("market", (_key, enabled) -> enabled && storageEnabled);
+        operational.computeIfPresent("contracts", (_key, enabled) -> enabled && storageEnabled);
+        FEATURE_ALIASES.forEach((alias, canonical) -> {
+            if (operational.containsKey(alias) || operational.containsKey(canonical)) {
+                boolean enabled = operational.getOrDefault(alias, true) && operational.getOrDefault(canonical, true);
+                operational.put(alias, enabled);
+                operational.put(canonical, enabled);
+            }
+        });
+        return operational;
     }
 
     @Override
