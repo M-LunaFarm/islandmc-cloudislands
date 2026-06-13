@@ -203,7 +203,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             registrations.put(id, registration);
             CloudIslandsAddonSnapshot snapshot = snapshot(registration);
             addons.put(id, snapshot);
-            stopEventSubscriptionIfIdle();
+            syncEventSubscription();
             return CompletableFuture.completedFuture(snapshot);
         }
 
@@ -215,10 +215,10 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (previous != null && previous != addon) {
                 notifyUnregistered(previous);
             }
-            ensureEventSubscription();
             CloudIslandsAddonSnapshot snapshot = snapshot(registration);
             addons.put(addon.addonId(), snapshot);
             notifyRegistered(addon, snapshot);
+            syncEventSubscription();
             return CompletableFuture.completedFuture(snapshot);
         }
 
@@ -298,7 +298,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (addon != null) {
                 notifyUnregistered(addon);
             }
-            stopEventSubscriptionIfIdle();
+            syncEventSubscription();
             return CompletableFuture.completedFuture(null);
         }
 
@@ -326,6 +326,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (addon != null) {
                 notifyReloaded(addon, snapshot);
             }
+            syncEventSubscription();
             return CompletableFuture.completedFuture(Optional.of(snapshot));
         }
 
@@ -339,6 +340,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                     notifyReloaded(addon, snapshot);
                 }
             });
+            syncEventSubscription();
             return list();
         }
 
@@ -370,7 +372,15 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<Boolean> isEnabled(String id) {
-            return CompletableFuture.completedFuture(Optional.ofNullable(addons.get(id)).map(CloudIslandsAddonSnapshot::enabled).orElse(false));
+                return CompletableFuture.completedFuture(Optional.ofNullable(addons.get(id)).map(CloudIslandsAddonSnapshot::enabled).orElse(false));
+        }
+
+        private synchronized void syncEventSubscription() {
+            if (hasEnabledAddonObject()) {
+                ensureEventSubscription();
+                return;
+            }
+            stopEventSubscription();
         }
 
         private synchronized void ensureEventSubscription() {
@@ -380,7 +390,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             eventSubscriptionStarting = true;
             events.listGlobalEventBatch(1).thenAccept(batch -> {
                 synchronized (this) {
-                    if (addonObjects.isEmpty()) {
+                    if (!hasEnabledAddonObject()) {
                         eventSubscriptionStarting = false;
                         return;
                     }
@@ -399,12 +409,18 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             });
         }
 
-        private synchronized void stopEventSubscriptionIfIdle() {
-            if (!addonObjects.isEmpty() || eventSubscription == null) {
+        private synchronized void stopEventSubscription() {
+            if (eventSubscription == null) {
                 return;
             }
             eventSubscription.close();
             eventSubscription = null;
+        }
+
+        private boolean hasEnabledAddonObject() {
+            return addonObjects.values().stream()
+                .map(addon -> addons.get(addon.addonId()))
+                .anyMatch(snapshot -> snapshot != null && snapshot.enabled());
         }
 
         private void dispatchCloudEvents(List<CloudEvent> events) {
