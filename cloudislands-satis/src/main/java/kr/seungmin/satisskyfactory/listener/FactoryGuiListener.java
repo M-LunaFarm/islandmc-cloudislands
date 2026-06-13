@@ -256,6 +256,9 @@ public final class FactoryGuiListener implements Listener {
         if (actionType.equals("market_page") || actionType.equals("main_market") || actionType.equals("sell_market_item")) {
             return "market";
         }
+        if (actionType.equals("storage_page") || actionType.equals("main_storage") || actionType.equals("withdraw_storage")) {
+            return "machines";
+        }
         if (actionType.equals("main_contracts") || actionType.equals("contracts_back") || actionType.equals("contract_detail")
                 || actionType.equals("complete_contract") || actionType.equals("complete_emergency")) {
             return "contracts";
@@ -295,6 +298,10 @@ public final class FactoryGuiListener implements Listener {
         } else if (actionType.equals("admin_debug_island")) {
             messages.send(player, "debug-island", Map.of("island", island.islandUuid().toString()));
         } else if (actionType.equals("admin_debug_networks")) {
+            if (!featureEnabled.test("machines")) {
+                messages.send(player, "feature-disabled", Map.of("feature", "machines"));
+                return;
+            }
             PowerNetworkService.NetworkState state = power.state(island.islandUuid());
             messages.send(player, "debug-networks", Map.of(
                     "machines", String.valueOf(machines.byIsland(island.islandUuid()).size()),

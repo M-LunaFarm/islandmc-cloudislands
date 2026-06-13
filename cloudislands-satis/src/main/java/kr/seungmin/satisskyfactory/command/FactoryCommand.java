@@ -181,7 +181,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                         refreshMaintenanceStatus(island);
                         messages.send(player, "contract-completed", Map.of("contract", active.template().id()));
                     }, () -> messages.send(player, "contract-requirements-missing"));
-                } else {
+                } else if (requireFeature(player, "gui")) {
                     gui.openContracts(player, island, contracts);
                 }
             }
@@ -393,15 +393,23 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
 
     private void status(Player player, FactoryIsland island) {
         messages.send(player, "status-tier", Map.of("tier", String.valueOf(island.tier())));
-        messages.send(player, "status-research", Map.of("research", String.valueOf(island.researchPoints())));
-        messages.send(player, "status-debt", Map.of("debt", String.valueOf(island.maintenanceDebt()), "status", island.maintenanceStatus().name()));
-        messages.send(player, "status-machines", Map.of("count", String.valueOf(machines.byIsland(island.islandUuid()).size())));
-        messages.send(player, "status-storage", Map.of("used", String.valueOf(storage.islandStorage(island.islandUuid()).used())));
+        if (enabled("research")) {
+            messages.send(player, "status-research", Map.of("research", String.valueOf(island.researchPoints())));
+        }
+        if (enabled("maintenance")) {
+            messages.send(player, "status-debt", Map.of("debt", String.valueOf(island.maintenanceDebt()), "status", island.maintenanceStatus().name()));
+        }
+        if (enabled("machines")) {
+            messages.send(player, "status-machines", Map.of("count", String.valueOf(machines.byIsland(island.islandUuid()).size())));
+            messages.send(player, "status-storage", Map.of("used", String.valueOf(storage.islandStorage(island.islandUuid()).used())));
+        }
         var boost = boosts.boosts(island.islandUuid());
-        messages.send(player, "status-boosts", Map.of(
-                "agriculture", NumberFormatter.ratio(boost.agricultureBoost()),
-                "machine", String.valueOf(boost.factorySlotBonus()),
-                "contract", String.valueOf(boost.contractSlotBonus())));
+        if (enabled("machines") || enabled("contracts")) {
+            messages.send(player, "status-boosts", Map.of(
+                    "agriculture", NumberFormatter.ratio(boost.agricultureBoost()),
+                    "machine", String.valueOf(boost.factorySlotBonus()),
+                    "contract", String.valueOf(boost.contractSlotBonus())));
+        }
     }
 
     private void research(Player player, FactoryIsland island, String[] args) {
@@ -411,7 +419,9 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             messages.send(player, "research-unlock-result", Map.of("result", result.name()));
             return;
         }
-        gui.openResearch(player, island, research);
+        if (requireFeature(player, "gui")) {
+            gui.openResearch(player, island, research);
+        }
     }
 
     private void showEmergency(Player player, FactoryIsland island) {
