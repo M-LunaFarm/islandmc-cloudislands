@@ -496,6 +496,36 @@ public final class AdminFactoryCommand {
                     "enabled", Boolean.toString(enabled(feature))
             )));
         }
+        Map<String, String> details = featureDetails();
+        List.of("operational-features", "feature-warnings").forEach(key -> {
+            String value = details.get(key);
+            if (value != null && !value.isBlank()) {
+                sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                        "key", key,
+                        "value", value
+                )));
+            }
+        });
+    }
+
+    private Map<String, String> featureDetails() {
+        try {
+            Map<String, String> state = addonState == null ? Map.of() : addonState.get();
+            if (state != null && (!blank(state.get("operational-features")) || !blank(state.get("feature-warnings")))) {
+                return state;
+            }
+        } catch (RuntimeException ignored) {
+        }
+        try {
+            Map<String, String> metadata = integrationMetadata == null ? Map.of() : integrationMetadata.get();
+            return metadata == null ? Map.of() : metadata;
+        } catch (RuntimeException ignored) {
+            return Map.of();
+        }
+    }
+
+    private boolean blank(String value) {
+        return value == null || value.isBlank();
     }
 
     private void showIntegration(CommandSender sender) {
