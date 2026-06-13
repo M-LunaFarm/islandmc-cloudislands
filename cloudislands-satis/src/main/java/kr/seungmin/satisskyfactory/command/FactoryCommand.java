@@ -196,9 +196,12 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                 if (!requireFeature(player, "contracts")) {
                     return true;
                 }
+                if (!requireFeature(player, "maintenance")) {
+                    return true;
+                }
                 if (args.length > 1 && args[1].equalsIgnoreCase("complete")) {
                     if (contracts.completeEmergency(island, player)) {
-                        maintenance.updateStatus(island);
+                        refreshMaintenanceStatus(island);
                         islands.save(island);
                         messages.send(player, "emergency-contract-completed");
                     } else {
@@ -477,7 +480,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                 || (command.contains(" machines") || command.contains(" deposit") || command.contains(" withdraw")) && !enabled("machines")
                 || (command.contains(" market") || command.contains(" sell")) && !enabled("market")
                 || command.contains(" contracts") && !enabled("contracts")
-                || command.contains(" emergency") && !enabled("contracts")
+                || command.contains(" emergency") && (!enabled("contracts") || !enabled("maintenance"))
                 || command.contains(" research") && !enabled("research")
                 || command.contains(" node") && !enabled("resource-nodes")
                 || command.contains(" repair") && !enabled("maintenance");
@@ -602,6 +605,8 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             }
             if (enabled("contracts")) {
                 values.add("contracts");
+            }
+            if (enabled("contracts") && enabled("maintenance")) {
                 values.add("emergency");
             }
             if (enabled("market")) {
@@ -625,7 +630,8 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         }
         if ((args[0].equalsIgnoreCase("sell") && !enabled("market"))
                 || ((args[0].equalsIgnoreCase("withdraw") || args[0].equalsIgnoreCase("deposit")) && !enabled("machines"))
-                || ((args[0].equalsIgnoreCase("contracts") || args[0].equalsIgnoreCase("emergency")) && !enabled("contracts"))
+                || (args[0].equalsIgnoreCase("contracts") && !enabled("contracts"))
+                || (args[0].equalsIgnoreCase("emergency") && (!enabled("contracts") || !enabled("maintenance")))
                 || (args[0].equalsIgnoreCase("node") && !enabled("resource-nodes"))
                 || (args[0].equalsIgnoreCase("research") && !enabled("research"))) {
             return new ArrayList<>();
