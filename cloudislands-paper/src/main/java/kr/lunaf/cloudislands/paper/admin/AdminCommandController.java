@@ -234,7 +234,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return List.of();
         }
         if (args.length == 1) {
-            return matches(ROOT_COMMANDS, args[0]);
+            return matches(rootCommands(), args[0]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("command")) {
             return matches(List.of("list", "목록"), args[1]);
@@ -789,6 +789,15 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             enabled = enabled && agent.getConfig().getBoolean("satis.features.migration", true);
         }
         return enabled;
+    }
+
+    private List<String> rootCommands() {
+        if (superiorSkyblock2MigrationEnabled()) {
+            return ROOT_COMMANDS;
+        }
+        return ROOT_COMMANDS.stream()
+            .filter(command -> !command.equals("migrate-superiorskyblock2"))
+            .toList();
     }
 
     private String migrationMessage(String body) {
