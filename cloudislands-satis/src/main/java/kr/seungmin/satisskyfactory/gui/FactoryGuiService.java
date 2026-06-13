@@ -76,9 +76,7 @@ public final class FactoryGuiService {
                         ChatColor.GRAY + "Consumption: " + NumberFormatter.decimal(powerState.consumption(), 1),
                         ChatColor.GRAY + "Battery: " + NumberFormatter.decimal(powerState.batteryStored(), 1) + "/" + NumberFormatter.whole(powerState.batteryCapacity()))));
         inventory.setItem(14, icon(Material.EMERALD, ChatColor.GREEN + "Economy",
-                List.of(ChatColor.GRAY + "Debt: " + island.maintenanceDebt(),
-                        ChatColor.GRAY + "Status: " + island.maintenanceStatus(),
-                        ChatColor.GRAY + "Reputation: " + island.reputation())));
+                economyLore(island)));
         if (enabled("research")) {
             holder.action(16, "main_research", "");
             inventory.setItem(16, icon(Material.EXPERIENCE_BOTTLE, ChatColor.AQUA + "Research",
@@ -112,6 +110,25 @@ public final class FactoryGuiService {
 
     private boolean enabled(String feature) {
         return featureEnabled == null || featureEnabled.test(feature);
+    }
+
+    private List<String> economyLore(FactoryIsland island) {
+        List<String> lore = new ArrayList<>();
+        if (enabled("maintenance")) {
+            lore.add(ChatColor.GRAY + "Debt: " + island.maintenanceDebt());
+            lore.add(ChatColor.GRAY + "Status: " + island.maintenanceStatus());
+        }
+        lore.add(ChatColor.GRAY + "Reputation: " + island.reputation());
+        return lore;
+    }
+
+    private List<String> marketLore(FactoryIsland island, int safePage, int maxPage) {
+        List<String> lore = new ArrayList<>();
+        if (enabled("maintenance")) {
+            lore.add(ChatColor.GRAY + "Debt: " + island.maintenanceDebt());
+        }
+        lore.add(ChatColor.GRAY + "Page: " + (safePage + 1) + "/" + (maxPage + 1));
+        return lore;
     }
 
     public void openAdmin(Player player, FactoryIsland island, int machineCount, PowerNetworkService.NetworkState powerState) {
@@ -305,7 +322,8 @@ public final class FactoryGuiService {
                             ChatColor.GRAY + "Items: " + template.itemRewards(),
                             ChatColor.GRAY + "Expires: " + NumberFormatter.minutesUntil(active.expiresAt(), System.currentTimeMillis()) + "m")));
         }
-        contracts.emergencyTemplate().ifPresent(template -> {
+        if (enabled("maintenance")) {
+            contracts.emergencyTemplate().ifPresent(template -> {
             int used = contracts.emergencyUsedToday(island);
             boolean available = island.maintenanceDebt() > 0 && used < contracts.emergencyDailyLimit();
             if (available) {
@@ -318,7 +336,8 @@ public final class FactoryGuiService {
                             ChatColor.GRAY + "Required: " + template.required(),
                             ChatColor.GRAY + "Debt relief: " + template.debtRelief(),
                             ChatColor.GRAY + (available ? "Click to deliver from island storage." : "No emergency delivery is available."))));
-        });
+            });
+        }
         player.openInventory(inventory);
     }
 
@@ -373,7 +392,7 @@ public final class FactoryGuiService {
         if (template.reputation() > 0) {
             lore.add(ChatColor.GRAY + "Reputation: " + template.reputation());
         }
-        if (template.debtRelief() > 0) {
+        if (enabled("maintenance") && template.debtRelief() > 0) {
             lore.add(ChatColor.GRAY + "Debt relief: " + template.debtRelief());
         }
         template.itemRewards().entrySet().stream()
@@ -403,8 +422,7 @@ public final class FactoryGuiService {
         inventory.setItem(45, icon(Material.ARROW, ChatColor.YELLOW + "Previous Page",
                 List.of(ChatColor.GRAY + "Page " + (safePage + 1) + " of " + (maxPage + 1))));
         inventory.setItem(49, icon(Material.EMERALD, ChatColor.GREEN + "Market",
-                List.of(ChatColor.GRAY + "Debt: " + island.maintenanceDebt(),
-                        ChatColor.GRAY + "Page: " + (safePage + 1) + "/" + (maxPage + 1))));
+                marketLore(island, safePage, maxPage)));
         holder.action(52, "market_page", String.valueOf(Math.min(maxPage, safePage + 1)));
         inventory.setItem(52, icon(Material.ARROW, ChatColor.YELLOW + "Next Page",
                 List.of(ChatColor.GRAY + "Page " + (safePage + 1) + " of " + (maxPage + 1))));
