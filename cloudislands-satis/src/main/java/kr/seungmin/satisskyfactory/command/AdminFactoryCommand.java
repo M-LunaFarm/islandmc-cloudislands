@@ -569,7 +569,8 @@ public final class AdminFactoryCommand {
         state.put("satis-storage-key", "cloudislands-island-uuid");
         state.put("superior-runtime-dependency", "false");
         state.put("superior-import-path", "/ciadmin migrate-superiorskyblock2 scan|dryrun|import|verify|rollback");
-        state.put("satismc-import-mode", "cloudislands-addon-state");
+        state.put("satismc-import-path", "/factory admin migration import <sqlitePath>");
+        state.put("satismc-import-mode", "sqlite-attach-insert-ignore");
         state.put("feature-gate", "migration=" + enabled("migration"));
         state.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
