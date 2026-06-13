@@ -126,7 +126,16 @@ public final class MigrationAdminService {
         lastPlan = new MigrationImportPlan(lastScan.manifests(), issues);
         MigrationRunState state = lastPlan.canImport() ? MigrationRunState.DRY_RUN_PASSED : MigrationRunState.DRY_RUN_FAILED;
         lastApprovalToken = lastPlan.canImport() ? java.util.UUID.randomUUID().toString() : "";
-        return "{\"state\":\"" + state + "\",\"manifests\":" + lastPlan.manifests().size() + ",\"canImport\":" + lastPlan.canImport() + (lastApprovalToken.isBlank() ? "" : ",\"approvalToken\":\"" + lastApprovalToken + "\"") + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastPlan.issues()) + "}";
+        Path reportPath = migrationReportPath("dryrun");
+        try {
+            writeMigrationReportFile(state.name(), reportPath, lastPlan.report());
+        } catch (java.io.IOException exception) {
+            issues.add(new MigrationIssue("MIGRATION_REPORT_WRITE_FAILED", exception.getMessage(), true));
+            lastPlan = new MigrationImportPlan(lastScan.manifests(), issues);
+            state = MigrationRunState.DRY_RUN_FAILED;
+            lastApprovalToken = "";
+        }
+        return "{\"state\":\"" + state + "\",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"manifests\":" + lastPlan.manifests().size() + ",\"canImport\":" + lastPlan.canImport() + (lastApprovalToken.isBlank() ? "" : ",\"approvalToken\":\"" + lastApprovalToken + "\"") + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastPlan.issues()) + "}";
     }
 
     private List<MigrationIssue> targetConflictIssues(List<MigrationManifest> manifests) {
@@ -387,7 +396,15 @@ public final class MigrationAdminService {
         issues.addAll(result.issues());
         boolean passed = issues.isEmpty();
         MigrationRunState state = passed ? MigrationRunState.VERIFIED : MigrationRunState.VERIFYING;
-        return "{\"state\":\"" + state + "\",\"path\":\"" + escape(verifyBundleRoot.toString()) + "\",\"passed\":" + passed + ",\"expected\":" + lastScan.manifests().size() + ",\"imported\":" + imported.size() + ",\"extractedBundles\":" + extractedBundles + ",\"extractedFiles\":" + extractedFiles + ",\"extractedBytes\":" + extractedBytes + ",\"activationTested\":" + activationTested + ",\"activationTestPassed\":" + activationTestPassed + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+        Path reportPath = migrationReportPath("verify");
+        try {
+            writeMigrationReportFile(state.name(), reportPath, MigrationReportBuilder.build(lastScan.manifests(), issues));
+        } catch (java.io.IOException exception) {
+            issues.add(new MigrationIssue("MIGRATION_REPORT_WRITE_FAILED", exception.getMessage(), true));
+            passed = false;
+            state = MigrationRunState.VERIFYING;
+        }
+        return "{\"state\":\"" + state + "\",\"path\":\"" + escape(verifyBundleRoot.toString()) + "\",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"passed\":" + passed + ",\"expected\":" + lastScan.manifests().size() + ",\"imported\":" + imported.size() + ",\"extractedBundles\":" + extractedBundles + ",\"extractedFiles\":" + extractedFiles + ",\"extractedBytes\":" + extractedBytes + ",\"activationTested\":" + activationTested + ",\"activationTestPassed\":" + activationTestPassed + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
     }
 
     public synchronized String rollbackLastImport() {
@@ -544,9 +561,40 @@ public final class MigrationAdminService {
         return migrationBundleRoot.resolve("manifests").resolve("superiorskyblock2-last-scan.json");
     }
 
+    private Path migrationReportPath(String stage) {
+        return migrationBundleRoot.resolve("reports").resolve("superiorskyblock2-" + stage + "-report.json");
+    }
+
     private void writeMigrationManifestFile(String sourcePath, Path manifestPath, List<MigrationManifest> manifests) throws java.io.IOException {
         Files.createDirectories(manifestPath.getParent());
         Files.writeString(manifestPath, migrationManifestJson(sourcePath, manifests), StandardCharsets.UTF_8);
+    }
+
+    private void writeMigrationReportFile(String state, Path reportPath, MigrationReport report) throws java.io.IOException {
+        Files.createDirectories(reportPath.getParent());
+        Files.writeString(reportPath, migrationReportJson(state, report), StandardCharsets.UTF_8);
+    }
+
+    private String migrationReportJson(String state, MigrationReport report) {
+        return "{\"state\":\"" + escape(state) + "\","
+            + "\"generatedAt\":\"" + Instant.now() + "\","
+            + "\"manifests\":" + report.manifests() + ','
+            + "\"members\":" + report.members() + ','
+            + "\"bannedVisitors\":" + report.bannedVisitors() + ','
+            + "\"homes\":" + report.homes() + ','
+            + "\"warps\":" + report.warps() + ','
+            + "\"flags\":" + report.flags() + ','
+            + "\"permissions\":" + report.permissions() + ','
+            + "\"upgrades\":" + report.upgrades() + ','
+            + "\"limits\":" + report.limits() + ','
+            + "\"completedMissions\":" + report.completedMissions() + ','
+            + "\"blockValues\":" + report.blockValues() + ','
+            + "\"blockCounts\":" + report.blockCounts() + ','
+            + "\"blockingIssues\":" + report.blockingIssues() + ','
+            + "\"warningIssues\":" + report.warningIssues() + ','
+            + "\"canImport\":" + report.canImport() + ','
+            + "\"issues\":" + issuesJson(report.issues())
+            + "}";
     }
 
     private String migrationManifestJson(String sourcePath, List<MigrationManifest> manifests) {

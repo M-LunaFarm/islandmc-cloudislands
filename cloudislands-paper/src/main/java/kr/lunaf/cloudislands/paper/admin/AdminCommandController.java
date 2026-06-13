@@ -665,6 +665,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         String state = textValue(body, "state");
         String path = textValue(body, "path");
         String manifestPath = textValue(body, "manifestPath");
+        String reportPath = textValue(body, "reportPath");
         String approvalToken = textValue(body, "approvalToken");
         String issues = arrayValue(body, "issues");
         long manifests = longValue(body, "manifests");
@@ -679,6 +680,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (!manifestPath.isBlank()) {
             builder.append(" manifest=").append(manifestPath);
+        }
+        if (!reportPath.isBlank()) {
+            builder.append(" report=").append(reportPath);
         }
         if (!approvalToken.isBlank()) {
             builder.append(" approval=").append(approvalToken);

@@ -1004,6 +1004,7 @@ public final class VelocityRoutingController {
         String state = jsonValue(body, "state");
         String path = jsonValue(body, "path");
         String manifestPath = jsonValue(body, "manifestPath");
+        String reportPath = jsonValue(body, "reportPath");
         String approvalToken = jsonValue(body, "approvalToken");
         String issues = arrayValue(body, "issues");
         long manifests = longValue(body, "manifests");
@@ -1018,6 +1019,9 @@ public final class VelocityRoutingController {
         }
         if (!manifestPath.isBlank()) {
             builder.append(" manifest=").append(manifestPath);
+        }
+        if (!reportPath.isBlank()) {
+            builder.append(" report=").append(reportPath);
         }
         if (!approvalToken.isBlank()) {
             builder.append(" approval=").append(approvalToken);
