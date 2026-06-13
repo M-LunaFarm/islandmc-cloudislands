@@ -110,6 +110,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
         logSecurityPosture();
+        getServer().getMessenger().registerOutgoingPluginChannel(this, "minecraft:brand");
         if (configBoolean("security.allow-bungee-connect-plugin-messaging", false)) {
             getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
         }
@@ -145,7 +146,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection(), blockDeltas, denyMessageCooldownMs, denyMessages()), this);
         getServer().getPluginManager().registerEvents(new IslandBoundaryListener(agent.protection()), this);
         getServer().getPluginManager().registerEvents(new PaperPlayerProfileListener(client), this);
-        getServer().getPluginManager().registerEvents(new PaperBrandingListener(messages), this);
+        getServer().getPluginManager().registerEvents(new PaperBrandingListener(this, messages), this);
         getServer().getPluginManager().registerEvents(new PaperChatListener(messages), this);
         getServer().getPluginManager().registerEvents(new PaperScoreboardListener(messages), this);
         getServer().getPluginManager().registerEvents(new IslandGameplayFlagListener(agent.protection()), this);

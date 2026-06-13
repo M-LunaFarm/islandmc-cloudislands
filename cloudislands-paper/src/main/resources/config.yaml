@@ -10,6 +10,7 @@ messages:
     tab-footer: "섬을 준비하고 있습니다. /섬 으로 이동과 관리를 시작하세요."
     join-message: "{player}님이 섬 서비스에 접속했습니다."
     quit-message: "{player}님이 섬 서비스에서 나갔습니다."
+    server-brand: "{service}"
     chat-prefix: "[{service}] "
     scoreboard-title: "{service}"
   scoreboard-lines:

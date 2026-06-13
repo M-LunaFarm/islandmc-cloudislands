@@ -75,6 +75,7 @@ public final class TranslationManager {
         values.put("tab-footer", "섬을 준비하고 있습니다. /섬 으로 이동과 관리를 시작하세요.");
         values.put("join-message", "{player}님이 섬 서비스에 접속했습니다.");
         values.put("quit-message", "{player}님이 섬 서비스에서 나갔습니다.");
+        values.put("server-brand", "{service}");
         values.put("chat-prefix", "[" + name + "] ");
         values.put("scoreboard-title", "{service}");
         return values;
