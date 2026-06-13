@@ -80,8 +80,6 @@ public final class PlaceholderHook extends PlaceholderExpansion {
         if (!canResolve(key)) {
             return "";
         }
-        VirtualInventory islandStorage = storage.islandStorage(island.islandUuid());
-        PowerNetworkService.NetworkState powerState = power.state(island.islandUuid());
         if (key.equals("island_uuid")) {
             return island.islandUuid().toString();
         }
@@ -110,30 +108,39 @@ public final class PlaceholderHook extends PlaceholderExpansion {
             return String.valueOf(machines.byIsland(island.islandUuid()).size());
         }
         if (key.equals("storage_used")) {
+            VirtualInventory islandStorage = storage.islandStorage(island.islandUuid());
             return String.valueOf(islandStorage.used());
         }
         if (key.equals("storage_capacity")) {
+            VirtualInventory islandStorage = storage.islandStorage(island.islandUuid());
             return String.valueOf(islandStorage.capacity());
         }
         if (key.equals("storage_free")) {
+            VirtualInventory islandStorage = storage.islandStorage(island.islandUuid());
             return String.valueOf(islandStorage.remainingCapacity());
         }
         if (key.equals("power_ratio")) {
+            PowerNetworkService.NetworkState powerState = power.state(island.islandUuid());
             return NumberFormatter.ratio(powerState.ratio());
         }
         if (key.equals("power_generation")) {
+            PowerNetworkService.NetworkState powerState = power.state(island.islandUuid());
             return NumberFormatter.decimal(powerState.generation(), 1);
         }
         if (key.equals("power_consumption")) {
+            PowerNetworkService.NetworkState powerState = power.state(island.islandUuid());
             return NumberFormatter.decimal(powerState.consumption(), 1);
         }
         if (key.equals("battery_stored")) {
+            PowerNetworkService.NetworkState powerState = power.state(island.islandUuid());
             return String.valueOf(powerState.batteryStored());
         }
         if (key.equals("battery_capacity")) {
+            PowerNetworkService.NetworkState powerState = power.state(island.islandUuid());
             return NumberFormatter.whole(powerState.batteryCapacity());
         }
         if (key.equals("battery_percent")) {
+            PowerNetworkService.NetworkState powerState = power.state(island.islandUuid());
             return powerState.batteryCapacity() <= 0
                     ? "0"
                     : NumberFormatter.whole(powerState.batteryStored() * 100.0 / powerState.batteryCapacity());
