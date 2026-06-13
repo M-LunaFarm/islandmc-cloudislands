@@ -63,6 +63,7 @@ public final class IslandProtectionListener implements Listener {
     private final ProtectionController protection;
     private final BlockDeltaReporter blockDeltas;
     private final long denyMessageCooldownMs;
+    private final Map<IslandPermission, String> denyMessages;
     private final Map<UUID, Long> denyMessageTimes = new ConcurrentHashMap<>();
 
     public IslandProtectionListener(ProtectionController protection, BlockDeltaReporter blockDeltas) {
@@ -70,9 +71,14 @@ public final class IslandProtectionListener implements Listener {
     }
 
     public IslandProtectionListener(ProtectionController protection, BlockDeltaReporter blockDeltas, long denyMessageCooldownMs) {
+        this(protection, blockDeltas, denyMessageCooldownMs, Map.of());
+    }
+
+    public IslandProtectionListener(ProtectionController protection, BlockDeltaReporter blockDeltas, long denyMessageCooldownMs, Map<IslandPermission, String> denyMessages) {
         this.protection = protection;
         this.blockDeltas = blockDeltas;
         this.denyMessageCooldownMs = Math.max(0L, denyMessageCooldownMs);
+        this.denyMessages = denyMessages == null ? Map.of() : Map.copyOf(denyMessages);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -425,6 +431,10 @@ public final class IslandProtectionListener implements Listener {
     }
 
     private String denyMessage(IslandPermission permission) {
+        String configured = denyMessages.get(permission);
+        if (configured != null && !configured.isBlank()) {
+            return configured;
+        }
         return switch (permission) {
             case BUILD, BREAK, PLACE_LIQUID, BREAK_LIQUID -> "이 섬에서 블록을 변경할 권한이 없습니다.";
             case OPEN_CONTAINER -> "이 섬에서 보관함을 열 권한이 없습니다.";

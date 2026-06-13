@@ -52,6 +52,14 @@ protection:
   cache-permissions: true
   cache-event-poll-ticks: 100
   deny-message-cooldown-ms: 1000
+  deny-messages:
+    build: "이 섬에서 블록을 설치할 권한이 없습니다."
+    break: "이 섬에서 블록을 부술 권한이 없습니다."
+    open-container: "이 섬에서 보관함을 열 권한이 없습니다."
+    attack-player: "이 섬에서 플레이어를 공격할 수 없습니다."
+    attack-mob: "이 섬에서 몹을 공격할 권한이 없습니다."
+    pickup-item: "이 섬에서 아이템을 주울 권한이 없습니다."
+    drop-item: "이 섬에서 아이템을 버릴 권한이 없습니다."
 
 heartbeat:
   interval-ticks: 20

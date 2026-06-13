@@ -2,10 +2,13 @@ package kr.lunaf.cloudislands.paper;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.EnumMap;
 import java.util.Locale;
+import java.util.Map;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
+import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JdkCoreApiClient;
 import kr.lunaf.cloudislands.paper.api.PaperCloudIslandsApi;
@@ -117,7 +120,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         IslandLimitCache limitCache = new IslandLimitCache(client);
         long denyMessageCooldownMs = getConfig().getLong("protection.deny-message-cooldown-ms", 1000L);
         BlockDeltaReporter blockDeltas = new BlockDeltaReporter(this, client);
-        getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection(), blockDeltas, denyMessageCooldownMs), this);
+        getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection(), blockDeltas, denyMessageCooldownMs, denyMessages()), this);
         getServer().getPluginManager().registerEvents(new IslandBoundaryListener(agent.protection()), this);
         getServer().getPluginManager().registerEvents(new PaperPlayerProfileListener(client), this);
         getServer().getPluginManager().registerEvents(new PaperBrandingListener(getConfig().getString("plugin.service-name", "CloudIslands")), this);
@@ -402,5 +405,25 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             return false;
         }
         return fallback;
+    }
+
+    private Map<IslandPermission, String> denyMessages() {
+        Map<IslandPermission, String> messages = new EnumMap<>(IslandPermission.class);
+        var section = getConfig().getConfigurationSection("protection.deny-messages");
+        if (section == null) {
+            return messages;
+        }
+        for (String key : section.getKeys(false)) {
+            try {
+                IslandPermission permission = IslandPermission.valueOf(key.toUpperCase(Locale.ROOT).replace('-', '_'));
+                String message = section.getString(key, "");
+                if (message != null && !message.isBlank()) {
+                    messages.put(permission, message);
+                }
+            } catch (IllegalArgumentException ignored) {
+                getLogger().warning("Unknown protection deny message key: " + key);
+            }
+        }
+        return messages;
     }
 }
