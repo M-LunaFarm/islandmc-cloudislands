@@ -162,6 +162,36 @@ public interface IslandAddonService {
         return get(id).thenApply(addon -> addon.map(CloudIslandsAddonSnapshot::metadata).orElse(Map.of()));
     }
 
+    default CompletableFuture<Map<String, String>> state(String id) {
+        return CompletableFuture.completedFuture(Map.of());
+    }
+
+    default CompletableFuture<Optional<String>> state(String id, String key) {
+        if (key == null) {
+            return CompletableFuture.completedFuture(Optional.empty());
+        }
+        return state(id).thenApply(values -> Optional.ofNullable(values.get(key)));
+    }
+
+    default CompletableFuture<Map<String, String>> putState(String id, Map<String, String> values) {
+        return state(id);
+    }
+
+    default CompletableFuture<Optional<String>> putState(String id, String key, String value) {
+        if (key == null || value == null) {
+            return CompletableFuture.completedFuture(Optional.empty());
+        }
+        return putState(id, Map.of(key, value)).thenApply(values -> Optional.ofNullable(values.get(key)));
+    }
+
+    default CompletableFuture<Map<String, String>> removeState(String id, String key) {
+        return state(id);
+    }
+
+    default CompletableFuture<Void> clearState(String id) {
+        return CompletableFuture.completedFuture(null);
+    }
+
     default CompletableFuture<Boolean> isFeatureEnabled(String id, String feature) {
         return get(id).thenApply(addon -> addon
             .map(snapshot -> snapshot.enabled() && snapshot.featureEnabled(feature))

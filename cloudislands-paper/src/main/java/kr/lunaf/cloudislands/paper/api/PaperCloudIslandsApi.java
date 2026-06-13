@@ -1,6 +1,11 @@
 package kr.lunaf.cloudislands.paper.api;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -9,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -185,6 +191,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         private final Map<String, AddonRegistration> registrations = new ConcurrentHashMap<>();
         private final Map<String, CloudIslandsAddon> addonObjects = new ConcurrentHashMap<>();
         private final Map<String, CloudIslandsAddonSnapshot> addons = new ConcurrentHashMap<>();
+        private final Map<String, Map<String, String>> addonStates = new ConcurrentHashMap<>();
         private GlobalEventSubscription eventSubscription;
         private boolean eventSubscriptionStarting;
 
@@ -418,6 +425,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         private Map<String, String> effectiveMetadata(String id, Map<String, String> metadata, boolean addonDefaultEnabled, boolean parentEnabled) {
             Map<String, String> effective = new HashMap<>(metadata == null ? Map.of() : metadata);
             effective.putIfAbsent("source-node", plugin.getConfig().getString("node.id", "unknown"));
+            effective.putIfAbsent("addon-state-storage", "paper-local-properties");
             effective.put("addon-default-enabled", Boolean.toString(addonDefaultEnabled));
             effective.put("parent-enabled", Boolean.toString(parentEnabled));
             if (!addonDefaultEnabled) {
@@ -562,6 +570,108 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<Boolean> isEnabled(String id) {
             return CompletableFuture.completedFuture(Optional.ofNullable(addons.get(safeRegistrationId(id))).map(CloudIslandsAddonSnapshot::enabled).orElse(false));
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> state(String id) {
+            return CompletableFuture.completedFuture(readAddonState(safeRegistrationId(id)));
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> putState(String id, Map<String, String> values) {
+            String safeId = safeRegistrationId(id);
+            if (values == null || values.isEmpty()) {
+                return state(safeId);
+            }
+            Map<String, String> state = new HashMap<>(readAddonState(safeId));
+            values.forEach((key, value) -> {
+                if (key != null && !key.isBlank() && value != null) {
+                    state.put(key, value);
+                }
+            });
+            writeAddonState(safeId, state);
+            return CompletableFuture.completedFuture(Map.copyOf(state));
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> removeState(String id, String key) {
+            String safeId = safeRegistrationId(id);
+            Map<String, String> state = new HashMap<>(readAddonState(safeId));
+            if (key != null) {
+                state.remove(key);
+            }
+            writeAddonState(safeId, state);
+            return CompletableFuture.completedFuture(Map.copyOf(state));
+        }
+
+        @Override
+        public CompletableFuture<Void> clearState(String id) {
+            String safeId = safeRegistrationId(id);
+            addonStates.remove(safeId);
+            try {
+                Files.deleteIfExists(addonStatePath(safeId));
+            } catch (IOException exception) {
+                plugin.getLogger().warning("CloudIslands addon state clear failed for " + safeId + ": " + exception.getMessage());
+            }
+            return CompletableFuture.completedFuture(null);
+        }
+
+        private Map<String, String> readAddonState(String id) {
+            String safeId = safeRegistrationId(id);
+            Map<String, String> cached = addonStates.get(safeId);
+            if (cached != null) {
+                return cached;
+            }
+            Path path = addonStatePath(safeId);
+            if (!Files.exists(path)) {
+                addonStates.put(safeId, Map.of());
+                return Map.of();
+            }
+            Properties properties = new Properties();
+            try (InputStream input = Files.newInputStream(path)) {
+                properties.load(input);
+            } catch (IOException exception) {
+                plugin.getLogger().warning("CloudIslands addon state read failed for " + safeId + ": " + exception.getMessage());
+                return Map.of();
+            }
+            Map<String, String> state = new HashMap<>();
+            for (String key : properties.stringPropertyNames()) {
+                state.put(key, properties.getProperty(key));
+            }
+            Map<String, String> immutable = Map.copyOf(state);
+            addonStates.put(safeId, immutable);
+            return immutable;
+        }
+
+        private void writeAddonState(String id, Map<String, String> state) {
+            String safeId = safeRegistrationId(id);
+            Path path = addonStatePath(safeId);
+            try {
+                Files.createDirectories(path.getParent());
+                Properties properties = new Properties();
+                state.forEach((key, value) -> {
+                    if (key != null && !key.isBlank() && value != null) {
+                        properties.setProperty(key, value);
+                    }
+                });
+                try (OutputStream output = Files.newOutputStream(path)) {
+                    properties.store(output, "CloudIslands addon state");
+                }
+                addonStates.put(safeId, Map.copyOf(state));
+            } catch (IOException exception) {
+                plugin.getLogger().warning("CloudIslands addon state write failed for " + safeId + ": " + exception.getMessage());
+            }
+        }
+
+        private Path addonStatePath(String id) {
+            return plugin.getDataFolder().toPath()
+                .resolve("addons")
+                .resolve(stateDirectoryName(id))
+                .resolve("state.properties");
+        }
+
+        private String stateDirectoryName(String id) {
+            return safeRegistrationId(id).replaceAll("[^A-Za-z0-9._-]", "_");
         }
 
         private synchronized void syncEventSubscription() {
