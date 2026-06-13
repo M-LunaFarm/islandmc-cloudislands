@@ -74,29 +74,60 @@ public record CloudIslandsAddonSnapshot(
 
     public boolean featureEnabled(String key, boolean fallback) {
         String canonical = canonicalFeature(key);
-        boolean enabled = features.getOrDefault(canonical, features.getOrDefault(key, fallback));
-        if (!canonical.equals(key) && features.containsKey(key)) {
-            enabled = enabled && features.get(key);
+        String requested = key == null ? "" : key.trim();
+        boolean enabled = features.getOrDefault(canonical, features.getOrDefault(requested, fallback));
+        if (!canonical.equals(requested) && features.containsKey(requested)) {
+            enabled = enabled && features.get(requested);
         }
-        for (String pair : metadata.getOrDefault("feature-aliases", "").split(",")) {
-            String[] parts = pair.split(":", 2);
-            if (parts.length == 2 && parts[1].equals(canonical) && features.containsKey(parts[0])) {
-                enabled = enabled && features.get(parts[0]);
+        for (Map.Entry<String, String> alias : featureAliases().entrySet()) {
+            if (alias.getValue().equals(canonical) && features.containsKey(alias.getKey())) {
+                enabled = enabled && features.get(alias.getKey());
             }
         }
         return enabled;
+    }
+
+    public Map<String, String> featureAliases() {
+        return metadataPairs("feature-aliases");
+    }
+
+    public Map<String, String> featureDependencies() {
+        Map<String, String> dependencies = new HashMap<>();
+        metadataPairs("feature-dependencies").forEach((feature, required) ->
+            dependencies.put(canonicalFeature(feature), canonicalFeature(required)));
+        return Map.copyOf(dependencies);
     }
 
     private String canonicalFeature(String key) {
         if (key == null) {
             return "";
         }
-        for (String pair : metadata.getOrDefault("feature-aliases", "").split(",")) {
-            String[] parts = pair.split(":", 2);
-            if (parts.length == 2 && parts[0].equals(key)) {
-                return parts[1];
+        String requested = key.trim();
+        for (Map.Entry<String, String> alias : featureAliases().entrySet()) {
+            if (alias.getKey().equals(requested)) {
+                return alias.getValue();
             }
         }
-        return key;
+        return requested;
+    }
+
+    private Map<String, String> metadataPairs(String key) {
+        String source = metadata.getOrDefault(key, "");
+        if (source.isBlank()) {
+            return Map.of();
+        }
+        Map<String, String> values = new HashMap<>();
+        for (String pair : source.split(",")) {
+            String[] parts = pair.split(":", 2);
+            if (parts.length != 2) {
+                continue;
+            }
+            String left = parts[0].trim();
+            String right = parts[1].trim();
+            if (!left.isBlank() && !right.isBlank()) {
+                values.put(left, right);
+            }
+        }
+        return Map.copyOf(values);
     }
 }
