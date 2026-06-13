@@ -10,6 +10,7 @@ public final class CacheInvalidationPlan {
         return switch (eventType) {
             case ISLAND_MEMBER_CHANGED -> EnumSet.of(CacheTarget.MEMBERS, CacheTarget.PERMISSIONS, CacheTarget.SUMMARY);
             case ISLAND_OWNERSHIP_CHANGED -> EnumSet.of(CacheTarget.MEMBERS, CacheTarget.PERMISSIONS, CacheTarget.SUMMARY);
+            case ISLAND_RENAMED -> EnumSet.of(CacheTarget.ROUTE, CacheTarget.SUMMARY);
             case ISLAND_INVITE_CHANGED -> EnumSet.of(CacheTarget.INVITES, CacheTarget.SUMMARY);
             case ISLAND_ACCESS_CHANGED -> EnumSet.of(CacheTarget.PERMISSIONS, CacheTarget.ROUTE, CacheTarget.SUMMARY);
             case ISLAND_VISITOR_BAN_CHANGED -> EnumSet.of(CacheTarget.MEMBERS, CacheTarget.PERMISSIONS, CacheTarget.ROUTE, CacheTarget.SUMMARY);
