@@ -167,7 +167,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         contracts = new ContractService(storage, economy, database, boosts, () -> featureEnabled("maintenance"));
         maintenance = new MaintenanceService(machines, economy, database);
         research = new ResearchService(database, economy, () -> featureEnabled("maintenance"));
-        gui = new FactoryGuiService(storage, itemRegistry, machineDefinitions, recipes, islands, research, economy, messages, this::featureEnabled);
+        gui = new FactoryGuiService(storage, itemRegistry, machineDefinitions, recipes, islands, research, economy, messages, this::operationalFeatureEnabled);
 
         loadDefinitions();
         refreshIslandCache();
@@ -487,7 +487,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 itemFactory,
                 itemRegistry,
                 messages,
-                this::featureEnabled,
+                this::operationalFeatureEnabled,
                 this::addonMetadata,
                 this::addonStateSnapshot,
                 this::addonIslandStateSnapshot,
@@ -560,7 +560,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             guiListener = null;
         } else if (!guiListenerRegistered) {
             guiListener = new FactoryGuiListener(
-                    this::featureEnabled,
+                    this::operationalFeatureEnabled,
                     islands,
                     skyblock,
                     contracts,
@@ -637,7 +637,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (!getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             return;
         }
-        placeholderHook = new PlaceholderHook(this, islands, machines, storage, power, boosts, research, contracts, this::featureEnabled);
+        placeholderHook = new PlaceholderHook(this, islands, machines, storage, power, boosts, research, contracts, this::operationalFeatureEnabled);
         placeholderHook.register();
         getLogger().info("Registered PlaceholderAPI expansion: satisskyfactory");
     }
