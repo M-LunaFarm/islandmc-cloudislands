@@ -166,7 +166,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         gui = new FactoryGuiService(storage, itemRegistry, machineDefinitions, recipes, islands, research, economy, messages, this::featureEnabled);
 
         loadDefinitions();
-        islands.load();
+        refreshIslandCache();
         refreshMachineCache();
         logFeatureWarnings();
         if (featureEnabled("machines")) {
@@ -211,6 +211,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         configureSkyblockHook();
         boosts.configure(configs.main());
         loadDefinitions();
+        refreshIslandCache();
         refreshMachineCache();
         logFeatureWarnings();
         if (featureEnabled("machines")) {
@@ -437,6 +438,17 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             if (power != null) {
                 power.clear();
             }
+        }
+    }
+
+    private void refreshIslandCache() {
+        if (lifecycleStateEnabled()) {
+            islands.load();
+            return;
+        }
+        islands.clear();
+        if (dirtySaves != null) {
+            dirtySaves.forgetIslands();
         }
     }
 
