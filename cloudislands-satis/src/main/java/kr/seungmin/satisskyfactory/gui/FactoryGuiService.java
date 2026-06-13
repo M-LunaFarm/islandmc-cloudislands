@@ -156,7 +156,7 @@ public final class FactoryGuiService {
             lore.add(ChatColor.GRAY + "Agriculture x" + NumberFormatter.ratio(boosts.agricultureBoost()));
             lore.add(ChatColor.GRAY + "Machine slots +" + boosts.factorySlotBonus());
         }
-        if (enabled("contracts")) {
+        if (enabled("contracts") && enabled("storage")) {
             lore.add(ChatColor.GRAY + "Contract slots +" + boosts.contractSlotBonus());
         }
         return lore;
