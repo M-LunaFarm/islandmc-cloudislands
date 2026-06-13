@@ -312,9 +312,15 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return matches(List.of("1.0.0", "1.21.0", "1.21.4"), args[5]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
+            if (!superiorSkyblock2MigrationEnabled()) {
+                return List.of();
+            }
             return matches(MIGRATION_COMMANDS, args[1]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
+            if (!superiorSkyblock2MigrationEnabled()) {
+                return List.of();
+            }
             return matches(List.of("plugins/SuperiorSkyblock2"), args[2]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("node")) {
