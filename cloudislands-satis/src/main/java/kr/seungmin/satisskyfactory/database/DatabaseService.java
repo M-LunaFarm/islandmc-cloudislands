@@ -243,18 +243,89 @@ public final class DatabaseService {
         if (targetColumns.isEmpty() || sourceColumns.isEmpty()) {
             return -1L;
         }
-        List<String> commonColumns = targetColumns.stream()
-                .filter(sourceColumns::contains)
-                .toList();
-        if (commonColumns.isEmpty()) {
+        List<String> insertColumns = new ArrayList<>();
+        List<String> selectExpressions = new ArrayList<>();
+        for (String column : targetColumns) {
+            if (sourceColumns.contains(column)) {
+                insertColumns.add(column);
+                selectExpressions.add(column);
+                continue;
+            }
+            String defaultExpression = legacyImportDefaultExpression(table, column);
+            if (!defaultExpression.isBlank()) {
+                insertColumns.add(column);
+                selectExpressions.add(defaultExpression);
+            }
+        }
+        if (insertColumns.isEmpty()) {
             return -1L;
         }
         long before = tableCount(connection, table);
-        String columns = String.join(", ", commonColumns);
+        String columns = String.join(", ", insertColumns);
+        String expressions = String.join(", ", selectExpressions);
         try (Statement statement = connection.createStatement()) {
-            statement.executeUpdate("INSERT OR IGNORE INTO " + table + "(" + columns + ") SELECT " + columns + " FROM legacy_satis." + table);
+            statement.executeUpdate("INSERT OR IGNORE INTO " + table + "(" + columns + ") SELECT " + expressions + " FROM legacy_satis." + table);
         }
         return Math.max(0L, tableCount(connection, table) - before);
+    }
+
+    private String legacyImportDefaultExpression(String table, String column) {
+        if (column.equals("created_at") || column.equals("updated_at") || column.equals("last_tick_at")
+                || column.equals("last_maintenance_at") || column.equals("last_process_at")
+                || column.equals("expires_at") || column.equals("unlocked_at")) {
+            return "CAST(strftime('%s','now') AS INTEGER) * 1000";
+        }
+        if (column.equals("maintenance_status")) {
+            return "'NORMAL'";
+        }
+        if (column.equals("status") && table.equals("machines")) {
+            return "'SLEEPING'";
+        }
+        if (column.equals("status") && table.equals("contracts")) {
+            return "'ACTIVE'";
+        }
+        if (column.equals("direction")) {
+            return "'NORTH'";
+        }
+        if (column.equals("config_json") || column.equals("required_json") || column.equals("progress_json") || column.equals("rewards_json")) {
+            return "'{}'";
+        }
+        if (column.equals("tier")) {
+            return "1";
+        }
+        if (column.equals("capacity")) {
+            return Long.toString(defaultCapacity);
+        }
+        if (column.equals("holder_type")) {
+            return "'ISLAND'";
+        }
+        if (column.equals("holder_id") && table.equals("virtual_inventories")) {
+            return "island_uuid";
+        }
+        if (column.equals("network_type")) {
+            return "'ITEM'";
+        }
+        if (column.equals("type")) {
+            return "'LEGACY'";
+        }
+        if (column.equals("reason")) {
+            return "'legacy-import'";
+        }
+        if (Set.of("research_points", "reputation", "maintenance_debt", "factory_score",
+                "emergency_contracts_used_today", "active_center_x", "active_center_y", "active_center_z",
+                "x", "y", "z", "remaining", "max_remaining", "regen_per_hour", "required_machine_tier",
+                "throughput_per_minute", "dirty", "sold_amount", "amount").contains(column)) {
+            return "0";
+        }
+        if (Set.of("wear", "purity", "generation_per_second", "consumption_per_second",
+                "battery_stored", "battery_capacity", "power_ratio", "demand_factor").contains(column)) {
+            return column.equals("power_ratio") || column.equals("demand_factor") ? "1.0" : "0.0";
+        }
+        if (Set.of("active_world", "input_inventory_id", "output_inventory_id", "power_network_id",
+                "item_network_id", "linked_resource_node_id", "buffer_inventory_id").contains(column)) {
+            return "''";
+        }
+        return "";
     }
 
     private Set<String> tableColumns(Connection connection, String schema, String table) throws SQLException {
