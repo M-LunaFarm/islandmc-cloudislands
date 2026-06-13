@@ -2749,6 +2749,7 @@ public final class VelocityRoutingController {
             case "WARP_LIMIT" -> "섬 워프 한도에 도달했습니다.";
             case "ISLAND_MIGRATING" -> "섬 서버를 최적화하는 중입니다. 잠시 후 자동으로 이동됩니다.";
             case "ISLAND_LOADING_FAILED" -> "섬을 준비하지 못했습니다. 잠시 후 다시 시도해주세요.";
+            case "JOB_QUEUE_UNAVAILABLE", "RECOVERY_UNAVAILABLE" -> "현재 섬 서비스 일부 기능이 점검 중입니다.";
             case "ROUTE_TICKET_NOT_FOUND", "ROUTE_ROUTE_NOT_FOUND" -> "섬 이동 세션이 만료되었습니다. 다시 시도해주세요.";
             case "ISLAND_PERMISSION_DENIED" -> "섬 권한이 없습니다.";
             case "MEMBER_LIMIT" -> "섬 멤버 한도에 도달했습니다.";
@@ -2981,6 +2982,7 @@ public final class VelocityRoutingController {
             case "TEMPLATE_UNAVAILABLE" -> "사용할 수 없는 섬 템플릿입니다.";
             case "CREATE_LOCKED" -> "섬 생성을 처리하는 중입니다. 잠시 후 다시 시도해주세요.";
             case "NODE_UNAVAILABLE" -> "현재 섬 서비스가 혼잡합니다. 잠시 후 다시 시도해주세요.";
+            case "JOB_QUEUE_UNAVAILABLE", "RECOVERY_UNAVAILABLE" -> "현재 섬 서비스 일부 기능이 점검 중입니다.";
             default -> "섬 생성에 실패했습니다.";
         };
     }
