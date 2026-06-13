@@ -31,6 +31,22 @@ import java.util.Map;
 import java.util.function.Predicate;
 
 public final class AdminFactoryCommand {
+    private static final int HELP_PAGE_SIZE = 8;
+    private static final List<String> HELP_COMMANDS = List.of(
+            "factory admin help [page]",
+            "factory admin command list [page]",
+            "factory admin reload",
+            "factory admin give <player> <machineType> [amount]",
+            "factory admin giveitem <player> <itemId> <amount>",
+            "factory admin addresearch <player> <amount>",
+            "factory admin setdebt <player> <amount>",
+            "factory admin charge <player>",
+            "factory admin gennodes <player>",
+            "factory admin debug island",
+            "factory admin debug networks",
+            "factory admin removehere",
+            "factory admin repairhere"
+    );
     private final FactoryIslandService islands;
     private final MachineService machines;
     private final MachineDefinitionService definitions;
@@ -73,7 +89,7 @@ public final class AdminFactoryCommand {
                 messages.send(sender, "no-permission");
                 return true;
             }
-            messages.send(sender, "admin-usage");
+            help(sender, 1);
             return true;
         }
         String subcommand = args[1].toLowerCase(Locale.ROOT);
@@ -87,6 +103,7 @@ public final class AdminFactoryCommand {
             return true;
         }
         switch (subcommand) {
+            case "help", "commands", "command", "command-list", "명령어", "명령어목록" -> help(sender, helpPage(args));
             case "reload" -> {
                 reload.run();
                 messages.send(sender, "reloaded");
@@ -152,6 +169,12 @@ public final class AdminFactoryCommand {
         if (args.length == 2) {
             List<String> values = new ArrayList<>();
             values.add("reload");
+            values.add("help");
+            values.add("commands");
+            values.add("command");
+            values.add("command-list");
+            values.add("명령어");
+            values.add("명령어목록");
             values.add("debug");
             if (enabled("machines")) {
                 values.add("give");
@@ -170,6 +193,9 @@ public final class AdminFactoryCommand {
                 values.add("gennodes");
             }
             return filter(values, args[1]);
+        }
+        if (args.length == 3 && args[1].equalsIgnoreCase("command")) {
+            return filter(List.of("list"), args[2]);
         }
         if ((args[1].equalsIgnoreCase("give") || args[1].equalsIgnoreCase("giveitem") || args[1].equalsIgnoreCase("removehere")) && !enabled("machines")) {
             return new ArrayList<>();
@@ -400,6 +426,50 @@ public final class AdminFactoryCommand {
 
     private boolean enabled(String feature) {
         return featureEnabled == null || featureEnabled.test(feature);
+    }
+
+    private void help(CommandSender sender, int page) {
+        List<String> commands = visibleHelpCommands();
+        int maxPage = Math.max(1, (commands.size() + HELP_PAGE_SIZE - 1) / HELP_PAGE_SIZE);
+        int safePage = Math.max(1, Math.min(page, maxPage));
+        int from = (safePage - 1) * HELP_PAGE_SIZE;
+        int to = Math.min(commands.size(), from + HELP_PAGE_SIZE);
+        sender.sendMessage(messages.raw("admin-command-list-title", Map.of("page", String.valueOf(safePage), "pages", String.valueOf(maxPage))));
+        for (String command : commands.subList(from, to)) {
+            sender.sendMessage(messages.raw("command-list-entry", Map.of("command", command)));
+        }
+        if (safePage < maxPage) {
+            sender.sendMessage(messages.raw("command-list-entry", Map.of("command", "factory admin command list " + (safePage + 1))));
+        }
+    }
+
+    private List<String> visibleHelpCommands() {
+        List<String> values = new ArrayList<>();
+        for (String command : HELP_COMMANDS) {
+            if (commandRequiresDisabledFeature(command)) {
+                continue;
+            }
+            values.add(command);
+        }
+        return values;
+    }
+
+    private boolean commandRequiresDisabledFeature(String command) {
+        return (command.contains(" give ") || command.contains(" giveitem ") || command.contains(" removehere")) && !enabled("machines")
+                || command.contains(" addresearch ") && !enabled("research")
+                || (command.contains(" setdebt ") || command.contains(" charge ") || command.contains(" repairhere")) && !enabled("maintenance")
+                || command.contains(" gennodes ") && !enabled("resource-nodes")
+                || command.contains(" debug networks") && !enabled("machines");
+    }
+
+    private int helpPage(String[] args) {
+        if (args.length > 3 && args[1].equalsIgnoreCase("command") && (args[2].equalsIgnoreCase("list") || args[2].equals("목록"))) {
+            return (int) parseLong(args, 3, 1);
+        }
+        if (args.length > 2) {
+            return (int) parseLong(args, 2, 1);
+        }
+        return 1;
     }
 
     private void withPlayerContext(CommandSender sender, String[] args, int playerIndex, AdminContextConsumer consumer) {

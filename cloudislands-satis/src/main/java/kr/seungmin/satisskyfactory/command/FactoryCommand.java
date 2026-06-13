@@ -40,6 +40,29 @@ import java.util.Optional;
 import java.util.function.Predicate;
 
 public final class FactoryCommand implements CommandExecutor, TabCompleter {
+    private static final int HELP_PAGE_SIZE = 8;
+    private static final List<String> HELP_COMMANDS = List.of(
+            "factory help [page]",
+            "factory command list [page]",
+            "factory status",
+            "factory main",
+            "factory machines",
+            "factory storage",
+            "factory deposit",
+            "factory withdraw <itemId> <amount>",
+            "factory market",
+            "factory sell hand",
+            "factory sell <itemId> <amount>",
+            "factory contracts",
+            "factory contracts complete",
+            "factory emergency",
+            "factory emergency complete",
+            "factory research",
+            "factory research unlock <researchId>",
+            "factory node scan",
+            "factory repair",
+            "factory admin command list [page]"
+    );
     private final FactoryIslandService islands;
     private final MachineService machines;
     private final StorageService storage;
@@ -97,6 +120,10 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             messages.send(sender, "no-player");
             return true;
         }
+        if (isHelpRequest(args)) {
+            help(player, label, helpPage(args));
+            return true;
+        }
         Optional<FactoryContext> context = islands.context(player);
         if (context.isEmpty()) {
             messages.send(player, "no-island");
@@ -113,7 +140,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         }
         islands.save(island);
         switch (sub) {
-            case "help" -> help(player);
+            case "help", "commands", "command", "command-list", "명령어", "명령어목록" -> help(player, label, helpPage(args));
             case "main" -> {
                 if (requireFeature(player, "gui")) {
                     gui.openMain(player, island, machines.byIsland(island.islandUuid()).size(), power.state(island.islandUuid()), boosts.boosts(island.islandUuid()));
@@ -404,9 +431,63 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         }, () -> messages.send(player, "no-emergency-contract"));
     }
 
-    private void help(Player player) {
-        messages.send(player, "help-main");
-        messages.send(player, "help-actions");
+    private void help(Player player, String label, int page) {
+        List<String> commands = visibleHelpCommands(label);
+        int maxPage = Math.max(1, (commands.size() + HELP_PAGE_SIZE - 1) / HELP_PAGE_SIZE);
+        int safePage = Math.max(1, Math.min(page, maxPage));
+        int from = (safePage - 1) * HELP_PAGE_SIZE;
+        int to = Math.min(commands.size(), from + HELP_PAGE_SIZE);
+        player.sendMessage(messages.raw("command-list-title", Map.of("page", String.valueOf(safePage), "pages", String.valueOf(maxPage))));
+        for (String command : commands.subList(from, to)) {
+            player.sendMessage(messages.raw("command-list-entry", Map.of("command", command)));
+        }
+        if (safePage < maxPage) {
+            player.sendMessage(messages.raw("command-list-entry", Map.of("command", label + " command list " + (safePage + 1))));
+        }
+    }
+
+    private List<String> visibleHelpCommands(String label) {
+        List<String> values = new ArrayList<>();
+        for (String command : HELP_COMMANDS) {
+            if (commandRequiresDisabledFeature(command)) {
+                continue;
+            }
+            values.add(command.replaceFirst("^factory", label));
+        }
+        return values;
+    }
+
+    private boolean commandRequiresDisabledFeature(String command) {
+        return (command.contains(" main") || command.contains(" storage")) && !enabled("gui")
+                || (command.contains(" machines") || command.contains(" deposit") || command.contains(" withdraw")) && !enabled("machines")
+                || (command.contains(" market") || command.contains(" sell")) && !enabled("market")
+                || command.contains(" contracts") && !enabled("contracts")
+                || command.contains(" emergency") && !enabled("contracts")
+                || command.contains(" research") && !enabled("research")
+                || command.contains(" node") && !enabled("resource-nodes")
+                || command.contains(" repair") && !enabled("maintenance");
+    }
+
+    private boolean isHelpRequest(String[] args) {
+        if (args.length == 0) {
+            return false;
+        }
+        String first = args[0].toLowerCase(Locale.ROOT);
+        if (first.equals("command") && args.length > 1 && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
+            return true;
+        }
+        return first.equals("help") || first.equals("commands") || first.equals("command") || first.equals("command-list")
+                || first.equals("명령어") || first.equals("명령어목록");
+    }
+
+    private int helpPage(String[] args) {
+        if (args.length > 2 && args[0].equalsIgnoreCase("command") && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
+            return (int) parseLong(args, 2, 1);
+        }
+        if (args.length > 1) {
+            return (int) parseLong(args, 1, 1);
+        }
+        return 1;
     }
 
     private boolean enabled(String feature) {
@@ -489,6 +570,11 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             List<String> values = new ArrayList<>();
             values.add("help");
+            values.add("commands");
+            values.add("command");
+            values.add("command-list");
+            values.add("명령어");
+            values.add("명령어목록");
             values.add("status");
             if (enabled("gui")) {
                 values.add("main");
@@ -518,6 +604,9 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             }
             values.add("admin");
             return filter(values, args[0]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("command")) {
+            return filter(List.of("list"), args[1]);
         }
         if ((args[0].equalsIgnoreCase("sell") && !enabled("market"))
                 || ((args[0].equalsIgnoreCase("withdraw") || args[0].equalsIgnoreCase("deposit")) && !enabled("machines"))
