@@ -173,7 +173,10 @@ public final class PlaceholderHook extends PlaceholderExpansion {
         if (key.equals("contracts_active") || key.equals("contract_slot_bonus")) {
             return enabled("contracts");
         }
-        if (key.equals("factory_score") || key.equals("machines") || key.startsWith("storage_")
+        if (key.startsWith("storage_")) {
+            return enabled("storage");
+        }
+        if (key.equals("factory_score") || key.equals("machines")
                 || key.startsWith("power_") || key.startsWith("battery_") || key.equals("agriculture_boost")
                 || key.equals("machine_limit_bonus")) {
             return enabled("machines");

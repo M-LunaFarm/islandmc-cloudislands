@@ -39,6 +39,7 @@ public final class AdminFactoryCommand {
     private static final List<String> FEATURE_KEYS = List.of(
             "commands",
             "machines",
+            "storage",
             "factories",
             "generators",
             "upgrades",
@@ -334,6 +335,9 @@ public final class AdminFactoryCommand {
                 return;
             }
             if (item.virtualOnly()) {
+                if (!requireFeature(sender, "storage")) {
+                    return;
+                }
                 if (!giveVirtualOnlyItem(sender, target, item.id(), amount)) {
                     return;
                 }

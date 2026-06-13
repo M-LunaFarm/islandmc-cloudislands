@@ -8,6 +8,7 @@ addons:
     features:
       commands: true
       machines: true
+      storage: true
       factories: true
       generators: true
       upgrades: true
@@ -27,6 +28,7 @@ satis:
   features:
     commands: true
     machines: true
+    storage: true
     factories: true
     generators: true
     upgrades: true

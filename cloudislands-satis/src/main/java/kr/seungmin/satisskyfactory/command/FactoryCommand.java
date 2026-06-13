@@ -166,27 +166,30 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                 }
             }
             case "storage" -> {
-                if (requireFeature(player, "machines") && requireFeature(player, "gui")) {
+                if (requireFeature(player, "storage") && requireFeature(player, "gui")) {
                     gui.openStorage(player, island);
                 }
             }
             case "deposit" -> {
-                if (requireFeature(player, "machines")) {
+                if (requireFeature(player, "storage")) {
                     depositHand(player, island);
                 }
             }
             case "withdraw" -> {
-                if (requireFeature(player, "machines")) {
+                if (requireFeature(player, "storage")) {
                     withdraw(player, island, args);
                 }
             }
             case "market" -> {
-                if (requireFeature(player, "market") && requireFeature(player, "gui")) {
+                if (requireFeature(player, "market") && requireFeature(player, "storage") && requireFeature(player, "gui")) {
                     gui.openMarket(player, island, market);
                 }
             }
             case "contracts" -> {
                 if (!requireFeature(player, "contracts")) {
+                    return true;
+                }
+                if (!requireFeature(player, "storage")) {
                     return true;
                 }
                 if (args.length > 1 && args[1].equalsIgnoreCase("complete")) {
@@ -208,6 +211,9 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 if (!requireFeature(player, "maintenance")) {
+                    return true;
+                }
+                if (!requireFeature(player, "storage")) {
                     return true;
                 }
                 if (args.length > 1 && args[1].equalsIgnoreCase("complete")) {
@@ -233,12 +239,12 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                 }
             }
             case "sell" -> {
-                if (requireFeature(player, "market")) {
+                if (requireFeature(player, "market") && requireFeature(player, "storage")) {
                     sell(player, island, args);
                 }
             }
             case "repair" -> {
-                if (requireFeature(player, "maintenance")) {
+                if (requireFeature(player, "maintenance") && requireFeature(player, "storage")) {
                     repairTarget(player, island);
                 }
             }
@@ -420,6 +426,8 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         }
         if (enabled("machines")) {
             messages.send(player, "status-machines", Map.of("count", String.valueOf(machines.byIsland(island.islandUuid()).size())));
+        }
+        if (enabled("storage")) {
             messages.send(player, "status-storage", Map.of("used", String.valueOf(storage.islandStorage(island.islandUuid()).used())));
         }
         var boost = boosts.boosts(island.islandUuid());
@@ -488,14 +496,15 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
 
     private boolean commandRequiresDisabledFeature(String command) {
         return command.contains(" main") && !enabled("gui")
-                || command.contains(" storage") && (!enabled("machines") || !enabled("gui"))
-                || (command.contains(" machines") || command.contains(" deposit") || command.contains(" withdraw")) && !enabled("machines")
-                || (command.contains(" market") || command.contains(" sell")) && !enabled("market")
-                || command.contains(" contracts") && !enabled("contracts")
-                || command.contains(" emergency") && (!enabled("contracts") || !enabled("maintenance"))
+                || command.contains(" storage") && (!enabled("storage") || !enabled("gui"))
+                || command.contains(" machines") && !enabled("machines")
+                || (command.contains(" deposit") || command.contains(" withdraw")) && !enabled("storage")
+                || (command.contains(" market") || command.contains(" sell")) && (!enabled("market") || !enabled("storage"))
+                || command.contains(" contracts") && (!enabled("contracts") || !enabled("storage"))
+                || command.contains(" emergency") && (!enabled("contracts") || !enabled("maintenance") || !enabled("storage"))
                 || command.contains(" research") && !enabled("research")
                 || command.contains(" node") && !enabled("resource-nodes")
-                || command.contains(" repair") && !enabled("maintenance");
+                || command.contains(" repair") && (!enabled("maintenance") || !enabled("storage"));
     }
 
     private boolean isHelpRequest(String[] args) {
@@ -609,21 +618,23 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             if (enabled("gui")) {
                 values.add("main");
             }
-            if (enabled("machines") && enabled("gui")) {
+            if (enabled("storage") && enabled("gui")) {
                 values.add("storage");
             }
             if (enabled("machines")) {
                 values.add("machines");
+            }
+            if (enabled("storage")) {
                 values.add("deposit");
                 values.add("withdraw");
             }
-            if (enabled("contracts")) {
+            if (enabled("contracts") && enabled("storage")) {
                 values.add("contracts");
             }
-            if (enabled("contracts") && enabled("maintenance")) {
+            if (enabled("contracts") && enabled("maintenance") && enabled("storage")) {
                 values.add("emergency");
             }
-            if (enabled("market")) {
+            if (enabled("market") && enabled("storage")) {
                 values.add("market");
                 values.add("sell");
             }
@@ -643,9 +654,10 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             return filter(List.of("list"), args[1]);
         }
         if ((args[0].equalsIgnoreCase("sell") && !enabled("market"))
-                || ((args[0].equalsIgnoreCase("withdraw") || args[0].equalsIgnoreCase("deposit")) && !enabled("machines"))
-                || (args[0].equalsIgnoreCase("contracts") && !enabled("contracts"))
-                || (args[0].equalsIgnoreCase("emergency") && (!enabled("contracts") || !enabled("maintenance")))
+                || ((args[0].equalsIgnoreCase("sell") || args[0].equalsIgnoreCase("market")) && !enabled("storage"))
+                || ((args[0].equalsIgnoreCase("withdraw") || args[0].equalsIgnoreCase("deposit")) && !enabled("storage"))
+                || (args[0].equalsIgnoreCase("contracts") && (!enabled("contracts") || !enabled("storage")))
+                || (args[0].equalsIgnoreCase("emergency") && (!enabled("contracts") || !enabled("maintenance") || !enabled("storage")))
                 || (args[0].equalsIgnoreCase("node") && !enabled("resource-nodes"))
                 || (args[0].equalsIgnoreCase("research") && !enabled("research"))) {
             return new ArrayList<>();

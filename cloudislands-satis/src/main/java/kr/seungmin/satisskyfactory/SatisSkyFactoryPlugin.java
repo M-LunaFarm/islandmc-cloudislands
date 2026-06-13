@@ -1278,6 +1278,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         Map<String, Boolean> features = new LinkedHashMap<>();
         features.put("commands", configuredFeatureEnabled("commands"));
         features.put("machines", configuredFeatureEnabled("machines"));
+        features.put("storage", configuredFeatureEnabled("storage"));
         features.put("gui", configuredFeatureEnabled("gui"));
         features.put("lifecycle", configuredFeatureEnabled("lifecycle"));
         features.put("resource-nodes", configuredFeatureEnabled("resource-nodes"));
@@ -1296,13 +1297,20 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         List<String> warnings = new ArrayList<>();
         if (Boolean.TRUE.equals(features.get("gui"))
                 && !Boolean.TRUE.equals(features.get("machines"))
+                && !Boolean.TRUE.equals(features.get("storage"))
                 && !Boolean.TRUE.equals(features.get("market"))
                 && !Boolean.TRUE.equals(features.get("contracts"))
                 && !Boolean.TRUE.equals(features.get("research"))) {
             warnings.add("gui-without-panels");
         }
-        if (Boolean.TRUE.equals(features.get("market")) && !Boolean.TRUE.equals(features.get("machines"))) {
+        if (Boolean.TRUE.equals(features.get("market")) && !Boolean.TRUE.equals(features.get("storage"))) {
             warnings.add("market-without-storage-commands");
+        }
+        if (Boolean.TRUE.equals(features.get("contracts")) && !Boolean.TRUE.equals(features.get("storage"))) {
+            warnings.add("contracts-without-storage");
+        }
+        if (Boolean.TRUE.equals(features.get("maintenance")) && !Boolean.TRUE.equals(features.get("storage"))) {
+            warnings.add("maintenance-repair-without-storage");
         }
         if (Boolean.TRUE.equals(features.get("resource-nodes")) && !Boolean.TRUE.equals(features.get("machines"))) {
             warnings.add("resource-nodes-without-machines");
@@ -1315,6 +1323,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (Boolean.TRUE.equals(features.get("placeholders"))
                 && !Boolean.TRUE.equals(features.get("machines"))
+                && !Boolean.TRUE.equals(features.get("storage"))
                 && !Boolean.TRUE.equals(features.get("contracts"))
                 && !Boolean.TRUE.equals(features.get("research"))
                 && !Boolean.TRUE.equals(features.get("maintenance"))) {
@@ -1322,6 +1331,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (Boolean.TRUE.equals(features.get("lifecycle"))
                 && !Boolean.TRUE.equals(features.get("machines"))
+                && !Boolean.TRUE.equals(features.get("storage"))
                 && !Boolean.TRUE.equals(features.get("resource-nodes"))
                 && !Boolean.TRUE.equals(features.get("market"))
                 && !Boolean.TRUE.equals(features.get("contracts"))
@@ -1331,6 +1341,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (!Boolean.TRUE.equals(features.get("lifecycle"))
                 && (Boolean.TRUE.equals(features.get("machines"))
+                || Boolean.TRUE.equals(features.get("storage"))
                 || Boolean.TRUE.equals(features.get("resource-nodes"))
                 || Boolean.TRUE.equals(features.get("market"))
                 || Boolean.TRUE.equals(features.get("contracts"))
@@ -1340,6 +1351,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (!databaseShared()
                 && (Boolean.TRUE.equals(features.get("machines"))
+                || Boolean.TRUE.equals(features.get("storage"))
                 || Boolean.TRUE.equals(features.get("resource-nodes"))
                 || Boolean.TRUE.equals(features.get("market"))
                 || Boolean.TRUE.equals(features.get("contracts"))
