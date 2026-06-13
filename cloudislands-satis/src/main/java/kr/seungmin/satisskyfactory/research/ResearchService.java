@@ -62,6 +62,11 @@ public final class ResearchService {
         }
     }
 
+    public void clear() {
+        unlocks.clear();
+        blockTierUpgradesWhenLimited = false;
+    }
+
     public void addResearch(FactoryIsland island, long amount) {
         island.researchPoints(Math.max(0, island.researchPoints() + amount));
     }

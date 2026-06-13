@@ -76,6 +76,17 @@ public final class ContractService {
                 : emergencyTemplates().stream().findFirst().orElse(null);
     }
 
+    public void clear() {
+        templates.clear();
+        emergency = null;
+        dailySlots = 0;
+        weeklySlots = 0;
+        storySlots = 0;
+        marketSlots = 0;
+        emergencyDailyLimit = 0;
+        boostedSlotTypes = Set.of();
+    }
+
     public List<ActiveContract> activeContracts(FactoryIsland island) {
         expireOldContracts(island);
         ensureDailyContracts(island);

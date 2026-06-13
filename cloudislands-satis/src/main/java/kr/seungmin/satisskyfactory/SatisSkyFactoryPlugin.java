@@ -354,15 +354,23 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (featureEnabled("market")) {
             market.load(configs.file("market.yml"), configs.file("maintenance.yml"));
+        } else {
+            market.clear();
         }
         if (featureEnabled("contracts")) {
             contracts.load(configs.file("contracts.yml"));
+        } else {
+            contracts.clear();
         }
         if (featureEnabled("maintenance")) {
             maintenance.load(configs.file("maintenance.yml"));
+        } else {
+            maintenance.clear();
         }
         if (featureEnabled("research")) {
             research.load(configs.file("research.yml"), configs.file("maintenance.yml"));
+        } else {
+            research.clear();
         }
     }
 

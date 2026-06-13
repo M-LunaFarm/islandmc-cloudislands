@@ -56,12 +56,7 @@ public final class MarketService {
     }
 
     public void load(FileConfiguration config, FileConfiguration maintenanceConfig) {
-        prices.clear();
-        targetDailyAmounts.clear();
-        itemQualityFactors.clear();
-        tagQualityFactors.clear();
-        personalTiers.clear();
-        lockedMarketSalesBlocked = false;
+        clear();
         personalSoftCapEnabled = config.getBoolean("market.personal-soft-cap.enabled", true);
         personalSoftCap = config.isInt("market.personal-soft-cap") ? config.getInt("market.personal-soft-cap", 256) : 256;
         demandFloor = config.getDouble("market.factor-min", config.getDouble("market.demand-floor", 0.35));
@@ -93,6 +88,22 @@ public final class MarketService {
                 itemQualityFactors.put(itemId, Math.max(0.0, marketItems.getDouble(itemId + ".quality-factor", 1.0)));
             }
         }
+    }
+
+    public void clear() {
+        prices.clear();
+        targetDailyAmounts.clear();
+        itemQualityFactors.clear();
+        tagQualityFactors.clear();
+        personalTiers.clear();
+        lockedMarketSalesBlocked = false;
+        personalSoftCapEnabled = true;
+        personalSoftCap = 256;
+        demandFloor = 0.35;
+        demandCeiling = 1.25;
+        demandExponent = 0.35;
+        debtRepayRate = 0.35;
+        lockedDebtRepayRate = 0.70;
     }
 
     public long price(String itemId, long amount) {

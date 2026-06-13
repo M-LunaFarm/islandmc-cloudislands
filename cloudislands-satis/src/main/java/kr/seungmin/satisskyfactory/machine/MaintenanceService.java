@@ -72,6 +72,28 @@ public final class MaintenanceService {
         brokenRepairCost = readCost(config.getConfigurationSection("maintenance.broken-repair-cost"));
     }
 
+    public void clear() {
+        enabled = false;
+        intervalMillis = 0L;
+        baseCost = 0L;
+        perMachineCost = 0L;
+        minFee = 0L;
+        exponent = 1.0;
+        exponentialFormula = false;
+        newIslandFreeMillis = 0L;
+        debtCapDays = 0L;
+        dormantAfterMillis = 0L;
+        warningThreshold = 1L;
+        limitedThreshold = Long.MAX_VALUE;
+        lockedThreshold = Long.MAX_VALUE;
+        warningThresholdDays = -1.0;
+        limitedThresholdDays = -1.0;
+        lockedThresholdDays = -1.0;
+        debtCap = 0L;
+        repairCost = Map.of();
+        brokenRepairCost = Map.of();
+    }
+
     public long chargeIfDue(FactoryIsland island, OfflinePlayer owner, Object rawIsland) {
         return charge(island, owner, rawIsland, false);
     }
