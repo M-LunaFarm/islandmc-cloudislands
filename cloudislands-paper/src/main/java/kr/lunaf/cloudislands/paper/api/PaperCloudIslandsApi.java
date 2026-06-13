@@ -391,6 +391,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (section == null) {
                 applyFeatureAliases(effective, registration.metadata());
                 applyFeatureDependencies(effective, registration.metadata());
+                applyFeatureAliases(effective, registration.metadata());
                 return effective;
             }
             for (String key : section.getKeys(false)) {
@@ -398,6 +399,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             }
             applyFeatureAliases(effective, registration.metadata());
             applyFeatureDependencies(effective, registration.metadata());
+            applyFeatureAliases(effective, registration.metadata());
             return effective;
         }
 
