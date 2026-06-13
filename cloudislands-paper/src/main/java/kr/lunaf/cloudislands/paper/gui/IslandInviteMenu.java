@@ -49,22 +49,25 @@ public final class IslandInviteMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || !meta.hasDisplayName()) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= 54) {
             return;
         }
-        String name = meta.getDisplayName();
         player.closeInventory();
-        if (name.equals("새로고침")) {
+        if (slot == 49) {
             player.performCommand("섬 초대목록");
             return;
         }
-        if (name.equals("멤버 관리")) {
+        if (slot == 45) {
             player.performCommand("섬 멤버관리");
             return;
         }
-        if (name.equals("메인 메뉴")) {
+        if (slot == 53) {
             player.performCommand("섬 메뉴");
+            return;
+        }
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null) {
             return;
         }
         String inviteId = loreValue(meta, "초대 ID=");
@@ -78,25 +81,25 @@ public final class IslandInviteMenu implements Listener {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
             if (invites.isEmpty()) {
-                inventory.setItem(22, item(Material.BARRIER, "대기 중인 초대 없음", message(messages, "invite-menu-empty", "받은 섬 초대가 없습니다.")));
+                inventory.setItem(22, item(Material.BARRIER, message(messages, "invite-menu-empty-title", "대기 중인 초대 없음"), message(messages, "invite-menu-empty", "받은 섬 초대가 없습니다.")));
             } else {
                 int slot = 0;
                 for (Invite invite : invites.stream().limit(45).toList()) {
                     inventory.setItem(slot++, inviteItem(invite, messages));
                 }
             }
-            inventory.setItem(45, item(Material.NAME_TAG, "멤버 관리", "/섬 멤버관리"));
-            inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 초대목록"));
-            inventory.setItem(53, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
+            inventory.setItem(45, item(Material.NAME_TAG, message(messages, "invite-menu-member-name", "멤버 관리"), message(messages, "invite-menu-member-command", "/섬 멤버관리")));
+            inventory.setItem(49, item(Material.CLOCK, message(messages, "invite-menu-refresh-name", "새로고침"), message(messages, "invite-menu-refresh-command", "/섬 초대목록")));
+            inventory.setItem(53, item(Material.COMPASS, message(messages, "invite-menu-main-menu-name", "메인 메뉴"), message(messages, "invite-menu-main-menu-command", "/섬 메뉴")));
             player.openInventory(inventory);
         });
     }
 
     private static ItemStack inviteItem(Invite invite, MessageRenderer messages) {
-        return item(Material.WRITABLE_BOOK, "섬 초대 " + shortUuid(invite.islandId()),
+        return item(Material.WRITABLE_BOOK, message(messages, "invite-menu-title-prefix", "섬 초대 ") + shortUuid(invite.islandId()),
             "초대 ID=" + invite.inviteId(),
-            "섬 ID: " + shortUuid(invite.islandId()),
-            "초대한 사람: " + shortUuid(invite.inviterUuid()),
+            message(messages, "invite-menu-island-id", "섬 ID: ") + shortUuid(invite.islandId()),
+            message(messages, "invite-menu-inviter", "초대한 사람: ") + shortUuid(invite.inviterUuid()),
             invite.createdAt().isBlank() ? message(messages, "invite-menu-no-created-info", "생성 정보 없음") : message(messages, "invite-menu-created-at", "생성 시각: ") + invite.createdAt(),
             invite.expiresAt().isBlank() ? message(messages, "invite-menu-no-expire-info", "만료 정보 없음") : message(messages, "invite-menu-expires-at", "만료 시각: ") + invite.expiresAt(),
             message(messages, "invite-menu-left-click", "좌클릭: 초대 수락"),

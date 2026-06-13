@@ -482,7 +482,17 @@ public final class TranslationManager {
         values.put("member-menu-shift-right-click", "Shift+우클릭: 추방");
         values.put("member-menu-transfer-line", "양도: /섬 양도 ");
         values.put("invite-menu-load-failed", "섬 초대 목록을 불러오지 못했습니다.");
+        values.put("invite-menu-empty-title", "대기 중인 초대 없음");
         values.put("invite-menu-empty", "받은 섬 초대가 없습니다.");
+        values.put("invite-menu-member-name", "멤버 관리");
+        values.put("invite-menu-member-command", "/섬 멤버관리");
+        values.put("invite-menu-refresh-name", "새로고침");
+        values.put("invite-menu-refresh-command", "/섬 초대목록");
+        values.put("invite-menu-main-menu-name", "메인 메뉴");
+        values.put("invite-menu-main-menu-command", "/섬 메뉴");
+        values.put("invite-menu-title-prefix", "섬 초대 ");
+        values.put("invite-menu-island-id", "섬 ID: ");
+        values.put("invite-menu-inviter", "초대한 사람: ");
         values.put("invite-menu-no-created-info", "생성 정보 없음");
         values.put("invite-menu-created-at", "생성 시각: ");
         values.put("invite-menu-no-expire-info", "만료 정보 없음");
