@@ -467,7 +467,12 @@ public final class AdminFactoryCommand {
 
     private void showIntegration(CommandSender sender) {
         sender.sendMessage(messages.raw("admin-integration-title"));
-        Map<String, String> metadata = integrationMetadata == null ? Map.of() : integrationMetadata.get();
+        Map<String, String> metadata;
+        try {
+            metadata = integrationMetadata == null ? Map.of() : integrationMetadata.get();
+        } catch (RuntimeException exception) {
+            metadata = Map.of("status", "unavailable", "error", exception.getMessage() == null ? "unknown" : exception.getMessage());
+        }
         metadata.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
