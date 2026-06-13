@@ -500,8 +500,15 @@ public final class TranslationManager {
         values.put("invite-menu-left-click", "좌클릭: 초대 수락");
         values.put("invite-menu-right-click", "우클릭: 초대 거절");
         values.put("ban-menu-load-failed", "섬 밴 목록을 불러오지 못했습니다.");
+        values.put("ban-menu-empty-title", "밴 기록 없음");
         values.put("ban-menu-empty", "현재 밴된 방문자가 없습니다.");
         values.put("ban-menu-detail-title", "방문자 밴 상세");
+        values.put("ban-menu-refresh-name", "새로고침");
+        values.put("ban-menu-refresh-command", "/섬 밴목록");
+        values.put("ban-menu-settings-name", "설정");
+        values.put("ban-menu-settings-command", "/섬 설정");
+        values.put("ban-menu-title-prefix", "밴 ");
+        values.put("ban-menu-actor", "처리자: ");
         values.put("ban-menu-reason", "사유: ");
         values.put("ban-menu-none", "없음");
         values.put("ban-menu-no-created-info", "생성 정보 없음");

@@ -50,18 +50,21 @@ public final class IslandBanMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || !meta.hasDisplayName()) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= 54) {
             return;
         }
-        String name = meta.getDisplayName();
         player.closeInventory();
-        if (name.equals("새로고침")) {
+        if (slot == 49) {
             player.performCommand("섬 밴목록");
             return;
         }
-        if (name.equals("설정")) {
+        if (slot == 53) {
             player.performCommand("섬 설정");
+            return;
+        }
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null) {
             return;
         }
         String bannedUuid = loreValue(meta, "대상=");
@@ -84,22 +87,22 @@ public final class IslandBanMenu implements Listener {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
             if (bans.isEmpty()) {
-                inventory.setItem(22, item(Material.BARRIER, "밴 기록 없음", message(messages, "ban-menu-empty", "현재 밴된 방문자가 없습니다.")));
+                inventory.setItem(22, item(Material.BARRIER, message(messages, "ban-menu-empty-title", "밴 기록 없음"), message(messages, "ban-menu-empty", "현재 밴된 방문자가 없습니다.")));
             } else {
                 for (int index = 0; index < bans.size() && index < 45; index++) {
                     inventory.setItem(index, banItem(bans.get(index), messages));
                 }
             }
-            inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 밴목록"));
-            inventory.setItem(53, item(Material.COMPARATOR, "설정", "/섬 설정"));
+            inventory.setItem(49, item(Material.CLOCK, message(messages, "ban-menu-refresh-name", "새로고침"), message(messages, "ban-menu-refresh-command", "/섬 밴목록")));
+            inventory.setItem(53, item(Material.COMPARATOR, message(messages, "ban-menu-settings-name", "설정"), message(messages, "ban-menu-settings-command", "/섬 설정")));
             player.openInventory(inventory);
         });
     }
 
     private static ItemStack banItem(Ban ban, MessageRenderer messages) {
-        return item(Material.BARRIER, "밴 " + shortUuid(ban.bannedUuid()),
+        return item(Material.BARRIER, message(messages, "ban-menu-title-prefix", "밴 ") + shortUuid(ban.bannedUuid()),
             "대상=" + ban.bannedUuid(),
-            "처리자: " + shortUuid(ban.actorUuid()),
+            message(messages, "ban-menu-actor", "처리자: ") + shortUuid(ban.actorUuid()),
             message(messages, "ban-menu-reason", "사유: ") + (ban.reason().isBlank() ? message(messages, "ban-menu-none", "없음") : ban.reason()),
             ban.createdAt().isBlank() ? message(messages, "ban-menu-no-created-info", "생성 정보 없음") : message(messages, "ban-menu-created-at", "생성 시각: ") + ban.createdAt(),
             ban.expiresAt().isBlank() ? message(messages, "ban-menu-no-expire", "만료 없음") : message(messages, "ban-menu-expires-at", "만료 시각: ") + ban.expiresAt(),
