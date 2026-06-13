@@ -62,6 +62,9 @@ public interface CloudIslandsAddon {
             onIslandPermissionChanged(permissionChanged);
         } else if (event instanceof IslandLevelRecalculateEvent levelUpdated) {
             onIslandLevelUpdated(levelUpdated);
+            if (levelUpdated.worth() != null) {
+                onIslandWorthChanged(new IslandWorthChangeEvent(levelUpdated.islandId(), levelUpdated.worth(), levelUpdated.occurredAt()));
+            }
         } else if (event instanceof IslandWorthChangeEvent worthChanged) {
             onIslandWorthChanged(worthChanged);
         } else if (event instanceof IslandSnapshotCreateEvent snapshotCreated) {

@@ -31,7 +31,7 @@ public final class CloudEventMapper {
             case "ISLAND_PERMISSION_CHANGED" -> Optional.of(new IslandPermissionChangeEvent(uuid(fields, "islandId"), firstRole(fields, "role", "targetRole"), permission(fields, "permission"), nullableBool(fields, "allowed"), occurredAt));
             case "ISLAND_MISSION_PROGRESS" -> Optional.of(new IslandMissionProgressEvent(uuid(fields, "islandId"), text(fields, "missionKey"), text(fields, "kind"), longValue(fields, "progress"), longValue(fields, "goal"), longValue(fields, "amount"), bool(fields, "completed"), occurredAt));
             case "ISLAND_MISSION_COMPLETED" -> Optional.of(new IslandMissionCompleteEvent(uuid(fields, "islandId"), text(fields, "missionKey"), text(fields, "kind"), occurredAt));
-            case "ISLAND_LEVEL_UPDATED" -> Optional.of(new IslandLevelRecalculateEvent(uuid(fields, "islandId"), longValue(fields, "level"), occurredAt));
+            case "ISLAND_LEVEL_UPDATED" -> Optional.of(new IslandLevelRecalculateEvent(uuid(fields, "islandId"), longValue(fields, "level"), decimalOrNull(fields, "worth"), occurredAt));
             case "ISLAND_WORTH_CHANGED" -> Optional.of(new IslandWorthChangeEvent(uuid(fields, "islandId"), decimal(fields, "worth"), occurredAt));
             case "ISLAND_SNAPSHOT_CREATED" -> Optional.of(new IslandSnapshotCreateEvent(uuid(fields, "islandId"), longValue(fields, "snapshotNo"), text(fields, "reason"), occurredAt));
             case "NODE_STATE_CHANGED" -> Optional.of(new NodeStateChangedEvent(text(fields, "nodeId"), text(fields, "state"), text(fields, "operation"), text(fields, "reason"), intValue(fields, "recoveryRequired"), occurredAt));
@@ -136,6 +136,18 @@ public final class CloudEventMapper {
             return new BigDecimal(value);
         } catch (NumberFormatException ignored) {
             return BigDecimal.ZERO;
+        }
+    }
+
+    private static BigDecimal decimalOrNull(Map<String, String> fields, String key) {
+        String value = text(fields, key);
+        if (value.isBlank()) {
+            return null;
+        }
+        try {
+            return new BigDecimal(value);
+        } catch (NumberFormatException ignored) {
+            return null;
         }
     }
 }
