@@ -330,7 +330,7 @@ public final class MigrationAdminService {
         lastApprovalToken = "";
         lastRollbackPlan = result.rollbackPlan();
         MigrationRunState state = result.imported() ? MigrationRunState.IMPORTED : MigrationRunState.DRY_RUN_FAILED;
-        return "{\"state\":\"" + state + "\",\"imported\":" + result.imported() + ",\"importedIslands\":" + result.importedIslands() + ",\"extractedBundles\":" + extractedStats[0] + ",\"extractedFiles\":" + extractedStats[1] + ",\"extractedBytes\":" + extractedStats[2] + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), result.issues())) + ",\"issues\":" + issuesJson(result.issues()) + ",\"rollbackPlan\":" + rollbackPlanJson(result.rollbackPlan()) + "}";
+        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"imported\":" + result.imported() + ",\"importedIslands\":" + result.importedIslands() + ",\"extractedBundles\":" + extractedStats[0] + ",\"extractedFiles\":" + extractedStats[1] + ",\"extractedBytes\":" + extractedStats[2] + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), result.issues())) + ",\"issues\":" + issuesJson(result.issues()) + ",\"rollbackPlan\":" + rollbackPlanJson(result.rollbackPlan()) + "}";
     }
 
     private record BundlePreflight(Map<java.util.UUID, MigrationWorldBundle> bundles, List<MigrationIssue> issues) {}
@@ -338,7 +338,7 @@ public final class MigrationAdminService {
     public synchronized String verify() {
         if (lastScan.manifests().isEmpty()) {
             List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_SCAN_REQUIRED", "run scan before verifying SuperiorSkyblock2 migration", true));
-            return "{\"state\":\"" + MigrationRunState.VERIFYING + "\",\"path\":\"\",\"reportPath\":\"\",\"passed\":false,\"expected\":0,\"imported\":0,\"extractedBundles\":0,\"extractedFiles\":0,\"extractedBytes\":0,\"activationTested\":0,\"activationTestPassed\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+            return "{\"state\":\"" + MigrationRunState.VERIFYING + "\"" + migrationBoundaryFields() + ",\"path\":\"\",\"reportPath\":\"\",\"passed\":false,\"expected\":0,\"imported\":0,\"extractedBundles\":0,\"extractedFiles\":0,\"extractedBytes\":0,\"activationTested\":0,\"activationTestPassed\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
         }
         List<MigrationManifest> imported = new ArrayList<>();
         List<MigrationIssue> issues = new ArrayList<>();
@@ -423,12 +423,12 @@ public final class MigrationAdminService {
             passed = false;
             state = MigrationRunState.VERIFYING;
         }
-        return "{\"state\":\"" + state + "\",\"path\":\"" + escape(verifyBundleRoot.toString()) + "\",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"passed\":" + passed + ",\"expected\":" + lastScan.manifests().size() + ",\"imported\":" + imported.size() + ",\"extractedBundles\":" + extractedBundles + ",\"extractedFiles\":" + extractedFiles + ",\"extractedBytes\":" + extractedBytes + ",\"activationTested\":" + activationTested + ",\"activationTestPassed\":" + activationTestPassed + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"path\":\"" + escape(verifyBundleRoot.toString()) + "\",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"passed\":" + passed + ",\"expected\":" + lastScan.manifests().size() + ",\"imported\":" + imported.size() + ",\"extractedBundles\":" + extractedBundles + ",\"extractedFiles\":" + extractedFiles + ",\"extractedBytes\":" + extractedBytes + ",\"activationTested\":" + activationTested + ",\"activationTestPassed\":" + activationTestPassed + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
     }
 
     public synchronized String rollbackLastImport() {
         if (lastRollbackPlan == null) {
-            return "{\"state\":\"" + MigrationRunState.ROLLED_BACK + "\",\"rolledBack\":false,\"removedIslands\":0,\"issues\":" + issuesJson(List.of(new MigrationIssue("ROLLBACK_PLAN_NOT_FOUND", "no import rollback plan is available", true))) + "}";
+            return "{\"state\":\"" + MigrationRunState.ROLLED_BACK + "\"" + migrationBoundaryFields() + ",\"rolledBack\":false,\"removedIslands\":0,\"issues\":" + issuesJson(List.of(new MigrationIssue("ROLLBACK_PLAN_NOT_FOUND", "no import rollback plan is available", true))) + "}";
         }
         MigrationRollbackService.RollbackResult result = rollback.rollback(lastRollbackPlan, islandId -> {
             IslandSnapshot island = islands.findById(islandId).orElseThrow(() -> new IllegalStateException("island not found"));
@@ -442,7 +442,7 @@ public final class MigrationAdminService {
                 .ifPresent(_current -> playerProfiles.clearPrimaryIsland(island.ownerUuid()));
             removeMigrationExtraction(islandId);
         });
-        return "{\"state\":\"" + MigrationRunState.ROLLED_BACK + "\",\"rolledBack\":" + result.rolledBack() + ",\"removedIslands\":" + result.removedIslands() + ",\"issues\":" + issuesJson(result.issues()) + "}";
+        return "{\"state\":\"" + MigrationRunState.ROLLED_BACK + "\"" + migrationBoundaryFields() + ",\"rolledBack\":" + result.rolledBack() + ",\"removedIslands\":" + result.removedIslands() + ",\"issues\":" + issuesJson(result.issues()) + "}";
     }
 
     private void removeMigrationExtraction(java.util.UUID islandId) {
