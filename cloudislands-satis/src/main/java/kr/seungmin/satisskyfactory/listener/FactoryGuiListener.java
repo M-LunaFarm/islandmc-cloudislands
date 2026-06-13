@@ -129,6 +129,11 @@ public final class FactoryGuiListener implements Listener {
             player.closeInventory();
             return;
         }
+        if (requiresStorage(action.type()) && !featureEnabled.test("storage")) {
+            messages.send(player, "feature-disabled", Map.of("feature", "storage"));
+            player.closeInventory();
+            return;
+        }
         if (action.type().equals("storage_page")) {
             gui.openStorage(player, island, parsePage(action.value()));
             return;
@@ -272,7 +277,7 @@ public final class FactoryGuiListener implements Listener {
             return "market";
         }
         if (actionType.equals("storage_page") || actionType.equals("main_storage") || actionType.equals("withdraw_storage")) {
-            return "machines";
+            return "storage";
         }
         if (actionType.equals("main_contracts") || actionType.equals("contracts_back") || actionType.equals("contract_detail")
                 || actionType.equals("complete_contract") || actionType.equals("complete_emergency")) {
@@ -281,11 +286,25 @@ public final class FactoryGuiListener implements Listener {
         if (actionType.equals("main_research") || actionType.equals("unlock_research")) {
             return "research";
         }
-        if (actionType.equals("deposit_hand") || actionType.equals("deposit_machine_input") || actionType.equals("withdraw_machine_input")
+        if (actionType.equals("deposit_hand")) {
+            return "storage";
+        }
+        if (actionType.equals("deposit_machine_input") || actionType.equals("withdraw_machine_input")
                 || actionType.equals("withdraw_machine_output") || actionType.equals("select_recipe") || actionType.equals("reclaim_machine")) {
             return "machines";
         }
         return null;
+    }
+
+    private boolean requiresStorage(String actionType) {
+        return actionType.equals("market_page")
+                || actionType.equals("main_market")
+                || actionType.equals("sell_market_item")
+                || actionType.equals("main_contracts")
+                || actionType.equals("contracts_back")
+                || actionType.equals("contract_detail")
+                || actionType.equals("complete_contract")
+                || actionType.equals("complete_emergency");
     }
 
     private Optional<MachineInstance> machine(FactoryGuiHolder holder) {

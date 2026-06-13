@@ -67,10 +67,14 @@ public final class FactoryGuiService {
         Inventory inventory = Bukkit.createInventory(holder, 27, title("main-title", "SatisSkyFactory"));
         holder.inventory(inventory);
         if (enabled("machines") && powerState != null) {
+            List<String> factoryLore = new ArrayList<>();
+            factoryLore.add(ChatColor.GRAY + "Tier: " + island.tier());
+            factoryLore.add(ChatColor.GRAY + "Machines: " + machineCount);
+            if (enabled("storage")) {
+                factoryLore.add(ChatColor.GRAY + "Storage used: " + storage.islandStorage(island.islandUuid()).used());
+            }
             inventory.setItem(10, icon(Material.CRAFTING_TABLE, ChatColor.GOLD + "Factory",
-                    List.of(ChatColor.GRAY + "Tier: " + island.tier(),
-                            ChatColor.GRAY + "Machines: " + machineCount,
-                            ChatColor.GRAY + "Storage used: " + storage.islandStorage(island.islandUuid()).used())));
+                    factoryLore));
             inventory.setItem(12, icon(Material.REDSTONE, ChatColor.RED + "Power",
                     List.of(ChatColor.GRAY + "Ratio: " + NumberFormatter.ratio(powerState.ratio()),
                             ChatColor.GRAY + "Generation: " + NumberFormatter.decimal(powerState.generation(), 1),
@@ -92,17 +96,17 @@ public final class FactoryGuiService {
             inventory.setItem(8, icon(Material.COMMAND_BLOCK, ChatColor.RED + "Admin",
                     List.of(ChatColor.GRAY + "Open factory administration.")));
         }
-        if (enabled("contracts")) {
+        if (enabled("contracts") && enabled("storage")) {
             holder.action(20, "main_contracts", "");
             inventory.setItem(20, icon(Material.WRITABLE_BOOK, ChatColor.GOLD + "Contracts",
                     List.of(ChatColor.GRAY + "Open delivery contracts.")));
         }
-        if (enabled("market")) {
+        if (enabled("market") && enabled("storage")) {
             holder.action(22, "main_market", "");
             inventory.setItem(22, icon(Material.EMERALD, ChatColor.GREEN + "Market",
                     List.of(ChatColor.GRAY + "Sell stored factory items.")));
         }
-        if (enabled("machines")) {
+        if (enabled("storage")) {
             holder.action(24, "main_storage", "");
             inventory.setItem(24, icon(Material.CHEST, ChatColor.YELLOW + "Storage",
                     List.of(ChatColor.GRAY + "Browse island virtual storage.")));
@@ -186,6 +190,11 @@ public final class FactoryGuiService {
     }
 
     public void openStorage(Player player, FactoryIsland island, int page) {
+        if (!enabled("storage")) {
+            messages.send(player, "feature-disabled", Map.of("feature", "storage"));
+            player.closeInventory();
+            return;
+        }
         int safePage = Math.max(0, page);
         FactoryGuiHolder holder = new FactoryGuiHolder("storage", island.islandUuid(), null, safePage);
         Inventory inventory = Bukkit.createInventory(holder, 54, title("storage-title", "Factory Storage"));
@@ -324,6 +333,11 @@ public final class FactoryGuiService {
     }
 
     public void openContracts(Player player, FactoryIsland island, ContractService contracts) {
+        if (!enabled("storage")) {
+            messages.send(player, "feature-disabled", Map.of("feature", "storage"));
+            player.closeInventory();
+            return;
+        }
         FactoryGuiHolder holder = new FactoryGuiHolder("contracts", island.islandUuid(), null);
         Inventory inventory = Bukkit.createInventory(holder, 27, title("contracts-title", "Factory Contracts"));
         holder.inventory(inventory);
@@ -432,6 +446,11 @@ public final class FactoryGuiService {
     }
 
     public void openMarket(Player player, FactoryIsland island, MarketService market, int page) {
+        if (!enabled("storage")) {
+            messages.send(player, "feature-disabled", Map.of("feature", "storage"));
+            player.closeInventory();
+            return;
+        }
         int safePage = Math.max(0, page);
         FactoryGuiHolder holder = new FactoryGuiHolder("market", island.islandUuid(), null, safePage);
         Inventory inventory = Bukkit.createInventory(holder, 54, title("market-title", "Factory Market"));
