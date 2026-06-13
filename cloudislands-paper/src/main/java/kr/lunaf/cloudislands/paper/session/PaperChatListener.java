@@ -3,21 +3,21 @@ package kr.lunaf.cloudislands.paper.session;
 import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 
 public final class PaperChatListener implements Listener {
-    private final Component prefix;
+    private final MessageRenderer messages;
 
-    public PaperChatListener(String serviceName) {
-        String name = serviceName == null || serviceName.isBlank() ? "CloudIslands" : serviceName;
-        this.prefix = Component.text("[" + name + "] ");
+    public PaperChatListener(MessageRenderer messages) {
+        this.messages = messages;
     }
 
     @EventHandler
     public void onAsyncChat(AsyncChatEvent event) {
         event.renderer(ChatRenderer.viewerUnaware((source, sourceDisplayName, message) ->
-            prefix.append(sourceDisplayName).append(Component.text(": ")).append(message)
+            messages.component("chat-prefix").append(sourceDisplayName).append(Component.text(": ")).append(message)
         ));
     }
 }

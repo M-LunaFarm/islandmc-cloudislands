@@ -64,6 +64,8 @@ import kr.lunaf.cloudislands.paper.level.PeriodicIslandLevelScanTask;
 import kr.lunaf.cloudislands.paper.limit.IslandEntityLimitListener;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitListener;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.paper.message.TranslationManager;
 import kr.lunaf.cloudislands.paper.placeholder.CloudIslandsPlaceholderExpansion;
 import kr.lunaf.cloudislands.paper.session.PaperBrandingListener;
 import kr.lunaf.cloudislands.paper.session.PaperChatListener;
@@ -98,6 +100,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private EconomyBridge economyBridge;
     private GeneratorLevelCache generatorLevels;
     private Object placeholderExpansion;
+    private MessageRenderer messages;
 
     @Override
     public void onEnable() {
@@ -117,6 +120,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             Duration.ofMillis(Math.max(1L, getConfig().getLong("core-api.timeout-ms", 3000L)))
         );
         this.agent = new CloudIslandsPaperAgent(this, role, client, nodeId);
+        String serviceName = getConfig().getString("plugin.service-name", "CloudIslands");
+        this.messages = new MessageRenderer(TranslationManager.fromConfig(getConfig(), serviceName));
         this.api = new PaperCloudIslandsApi(client, agent);
         CloudIslandsProvider.set(api);
         getServer().getServicesManager().register(CloudIslandsApi.class, api, this, ServicePriority.Normal);
@@ -129,9 +134,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection(), blockDeltas, denyMessageCooldownMs, denyMessages()), this);
         getServer().getPluginManager().registerEvents(new IslandBoundaryListener(agent.protection()), this);
         getServer().getPluginManager().registerEvents(new PaperPlayerProfileListener(client), this);
-        getServer().getPluginManager().registerEvents(new PaperBrandingListener(getConfig().getString("plugin.service-name", "CloudIslands")), this);
-        getServer().getPluginManager().registerEvents(new PaperChatListener(getConfig().getString("plugin.service-name", "CloudIslands")), this);
-        getServer().getPluginManager().registerEvents(new PaperScoreboardListener(getConfig().getString("plugin.service-name", "CloudIslands")), this);
+        getServer().getPluginManager().registerEvents(new PaperBrandingListener(messages), this);
+        getServer().getPluginManager().registerEvents(new PaperChatListener(messages), this);
+        getServer().getPluginManager().registerEvents(new PaperScoreboardListener(messages), this);
         getServer().getPluginManager().registerEvents(new IslandGameplayFlagListener(agent.protection()), this);
         getServer().getPluginManager().registerEvents(new IslandLimitListener(agent.protection(), limitCache), this);
         getServer().getPluginManager().registerEvents(new IslandEntityLimitListener(agent.protection(), limitCache), this);
@@ -266,6 +271,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             getServer().getServicesManager().unregister(EconomyBridge.class, economyBridge);
             economyBridge = null;
         }
+        messages = null;
     }
 
     public CloudIslandsPaperAgent agent() {
