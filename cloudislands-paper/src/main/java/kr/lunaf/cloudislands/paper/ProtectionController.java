@@ -53,6 +53,10 @@ public final class ProtectionController {
         return regionIndex.find(block.getWorld().getName(), block.getX(), block.getZ()).map(IslandRegion::islandId);
     }
 
+    public java.util.Optional<UUID> islandAt(String worldName, int blockX, int blockZ) {
+        return regionIndex.find(worldName, blockX, blockZ).map(IslandRegion::islandId);
+    }
+
     public java.util.Optional<IslandRegion> regionAt(Block block) {
         return regionIndex.find(block.getWorld().getName(), block.getX(), block.getZ());
     }

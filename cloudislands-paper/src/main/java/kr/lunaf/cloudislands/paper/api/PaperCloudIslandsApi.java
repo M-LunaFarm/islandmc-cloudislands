@@ -105,7 +105,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private final CommandService commands;
 
     public PaperCloudIslandsApi(CoreApiClient client, CloudIslandsPaperAgent agent) {
-        this.query = new QueryService(client);
+        this.query = new QueryService(client, agent);
         this.players = new PlayerService(client, query);
         this.routing = new RoutingService(client);
         this.permissions = new PermissionService(agent);
@@ -163,9 +163,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
     private static final class QueryService implements IslandQueryService {
         private final CoreApiClient client;
+        private final CloudIslandsPaperAgent agent;
 
-        private QueryService(CoreApiClient client) {
+        private QueryService(CoreApiClient client, CloudIslandsPaperAgent agent) {
             this.client = client;
+            this.agent = agent;
         }
 
         @Override
@@ -176,6 +178,13 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<Optional<IslandSnapshot>> getIslandByOwner(UUID ownerUuid) {
             return client.islandInfoByOwner(ownerUuid).thenApply(PaperCloudIslandsApi::island);
+        }
+
+        @Override
+        public CompletableFuture<Optional<IslandSnapshot>> getIslandAt(String worldName, int blockX, int blockY, int blockZ) {
+            return agent.protection().islandAt(worldName, blockX, blockZ)
+                .map(this::getIsland)
+                .orElseGet(() -> CompletableFuture.completedFuture(Optional.empty()));
         }
 
         @Override

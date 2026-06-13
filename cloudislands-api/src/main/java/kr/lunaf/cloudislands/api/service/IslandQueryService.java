@@ -32,6 +32,7 @@ import kr.lunaf.cloudislands.api.upgrade.UpgradeRuleSnapshot;
 public interface IslandQueryService {
     CompletableFuture<Optional<IslandSnapshot>> getIsland(UUID islandId);
     CompletableFuture<Optional<IslandSnapshot>> getIslandByOwner(UUID ownerUuid);
+    CompletableFuture<Optional<IslandSnapshot>> getIslandAt(String worldName, int blockX, int blockY, int blockZ);
     CompletableFuture<List<IslandMemberSnapshot>> getMembers(UUID islandId);
     CompletableFuture<List<IslandBanSnapshot>> getBans(UUID islandId);
     CompletableFuture<List<IslandInviteSnapshot>> getPendingInvites(UUID playerUuid);
