@@ -373,7 +373,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                     if (addon.isEmpty()) {
                         return java.util.concurrent.CompletableFuture.completedFuture(adminText("admin-command-addons-not-found", "Addon: not found ") + args[2]);
                     }
-                    if (!addon.get().features().containsKey(args[3])) {
+                    if (!addonFeatureKnown(addon.get(), args[3])) {
                         return java.util.concurrent.CompletableFuture.completedFuture(adminText("admin-command-addons-feature-invalid", "알 수 없는 addon feature입니다: ") + args[3]);
                     }
                     return api.addons().setFeature(args[2], args[3], enabled)
@@ -385,7 +385,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 if (addon.isEmpty()) {
                     return adminText("admin-command-addons-not-found", "Addon: not found ") + args[2];
                 }
-                if (!addon.get().features().containsKey(args[3])) {
+                if (!addonFeatureKnown(addon.get(), args[3])) {
                     return adminText("admin-command-addons-feature-invalid", "알 수 없는 addon feature입니다: ") + args[3];
                 }
                 boolean enabled = addon.get().enabled() && addon.get().featureEnabled(args[3]);
@@ -2308,11 +2308,36 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         try {
             return api.addons().get(addonId).join()
-                .map(addon -> addon.features().keySet().stream().sorted().toList())
+                .map(this::addonFeatureKeys)
                 .filter(features -> !features.isEmpty())
                 .orElse(ADDON_FEATURES);
         } catch (RuntimeException exception) {
             return ADDON_FEATURES;
         }
+    }
+
+    private List<String> addonFeatureKeys(CloudIslandsAddonSnapshot addon) {
+        Set<String> features = new java.util.TreeSet<>(addon.features().keySet());
+        featureAliases(addon).forEach((alias, _canonical) -> features.add(alias));
+        return List.copyOf(features);
+    }
+
+    private boolean addonFeatureKnown(CloudIslandsAddonSnapshot addon, String feature) {
+        if (addon.features().containsKey(feature)) {
+            return true;
+        }
+        String canonical = featureAliases(addon).get(feature);
+        return canonical != null && addon.features().containsKey(canonical);
+    }
+
+    private Map<String, String> featureAliases(CloudIslandsAddonSnapshot addon) {
+        Map<String, String> aliases = new java.util.LinkedHashMap<>();
+        for (String pair : addon.metadata().getOrDefault("feature-aliases", "").split(",")) {
+            String[] parts = pair.split(":", 2);
+            if (parts.length == 2 && !parts[0].isBlank() && !parts[1].isBlank()) {
+                aliases.put(parts[0], parts[1]);
+            }
+        }
+        return aliases;
     }
 }
