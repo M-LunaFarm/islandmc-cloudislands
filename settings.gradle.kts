@@ -11,7 +11,6 @@ dependencyResolutionManagement {
         mavenCentral()
         maven("https://repo.papermc.io/repository/maven-public/")
         maven("https://repo.extendedclip.com/releases/")
-        maven("https://repo.bg-software.com/repository/api/")
         maven("https://jitpack.io")
     }
 }
