@@ -41,6 +41,10 @@ public interface IslandAddonService {
         return get(id).thenApply(addon -> addon.map(CloudIslandsAddonSnapshot::features).orElse(Map.of()));
     }
 
+    default CompletableFuture<Map<String, Boolean>> configuredFeatures(String id) {
+        return get(id).thenApply(addon -> addon.map(CloudIslandsAddonSnapshot::configuredFeatures).orElse(Map.of()));
+    }
+
     default CompletableFuture<Map<String, String>> metadata(String id) {
         return get(id).thenApply(addon -> addon.map(CloudIslandsAddonSnapshot::metadata).orElse(Map.of()));
     }

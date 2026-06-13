@@ -1500,6 +1500,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 + adminText("admin-command-addons-version-prefix", " version=") + addon.version()
                 + adminText("admin-command-addons-enabled-prefix", " enabled=") + addon.enabled()
                 + addonMetadataSuffix(addon)
+                + addonConfiguredFeatureSuffix(addon)
                 + addonFeatureSuffix(addon));
         }
         return adminText("admin-command-addons-total-prefix", "Addons: total=") + addons.size()
@@ -1515,6 +1516,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-addons-registered-prefix", " registered=") + addon.registeredAt()
             + adminText("admin-command-addons-updated-prefix", " updated=") + addon.updatedAt()
             + addonMetadataSuffix(addon)
+            + addonConfiguredFeatureSuffix(addon)
             + addonFeatureSuffix(addon);
     }
 
@@ -1537,7 +1539,18 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         addon.features().entrySet().stream()
             .sorted(java.util.Map.Entry.comparingByKey())
             .forEach(entry -> features.add(entry.getKey() + "=" + entry.getValue()));
-        return adminText("admin-command-addons-features-prefix", " features=") + String.join(",", features);
+        return adminText("admin-command-addons-effective-features-prefix", " effectiveFeatures=") + String.join(",", features);
+    }
+
+    private String addonConfiguredFeatureSuffix(CloudIslandsAddonSnapshot addon) {
+        if (addon.configuredFeatures().isEmpty()) {
+            return "";
+        }
+        List<String> features = new ArrayList<>();
+        addon.configuredFeatures().entrySet().stream()
+            .sorted(java.util.Map.Entry.comparingByKey())
+            .forEach(entry -> features.add(entry.getKey() + "=" + entry.getValue()));
+        return adminText("admin-command-addons-configured-features-prefix", " configuredFeatures=") + String.join(",", features);
     }
 
     private String metricsMessage(String body) {
