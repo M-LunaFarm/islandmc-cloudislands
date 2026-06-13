@@ -19,6 +19,13 @@ tasks.processResources {
 tasks.jar {
     archiveBaseName.set("CloudIslands-Satis")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes(
+            "CloudIslands-Addon" to "cloudislands-satis",
+            "CloudIslands-Addon-Packaging" to "external-plugin",
+            "SuperiorSkyblock2-Runtime-Dependency" to "false"
+        )
+    }
     from(configurations.runtimeClasspath.get().map {
         if (it.isDirectory) it else zipTree(it)
     })
