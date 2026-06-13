@@ -37,7 +37,7 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
 
     @Override
     public List<IslandRuntimeSnapshot> listByNode(String nodeId, int limit) {
-        int cappedLimit = Math.max(1, Math.min(limit, 200));
+        int cappedLimit = limit == Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.max(1, Math.min(limit, 200));
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT * FROM island_runtime WHERE active_node = ? AND state IN ('ACTIVE', 'ACTIVATING', 'SAVING', 'DEACTIVATING') ORDER BY updated_at DESC LIMIT ?")) {
             statement.setString(1, nodeId);

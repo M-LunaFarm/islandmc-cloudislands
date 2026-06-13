@@ -20,7 +20,7 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
 
     @Override
     public List<IslandRuntimeSnapshot> listByNode(String nodeId, int limit) {
-        int cappedLimit = Math.max(1, Math.min(limit, 200));
+        int cappedLimit = limit == Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.max(1, Math.min(limit, 200));
         return runtimes.values().stream()
             .filter(runtime -> nodeId != null && nodeId.equals(runtime.activeNode()))
             .filter(this::runningOnNode)

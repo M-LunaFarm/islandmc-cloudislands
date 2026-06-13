@@ -107,7 +107,7 @@ public final class CachingIslandRuntimeRepository implements IslandRuntimeReposi
 
     @Override
     public int markRecoveryRequiredForNode(String nodeId) {
-        List<IslandRuntimeSnapshot> affected = delegate.listByNode(nodeId, 200);
+        List<IslandRuntimeSnapshot> affected = delegate.listByNode(nodeId, Integer.MAX_VALUE);
         int changed = delegate.markRecoveryRequiredForNode(nodeId);
         if (changed > 0) {
             for (IslandRuntimeSnapshot runtime : affected) {
