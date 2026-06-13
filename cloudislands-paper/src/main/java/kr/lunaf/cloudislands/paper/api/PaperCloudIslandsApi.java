@@ -381,6 +381,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 return CompletableFuture.completedFuture(Optional.empty());
             }
             plugin.getConfig().set("addons." + id + ".enabled", enabled);
+            if (id.equals("cloudislands-satis")) {
+                plugin.getConfig().set("satis.enabled", enabled);
+            }
             plugin.saveConfig();
             plugin.reloadConfig();
             return refresh(id);
@@ -397,6 +400,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 return CompletableFuture.completedFuture(Optional.empty());
             }
             plugin.getConfig().set("addons." + id + ".features." + normalizedFeature, enabled);
+            if (id.equals("cloudislands-satis")) {
+                plugin.getConfig().set("satis.features." + normalizedFeature, enabled);
+            }
             clearFeatureAliases(id, registration, normalizedFeature);
             plugin.saveConfig();
             plugin.reloadConfig();
