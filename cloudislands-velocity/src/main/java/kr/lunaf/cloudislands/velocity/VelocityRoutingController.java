@@ -2368,8 +2368,8 @@ public final class VelocityRoutingController {
             String expiresAt = jsonValue(object, "expiresAt");
             entries.add(shortId(playerUuid)
                 + " ticket=" + shortId(ticketId)
-                + (nodeId.isBlank() ? "" : " node=" + nodeId)
-                + (serverName.isBlank() ? "" : " server=" + serverName)
+                + routeNodeSuffix(nodeId)
+                + routeServerSuffix(serverName)
                 + (expiresAt.isBlank() ? "" : " expires=" + expiresAt));
             index = objectEnd + 1;
         }
@@ -2401,7 +2401,7 @@ public final class VelocityRoutingController {
             + " " + (action.isBlank() ? "UNKNOWN" : action)
             + " " + (state.isBlank() ? "UNKNOWN" : state)
             + (islandId.isBlank() ? "" : " 섬=" + shortId(islandId))
-            + (nodeId.isBlank() ? "" : " node=" + nodeId);
+            + routeNodeSuffix(nodeId);
     }
 
     private String shortId(String value) {
@@ -2466,6 +2466,20 @@ public final class VelocityRoutingController {
             return nodeId == null || nodeId.isBlank() ? "" : " node-hidden";
         }
         return nodeId == null || nodeId.isBlank() ? "" : " " + nodeId;
+    }
+
+    private String routeNodeSuffix(String nodeId) {
+        if (nodeId == null || nodeId.isBlank()) {
+            return "";
+        }
+        return hideNodeNames ? " node=node-hidden" : " node=" + nodeId;
+    }
+
+    private String routeServerSuffix(String serverName) {
+        if (serverName == null || serverName.isBlank()) {
+            return "";
+        }
+        return hideNodeNames ? " server=server-hidden" : " server=" + serverName;
     }
 
     private String nodeIslandRuntimeSuffix(String object) {
