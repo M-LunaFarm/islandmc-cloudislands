@@ -106,6 +106,9 @@ public final class JobCompletionService {
             return;
         }
         if (job.type() == IslandJobType.DELETE_ISLAND) {
+            if (isStaleSnapshotCompletion(job)) {
+                return;
+            }
             long snapshotNo = longValue(job.payload().get("snapshotNo"));
             runtimes.setState(job.islandId(), IslandState.BACKUP_BEFORE_DELETE);
             setIslandState(job.islandId(), IslandState.BACKUP_BEFORE_DELETE);
