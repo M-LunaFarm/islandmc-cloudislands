@@ -56,10 +56,16 @@ public final class DirtySaveService {
     }
 
     public void markMachine(MachineInstance machine) {
+        if (machine == null || machine.machineId() == null) {
+            return;
+        }
         machines.put(machine.machineId(), snapshot(machine));
     }
 
     public void forgetMachine(UUID machineId) {
+        if (machineId == null) {
+            return;
+        }
         machines.remove(machineId);
     }
 
@@ -68,10 +74,16 @@ public final class DirtySaveService {
     }
 
     public void markInventory(VirtualInventory inventory) {
+        if (inventory == null || inventory.inventoryId() == null) {
+            return;
+        }
         inventories.put(inventory.inventoryId(), snapshot(inventory));
     }
 
     public void forgetInventory(UUID inventoryId) {
+        if (inventoryId == null) {
+            return;
+        }
         inventories.remove(inventoryId);
     }
 
@@ -80,6 +92,9 @@ public final class DirtySaveService {
     }
 
     public void forgetIsland(UUID islandUuid) {
+        if (islandUuid == null) {
+            return;
+        }
         islands.remove(islandUuid);
         machines.entrySet().removeIf(entry -> entry.getValue().islandUuid().equals(islandUuid));
         inventories.entrySet().removeIf(entry -> entry.getValue().islandUuid().equals(islandUuid));
@@ -87,6 +102,9 @@ public final class DirtySaveService {
     }
 
     public void markNode(ResourceNode node) {
+        if (node == null || node.nodeId() == null) {
+            return;
+        }
         nodes.put(node.nodeId(), snapshot(node));
     }
 
@@ -95,6 +113,9 @@ public final class DirtySaveService {
     }
 
     public void markIsland(FactoryIsland island) {
+        if (island == null || island.islandUuid() == null) {
+            return;
+        }
         islands.put(island.islandUuid(), snapshot(island));
     }
 
