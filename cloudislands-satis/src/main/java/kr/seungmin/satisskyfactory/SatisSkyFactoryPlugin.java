@@ -302,9 +302,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean storageDataEnabled() {
-        return featureEnabled("machines")
-                || featureEnabled("market")
-                || featureEnabled("contracts");
+        return featureEnabled("storage")
+                || featureEnabled("machines");
     }
 
     static long dirtySavePeriodTicks(FileConfiguration config) {
@@ -386,12 +385,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 dirtySaves.forgetNodes();
             }
         }
-        if (featureEnabled("market")) {
+        if (featureEnabled("market") && featureEnabled("storage")) {
             market.load(configs.file("market.yml"), configs.file("maintenance.yml"));
         } else {
             market.clear();
         }
-        if (featureEnabled("contracts")) {
+        if (featureEnabled("contracts") && featureEnabled("storage")) {
             contracts.load(configs.file("contracts.yml"));
         } else {
             contracts.clear();
@@ -423,8 +422,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private boolean itemDefinitionsNeeded() {
         return featureEnabled("machines")
-                || featureEnabled("market")
-                || featureEnabled("contracts")
+                || (featureEnabled("storage") && featureEnabled("market"))
+                || (featureEnabled("storage") && featureEnabled("contracts"))
                 || featureEnabled("gui");
     }
 
