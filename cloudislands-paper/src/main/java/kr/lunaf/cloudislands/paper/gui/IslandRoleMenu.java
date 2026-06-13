@@ -17,6 +17,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandRoleMenu implements Listener {
+    private static final String TITLE_KEY = "role-menu-title";
     private static final String TITLE = "섬 역할 설정";
     private final MessageRenderer messages;
 
@@ -43,7 +44,7 @@ public final class IslandRoleMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!TITLE.equals(event.getView().getTitle())) {
+        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
             return;
         }
         event.setCancelled(true);
@@ -83,7 +84,7 @@ public final class IslandRoleMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, List<RoleEntry> roles, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
+            Inventory inventory = Bukkit.createInventory(null, 27, message(messages, TITLE_KEY, TITLE));
             int slot = 0;
             for (RoleEntry role : roles.stream().limit(18).toList()) {
                 inventory.setItem(slot++, roleItem(role, messages));

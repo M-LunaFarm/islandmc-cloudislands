@@ -554,6 +554,7 @@ public final class TranslationManager {
         values.put("bank-menu-refresh-command", "/섬 은행");
         values.put("bank-menu-settings-name", "설정");
         values.put("bank-menu-settings-command", "/섬 설정");
+        values.put("home-menu-title", "섬 홈 관리");
         values.put("home-menu-load-failed", "섬 홈을 불러오지 못했습니다.");
         values.put("home-menu-set-current-name", "현재 위치를 홈으로 설정");
         values.put("home-menu-set-default-click", "좌클릭: default 홈으로 설정");
@@ -654,6 +655,11 @@ public final class TranslationManager {
         values.put("ranking-menu-refresh-command", "/섬 랭킹");
         values.put("ranking-menu-random-visit-name", "랜덤 방문");
         values.put("ranking-menu-random-visit-command", "/섬 랜덤방문");
+        values.put("create-menu-title", "섬 템플릿 선택");
+        values.put("create-menu-main-menu-name", "메인 메뉴");
+        values.put("create-menu-main-menu-command", "/섬 메뉴");
+        values.put("create-menu-refresh-name", "템플릿 새로고침");
+        values.put("create-menu-refresh-command", "/섬 생성메뉴");
         values.put("my-islands-menu-title", "내 섬 목록");
         values.put("my-islands-menu-load-failed", "내 섬 목록을 불러오지 못했습니다.");
         values.put("my-islands-menu-empty-title", "섬 없음");
@@ -671,6 +677,7 @@ public final class TranslationManager {
         values.put("my-islands-menu-refresh-command", "/섬 목록");
         values.put("my-islands-menu-public-islands-name", "공개 섬");
         values.put("my-islands-menu-public-islands-command", "/섬 방문");
+        values.put("visit-menu-title", "섬 방문");
         values.put("visit-menu-load-failed", "공개 섬 목록을 불러오지 못했습니다.");
         values.put("visit-menu-random-name", "랜덤 공개 섬");
         values.put("visit-menu-empty", "방문 가능한 공개 섬이 없습니다.");
@@ -863,6 +870,7 @@ public final class TranslationManager {
         values.put("log-menu-settings-command", "/섬 설정");
         values.put("log-menu-close-name", "닫기");
         values.put("log-menu-close", "메뉴를 닫습니다.");
+        values.put("role-menu-title", "섬 역할 설정");
         values.put("role-menu-load-failed", "섬 역할을 불러오지 못했습니다.");
         values.put("role-menu-edit-prefix", "역할 편집: /섬 역할편집 ");
         values.put("role-menu-edit-suffix", " <weight> <displayName>");

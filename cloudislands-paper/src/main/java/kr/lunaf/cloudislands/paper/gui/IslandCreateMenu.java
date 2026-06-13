@@ -16,6 +16,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandCreateMenu implements Listener {
+    private static final String TITLE_KEY = "create-menu-title";
     private static final String TITLE = "섬 템플릿 선택";
     private final MessageRenderer messages;
 
@@ -42,7 +43,7 @@ public final class IslandCreateMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!TITLE.equals(event.getView().getTitle())) {
+        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
             return;
         }
         event.setCancelled(true);
@@ -53,12 +54,12 @@ public final class IslandCreateMenu implements Listener {
         if (meta == null || meta.getLore() == null) {
             return;
         }
-        if ("템플릿 새로고침".equals(meta.getDisplayName())) {
+        if (message(messages, "create-menu-refresh-name", "템플릿 새로고침").equals(meta.getDisplayName())) {
             player.closeInventory();
             player.performCommand("섬 생성메뉴");
             return;
         }
-        if ("메인 메뉴".equals(meta.getDisplayName())) {
+        if (message(messages, "create-menu-main-menu-name", "메인 메뉴").equals(meta.getDisplayName())) {
             player.closeInventory();
             player.performCommand("섬 메뉴");
             return;
@@ -79,7 +80,7 @@ public final class IslandCreateMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, List<Template> templates, MessageRenderer messages) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
+            Inventory inventory = Bukkit.createInventory(null, 27, message(messages, TITLE_KEY, TITLE));
             List<Template> enabled = templates.stream().filter(Template::enabled).limit(14).toList();
             if (enabled.isEmpty()) {
                 enabled = List.of(new Template("default", message(messages, "create-menu-default-template", "기본 섬"), true, ""));
@@ -88,8 +89,8 @@ public final class IslandCreateMenu implements Listener {
             for (int index = 0; index < enabled.size() && index < templateSlots.length; index++) {
                 inventory.setItem(templateSlots[index], item(enabled.get(index), messages));
             }
-            inventory.setItem(18, button(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
-            inventory.setItem(22, button(Material.CLOCK, "템플릿 새로고침", "/섬 생성메뉴"));
+            inventory.setItem(18, button(Material.COMPASS, message(messages, "create-menu-main-menu-name", "메인 메뉴"), message(messages, "create-menu-main-menu-command", "/섬 메뉴")));
+            inventory.setItem(22, button(Material.CLOCK, message(messages, "create-menu-refresh-name", "템플릿 새로고침"), message(messages, "create-menu-refresh-command", "/섬 생성메뉴")));
             player.openInventory(inventory);
         });
     }
