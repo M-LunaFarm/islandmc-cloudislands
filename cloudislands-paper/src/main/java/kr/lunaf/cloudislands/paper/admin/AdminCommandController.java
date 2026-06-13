@@ -674,11 +674,11 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
 
     private String migrationMessage(String body) {
         if (body == null || body.isBlank()) {
-            return "Migration: no response";
+            return adminText("admin-command-migration-no-response", "Migration: no response");
         }
         String code = textValue(body, "code");
         if (!code.isBlank()) {
-            return "Migration: failed code=" + code;
+            return adminText("admin-command-migration-failed-prefix", "Migration: failed code=") + code;
         }
         String state = textValue(body, "state");
         String path = textValue(body, "path");
@@ -689,57 +689,57 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         long manifests = longValue(body, "manifests");
         long importedIslands = longValue(body, "importedIslands");
         long removedIslands = longValue(body, "removedIslands");
-        StringBuilder builder = new StringBuilder("Migration: state=")
+        StringBuilder builder = new StringBuilder(adminText("admin-command-migration-state-prefix", "Migration: state="))
             .append(state.isBlank() ? "UNKNOWN" : state)
-            .append(" manifests=")
+            .append(adminText("admin-command-migration-manifests-prefix", " manifests="))
             .append(manifests);
         if (!path.isBlank()) {
-            builder.append(" path=").append(path);
+            builder.append(adminText("admin-command-migration-path-prefix", " path=")).append(path);
         }
         if (!manifestPath.isBlank()) {
-            builder.append(" manifest=").append(manifestPath);
+            builder.append(adminText("admin-command-migration-manifest-prefix", " manifest=")).append(manifestPath);
         }
         if (!reportPath.isBlank()) {
-            builder.append(" report=").append(reportPath);
+            builder.append(adminText("admin-command-migration-report-prefix", " report=")).append(reportPath);
         }
         if (!approvalToken.isBlank()) {
-            builder.append(" approval=").append(approvalToken);
+            builder.append(adminText("admin-command-migration-approval-prefix", " approval=")).append(approvalToken);
         }
         if (body.contains("\"canImport\"")) {
-            builder.append(" canImport=").append(boolValue(body, "canImport"));
+            builder.append(adminText("admin-command-migration-can-import-prefix", " canImport=")).append(boolValue(body, "canImport"));
         }
         if (body.contains("\"imported\"")) {
-            builder.append(" imported=").append(boolValue(body, "imported"))
-                .append(" islands=")
+            builder.append(adminText("admin-command-migration-imported-prefix", " imported=")).append(boolValue(body, "imported"))
+                .append(adminText("admin-command-migration-islands-prefix", " islands="))
                 .append(importedIslands);
         }
         if (body.contains("\"passed\"")) {
-            builder.append(" passed=").append(boolValue(body, "passed"))
-                .append(" expected=")
+            builder.append(adminText("admin-command-migration-passed-prefix", " passed=")).append(boolValue(body, "passed"))
+                .append(adminText("admin-command-migration-expected-prefix", " expected="))
                 .append(longValue(body, "expected"));
         }
         if (body.contains("\"rolledBack\"")) {
-            builder.append(" rolledBack=").append(boolValue(body, "rolledBack"))
-                .append(" removed=")
+            builder.append(adminText("admin-command-migration-rolled-back-prefix", " rolledBack=")).append(boolValue(body, "rolledBack"))
+                .append(adminText("admin-command-migration-removed-prefix", " removed="))
                 .append(removedIslands);
         }
         if (body.contains("\"extractedBundles\"")) {
-            builder.append(" extracted=")
+            builder.append(adminText("admin-command-migration-extracted-prefix", " extracted="))
                 .append(longValue(body, "extractedBundles"))
-                .append(" files=")
+                .append(adminText("admin-command-migration-files-prefix", " files="))
                 .append(longValue(body, "extractedFiles"))
-                .append(" bytes=")
+                .append(adminText("admin-command-migration-bytes-prefix", " bytes="))
                 .append(longValue(body, "extractedBytes"));
         }
         if (body.contains("\"members\"")) {
-            builder.append(" members=").append(longValue(body, "members"))
-                .append(" homes=").append(longValue(body, "homes"))
-                .append(" warps=").append(longValue(body, "warps"))
-                .append(" perms=").append(longValue(body, "permissions"));
+            builder.append(adminText("admin-command-migration-members-prefix", " members=")).append(longValue(body, "members"))
+                .append(adminText("admin-command-migration-homes-prefix", " homes=")).append(longValue(body, "homes"))
+                .append(adminText("admin-command-migration-warps-prefix", " warps=")).append(longValue(body, "warps"))
+                .append(adminText("admin-command-migration-perms-prefix", " perms=")).append(longValue(body, "permissions"));
         }
         if (body.contains("\"blockingIssues\"")) {
-            builder.append(" blocking=").append(longValue(body, "blockingIssues"))
-                .append(" warnings=").append(longValue(body, "warningIssues"));
+            builder.append(adminText("admin-command-migration-blocking-prefix", " blocking=")).append(longValue(body, "blockingIssues"))
+                .append(adminText("admin-command-migration-warnings-prefix", " warnings=")).append(longValue(body, "warningIssues"));
         }
         builder.append(migrationIssuesSuffix(issues));
         return builder.toString();
@@ -747,7 +747,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
 
     private String migrationIssuesSuffix(String issues) {
         if (issues.isBlank()) {
-            return " issues=0";
+            return adminText("admin-command-issues-zero", " issues=0");
         }
         int total = 0;
         int blocking = 0;
@@ -774,8 +774,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             }
             index = objectEnd + 1;
         }
-        return " issues=" + total
-            + " blocking=" + blocking
+        return adminText("admin-command-issues-total-prefix", " issues=") + total
+            + adminText("admin-command-issues-blocking-prefix", " blocking=") + blocking
             + (samples.isEmpty() ? "" : " [" + String.join(", ", samples) + "]");
     }
 
@@ -1141,36 +1141,36 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
 
     private String actionResultMessage(String label, String targetId, String body) {
         if (body == null || body.isBlank()) {
-            return label + ": accepted target=" + shortId(targetId);
+            return label + adminText("admin-command-action-result-accepted-target-prefix", ": accepted target=") + shortId(targetId);
         }
         String code = textValue(body, "code");
         boolean accepted = body.contains("\"accepted\"") ? boolValue(body, "accepted") : !body.contains("\"accepted\":false");
         StringBuilder builder = new StringBuilder(label)
             .append(": ")
-            .append(accepted ? "accepted" : "rejected")
-            .append(" target=")
+            .append(accepted ? adminText("admin-command-action-result-accepted", "accepted") : adminText("admin-command-action-result-rejected", "rejected"))
+            .append(adminText("admin-command-action-result-target-prefix", " target="))
             .append(compactTarget(targetId));
         if (!code.isBlank()) {
-            builder.append(" code=").append(code);
+            builder.append(adminText("admin-command-action-result-code-prefix", " code=")).append(code);
             String detail = adminCodeDetail(code);
             if (!detail.isBlank()) {
-                builder.append(" detail=").append(detail);
+                builder.append(adminText("admin-command-action-result-detail-prefix", " detail=")).append(detail);
             }
         }
         String islandId = textValue(body, "islandId");
         if (!islandId.isBlank() && !islandId.equals(targetId)) {
-            builder.append(" island=").append(shortId(islandId));
+            builder.append(adminText("admin-command-action-result-island-prefix", " island=")).append(shortId(islandId));
         }
         String materialKey = textValue(body, "materialKey");
         if (!materialKey.isBlank()) {
-            builder.append(" material=").append(materialKey);
+            builder.append(adminText("admin-command-action-result-material-prefix", " material=")).append(materialKey);
         }
         String worth = textValue(body, "worth");
         if (!worth.isBlank()) {
-            builder.append(" worth=").append(worth);
+            builder.append(adminText("admin-command-action-result-worth-prefix", " worth=")).append(worth);
         }
         if (body.contains("\"snapshotNo\"")) {
-            builder.append(" snapshot=").append(longValue(body, "snapshotNo"));
+            builder.append(adminText("admin-command-action-result-snapshot-prefix", " snapshot=")).append(longValue(body, "snapshotNo"));
         }
         return builder.toString();
     }
