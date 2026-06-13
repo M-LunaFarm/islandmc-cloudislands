@@ -3,6 +3,8 @@ package kr.seungmin.satisskyfactory;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SatisSkyFactoryPluginTest {
@@ -32,5 +34,16 @@ class SatisSkyFactoryPluginTest {
 
         config.set("visuals.particles", false);
         assertEquals(0, SatisSkyFactoryPlugin.activeParticleLimit(config, 300));
+    }
+
+    @Test
+    void integrationMetadataDocumentsCloudIslandsAddonMigration() {
+        Map<String, String> metadata = SatisSkyFactoryPlugin.cloudIslandsIntegrationMetadata();
+
+        assertEquals("satismc", metadata.get("origin-project"));
+        assertEquals("external-plugin", metadata.get("addon-packaging"));
+        assertEquals("false", metadata.get("superior-runtime-dependency"));
+        assertEquals("true", metadata.get("cloudislands-api-only"));
+        assertEquals("true", metadata.get("config-gated"));
     }
 }

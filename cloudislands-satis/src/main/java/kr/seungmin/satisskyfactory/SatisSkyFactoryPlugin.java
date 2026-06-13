@@ -731,12 +731,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         Map<String, String> metadata = new LinkedHashMap<>();
         String scope = databaseScope();
         metadata.put("mode", configs.main().getString("integration.mode", "ADDON"));
-        metadata.put("origin-project", "satismc");
-        metadata.put("addon-packaging", "external-plugin");
+        metadata.putAll(cloudIslandsIntegrationMetadata());
         metadata.put("skyblock-provider", "CLOUDISLANDS");
-        metadata.put("superior-runtime-dependency", "false");
-        metadata.put("cloudislands-api-only", "true");
-        metadata.put("config-gated", "true");
         metadata.put("cloudislands-adapter", Boolean.toString(configs.main().getBoolean("integration.cloudislands-adapter", true)));
         metadata.put("requires-cloudislands-api", Boolean.toString(requiresCloudIslandsApi()));
         metadata.put("database-scope", scope);
@@ -749,6 +745,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("feature-aliases", featureAliasesMetadata());
         metadata.put("feature-warnings", featureWarnings());
         return metadata;
+    }
+
+    static Map<String, String> cloudIslandsIntegrationMetadata() {
+        return Map.of(
+                "origin-project", "satismc",
+                "addon-packaging", "external-plugin",
+                "superior-runtime-dependency", "false",
+                "cloudislands-api-only", "true",
+                "config-gated", "true"
+        );
     }
 
     private String featureAliasesMetadata() {
