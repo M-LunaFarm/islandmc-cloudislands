@@ -8,35 +8,33 @@ public final class InMemoryAddonStateRepository implements AddonStateRepository 
 
     @Override
     public Map<String, String> list(String addonId) {
-        return Map.copyOf(states.getOrDefault(safeAddonId(addonId), Map.of()));
+        return Map.copyOf(states.getOrDefault(AddonStateRepository.safeAddonId(addonId), Map.of()));
     }
 
     @Override
     public Map<String, String> put(String addonId, String key, String value) {
-        if (key == null || key.isBlank() || value == null) {
-            return list(addonId);
-        }
-        Map<String, String> state = states.computeIfAbsent(safeAddonId(addonId), _ignored -> new ConcurrentHashMap<>());
-        state.put(key, value);
+        String safeAddonId = AddonStateRepository.safeAddonId(addonId);
+        String safeKey = AddonStateRepository.safeKey(key);
+        String safeValue = AddonStateRepository.safeValue(value);
+        Map<String, String> state = states.computeIfAbsent(safeAddonId, _ignored -> new ConcurrentHashMap<>());
+        AddonStateRepository.requireKeyCapacity(state, safeKey);
+        state.put(safeKey, safeValue);
         return Map.copyOf(state);
     }
 
     @Override
     public Map<String, String> remove(String addonId, String key) {
-        Map<String, String> state = states.get(safeAddonId(addonId));
-        if (state == null || key == null) {
+        String safeAddonId = AddonStateRepository.safeAddonId(addonId);
+        Map<String, String> state = states.get(safeAddonId);
+        if (state == null || key == null || key.isBlank()) {
             return list(addonId);
         }
-        state.remove(key);
+        state.remove(AddonStateRepository.safeKey(key));
         return Map.copyOf(state);
     }
 
     @Override
     public void clear(String addonId) {
-        states.remove(safeAddonId(addonId));
-    }
-
-    private String safeAddonId(String addonId) {
-        return addonId == null || addonId.isBlank() ? "unknown-addon" : addonId;
+        states.remove(AddonStateRepository.safeAddonId(addonId));
     }
 }

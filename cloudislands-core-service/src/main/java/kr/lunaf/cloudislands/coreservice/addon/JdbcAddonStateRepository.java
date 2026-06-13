@@ -19,7 +19,7 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
     public Map<String, String> list(String addonId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT state_key, state_value FROM addon_state WHERE addon_id = ? ORDER BY state_key")) {
-            statement.setString(1, safeAddonId(addonId));
+            statement.setString(1, AddonStateRepository.safeAddonId(addonId));
             try (ResultSet rs = statement.executeQuery()) {
                 Map<String, String> state = new HashMap<>();
                 while (rs.next()) {
@@ -34,16 +34,17 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
 
     @Override
     public Map<String, String> put(String addonId, String key, String value) {
-        if (key == null || key.isBlank() || value == null) {
-            return list(addonId);
-        }
-        String safeAddonId = safeAddonId(addonId);
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO addon_state(addon_id, state_key, state_value) VALUES (?, ?, ?) ON CONFLICT (addon_id, state_key) DO UPDATE SET state_value = EXCLUDED.state_value, updated_at = now()")) {
-            statement.setString(1, safeAddonId);
-            statement.setString(2, key);
-            statement.setString(3, value);
-            statement.executeUpdate();
+        String safeAddonId = AddonStateRepository.safeAddonId(addonId);
+        String safeKey = AddonStateRepository.safeKey(key);
+        String safeValue = AddonStateRepository.safeValue(value);
+        try (Connection connection = dataSource.getConnection()) {
+            ensureKeyCapacity(connection, safeAddonId, safeKey);
+            try (PreparedStatement statement = connection.prepareStatement("INSERT INTO addon_state(addon_id, state_key, state_value) VALUES (?, ?, ?) ON CONFLICT (addon_id, state_key) DO UPDATE SET state_value = EXCLUDED.state_value, updated_at = now()")) {
+                statement.setString(1, safeAddonId);
+                statement.setString(2, safeKey);
+                statement.setString(3, safeValue);
+                statement.executeUpdate();
+            }
             return list(safeAddonId);
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to write addon state", exception);
@@ -52,14 +53,15 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
 
     @Override
     public Map<String, String> remove(String addonId, String key) {
-        if (key == null) {
+        if (key == null || key.isBlank()) {
             return list(addonId);
         }
-        String safeAddonId = safeAddonId(addonId);
+        String safeAddonId = AddonStateRepository.safeAddonId(addonId);
+        String safeKey = AddonStateRepository.safeKey(key);
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("DELETE FROM addon_state WHERE addon_id = ? AND state_key = ?")) {
             statement.setString(1, safeAddonId);
-            statement.setString(2, key);
+            statement.setString(2, safeKey);
             statement.executeUpdate();
             return list(safeAddonId);
         } catch (SQLException exception) {
@@ -71,14 +73,27 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
     public void clear(String addonId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("DELETE FROM addon_state WHERE addon_id = ?")) {
-            statement.setString(1, safeAddonId(addonId));
+            statement.setString(1, AddonStateRepository.safeAddonId(addonId));
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to clear addon state", exception);
         }
     }
 
-    private String safeAddonId(String addonId) {
-        return addonId == null || addonId.isBlank() ? "unknown-addon" : addonId;
+    private void ensureKeyCapacity(Connection connection, String addonId, String key) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) AS key_count, BOOL_OR(state_key = ?) AS key_exists FROM addon_state WHERE addon_id = ?")) {
+            statement.setString(1, key);
+            statement.setString(2, addonId);
+            try (ResultSet rs = statement.executeQuery()) {
+                if (!rs.next()) {
+                    return;
+                }
+                boolean exists = rs.getBoolean("key_exists");
+                int count = rs.getInt("key_count");
+                if (!exists && count >= AddonStateRepository.MAX_KEYS_PER_ADDON) {
+                    throw new IllegalArgumentException("Addon state key limit reached");
+                }
+            }
+        }
     }
 }

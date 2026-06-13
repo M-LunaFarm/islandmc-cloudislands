@@ -359,7 +359,11 @@ public final class CloudIslandsCoreApplication {
         route("/v1/addons/state", exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
-            write(exchange, 200, addonStateJson(addonStates.list(addonId)));
+            try {
+                write(exchange, 200, addonStateJson(addonStates.list(addonId)));
+            } catch (IllegalArgumentException exception) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
+            }
         });
         route("/v1/addons/state/set", exchange -> {
             String body = readBody(exchange);
@@ -370,7 +374,11 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id and key are required"));
                 return;
             }
-            write(exchange, 202, addonStateJson(addonStates.put(addonId, key, value)));
+            try {
+                write(exchange, 202, addonStateJson(addonStates.put(addonId, key, value)));
+            } catch (IllegalArgumentException exception) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
+            }
         });
         route("/v1/addons/state/remove", exchange -> {
             String body = readBody(exchange);
@@ -380,7 +388,11 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id and key are required"));
                 return;
             }
-            write(exchange, 202, addonStateJson(addonStates.remove(addonId, key)));
+            try {
+                write(exchange, 202, addonStateJson(addonStates.remove(addonId, key)));
+            } catch (IllegalArgumentException exception) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
+            }
         });
         route("/v1/addons/state/clear", exchange -> {
             String body = readBody(exchange);
@@ -389,8 +401,12 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id is required"));
                 return;
             }
-            addonStates.clear(addonId);
-            write(exchange, 202, addonStateJson(Map.of()));
+            try {
+                addonStates.clear(addonId);
+                write(exchange, 202, addonStateJson(Map.of()));
+            } catch (IllegalArgumentException exception) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
+            }
         });
         route("/v1/rankings/level", exchange -> {
             String body = readBody(exchange);
