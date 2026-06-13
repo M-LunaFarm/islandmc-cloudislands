@@ -690,7 +690,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (cloudIslandsApi == null) {
             return;
         }
-        unregister(cloudIslandsApi);
+        try {
+            unregister(cloudIslandsApi).join();
+        } catch (RuntimeException exception) {
+            getLogger().warning("Failed to unregister CloudIslands Satis addon: " + exception.getMessage());
+        }
         cloudIslandsApi = null;
     }
 
