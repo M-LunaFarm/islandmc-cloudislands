@@ -69,6 +69,7 @@ public final class MachineTickService {
     private final int lockedMaxOperatingTier;
     private final double breakWear;
     private final int activeParticleLimit;
+    private final BooleanSupplier maintenanceEnabled;
     private final BooleanSupplier resourceNodesEnabled;
     private BukkitTask task;
     private int remainingActiveParticles;
@@ -84,7 +85,7 @@ public final class MachineTickService {
                               double offlineEfficiency, int nodeLinkRadius, Set<String> recoveryTypes,
                               double limitedEfficiency, int limitedMaxOperatingTier,
                               double lockedRecoveryEfficiency, int lockedMaxOperatingTier, double breakWear,
-                              int activeParticleLimit, BooleanSupplier resourceNodesEnabled) {
+                              int activeParticleLimit, BooleanSupplier maintenanceEnabled, BooleanSupplier resourceNodesEnabled) {
         this.plugin = plugin;
         this.machines = machines;
         this.definitions = definitions;
@@ -108,6 +109,7 @@ public final class MachineTickService {
         this.lockedMaxOperatingTier = Math.max(1, lockedMaxOperatingTier);
         this.breakWear = Math.max(1.0, breakWear);
         this.activeParticleLimit = Math.max(0, activeParticleLimit);
+        this.maintenanceEnabled = maintenanceEnabled;
         this.resourceNodesEnabled = resourceNodesEnabled;
     }
 
@@ -350,6 +352,9 @@ public final class MachineTickService {
     }
 
     private boolean passesMaintenanceGate(MachineInstance machine, MachineDefinition definition) {
+        if (!maintenanceEnabled.getAsBoolean()) {
+            return true;
+        }
         Optional<FactoryIsland> island = islands.find(machine.islandUuid());
         if (island.isEmpty()) {
             return true;
