@@ -25,6 +25,7 @@ public final class PaperRouteSessionListener implements Listener {
     private final RouteTicketConsumer ticketConsumer;
     private final String nodeId;
     private final boolean requireRouteSession;
+    private final boolean forwardingReady;
     private final String fallbackServerName;
     private final Map<UUID, PlayerRouteSession> verifiedSessions = new ConcurrentHashMap<>();
 
@@ -33,20 +34,29 @@ public final class PaperRouteSessionListener implements Listener {
     }
 
     public PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId, boolean requireRouteSession) {
-        this(plugin, coreApiClient, ticketConsumer, nodeId, requireRouteSession, "Lobby");
+        this(plugin, coreApiClient, ticketConsumer, nodeId, requireRouteSession, true, "Lobby");
     }
 
     public PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId, boolean requireRouteSession, String fallbackServerName) {
+        this(plugin, coreApiClient, ticketConsumer, nodeId, requireRouteSession, true, fallbackServerName);
+    }
+
+    public PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId, boolean requireRouteSession, boolean forwardingReady, String fallbackServerName) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.ticketConsumer = ticketConsumer;
         this.nodeId = nodeId;
         this.requireRouteSession = requireRouteSession;
+        this.forwardingReady = forwardingReady;
         this.fallbackServerName = fallbackServerName == null || fallbackServerName.isBlank() ? "Lobby" : fallbackServerName;
     }
 
     @EventHandler
     public void onPreLogin(AsyncPlayerPreLoginEvent event) {
+        if (!forwardingReady) {
+            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, "섬 서버 보안 설정이 완료되지 않았습니다. 관리자에게 문의해주세요.");
+            return;
+        }
         if (!requireRouteSession) {
             return;
         }

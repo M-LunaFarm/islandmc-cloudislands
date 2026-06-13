@@ -186,7 +186,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         String fallbackServerName = getConfig().getString("routing.fallback-on-failure", "Lobby");
         boolean enforceRouteSession = role == AgentRole.ISLAND_NODE && configBoolean("security.enforce-route-session", true);
         boolean requireRouteSession = role == AgentRole.ISLAND_NODE && (configBoolean("routing.require-route-session", true) || enforceRouteSession);
-        getServer().getPluginManager().registerEvents(new PaperRouteSessionListener(this, client, agent.routeTickets(), nodeId, requireRouteSession, fallbackServerName), this);
+        boolean forwardingReady = role != AgentRole.ISLAND_NODE
+            || !configBoolean("security.require-velocity-forwarding", true)
+            || !resolveEnv(getConfig().getString("security.forwarding-secret", "")).isBlank();
+        getServer().getPluginManager().registerEvents(new PaperRouteSessionListener(this, client, agent.routeTickets(), nodeId, requireRouteSession, forwardingReady, fallbackServerName), this);
         PluginCommand admin = getCommand("ciadmin");
         int routeWaitSeconds = getConfig().getInt("routing.wait-for-activation-timeout-seconds", 20);
         if (admin != null) {
