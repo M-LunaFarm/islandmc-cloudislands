@@ -498,7 +498,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 return CompletableFuture.completedFuture(Optional.empty());
             }
             String normalizedFeature = normalizeFeature(registration, feature);
-            if (!effectiveFeatures(registration).containsKey(normalizedFeature)) {
+            if (!registeredFeatureKnown(registration, feature, normalizedFeature)) {
                 return CompletableFuture.completedFuture(Optional.empty());
             }
             plugin.getConfig().set("addons." + safeId + ".features." + normalizedFeature, enabled);
@@ -518,6 +518,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                     plugin.getConfig().set("satis.features." + alias, null);
                 }
             }
+        }
+
+        private boolean registeredFeatureKnown(AddonRegistration registration, String requestedFeature, String normalizedFeature) {
+            Map<String, Boolean> features = registration.features() == null ? Map.of() : registration.features();
+            if (features.containsKey(normalizedFeature) || features.containsKey(requestedFeature)) {
+                return true;
+            }
+            return AddonFeatureAliases.aliasesFor(registration.metadata(), normalizedFeature).contains(requestedFeature);
         }
 
         private String normalizeFeature(AddonRegistration registration, String feature) {
