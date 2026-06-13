@@ -36,6 +36,13 @@ public final class ResourceNodeService {
                 config.getLong("regeneration.minimum-interval-ms", 1000L)));
     }
 
+    public void clear() {
+        nodesByIsland.clear();
+        nodeGeneration = null;
+        regenerationEnabled = false;
+        minimumRegenerationIntervalMillis = 1000L;
+    }
+
     public List<ResourceNode> nodes(UUID islandUuid) {
         List<ResourceNode> nodes = nodesByIsland.computeIfAbsent(islandUuid, database::loadNodes);
         List<ResourceNode> regenerated = nodes.stream().map(this::regenerate).toList();

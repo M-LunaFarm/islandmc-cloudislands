@@ -40,6 +40,7 @@ import java.util.function.BooleanSupplier;
 
 public final class MachineListener implements Listener {
     private final BooleanSupplier active;
+    private final BooleanSupplier resourceNodesEnabled;
     private final JavaPlugin plugin;
     private final CustomItemFactory itemFactory;
     private final MachineDefinitionService definitions;
@@ -56,13 +57,14 @@ public final class MachineListener implements Listener {
     private final FileConfiguration maintenanceConfig;
     private final IslandBoostService boosts;
 
-    public MachineListener(BooleanSupplier active, JavaPlugin plugin, CustomItemFactory itemFactory, MachineDefinitionService definitions, MachineService machines,
+    public MachineListener(BooleanSupplier active, BooleanSupplier resourceNodesEnabled, JavaPlugin plugin, CustomItemFactory itemFactory, MachineDefinitionService definitions, MachineService machines,
                            SkyblockProvider skyblock, FactoryIslandService islands, FactoryGuiService gui,
                            MessageService messages, ResearchService research, ResourceNodeService nodes,
                            ItemNetworkService itemNetworks,
                            PowerNetworkService power,
                            FileConfiguration config, FileConfiguration maintenanceConfig, IslandBoostService boosts) {
         this.active = active;
+        this.resourceNodesEnabled = resourceNodesEnabled;
         this.plugin = plugin;
         this.itemFactory = itemFactory;
         this.definitions = definitions;
@@ -184,7 +186,7 @@ public final class MachineListener implements Listener {
     }
 
     private void linkResourceNode(MachineInstance machine, MachineDefinition definition) {
-        if (definition.nodeType() == null) {
+        if (definition.nodeType() == null || !resourceNodesEnabled.getAsBoolean()) {
             return;
         }
         nodes.nearest(machine.islandUuid(), machine.location(), nodeLinkRadius(), definition.nodeType())

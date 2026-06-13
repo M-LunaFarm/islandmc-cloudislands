@@ -43,6 +43,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.BooleanSupplier;
 
 public final class MachineTickService {
     private final JavaPlugin plugin;
@@ -68,6 +69,7 @@ public final class MachineTickService {
     private final int lockedMaxOperatingTier;
     private final double breakWear;
     private final int activeParticleLimit;
+    private final BooleanSupplier resourceNodesEnabled;
     private BukkitTask task;
     private int remainingActiveParticles;
     private long machineSnapshotRevision = Long.MIN_VALUE;
@@ -82,7 +84,7 @@ public final class MachineTickService {
                               double offlineEfficiency, int nodeLinkRadius, Set<String> recoveryTypes,
                               double limitedEfficiency, int limitedMaxOperatingTier,
                               double lockedRecoveryEfficiency, int lockedMaxOperatingTier, double breakWear,
-                              int activeParticleLimit) {
+                              int activeParticleLimit, BooleanSupplier resourceNodesEnabled) {
         this.plugin = plugin;
         this.machines = machines;
         this.definitions = definitions;
@@ -106,6 +108,7 @@ public final class MachineTickService {
         this.lockedMaxOperatingTier = Math.max(1, lockedMaxOperatingTier);
         this.breakWear = Math.max(1.0, breakWear);
         this.activeParticleLimit = Math.max(0, activeParticleLimit);
+        this.resourceNodesEnabled = resourceNodesEnabled;
     }
 
     public void start(long intervalTicks) {
@@ -583,6 +586,10 @@ public final class MachineTickService {
     }
 
     private boolean processNodeProducer(MachineInstance machine, MachineDefinition definition) {
+        if (!resourceNodesEnabled.getAsBoolean()) {
+            setStatus(machine, MachineStatus.NO_INPUT);
+            return false;
+        }
         VirtualInventory output = outputInventory(machine);
         Optional<ResourceNode> node = machine.linkedResourceNodeId() == null
                 ? nodes.nearest(machine.islandUuid(), machine.location(), nodeLinkRadius, definition.nodeType())
@@ -645,7 +652,7 @@ public final class MachineTickService {
     }
 
     private Optional<ResourceNode> recipeNode(MachineInstance machine, MachineDefinition definition) {
-        if (definition.recipeNodeType() == null) {
+        if (definition.recipeNodeType() == null || !resourceNodesEnabled.getAsBoolean()) {
             return Optional.empty();
         }
         Optional<ResourceNode> node = machine.linkedResourceNodeId() == null

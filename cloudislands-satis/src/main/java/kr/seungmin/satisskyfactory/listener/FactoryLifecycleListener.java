@@ -22,6 +22,7 @@ import java.util.function.BooleanSupplier;
 
 public final class FactoryLifecycleListener implements Listener {
     private final BooleanSupplier active;
+    private final BooleanSupplier resourceNodesEnabled;
     private final FactoryIslandService islands;
     private final SkyblockProvider skyblock;
     private final ResourceNodeService nodes;
@@ -30,10 +31,11 @@ public final class FactoryLifecycleListener implements Listener {
     private final PowerNetworkService power;
     private final MaintenanceService maintenance;
 
-    public FactoryLifecycleListener(BooleanSupplier active, FactoryIslandService islands, SkyblockProvider skyblock,
+    public FactoryLifecycleListener(BooleanSupplier active, BooleanSupplier resourceNodesEnabled, FactoryIslandService islands, SkyblockProvider skyblock,
                                     ResourceNodeService nodes, MachineService machines, ItemNetworkService itemNetworks,
                                     PowerNetworkService power, MaintenanceService maintenance) {
         this.active = active;
+        this.resourceNodesEnabled = resourceNodesEnabled;
         this.islands = islands;
         this.skyblock = skyblock;
         this.nodes = nodes;
@@ -52,9 +54,11 @@ public final class FactoryLifecycleListener implements Listener {
             FactoryIsland island = islands.getOrCreate(islandRef);
             island.lastTickAt(System.currentTimeMillis());
             Location origin = skyblock.getIslandCenter(islandRef).orElse(event.getPlayer().getLocation());
-            nodes.generateIfMissing(island.islandUuid(), origin, location -> skyblock.getIslandAt(location)
-                    .map(ref -> ref.islandUuid().equals(island.islandUuid()))
-                    .orElse(false));
+            if (resourceNodesEnabled.getAsBoolean()) {
+                nodes.generateIfMissing(island.islandUuid(), origin, location -> skyblock.getIslandAt(location)
+                        .map(ref -> ref.islandUuid().equals(island.islandUuid()))
+                        .orElse(false));
+            }
             maintenance.updateStatus(island);
             itemNetworks.rebuildIsland(island.islandUuid());
             power.rebuildIsland(island.islandUuid());

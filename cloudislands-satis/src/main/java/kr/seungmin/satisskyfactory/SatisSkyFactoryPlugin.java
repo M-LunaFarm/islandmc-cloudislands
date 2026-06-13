@@ -163,7 +163,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
         loadDefinitions();
         islands.load();
-        machines.load();
+        refreshMachineCache();
         logFeatureWarnings();
         if (featureEnabled("machines")) {
             rebuildNetworks();
@@ -207,6 +207,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         configureSkyblockHook();
         boosts.configure(configs.main());
         loadDefinitions();
+        refreshMachineCache();
         logFeatureWarnings();
         if (featureEnabled("machines")) {
             rebuildNetworks();
@@ -251,7 +252,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                     configs.file("maintenance.yml").getDouble("maintenance.locked.recovery-efficiency", 0.30),
                     configs.file("maintenance.yml").getInt("maintenance.locked.max-operating-tier", 1),
                     configs.file("maintenance.yml").getDouble("maintenance.break-wear", 100.0),
-                    activeParticleLimit(configs.main(), configInt("settings.max-machines-per-tick", "settings.max-machines-per-cycle", 300))
+                    activeParticleLimit(configs.main(), configInt("settings.max-machines-per-tick", "settings.max-machines-per-cycle", 300)),
+                    () -> featureEnabled("resource-nodes")
             );
             ticker.start(configLong("settings.tick-period-ticks", "settings.tick-interval", 20));
         }
@@ -347,6 +349,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (featureEnabled("resource-nodes")) {
             nodes.load(configs.file("resource-nodes.yml"));
+        } else {
+            nodes.clear();
         }
         if (featureEnabled("market")) {
             market.load(configs.file("market.yml"), configs.file("maintenance.yml"));
@@ -367,6 +371,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 || featureEnabled("market")
                 || featureEnabled("contracts")
                 || featureEnabled("gui");
+    }
+
+    private void refreshMachineCache() {
+        if (featureEnabled("machines")) {
+            machines.load();
+        } else {
+            machines.clear();
+        }
     }
 
     private void registerCommands() {
@@ -439,6 +451,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         } else if (!machineListenerRegistered) {
             machineListener = new MachineListener(
                     () -> featureEnabled("machines"),
+                    () -> featureEnabled("resource-nodes"),
                     this,
                     itemFactory,
                     machineDefinitions,
@@ -492,6 +505,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         } else if (!lifecycleListenerRegistered) {
             lifecycleListener = new FactoryLifecycleListener(
                     () -> featureEnabled("lifecycle"),
+                    () -> featureEnabled("resource-nodes"),
                     islands,
                     skyblock,
                     nodes,

@@ -52,6 +52,12 @@ public final class MachineService {
         revision.incrementAndGet();
     }
 
+    public void clear() {
+        machines.clear();
+        byLocation.clear();
+        revision.incrementAndGet();
+    }
+
     public Optional<MachineInstance> at(Location location) {
         UUID id = byLocation.get(LocationKey.from(location));
         return id == null ? Optional.empty() : Optional.ofNullable(machines.get(id));
