@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public final class AdminFactoryCommand {
     private static final int HELP_PAGE_SIZE = 8;
@@ -54,6 +55,7 @@ public final class AdminFactoryCommand {
             "factory admin command list [page]",
             "factory admin reload",
             "factory admin features",
+            "factory admin integration",
             "factory admin give <player> <machineType> [amount]",
             "factory admin giveitem <player> <itemId> <amount>",
             "factory admin addresearch <player> <amount>",
@@ -78,13 +80,15 @@ public final class AdminFactoryCommand {
     private final ItemRegistry items;
     private final MessageService messages;
     private final Predicate<String> featureEnabled;
+    private final Supplier<Map<String, String>> integrationMetadata;
     private final Runnable reload;
 
     public AdminFactoryCommand(FactoryIslandService islands, MachineService machines, MachineDefinitionService definitions,
                                StorageService storage, ResourceNodeService nodes, SkyblockProvider skyblock,
                                MaintenanceService maintenance, ResearchService research, PowerNetworkService power,
                                CustomItemFactory itemFactory, ItemRegistry items,
-                               MessageService messages, Predicate<String> featureEnabled, Runnable reload) {
+                               MessageService messages, Predicate<String> featureEnabled,
+                               Supplier<Map<String, String>> integrationMetadata, Runnable reload) {
         this.islands = islands;
         this.machines = machines;
         this.definitions = definitions;
@@ -98,6 +102,7 @@ public final class AdminFactoryCommand {
         this.items = items;
         this.messages = messages;
         this.featureEnabled = featureEnabled;
+        this.integrationMetadata = integrationMetadata;
         this.reload = reload;
     }
 
@@ -127,6 +132,7 @@ public final class AdminFactoryCommand {
                 messages.send(sender, "reloaded");
             }
             case "features" -> showFeatures(sender);
+            case "integration" -> showIntegration(sender);
             case "give" -> {
                 if (requireFeature(sender, "machines")) {
                     giveMachine(sender, args);
@@ -196,6 +202,7 @@ public final class AdminFactoryCommand {
             values.add("명령어목록");
             values.add("debug");
             values.add("features");
+            values.add("integration");
             if (enabled("machines")) {
                 values.add("give");
                 values.add("giveitem");
@@ -456,6 +463,17 @@ public final class AdminFactoryCommand {
                     "enabled", Boolean.toString(enabled(feature))
             )));
         }
+    }
+
+    private void showIntegration(CommandSender sender) {
+        sender.sendMessage(messages.raw("admin-integration-title"));
+        Map<String, String> metadata = integrationMetadata == null ? Map.of() : integrationMetadata.get();
+        metadata.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                        "key", entry.getKey(),
+                        "value", entry.getValue()
+                ))));
     }
 
     private void help(CommandSender sender, int page) {

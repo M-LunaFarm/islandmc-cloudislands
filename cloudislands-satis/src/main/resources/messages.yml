@@ -56,6 +56,8 @@ messages:
   command-list-entry: "&7> &f/{command}"
   admin-features-title: "&eFactory addon feature 상태"
   admin-features-entry: "&7> &f{feature}={enabled}"
+  admin-integration-title: "&eFactory addon integration 상태"
+  admin-integration-entry: "&7> &f{key}={value}"
   admin-research-updated: "&a연구 포인트를 수정했습니다."
   admin-debt-updated: "&a유지비 부채를 수정했습니다."
   admin-maintenance-charged: "&a유지비 청구를 실행했습니다."
