@@ -141,6 +141,9 @@ public final class JobCompletionService {
     }
 
     public void failed(IslandJob job, String errorMessage) {
+        if (isStaleFencingFailure(job, errorMessage)) {
+            return;
+        }
         IslandState state = switch (job.type()) {
             case CREATE_ISLAND -> IslandState.ERROR_CREATING;
             case ACTIVATE_ISLAND, MIGRATE_ISLAND, RESTORE_ISLAND, RESET_ISLAND -> IslandState.ERROR_ACTIVATING;
@@ -154,6 +157,26 @@ public final class JobCompletionService {
         if (job.type() == IslandJobType.MIGRATE_ISLAND || (job.type() == IslandJobType.DEACTIVATE_ISLAND && job.payload().containsKey("migrateTargetNode"))) {
             releaseMigrationLock(job);
         }
+    }
+
+    private boolean isStaleFencingFailure(IslandJob job, String errorMessage) {
+        long fencingToken = longValue(job.payload().get("fencingToken"));
+        if (fencingToken <= 0L) {
+            return false;
+        }
+        kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot current = runtimes.find(job.islandId()).orElse(null);
+        if (current == null || current.fencingToken() <= fencingToken) {
+            return false;
+        }
+        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
+            "islandId", job.islandId().toString(),
+            "state", current.state().name(),
+            "ignoredJob", job.jobId().toString(),
+            "jobFencingToken", Long.toString(fencingToken),
+            "currentFencingToken", Long.toString(current.fencingToken()),
+            "error", errorMessage == null ? "" : errorMessage
+        ));
+        return true;
     }
 
     private void releaseMigrationLock(IslandJob job) {
