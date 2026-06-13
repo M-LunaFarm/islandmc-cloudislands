@@ -71,7 +71,7 @@ public final class ExternalTarIslandBundleExporter implements IslandBundleExport
             source == null ? now : source.createdAt(),
             now,
             ""
-        );
+        ).withSnapshotReason(source == null ? "" : source.snapshotReason());
         Files.writeString(manifestPath, IslandManifestJson.write(manifest), StandardCharsets.UTF_8);
     }
 

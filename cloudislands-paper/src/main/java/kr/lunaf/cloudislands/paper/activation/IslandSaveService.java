@@ -36,39 +36,43 @@ public final class IslandSaveService {
     }
 
     public SaveResult save(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland) throws IOException {
-        return save(islandId, activeIsland, null);
+        return save(islandId, activeIsland, null, "AUTO");
     }
 
     public SaveResult save(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland, IslandBundleManifest baseManifest) throws IOException {
-        return save(islandId, activeIsland, false, true, baseManifest);
+        return save(islandId, activeIsland, baseManifest, "AUTO");
+    }
+
+    public SaveResult save(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland, IslandBundleManifest baseManifest, String reason) throws IOException {
+        return save(islandId, activeIsland, false, true, baseManifest, reason);
     }
 
     public SaveResult snapshotBeforeRestore(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland) throws IOException {
-        return save(islandId, activeIsland, false, true, null);
+        return save(islandId, activeIsland, false, true, null, "BEFORE_RESTORE");
     }
 
     public SaveResult snapshotBeforeReset(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland) throws IOException {
-        return save(islandId, activeIsland, false, true, null);
+        return save(islandId, activeIsland, false, true, null, "BEFORE_RESET");
     }
 
     public SaveResult snapshotBeforeMigration(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland) throws IOException {
-        return save(islandId, activeIsland, false, true, null);
+        return save(islandId, activeIsland, false, true, null, "BEFORE_MIGRATION");
     }
 
     public SaveResult backupBeforeDelete(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland) throws IOException {
-        SaveResult result = save(islandId, activeIsland, true, false, null);
+        SaveResult result = save(islandId, activeIsland, true, false, null, "BEFORE_DELETE");
         storage.deleteLiveState(islandId);
         return result;
     }
 
-    private SaveResult save(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland, boolean deleteBackup, boolean pruneAfterSave, IslandBundleManifest baseManifest) throws IOException {
+    private SaveResult save(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland, boolean deleteBackup, boolean pruneAfterSave, IslandBundleManifest baseManifest, String reason) throws IOException {
         if (!retentionPolicy.checksumAlgorithm().equalsIgnoreCase("SHA-256")) {
             throw new IOException("unsupported snapshot checksum algorithm: " + retentionPolicy.checksumAlgorithm());
         }
         if (!retentionPolicy.compress()) {
             throw new IOException("uncompressed snapshot bundles are not supported by the current storage format");
         }
-        IslandBundleManifest previous = baseManifest == null ? storage.readManifest(islandId) : baseManifest;
+        IslandBundleManifest previous = (baseManifest == null ? storage.readManifest(islandId) : baseManifest).withSnapshotReason(reason);
         IslandBundleExporter.ExportedIslandBundle exported = exporter.export(islandId, activeIsland, exportRoot.resolve(islandId.toString()), previous);
         long sizeBytes = Files.size(exported.bundleFile());
         String checksum;
@@ -86,7 +90,7 @@ public final class IslandSaveService {
             previous.createdAt(),
             java.time.Instant.now(),
             checksum
-        );
+        ).withSnapshotReason(reason);
         IslandStorage.StoredBundle storedBundle;
         try (InputStream input = Files.newInputStream(exported.bundleFile())) {
             if (deleteBackup) {

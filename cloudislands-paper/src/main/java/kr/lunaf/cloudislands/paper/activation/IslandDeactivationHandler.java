@@ -26,6 +26,10 @@ public final class IslandDeactivationHandler {
     }
 
     public DeactivationResult deactivate(UUID islandId, boolean deleteBackup) {
+        return deactivate(islandId, deleteBackup, deleteBackup ? "BEFORE_DELETE" : "DEACTIVATE_ISLAND");
+    }
+
+    public DeactivationResult deactivate(UUID islandId, boolean deleteBackup, String reason) {
         try {
             IslandSaveService.SaveResult saveResult = null;
             ActiveIslandRegistry.ActiveIsland active = activeIslands.find(islandId).orElse(null);
@@ -36,7 +40,7 @@ public final class IslandDeactivationHandler {
                 return new DeactivationResult(false, islandId, 0L, "", 0L, "SAVE_UNAVAILABLE");
             }
             if (active != null && saveService != null) {
-                saveResult = deleteBackup ? saveService.backupBeforeDelete(islandId, active) : saveService.save(islandId, active);
+                saveResult = deleteBackup ? saveService.backupBeforeDelete(islandId, active) : saveService.save(islandId, active, null, reason);
             }
             protectionController.unregisterIsland(islandId);
             activeIslands.deactivated(islandId);
@@ -48,6 +52,10 @@ public final class IslandDeactivationHandler {
     }
 
     public DeactivationResult saveOnly(UUID islandId) {
+        return saveOnly(islandId, "SAVE_ISLAND");
+    }
+
+    public DeactivationResult saveOnly(UUID islandId, String reason) {
         try {
             IslandSaveService.SaveResult saveResult = null;
             ActiveIslandRegistry.ActiveIsland active = activeIslands.find(islandId).orElse(null);
@@ -57,7 +65,7 @@ public final class IslandDeactivationHandler {
             if (saveService == null) {
                 return new DeactivationResult(false, islandId, 0L, "", 0L, "SAVE_UNAVAILABLE");
             }
-            saveResult = saveService.save(islandId, active);
+            saveResult = saveService.save(islandId, active, null, reason);
             return new DeactivationResult(true, islandId, saveResult == null ? 0L : saveResult.snapshotNo(), saveResult == null ? "" : saveResult.checksum(), saveResult == null ? 0L : saveResult.sizeBytes(), null);
         } catch (IOException exception) {
             return new DeactivationResult(false, islandId, 0L, "", 0L, exception.getMessage());

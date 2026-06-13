@@ -7,10 +7,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
 import kr.lunaf.cloudislands.storage.manifest.IslandManifestJson;
+import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 
 public final class LocalIslandStorage implements IslandStorage {
     private final Path root;
@@ -130,7 +134,8 @@ public final class LocalIslandStorage implements IslandStorage {
             "SHA-256",
             "zstd",
             storagePath,
-            sizeBytes
+            sizeBytes,
+            manifest.snapshotReason()
         );
         Files.writeString(snapshotDir.resolve("manifest.json"), IslandManifestJson.write(savedManifest), StandardCharsets.UTF_8);
         Files.writeString(snapshotDir.resolve("checksums.sha256"), actualChecksum + "  bundle.tar.zst\n", StandardCharsets.UTF_8);
@@ -163,6 +168,62 @@ public final class LocalIslandStorage implements IslandStorage {
             deleted++;
         }
         return deleted;
+    }
+
+    @Override
+    public int pruneSnapshots(UUID islandId, SnapshotRetentionPolicy policy) throws IOException {
+        SnapshotRetentionPolicy effectivePolicy = policy == null ? SnapshotRetentionPolicy.defaultPolicy() : policy.normalized();
+        Path snapshotsRoot = islandRoot(islandId).resolve("snapshots");
+        if (!Files.exists(snapshotsRoot)) {
+            return 0;
+        }
+        List<Path> snapshots;
+        try (var stream = Files.list(snapshotsRoot)) {
+            snapshots = stream
+                .filter(Files::isDirectory)
+                .sorted(Comparator.comparing((Path path) -> path.getFileName().toString()).reversed())
+                .toList();
+        }
+        Set<Path> retained = new HashSet<>();
+        int manualKept = 0;
+        for (Path snapshot : snapshots) {
+            if (manualSnapshot(snapshot) && manualKept < effectivePolicy.keepManual()) {
+                retained.add(snapshot);
+                manualKept++;
+            }
+        }
+        int automaticKept = 0;
+        int automaticLimit = effectivePolicy.retainedAutomaticSnapshotCount();
+        for (Path snapshot : snapshots) {
+            if (manualSnapshot(snapshot)) {
+                continue;
+            }
+            if (automaticKept < automaticLimit) {
+                retained.add(snapshot);
+                automaticKept++;
+            }
+        }
+        int deleted = 0;
+        for (Path snapshot : snapshots) {
+            if (!retained.contains(snapshot)) {
+                deleteRecursively(snapshot);
+                deleted++;
+            }
+        }
+        return deleted;
+    }
+
+    private boolean manualSnapshot(Path snapshotDir) {
+        Path manifest = snapshotDir.resolve("manifest.json");
+        if (!Files.exists(manifest)) {
+            return false;
+        }
+        try {
+            String reason = IslandManifestJson.read(Files.readString(manifest, StandardCharsets.UTF_8)).snapshotReason();
+            return reason != null && reason.toUpperCase(Locale.ROOT).contains("MANUAL");
+        } catch (IOException exception) {
+            return false;
+        }
     }
 
     @Override

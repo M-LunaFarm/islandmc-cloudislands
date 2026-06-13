@@ -136,7 +136,7 @@ public final class PaperIslandJobWorker {
             jobSource.fail(nodeId, job.jobId(), "DEACTIVATION_UNAVAILABLE");
             return;
         }
-        IslandDeactivationHandler.DeactivationResult result = deactivationHandler.deactivate(job.islandId(), job.type() == IslandJobType.DELETE_ISLAND);
+        IslandDeactivationHandler.DeactivationResult result = deactivationHandler.deactivate(job.islandId(), job.type() == IslandJobType.DELETE_ISLAND, job.payload().getOrDefault("reason", job.type().name()));
         if (result.success()) {
             Bukkit.getPluginManager().callEvent(new IslandDeactivateEvent(result.islandId(), nodeId, result.snapshotNo()));
             if (job.type() == IslandJobType.DELETE_ISLAND) {
@@ -157,7 +157,7 @@ public final class PaperIslandJobWorker {
             jobSource.fail(nodeId, job.jobId(), "SAVE_UNAVAILABLE");
             return;
         }
-        IslandDeactivationHandler.DeactivationResult result = deactivationHandler.saveOnly(job.islandId());
+        IslandDeactivationHandler.DeactivationResult result = deactivationHandler.saveOnly(job.islandId(), job.payload().getOrDefault("reason", job.type().name()));
         if (result.success()) {
             jobSource.complete(nodeId, job.jobId(), IslandJobCompletionPayload.snapshot(result.snapshotNo(), job.payload().getOrDefault("reason", job.type().name()), result.checksum(), result.sizeBytes()).asMap());
         } else {

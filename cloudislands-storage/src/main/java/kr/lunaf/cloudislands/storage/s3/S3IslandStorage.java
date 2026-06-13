@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import javax.crypto.Mac;
@@ -26,6 +27,7 @@ import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
 import kr.lunaf.cloudislands.storage.manifest.IslandManifestJson;
+import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 
 public final class S3IslandStorage implements IslandStorage {
     private static final DateTimeFormatter AMZ_DATE = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'").withZone(ZoneOffset.UTC);
@@ -143,7 +145,7 @@ public final class S3IslandStorage implements IslandStorage {
         byte[] bundleBytes = bundle.readAllBytes();
         String checksum = Sha256Checksums.of(new ByteArrayInputStream(bundleBytes));
         String storagePath = key(islandId, prefix + "/bundle.tar.zst");
-        IslandBundleManifest savedManifest = new IslandBundleManifest(manifest.islandId(), manifest.ownerUuid(), manifest.formatVersion(), manifest.minecraftVersion(), manifest.schemaVersion(), manifest.size(), manifest.spawn(), manifest.createdAt(), manifest.savedAt(), checksum, "SHA-256", "zstd", storagePath, bundleBytes.length);
+        IslandBundleManifest savedManifest = new IslandBundleManifest(manifest.islandId(), manifest.ownerUuid(), manifest.formatVersion(), manifest.minecraftVersion(), manifest.schemaVersion(), manifest.size(), manifest.spawn(), manifest.createdAt(), manifest.savedAt(), checksum, "SHA-256", "zstd", storagePath, bundleBytes.length, manifest.snapshotReason());
         requestBytes("PUT", storagePath, bundleBytes);
         requestBytes("PUT", key(islandId, prefix + "/manifest.json"), IslandManifestJson.write(savedManifest).getBytes(StandardCharsets.UTF_8));
         requestBytes("PUT", key(islandId, prefix + "/checksums.sha256"), (checksum + "  bundle.tar.zst\n").getBytes(StandardCharsets.UTF_8));
@@ -179,6 +181,59 @@ public final class S3IslandStorage implements IslandStorage {
             }
         }
         return deletedKeys == 0 ? 0 : removedSnapshots.size();
+    }
+
+    @Override
+    public int pruneSnapshots(UUID islandId, SnapshotRetentionPolicy policy) throws IOException {
+        SnapshotRetentionPolicy effectivePolicy = policy == null ? SnapshotRetentionPolicy.defaultPolicy() : policy.normalized();
+        String prefix = "islands/" + islandId + "/snapshots/";
+        List<String> keys = listKeys(prefix);
+        List<String> snapshots = keys.stream()
+            .map(key -> snapshotName(prefix, key))
+            .filter(name -> !name.isBlank())
+            .distinct()
+            .sorted(Comparator.reverseOrder())
+            .toList();
+        Set<String> retained = new HashSet<>();
+        int manualKept = 0;
+        for (String snapshot : snapshots) {
+            if (manualSnapshot(islandId, snapshot) && manualKept < effectivePolicy.keepManual()) {
+                retained.add(snapshot);
+                manualKept++;
+            }
+        }
+        int automaticKept = 0;
+        int automaticLimit = effectivePolicy.retainedAutomaticSnapshotCount();
+        for (String snapshot : snapshots) {
+            if (manualSnapshot(islandId, snapshot)) {
+                continue;
+            }
+            if (automaticKept < automaticLimit) {
+                retained.add(snapshot);
+                automaticKept++;
+            }
+        }
+        int deletedKeys = 0;
+        Set<String> removedSnapshots = new HashSet<>();
+        for (String key : keys) {
+            String snapshot = snapshotName(prefix, key);
+            if (!snapshot.isBlank() && !retained.contains(snapshot)) {
+                deleteKey(key);
+                removedSnapshots.add(snapshot);
+                deletedKeys++;
+            }
+        }
+        return deletedKeys == 0 ? 0 : removedSnapshots.size();
+    }
+
+    private boolean manualSnapshot(UUID islandId, String snapshot) {
+        try {
+            String manifest = request("GET", key(islandId, "snapshots/" + snapshot + "/manifest.json"), null);
+            String reason = IslandManifestJson.read(manifest).snapshotReason();
+            return reason != null && reason.toUpperCase(Locale.ROOT).contains("MANUAL");
+        } catch (IOException exception) {
+            return false;
+        }
     }
 
     @Override

@@ -30,7 +30,8 @@ public final class IslandManifestJson {
             + "\"checksumAlgorithm\":\"" + escape(manifest.checksumAlgorithm()) + "\","
             + "\"compression\":\"" + escape(manifest.compression()) + "\","
             + "\"storagePath\":\"" + escape(manifest.storagePath()) + "\","
-            + "\"sizeBytes\":" + manifest.sizeBytes()
+            + "\"sizeBytes\":" + manifest.sizeBytes() + ","
+            + "\"snapshotReason\":\"" + escape(manifest.snapshotReason()) + "\""
             + "}";
     }
 
@@ -56,7 +57,8 @@ public final class IslandManifestJson {
         String compression = text(json, "compression", "zstd");
         String storagePath = text(json, "storagePath", "");
         long sizeBytes = number(json, "sizeBytes", 0L);
-        return new IslandBundleManifest(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes);
+        String snapshotReason = text(json, "snapshotReason", "");
+        return new IslandBundleManifest(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, snapshotReason);
     }
 
     public static IslandBundleManifest minimal(UUID islandId, UUID ownerUuid, String checksum) {
