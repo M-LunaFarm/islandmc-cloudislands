@@ -430,6 +430,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private boolean registerCloudIslandsAddon() {
         cloudIslandsApi = resolveCloudIslandsApi();
         if (cloudIslandsApi == null) {
+            if (requiresCloudIslandsApi()) {
+                getLogger().severe("CloudIslands API is required for the configured Satis integration mode.");
+                addonRuntimeEnabled = false;
+                return false;
+            }
             addonRuntimeEnabled = true;
             return true;
         }
@@ -448,6 +453,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return api;
         }
         return getServer().getServicesManager().load(CloudIslandsApi.class);
+    }
+
+    private boolean requiresCloudIslandsApi() {
+        String provider = configs.main().getString("integration.skyblock-provider", "CLOUDISLANDS");
+        return "CLOUDISLANDS".equalsIgnoreCase(provider)
+                || "CLOUD_ISLANDS".equalsIgnoreCase(provider)
+                || configs.main().getBoolean("integration.cloudislands-adapter", true);
     }
 
     private void unregisterCloudIslandsAddon() {
