@@ -335,61 +335,55 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void registerListeners() {
-        if (featureEnabled("machines")) {
-            getServer().getPluginManager().registerEvents(new MachineListener(
-                    () -> featureEnabled("machines"),
-                    this,
-                    itemFactory,
-                    machineDefinitions,
-                    machines,
-                    skyblock,
-                    islands,
-                    gui,
-                    messages,
-                    research,
-                    nodes,
-                    itemNetworks,
-                    power,
-                    configs.main(),
-                    configs.file("maintenance.yml"),
-                    boosts
-            ), this);
-        }
-        if (featureEnabled("gui")) {
-            getServer().getPluginManager().registerEvents(new FactoryGuiListener(
-                    () -> featureEnabled("gui"),
-                    islands,
-                    skyblock,
-                    contracts,
-                    research,
-                    gui,
-                    machines,
-                    recipes,
-                    storage,
-                    itemRegistry,
-                    itemFactory,
-                    market,
-                    machineDefinitions,
-                    maintenance,
-                    itemNetworks,
-                    power,
-                    messages,
-                    boosts,
-                    this::reloadPluginConfig
-            ), this);
-        }
-        if (featureEnabled("lifecycle")) {
-            getServer().getPluginManager().registerEvents(new FactoryLifecycleListener(
-                    () -> featureEnabled("lifecycle"),
-                    islands,
-                    skyblock,
-                    nodes,
-                    machines,
-                    itemNetworks,
-                    power,
-                    maintenance
-            ), this);
-        }
+        getServer().getPluginManager().registerEvents(new MachineListener(
+                () -> featureEnabled("machines"),
+                this,
+                itemFactory,
+                machineDefinitions,
+                machines,
+                skyblock,
+                islands,
+                gui,
+                messages,
+                research,
+                nodes,
+                itemNetworks,
+                power,
+                configs.main(),
+                configs.file("maintenance.yml"),
+                boosts
+        ), this);
+        getServer().getPluginManager().registerEvents(new FactoryGuiListener(
+                () -> featureEnabled("gui"),
+                islands,
+                skyblock,
+                contracts,
+                research,
+                gui,
+                machines,
+                recipes,
+                storage,
+                itemRegistry,
+                itemFactory,
+                market,
+                machineDefinitions,
+                maintenance,
+                itemNetworks,
+                power,
+                messages,
+                boosts,
+                this::reloadPluginConfig
+        ), this);
+        getServer().getPluginManager().registerEvents(new FactoryLifecycleListener(
+                () -> featureEnabled("lifecycle"),
+                islands,
+                skyblock,
+                nodes,
+                machines,
+                itemNetworks,
+                power,
+                maintenance
+        ), this);
     }
 
     private void rebuildNetworks() {
