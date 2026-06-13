@@ -13,6 +13,7 @@ import kr.lunaf.cloudislands.paper.event.IslandDeleteEvent;
 import kr.lunaf.cloudislands.paper.event.IslandPreActivateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandPreCreateEvent;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
+import kr.lunaf.cloudislands.protocol.job.IslandJobCompletionPayload;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
@@ -117,26 +118,11 @@ public final class PaperIslandJobWorker {
                 if (permissionSync != null) {
                     permissionSync.sync(job.islandId());
                 }
-                java.util.Map<String, String> payload = new java.util.HashMap<>();
-                payload.put("worldName", result.worldName() == null ? "" : result.worldName());
-                payload.put("cellX", Integer.toString(result.cellX()));
-                payload.put("cellZ", Integer.toString(result.cellZ()));
-                payload.put("schemaVersion", Long.toString(result.schemaVersion()));
-                payload.put("fencingToken", Long.toString(result.fencingToken()));
-                payload.put("extractedRoot", result.extractedRoot() == null ? "" : result.extractedRoot());
-                if (result.preMutationSnapshotNo() > 0L) {
-                    payload.put("preMutationSnapshotNo", Long.toString(result.preMutationSnapshotNo()));
-                    payload.put("preMutationChecksum", result.preMutationChecksum());
-                    payload.put("preMutationSizeBytes", Long.toString(result.preMutationSizeBytes()));
-                    payload.put("preMutationReason", result.preMutationReason());
-                }
-                if (result.creationSnapshotNo() > 0L) {
-                    payload.put("snapshotNo", Long.toString(result.creationSnapshotNo()));
-                    payload.put("checksum", result.creationSnapshotChecksum());
-                    payload.put("sizeBytes", Long.toString(result.creationSnapshotSizeBytes()));
-                    payload.put("reason", "CREATED");
-                }
-                jobSource.complete(nodeId, job.jobId(), payload);
+                IslandJobCompletionPayload payload = IslandJobCompletionPayload
+                    .activation(result.worldName(), result.cellX(), result.cellZ(), result.schemaVersion(), result.fencingToken(), result.extractedRoot())
+                    .withPreMutationSnapshot(result.preMutationSnapshotNo(), result.preMutationReason(), result.preMutationChecksum(), result.preMutationSizeBytes())
+                    .withSnapshot(result.creationSnapshotNo(), "CREATED", result.creationSnapshotChecksum(), result.creationSnapshotSizeBytes());
+                jobSource.complete(nodeId, job.jobId(), payload.asMap());
             } else {
                 jobSource.fail(nodeId, job.jobId(), result.state());
             }
@@ -156,15 +142,11 @@ public final class PaperIslandJobWorker {
             if (job.type() == IslandJobType.DELETE_ISLAND) {
                 Bukkit.getPluginManager().callEvent(new IslandDeleteEvent(result.islandId(), job.jobId(), nodeId, result.snapshotNo()));
             }
-            java.util.Map<String, String> payload = new java.util.HashMap<>();
-            payload.put("snapshotNo", Long.toString(result.snapshotNo()));
-            payload.put("reason", job.payload().getOrDefault("reason", job.type().name()));
-            payload.put("checksum", result.checksum());
-            payload.put("sizeBytes", Long.toString(result.sizeBytes()));
+            IslandJobCompletionPayload payload = IslandJobCompletionPayload.snapshot(result.snapshotNo(), job.payload().getOrDefault("reason", job.type().name()), result.checksum(), result.sizeBytes());
             if (job.type() == IslandJobType.DELETE_ISLAND && job.payload().containsKey("ownerUuid")) {
-                payload.put("ownerUuid", job.payload().get("ownerUuid"));
+                payload = payload.with("ownerUuid", job.payload().get("ownerUuid"));
             }
-            jobSource.complete(nodeId, job.jobId(), payload);
+            jobSource.complete(nodeId, job.jobId(), payload.asMap());
         } else {
             jobSource.fail(nodeId, job.jobId(), result.errorMessage());
         }
@@ -177,12 +159,7 @@ public final class PaperIslandJobWorker {
         }
         IslandDeactivationHandler.DeactivationResult result = deactivationHandler.saveOnly(job.islandId());
         if (result.success()) {
-            jobSource.complete(nodeId, job.jobId(), Map.of(
-                "snapshotNo", Long.toString(result.snapshotNo()),
-                "reason", job.payload().getOrDefault("reason", job.type().name()),
-                "checksum", result.checksum(),
-                "sizeBytes", Long.toString(result.sizeBytes())
-            ));
+            jobSource.complete(nodeId, job.jobId(), IslandJobCompletionPayload.snapshot(result.snapshotNo(), job.payload().getOrDefault("reason", job.type().name()), result.checksum(), result.sizeBytes()).asMap());
         } else {
             jobSource.fail(nodeId, job.jobId(), result.errorMessage());
         }
