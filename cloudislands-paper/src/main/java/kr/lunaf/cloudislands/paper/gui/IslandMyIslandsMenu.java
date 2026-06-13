@@ -49,26 +49,29 @@ public final class IslandMyIslandsMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || !meta.hasDisplayName()) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= 54) {
             return;
         }
-        String name = meta.getDisplayName();
         player.closeInventory();
-        if (name.equals("새로고침")) {
+        if (slot == 49) {
             player.performCommand("섬 목록");
             return;
         }
-        if (name.equals("섬 생성")) {
+        if (slot == 48) {
             player.performCommand("섬 생성메뉴");
             return;
         }
-        if (name.equals("메인 메뉴")) {
+        if (slot == 45) {
             player.performCommand("섬 메뉴");
             return;
         }
-        if (name.equals("공개 섬")) {
+        if (slot == 53) {
             player.performCommand("섬 방문");
+            return;
+        }
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null) {
             return;
         }
         String islandId = loreValue(meta, "섬 ID=");
@@ -81,17 +84,17 @@ public final class IslandMyIslandsMenu implements Listener {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
             if (islands.isEmpty()) {
-                inventory.setItem(22, item(Material.BARRIER, "섬 없음", message(messages, "my-islands-menu-empty", "속한 섬이 없습니다.")));
+                inventory.setItem(22, item(Material.BARRIER, message(messages, "my-islands-menu-empty-title", "섬 없음"), message(messages, "my-islands-menu-empty", "속한 섬이 없습니다.")));
             } else {
                 for (int index = 0; index < islands.size() && index < 45; index++) {
                     IslandEntry island = islands.get(index);
-                    inventory.setItem(index, item(material(island.role()), island.name(), "섬 ID=" + island.islandId(), "역할: " + island.role(), "상태: " + island.state(), "레벨: " + island.level(), "가치: " + island.worth(), message(messages, "my-islands-menu-click-to-visit", "클릭하면 이 섬으로 이동합니다.")));
+                    inventory.setItem(index, item(material(island.role()), island.name(), "섬 ID=" + island.islandId(), message(messages, "my-islands-menu-role", "역할: ") + island.role(), message(messages, "my-islands-menu-state", "상태: ") + island.state(), message(messages, "my-islands-menu-level", "레벨: ") + island.level(), message(messages, "my-islands-menu-worth", "가치: ") + island.worth(), message(messages, "my-islands-menu-click-to-visit", "클릭하면 이 섬으로 이동합니다.")));
                 }
             }
-            inventory.setItem(45, item(Material.COMPASS, "메인 메뉴", "/섬 메뉴"));
-            inventory.setItem(48, item(Material.OAK_SAPLING, "섬 생성", "/섬 생성메뉴"));
-            inventory.setItem(49, item(Material.CLOCK, "새로고침", "/섬 목록"));
-            inventory.setItem(53, item(Material.ENDER_PEARL, "공개 섬", "/섬 방문"));
+            inventory.setItem(45, item(Material.COMPASS, message(messages, "my-islands-menu-main-menu-name", "메인 메뉴"), message(messages, "my-islands-menu-main-menu-command", "/섬 메뉴")));
+            inventory.setItem(48, item(Material.OAK_SAPLING, message(messages, "my-islands-menu-create-name", "섬 생성"), message(messages, "my-islands-menu-create-command", "/섬 생성메뉴")));
+            inventory.setItem(49, item(Material.CLOCK, message(messages, "my-islands-menu-refresh-name", "새로고침"), message(messages, "my-islands-menu-refresh-command", "/섬 목록")));
+            inventory.setItem(53, item(Material.ENDER_PEARL, message(messages, "my-islands-menu-public-islands-name", "공개 섬"), message(messages, "my-islands-menu-public-islands-command", "/섬 방문")));
             player.openInventory(inventory);
         });
     }
