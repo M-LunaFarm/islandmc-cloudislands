@@ -737,7 +737,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-config-source", databaseConfigSource());
         metadata.put("database-file", configuredDatabaseFileName());
         metadata.put("database-path", resolveDatabaseFileName());
-        metadata.put("database-shared", Boolean.toString(!scope.equals("PLUGIN_LOCAL") && !scope.equals("PLUGIN_RELATIVE_PATH")));
+        metadata.put("database-shared", Boolean.toString(databaseShared()));
         metadata.put("satis-state-schema", "3");
         metadata.put("island-position-remap", "center-delta");
         metadata.put("feature-aliases", featureAliasesMetadata());
@@ -1117,6 +1117,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 || Boolean.TRUE.equals(features.get("maintenance")))) {
             warnings.add("satis-state-without-lifecycle-sync");
         }
+        if (!databaseShared()
+                && (Boolean.TRUE.equals(features.get("machines"))
+                || Boolean.TRUE.equals(features.get("resource-nodes"))
+                || Boolean.TRUE.equals(features.get("market"))
+                || Boolean.TRUE.equals(features.get("contracts"))
+                || Boolean.TRUE.equals(features.get("research"))
+                || Boolean.TRUE.equals(features.get("maintenance")))) {
+            warnings.add("database-unshared-for-satis-state");
+        }
         FEATURE_ALIASES.forEach((alias, canonical) -> {
             if (configFeature(canonical) && configFeatureDefined(alias) && !configFeature(alias)) {
                 warnings.add("alias-disabled:" + alias + "->" + canonical);
@@ -1219,6 +1228,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return "PLUGIN_LOCAL";
     }
 
+    private boolean databaseShared() {
+        String scope = databaseScope();
+        return !scope.equals("PLUGIN_LOCAL") && !scope.equals("PLUGIN_RELATIVE_PATH");
+    }
+
     private String databaseConfigSource() {
         String envPath = System.getenv("CLOUDISLANDS_SATIS_DB");
         if (envPath != null && !envPath.isBlank()) {
@@ -1236,11 +1250,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void warnIfUnsharedDatabaseInCloudIslandsMode() {
-        String scope = databaseScope();
-        boolean shared = !scope.equals("PLUGIN_LOCAL") && !scope.equals("PLUGIN_RELATIVE_PATH");
-        if (!requiresCloudIslandsApi() || shared) {
+        if (!requiresCloudIslandsApi() || databaseShared()) {
             return;
         }
+        String scope = databaseScope();
         getLogger().warning("CloudIslands Satis is using an unshared SQLite database from " + databaseConfigSource()
                 + " (scope=" + scope + ")"
                 + ". Set database.shared-directory, database.path, or CLOUDISLANDS_SATIS_DB so A/B island nodes share factory state.");
