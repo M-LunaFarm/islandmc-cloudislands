@@ -119,18 +119,23 @@ public record CloudIslandsAddonSnapshot(
     }
 
     public Map<String, String> featureDependencies() {
+        Map<String, String> aliases = featureAliases();
         Map<String, String> dependencies = new HashMap<>();
         metadataPairs("feature-dependencies").forEach((feature, required) ->
-            dependencies.put(canonicalFeature(feature), canonicalFeature(required)));
+            dependencies.put(canonicalFeature(feature, aliases), canonicalFeature(required, aliases)));
         return Map.copyOf(dependencies);
     }
 
     private String canonicalFeature(String key) {
+        return canonicalFeature(key, featureAliases());
+    }
+
+    private String canonicalFeature(String key, Map<String, String> aliases) {
         if (key == null) {
             return "";
         }
         String requested = key.trim();
-        for (Map.Entry<String, String> alias : featureAliases().entrySet()) {
+        for (Map.Entry<String, String> alias : aliases.entrySet()) {
             if (alias.getKey().equals(requested)) {
                 return alias.getValue();
             }
