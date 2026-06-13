@@ -162,7 +162,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         market = new MarketService(storage, economy, database, itemRegistry, () -> featureEnabled("maintenance"));
         contracts = new ContractService(storage, economy, database, boosts, () -> featureEnabled("maintenance"));
         maintenance = new MaintenanceService(machines, economy, database);
-        research = new ResearchService(database, economy);
+        research = new ResearchService(database, economy, () -> featureEnabled("maintenance"));
         gui = new FactoryGuiService(storage, itemRegistry, machineDefinitions, recipes, islands, research, economy, messages, this::featureEnabled);
 
         loadDefinitions();

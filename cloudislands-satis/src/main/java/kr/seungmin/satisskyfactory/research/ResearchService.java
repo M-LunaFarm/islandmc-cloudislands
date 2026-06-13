@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 
 public final class ResearchService {
     public enum UnlockResult {
@@ -28,12 +29,14 @@ public final class ResearchService {
 
     private final DatabaseService database;
     private final EconomyService economy;
+    private final BooleanSupplier maintenanceEnabled;
     private final Map<String, UnlockDefinition> unlocks = new HashMap<>();
     private boolean blockTierUpgradesWhenLimited;
 
-    public ResearchService(DatabaseService database, EconomyService economy) {
+    public ResearchService(DatabaseService database, EconomyService economy, BooleanSupplier maintenanceEnabled) {
         this.database = database;
         this.economy = economy;
+        this.maintenanceEnabled = maintenanceEnabled == null ? () -> true : maintenanceEnabled;
     }
 
     public void load(FileConfiguration config) {
@@ -93,7 +96,8 @@ public final class ResearchService {
         if (island.reputation() < unlock.requiredReputation()) {
             return UnlockResult.NOT_ENOUGH_REPUTATION;
         }
-        if (blockTierUpgradesWhenLimited
+        if (maintenanceEnabled.getAsBoolean()
+                && blockTierUpgradesWhenLimited
                 && island.maintenanceStatus() == MaintenanceStatus.LIMITED
                 && unlock.factoryTier() > island.tier()) {
             return UnlockResult.MAINTENANCE_LIMITED;
