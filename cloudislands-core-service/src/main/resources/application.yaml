@@ -8,7 +8,7 @@ setup:
   event-bus-mode: ""
   # Empty jdbc-url inherits database.jdbc-url. Otherwise use database-type + host/name below.
   jdbc-url: ""
-  # database-type: POSTGRESQL, MYSQL, MARIADB
+  # database-type: POSTGRESQL. Core service repositories use PostgreSQL SQL.
   database-type: ""
   database-host: ""
   database-port: 0

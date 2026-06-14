@@ -207,17 +207,12 @@ public record CoreServiceConfig(
     private static String jdbcPrefix(String type) {
         return switch (type.trim().replace('-', '_').toUpperCase(Locale.ROOT)) {
             case "POSTGRES", "POSTGRESQL" -> "jdbc:postgresql";
-            case "MYSQL" -> "jdbc:mysql";
-            case "MARIADB" -> "jdbc:mariadb";
             default -> "";
         };
     }
 
     private static int defaultDatabasePort(String type) {
-        return switch (type.trim().replace('-', '_').toUpperCase(Locale.ROOT)) {
-            case "MYSQL", "MARIADB" -> 3306;
-            default -> 5432;
-        };
+        return 5432;
     }
 
     private static kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotRetentionPolicy(Map<String, String> config) {
