@@ -19,6 +19,7 @@ import kr.lunaf.cloudislands.api.event.IslandRepairedEvent;
 import kr.lunaf.cloudislands.api.event.IslandResetEvent;
 import kr.lunaf.cloudislands.api.event.IslandRestoredEvent;
 import kr.lunaf.cloudislands.api.event.IslandRestoreRequestEvent;
+import kr.lunaf.cloudislands.api.event.IslandRuntimeChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotCreateEvent;
 import kr.lunaf.cloudislands.api.event.IslandUpgradeEvent;
 import kr.lunaf.cloudislands.api.event.IslandWorthChangeEvent;
@@ -76,6 +77,8 @@ public interface CloudIslandsAddon {
             onIslandRecoveryRequired(recoveryRequired);
         } else if (event instanceof IslandRepairedEvent repaired) {
             onIslandRepaired(repaired);
+        } else if (event instanceof IslandRuntimeChangeEvent runtimeChanged) {
+            onIslandRuntimeChanged(runtimeChanged);
         } else if (event instanceof IslandMemberChangedEvent memberChanged) {
             onIslandMemberChanged(memberChanged);
         } else if (event instanceof IslandPermissionChangeEvent permissionChanged) {
@@ -127,6 +130,9 @@ public interface CloudIslandsAddon {
     }
 
     default void onIslandRepaired(IslandRepairedEvent event) {
+    }
+
+    default void onIslandRuntimeChanged(IslandRuntimeChangeEvent event) {
     }
 
     default void onIslandMemberChanged(IslandMemberChangedEvent event) {

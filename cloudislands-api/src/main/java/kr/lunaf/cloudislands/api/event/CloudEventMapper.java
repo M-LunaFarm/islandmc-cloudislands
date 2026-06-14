@@ -33,6 +33,7 @@ public final class CloudEventMapper {
             case "ISLAND_RESET" -> Optional.of(new IslandResetEvent(uuid(fields, "islandId"), false, text(fields, "state"), firstText(fields, "targetNode", "nodeId"), text(fields, "reason"), occurredAt));
             case "ISLAND_RECOVERY_REQUIRED" -> Optional.of(new IslandRecoveryRequiredEvent(uuid(fields, "islandId"), text(fields, "nodeId"), text(fields, "reason"), occurredAt));
             case "ISLAND_REPAIRED" -> Optional.of(new IslandRepairedEvent(uuid(fields, "islandId"), text(fields, "reason"), occurredAt));
+            case "ISLAND_RUNTIME_CHANGED" -> Optional.of(new IslandRuntimeChangeEvent(uuid(fields, "islandId"), text(fields, "state"), firstText(fields, "targetNode", "nodeId"), text(fields, "reason"), text(fields, "error"), occurredAt));
             case "ISLAND_MEMBER_CHANGED" -> Optional.of(new IslandMemberChangedEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), text(fields, "action"), role(fields, "oldRole"), firstRole(fields, "newRole", "role"), occurredAt));
             case "ISLAND_FLAG_CHANGED" -> Optional.of(new IslandFlagChangeEvent(uuid(fields, "islandId"), flag(fields, "flag"), text(fields, "value"), occurredAt));
             case "ISLAND_PERMISSION_CHANGED" -> Optional.of(new IslandPermissionChangeEvent(uuid(fields, "islandId"), firstRole(fields, "role", "targetRole"), permission(fields, "permission"), nullableBool(fields, "allowed"), occurredAt));
