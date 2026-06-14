@@ -250,14 +250,22 @@ public record CoreServiceConfig(
         if (!setupType.isBlank()) {
             return normalizeDatabaseType(setupType);
         }
-        String jdbcUrl = setting(config, "database.jdbc-url", "");
-        if (jdbcUrl.toLowerCase(Locale.ROOT).startsWith("jdbc:mysql:")) {
+        String jdbcUrl = env("CI_JDBC_URL", setting(config, "database.jdbc-url", ""));
+        return jdbcUrlDatabaseType(jdbcUrl);
+    }
+
+    private static String jdbcUrlDatabaseType(String jdbcUrl) {
+        if (jdbcUrl == null || jdbcUrl.isBlank()) {
+            return "UNKNOWN";
+        }
+        String value = jdbcUrl.toLowerCase(Locale.ROOT);
+        if (value.startsWith("jdbc:mysql:")) {
             return "MYSQL";
         }
-        if (jdbcUrl.toLowerCase(Locale.ROOT).startsWith("jdbc:mariadb:")) {
+        if (value.startsWith("jdbc:mariadb:")) {
             return "MARIADB";
         }
-        if (jdbcUrl.toLowerCase(Locale.ROOT).startsWith("jdbc:postgresql:")) {
+        if (value.startsWith("jdbc:postgresql:")) {
             return "POSTGRESQL";
         }
         return "UNKNOWN";
