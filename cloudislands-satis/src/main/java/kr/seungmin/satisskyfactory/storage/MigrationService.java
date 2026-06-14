@@ -11,7 +11,8 @@ public final class MigrationService {
     public enum Dialect {
         SQLITE,
         POSTGRESQL,
-        MYSQL
+        MYSQL,
+        MARIADB
     }
 
     public void migrate(Connection connection, Dialect dialect) throws SQLException {
@@ -247,7 +248,7 @@ public final class MigrationService {
     }
 
     private String ddl(String sql, Dialect dialect) {
-        if (dialect != Dialect.MYSQL) {
+        if (dialect != Dialect.MYSQL && dialect != Dialect.MARIADB) {
             return sql;
         }
         return sql

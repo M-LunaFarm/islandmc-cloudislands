@@ -231,6 +231,8 @@ public final class DatabaseService {
         dataSource = new HikariDataSource(poolConfig);
         MigrationService.Dialect migrationDialect = backend == StorageBackend.POSTGRESQL
                 ? MigrationService.Dialect.POSTGRESQL
+                : backend == StorageBackend.MARIADB
+                ? MigrationService.Dialect.MARIADB
                 : MigrationService.Dialect.MYSQL;
         try (Connection connection = connection()) {
             new MigrationService().migrate(connection, migrationDialect);
