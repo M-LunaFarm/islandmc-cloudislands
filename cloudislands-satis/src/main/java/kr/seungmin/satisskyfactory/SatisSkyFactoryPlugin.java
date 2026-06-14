@@ -2024,7 +2024,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Math.max(1, envInt("CLOUDISLANDS_SATIS_DB_MAX_POOL_SIZE", setupInt("database.jdbc.max-pool-size", 8))),
                 Math.max(1000L, envLong("CLOUDISLANDS_SATIS_DB_CONNECTION_TIMEOUT_MS", setupLong("database.jdbc.connection-timeout-ms", 5000L))),
                 envBoolean("CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED", setupBoolean("database.fallback.enabled", true)),
-                databaseFallbackOrder()
+                databaseFallbackOrder(true)
         );
     }
 
@@ -2055,6 +2055,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private List<DatabaseService.StorageBackend> databaseFallbackOrder() {
+        return databaseFallbackOrder(true);
+    }
+
+    private List<DatabaseService.StorageBackend> databaseFallbackOrder(boolean recordReason) {
         String envOrder = System.getenv("CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER");
         List<String> configured = envOrder == null || envOrder.isBlank()
                 ? configs.main().getStringList("setup.database.fallback.order")
@@ -2075,11 +2079,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 invalid.add(safeReasonToken(entry));
             }
         }
-        if (!invalid.isEmpty()) {
+        if (recordReason && !invalid.isEmpty()) {
             appendPendingDatabaseConfigFallbackReason("invalid-database-fallback-order:" + String.join("+", invalid));
         }
         if (backends.isEmpty()) {
-            appendPendingDatabaseConfigFallbackReason("empty-database-fallback-order->POSTGRESQL,MYSQL,MARIADB,SQLITE");
+            if (recordReason) {
+                appendPendingDatabaseConfigFallbackReason("empty-database-fallback-order->POSTGRESQL,MYSQL,MARIADB,SQLITE");
+            }
             return List.of(
                     DatabaseService.StorageBackend.POSTGRESQL,
                     DatabaseService.StorageBackend.MYSQL,
@@ -2233,7 +2239,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String databaseFallbackOrderMetadata() {
-        return databaseFallbackOrder().stream()
+        return databaseFallbackOrder(false).stream()
                 .map(DatabaseService.StorageBackend::name)
                 .reduce((left, right) -> left + "," + right)
                 .orElse("none");
