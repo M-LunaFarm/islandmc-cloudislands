@@ -172,10 +172,24 @@ public final class CoreApiSatisStateService {
             });
             return;
         }
-        cloudIslandsApi.addons().replaceTableState(addonId, table.table(), table.values()).exceptionally(error -> {
-            logger.warning("Failed to replace Satis core-api global table " + table.table() + ": " + error.getMessage());
-            return Map.of();
-        });
+        cloudIslandsApi.addons().replaceTableState(addonId, table.table(), table.values())
+                .handle((state, error) -> {
+                    if (error == null) {
+                        return java.util.concurrent.CompletableFuture.completedFuture(state);
+                    }
+                    logger.warning("Failed to replace Satis core-api global table " + table.table() + ", retrying with clear and bulk save: " + error.getMessage());
+                    return cloudIslandsApi.addons().clearTableState(addonId, table.table())
+                            .exceptionally(clearError -> {
+                                logger.warning("Failed to clear Satis core-api global table " + table.table() + " before retry: " + clearError.getMessage());
+                                return Map.of();
+                            })
+                            .thenCompose(_cleared -> cloudIslandsApi.addons().putTableState(addonId, table.table(), table.values()));
+                })
+                .thenCompose(result -> result)
+                .exceptionally(error -> {
+                    logger.warning("Failed to publish Satis core-api global table " + table.table() + ": " + error.getMessage());
+                    return Map.of();
+                });
     }
 
     public boolean hydrateGlobal(DatabaseService database) {
