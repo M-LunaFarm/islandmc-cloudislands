@@ -177,7 +177,8 @@ public final class JobCompletionService {
             return false;
         }
         kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot current = runtimes.find(job.islandId()).orElse(null);
-        if (current == null || current.fencingToken() <= fencingToken) {
+        String staleReason = staleCompletionReason(job, current, fencingToken);
+        if (staleReason.isBlank()) {
             return false;
         }
         events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
@@ -186,6 +187,7 @@ public final class JobCompletionService {
             "ignoredJob", job.jobId().toString(),
             "jobFencingToken", Long.toString(fencingToken),
             "currentFencingToken", Long.toString(current.fencingToken()),
+            "reason", staleReason,
             "error", errorMessage == null ? "" : errorMessage
         ));
         return true;
@@ -197,17 +199,11 @@ public final class JobCompletionService {
             return false;
         }
         kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot current = runtimes.find(job.islandId()).orElse(null);
-        if (current == null || current.fencingToken() <= fencingToken) {
+        String staleReason = staleCompletionReason(job, current, fencingToken);
+        if (staleReason.isBlank()) {
             return false;
         }
-        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
-            "islandId", job.islandId().toString(),
-            "state", current.state().name(),
-            "ignoredJob", job.jobId().toString(),
-            "jobFencingToken", Long.toString(fencingToken),
-            "currentFencingToken", Long.toString(current.fencingToken()),
-            "reason", "STALE_SNAPSHOT_FENCING_TOKEN"
-        ));
+        publishIgnoredCompletion(job, current, fencingToken, staleReason);
         return true;
     }
 
