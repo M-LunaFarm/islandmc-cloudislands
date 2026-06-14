@@ -1107,15 +1107,20 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (cloudIslandsApi == null || islandId == null || !featureEnabled("addon-state")) {
             return;
         }
+        String safeOperation = operation == null || operation.isBlank() ? "unknown" : operation;
+        String activeNode = lifecycleActiveNode(safeOperation);
         Map<String, String> state = new LinkedHashMap<>();
         state.put("last-lifecycle-island", islandId.toString());
-        state.put("last-lifecycle-operation", operation == null || operation.isBlank() ? "unknown" : operation);
+        state.put("last-lifecycle-operation", safeOperation);
         state.put("last-lifecycle-database-open", Boolean.toString(database != null));
         state.put("last-lifecycle-shared-database", Boolean.toString(databaseShared()));
         state.put("last-lifecycle-schema", "3");
         state.put("last-lifecycle-at", Instant.now().toString());
         state.put("last-lifecycle-status", "success");
         state.put("last-lifecycle-error", "");
+        if (!activeNode.isBlank()) {
+            state.put("last-lifecycle-active-node", activeNode);
+        }
         if (island != null && island.hasActiveCenter()) {
             state.put("last-lifecycle-active-world", island.activeWorld());
             state.put("last-lifecycle-active-center", island.activeCenterX() + "," + island.activeCenterY() + "," + island.activeCenterZ());
@@ -1153,9 +1158,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (cloudIslandsApi == null || islandId == null || !featureEnabled("addon-state")) {
             return;
         }
+        String safeOperation = operation == null || operation.isBlank() ? "unknown" : operation;
+        String activeNode = lifecycleActiveNode(safeOperation);
         Map<String, String> state = new LinkedHashMap<>();
         state.put("island", islandId.toString());
-        state.put("operation", operation == null || operation.isBlank() ? "unknown" : operation);
+        state.put("operation", safeOperation);
         state.put("status", status == null || status.isBlank() ? "unknown" : status);
         state.put("error", error == null ? "" : error);
         state.put("database-open", Boolean.toString(database != null));
@@ -1163,6 +1170,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("schema", "3");
         state.put("operational-features", operationalFeatureState(effectiveFeatures));
         state.put("updated-at", Instant.now().toString());
+        if (!activeNode.isBlank()) {
+            state.put("active-node", activeNode);
+        }
         if (island != null && island.hasActiveCenter()) {
             state.put("active-world", island.activeWorld());
             state.put("active-center", island.activeCenterX() + "," + island.activeCenterY() + "," + island.activeCenterZ());
@@ -1376,6 +1386,17 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private String lifecycleNode(String nodeId) {
         return nodeId == null || nodeId.isBlank() ? "unknown" : nodeId;
+    }
+
+    private String lifecycleActiveNode(String operation) {
+        if (operation == null || !operation.startsWith("migrated:")) {
+            return "";
+        }
+        int arrow = operation.indexOf("->");
+        if (arrow < 0 || arrow + 2 >= operation.length()) {
+            return "";
+        }
+        return lifecycleNode(operation.substring(arrow + 2));
     }
 
     private void synchronizeSatisIsland(UUID islandId) {
