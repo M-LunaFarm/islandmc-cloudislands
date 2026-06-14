@@ -530,6 +530,9 @@ public final class TranslationManager {
         values.put("admin-command-node-sweep-recovery-prefix", " recoveryRequired=");
         values.put("admin-command-none", "none");
         values.put("admin-command-core-config-pool-prefix", " pool=");
+        values.put("admin-command-core-config-pool-nodes-prefix", " poolNodes=");
+        values.put("admin-command-core-config-pool-route-candidates-prefix", " poolRouteCandidates=");
+        values.put("admin-command-core-config-pool-scale-status-prefix", " poolScale=");
         values.put("admin-command-core-config-db-pool-prefix", " dbPool=");
         values.put("admin-command-core-config-soft-full-prefix", " softFull=");
         values.put("admin-command-core-config-hard-full-prefix", " hardFull=");

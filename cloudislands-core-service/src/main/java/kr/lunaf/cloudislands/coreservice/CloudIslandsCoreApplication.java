@@ -315,7 +315,7 @@ public final class CloudIslandsCoreApplication {
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
         route("/health", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));
         route("/metrics", exchange -> write(exchange, 200, metrics.render(), "text/plain; version=0.0.4; charset=utf-8"));
-        route("/v1/admin/config", exchange -> write(exchange, 200, configSummaryJson(config)));
+        route("/v1/admin/config", exchange -> write(exchange, 200, configSummaryJson(config, nodes)));
         route("/v1/admin/storage", exchange -> write(exchange, 200, nodes.toJson(config.heartbeatTimeout())));
         route("/v1/nodes", exchange -> write(exchange, 200, nodes.toJson(config.heartbeatTimeout())));
         route("/v1/nodes/info", exchange -> {
@@ -2442,7 +2442,7 @@ public final class CloudIslandsCoreApplication {
         return null;
     }
 
-    private static String configSummaryJson(CoreServiceConfig config) {
+    private static String configSummaryJson(CoreServiceConfig config, NodeRegistry nodes) {
         return "{"
             + "\"repositoryMode\":\"" + escape(config.repositoryMode()) + "\","
             + "\"jobQueueMode\":\"" + escape(config.jobQueueMode()) + "\","
@@ -2483,6 +2483,9 @@ public final class CloudIslandsCoreApplication {
             + "\"databasePoolSize\":" + config.databasePoolSize() + ","
             + "\"storageType\":\"" + escape(config.storageType()) + "\","
             + "\"islandPool\":\"" + escape(config.islandPool()) + "\","
+            + "\"islandPoolNodeCount\":" + islandPoolNodeCount(config, nodes) + ","
+            + "\"islandPoolRouteCandidateCount\":" + islandPoolRouteCandidateCount(config, nodes) + ","
+            + "\"islandPoolScaleStatus\":\"" + escape(islandPoolScaleStatus(config, nodes)) + "\","
             + "\"softFullPolicy\":\"" + escape(config.softFullPolicy()) + "\","
             + "\"hardFullPolicy\":\"" + escape(config.hardFullPolicy()) + "\","
             + "\"migrationPolicy\":\"" + escape(config.migrationPolicy()) + "\","
@@ -2550,6 +2553,40 @@ public final class CloudIslandsCoreApplication {
         }
         return "active:repo=" + (config.jdbcRepositories() ? "JDBC" : "IN_MEMORY")
             + ",jobs=" + (config.jdbcJobs() ? "JDBC" : config.redisJobs() ? "REDIS" : "IN_MEMORY");
+    }
+
+    private static long islandPoolNodeCount(CoreServiceConfig config, NodeRegistry nodes) {
+        if (nodes == null) {
+            return 0L;
+        }
+        String pool = config.islandPool() == null || config.islandPool().isBlank() ? "island" : config.islandPool();
+        return nodes.snapshot().stream()
+            .filter(node -> pool.equals(node.pool() == null || node.pool().isBlank() ? "island" : node.pool()))
+            .count();
+    }
+
+    private static long islandPoolRouteCandidateCount(CoreServiceConfig config, NodeRegistry nodes) {
+        if (nodes == null) {
+            return 0L;
+        }
+        String pool = config.islandPool() == null || config.islandPool().isBlank() ? "island" : config.islandPool();
+        java.time.Instant now = java.time.Instant.now();
+        return nodes.snapshot().stream()
+            .filter(node -> pool.equals(node.pool() == null || node.pool().isBlank() ? "island" : node.pool()))
+            .filter(node -> node.allocationBlockReason(now, config.heartbeatTimeout()).isBlank())
+            .count();
+    }
+
+    private static String islandPoolScaleStatus(CoreServiceConfig config, NodeRegistry nodes) {
+        long nodeCount = islandPoolNodeCount(config, nodes);
+        long candidates = islandPoolRouteCandidateCount(config, nodes);
+        if (nodeCount <= 0L) {
+            return "NO_POOL_NODES";
+        }
+        if (nodeCount == 1L) {
+            return candidates > 0L ? "SINGLE_NODE_READY" : "SINGLE_NODE_BLOCKED";
+        }
+        return candidates > 0L ? "MULTI_NODE_READY" : "MULTI_NODE_BLOCKED";
     }
 
     private static void logSecurityPosture(CoreServiceConfig config) {
