@@ -1108,6 +1108,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return;
         }
         String safeOperation = operation == null || operation.isBlank() ? "unknown" : operation;
+        String eventNode = lifecycleEventNode(safeOperation);
         String activeNode = lifecycleActiveNode(safeOperation);
         Map<String, String> state = new LinkedHashMap<>();
         state.put("last-lifecycle-island", islandId.toString());
@@ -1118,6 +1119,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("last-lifecycle-at", Instant.now().toString());
         state.put("last-lifecycle-status", "success");
         state.put("last-lifecycle-error", "");
+        if (!eventNode.isBlank()) {
+            state.put("last-lifecycle-node", eventNode);
+        }
         if (!activeNode.isBlank()) {
             state.put("last-lifecycle-active-node", activeNode);
         }
@@ -1138,15 +1142,20 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (cloudIslandsApi == null || islandId == null || !featureEnabled("addon-state")) {
             return;
         }
+        String safeOperation = operation == null || operation.isBlank() ? "unknown" : operation;
+        String eventNode = lifecycleEventNode(safeOperation);
         Map<String, String> state = new LinkedHashMap<>();
         state.put("last-lifecycle-island", islandId.toString());
-        state.put("last-lifecycle-operation", operation == null || operation.isBlank() ? "unknown" : operation);
+        state.put("last-lifecycle-operation", safeOperation);
         state.put("last-lifecycle-database-open", Boolean.toString(database != null));
         state.put("last-lifecycle-shared-database", Boolean.toString(databaseShared()));
         state.put("last-lifecycle-schema", "3");
         state.put("last-lifecycle-at", Instant.now().toString());
         state.put("last-lifecycle-status", "failed");
         state.put("last-lifecycle-error", shortError(exception));
+        if (!eventNode.isBlank()) {
+            state.put("last-lifecycle-node", eventNode);
+        }
         cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
             getLogger().warning("Failed to publish CloudIslands Satis lifecycle failure: " + error.getMessage());
             return Map.of();
@@ -1159,6 +1168,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return;
         }
         String safeOperation = operation == null || operation.isBlank() ? "unknown" : operation;
+        String eventNode = lifecycleEventNode(safeOperation);
         String activeNode = lifecycleActiveNode(safeOperation);
         Map<String, String> state = new LinkedHashMap<>();
         state.put("island", islandId.toString());
@@ -1170,6 +1180,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("schema", "3");
         state.put("operational-features", operationalFeatureState(effectiveFeatures));
         state.put("updated-at", Instant.now().toString());
+        if (!eventNode.isBlank()) {
+            state.put("node", eventNode);
+        }
         if (!activeNode.isBlank()) {
             state.put("active-node", activeNode);
         }
@@ -1261,7 +1274,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandDeactivated(IslandDeactivateEvent event) {
-        runSatisLifecycle(event.islandId(), "flush", () -> flushSatisIsland(event.islandId()));
+        String operation = "deactivated:" + lifecycleNode(event.nodeId());
+        runSatisLifecycle(event.islandId(), operation, () -> flushSatisIsland(event.islandId()));
     }
 
     @Override
@@ -1402,6 +1416,17 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 return "";
             }
             return lifecycleNode(operation.substring(arrow + 2));
+        }
+        return "";
+    }
+
+    private String lifecycleEventNode(String operation) {
+        String activeNode = lifecycleActiveNode(operation);
+        if (!activeNode.isBlank()) {
+            return activeNode;
+        }
+        if (operation != null && operation.startsWith("deactivated:")) {
+            return lifecycleNode(operation.substring("deactivated:".length()));
         }
         return "";
     }
