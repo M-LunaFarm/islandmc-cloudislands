@@ -1807,6 +1807,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-core-config-setup-fallback-mode-prefix", " setupFallbackMode=") + textValue(body, "coreSetupFallbackMode")
             + adminText("admin-command-core-config-setup-db-shapes-prefix", " setupDbShapes=") + textValue(body, "coreSetupDatabaseConfigShapes")
             + adminText("admin-command-core-config-setup-db-env-prefix", " setupDbEnv=") + textValue(body, "coreSetupDatabaseEnv")
+            + adminText("admin-command-core-config-setup-db-precedence-prefix", " setupDbPrecedence=") + textValue(body, "coreSetupDatabasePrecedence")
+            + adminText("admin-command-core-config-setup-db-name-aliases-prefix", " setupDbNameAliases=") + textValue(body, "coreSetupDatabaseNameAliases")
             + adminText("admin-command-core-config-jdbc-fallback-prefix", " jdbcFallback=") + textValue(body, "coreJdbcFallbackReason")
             + adminText("admin-command-core-config-addon-bulk-prefix", " addonBulkSave=") + boolValue(body, "addonStateBulkSaveApi")
             + adminText("admin-command-core-config-addon-bulk-global-prefix", " addonBulkGlobal=") + textValue(body, "addonStateBulkSaveGlobalEndpoint")
