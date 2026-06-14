@@ -83,6 +83,14 @@ public final class CoreApiSatisStateService {
         if (cloudIslandsApi == null || row == null || row.islandUuid() == null || row.key() == null || row.key().isBlank()) {
             return;
         }
+        Map<String, Map<String, String>> tablePayload = tablePayload(row.key(), row.value());
+        if (!tablePayload.isEmpty()) {
+            cloudIslandsApi.addons().putIslandState(addonId, row.islandUuid(), Map.of(), tablePayload).exceptionally(error -> {
+                logger.warning("Failed to publish Satis core-api row " + row.key() + " for island " + row.islandUuid() + ": " + error.getMessage());
+                return Map.of();
+            });
+            return;
+        }
         cloudIslandsApi.addons().putIslandState(addonId, row.islandUuid(), Map.of(row.key(), row.value())).exceptionally(error -> {
             logger.warning("Failed to publish Satis core-api row " + row.key() + " for island " + row.islandUuid() + ": " + error.getMessage());
             return Map.of();
@@ -165,10 +173,34 @@ public final class CoreApiSatisStateService {
         if (cloudIslandsApi == null || row == null || row.key() == null || row.key().isBlank()) {
             return;
         }
+        Map<String, Map<String, String>> tablePayload = tablePayload(row.key(), row.value());
+        if (!tablePayload.isEmpty()) {
+            cloudIslandsApi.addons().putState(addonId, Map.of(), tablePayload).exceptionally(error -> {
+                logger.warning("Failed to publish Satis core-api global row " + row.key() + ": " + error.getMessage());
+                return Map.of();
+            });
+            return;
+        }
         cloudIslandsApi.addons().putState(addonId, Map.of(row.key(), row.value())).exceptionally(error -> {
             logger.warning("Failed to publish Satis core-api global row " + row.key() + ": " + error.getMessage());
             return Map.of();
         });
+    }
+
+    private Map<String, Map<String, String>> tablePayload(String key, String value) {
+        if (key == null || value == null || !key.startsWith("table/")) {
+            return Map.of();
+        }
+        int rowKeyStart = key.indexOf('/', "table/".length());
+        if (rowKeyStart < 0 || rowKeyStart == key.length() - 1) {
+            return Map.of();
+        }
+        String table = key.substring("table/".length(), rowKeyStart);
+        String rowKey = key.substring(rowKeyStart + 1);
+        if (table.isBlank() || rowKey.isBlank()) {
+            return Map.of();
+        }
+        return Map.of(table, Map.of(rowKey, value));
     }
 
     public void publishGlobalTable(DatabaseService.CoreGlobalTableWrite table) {
