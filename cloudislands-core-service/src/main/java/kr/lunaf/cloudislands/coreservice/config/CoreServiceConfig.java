@@ -138,30 +138,61 @@ public record CoreServiceConfig(
             }
             Map<String, String> values = new HashMap<>();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-                String section = "";
+                String[] path = new String[16];
                 String rawLine;
                 while ((rawLine = reader.readLine()) != null) {
                     String line = rawLine.strip();
                     if (line.isBlank() || line.startsWith("#")) {
                         continue;
                     }
-                    if (!rawLine.startsWith(" ") && line.endsWith(":")) {
-                        section = line.substring(0, line.length() - 1).strip();
-                        continue;
-                    }
                     int colon = line.indexOf(':');
-                    if (colon <= 0 || section.isBlank()) {
+                    if (colon <= 0) {
                         continue;
                     }
+                    int level = Math.min(path.length - 1, leadingSpaces(rawLine) / 2);
                     String key = line.substring(0, colon).strip();
-                    String value = resolveEnv(unquote(line.substring(colon + 1).strip()));
-                    values.put(section + "." + key, value);
+                    String rawValue = line.substring(colon + 1).strip();
+                    path[level] = key;
+                    clearPath(path, level + 1);
+                    if (rawValue.isBlank()) {
+                        continue;
+                    }
+                    String value = resolveEnv(unquote(rawValue));
+                    values.put(joinPath(path, level), value);
                 }
             }
             return values;
         } catch (IOException exception) {
             return Map.of();
         }
+    }
+
+    private static int leadingSpaces(String value) {
+        int count = 0;
+        while (count < value.length() && value.charAt(count) == ' ') {
+            count++;
+        }
+        return count;
+    }
+
+    private static void clearPath(String[] path, int from) {
+        for (int index = from; index < path.length; index++) {
+            path[index] = null;
+        }
+    }
+
+    private static String joinPath(String[] path, int level) {
+        StringBuilder builder = new StringBuilder();
+        for (int index = 0; index <= level; index++) {
+            if (path[index] == null || path[index].isBlank()) {
+                continue;
+            }
+            if (builder.length() > 0) {
+                builder.append('.');
+            }
+            builder.append(path[index]);
+        }
+        return builder.toString();
     }
 
     private static String setting(Map<String, String> config, String key, String fallback) {
