@@ -50,18 +50,21 @@ setup:
       max-pool-size: 0
       connection-timeout-ms: 0
     postgresql:
+      # url wins over host/port/database/options when set.
       url: ""
       host: ""
       port: 0
       database: ""
       options: ""
     mysql:
+      # url wins over host/port/database/options when set.
       url: ""
       host: ""
       port: 0
       database: ""
       options: ""
     mariadb:
+      # url wins over host/port/database/options when set.
       url: ""
       host: ""
       port: 0
