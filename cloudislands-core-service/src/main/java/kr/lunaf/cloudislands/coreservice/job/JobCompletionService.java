@@ -145,12 +145,17 @@ public final class JobCompletionService {
             }
             recordPreMutationSnapshot(job);
             setIslandState(job.islandId(), IslandState.ACTIVE);
+            int readyTickets = tickets.markReadyForIsland(job.islandId(), job.targetNode(), worldName, Instant.now().plus(routeTicketTtl), Map.of(
+                "migrationReturnReady", "true",
+                "sourceNode", job.payload().getOrDefault("sourceNode", "")
+            ));
             events.publish(CloudIslandEventType.ISLAND_MIGRATED.name(), Map.of(
                 "islandId", job.islandId().toString(),
                 "fromNode", job.payload().getOrDefault("sourceNode", ""),
                 "targetNode", job.targetNode() == null ? "" : job.targetNode(),
                 "worldName", worldName,
-                "fencingToken", job.payload().getOrDefault("fencingToken", "0")
+                "fencingToken", job.payload().getOrDefault("fencingToken", "0"),
+                "readyTickets", Integer.toString(readyTickets)
             ));
             releaseMigrationLock(job);
         }
