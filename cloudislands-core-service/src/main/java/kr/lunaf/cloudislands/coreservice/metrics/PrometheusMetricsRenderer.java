@@ -160,10 +160,14 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_island_snapshot_seconds", "gauge");
         help(out, "cloudislands_paper_periodic_save_retry_queue", "Periodic island saves waiting for retry on Paper nodes");
         type(out, "cloudislands_paper_periodic_save_retry_queue", "gauge");
+        help(out, "cloudislands_paper_empty_save_retry_queue", "Empty island saves waiting for retry before node-local deactivation");
+        type(out, "cloudislands_paper_empty_save_retry_queue", "gauge");
         help(out, "cloudislands_island_save_failures_total", "Island save failures observed by Paper nodes");
         type(out, "cloudislands_island_save_failures_total", "counter");
         help(out, "cloudislands_paper_periodic_save_failures_total", "Periodic island save failures observed by Paper nodes");
         type(out, "cloudislands_paper_periodic_save_failures_total", "counter");
+        help(out, "cloudislands_paper_empty_save_failures_total", "Empty island save failures observed before node-local deactivation");
+        type(out, "cloudislands_paper_empty_save_failures_total", "counter");
         help(out, "cloudislands_paper_proxy_source_rejections_total", "Paper logins rejected because the source was not an allowed proxy");
         type(out, "cloudislands_paper_proxy_source_rejections_total", "counter");
         help(out, "cloudislands_paper_forwarding_rejections_total", "Paper logins rejected because Velocity forwarding security was not ready");
@@ -298,8 +302,11 @@ public final class PrometheusMetricsRenderer {
             appendMetadataGauge(out, "cloudislands_island_activation_seconds", node, "storageDownloadSeconds");
             appendMetadataGauge(out, "cloudislands_island_snapshot_seconds", node, "storageUploadSeconds");
             appendMetadataGauge(out, "cloudislands_paper_periodic_save_retry_queue", node, "periodicSaveRetryQueue");
+            appendMetadataGauge(out, "cloudislands_paper_empty_save_retry_queue", node, "emptySaveRetryQueue");
             appendMetadataGauge(out, "cloudislands_island_save_failures_total", node, "periodicSaveFailures");
+            appendMetadataGauge(out, "cloudislands_island_save_failures_total", node, "emptySaveFailures", "source=\"empty\"");
             appendMetadataGauge(out, "cloudislands_paper_periodic_save_failures_total", node, "periodicSaveFailures");
+            appendMetadataGauge(out, "cloudislands_paper_empty_save_failures_total", node, "emptySaveFailures");
             appendMetadataGauge(out, "cloudislands_paper_proxy_source_rejections_total", node, "proxySourceRejections");
             appendMetadataGauge(out, "cloudislands_paper_forwarding_rejections_total", node, "forwardingRejections");
             appendMetadataGauge(out, "cloudislands_paper_route_session_rejections_total", node, "routeSessionRejections");
