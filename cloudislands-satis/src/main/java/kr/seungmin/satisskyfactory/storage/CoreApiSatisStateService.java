@@ -86,10 +86,23 @@ public final class CoreApiSatisStateService {
             return;
         }
         cloudIslandsApi.addons().replaceIslandTableState(addonId, table.islandUuid(), table.table(), table.values())
+                .handle((state, error) -> {
+                    if (error == null) {
+                        return java.util.concurrent.CompletableFuture.completedFuture(state);
+                    }
+                    logger.warning("Failed to replace Satis core-api table " + table.table() + " for island " + table.islandUuid() + ", retrying with clear and bulk save: " + error.getMessage());
+                    return cloudIslandsApi.addons().clearIslandTableState(addonId, table.islandUuid(), table.table())
+                            .exceptionally(clearError -> {
+                                logger.warning("Failed to clear Satis core-api table " + table.table() + " for island " + table.islandUuid() + " before retry: " + clearError.getMessage());
+                                return Map.of();
+                            })
+                            .thenCompose(_cleared -> cloudIslandsApi.addons().putIslandTableState(addonId, table.islandUuid(), table.table(), table.values()));
+                })
+                .thenCompose(result -> result)
                 .exceptionally(error -> {
-            logger.warning("Failed to publish Satis core-api table " + table.table() + " for island " + table.islandUuid() + ": " + error.getMessage());
-            return Map.of();
-        });
+                    logger.warning("Failed to publish Satis core-api table " + table.table() + " for island " + table.islandUuid() + ": " + error.getMessage());
+                    return Map.of();
+                });
     }
 
     public void publishGlobalRow(DatabaseService.CoreGlobalRowWrite row) {
