@@ -471,14 +471,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<Void> unregister(String id) {
             String safeId = safeRegistrationId(id);
-            registrations.remove(safeId);
-            addons.remove(safeId);
-            addonStates.remove(safeId);
-            addonIslandStates.remove(safeId);
             CloudIslandsAddon addon = addonObjects.remove(safeId);
             if (addon != null) {
                 notifyUnregistered(addon);
             }
+            registrations.remove(safeId);
+            addons.remove(safeId);
+            addonStates.remove(safeId);
+            addonIslandStates.remove(safeId);
             syncEventSubscription();
             return CompletableFuture.completedFuture(null);
         }
