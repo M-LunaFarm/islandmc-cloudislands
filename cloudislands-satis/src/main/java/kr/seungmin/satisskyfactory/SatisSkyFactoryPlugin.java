@@ -150,8 +150,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         configureSkyblockHook();
 
-        database = new DatabaseService(this, databaseSettings());
+        DatabaseService.Settings settings = databaseSettings();
+        database = new DatabaseService(this, settings);
         database.open();
+        applyCoreApiDatabaseFallback(settings);
         warnIfUnsharedDatabaseInCloudIslandsMode();
         getLogger().info("Satis database backend: " + database.activeBackend() + " (" + database.databaseDescription() + ")");
 
@@ -1695,6 +1697,48 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             }
         }
         return backends;
+    }
+
+    private void applyCoreApiDatabaseFallback(DatabaseService.Settings settings) {
+        if (database == null || settings == null || database.activeBackend() != DatabaseService.StorageBackend.CORE_API) {
+            return;
+        }
+        if (cloudIslandsApi != null && featureEnabled("addon-state")) {
+            return;
+        }
+        if (!settings.fallbackEnabled()) {
+            getLogger().warning("Satis CORE_API database backend is active, but CloudIslands addon-state is unavailable and database fallback is disabled.");
+            return;
+        }
+        DatabaseService.StorageBackend fallbackBackend = null;
+        List<DatabaseService.StorageBackend> fallbackOrder = settings.fallbackOrder() == null ? List.of() : settings.fallbackOrder();
+        for (DatabaseService.StorageBackend backend : fallbackOrder) {
+            if (backend != null && backend != DatabaseService.StorageBackend.CORE_API) {
+                fallbackBackend = backend;
+                break;
+            }
+        }
+        if (fallbackBackend == null) {
+            getLogger().warning("Satis CORE_API database backend is active, but no non-CORE_API fallback backend is configured.");
+            return;
+        }
+        getLogger().warning("Satis CORE_API database backend is unavailable; falling back to " + fallbackBackend + ".");
+        database.close();
+        database = new DatabaseService(this, new DatabaseService.Settings(
+                fallbackBackend,
+                settings.sqliteFileName(),
+                settings.jdbcUrl(),
+                settings.postgresqlJdbcUrl(),
+                settings.mysqlJdbcUrl(),
+                settings.mariadbJdbcUrl(),
+                settings.username(),
+                settings.password(),
+                settings.maxPoolSize(),
+                settings.connectionTimeoutMillis(),
+                true,
+                fallbackOrder
+        ));
+        database.open();
     }
 
     private String jdbcUrl(String section, String prefix, int defaultPort) {
