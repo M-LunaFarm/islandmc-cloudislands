@@ -2422,13 +2422,21 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private int helpPage(String[] args) {
-        if (args.length > 2 && args[0].equalsIgnoreCase("command") && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
+        if (args.length > 2 && isCommandListRoot(args[0]) && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
             return (int) number(args[2], 1L);
         }
         if (args.length > 1) {
             return (int) number(args[1], 1L);
         }
         return 1;
+    }
+
+    private boolean isCommandListRoot(String value) {
+        return value.equalsIgnoreCase("command")
+            || value.equalsIgnoreCase("commands")
+            || value.equalsIgnoreCase("command-list")
+            || value.equals("명령어")
+            || value.equals("명령어목록");
     }
 
     private UUID uuid(CommandSender sender, String value) {

@@ -1144,13 +1144,21 @@ public final class CloudIslandsVelocityPlugin {
     }
 
     private int commandListPage(String[] args) {
-        if (args.length > 2 && args[0].equalsIgnoreCase("command") && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
+        if (args.length > 2 && isCommandListRoot(args[0]) && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
             return (int) parseLongOrZero(args[2]);
         }
         if (args.length > 1) {
             return (int) parseLongOrZero(args[1]);
         }
         return 1;
+    }
+
+    private boolean isCommandListRoot(String value) {
+        return value.equalsIgnoreCase("command")
+            || value.equalsIgnoreCase("commands")
+            || value.equalsIgnoreCase("command-list")
+            || value.equals("명령어")
+            || value.equals("명령어목록");
     }
 
     private UUID parseUuidOrNil(String value) {
