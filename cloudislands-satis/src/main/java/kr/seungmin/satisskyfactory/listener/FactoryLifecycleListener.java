@@ -111,6 +111,6 @@ public final class FactoryLifecycleListener implements Listener {
     }
 
     private boolean lifecycleDataWritesEnabled() {
-        return resourceNodesEnabled.getAsBoolean() || machinesEnabled.getAsBoolean() || maintenanceEnabled.getAsBoolean();
+        return active.getAsBoolean();
     }
 }
