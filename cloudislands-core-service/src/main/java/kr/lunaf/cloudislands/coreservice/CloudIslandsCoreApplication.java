@@ -2392,6 +2392,7 @@ public final class CloudIslandsCoreApplication {
             + "\"coreSetupFallbackBackends\":\"MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC\","
             + "\"coreSetupFallbackMode\":\"IN_MEMORY_REPOSITORIES_AND_JOBS\","
             + "\"coreSetupDatabaseConfigShapes\":\"setup.database.*,setup.database-*\","
+            + "\"coreSetupDatabaseTypedShapes\":\"setup.database.postgresql.*,setup.database.mysql.*,setup.database.mariadb.*\","
             + "\"coreSetupDatabaseEnv\":\"CI_DATABASE_TYPE,CI_JDBC_URL,CI_DB_USERNAME,CI_DB_PASSWORD,CI_DB_POOL_SIZE\","
             + "\"coreSetupDatabasePrecedence\":\"env,nested-setup-database,legacy-flat-setup,database-default\","
             + "\"coreSetupDatabaseNameAliases\":\"setup.database.name,setup.database.database,setup.database-name\","

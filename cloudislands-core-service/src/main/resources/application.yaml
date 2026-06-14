@@ -22,6 +22,33 @@ setup:
     username: ""
     password: ""
     pool-size: 0
+    postgresql:
+      # Type-specific values override the generic setup.database host/name/options values.
+      url: ""
+      jdbc-url: ""
+      host: ""
+      port: 0
+      name: ""
+      database: ""
+      options: ""
+    mysql:
+      # MySQL can be configured for external integrations, but Core repositories still use safe non-JDBC fallback.
+      url: ""
+      jdbc-url: ""
+      host: ""
+      port: 0
+      name: ""
+      database: ""
+      options: ""
+    mariadb:
+      # MariaDB can be configured for external integrations, but Core repositories still use safe non-JDBC fallback.
+      url: ""
+      jdbc-url: ""
+      host: ""
+      port: 0
+      name: ""
+      database: ""
+      options: ""
   # Empty jdbc-url inherits database.jdbc-url only for POSTGRESQL.
   # MYSQL/MARIADB need database-type + host/name or CI_JDBC_URL.
   # CORE_API leaves Core JDBC disabled and reports dbBackend=NONE.

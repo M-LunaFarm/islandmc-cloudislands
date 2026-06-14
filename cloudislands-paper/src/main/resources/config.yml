@@ -376,6 +376,7 @@ messages:
     admin-command-core-config-setup-fallback-backends-prefix: " setupFallbackBackends="
     admin-command-core-config-setup-fallback-mode-prefix: " setupFallbackMode="
     admin-command-core-config-setup-db-shapes-prefix: " setupDbShapes="
+    admin-command-core-config-setup-db-typed-shapes-prefix: " setupDbTypedShapes="
     admin-command-core-config-setup-db-env-prefix: " setupDbEnv="
     admin-command-core-config-setup-db-precedence-prefix: " setupDbPrecedence="
     admin-command-core-config-setup-db-name-aliases-prefix: " setupDbNameAliases="

@@ -208,18 +208,21 @@ public record CoreServiceConfig(
     }
 
     private static String setupJdbcUrl(Map<String, String> config, String fallback) {
-        String explicit = setupDatabaseSetting(config, "jdbc-url", setting(config, "setup.jdbc-url", ""));
+        String type = configuredDatabaseType(config);
+        String explicit = typedSetupDatabaseSetting(config, type, "jdbc-url", setupDatabaseSetting(config, "jdbc-url", setting(config, "setup.jdbc-url", "")));
+        if (explicit.isBlank()) {
+            explicit = typedSetupDatabaseSetting(config, type, "url", "");
+        }
         if (!explicit.isBlank()) {
             return explicit;
         }
-        String type = configuredDatabaseType(config);
         if (!coreJdbcTypeSupported(type) && !type.equals("MYSQL") && !type.equals("MARIADB")) {
             return "";
         }
-        String host = setupDatabaseSetting(config, "host", "");
-        String database = setupDatabaseSetting(config, "name", "");
+        String host = typedSetupDatabaseSetting(config, type, "host", setupDatabaseSetting(config, "host", ""));
+        String database = typedSetupDatabaseSetting(config, type, "name", setupDatabaseSetting(config, "name", ""));
         if (database.isBlank()) {
-            database = setupDatabaseSetting(config, "database", "");
+            database = typedSetupDatabaseSetting(config, type, "database", setupDatabaseSetting(config, "database", ""));
         }
         if (type.isBlank() || host.isBlank() || database.isBlank()) {
             return coreJdbcTypeSupported(type) ? fallback : "";
@@ -228,13 +231,48 @@ public record CoreServiceConfig(
         if (prefix.isBlank()) {
             return "";
         }
-        int port = setupDatabaseInteger(config, "port", defaultDatabasePort(type));
+        int port = typedSetupDatabaseInteger(config, type, "port", setupDatabaseInteger(config, "port", defaultDatabasePort(type)));
         String url = prefix + "://" + host.trim() + ":" + port + "/" + database.trim();
-        String options = setupDatabaseSetting(config, "options", "");
+        String options = typedSetupDatabaseSetting(config, type, "options", setupDatabaseSetting(config, "options", ""));
         if (!options.isBlank()) {
             url += "?" + options.trim();
         }
         return url;
+    }
+
+    private static String typedSetupDatabaseSetting(Map<String, String> config, String type, String key, String fallback) {
+        String scope = databaseSetupScope(type);
+        if (scope.isBlank()) {
+            return fallback;
+        }
+        String value = setting(config, "setup.database." + scope + "." + key, "");
+        return value.isBlank() ? fallback : value;
+    }
+
+    private static int typedSetupDatabaseInteger(Map<String, String> config, String type, String key, int fallback) {
+        String scope = databaseSetupScope(type);
+        if (scope.isBlank()) {
+            return fallback;
+        }
+        String value = config.get("setup.database." + scope + "." + key);
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        try {
+            int parsed = Integer.parseInt(value);
+            return parsed <= 0 ? fallback : parsed;
+        } catch (NumberFormatException exception) {
+            return fallback;
+        }
+    }
+
+    private static String databaseSetupScope(String type) {
+        return switch ((type == null ? "" : type).trim().replace('-', '_').toUpperCase(Locale.ROOT)) {
+            case "POSTGRES", "POSTGRESQL" -> "postgresql";
+            case "MYSQL" -> "mysql";
+            case "MARIA", "MARIADB" -> "mariadb";
+            default -> "";
+        };
     }
 
     private static String jdbcPrefix(String type) {
