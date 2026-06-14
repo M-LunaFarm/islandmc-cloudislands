@@ -4,19 +4,25 @@ upgrades:
     levels:
       1:
         cost: 0
+        size: 100
       2:
         cost: 10000
+        size: 150
       3:
         cost: 50000
+        size: 200
   members:
     type: "MAX_MEMBERS"
     levels:
       1:
         cost: 0
+        max-members: 3
       2:
         cost: 25000
+        max-members: 5
       3:
         cost: 75000
+        max-members: 8
   warps:
     type: "MAX_WARPS"
     max-level: 5
@@ -24,9 +30,16 @@ upgrades:
     multiplier: 2
   hoppers:
     type: "HOPPER_LIMIT"
-    max-level: 5
-    base-cost: 30000
-    multiplier: 2
+    levels:
+      1:
+        cost: 0
+        max-hoppers: 50
+      2:
+        cost: 30000
+        max-hoppers: 100
+      3:
+        cost: 60000
+        max-hoppers: 150
   spawners:
     type: "SPAWNER_LIMIT"
     max-level: 5

@@ -44,6 +44,8 @@ public final class ConfigUpgradePolicy {
         BigDecimal explicitBaseCost = null;
         BigDecimal explicitMultiplier = null;
         List<BigDecimal> levelCosts = new ArrayList<>();
+        Map<Integer, Long> levelValues = new LinkedHashMap<>();
+        int currentLevel = 0;
         for (String rawLine : yaml.split("\\R")) {
             String line = stripComment(rawLine);
             if (line.isBlank() || !rawLine.startsWith("  ")) {
@@ -51,7 +53,7 @@ public final class ConfigUpgradePolicy {
             }
             if (rawLine.startsWith("  ") && !rawLine.startsWith("    ") && line.endsWith(":")) {
                 if (!currentKey.isBlank()) {
-                    putRule(rules, currentKey, currentType, explicitMaxLevel, explicitBaseCost, explicitMultiplier, levelCosts);
+                    putRule(rules, currentKey, currentType, explicitMaxLevel, explicitBaseCost, explicitMultiplier, levelCosts, levelValues);
                 }
                 currentKey = line.substring(0, line.length() - 1).trim();
                 currentType = null;
@@ -59,6 +61,8 @@ public final class ConfigUpgradePolicy {
                 explicitBaseCost = null;
                 explicitMultiplier = null;
                 levelCosts = new ArrayList<>();
+                levelValues = new LinkedHashMap<>();
+                currentLevel = 0;
                 continue;
             }
             if (currentKey.isBlank()) {
@@ -72,24 +76,31 @@ public final class ConfigUpgradePolicy {
                 explicitBaseCost = decimal(value(line), null);
             } else if (line.startsWith("multiplier:")) {
                 explicitMultiplier = decimal(value(line), null);
+            } else if (rawLine.startsWith("      ") && !rawLine.startsWith("        ") && line.endsWith(":")) {
+                currentLevel = integer(line.substring(0, line.length() - 1).trim(), 0);
             } else if (rawLine.startsWith("        ") && line.startsWith("cost:")) {
                 BigDecimal cost = decimal(value(line), null);
                 if (cost != null) {
                     levelCosts.add(cost);
                 }
+            } else if (rawLine.startsWith("        ") && currentLevel > 0) {
+                Long limitValue = longValue(value(line), null);
+                if (limitValue != null && effectKey(line)) {
+                    levelValues.put(currentLevel, limitValue);
+                }
             }
         }
         if (!currentKey.isBlank()) {
-            putRule(rules, currentKey, currentType, explicitMaxLevel, explicitBaseCost, explicitMultiplier, levelCosts);
+            putRule(rules, currentKey, currentType, explicitMaxLevel, explicitBaseCost, explicitMultiplier, levelCosts, levelValues);
         }
         return rules;
     }
 
-    private static void putRule(Map<String, UpgradeRule> rules, String key, UpgradeType type, int maxLevel, BigDecimal baseCost, BigDecimal multiplier, List<BigDecimal> levelCosts) {
-        int inferredMaxLevel = maxLevel > 0 ? maxLevel : Math.max(1, levelCosts.size());
+    private static void putRule(Map<String, UpgradeRule> rules, String key, UpgradeType type, int maxLevel, BigDecimal baseCost, BigDecimal multiplier, List<BigDecimal> levelCosts, Map<Integer, Long> levelValues) {
+        int inferredMaxLevel = maxLevel > 0 ? maxLevel : Math.max(1, Math.max(levelCosts.size(), levelValues.keySet().stream().mapToInt(Integer::intValue).max().orElse(0)));
         BigDecimal inferredBaseCost = baseCost != null ? baseCost : levelCosts.stream().filter(cost -> cost.signum() > 0).findFirst().orElse(BigDecimal.ZERO);
         BigDecimal inferredMultiplier = multiplier != null ? multiplier : inferMultiplier(levelCosts, inferredBaseCost);
-        rules.put(key.toLowerCase(), new UpgradeRule(key.toLowerCase(), type == null ? UpgradePolicy.typeFor(key) : type, inferredMaxLevel, inferredBaseCost, inferredMultiplier));
+        rules.put(key.toLowerCase(), new UpgradeRule(key.toLowerCase(), type == null ? UpgradePolicy.typeFor(key) : type, inferredMaxLevel, inferredBaseCost, inferredMultiplier, levelValues));
     }
 
     private static BigDecimal inferMultiplier(List<BigDecimal> levelCosts, BigDecimal baseCost) {
@@ -134,5 +145,18 @@ public final class ConfigUpgradePolicy {
         } catch (RuntimeException ignored) {
             return fallback;
         }
+    }
+
+    private static Long longValue(String value, Long fallback) {
+        try {
+            return Long.parseLong(value);
+        } catch (RuntimeException ignored) {
+            return fallback;
+        }
+    }
+
+    private static boolean effectKey(String line) {
+        String key = line.substring(0, line.indexOf(':')).trim().toLowerCase();
+        return !key.equals("cost") && !key.equals("price");
     }
 }

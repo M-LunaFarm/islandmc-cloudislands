@@ -1726,7 +1726,7 @@ public final class CloudIslandsCoreApplication {
             islandLogs.append(islandId, actorUuid, "ISLAND_UPGRADE_PURCHASE", Map.of("upgradeKey", upgradeKey, "code", result.code(), "cost", result.cost().toPlainString()));
             if (result.accepted()) {
                 events.publish(CloudIslandEventType.ISLAND_UPGRADE.name(), Map.of("islandId", islandId.toString(), "upgradeKey", upgradeKey, "level", Integer.toString(result.snapshot().level())));
-                applyUpgradeLimit(limitRepository, events, islandId, actorUuid, result.snapshot().type(), result.snapshot().level());
+                applyUpgradeLimit(limitRepository, events, islandId, actorUuid, upgradePolicy.rule(upgradeKey), result.snapshot().type(), result.snapshot().level());
                 applyUpgradeFlag(metadataRepository, events, islandId, result.snapshot().type());
                 if (result.cost().signum() > 0) {
                     String balance = bankRepository.balance(islandId).balance();
@@ -3029,16 +3029,17 @@ public final class CloudIslandsCoreApplication {
         );
     }
 
-    private static void applyUpgradeLimit(IslandLimitRepository limits, GlobalEventPublisher events, UUID islandId, UUID actorUuid, UpgradeType type, int level) {
+    private static void applyUpgradeLimit(IslandLimitRepository limits, GlobalEventPublisher events, UUID islandId, UUID actorUuid, UpgradeRule rule, UpgradeType type, int level) {
+        java.util.OptionalLong configuredValue = rule == null ? java.util.OptionalLong.empty() : rule.limitValueForLevel(level);
         IslandLimitSnapshot snapshot = switch (type) {
-            case ISLAND_SIZE -> limits.set(islandId, "SIZE", 100L + Math.max(0L, level - 1L) * 50L, actorUuid);
-            case MAX_MEMBERS -> limits.set(islandId, "MEMBERS", 3L + Math.max(0L, level - 1L) * 2L, actorUuid);
-            case MAX_WARPS -> limits.set(islandId, "WARPS", Math.max(1L, level), actorUuid);
-            case HOPPER_LIMIT -> limits.set(islandId, "HOPPER", Math.max(1L, level) * 50L, actorUuid);
-            case SPAWNER_LIMIT -> limits.set(islandId, "SPAWNER", Math.max(1L, level) * 25L, actorUuid);
-            case MOB_LIMIT -> limits.set(islandId, "ENTITY", Math.max(1L, level) * 200L, actorUuid);
-            case REDSTONE_LIMIT -> limits.set(islandId, "REDSTONE", Math.max(1L, level) * 512L, actorUuid);
-            case BANK_LIMIT -> limits.set(islandId, "BANK", Math.max(1L, level) * 100000L, actorUuid);
+            case ISLAND_SIZE -> limits.set(islandId, "SIZE", configuredValue.orElse(100L + Math.max(0L, level - 1L) * 50L), actorUuid);
+            case MAX_MEMBERS -> limits.set(islandId, "MEMBERS", configuredValue.orElse(3L + Math.max(0L, level - 1L) * 2L), actorUuid);
+            case MAX_WARPS -> limits.set(islandId, "WARPS", configuredValue.orElse(Math.max(1L, level)), actorUuid);
+            case HOPPER_LIMIT -> limits.set(islandId, "HOPPER", configuredValue.orElse(Math.max(1L, level) * 50L), actorUuid);
+            case SPAWNER_LIMIT -> limits.set(islandId, "SPAWNER", configuredValue.orElse(Math.max(1L, level) * 25L), actorUuid);
+            case MOB_LIMIT -> limits.set(islandId, "ENTITY", configuredValue.orElse(Math.max(1L, level) * 200L), actorUuid);
+            case REDSTONE_LIMIT -> limits.set(islandId, "REDSTONE", configuredValue.orElse(Math.max(1L, level) * 512L), actorUuid);
+            case BANK_LIMIT -> limits.set(islandId, "BANK", configuredValue.orElse(Math.max(1L, level) * 100000L), actorUuid);
             case GENERATOR_LEVEL, CROP_GROWTH, FLY_ACCESS -> null;
         };
         if (snapshot != null) {
