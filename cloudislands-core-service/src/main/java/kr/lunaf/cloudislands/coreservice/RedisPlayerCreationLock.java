@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
+import kr.lunaf.cloudislands.common.cache.RedisTtls;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 
 public final class RedisPlayerCreationLock {
@@ -17,7 +18,11 @@ public final class RedisPlayerCreationLock {
     public RedisPlayerCreationLock(URI redisUri, Duration ttl) {
         this.redisUri = redisUri;
         Duration safeTtl = ttl == null || ttl.isNegative() || ttl.isZero() ? Duration.ofSeconds(30) : ttl;
-        this.ttlMillis = Math.max(1_000L, safeTtl.toMillis());
+        this.ttlMillis = clampLockTtl(safeTtl.toMillis());
+    }
+
+    private long clampLockTtl(long requestedMillis) {
+        return Math.max(RedisTtls.LOCK_MIN_MILLIS, Math.min(RedisTtls.LOCK_MAX_MILLIS, requestedMillis));
     }
 
     public Optional<Lease> acquire(UUID playerUuid) {
