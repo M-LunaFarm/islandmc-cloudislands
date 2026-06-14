@@ -168,7 +168,16 @@ public record CoreServiceConfig(
     }
 
     private static int setupInteger(Map<String, String> config, String key, int fallback) {
-        return configInteger(config, "setup." + key, fallback);
+        String value = config.get("setup." + key);
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        try {
+            int parsed = Integer.parseInt(value);
+            return parsed <= 0 ? fallback : parsed;
+        } catch (NumberFormatException exception) {
+            return fallback;
+        }
     }
 
     private static kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotRetentionPolicy(Map<String, String> config) {
