@@ -183,7 +183,16 @@ public interface IslandAddonService {
     }
 
     default CompletableFuture<Map<String, String>> clearTableState(String id, String table) {
-        return state(id);
+        return state(id).thenCompose(values -> {
+            String prefix = tableStatePrefix(table);
+            CompletableFuture<Map<String, String>> chain = CompletableFuture.completedFuture(values);
+            for (String key : values.keySet()) {
+                if (key != null && key.startsWith(prefix)) {
+                    chain = chain.thenCompose(_ignored -> removeState(id, key));
+                }
+            }
+            return chain;
+        });
     }
 
     default CompletableFuture<Optional<String>> putState(String id, String key, String value) {
@@ -221,7 +230,16 @@ public interface IslandAddonService {
     }
 
     default CompletableFuture<Map<String, String>> clearIslandTableState(String id, UUID islandId, String table) {
-        return islandState(id, islandId);
+        return islandState(id, islandId).thenCompose(values -> {
+            String prefix = tableStatePrefix(table);
+            CompletableFuture<Map<String, String>> chain = CompletableFuture.completedFuture(values);
+            for (String key : values.keySet()) {
+                if (key != null && key.startsWith(prefix)) {
+                    chain = chain.thenCompose(_ignored -> removeIslandState(id, islandId, key));
+                }
+            }
+            return chain;
+        });
     }
 
     default CompletableFuture<Optional<String>> putIslandState(String id, UUID islandId, String key, String value) {
@@ -253,10 +271,14 @@ public interface IslandAddonService {
         Map<String, String> state = new HashMap<>();
         values.forEach((key, value) -> {
             if (key != null && !key.isBlank() && value != null) {
-                state.put("table/" + safeTable + "/" + key.trim(), value);
+                state.put(tableStatePrefix(safeTable) + key.trim(), value);
             }
         });
         return Map.copyOf(state);
+    }
+
+    private static String tableStatePrefix(String table) {
+        return "table/" + safeTableName(table) + "/";
     }
 
     private static String safeTableName(String table) {
