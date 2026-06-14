@@ -1144,6 +1144,9 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             coreApiClient.listIslandHomes(islandId)
                 .thenAccept(body -> teleport(player, point(body, name, player.getWorld().getName()), "홈을 찾을 수 없습니다.", "섬 홈으로 이동했습니다."))
                 .exceptionally(error -> {
+                    if (coreUnavailable(error) && teleportLocalDefaultHome(player)) {
+                        return null;
+                    }
                     message(player, "섬 홈을 불러오지 못했습니다.");
                     return null;
                 });
@@ -3059,6 +3062,21 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             player.teleport(new Location(world, targetX, point.y(), targetZ, point.yaw(), point.pitch()));
             player.sendMessage(successMessage);
         });
+    }
+
+    private boolean teleportLocalDefaultHome(Player player) {
+        java.util.Optional<IslandRegion> region = protection.regionAt(player.getLocation().getBlock());
+        if (region.isEmpty()) {
+            return false;
+        }
+        IslandRegion current = region.get();
+        teleport(
+            player,
+            new Point(current.world(), 0.5D, 100.0D, 0.5D, 180.0F, 0.0F, false),
+            routeMessage("route-target-world-missing", "대상 월드를 찾을 수 없습니다."),
+            routeMessage("core-service-home-fallback", "현재 섬 서비스 일부 기능이 점검 중이라 기본 홈 위치로 이동합니다.")
+        );
+        return true;
     }
 
     private String text(String json, String key) {
