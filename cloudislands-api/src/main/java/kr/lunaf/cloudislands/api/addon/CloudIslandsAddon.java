@@ -29,6 +29,7 @@ import kr.lunaf.cloudislands.api.event.IslandSnapshotCreateEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandUpgradeEvent;
 import kr.lunaf.cloudislands.api.event.IslandWorthChangeEvent;
+import kr.lunaf.cloudislands.api.event.NodeStateChangedEvent;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 
 public interface CloudIslandsAddon {
@@ -114,6 +115,8 @@ public interface CloudIslandsAddon {
             onIslandSnapshotRequested(snapshotRequested);
         } else if (event instanceof IslandSnapshotCreateEvent snapshotCreated) {
             onIslandSnapshotCreated(snapshotCreated);
+        } else if (event instanceof NodeStateChangedEvent nodeStateChanged) {
+            onNodeStateChanged(nodeStateChanged);
         }
     }
 
@@ -190,6 +193,9 @@ public interface CloudIslandsAddon {
     }
 
     default void onIslandSnapshotCreated(IslandSnapshotCreateEvent event) {
+    }
+
+    default void onNodeStateChanged(NodeStateChangedEvent event) {
     }
 
     default CompletableFuture<CloudIslandsAddonSnapshot> register(CloudIslandsApi api) {
