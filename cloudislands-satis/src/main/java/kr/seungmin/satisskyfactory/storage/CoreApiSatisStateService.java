@@ -86,6 +86,10 @@ public final class CoreApiSatisStateService {
             return;
         }
         cloudIslandsApi.addons().clearIslandTableState(addonId, table.islandUuid(), table.table())
+                .exceptionally(error -> {
+                    logger.warning("Failed to clear Satis core-api table " + table.table() + " for island " + table.islandUuid() + " before publish: " + error.getMessage());
+                    return Map.of();
+                })
                 .thenCompose(_cleared -> cloudIslandsApi.addons().putIslandTableState(addonId, table.islandUuid(), table.table(), table.values()))
                 .exceptionally(error -> {
             logger.warning("Failed to publish Satis core-api table " + table.table() + " for island " + table.islandUuid() + ": " + error.getMessage());
