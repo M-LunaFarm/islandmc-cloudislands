@@ -62,6 +62,16 @@ public final class CoreApiSatisStateService {
         });
     }
 
+    public void publishRow(DatabaseService.CoreRowWrite row) {
+        if (cloudIslandsApi == null || row == null || row.islandUuid() == null || row.key() == null || row.key().isBlank()) {
+            return;
+        }
+        cloudIslandsApi.addons().putIslandState(addonId, row.islandUuid(), Map.of(row.key(), row.value())).exceptionally(error -> {
+            logger.warning("Failed to publish Satis core-api row " + row.key() + " for island " + row.islandUuid() + ": " + error.getMessage());
+            return Map.of();
+        });
+    }
+
     public boolean hydrateIsland(UUID islandId, DatabaseService database) {
         if (cloudIslandsApi == null || islandId == null || database == null) {
             return false;
@@ -96,6 +106,15 @@ public final class CoreApiSatisStateService {
                 } else if (key.startsWith("table/resource_nodes/")) {
                     database.saveNode(node(value));
                     restored = true;
+                } else if (key.startsWith("table/contracts/")) {
+                    database.saveContract(contract(value));
+                    restored = true;
+                } else if (key.startsWith("table/island_unlocks/")) {
+                    String unlockId = text(value, "unlockId", "");
+                    if (!unlockId.isBlank()) {
+                        database.saveUnlock(islandId, unlockId);
+                        restored = true;
+                    }
                 }
             } catch (RuntimeException exception) {
                 logger.warning("Failed to hydrate Satis core-api row " + key + " for island " + islandId + ": " + exception.getMessage());
@@ -269,6 +288,21 @@ public final class CoreApiSatisStateService {
                 new BlockKey(text(json, "world", ""), integer(json, "x", 0), integer(json, "y", 0), integer(json, "z", 0)),
                 longValue(json, "createdAt", System.currentTimeMillis()),
                 longValue(json, "updatedAt", 0L)
+        );
+    }
+
+    private DatabaseService.StoredContract contract(String json) {
+        return new DatabaseService.StoredContract(
+                uuid(text(json, "contractId", "")),
+                uuid(text(json, "islandUuid", "")),
+                text(json, "templateId", ""),
+                text(json, "contractType", ""),
+                integer(json, "tier", 1),
+                text(json, "requiredJson", "{}"),
+                text(json, "progressJson", "{}"),
+                text(json, "rewardsJson", "{}"),
+                text(json, "status", "ACTIVE"),
+                longValue(json, "expiresAt", 0L)
         );
     }
 

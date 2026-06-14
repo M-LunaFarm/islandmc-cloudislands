@@ -28,9 +28,11 @@ import java.util.LinkedHashSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 public final class DatabaseService {
     public enum StorageBackend {
@@ -83,6 +85,10 @@ public final class DatabaseService {
     private StorageBackend activeBackend = StorageBackend.SQLITE;
     private SqlDialect sqlDialect = SqlDialect.SQLITE;
     private String activeDescription = "";
+    private Consumer<CoreRowWrite> coreStateWriter;
+
+    public record CoreRowWrite(UUID islandUuid, String key, String value) {
+    }
 
     public DatabaseService(JavaPlugin plugin) {
         this(plugin.getDataFolder());
@@ -285,6 +291,10 @@ public final class DatabaseService {
             throw new IllegalStateException("Satis database is not open");
         }
         return dataSource.getConnection();
+    }
+
+    public void coreStateWriter(Consumer<CoreRowWrite> coreStateWriter) {
+        this.coreStateWriter = coreStateWriter;
     }
 
     public void purgeIsland(UUID islandUuid) {
@@ -1529,6 +1539,7 @@ public final class DatabaseService {
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to save contract", exception);
         }
+        publishCoreRow(contract.islandUuid(), "table/contracts/" + contract.contractId(), contractJson(contract));
     }
 
     private String saveContractSql() {
@@ -1591,6 +1602,49 @@ public final class DatabaseService {
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to save unlock", exception);
         }
+        publishCoreRow(islandUuid, "table/island_unlocks/" + unlockId, unlockJson(islandUuid, unlockId));
+    }
+
+    private void publishCoreRow(UUID islandUuid, String key, String value) {
+        if (coreStateWriter == null || islandUuid == null || key == null || key.isBlank() || value == null) {
+            return;
+        }
+        coreStateWriter.accept(new CoreRowWrite(islandUuid, key, value));
+    }
+
+    private String contractJson(StoredContract contract) {
+        return "{"
+                + field("contractId", contract.contractId().toString()) + ","
+                + field("islandUuid", contract.islandUuid().toString()) + ","
+                + field("templateId", contract.templateId()) + ","
+                + field("contractType", contract.contractType()) + ","
+                + number("tier", contract.tier()) + ","
+                + field("requiredJson", contract.requiredJson()) + ","
+                + field("progressJson", contract.progressJson()) + ","
+                + field("rewardsJson", contract.rewardsJson()) + ","
+                + field("status", contract.status()) + ","
+                + number("expiresAt", contract.expiresAt())
+                + "}";
+    }
+
+    private String unlockJson(UUID islandUuid, String unlockId) {
+        return "{"
+                + field("islandUuid", islandUuid.toString()) + ","
+                + field("unlockId", unlockId) + ","
+                + number("unlockedAt", Instant.now().toEpochMilli())
+                + "}";
+    }
+
+    private String field(String key, String value) {
+        return "\"" + key + "\":\"" + escape(value == null ? "" : value) + "\"";
+    }
+
+    private String number(String key, long value) {
+        return "\"" + key + "\":" + value;
+    }
+
+    private String escape(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private String saveUnlockSql() {
