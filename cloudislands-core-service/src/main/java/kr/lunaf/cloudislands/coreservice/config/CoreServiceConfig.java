@@ -68,7 +68,7 @@ public record CoreServiceConfig(
             env("CI_JOB_QUEUE_MODE", setupSetting(config, "job-queue-mode", "REDIS")),
             env("CI_EVENT_BUS_MODE", setupSetting(config, "event-bus-mode", "REDIS")),
             env("CI_JDBC_URL", setupJdbcUrl(config, setting(config, "database.jdbc-url", "jdbc:postgresql://postgres.internal:5432/cloudislands"))),
-            env("CI_DATABASE_TYPE", configuredDatabaseType(config)),
+            configuredDatabaseType(config),
             env("CI_DB_USERNAME", setupSetting(config, "database-username", setting(config, "database.username", "cloudislands"))),
             env("CI_DB_PASSWORD", setupSetting(config, "database-password", setting(config, "database.password", env("DB_PASSWORD", "")))),
             integer("CI_DB_POOL_SIZE", setupInteger(config, "database-pool-size", configInteger(config, "database.pool-size", 20))),
@@ -231,7 +231,7 @@ public record CoreServiceConfig(
         if (!explicit.isBlank()) {
             return explicit;
         }
-        String databaseType = setting(config, "setup.database-type", "");
+        String databaseType = configuredDatabaseType(config);
         if (databaseType.isBlank()) {
             return "JDBC";
         }
@@ -239,6 +239,10 @@ public record CoreServiceConfig(
     }
 
     private static String configuredDatabaseType(Map<String, String> config) {
+        String envType = env("CI_DATABASE_TYPE", "");
+        if (!envType.isBlank()) {
+            return normalizeDatabaseType(envType);
+        }
         String setupType = setting(config, "setup.database-type", "");
         if (!setupType.isBlank()) {
             return normalizeDatabaseType(setupType);
