@@ -168,6 +168,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (database.activeBackend() == DatabaseService.StorageBackend.CORE_API && featureEnabled("addon-state")) {
             coreApiState = new CoreApiSatisStateService(getLogger(), cloudIslandsApi, ADDON_ID);
             database.coreStateWriter(coreApiState::publishRow);
+            database.coreGlobalStateWriter(coreApiState::publishGlobalRow);
+            coreApiState.hydrateGlobal(database);
             dirtySaves.coreStatePublisher(coreApiState::publishDirtyBatch);
             dirtySaves.coreStateDeletePublisher(delete -> coreApiState.removeRow(delete.islandUuid(), delete.key()));
         }
@@ -1360,6 +1362,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (database != null) {
             database.coreStateWriter(null);
+            database.coreGlobalStateWriter(null);
         }
         coreApiState = null;
         if (placeholderHook != null) {

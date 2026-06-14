@@ -28,7 +28,6 @@ import java.util.LinkedHashSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -86,8 +85,12 @@ public final class DatabaseService {
     private SqlDialect sqlDialect = SqlDialect.SQLITE;
     private String activeDescription = "";
     private Consumer<CoreRowWrite> coreStateWriter;
+    private Consumer<CoreGlobalRowWrite> coreGlobalStateWriter;
 
     public record CoreRowWrite(UUID islandUuid, String key, String value) {
+    }
+
+    public record CoreGlobalRowWrite(String key, String value) {
     }
 
     public DatabaseService(JavaPlugin plugin) {
@@ -295,6 +298,10 @@ public final class DatabaseService {
 
     public void coreStateWriter(Consumer<CoreRowWrite> coreStateWriter) {
         this.coreStateWriter = coreStateWriter;
+    }
+
+    public void coreGlobalStateWriter(Consumer<CoreGlobalRowWrite> coreGlobalStateWriter) {
+        this.coreGlobalStateWriter = coreGlobalStateWriter;
     }
 
     public void purgeIsland(UUID islandUuid) {
@@ -1352,18 +1359,21 @@ public final class DatabaseService {
     }
 
     public void addLedger(UUID islandUuid, String type, long amount, String reason) {
+        UUID ledgerId = UUID.randomUUID();
+        long now = Instant.now().toEpochMilli();
         try (Connection connection = connection();
              PreparedStatement statement = connection.prepareStatement("INSERT INTO ledger(ledger_id, island_uuid, type, amount, reason, created_at) VALUES(?, ?, ?, ?, ?, ?)")) {
-            statement.setString(1, UUID.randomUUID().toString());
+            statement.setString(1, ledgerId.toString());
             statement.setString(2, islandUuid.toString());
             statement.setString(3, type);
             statement.setLong(4, amount);
             statement.setString(5, reason);
-            statement.setLong(6, Instant.now().toEpochMilli());
+            statement.setLong(6, now);
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to write ledger", exception);
         }
+        publishCoreRow(islandUuid, "table/ledger/" + ledgerId, ledgerJson(ledgerId, islandUuid, type, amount, reason, now));
     }
 
     public long marketDailySold(String itemId, String dateKey) {
@@ -1397,6 +1407,8 @@ public final class DatabaseService {
     }
 
     public void recordMarketSale(UUID islandUuid, String itemId, String dateKey, long amount, double demandFactor) {
+        long dailySold = 0L;
+        long personalSold = 0L;
         try (Connection connection = connection()) {
             connection.setAutoCommit(false);
             try (PreparedStatement daily = connection.prepareStatement(recordMarketDailySql())) {
@@ -1413,10 +1425,132 @@ public final class DatabaseService {
                 personal.setLong(4, amount);
                 personal.executeUpdate();
             }
+            dailySold = marketDailySold(connection, itemId, dateKey);
+            personalSold = marketPersonalSold(connection, islandUuid, itemId, dateKey);
             connection.commit();
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to record market sale", exception);
         }
+        publishCoreGlobalRow("table/market_daily/" + itemId + "/" + dateKey,
+                marketDailyJson(itemId, dateKey, dailySold, demandFactor));
+        publishCoreRow(islandUuid, "table/market_personal_daily/" + itemId + "/" + dateKey,
+                marketPersonalJson(islandUuid, itemId, dateKey, personalSold));
+    }
+
+    private long marketDailySold(Connection connection, String itemId, String dateKey) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT sold_amount FROM market_daily WHERE item_id = ? AND date_key = ?")) {
+            statement.setString(1, itemId);
+            statement.setString(2, dateKey);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? rs.getLong("sold_amount") : 0L;
+            }
+        }
+    }
+
+    private long marketPersonalSold(Connection connection, UUID islandUuid, String itemId, String dateKey) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT sold_amount FROM market_personal_daily
+                WHERE island_uuid = ? AND item_id = ? AND date_key = ?
+                """)) {
+            statement.setString(1, islandUuid.toString());
+            statement.setString(2, itemId);
+            statement.setString(3, dateKey);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? rs.getLong("sold_amount") : 0L;
+            }
+        }
+    }
+
+    public void saveMarketDailySnapshot(String itemId, String dateKey, long soldAmount, double demandFactor) {
+        try (Connection connection = connection();
+             PreparedStatement statement = connection.prepareStatement(saveMarketDailySnapshotSql())) {
+            statement.setString(1, itemId);
+            statement.setString(2, dateKey);
+            statement.setLong(3, soldAmount);
+            statement.setDouble(4, demandFactor);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to save market daily snapshot", exception);
+        }
+    }
+
+    private String saveMarketDailySnapshotSql() {
+        if (sqlDialect == SqlDialect.MYSQL) {
+            return """
+                    INSERT INTO market_daily(item_id, date_key, sold_amount, demand_factor)
+                    VALUES(?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE
+                      sold_amount = VALUES(sold_amount),
+                      demand_factor = VALUES(demand_factor)
+                    """;
+        }
+        return """
+                    INSERT INTO market_daily(item_id, date_key, sold_amount, demand_factor)
+                    VALUES(?, ?, ?, ?)
+                    ON CONFLICT(item_id, date_key) DO UPDATE SET
+                      sold_amount = excluded.sold_amount,
+                      demand_factor = excluded.demand_factor
+                    """;
+    }
+
+    public void saveMarketPersonalSnapshot(UUID islandUuid, String itemId, String dateKey, long soldAmount) {
+        try (Connection connection = connection();
+             PreparedStatement statement = connection.prepareStatement(saveMarketPersonalSnapshotSql())) {
+            statement.setString(1, islandUuid.toString());
+            statement.setString(2, itemId);
+            statement.setString(3, dateKey);
+            statement.setLong(4, soldAmount);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to save market personal snapshot", exception);
+        }
+    }
+
+    private String saveMarketPersonalSnapshotSql() {
+        if (sqlDialect == SqlDialect.MYSQL) {
+            return """
+                    INSERT INTO market_personal_daily(island_uuid, item_id, date_key, sold_amount)
+                    VALUES(?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE
+                      sold_amount = VALUES(sold_amount)
+                    """;
+        }
+        return """
+                    INSERT INTO market_personal_daily(island_uuid, item_id, date_key, sold_amount)
+                    VALUES(?, ?, ?, ?)
+                    ON CONFLICT(island_uuid, item_id, date_key) DO UPDATE SET
+                      sold_amount = excluded.sold_amount
+                    """;
+    }
+
+    public void saveLedgerSnapshot(UUID ledgerId, UUID islandUuid, String type, long amount, String reason, long createdAt) {
+        try (Connection connection = connection();
+             PreparedStatement statement = connection.prepareStatement(saveLedgerSnapshotSql())) {
+            statement.setString(1, ledgerId.toString());
+            statement.setString(2, islandUuid.toString());
+            statement.setString(3, type);
+            statement.setLong(4, amount);
+            statement.setString(5, reason);
+            statement.setLong(6, createdAt);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to save ledger snapshot", exception);
+        }
+    }
+
+    private String saveLedgerSnapshotSql() {
+        if (sqlDialect == SqlDialect.MYSQL) {
+            return """
+                    INSERT INTO ledger(ledger_id, island_uuid, type, amount, reason, created_at)
+                    VALUES(?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE reason = VALUES(reason)
+                    """;
+        }
+        return """
+                    INSERT INTO ledger(ledger_id, island_uuid, type, amount, reason, created_at)
+                    VALUES(?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(ledger_id) DO NOTHING
+                    """;
     }
 
     private String recordMarketDailySql() {
@@ -1612,6 +1746,42 @@ public final class DatabaseService {
         coreStateWriter.accept(new CoreRowWrite(islandUuid, key, value));
     }
 
+    private void publishCoreGlobalRow(String key, String value) {
+        if (coreGlobalStateWriter == null || key == null || key.isBlank() || value == null) {
+            return;
+        }
+        coreGlobalStateWriter.accept(new CoreGlobalRowWrite(key, value));
+    }
+
+    private String marketDailyJson(String itemId, String dateKey, long soldAmount, double demandFactor) {
+        return "{"
+                + field("itemId", itemId) + ","
+                + field("dateKey", dateKey) + ","
+                + number("soldAmount", soldAmount) + ","
+                + number("demandFactor", demandFactor)
+                + "}";
+    }
+
+    private String marketPersonalJson(UUID islandUuid, String itemId, String dateKey, long soldAmount) {
+        return "{"
+                + field("islandUuid", islandUuid.toString()) + ","
+                + field("itemId", itemId) + ","
+                + field("dateKey", dateKey) + ","
+                + number("soldAmount", soldAmount)
+                + "}";
+    }
+
+    private String ledgerJson(UUID ledgerId, UUID islandUuid, String type, long amount, String reason, long createdAt) {
+        return "{"
+                + field("ledgerId", ledgerId.toString()) + ","
+                + field("islandUuid", islandUuid.toString()) + ","
+                + field("type", type) + ","
+                + number("amount", amount) + ","
+                + field("reason", reason) + ","
+                + number("createdAt", createdAt)
+                + "}";
+    }
+
     private String contractJson(StoredContract contract) {
         return "{"
                 + field("contractId", contract.contractId().toString()) + ","
@@ -1640,6 +1810,10 @@ public final class DatabaseService {
     }
 
     private String number(String key, long value) {
+        return "\"" + key + "\":" + value;
+    }
+
+    private String number(String key, double value) {
         return "\"" + key + "\":" + value;
     }
 
