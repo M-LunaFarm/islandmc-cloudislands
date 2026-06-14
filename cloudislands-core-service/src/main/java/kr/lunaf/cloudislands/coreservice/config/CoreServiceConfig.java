@@ -169,6 +169,9 @@ public record CoreServiceConfig(
             return "CI_JDBC_URL";
         }
         String type = configuredDatabaseType(config);
+        if ("CORE_API".equals(type)) {
+            return "none:setup.database.core-api.enabled";
+        }
         String typedSource = typedSetupDatabaseSettingSource(config, type, "jdbc-url");
         if (!typedSource.isBlank()) {
             return typedSource;
