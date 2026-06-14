@@ -21,6 +21,30 @@ satis:
     placeholders: true
     migration: true
     addon-state: true
+addons:
+  cloudislands-satis:
+    # Same switch shape as CloudIslands Paper config. If both this block and satis.* are present,
+    # both sides must allow a feature before it runs.
+    enabled: true
+    features:
+      commands: true
+      machines: true
+      storage: true
+      factories: true
+      generators: true
+      upgrades: true
+      missions: true
+      menus: true
+      gui: true
+      lifecycle: true
+      resource-nodes: true
+      market: true
+      contracts: true
+      research: true
+      maintenance: true
+      placeholders: true
+      migration: true
+      addon-state: true
 integration:
   mode: ADDON
   skyblock-provider: CLOUDISLANDS

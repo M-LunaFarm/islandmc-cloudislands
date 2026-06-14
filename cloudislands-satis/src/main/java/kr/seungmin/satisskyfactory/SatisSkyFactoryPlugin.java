@@ -871,9 +871,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public boolean enabledByDefault() {
-        return configs.main().contains("satis.enabled")
+        boolean enabled = configs.main().contains("satis.enabled")
                 ? configs.main().getBoolean("satis.enabled", true)
                 : configs.main().getBoolean("integration.enabled", true);
+        if (configs.main().contains("addons." + ADDON_ID + ".enabled")) {
+            enabled = enabled && configs.main().getBoolean("addons." + ADDON_ID + ".enabled", true);
+        }
+        return enabled;
     }
 
     @Override
@@ -1980,11 +1984,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean configFeature(String key) {
+        String addonPath = "addons." + ADDON_ID + ".features." + key;
         String satisPath = "satis.features." + key;
         String legacyPath = "features." + key;
         boolean enabled = true;
+        if (configs.main().contains(addonPath)) {
+            enabled = configs.main().getBoolean(addonPath, true);
+        }
         if (configs.main().contains(satisPath)) {
-            enabled = configs.main().getBoolean(satisPath, true);
+            enabled = enabled && configs.main().getBoolean(satisPath, true);
         }
         if (configs.main().contains(legacyPath)) {
             enabled = enabled && configs.main().getBoolean(legacyPath, true);
@@ -1993,7 +2001,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean configFeatureDefined(String key) {
-        return configs.main().contains("satis.features." + key) || configs.main().contains("features." + key);
+        return configs.main().contains("addons." + ADDON_ID + ".features." + key)
+                || configs.main().contains("satis.features." + key)
+                || configs.main().contains("features." + key);
     }
 
     private boolean featureEnabled(String key) {
