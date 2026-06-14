@@ -1042,6 +1042,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
         state.put("database-fallback-order", databaseFallbackOrderMetadata());
         state.put("database-config-source", databaseConfigSource());
+        state.put("database-jdbc-source", databaseJdbcSource());
+        state.put("database-credentials-source", databaseCredentialsSource());
+        state.put("database-pool-source", databasePoolSource());
+        state.put("database-fallback-source", databaseFallbackSource());
         state.put("database-path", resolveDatabaseFileName());
         state.put("database-open", Boolean.toString(database != null));
         state.put("satis-state-schema", "3");
@@ -1073,6 +1077,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
         state.put("database-fallback-order", databaseFallbackOrderMetadata());
         state.put("database-config-source", databaseConfigSource());
+        state.put("database-jdbc-source", databaseJdbcSource());
+        state.put("database-credentials-source", databaseCredentialsSource());
+        state.put("database-pool-source", databasePoolSource());
+        state.put("database-fallback-source", databaseFallbackSource());
         state.put("database-path", resolveDatabaseFileName());
         state.put("database-open", Boolean.toString(database != null));
         state.put("satis-state-schema", "3");
