@@ -83,7 +83,20 @@ public final class CoreApiSatisStateService {
         if (cloudIslandsApi == null || table == null || table.islandUuid() == null || table.table() == null || table.table().isBlank()) {
             return;
         }
-        if (table.values() == null || table.values().isEmpty()) {
+        if (table.values() == null) {
+            return;
+        }
+        if (table.values().isEmpty()) {
+            cloudIslandsApi.addons().clearIslandTableState(addonId, table.islandUuid(), table.table())
+                    .thenApply(state -> {
+                        publishTableStatus(table, "cleared", "");
+                        return state;
+                    })
+                    .exceptionally(error -> {
+                        logger.warning("Failed to clear empty Satis core-api table " + table.table() + " for island " + table.islandUuid() + ": " + error.getMessage());
+                        publishTableStatus(table, "failed", error.getMessage());
+                        return Map.of();
+                    });
             return;
         }
         cloudIslandsApi.addons().replaceIslandTableState(addonId, table.islandUuid(), table.table(), table.values())

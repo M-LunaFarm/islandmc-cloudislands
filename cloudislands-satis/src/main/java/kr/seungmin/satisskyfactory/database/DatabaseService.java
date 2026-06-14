@@ -1998,11 +1998,14 @@ public final class DatabaseService {
     }
 
     private void publishCoreTable(UUID islandUuid, String table, java.util.Map<String, String> values) {
-        if (coreStatePublishingSuspended || islandUuid == null || table == null || table.isBlank() || values == null || values.isEmpty()) {
+        if (coreStatePublishingSuspended || islandUuid == null || table == null || table.isBlank() || values == null) {
             return;
         }
         if (coreTableWriter != null) {
             coreTableWriter.accept(new CoreTableWrite(islandUuid, table, java.util.Map.copyOf(values)));
+            return;
+        }
+        if (values.isEmpty()) {
             return;
         }
         String safeTable = table.startsWith("table/") ? table.substring("table/".length()) : table;
