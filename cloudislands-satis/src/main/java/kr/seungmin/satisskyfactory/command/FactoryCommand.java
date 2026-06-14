@@ -44,7 +44,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public final class FactoryCommand implements CommandExecutor, TabCompleter {
-    private static final int HELP_PAGE_SIZE = 8;
+    private static final int HELP_PAGE_SIZE = 12;
     private static final List<String> HELP_COMMANDS = List.of(
             "factory help [page]",
             "factory command list [page]",

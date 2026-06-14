@@ -37,7 +37,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public final class AdminFactoryCommand {
-    private static final int HELP_PAGE_SIZE = 8;
+    private static final int HELP_PAGE_SIZE = 12;
     private static final List<String> FEATURE_KEYS = List.of(
             "commands",
             "machines",
