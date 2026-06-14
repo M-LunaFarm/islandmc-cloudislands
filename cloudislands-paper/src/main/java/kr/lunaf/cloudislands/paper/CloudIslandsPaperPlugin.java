@@ -356,6 +356,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean proxySourceAllowlistConfigured = !getConfig().getStringList("security.proxy-source-allowlist").isEmpty();
         PaperRouteSessionListener routeSessions = routeSessionListener;
         PermissionEventPoller events = permissionEventPoller;
+        PeriodicIslandSaveTask saver = periodicSaveTask;
+        EmptyIslandSaveTask emptySaver = emptyIslandSaveTask;
         return "{"
             + "\"status\":\"UP\","
             + "\"role\":\"" + role.name() + "\","
@@ -378,6 +380,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"chatBroadcastsTotal\":" + (events == null ? 0L : events.chatBroadcasts()) + ","
             + "\"chatDeliveriesTotal\":" + (events == null ? 0L : events.chatDeliveries()) + ","
             + "\"chatNoRecipientBroadcastsTotal\":" + (events == null ? 0L : events.chatNoRecipientBroadcasts()) + ","
+            + "\"periodicSaveRetryQueue\":" + (saver == null ? 0 : saver.retryQueueSize()) + ","
+            + "\"periodicSaveFailuresTotal\":" + (saver == null ? 0L : saver.failuresTotal()) + ","
+            + "\"emptySaveRetryQueue\":" + (emptySaver == null ? 0 : emptySaver.retryQueueSize()) + ","
+            + "\"emptySaveFailuresTotal\":" + (emptySaver == null ? 0L : emptySaver.failuresTotal()) + ","
             + "\"localCacheCount\":" + (localCaches == null ? 0 : localCaches.cacheCount()) + ","
             + "\"localCacheInvalidationsTotal\":" + (localCaches == null ? 0 : localCaches.invalidationsTotal())
             + "}";
@@ -398,6 +404,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean proxySourceAllowlistConfigured = !getConfig().getStringList("security.proxy-source-allowlist").isEmpty();
         PeriodicIslandLevelScanTask scanner = periodicLevelScanTask;
         PeriodicIslandSaveTask saver = periodicSaveTask;
+        EmptyIslandSaveTask emptySaver = emptyIslandSaveTask;
         IslandGeneratorListener generator = generatorListener;
         PaperRouteSessionListener routeSessions = routeSessionListener;
         PermissionEventPoller events = permissionEventPoller;
@@ -416,6 +423,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_island_snapshot_seconds{node=\"" + nodeId + "\"} " + storageUploadSeconds + "\n"
             + "cloudislands_paper_periodic_save_retry_queue{node=\"" + nodeId + "\"} " + (saver == null ? 0 : saver.retryQueueSize()) + "\n"
             + "cloudislands_paper_periodic_save_failures_total{node=\"" + nodeId + "\"} " + (saver == null ? 0L : saver.failuresTotal()) + "\n"
+            + "cloudislands_paper_empty_save_retry_queue{node=\"" + nodeId + "\"} " + (emptySaver == null ? 0 : emptySaver.retryQueueSize()) + "\n"
+            + "cloudislands_paper_empty_save_failures_total{node=\"" + nodeId + "\"} " + (emptySaver == null ? 0L : emptySaver.failuresTotal()) + "\n"
             + "cloudislands_paper_level_scan_running{node=\"" + nodeId + "\"} " + (scanner != null && scanner.running() ? 1 : 0) + "\n"
             + "cloudislands_paper_level_scan_last_started_at{node=\"" + nodeId + "\"} " + (scanner == null ? 0L : scanner.lastScanStartedAt()) + "\n"
             + "cloudislands_paper_level_scan_last_finished_at{node=\"" + nodeId + "\"} " + (scanner == null ? 0L : scanner.lastScanFinishedAt()) + "\n"
@@ -472,6 +481,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";storageOperationFailures=" + (storage == null ? 0L : storage.operationFailures())
             + ";periodicSaveRetryQueue=" + (periodicSaveTask == null ? 0 : periodicSaveTask.retryQueueSize())
             + ";periodicSaveFailures=" + (periodicSaveTask == null ? 0L : periodicSaveTask.failuresTotal())
+            + ";emptySaveRetryQueue=" + (emptyIslandSaveTask == null ? 0 : emptyIslandSaveTask.retryQueueSize())
+            + ";emptySaveFailures=" + (emptyIslandSaveTask == null ? 0L : emptyIslandSaveTask.failuresTotal())
             + ";proxySourceRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.proxySourceRejections())
             + ";forwardingRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.forwardingRejections())
             + ";routeSessionRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.routeSessionRejections())

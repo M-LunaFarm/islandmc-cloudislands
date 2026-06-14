@@ -5,6 +5,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import org.bukkit.Bukkit;
@@ -20,6 +22,8 @@ public final class EmptyIslandSaveTask {
     private final CoreApiClient coreApiClient;
     private final Map<UUID, Long> emptySinceMillis = new HashMap<>();
     private final Set<UUID> savedWhileEmpty = new HashSet<>();
+    private final Map<UUID, Integer> retryQueue = new ConcurrentHashMap<>();
+    private final AtomicLong failuresTotal = new AtomicLong();
     private BukkitTask task;
     private long delayMillis;
 
@@ -47,6 +51,7 @@ public final class EmptyIslandSaveTask {
         }
         emptySinceMillis.clear();
         savedWhileEmpty.clear();
+        retryQueue.clear();
     }
 
     private void scan() {
@@ -57,6 +62,7 @@ public final class EmptyIslandSaveTask {
             if (occupied.contains(islandId)) {
                 emptySinceMillis.remove(islandId);
                 savedWhileEmpty.remove(islandId);
+                retryQueue.remove(islandId);
                 continue;
             }
             long emptySince = emptySinceMillis.computeIfAbsent(islandId, ignored -> now);
@@ -66,6 +72,7 @@ public final class EmptyIslandSaveTask {
         }
         emptySinceMillis.keySet().removeIf(islandId -> activeIslands.find(islandId).isEmpty());
         savedWhileEmpty.removeIf(islandId -> activeIslands.find(islandId).isEmpty());
+        retryQueue.keySet().removeIf(islandId -> activeIslands.find(islandId).isEmpty());
     }
 
     private Set<UUID> occupiedIslands() {
@@ -79,14 +86,25 @@ public final class EmptyIslandSaveTask {
     private void saveEmptyIsland(ActiveIslandRegistry.ActiveIsland activeIsland) {
         try {
             saveService.save(activeIsland.islandId(), activeIsland);
+            retryQueue.remove(activeIsland.islandId());
             coreApiClient.deactivateIsland(activeIsland.islandId()).exceptionally(error -> {
                 plugin.getLogger().warning("Empty island deactivate request failed for " + activeIsland.islandId());
                 Bukkit.getScheduler().runTask(plugin, () -> savedWhileEmpty.remove(activeIsland.islandId()));
                 return null;
             });
         } catch (java.io.IOException exception) {
-            plugin.getLogger().warning("Empty island save failed for " + activeIsland.islandId() + ": " + exception.getMessage());
+            failuresTotal.incrementAndGet();
+            int attempts = retryQueue.merge(activeIsland.islandId(), 1, Integer::sum);
+            plugin.getLogger().warning("Empty island save failed for " + activeIsland.islandId() + " retry=" + attempts + " queued=" + retryQueue.size() + ": " + exception.getMessage());
             Bukkit.getScheduler().runTask(plugin, () -> savedWhileEmpty.remove(activeIsland.islandId()));
         }
+    }
+
+    public int retryQueueSize() {
+        return retryQueue.size();
+    }
+
+    public long failuresTotal() {
+        return failuresTotal.get();
     }
 }
