@@ -390,6 +390,7 @@ public final class TranslationManager {
         values.put("admin-command-core-config-setup-db-env-prefix", " setupDbEnv=");
         values.put("admin-command-core-config-setup-db-precedence-prefix", " setupDbPrecedence=");
         values.put("admin-command-core-config-setup-db-name-aliases-prefix", " setupDbNameAliases=");
+        values.put("admin-command-core-config-setup-db-type-inference-prefix", " setupDbTypeInference=");
         values.put("admin-command-core-config-jdbc-fallback-prefix", " jdbcFallback=");
         values.put("admin-command-core-config-addon-bulk-prefix", " addonBulkSave=");
         values.put("admin-command-core-config-addon-bulk-global-prefix", " addonBulkGlobal=");

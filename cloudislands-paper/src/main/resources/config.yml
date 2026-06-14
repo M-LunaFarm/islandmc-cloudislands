@@ -379,6 +379,7 @@ messages:
     admin-command-core-config-setup-db-env-prefix: " setupDbEnv="
     admin-command-core-config-setup-db-precedence-prefix: " setupDbPrecedence="
     admin-command-core-config-setup-db-name-aliases-prefix: " setupDbNameAliases="
+    admin-command-core-config-setup-db-type-inference-prefix: " setupDbTypeInference="
     admin-command-core-config-jdbc-fallback-prefix: " jdbcFallback="
     admin-command-core-config-addon-bulk-prefix: " addonBulkSave="
     admin-command-core-config-addon-bulk-global-prefix: " addonBulkGlobal="

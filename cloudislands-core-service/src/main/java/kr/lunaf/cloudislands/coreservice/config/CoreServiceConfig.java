@@ -274,7 +274,8 @@ public record CoreServiceConfig(
         if (!setupType.isBlank()) {
             return normalizeDatabaseType(setupType);
         }
-        String jdbcUrl = env("CI_JDBC_URL", setting(config, "database.jdbc-url", ""));
+        String setupJdbcUrl = setupDatabaseSetting(config, "jdbc-url", setting(config, "setup.jdbc-url", ""));
+        String jdbcUrl = env("CI_JDBC_URL", setupJdbcUrl.isBlank() ? setting(config, "database.jdbc-url", "") : setupJdbcUrl);
         return jdbcUrlDatabaseType(jdbcUrl);
     }
 
