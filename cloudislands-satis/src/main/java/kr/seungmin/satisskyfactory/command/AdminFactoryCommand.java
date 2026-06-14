@@ -467,13 +467,13 @@ public final class AdminFactoryCommand {
         if (args.length < 3 || !(sender instanceof Player player)) {
             return;
         }
-        islands.context(player).ifPresent(context -> {
+        if (args[2].equalsIgnoreCase("networks") && !requireFeature(sender, "machines")) {
+            return;
+        }
+        islands.existingContext(player).ifPresent(context -> {
             if (args[2].equalsIgnoreCase("island")) {
                 messages.send(sender, "debug-island", Map.of("island", context.factoryIsland().islandUuid().toString()));
             } else if (args[2].equalsIgnoreCase("networks")) {
-                if (!requireFeature(sender, "machines")) {
-                    return;
-                }
                 var state = power.state(context.factoryIsland().islandUuid());
                 messages.send(sender, "debug-networks", Map.of(
                         "machines", String.valueOf(machines.byIsland(context.factoryIsland().islandUuid()).size()),
