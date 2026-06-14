@@ -10,7 +10,13 @@ public final class InMemoryAddonStateRepository implements AddonStateRepository 
 
     @Override
     public Map<String, String> list(String addonId) {
-        return Map.copyOf(states.getOrDefault(AddonStateRepository.safeAddonId(addonId), Map.of()));
+        Map<String, String> state = states.get(AddonStateRepository.safeAddonId(addonId));
+        if (state == null) {
+            return Map.of();
+        }
+        synchronized (state) {
+            return Map.copyOf(state);
+        }
     }
 
     @Override
@@ -90,7 +96,13 @@ public final class InMemoryAddonStateRepository implements AddonStateRepository 
 
     @Override
     public Map<String, String> listIsland(String addonId, UUID islandId) {
-        return Map.copyOf(islandStates.getOrDefault(islandStateId(addonId, islandId), Map.of()));
+        Map<String, String> state = islandStates.get(islandStateId(addonId, islandId));
+        if (state == null) {
+            return Map.of();
+        }
+        synchronized (state) {
+            return Map.copyOf(state);
+        }
     }
 
     @Override
