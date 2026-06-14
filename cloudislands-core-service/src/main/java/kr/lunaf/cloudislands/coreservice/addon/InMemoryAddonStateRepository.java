@@ -69,9 +69,11 @@ public final class InMemoryAddonStateRepository implements AddonStateRepository 
             throw new IllegalArgumentException("Addon state key limit reached");
         }
         next.putAll(safeValues);
-        state.clear();
-        state.putAll(next);
-        return Map.copyOf(state);
+        synchronized (state) {
+            state.clear();
+            state.putAll(next);
+            return Map.copyOf(state);
+        }
     }
 
     @Override
@@ -140,9 +142,11 @@ public final class InMemoryAddonStateRepository implements AddonStateRepository 
             throw new IllegalArgumentException("Addon island state key limit reached");
         }
         next.putAll(safeValues);
-        state.clear();
-        state.putAll(next);
-        return Map.copyOf(state);
+        synchronized (state) {
+            state.clear();
+            state.putAll(next);
+            return Map.copyOf(state);
+        }
     }
 
     @Override
