@@ -399,6 +399,7 @@ public final class PrometheusMetricsRenderer {
         out.append("cloudislands_route_ticket_created_total ").append(events.countByType(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CREATED.name())).append('\n');
         appendEventFieldCounters(out, "cloudislands_route_ticket_created_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CREATED, "action");
         appendEventFieldCounters(out, "cloudislands_route_ticket_created_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CREATED, "targetNode");
+        appendEventFieldCounters(out, "cloudislands_route_ticket_created_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CREATED, "targetServerName");
         appendEventFieldCounters(out, "cloudislands_route_ticket_created_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CREATED, "state");
         help(out, "cloudislands_route_session_published_total", "Route sessions published by Velocity or Paper before backend connection");
         type(out, "cloudislands_route_session_published_total", "counter");

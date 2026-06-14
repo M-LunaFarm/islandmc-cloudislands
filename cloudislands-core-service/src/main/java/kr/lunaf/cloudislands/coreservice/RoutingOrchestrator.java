@@ -155,6 +155,7 @@ public final class RoutingOrchestrator {
             "islandId", saved.islandId().toString(),
             "action", saved.action().name(),
             "targetNode", saved.targetNode(),
+            "targetServerName", saved.payload().getOrDefault("targetServerName", saved.targetNode()),
             "state", saved.state().name()
         ));
         return RoutePreparationResult.accepted(toJson(saved));
@@ -298,6 +299,7 @@ public final class RoutingOrchestrator {
                 "islandId", saved.islandId().toString(),
                 "action", saved.action().name(),
                 "targetNode", saved.targetNode(),
+                "targetServerName", saved.payload().getOrDefault("targetServerName", saved.targetNode()),
                 "state", saved.state().name()
             ));
             return RoutePreparationResult.accepted(toJson(saved));

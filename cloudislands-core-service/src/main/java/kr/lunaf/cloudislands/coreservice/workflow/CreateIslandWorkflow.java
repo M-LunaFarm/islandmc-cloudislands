@@ -123,7 +123,7 @@ public final class CreateIslandWorkflow {
             "yaw", "180.0",
             "pitch", "0.0"
         )));
-        events.publish(CloudIslandEventType.ROUTE_TICKET_CREATED.name(), Map.of("ticketId", ticket.ticketId().toString(), "islandId", islandId.toString(), "playerUuid", ownerUuid.toString(), "action", ticket.action().name(), "targetNode", ticket.targetNode(), "state", ticket.state().name()));
+        events.publish(CloudIslandEventType.ROUTE_TICKET_CREATED.name(), Map.of("ticketId", ticket.ticketId().toString(), "islandId", islandId.toString(), "playerUuid", ownerUuid.toString(), "action", ticket.action().name(), "targetNode", ticket.targetNode(), "targetServerName", ticket.payload().getOrDefault("targetServerName", ticket.targetNode()), "state", ticket.state().name()));
         releaseCreationLock(lease);
         return new CreateIslandResult(true, "CREATING", island, ticket);
         } catch (RuntimeException exception) {
