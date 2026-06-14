@@ -2136,7 +2136,37 @@ public final class VelocityRoutingController {
             + " draining=" + draining
             + " shuttingDown=" + shuttingDown
             + " down=" + down
+            + poolSummarySuffix(body)
             + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String poolSummarySuffix(String body) {
+        String pools = arrayValue(body, "pools");
+        if (pools.isBlank()) {
+            return "";
+        }
+        java.util.List<String> entries = new java.util.ArrayList<>();
+        int index = 0;
+        while (index < pools.length()) {
+            int objectStart = pools.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(pools, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = pools.substring(objectStart, objectEnd + 1);
+            String pool = fallback(jsonValue(object, "pool"), "island");
+            entries.add(pool
+                + " nodes=" + longValue(object, "healthyNodeCount") + "/" + longValue(object, "nodeCount")
+                + " players=" + longValue(object, "players") + "/" + longValue(object, "softPlayerCap") + "/" + longValue(object, "hardPlayerCap")
+                + " reserved=" + longValue(object, "reservedSlots")
+                + " islands=" + longValue(object, "activeIslands") + "/" + longValue(object, "maxActiveIslands")
+                + " queue=" + longValue(object, "activationQueue") + "/" + longValue(object, "maxActivationQueue"));
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "" : " / pools: " + String.join(" | ", entries);
     }
 
     private String nodeSummary(String object, int displayIndex) {

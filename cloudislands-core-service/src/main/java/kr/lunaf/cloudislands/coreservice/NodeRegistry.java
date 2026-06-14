@@ -85,6 +85,12 @@ public interface NodeRegistry {
             summary.nodes++;
             summary.players += Math.max(0, node.players());
             summary.activeIslands += Math.max(0, node.activeIslands());
+            summary.softPlayerCap += Math.max(0, node.softPlayerCap());
+            summary.hardPlayerCap += Math.max(0, node.hardPlayerCap());
+            summary.reservedSlots += Math.max(0, node.reservedSlots());
+            summary.maxActiveIslands += Math.max(0, node.maxActiveIslands());
+            summary.activationQueue += Math.max(0, node.activationQueue());
+            summary.maxActivationQueue += Math.max(0, node.maxActivationQueue());
             boolean stale = node.lastHeartbeat() == null || node.lastHeartbeat().isBefore(now.minus(timeout));
             boolean routeCandidate = node.allocationBlockReason(now, timeout).isBlank();
             if (routeCandidate) {
@@ -112,7 +118,13 @@ public interface NodeRegistry {
                 .append("\"healthyNodeCount\":").append(summary.healthy).append(',')
                 .append("\"staleNodeCount\":").append(summary.stale).append(',')
                 .append("\"players\":").append(summary.players).append(',')
-                .append("\"activeIslands\":").append(summary.activeIslands)
+                .append("\"softPlayerCap\":").append(summary.softPlayerCap).append(',')
+                .append("\"hardPlayerCap\":").append(summary.hardPlayerCap).append(',')
+                .append("\"reservedSlots\":").append(summary.reservedSlots).append(',')
+                .append("\"activeIslands\":").append(summary.activeIslands).append(',')
+                .append("\"maxActiveIslands\":").append(summary.maxActiveIslands).append(',')
+                .append("\"activationQueue\":").append(summary.activationQueue).append(',')
+                .append("\"maxActivationQueue\":").append(summary.maxActivationQueue)
                 .append('}');
         }
         return builder.append(']').toString();
@@ -125,6 +137,12 @@ public interface NodeRegistry {
         private long stale;
         private long players;
         private long activeIslands;
+        private long softPlayerCap;
+        private long hardPlayerCap;
+        private long reservedSlots;
+        private long maxActiveIslands;
+        private long activationQueue;
+        private long maxActivationQueue;
     }
 
     static String toJson(NodeLoad node) {
