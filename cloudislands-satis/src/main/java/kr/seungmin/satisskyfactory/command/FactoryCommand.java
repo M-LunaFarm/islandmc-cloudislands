@@ -133,6 +133,10 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         String sub = args.length == 0 ? "main" : args[0].toLowerCase(Locale.ROOT);
+        if (!knownSubcommand(sub)) {
+            help(player, label, 1);
+            return true;
+        }
         String disabledFeature = disabledFeatureFor(sub);
         if (disabledFeature != null) {
             messages.send(player, "feature-disabled", Map.of("feature", disabledFeature));
@@ -267,6 +271,14 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
 
     private boolean readOnlyCommand(String subcommand) {
         return subcommand.equals("status") || subcommand.equals("machines");
+    }
+
+    private boolean knownSubcommand(String subcommand) {
+        return switch (subcommand) {
+            case "main", "status", "machines", "storage", "deposit", "withdraw", "market", "contracts",
+                    "research", "emergency", "node", "sell", "repair" -> true;
+            default -> false;
+        };
     }
 
     private String disabledFeatureFor(String subcommand) {
