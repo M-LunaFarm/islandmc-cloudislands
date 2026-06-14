@@ -377,7 +377,13 @@ public final class TranslationManager {
         values.put("admin-command-core-config-repo-prefix", "Core config: repo=");
         values.put("admin-command-core-config-jobs-prefix", " jobs=");
         values.put("admin-command-core-config-events-prefix", " events=");
+        values.put("admin-command-core-config-effective-repo-prefix", " effectiveRepo=");
+        values.put("admin-command-core-config-effective-jobs-prefix", " effectiveJobs=");
         values.put("admin-command-core-config-storage-prefix", " storage=");
+        values.put("admin-command-core-config-db-type-prefix", " dbType=");
+        values.put("admin-command-core-config-db-backend-prefix", " dbBackend=");
+        values.put("admin-command-core-config-jdbc-supported-prefix", " jdbcSupported=");
+        values.put("admin-command-core-config-jdbc-fallback-prefix", " jdbcFallback=");
         values.put("admin-command-events-empty", "Events: empty");
         values.put("admin-command-events-prefix", "Events: ");
         values.put("admin-command-event-island-prefix", " island=");
