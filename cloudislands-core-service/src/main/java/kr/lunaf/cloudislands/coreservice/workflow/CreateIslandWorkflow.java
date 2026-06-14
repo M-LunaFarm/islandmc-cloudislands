@@ -71,6 +71,10 @@ public final class CreateIslandWorkflow {
 
     public CreateIslandResult create(UUID ownerUuid, String templateId) {
         String normalizedTemplate = templateId == null || templateId.isBlank() ? "default" : templateId;
+        if (isMigrationInputOnlyTemplate(normalizedTemplate)) {
+            publishTicketFailure(ownerUuid, null, "TEMPLATE_MIGRATION_INPUT_ONLY");
+            return new CreateIslandResult(false, "TEMPLATE_MIGRATION_INPUT_ONLY", null, null);
+        }
         IslandTemplateSnapshot template = templates.find(normalizedTemplate).orElse(null);
         if (template == null || !template.enabled()) {
             publishTicketFailure(ownerUuid, null, "TEMPLATE_UNAVAILABLE");
@@ -135,6 +139,10 @@ public final class CreateIslandWorkflow {
             "action", RouteAction.HOME.name(),
             "reason", reason
         ));
+    }
+
+    private static boolean isMigrationInputOnlyTemplate(String templateId) {
+        return "superiorskyblock2".equalsIgnoreCase(templateId == null ? "" : templateId.trim());
     }
 
     private RedisPlayerCreationLock.Lease acquireCreationLock(UUID playerUuid) {
