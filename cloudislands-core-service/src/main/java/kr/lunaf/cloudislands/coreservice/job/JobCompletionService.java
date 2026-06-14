@@ -169,6 +169,10 @@ public final class JobCompletionService {
             preserveRuntimeOnSnapshotFailure(job, errorMessage);
             return;
         }
+        if (job.type() == IslandJobType.DEACTIVATE_ISLAND) {
+            preserveRuntimeOnDeactivationFailure(job, errorMessage);
+            return;
+        }
         IslandState state = switch (job.type()) {
             case CREATE_ISLAND -> IslandState.ERROR_CREATING;
             case ACTIVATE_ISLAND, MIGRATE_ISLAND, RESTORE_ISLAND, RESET_ISLAND -> IslandState.ERROR_ACTIVATING;
@@ -197,6 +201,31 @@ public final class JobCompletionService {
             "error", errorMessage == null ? "" : errorMessage,
             "runtimePreserved", Boolean.toString(current != null && current.state() == IslandState.ACTIVE)
         ));
+    }
+
+    private void preserveRuntimeOnDeactivationFailure(IslandJob job, String errorMessage) {
+        kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot current = runtimes.find(job.islandId()).orElse(null);
+        boolean migrationSource = job.payload().containsKey("migrateTargetNode");
+        IslandState keptState = migrationSource ? IslandState.DEACTIVATING : IslandState.ACTIVE;
+        if (current == null || current.activeNode() == null || current.activeNode().isBlank()) {
+            runtimes.setState(job.islandId(), IslandState.ERROR_SAVING);
+            setIslandState(job.islandId(), IslandState.ERROR_SAVING);
+            keptState = IslandState.ERROR_SAVING;
+        } else {
+            runtimes.setState(job.islandId(), keptState);
+            setIslandState(job.islandId(), keptState);
+        }
+        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
+            "islandId", job.islandId().toString(),
+            "state", keptState.name(),
+            "jobType", job.type().name(),
+            "error", errorMessage == null ? "" : errorMessage,
+            "runtimePreserved", Boolean.toString(keptState != IslandState.ERROR_SAVING),
+            "phase", migrationSource ? "MIGRATION_SOURCE_SAVE_FAILED" : "DEACTIVATION_SAVE_FAILED"
+        ));
+        if (migrationSource) {
+            failPreparingRouteTickets(job, errorMessage);
+        }
     }
 
     private boolean isStaleFencingFailure(IslandJob job, String errorMessage) {
