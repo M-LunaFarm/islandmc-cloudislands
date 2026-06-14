@@ -1568,6 +1568,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         hydrateSatisIslandFromCore(islandId);
         islands.find(islandId).ifPresent(island -> {
             org.bukkit.Location activeCenter = activeIslandCenter(islandId);
+            if (activeCenter == null || activeCenter.getWorld() == null) {
+                activeCenter = lifecycleFallbackCenter(island, operation);
+            }
             if (activeCenter != null && activeCenter.getWorld() != null) {
                 String activeWorld = activeCenter.getWorld().getName();
                 int deltaX = island.hasActiveCenter() ? activeCenter.getBlockX() - island.activeCenterX() : 0;
@@ -1583,6 +1586,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 island.activeCenterX(activeCenter.getBlockX());
                 island.activeCenterY(activeCenter.getBlockY());
                 island.activeCenterZ(activeCenter.getBlockZ());
+                if (!lifecycleEventWorld(operation).isBlank() && !lifecycleEventWorld(operation).equals(activeWorld)) {
+                    getLogger().warning("CloudIslands Satis lifecycle event world " + lifecycleEventWorld(operation)
+                            + " differed from resolved active world " + activeWorld + " for " + islandId);
+                }
             }
             if (maintenance != null && featureEnabled("maintenance")) {
                 maintenance.updateStatus(island);
@@ -1625,6 +1632,21 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return skyblock.getIslandByUuid(islandId)
                 .flatMap(skyblock::getIslandCenter)
                 .orElse(null);
+    }
+
+    private org.bukkit.Location lifecycleFallbackCenter(kr.seungmin.satisskyfactory.model.FactoryIsland island, String operation) {
+        String eventWorld = lifecycleEventWorld(operation);
+        if (eventWorld.isBlank()) {
+            return null;
+        }
+        org.bukkit.World world = getServer().getWorld(eventWorld);
+        if (world == null) {
+            return null;
+        }
+        int x = island != null && island.hasActiveCenter() ? island.activeCenterX() : 0;
+        int y = island != null && island.hasActiveCenter() ? island.activeCenterY() : 100;
+        int z = island != null && island.hasActiveCenter() ? island.activeCenterZ() : 0;
+        return new org.bukkit.Location(world, x + 0.5D, y, z + 0.5D);
     }
 
     private void flushSatisIsland(UUID islandId) {
