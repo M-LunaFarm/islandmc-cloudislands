@@ -73,7 +73,14 @@ public final class AdminNodeMenu implements Listener {
             return;
         }
         if (slot == 22) {
-            player.sendMessage(message(messages, "admin-node-menu-help", "사용법: /ciadmin node list, /ciadmin node info [node], /ciadmin node islands [node] [limit], /ciadmin node kickall [node], /ciadmin node shutdown-safe [node], /ciadmin island where <uuid>"));
+            player.sendMessage(message(messages, "admin-node-menu-help", "CloudIslands 관리자 명령어 목록 - 1 line > 1 command"));
+            player.sendMessage("> " + message(messages, "admin-node-menu-help-status-command", "/ciadmin status"));
+            player.sendMessage("> " + message(messages, "admin-node-menu-help-node-list-command", "/ciadmin node list"));
+            player.sendMessage("> " + message(messages, "admin-node-menu-help-node-info-command", "/ciadmin node info [node]"));
+            player.sendMessage("> " + message(messages, "admin-node-menu-help-node-islands-command", "/ciadmin node islands [node] [limit]"));
+            player.sendMessage("> " + message(messages, "admin-node-menu-help-node-kickall-command", "/ciadmin node kickall [node]"));
+            player.sendMessage("> " + message(messages, "admin-node-menu-help-node-shutdown-command", "/ciadmin node shutdown-safe [node]"));
+            player.sendMessage("> " + message(messages, "admin-node-menu-help-island-where-command", "/ciadmin island where <uuid>"));
             return;
         }
         String command = firstCommand(meta);

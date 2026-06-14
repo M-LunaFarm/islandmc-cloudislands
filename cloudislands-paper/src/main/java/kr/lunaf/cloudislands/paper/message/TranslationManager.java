@@ -239,8 +239,12 @@ public final class TranslationManager {
         values.put("admin-node-menu-help-name", "관리 명령 도움말");
         values.put("admin-node-menu-help-status-command", "/ciadmin status");
         values.put("admin-node-menu-help-node-list-command", "/ciadmin node list");
+        values.put("admin-node-menu-help-node-info-command", "/ciadmin node info [node]");
+        values.put("admin-node-menu-help-node-islands-command", "/ciadmin node islands [node] [limit]");
+        values.put("admin-node-menu-help-node-kickall-command", "/ciadmin node kickall [node]");
+        values.put("admin-node-menu-help-node-shutdown-command", "/ciadmin node shutdown-safe [node]");
         values.put("admin-node-menu-help-island-where-command", "/ciadmin island where <uuid>");
-        values.put("admin-node-menu-help", "사용법: /ciadmin node list, /ciadmin node info [node], /ciadmin node islands [node] [limit], /ciadmin node kickall [node], /ciadmin node shutdown-safe [node], /ciadmin island where <uuid>");
+        values.put("admin-node-menu-help", "CloudIslands 관리자 명령어 목록 - 1 line > 1 command");
         values.put("admin-node-menu-status-name", "관리 상태");
         values.put("admin-node-menu-status-command", "/ciadmin status");
         values.put("admin-node-menu-close-name", "닫기");
