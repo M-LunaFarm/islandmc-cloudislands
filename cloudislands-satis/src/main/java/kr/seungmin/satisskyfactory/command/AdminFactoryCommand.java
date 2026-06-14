@@ -67,7 +67,9 @@ public final class AdminFactoryCommand {
             "factory admin migration",
             "factory admin migration scan <sqlitePath>",
             "factory admin migration dryrun <sqlitePath>",
+            "factory admin migration verify <sqlitePath>",
             "factory admin migration import <sqlitePath>",
+            "factory admin migration rollback",
             "factory admin state",
             "factory admin give <player> <machineType> [amount]",
             "factory admin giveitem <player> <itemId> <amount>",
@@ -291,7 +293,7 @@ public final class AdminFactoryCommand {
             return filter(List.of("list"), args[2]);
         }
         if (args.length == 3 && args[1].equalsIgnoreCase("migration") && enabled("migration")) {
-            return filter(List.of("scan", "dryrun", "dry-run", "import"), args[2]);
+            return filter(List.of("scan", "dryrun", "dry-run", "verify", "import", "rollback"), args[2]);
         }
         if ((args[1].equalsIgnoreCase("give") || args[1].equalsIgnoreCase("giveitem") || args[1].equalsIgnoreCase("removehere")) && !enabled("machines")) {
             return new ArrayList<>();
@@ -599,8 +601,9 @@ public final class AdminFactoryCommand {
         state.put("satis-storage-key", "cloudislands-island-uuid");
         state.put("superior-runtime-dependency", "false");
         state.put("superior-import-path", "/ciadmin migrate-superiorskyblock2 scan|dryrun|import|verify|rollback");
-        state.put("satismc-import-path", "/factory admin migration scan|dryrun|import <sqlitePath>");
+        state.put("satismc-import-path", "/factory admin migration scan|dryrun|verify|import <sqlitePath>");
         state.put("satismc-import-mode", "cross-backend-sqlite-copy");
+        state.put("satismc-rollback-mode", "manual-restore-from-backup");
         state.put("feature-gate", "migration=" + enabled("migration"));
         state.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
@@ -613,12 +616,16 @@ public final class AdminFactoryCommand {
     private void handleMigration(CommandSender sender, String[] args) {
         if (args.length >= 3) {
             String action = args[2].toLowerCase(Locale.ROOT);
-            if (action.equals("scan") || action.equals("dryrun") || action.equals("dry-run")) {
+            if (action.equals("scan") || action.equals("dryrun") || action.equals("dry-run") || action.equals("verify")) {
                 scanLegacyDatabase(sender, args, action);
                 return;
             }
             if (action.equals("import")) {
                 importLegacyDatabase(sender, args);
+                return;
+            }
+            if (action.equals("rollback")) {
+                rollbackLegacyDatabase(sender);
                 return;
             }
         }
@@ -638,7 +645,7 @@ public final class AdminFactoryCommand {
             sender.sendMessage(messages.raw("admin-migration-title"));
             Map<String, String> state = new LinkedHashMap<>();
             state.put("source", plan.sourcePath());
-            state.put("mode", action.equals("scan") ? "scan-only" : "dryrun-no-write");
+            state.put("mode", action.equals("scan") ? "scan-only" : (action.equals("verify") ? "verify-no-write" : "dryrun-no-write"));
             state.put("importable-rows", String.valueOf(plan.importableRows()));
             state.put("importable-tables", String.valueOf(plan.importableTables()));
             state.put("skipped-tables", String.valueOf(plan.skippedTables()));
@@ -688,6 +695,21 @@ public final class AdminFactoryCommand {
                     "value", exception.getMessage() == null ? "unknown" : exception.getMessage()
             )));
         }
+    }
+
+    private void rollbackLegacyDatabase(CommandSender sender) {
+        sender.sendMessage(messages.raw("admin-migration-title"));
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("mode", "manual-restore-from-backup");
+        state.put("automatic-delete", "false");
+        state.put("reason", "rollback must not delete mixed live CloudIslands/Satis data automatically");
+        state.put("safe-path", "restore database backup, then run /factory admin migration verify <sqlitePath>");
+        state.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                        "key", entry.getKey(),
+                        "value", entry.getValue()
+                ))));
     }
 
     private void showAddonState(CommandSender sender) {
