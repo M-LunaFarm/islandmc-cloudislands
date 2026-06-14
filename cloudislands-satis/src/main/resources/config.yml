@@ -29,6 +29,7 @@ setup:
   database:
     # Empty values inherit from database.* below. Use this block for first-install setup.
     # type: SQLITE, POSTGRESQL, MYSQL, MARIADB, CORE_API
+    # CLOUDISLANDS_SATIS_DATABASE_TYPE overrides setup.database.type and database.type.
     type: ""
     path: ""
     shared-directory: ""
