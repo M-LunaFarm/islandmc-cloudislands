@@ -975,6 +975,21 @@ setup:
     auth-token: ""
     admin-token: ""
     timeout-ms: 0
+  storage:
+    # Optional first-install island bundle storage block. Empty values fall back to storage below.
+    type: ""
+    endpoint: ""
+    bucket: ""
+    region: ""
+    local-path: ""
+    access-key: ""
+    secret-key: ""
+    auth-token: ""
+    fallback:
+      # When S3 is selected, local fallback keeps island saves/loads available during object storage outages.
+      enabled: true
+      type: "LOCAL"
+      local-path: "islands-storage-fallback"
 
 core-api:
   base-url: "https://core-api.internal:8443"
@@ -1002,6 +1017,10 @@ storage:
   access-key: "${S3_ACCESS_KEY}"
   secret-key: "${S3_SECRET_KEY}"
   auth-token: "${S3_BEARER_TOKEN}"
+  fallback:
+    enabled: true
+    type: "LOCAL"
+    local-path: "islands-storage-fallback"
 
 generators:
   default-key: "default"
