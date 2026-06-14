@@ -1020,6 +1020,7 @@ public final class DatabaseService {
                 machineStatement.executeBatch();
             }
             connection.commit();
+            publishItemNetworks(islandUuid, networks);
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to replace item networks", exception);
         }
@@ -1137,6 +1138,7 @@ public final class DatabaseService {
                 machineStatement.executeBatch();
             }
             connection.commit();
+            publishPowerNetworks(islandUuid, networks);
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to replace power networks", exception);
         }
@@ -1787,6 +1789,80 @@ public final class DatabaseService {
             return;
         }
         coreStateWriter.accept(new CoreRowWrite(islandUuid, key, value));
+    }
+
+    private void publishItemNetworks(UUID islandUuid, List<ItemNetwork> networks) {
+        if (islandUuid == null || networks == null) {
+            return;
+        }
+        publishCoreRow(islandUuid, "table/item_networks/index", "{\"networkIds\":\"" + escape(networkIdsCsv(networks)) + "\"}");
+        for (ItemNetwork network : networks) {
+            publishCoreRow(islandUuid, "table/item_networks/" + network.networkId(), itemNetworkJson(network));
+        }
+    }
+
+    private void publishPowerNetworks(UUID islandUuid, List<PowerNetwork> networks) {
+        if (islandUuid == null || networks == null) {
+            return;
+        }
+        publishCoreRow(islandUuid, "table/power_networks/index", "{\"networkIds\":\"" + escape(networkIdsCsv(networks)) + "\"}");
+        for (PowerNetwork network : networks) {
+            publishCoreRow(islandUuid, "table/power_networks/" + network.networkId(), powerNetworkJson(network));
+        }
+    }
+
+    private String itemNetworkJson(ItemNetwork network) {
+        return "{"
+                + field("networkId", network.networkId().toString()) + ","
+                + field("islandUuid", network.islandUuid().toString()) + ","
+                + number("throughputPerMinute", network.throughputPerMinute()) + ","
+                + field("bufferInventoryId", string(network.bufferInventoryId())) + ","
+                + field("dirty", Boolean.toString(network.dirty())) + ","
+                + number("updatedAt", network.updatedAt()) + ","
+                + field("connectedMachineIds", uuidSetCsv(network.connectedMachineIds()))
+                + "}";
+    }
+
+    private String powerNetworkJson(PowerNetwork network) {
+        return "{"
+                + field("networkId", network.networkId().toString()) + ","
+                + field("islandUuid", network.islandUuid().toString()) + ","
+                + number("generationPerSecond", network.generationPerSecond()) + ","
+                + number("consumptionPerSecond", network.consumptionPerSecond()) + ","
+                + number("batteryStored", network.batteryStored()) + ","
+                + number("batteryCapacity", network.batteryCapacity()) + ","
+                + number("powerRatio", network.powerRatio()) + ","
+                + number("updatedAt", network.updatedAt()) + ","
+                + field("connectedMachineIds", uuidSetCsv(network.connectedMachineIds()))
+                + "}";
+    }
+
+    private String networkIdsCsv(List<?> networks) {
+        return networks.stream()
+                .map(network -> {
+                    if (network instanceof ItemNetwork itemNetwork) {
+                        return itemNetwork.networkId().toString();
+                    }
+                    if (network instanceof PowerNetwork powerNetwork) {
+                        return powerNetwork.networkId().toString();
+                    }
+                    return "";
+                })
+                .filter(value -> !value.isBlank())
+                .sorted()
+                .reduce((left, right) -> left + "," + right)
+                .orElse("");
+    }
+
+    private String uuidSetCsv(Set<UUID> values) {
+        if (values == null || values.isEmpty()) {
+            return "";
+        }
+        return values.stream()
+                .map(UUID::toString)
+                .sorted()
+                .reduce((left, right) -> left + "," + right)
+                .orElse("");
     }
 
     private void publishCoreGlobalRow(String key, String value) {

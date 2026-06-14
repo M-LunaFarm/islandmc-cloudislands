@@ -4,16 +4,22 @@ import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.seungmin.satisskyfactory.database.DatabaseService;
 import kr.seungmin.satisskyfactory.model.BlockKey;
 import kr.seungmin.satisskyfactory.model.FactoryIsland;
+import kr.seungmin.satisskyfactory.model.ItemNetwork;
 import kr.seungmin.satisskyfactory.model.MachineInstance;
 import kr.seungmin.satisskyfactory.model.MachineStatus;
 import kr.seungmin.satisskyfactory.model.MaintenanceStatus;
+import kr.seungmin.satisskyfactory.model.PowerNetwork;
 import kr.seungmin.satisskyfactory.model.ResourceNode;
 import kr.seungmin.satisskyfactory.task.DirtySaveService;
 import org.bukkit.block.BlockFace;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -140,6 +146,10 @@ public final class CoreApiSatisStateService {
             return false;
         }
         boolean[] restored = {false};
+        List<ItemNetwork> itemNetworks = new ArrayList<>();
+        List<PowerNetwork> powerNetworks = new ArrayList<>();
+        Set<UUID> itemNetworkIndex = networkIndex(state.get("table/item_networks/index"));
+        Set<UUID> powerNetworkIndex = networkIndex(state.get("table/power_networks/index"));
         database.withCoreStatePublishingSuspended(() -> {
             for (Map.Entry<String, String> entry : state.entrySet()) {
                 String key = entry.getKey();
@@ -192,10 +202,28 @@ public final class CoreApiSatisStateService {
                                 longValue(value, "createdAt", System.currentTimeMillis())
                         );
                         restored[0] = true;
+                    } else if (key.startsWith("table/item_networks/") && !"table/item_networks/index".equals(key)) {
+                        ItemNetwork network = itemNetwork(value);
+                        if (itemNetworkIndex.isEmpty() || itemNetworkIndex.contains(network.networkId())) {
+                            itemNetworks.add(network);
+                        }
+                    } else if (key.startsWith("table/power_networks/") && !"table/power_networks/index".equals(key)) {
+                        PowerNetwork network = powerNetwork(value);
+                        if (powerNetworkIndex.isEmpty() || powerNetworkIndex.contains(network.networkId())) {
+                            powerNetworks.add(network);
+                        }
                     }
                 } catch (RuntimeException exception) {
                     logger.warning("Failed to hydrate Satis core-api row " + key + " for island " + islandId + ": " + exception.getMessage());
                 }
+            }
+            if (!itemNetworks.isEmpty() || !itemNetworkIndex.isEmpty()) {
+                database.replaceItemNetworks(islandId, itemNetworks);
+                restored[0] = true;
+            }
+            if (!powerNetworks.isEmpty() || !powerNetworkIndex.isEmpty()) {
+                database.replacePowerNetworks(islandId, powerNetworks);
+                restored[0] = true;
             }
         });
         return restored[0];
@@ -366,6 +394,33 @@ public final class CoreApiSatisStateService {
                 new BlockKey(text(json, "world", ""), integer(json, "x", 0), integer(json, "y", 0), integer(json, "z", 0)),
                 longValue(json, "createdAt", System.currentTimeMillis()),
                 longValue(json, "updatedAt", 0L)
+        );
+    }
+
+    private ItemNetwork itemNetwork(String json) {
+        return new ItemNetwork(
+                uuid(text(json, "networkId", "")),
+                uuid(text(json, "islandUuid", "")),
+                integer(json, "throughputPerMinute", 0),
+                uuidOrNull(text(json, "bufferInventoryId", "")),
+                Boolean.parseBoolean(text(json, "dirty", "false")),
+                longValue(json, "updatedAt", System.currentTimeMillis()),
+                uuidSet(text(json, "connectedMachineIds", "")),
+                List.of()
+        );
+    }
+
+    private PowerNetwork powerNetwork(String json) {
+        return new PowerNetwork(
+                uuid(text(json, "networkId", "")),
+                uuid(text(json, "islandUuid", "")),
+                decimal(json, "generationPerSecond", 0.0D),
+                decimal(json, "consumptionPerSecond", 0.0D),
+                decimal(json, "batteryStored", 0.0D),
+                decimal(json, "batteryCapacity", 0.0D),
+                decimal(json, "powerRatio", 0.0D),
+                longValue(json, "updatedAt", System.currentTimeMillis()),
+                uuidSet(text(json, "connectedMachineIds", ""))
         );
     }
 
@@ -572,6 +627,27 @@ public final class CoreApiSatisStateService {
 
     private String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value;
+    }
+
+    private Set<UUID> networkIndex(String json) {
+        if (json == null || json.isBlank()) {
+            return Set.of();
+        }
+        return uuidSet(text(json, "networkIds", ""));
+    }
+
+    private Set<UUID> uuidSet(String csv) {
+        if (csv == null || csv.isBlank()) {
+            return Set.of();
+        }
+        Set<UUID> values = new LinkedHashSet<>();
+        for (String part : csv.split(",")) {
+            String value = part.trim();
+            if (!value.isBlank()) {
+                values.add(uuid(value));
+            }
+        }
+        return Set.copyOf(values);
     }
 
     private <E extends Enum<E>> E enumValue(Class<E> type, String value, E fallback) {
