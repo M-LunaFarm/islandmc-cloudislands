@@ -3142,7 +3142,13 @@ public final class CloudIslandsCoreApplication {
     private static String stringMapJson(Map<String, String> payload) {
         StringBuilder builder = new StringBuilder("{");
         boolean first = true;
+        if (payload == null || payload.isEmpty()) {
+            return builder.append("}").toString();
+        }
         for (Map.Entry<String, String> entry : payload.entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null) {
+                continue;
+            }
             if (!first) {
                 builder.append(',');
             }
