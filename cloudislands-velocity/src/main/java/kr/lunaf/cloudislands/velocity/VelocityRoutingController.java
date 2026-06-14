@@ -3135,6 +3135,11 @@ public final class VelocityRoutingController {
                 publishAndConnect(player, ready.get());
                 return;
             }
+            if (status.isPresent() && terminalRouteState(status.get())) {
+                hideBossBar(player, bossBar);
+                fallback(player, terminalRouteMessage(status.get(), failureMessage));
+                return;
+            }
             if (attempt >= routeWaitSeconds) {
                 hideBossBar(player, bossBar);
                 clearFailedRoute(ticket, "ROUTE_READY_TIMEOUT");
@@ -3148,6 +3153,34 @@ public final class VelocityRoutingController {
             fallback(player, routeFailureMessage(error, failureMessage));
             return null;
         });
+    }
+
+    private boolean terminalRouteState(RouteTicket ticket) {
+        if (ticket == null || ticket.state() == null) {
+            return false;
+        }
+        return switch (ticket.state().name()) {
+            case "FAILED", "EXPIRED", "CANCELLED", "CONSUMED" -> true;
+            default -> false;
+        };
+    }
+
+    private String terminalRouteMessage(RouteTicket ticket, String fallback) {
+        String state = ticket == null || ticket.state() == null ? "" : ticket.state().name();
+        if ("EXPIRED".equals(state)) {
+            return "섬 이동 준비 시간이 만료되었습니다. 다시 시도해주세요.";
+        }
+        if ("CANCELLED".equals(state)) {
+            return "섬 이동이 취소되었습니다.";
+        }
+        if ("CONSUMED".equals(state)) {
+            return "이미 사용된 섬 이동 요청입니다. 다시 시도해주세요.";
+        }
+        String reason = ticket == null ? "" : ticket.payload().getOrDefault("failureReason", "");
+        if (!reason.isBlank()) {
+            return playerErrorMessage(reason, fallback);
+        }
+        return fallback;
     }
 
     private void actionBar(Player player, String message) {
