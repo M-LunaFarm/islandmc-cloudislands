@@ -423,9 +423,30 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
             .append("\"state\":\"").append(ticket.state().name()).append("\",")
             .append("\"expiresAt\":\"").append(ticket.expiresAt()).append("\",")
             .append("\"nonce\":\"").append(escape(ticket.nonce())).append("\",")
+            .append("\"targetLocalLocation\":").append(targetLocalLocationJson(ticket.payload())).append(',')
             .append("\"payload\":").append(payloadJson(ticket.payload()))
             .append('}')
             .toString();
+    }
+
+    private static String targetLocalLocationJson(Map<String, String> payload) {
+        StringBuilder builder = new StringBuilder("{")
+            .append("\"type\":\"").append(escape(payload.getOrDefault("targetType", "ISLAND_HOME"))).append("\"");
+        appendLocationString(builder, payload, "homeName");
+        appendLocationString(builder, payload, "warpName");
+        appendLocationString(builder, payload, "localX");
+        appendLocationString(builder, payload, "localY");
+        appendLocationString(builder, payload, "localZ");
+        appendLocationString(builder, payload, "yaw");
+        appendLocationString(builder, payload, "pitch");
+        return builder.append('}').toString();
+    }
+
+    private static void appendLocationString(StringBuilder builder, Map<String, String> payload, String key) {
+        String value = payload.get(key);
+        if (value != null && !value.isBlank()) {
+            builder.append(",\"").append(key).append("\":\"").append(escape(value)).append("\"");
+        }
     }
 
     private static String payloadJson(Map<String, String> payload) {

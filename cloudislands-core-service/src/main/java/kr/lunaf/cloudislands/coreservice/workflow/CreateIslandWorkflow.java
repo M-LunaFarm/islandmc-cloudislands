@@ -112,6 +112,7 @@ public final class CreateIslandWorkflow {
         RouteTicket ticket = tickets.save(new RouteTicket(UUID.randomUUID(), ownerUuid, RouteAction.HOME, islandId, node.nodeId(), "ci_shard_001", RouteTicketState.PREPARING, Instant.now().plus(routePreparingTicketTtl), UUID.randomUUID().toString(), Map.of(
             "targetServerName", node.velocityServerName(),
             "targetType", "ISLAND_HOME",
+            "homeName", "default",
             "localX", "0.5",
             "localY", "100.0",
             "localZ", "0.5",

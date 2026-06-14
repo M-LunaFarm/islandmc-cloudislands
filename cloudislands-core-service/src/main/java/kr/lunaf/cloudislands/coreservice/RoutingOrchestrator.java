@@ -507,11 +507,36 @@ public final class RoutingOrchestrator {
             .append("\"state\":\"").append(ticket.state()).append("\",")
             .append("\"expiresAt\":\"").append(ticket.expiresAt()).append("\",")
             .append("\"nonce\":\"").append(ticket.nonce()).append("\"");
+        builder.append(",\"targetLocalLocation\":").append(targetLocalLocationJson(ticket.payload()));
         for (Map.Entry<String, String> entry : ticket.payload().entrySet()) {
             if (!entry.getKey().equals("targetServerName")) {
                 builder.append(',').append("\"").append(entry.getKey()).append("\":\"").append(entry.getValue().replace("\"", "'")).append("\"");
             }
         }
         return builder.append("}").toString();
+    }
+
+    private static String targetLocalLocationJson(Map<String, String> payload) {
+        StringBuilder builder = new StringBuilder("{")
+            .append("\"type\":\"").append(jsonEscape(payload.getOrDefault("targetType", "ISLAND_HOME"))).append("\"");
+        appendLocationString(builder, payload, "homeName");
+        appendLocationString(builder, payload, "warpName");
+        appendLocationString(builder, payload, "localX");
+        appendLocationString(builder, payload, "localY");
+        appendLocationString(builder, payload, "localZ");
+        appendLocationString(builder, payload, "yaw");
+        appendLocationString(builder, payload, "pitch");
+        return builder.append('}').toString();
+    }
+
+    private static void appendLocationString(StringBuilder builder, Map<String, String> payload, String key) {
+        String value = payload.get(key);
+        if (value != null && !value.isBlank()) {
+            builder.append(",\"").append(key).append("\":\"").append(jsonEscape(value)).append("\"");
+        }
+    }
+
+    private static String jsonEscape(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "'");
     }
 }
