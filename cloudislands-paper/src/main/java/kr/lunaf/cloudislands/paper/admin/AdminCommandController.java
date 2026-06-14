@@ -56,6 +56,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         "ciadmin addons disable <addonId>",
         "ciadmin addons reload [addonId]",
         "ciadmin addons state",
+        "ciadmin addons state-summary",
         "ciadmin node menu",
         "ciadmin node list",
         "ciadmin node info <node>",
