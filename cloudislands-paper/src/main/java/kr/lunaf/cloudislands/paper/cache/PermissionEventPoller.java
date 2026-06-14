@@ -201,7 +201,11 @@ public final class PermissionEventPoller {
         if (affectsPermissions(type, fields)) {
             UUID islandId = islandId(fields);
             if (islandId != null) {
-                permissionSync.sync(islandId);
+                if (removesIslandLocalState(type)) {
+                    permissionSync.invalidate(islandId);
+                } else {
+                    permissionSync.sync(islandId);
+                }
             } else if (isGlobalCacheEvent(type)) {
                 permissionSync.invalidateAll();
             }
@@ -910,6 +914,10 @@ public final class PermissionEventPoller {
         }
     }
 
+    private boolean removesIslandLocalState(String type) {
+        return type.equals(CloudIslandEventType.ISLAND_DELETED.name());
+    }
+
     private boolean isGlobalCacheEvent(String type) {
         return type.equals(CloudIslandEventType.CORE_CACHE_CLEARED.name())
             || type.equals(CloudIslandEventType.CORE_RELOADED.name());
@@ -962,7 +970,7 @@ public final class PermissionEventPoller {
     private boolean targetsInclude(Map<String, String> fields, CacheInvalidationPlan.CacheTarget target) {
         String cacheTargets = fields.getOrDefault("cacheTargets", "");
         for (String value : cacheTargets.split(",")) {
-            if (value.trim().equals(target.name())) {
+            if (value.trim().equalsIgnoreCase(target.name())) {
                 return true;
             }
         }

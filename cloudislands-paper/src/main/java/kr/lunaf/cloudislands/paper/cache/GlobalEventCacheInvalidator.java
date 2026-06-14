@@ -33,14 +33,18 @@ public final class GlobalEventCacheInvalidator {
         if (islandId == null || islandId.isBlank()) {
             permissions.invalidateAll();
         } else {
-            permissions.invalidate(UUID.fromString(islandId));
+            try {
+                permissions.invalidate(UUID.fromString(islandId));
+            } catch (IllegalArgumentException exception) {
+                permissions.invalidateAll();
+            }
         }
     }
 
     private boolean targetsInclude(Map<String, String> fields, CacheInvalidationPlan.CacheTarget target) {
         String cacheTargets = fields.getOrDefault("cacheTargets", "");
         for (String value : cacheTargets.split(",")) {
-            if (value.trim().equals(target.name())) {
+            if (value.trim().equalsIgnoreCase(target.name())) {
                 return true;
             }
         }

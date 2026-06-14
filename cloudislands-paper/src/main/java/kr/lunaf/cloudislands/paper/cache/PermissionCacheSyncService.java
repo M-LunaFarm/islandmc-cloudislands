@@ -39,6 +39,10 @@ public final class PermissionCacheSyncService {
         cache.invalidateAll();
     }
 
+    public void invalidate(UUID islandId) {
+        cache.invalidate(islandId);
+    }
+
     private void loadMembers(UUID islandId, String json) {
         for (String object : objects(json, "members")) {
             try {
