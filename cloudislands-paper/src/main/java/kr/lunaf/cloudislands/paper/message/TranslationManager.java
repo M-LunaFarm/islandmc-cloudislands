@@ -287,6 +287,7 @@ public final class TranslationManager {
         values.put("admin-command-route-request-failed", "섬 이동 요청을 만들 수 없습니다.");
         values.put("admin-command-list-title", "CloudIslands 관리자 명령어 목록 ");
         values.put("admin-command-list-suffix", " - 1 line > 1 command");
+        values.put("admin-command-subcommand-list-title", "CloudIslands 관리자 명령어 목록 - 1 line > 1 command");
         values.put("admin-command-uuid-invalid", "UUID 형식이 올바르지 않습니다: ");
         values.put("admin-command-action-complete", " 완료");
         values.put("admin-command-action-failed", " 실패");
