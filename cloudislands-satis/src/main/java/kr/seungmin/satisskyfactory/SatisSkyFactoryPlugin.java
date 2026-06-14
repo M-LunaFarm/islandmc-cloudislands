@@ -258,9 +258,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private void restartRuntimeTasks() {
         if (ticker != null) {
             ticker.stop();
+            ticker = null;
         }
         if (maintenanceTicker != null) {
             maintenanceTicker.stop();
+            maintenanceTicker = null;
         }
         if (dirtySaves != null) {
             dirtySaves.stop();
@@ -296,8 +298,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             );
             ticker.start(configLong("settings.tick-period-ticks", "settings.tick-interval", 20));
         }
-        maintenanceTicker = new MaintenanceTickService(this, islands, skyblock, maintenance, () -> featureEnabled("maintenance"));
         if (featureEnabled("maintenance")) {
+            maintenanceTicker = new MaintenanceTickService(this, islands, skyblock, maintenance, () -> featureEnabled("maintenance"));
             maintenanceTicker.start(configLong("settings.maintenance-check-period-ticks", "settings.maintenance-check-interval", 1200));
         }
         if (dataWritesEnabled()) {
