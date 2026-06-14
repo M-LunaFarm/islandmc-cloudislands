@@ -776,7 +776,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         dirtySaves.coreStatePublisher(coreApiState::publishDirtyBatch);
         dirtySaves.coreStateDeletePublisher(delete -> coreApiState.removeRow(delete.islandUuid(), delete.key()));
     }
-    }
 
     private boolean registerCloudIslandsAddon() {
         cloudIslandsApiMissing = false;
@@ -868,6 +867,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("skyblock-provider", "CLOUDISLANDS");
         metadata.put("cloudislands-adapter", Boolean.toString(configs.main().getBoolean("integration.cloudislands-adapter", true)));
         metadata.put("requires-cloudislands-api", Boolean.toString(requiresCloudIslandsApi()));
+        metadata.put("cloudislands-api-available", Boolean.toString(cloudIslandsApi != null));
+        metadata.put("cloudislands-api-resolution", "bootstrap-or-services-manager");
+        metadata.put("runtime-hard-depend-plugin", "CloudIslands");
+        metadata.put("standalone-island-management", "false");
+        metadata.put("missing-cloudislands-behavior", "disable-plugin");
         metadata.put("satis-enabled-configured", Boolean.toString(enabledByDefault()));
         metadata.put("addon-runtime-enabled", Boolean.toString(addonRuntimeEnabled));
         metadata.put("database-scope", scope);
