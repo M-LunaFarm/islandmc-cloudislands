@@ -65,6 +65,8 @@ public final class AdminFactoryCommand {
             "factory admin features",
             "factory admin integration",
             "factory admin migration",
+            "factory admin migration scan <sqlitePath>",
+            "factory admin migration dryrun <sqlitePath>",
             "factory admin migration import <sqlitePath>",
             "factory admin state",
             "factory admin give <player> <machineType> [amount]",
@@ -261,7 +263,7 @@ public final class AdminFactoryCommand {
             return filter(List.of("list"), args[2]);
         }
         if (args.length == 3 && args[1].equalsIgnoreCase("migration") && enabled("migration")) {
-            return filter(List.of("import"), args[2]);
+            return filter(List.of("scan", "dryrun", "dry-run", "import"), args[2]);
         }
         if ((args[1].equalsIgnoreCase("give") || args[1].equalsIgnoreCase("giveitem") || args[1].equalsIgnoreCase("removehere")) && !enabled("machines")) {
             return new ArrayList<>();
@@ -569,7 +571,7 @@ public final class AdminFactoryCommand {
         state.put("satis-storage-key", "cloudislands-island-uuid");
         state.put("superior-runtime-dependency", "false");
         state.put("superior-import-path", "/ciadmin migrate-superiorskyblock2 scan|dryrun|import|verify|rollback");
-        state.put("satismc-import-path", "/factory admin migration import <sqlitePath>");
+        state.put("satismc-import-path", "/factory admin migration scan|dryrun|import <sqlitePath>");
         state.put("satismc-import-mode", "sqlite-attach-insert-ignore");
         state.put("feature-gate", "migration=" + enabled("migration"));
         state.entrySet().stream()
@@ -581,11 +583,51 @@ public final class AdminFactoryCommand {
     }
 
     private void handleMigration(CommandSender sender, String[] args) {
-        if (args.length >= 3 && args[2].equalsIgnoreCase("import")) {
-            importLegacyDatabase(sender, args);
-            return;
+        if (args.length >= 3) {
+            String action = args[2].toLowerCase(Locale.ROOT);
+            if (action.equals("scan") || action.equals("dryrun") || action.equals("dry-run")) {
+                scanLegacyDatabase(sender, args, action);
+                return;
+            }
+            if (action.equals("import")) {
+                importLegacyDatabase(sender, args);
+                return;
+            }
         }
         showMigration(sender);
+    }
+
+    private void scanLegacyDatabase(CommandSender sender, String[] args, String action) {
+        if (args.length < 4) {
+            sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                    "key", "usage",
+                    "value", "/factory admin migration " + action + " <sqlitePath>"
+            )));
+            return;
+        }
+        try {
+            DatabaseService.LegacyImportPlan plan = database.scanLegacyDatabase(new File(args[3]));
+            sender.sendMessage(messages.raw("admin-migration-title"));
+            Map<String, String> state = new LinkedHashMap<>();
+            state.put("source", plan.sourcePath());
+            state.put("mode", action.equals("scan") ? "scan-only" : "dryrun-no-write");
+            state.put("importable-rows", String.valueOf(plan.importableRows()));
+            state.put("importable-tables", String.valueOf(plan.importableTables()));
+            state.put("skipped-tables", String.valueOf(plan.skippedTables()));
+            plan.tables().forEach(table -> state.put("table." + table.table(),
+                    (table.importable() ? "ready" : "skip") + ",rows=" + table.sourceRows() + ",reason=" + table.reason()));
+            state.entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey())
+                    .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                            "key", entry.getKey(),
+                            "value", entry.getValue()
+                    ))));
+        } catch (RuntimeException exception) {
+            sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                    "key", "error",
+                    "value", exception.getMessage() == null ? "unknown" : exception.getMessage()
+            )));
+        }
     }
 
     private void importLegacyDatabase(CommandSender sender, String[] args) {

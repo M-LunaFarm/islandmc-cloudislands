@@ -159,20 +159,7 @@ public final class DatabaseService {
     }
 
     public LegacyImportResult importLegacyDatabase(File sourceDatabase) {
-        if (sourceDatabase == null) {
-            throw new IllegalArgumentException("source database is required");
-        }
-        File source = sourceDatabase.isAbsolute() ? sourceDatabase : new File(dataFolder, sourceDatabase.getPath());
-        if (!source.isFile()) {
-            throw new IllegalArgumentException("legacy database does not exist: " + source.getAbsolutePath());
-        }
-        try {
-            if (source.getCanonicalFile().equals(databaseFile().getCanonicalFile())) {
-                throw new IllegalArgumentException("legacy database must be different from current database");
-            }
-        } catch (java.io.IOException exception) {
-            throw new IllegalArgumentException("failed to compare database paths: " + exception.getMessage(), exception);
-        }
+        File source = legacySourceDatabase(sourceDatabase);
         List<String> copiedTables = new ArrayList<>();
         List<String> skippedTables = new ArrayList<>();
         long copiedRows = 0L;
@@ -202,6 +189,66 @@ public final class DatabaseService {
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to import legacy Satis database", exception);
         }
+    }
+
+    public LegacyImportPlan scanLegacyDatabase(File sourceDatabase) {
+        File source = legacySourceDatabase(sourceDatabase);
+        List<LegacyImportTablePlan> tables = new ArrayList<>();
+        long importableRows = 0L;
+        int importableTables = 0;
+        int skippedTables = 0;
+        try (Connection connection = connection()) {
+            attachLegacyDatabase(connection, source);
+            try {
+                for (String table : legacyImportTables()) {
+                    Set<String> targetColumns = tableColumns(connection, "main", table);
+                    Set<String> sourceColumns = tableColumns(connection, "legacy_satis", table);
+                    Set<String> requiredColumns = legacyRequiredColumns(table);
+                    if (targetColumns.isEmpty()) {
+                        tables.add(new LegacyImportTablePlan(table, false, 0L, "target-table-missing"));
+                        skippedTables++;
+                        continue;
+                    }
+                    if (sourceColumns.isEmpty()) {
+                        tables.add(new LegacyImportTablePlan(table, false, 0L, "source-table-missing"));
+                        skippedTables++;
+                        continue;
+                    }
+                    if (!sourceColumns.containsAll(requiredColumns)) {
+                        tables.add(new LegacyImportTablePlan(table, false, 0L, "missing-required-columns"));
+                        skippedTables++;
+                        continue;
+                    }
+                    long rows = tableCount(connection, "legacy_satis", table);
+                    tables.add(new LegacyImportTablePlan(table, true, rows, "ready"));
+                    importableRows += rows;
+                    importableTables++;
+                }
+            } finally {
+                detachLegacyDatabase(connection);
+            }
+            return new LegacyImportPlan(source.getAbsolutePath(), importableRows, importableTables, skippedTables, tables);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to scan legacy Satis database", exception);
+        }
+    }
+
+    private File legacySourceDatabase(File sourceDatabase) {
+        if (sourceDatabase == null) {
+            throw new IllegalArgumentException("source database is required");
+        }
+        File source = sourceDatabase.isAbsolute() ? sourceDatabase : new File(dataFolder, sourceDatabase.getPath());
+        if (!source.isFile()) {
+            throw new IllegalArgumentException("legacy database does not exist: " + source.getAbsolutePath());
+        }
+        try {
+            if (source.getCanonicalFile().equals(databaseFile().getCanonicalFile())) {
+                throw new IllegalArgumentException("legacy database must be different from current database");
+            }
+        } catch (java.io.IOException exception) {
+            throw new IllegalArgumentException("failed to compare database paths: " + exception.getMessage(), exception);
+        }
+        return source;
     }
 
     private void attachLegacyDatabase(Connection connection, File source) throws SQLException {
@@ -358,13 +405,19 @@ public final class DatabaseService {
     }
 
     private long tableCount(Connection connection, String table) throws SQLException {
+        return tableCount(connection, "main", table);
+    }
+
+    private long tableCount(Connection connection, String schema, String table) throws SQLException {
         try (Statement statement = connection.createStatement();
-             ResultSet rs = statement.executeQuery("SELECT COUNT(*) AS count FROM " + table)) {
+             ResultSet rs = statement.executeQuery("SELECT COUNT(*) AS count FROM " + schema + "." + table)) {
             return rs.next() ? rs.getLong("count") : 0L;
         }
     }
 
     public record LegacyImportResult(String sourcePath, long copiedRows, List<String> copiedTables, List<String> skippedTables) {}
+    public record LegacyImportTablePlan(String table, boolean importable, long sourceRows, String reason) {}
+    public record LegacyImportPlan(String sourcePath, long importableRows, int importableTables, int skippedTables, List<LegacyImportTablePlan> tables) {}
 
     public Optional<FactoryIsland> findIsland(UUID islandUuid) {
         try (Connection connection = connection();
