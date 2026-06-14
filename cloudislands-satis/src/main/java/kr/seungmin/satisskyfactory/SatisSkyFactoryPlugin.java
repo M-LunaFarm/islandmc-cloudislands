@@ -122,6 +122,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private Map<String, Boolean> effectiveFeatures = Map.of();
     private final Set<UUID> coreHydratedIslands = ConcurrentHashMap.newKeySet();
     private String databaseFallbackReason = "none";
+    private String pendingDatabaseConfigFallbackReason = "none";
     private String databaseSettingsFingerprint = "";
 
     @Override
@@ -153,9 +154,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         configureSkyblockHook();
 
-        DatabaseService.Settings settings = databaseSettings();
-        databaseSettingsFingerprint = databaseSettingsFingerprint(settings);
         databaseFallbackReason = "none";
+        DatabaseService.Settings settings = databaseSettings();
+        appendDatabaseFallbackReason(pendingDatabaseConfigFallbackReason);
+        databaseSettingsFingerprint = databaseSettingsFingerprint(settings);
         database = new DatabaseService(this, settings);
         database.open();
         syncDatabaseFallbackReason();
@@ -700,6 +702,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private void reloadDatabaseIfNeeded() {
         DatabaseService.Settings settings = databaseSettings();
+        appendDatabaseFallbackReason(pendingDatabaseConfigFallbackReason);
         String nextFingerprint = databaseSettingsFingerprint(settings);
         if (database != null && nextFingerprint.equals(databaseSettingsFingerprint) && !coreApiFallbackRecovered(settings)) {
             configureCoreApiStateWriters();
@@ -734,6 +737,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         databaseSettingsFingerprint = nextFingerprint;
         databaseFallbackReason = "none";
+        appendDatabaseFallbackReason(pendingDatabaseConfigFallbackReason);
         database = new DatabaseService(this, settings);
         database.open();
         syncDatabaseFallbackReason();
@@ -2000,9 +2004,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private DatabaseService.Settings databaseSettings() {
         String configuredType = configuredDatabaseType();
         DatabaseService.StorageBackend backend = DatabaseService.StorageBackend.parse(configuredType, null);
+        pendingDatabaseConfigFallbackReason = "none";
         if (backend == null) {
             backend = DatabaseService.StorageBackend.SQLITE;
-            appendDatabaseFallbackReason("invalid-database-backend:" + safeReasonToken(configuredType) + "->SQLITE");
+            pendingDatabaseConfigFallbackReason = "invalid-database-backend:" + safeReasonToken(configuredType) + "->SQLITE";
         }
         return new DatabaseService.Settings(
                 backend,
@@ -2127,9 +2132,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (reason == null || reason.isBlank() || "none".equalsIgnoreCase(reason)) {
             return;
         }
-        if (databaseFallbackReason == null || databaseFallbackReason.isBlank() || "none".equalsIgnoreCase(databaseFallbackReason)) {
-            databaseFallbackReason = reason;
-        }
+        appendDatabaseFallbackReason(reason);
     }
 
     private void appendDatabaseFallbackReason(String reason) {
