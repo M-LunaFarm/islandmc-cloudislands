@@ -795,6 +795,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> addonStateSummary() {
+        return post("/v1/admin/addons/state/summary", "{}");
+    }
+
+    @Override
     public CompletableFuture<String> addonState(String addonId) {
         if (blank(addonId)) {
             return invalidAddonState("Addon id is required");

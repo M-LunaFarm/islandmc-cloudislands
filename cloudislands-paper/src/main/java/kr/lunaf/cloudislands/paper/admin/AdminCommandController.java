@@ -29,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
 public final class AdminCommandController implements CommandExecutor, TabCompleter {
     private static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "config", "cache", "addons", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
-    private static final List<String> ADDON_COMMANDS = List.of("list", "info", "feature", "enable", "disable", "reload");
+    private static final List<String> ADDON_COMMANDS = List.of("list", "info", "feature", "enable", "disable", "reload", "state", "state-summary");
     private static final List<String> ADDON_FEATURES = List.of("commands", "machines", "storage", "factories", "generators", "upgrades", "missions", "menus", "gui", "lifecycle", "resource-nodes", "market", "contracts", "research", "maintenance", "placeholders", "migration", "addon-state");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "islands", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
@@ -55,6 +55,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         "ciadmin addons enable <addonId>",
         "ciadmin addons disable <addonId>",
         "ciadmin addons reload [addonId]",
+        "ciadmin addons state",
         "ciadmin node menu",
         "ciadmin node list",
         "ciadmin node info <node>",
@@ -353,6 +354,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private boolean handleAddons(CommandSender sender, String[] args) {
+        if (args.length > 1 && (args[1].equalsIgnoreCase("state") || args[1].equalsIgnoreCase("state-summary"))) {
+            run(sender, "Addon state summary", coreApiClient.addonStateSummary().thenApply(this::addonStateSummaryMessage));
+            return true;
+        }
         CloudIslandsApi api = CloudIslandsProvider.get().orElse(null);
         if (api == null) {
             sender.sendMessage(adminText("admin-command-addons-api-missing", "CloudIslands API가 준비되지 않았습니다."));
@@ -419,7 +424,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             }
             return true;
         }
-        sender.sendMessage(adminText("admin-command-addons-usage", "사용법: /ciadmin addons list|info|feature|enable|disable|reload"));
+        sender.sendMessage(adminText("admin-command-addons-usage", "사용법: /ciadmin addons list|info|feature|enable|disable|reload|state"));
         return true;
     }
 
@@ -1589,6 +1594,36 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + addonMetadataSuffix(addon)
             + addonConfiguredFeatureSuffix(addon)
             + addonFeatureSuffix(addon);
+    }
+
+    private String addonStateSummaryMessage(String body) {
+        String addons = arrayValue(body, "addons");
+        if (addons.isBlank()) {
+            return adminText("admin-command-addons-state-empty", "Addon state: empty");
+        }
+        List<String> entries = new ArrayList<>();
+        int total = 0;
+        int index = 0;
+        while (index < addons.length()) {
+            int objectStart = addons.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(addons, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            total++;
+            if (entries.size() < 10) {
+                String object = addons.substring(objectStart, objectEnd + 1);
+                entries.add(textValue(object, "addonId")
+                    + adminText("admin-command-addons-state-global-prefix", " global=") + longValue(object, "globalKeys")
+                    + adminText("admin-command-addons-state-island-prefix", " island=") + longValue(object, "islandKeys")
+                    + adminText("admin-command-addons-state-total-keys-prefix", " totalKeys=") + longValue(object, "totalKeys"));
+            }
+            index = objectEnd + 1;
+        }
+        return adminText("admin-command-addons-state-total-prefix", "Addon state: total=") + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     private String addonDependencySuffix(CloudIslandsAddonSnapshot addon) {

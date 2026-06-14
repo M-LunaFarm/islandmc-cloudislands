@@ -169,6 +169,7 @@ public interface CoreApiClient {
     CompletableFuture<String> clearCacheResult();
     CompletableFuture<String> reload();
     CompletableFuture<String> reloadResult();
+    CompletableFuture<String> addonStateSummary();
     CompletableFuture<String> addonState(String addonId);
     CompletableFuture<String> putAddonState(String addonId, String key, String value);
     CompletableFuture<String> putAddonState(String addonId, Map<String, String> values);
