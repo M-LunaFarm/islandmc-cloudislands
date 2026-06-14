@@ -256,11 +256,12 @@ public final class DatabaseService {
         poolConfig.setConnectionTimeout(Math.max(1000L, settings.connectionTimeoutMillis()));
         poolConfig.setPoolName("SatisSkyFactory-" + backend.name());
         dataSource = new HikariDataSource(poolConfig);
-        MigrationService.Dialect migrationDialect = backend == StorageBackend.POSTGRESQL
-                ? MigrationService.Dialect.POSTGRESQL
-                : backend == StorageBackend.MARIADB
-                ? MigrationService.Dialect.MARIADB
-                : MigrationService.Dialect.MYSQL;
+        MigrationService.Dialect migrationDialect = switch (backend) {
+            case POSTGRESQL -> MigrationService.Dialect.POSTGRESQL;
+            case MARIADB -> MigrationService.Dialect.MARIADB;
+            case MYSQL -> MigrationService.Dialect.MYSQL;
+            default -> throw new IllegalArgumentException("Unsupported JDBC backend: " + backend);
+        };
         try (Connection connection = connection()) {
             new MigrationService().migrate(connection, migrationDialect);
         } catch (SQLException exception) {
