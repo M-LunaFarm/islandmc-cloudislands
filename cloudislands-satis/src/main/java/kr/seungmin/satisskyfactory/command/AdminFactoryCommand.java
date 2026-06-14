@@ -235,6 +235,7 @@ public final class AdminFactoryCommand {
             case "addresearch" -> enabled("research") ? null : "research";
             case "setdebt", "charge", "repairhere" -> enabled("maintenance") ? null : "maintenance";
             case "gennodes" -> enabled("resource-nodes") ? null : "resource-nodes";
+            case "debug" -> debugCommandsVisible() ? null : "debug";
             default -> null;
         };
     }
