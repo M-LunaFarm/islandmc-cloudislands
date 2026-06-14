@@ -27,6 +27,7 @@ public final class CoreApiSatisStateService {
     private final Logger logger;
     private final CloudIslandsApi cloudIslandsApi;
     private final String addonId;
+    private volatile String lastTableStatusFingerprint = "";
 
     public CoreApiSatisStateService(Logger logger, CloudIslandsApi cloudIslandsApi, String addonId) {
         this.logger = logger;
@@ -114,12 +115,22 @@ public final class CoreApiSatisStateService {
         if (cloudIslandsApi == null || table == null) {
             return;
         }
+        String island = table.islandUuid() == null ? "" : table.islandUuid().toString();
+        String tableName = table.table() == null ? "" : table.table();
+        String keyCount = table.values() == null ? "0" : Integer.toString(table.values().size());
+        String safeStatus = status == null || status.isBlank() ? "unknown" : status;
+        String safeError = error == null ? "" : error;
+        String fingerprint = island + "|" + tableName + "|" + keyCount + "|" + safeStatus + "|" + safeError;
+        if (fingerprint.equals(lastTableStatusFingerprint)) {
+            return;
+        }
+        lastTableStatusFingerprint = fingerprint;
         Map<String, String> state = new LinkedHashMap<>();
-        state.put("last-core-table-publish-island", table.islandUuid() == null ? "" : table.islandUuid().toString());
-        state.put("last-core-table-publish-table", table.table() == null ? "" : table.table());
-        state.put("last-core-table-publish-keys", table.values() == null ? "0" : Integer.toString(table.values().size()));
-        state.put("last-core-table-publish-status", status == null || status.isBlank() ? "unknown" : status);
-        state.put("last-core-table-publish-error", error == null ? "" : error);
+        state.put("last-core-table-publish-island", island);
+        state.put("last-core-table-publish-table", tableName);
+        state.put("last-core-table-publish-keys", keyCount);
+        state.put("last-core-table-publish-status", safeStatus);
+        state.put("last-core-table-publish-error", safeError);
         state.put("last-core-table-publish-at", Instant.now().toString());
         cloudIslandsApi.addons().putState(addonId, state).exceptionally(publishError -> {
             logger.warning("Failed to publish Satis core-api table status: " + publishError.getMessage());
