@@ -1,7 +1,10 @@
 package kr.lunaf.cloudislands.coreservice;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
@@ -53,13 +56,15 @@ public interface NodeRegistry {
         Duration timeout = heartbeatTimeout == null ? Duration.ofSeconds(5) : heartbeatTimeout;
         List<NodeLoad> snapshot = snapshot();
         long now = System.currentTimeMillis();
-        long ready = snapshot.stream().filter(node -> node.allocationBlockReason(java.time.Instant.ofEpochMilli(now), timeout).isBlank()).count();
-        long stale = snapshot.stream().filter(node -> node.lastHeartbeat() == null || node.lastHeartbeat().isBefore(java.time.Instant.ofEpochMilli(now).minus(timeout))).count();
+        Instant nowInstant = Instant.ofEpochMilli(now);
+        long ready = snapshot.stream().filter(node -> node.allocationBlockReason(nowInstant, timeout).isBlank()).count();
+        long stale = snapshot.stream().filter(node -> node.lastHeartbeat() == null || node.lastHeartbeat().isBefore(nowInstant.minus(timeout))).count();
         StringBuilder builder = new StringBuilder("{")
             .append("\"nodeCount\":").append(snapshot.size()).append(',')
             .append("\"routeCandidateCount\":").append(ready).append(',')
             .append("\"staleNodeCount\":").append(stale).append(',')
             .append("\"heartbeatTimeoutSeconds\":").append(timeout.toSeconds()).append(',')
+            .append("\"pools\":").append(poolSummaryJson(snapshot, timeout, nowInstant)).append(',')
             .append("\"nodes\":[");
         boolean first = true;
         for (NodeLoad node : snapshot) {
@@ -70,6 +75,56 @@ public interface NodeRegistry {
             builder.append(toJson(node, timeout));
         }
         return builder.append("]}").toString();
+    }
+
+    private static String poolSummaryJson(List<NodeLoad> snapshot, Duration timeout, Instant now) {
+        Map<String, PoolSummary> pools = new LinkedHashMap<>();
+        for (NodeLoad node : snapshot) {
+            String pool = node.pool() == null || node.pool().isBlank() ? "island" : node.pool();
+            PoolSummary summary = pools.computeIfAbsent(pool, _pool -> new PoolSummary());
+            summary.nodes++;
+            summary.players += Math.max(0, node.players());
+            summary.activeIslands += Math.max(0, node.activeIslands());
+            boolean stale = node.lastHeartbeat() == null || node.lastHeartbeat().isBefore(now.minus(timeout));
+            boolean routeCandidate = node.allocationBlockReason(now, timeout).isBlank();
+            if (routeCandidate) {
+                summary.routeCandidates++;
+            }
+            if (stale) {
+                summary.stale++;
+            }
+            if (routeCandidate && !stale) {
+                summary.healthy++;
+            }
+        }
+        StringBuilder builder = new StringBuilder("[");
+        boolean first = true;
+        for (Map.Entry<String, PoolSummary> entry : pools.entrySet()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            PoolSummary summary = entry.getValue();
+            builder.append('{')
+                .append("\"pool\":\"").append(entry.getKey().replace("\"", "'")).append("\",")
+                .append("\"nodeCount\":").append(summary.nodes).append(',')
+                .append("\"routeCandidateCount\":").append(summary.routeCandidates).append(',')
+                .append("\"healthyNodeCount\":").append(summary.healthy).append(',')
+                .append("\"staleNodeCount\":").append(summary.stale).append(',')
+                .append("\"players\":").append(summary.players).append(',')
+                .append("\"activeIslands\":").append(summary.activeIslands)
+                .append('}');
+        }
+        return builder.append(']').toString();
+    }
+
+    final class PoolSummary {
+        private long nodes;
+        private long routeCandidates;
+        private long healthy;
+        private long stale;
+        private long players;
+        private long activeIslands;
     }
 
     static String toJson(NodeLoad node) {
