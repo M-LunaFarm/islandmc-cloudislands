@@ -2391,6 +2391,7 @@ public final class CloudIslandsCoreApplication {
             + "\"coreJdbcSupportedBackends\":\"POSTGRESQL\","
             + "\"coreSetupFallbackBackends\":\"MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC\","
             + "\"coreSetupFallbackMode\":\"IN_MEMORY_REPOSITORIES_AND_JOBS\","
+            + "\"coreSetupDatabaseOperationalModes\":\"POSTGRESQL=CORE_JDBC,MYSQL=CONFIGURED_SAFE_FALLBACK,MARIADB=CONFIGURED_SAFE_FALLBACK,CORE_API=CLIENT_MODE_NO_CORE_JDBC\","
             + "\"coreSetupDatabaseConfigShapes\":\"setup.database.*,setup.database-*\","
             + "\"coreSetupDatabaseTypedShapes\":\"setup.database.postgresql.*,setup.database.mysql.*,setup.database.mariadb.*,setup.database.core-api.*\","
             + "\"coreSetupDatabaseTypedHostMode\":\"requires-type-or-typed-url-inference\","

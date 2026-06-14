@@ -1805,6 +1805,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-core-config-jdbc-supported-backends-prefix", " jdbcSupportedBackends=") + textValue(body, "coreJdbcSupportedBackends")
             + adminText("admin-command-core-config-setup-fallback-backends-prefix", " setupFallbackBackends=") + textValue(body, "coreSetupFallbackBackends")
             + adminText("admin-command-core-config-setup-fallback-mode-prefix", " setupFallbackMode=") + textValue(body, "coreSetupFallbackMode")
+            + adminText("admin-command-core-config-setup-db-operational-modes-prefix", " setupDbModes=") + textValue(body, "coreSetupDatabaseOperationalModes")
             + adminText("admin-command-core-config-setup-db-shapes-prefix", " setupDbShapes=") + textValue(body, "coreSetupDatabaseConfigShapes")
             + adminText("admin-command-core-config-setup-db-typed-shapes-prefix", " setupDbTypedShapes=") + textValue(body, "coreSetupDatabaseTypedShapes")
             + adminText("admin-command-core-config-setup-db-typed-host-mode-prefix", " setupDbTypedHostMode=") + textValue(body, "coreSetupDatabaseTypedHostMode")

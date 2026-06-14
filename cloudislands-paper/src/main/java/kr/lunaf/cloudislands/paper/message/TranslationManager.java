@@ -386,6 +386,7 @@ public final class TranslationManager {
         values.put("admin-command-core-config-jdbc-supported-backends-prefix", " jdbcSupportedBackends=");
         values.put("admin-command-core-config-setup-fallback-backends-prefix", " setupFallbackBackends=");
         values.put("admin-command-core-config-setup-fallback-mode-prefix", " setupFallbackMode=");
+        values.put("admin-command-core-config-setup-db-operational-modes-prefix", " setupDbModes=");
         values.put("admin-command-core-config-setup-db-shapes-prefix", " setupDbShapes=");
         values.put("admin-command-core-config-setup-db-typed-shapes-prefix", " setupDbTypedShapes=");
         values.put("admin-command-core-config-setup-db-typed-host-mode-prefix", " setupDbTypedHostMode=");
