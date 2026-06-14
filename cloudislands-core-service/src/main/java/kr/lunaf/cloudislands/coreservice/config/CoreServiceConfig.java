@@ -316,12 +316,18 @@ public record CoreServiceConfig(
         if (setupJdbcUrl.isBlank()) {
             setupJdbcUrl = typedSetupJdbcUrl(config);
         }
+        String envJdbcUrl = env("CI_JDBC_URL", "");
+        if (!envJdbcUrl.isBlank()) {
+            return jdbcUrlDatabaseType(envJdbcUrl);
+        }
+        if (!setupJdbcUrl.isBlank()) {
+            return jdbcUrlDatabaseType(setupJdbcUrl);
+        }
         String typedHostType = typedSetupHostDatabaseType(config);
         if (!typedHostType.isBlank()) {
             return typedHostType;
         }
-        String jdbcUrl = env("CI_JDBC_URL", setupJdbcUrl.isBlank() ? setting(config, "database.jdbc-url", "") : setupJdbcUrl);
-        return jdbcUrlDatabaseType(jdbcUrl);
+        return jdbcUrlDatabaseType(setting(config, "database.jdbc-url", ""));
     }
 
     private static String typedSetupJdbcUrl(Map<String, String> config) {
