@@ -274,6 +274,10 @@ public final class PrometheusMetricsRenderer {
             appendMetadataGauge(out, "cloudislands_permission_checks_total", node, "permissionChecks");
             appendMetadataGauge(out, "cloudislands_storage_upload_seconds", node, "storageUploadSeconds");
             appendMetadataGauge(out, "cloudislands_storage_download_seconds", node, "storageDownloadSeconds");
+            String storageBackend = node.heartbeatMetadata().get("storageBackend");
+            if (storageBackend != null && !storageBackend.isBlank()) {
+                labels(out, "cloudislands_storage_backend", node, "backend=\"" + escape(storageBackend) + "\"").append(1).append('\n');
+            }
             appendMetadataGauge(out, "cloudislands_storage_failures_total", node, "storageHealthCheckFailures", "operation=\"healthcheck\"");
             appendMetadataGauge(out, "cloudislands_storage_failures_total", node, "storageUploadFailures", "operation=\"upload\"");
             appendMetadataGauge(out, "cloudislands_storage_failures_total", node, "storageDownloadFailures", "operation=\"download\"");

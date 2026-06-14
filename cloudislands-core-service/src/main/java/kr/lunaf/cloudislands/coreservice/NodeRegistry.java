@@ -173,6 +173,7 @@ public interface NodeRegistry {
             .append("\"failedAt\":").append(longMetadata(metadata, "lastLevelScanFailedAt"))
             .append("},")
             .append("\"storage\":{")
+            .append("\"backend\":\"").append(metadata.getOrDefault("storageBackend", "").replace("\"", "'")).append("\",")
             .append("\"uploadSeconds\":").append(doubleMetadata(metadata, "storageUploadSeconds")).append(',')
             .append("\"downloadSeconds\":").append(doubleMetadata(metadata, "storageDownloadSeconds")).append(',')
             .append("\"healthCheckFailures\":").append(longMetadata(metadata, "storageHealthCheckFailures")).append(',')

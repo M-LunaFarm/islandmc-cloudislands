@@ -2070,7 +2070,9 @@ public final class VelocityRoutingController {
             + longValue(storage, "uploadFailures")
             + longValue(storage, "downloadFailures")
             + longValue(storage, "operationFailures");
-        return "(failures=" + failures
+        String backend = fallback(jsonValue(storage, "backend"), "unknown");
+        return "(backend=" + backend
+            + ", failures=" + failures
             + ", up=" + seconds(doubleValue(storage, "uploadSeconds")) + "s"
             + ", down=" + seconds(doubleValue(storage, "downloadSeconds")) + "s)";
     }
