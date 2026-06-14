@@ -384,6 +384,9 @@ public final class TranslationManager {
         values.put("admin-command-core-config-db-backend-prefix", " dbBackend=");
         values.put("admin-command-core-config-jdbc-supported-prefix", " jdbcSupported=");
         values.put("admin-command-core-config-jdbc-fallback-prefix", " jdbcFallback=");
+        values.put("admin-command-core-config-addon-bulk-prefix", " addonBulkSave=");
+        values.put("admin-command-core-config-addon-bulk-global-prefix", " addonBulkGlobal=");
+        values.put("admin-command-core-config-addon-bulk-island-prefix", " addonBulkIsland=");
         values.put("admin-command-events-empty", "Events: empty");
         values.put("admin-command-events-prefix", "Events: ");
         values.put("admin-command-event-island-prefix", " island=");
