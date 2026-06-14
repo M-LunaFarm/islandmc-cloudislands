@@ -184,6 +184,14 @@ public final class RoutingOrchestrator {
             "action", ticket.action().name(),
             "targetNode", ticket.targetNode()
         )));
+        consumed.filter(ticket -> ticket.action() == RouteAction.VISIT).ifPresent(ticket -> events.publish(CloudIslandEventType.ISLAND_VISITED.name(), Map.of(
+            "ticketId", ticket.ticketId().toString(),
+            "visitorUuid", ticket.playerUuid().toString(),
+            "islandId", ticket.islandId().toString(),
+            "targetNode", ticket.targetNode(),
+            "nodeId", ticket.targetNode(),
+            "targetWorld", ticket.targetWorld()
+        )));
         if (consumed.isEmpty()) {
             publishTicketConsumeFailure(ticketId, playerUuid, nodeId, nonce);
         }

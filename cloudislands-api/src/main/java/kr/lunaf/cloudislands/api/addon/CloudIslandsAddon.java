@@ -31,6 +31,7 @@ import kr.lunaf.cloudislands.api.event.IslandSnapshotCreateEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandTemplateChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandUpgradeEvent;
+import kr.lunaf.cloudislands.api.event.IslandVisitEvent;
 import kr.lunaf.cloudislands.api.event.IslandWorthChangeEvent;
 import kr.lunaf.cloudislands.api.event.NodeStateChangedEvent;
 import kr.lunaf.cloudislands.api.event.RouteSessionPublishedEvent;
@@ -98,6 +99,8 @@ public interface CloudIslandsAddon {
             onIslandRepaired(repaired);
         } else if (event instanceof IslandRuntimeChangeEvent runtimeChanged) {
             onIslandRuntimeChanged(runtimeChanged);
+        } else if (event instanceof IslandVisitEvent visited) {
+            onIslandVisited(visited);
         } else if (event instanceof IslandMemberChangedEvent memberChanged) {
             onIslandMemberChanged(memberChanged);
         } else if (event instanceof IslandFlagChangeEvent flagChanged) {
@@ -220,6 +223,9 @@ public interface CloudIslandsAddon {
     }
 
     default void onNodeStateChanged(NodeStateChangedEvent event) {
+    }
+
+    default void onIslandVisited(IslandVisitEvent event) {
     }
 
     default void onRouteTicketCreated(RouteTicketCreatedEvent event) {
