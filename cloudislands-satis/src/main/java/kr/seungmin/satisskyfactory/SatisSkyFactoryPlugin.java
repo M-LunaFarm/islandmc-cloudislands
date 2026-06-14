@@ -1411,7 +1411,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     @Override
     public void onIslandVisited(IslandVisitEvent event) {
         String operation = "visited:" + lifecycleNode(event.nodeId());
-        runSatisLifecycle(event.islandId(), operation, () -> publishIslandLifecycleState(event.islandId(), operation, islands.get(event.islandId()).orElse(null), "ok", ""));
+        runSatisLifecycle(event.islandId(), operation, () -> publishIslandLifecycleState(event.islandId(), operation, islands.find(event.islandId()).orElse(null), "ok", ""));
     }
 
     @Override
