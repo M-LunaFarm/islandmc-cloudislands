@@ -239,6 +239,14 @@ public final class AdminFactoryCommand {
         };
     }
 
+    private boolean debugCommandsVisible() {
+        return enabled("machines")
+                || enabled("storage")
+                || enabled("resource-nodes")
+                || enabled("maintenance")
+                || enabled("addon-state");
+    }
+
     public List<String> complete(CommandSender sender, String[] args) {
         if (args.length == 2) {
             List<String> values = new ArrayList<>();
@@ -249,7 +257,9 @@ public final class AdminFactoryCommand {
             values.add("command-list");
             values.add("명령어");
             values.add("명령어목록");
-            values.add("debug");
+            if (debugCommandsVisible()) {
+                values.add("debug");
+            }
             values.add("features");
             values.add("integration");
             if (enabled("migration")) {
