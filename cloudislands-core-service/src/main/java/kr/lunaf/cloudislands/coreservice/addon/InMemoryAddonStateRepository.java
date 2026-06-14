@@ -25,10 +25,11 @@ public final class InMemoryAddonStateRepository implements AddonStateRepository 
         String safeAddonId = AddonStateRepository.safeAddonId(addonId);
         Map<String, String> state = states.computeIfAbsent(safeAddonId, _ignored -> new ConcurrentHashMap<>());
         synchronized (state) {
-            safeValues(values).forEach((key, value) -> {
-                AddonStateRepository.requireKeyCapacity(state, key);
-                state.put(key, value);
-            });
+            Map<String, String> safeValues = safeValues(values);
+            if (state.size() + safeValues.keySet().stream().filter(key -> !state.containsKey(key)).count() > AddonStateRepository.MAX_KEYS_PER_ADDON) {
+                throw new IllegalArgumentException("Addon state key limit reached");
+            }
+            state.putAll(safeValues);
             return Map.copyOf(state);
         }
     }
@@ -104,10 +105,11 @@ public final class InMemoryAddonStateRepository implements AddonStateRepository 
         String stateId = islandStateId(addonId, islandId);
         Map<String, String> state = islandStates.computeIfAbsent(stateId, _ignored -> new ConcurrentHashMap<>());
         synchronized (state) {
-            safeValues(values).forEach((key, value) -> {
-                AddonStateRepository.requireKeyCapacity(state, key);
-                state.put(key, value);
-            });
+            Map<String, String> safeValues = safeValues(values);
+            if (state.size() + safeValues.keySet().stream().filter(key -> !state.containsKey(key)).count() > AddonStateRepository.MAX_KEYS_PER_ADDON) {
+                throw new IllegalArgumentException("Addon island state key limit reached");
+            }
+            state.putAll(safeValues);
             return Map.copyOf(state);
         }
     }
