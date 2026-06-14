@@ -178,6 +178,22 @@ public interface IslandAddonService {
         return state(id);
     }
 
+    default CompletableFuture<Map<String, String>> putState(String id, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        Map<String, String> merged = new HashMap<>();
+        if (values != null) {
+            values.forEach((key, value) -> {
+                if (key != null && !key.isBlank() && value != null) {
+                    merged.put(key.trim(), value);
+                }
+            });
+        }
+        merged.putAll(tableStateValues(tables));
+        if (merged.isEmpty()) {
+            return state(id);
+        }
+        return putState(id, Map.copyOf(merged));
+    }
+
     default CompletableFuture<Map<String, String>> putTableState(String id, String table, Map<String, String> values) {
         return putState(id, tableStateValues(table, values));
     }
@@ -227,6 +243,22 @@ public interface IslandAddonService {
 
     default CompletableFuture<Map<String, String>> putIslandState(String id, UUID islandId, Map<String, String> values) {
         return islandState(id, islandId);
+    }
+
+    default CompletableFuture<Map<String, String>> putIslandState(String id, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        Map<String, String> merged = new HashMap<>();
+        if (values != null) {
+            values.forEach((key, value) -> {
+                if (key != null && !key.isBlank() && value != null) {
+                    merged.put(key.trim(), value);
+                }
+            });
+        }
+        merged.putAll(tableStateValues(tables));
+        if (merged.isEmpty()) {
+            return islandState(id, islandId);
+        }
+        return putIslandState(id, islandId, Map.copyOf(merged));
     }
 
     default CompletableFuture<Map<String, String>> putIslandTableState(String id, UUID islandId, String table, Map<String, String> values) {
@@ -282,6 +314,15 @@ public interface IslandAddonService {
                 state.put(tableStatePrefix(safeTable) + key.trim(), value);
             }
         });
+        return Map.copyOf(state);
+    }
+
+    private static Map<String, String> tableStateValues(Map<String, Map<String, String>> tables) {
+        if (tables == null || tables.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> state = new HashMap<>();
+        tables.forEach((table, values) -> state.putAll(tableStateValues(table, values)));
         return Map.copyOf(state);
     }
 

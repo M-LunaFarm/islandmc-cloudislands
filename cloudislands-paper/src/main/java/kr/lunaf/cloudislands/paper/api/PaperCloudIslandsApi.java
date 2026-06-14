@@ -643,6 +643,56 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
+        public CompletableFuture<Map<String, String>> putState(String id, Map<String, String> values, Map<String, Map<String, String>> tables) {
+            String safeId = safeRegistrationId(id);
+            Map<String, String> merged = new HashMap<>();
+            Map<String, String> safeValues = new HashMap<>();
+            if (values != null) {
+                values.forEach((key, value) -> {
+                    if (key != null && !key.isBlank() && value != null) {
+                        String safeKey = key.trim();
+                        safeValues.put(safeKey, value);
+                        merged.put(safeKey, value);
+                    }
+                });
+            }
+            Map<String, Map<String, String>> safeTables = new HashMap<>();
+            if (tables != null) {
+                tables.forEach((table, tableValues) -> {
+                    Map<String, String> safeTableValues = new HashMap<>();
+                    if (tableValues != null) {
+                        tableValues.forEach((key, value) -> {
+                            if (key != null && !key.isBlank() && value != null) {
+                                safeTableValues.put(key.trim(), value);
+                            }
+                        });
+                    }
+                    if (table != null && !table.isBlank() && !safeTableValues.isEmpty()) {
+                        safeTables.put(table.trim(), Map.copyOf(safeTableValues));
+                        merged.putAll(tableStateValues(table, safeTableValues));
+                    }
+                });
+            }
+            if (merged.isEmpty()) {
+                return state(safeId);
+            }
+            if (!addonAcceptsGlobalStateWrites(safeId)) {
+                return state(safeId);
+            }
+            Map<String, String> localState = new HashMap<>(readAddonState(safeId));
+            localState.putAll(merged);
+            writeAddonState(safeId, localState);
+            return coreClient.putAddonState(safeId, Map.copyOf(safeValues), Map.copyOf(safeTables))
+                .thenApply(this::stateFromJson)
+                .thenApply(state -> {
+                    addonStates.put(safeId, state);
+                    writeAddonState(safeId, state);
+                    return state;
+                })
+                .exceptionally(_error -> Map.copyOf(localState));
+        }
+
+        @Override
         public CompletableFuture<Map<String, String>> clearTableState(String id, String table) {
             String safeId = safeRegistrationId(id);
             if (table == null || table.isBlank()) {
@@ -798,6 +848,58 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             }
             writeAddonIslandState(safeId, islandId, localState);
             return coreClient.putAddonIslandState(safeId, islandId, changedState)
+                .thenApply(this::stateFromJson)
+                .thenApply(state -> {
+                    writeAddonIslandState(safeId, islandId, state);
+                    return state;
+                })
+                .exceptionally(_error -> Map.copyOf(localState));
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> putIslandState(String id, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+            String safeId = safeRegistrationId(id);
+            if (islandId == null) {
+                return CompletableFuture.completedFuture(Map.of());
+            }
+            Map<String, String> merged = new HashMap<>();
+            Map<String, String> safeValues = new HashMap<>();
+            if (values != null) {
+                values.forEach((key, value) -> {
+                    if (key != null && !key.isBlank() && value != null) {
+                        String safeKey = key.trim();
+                        safeValues.put(safeKey, value);
+                        merged.put(safeKey, value);
+                    }
+                });
+            }
+            Map<String, Map<String, String>> safeTables = new HashMap<>();
+            if (tables != null) {
+                tables.forEach((table, tableValues) -> {
+                    Map<String, String> safeTableValues = new HashMap<>();
+                    if (tableValues != null) {
+                        tableValues.forEach((key, value) -> {
+                            if (key != null && !key.isBlank() && value != null) {
+                                safeTableValues.put(key.trim(), value);
+                            }
+                        });
+                    }
+                    if (table != null && !table.isBlank() && !safeTableValues.isEmpty()) {
+                        safeTables.put(table.trim(), Map.copyOf(safeTableValues));
+                        merged.putAll(tableStateValues(table, safeTableValues));
+                    }
+                });
+            }
+            if (merged.isEmpty()) {
+                return islandState(safeId, islandId);
+            }
+            if (!addonAcceptsIslandStateWrites(safeId)) {
+                return islandState(safeId, islandId);
+            }
+            Map<String, String> localState = new HashMap<>(readAddonIslandState(safeId, islandId));
+            localState.putAll(merged);
+            writeAddonIslandState(safeId, islandId, localState);
+            return coreClient.putAddonIslandState(safeId, islandId, Map.copyOf(safeValues), Map.copyOf(safeTables))
                 .thenApply(this::stateFromJson)
                 .thenApply(state -> {
                     writeAddonIslandState(safeId, islandId, state);

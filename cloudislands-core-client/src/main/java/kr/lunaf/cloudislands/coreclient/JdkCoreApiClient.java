@@ -819,6 +819,14 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> putAddonState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        if (blank(addonId)) {
+            return invalidAddonState("Addon id is required");
+        }
+        return postWithResultBody("/v1/addons/state/save", "{\"addonId\":\"" + escape(addonId) + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+    }
+
+    @Override
     public CompletableFuture<String> putAddonTableState(String addonId, String table, Map<String, String> values) {
         if (blank(addonId) || blank(table)) {
             return invalidAddonState("Addon id and table are required");
@@ -880,6 +888,14 @@ public final class JdkCoreApiClient implements CoreApiClient {
             return invalidAddonState("Addon id and island id are required");
         }
         return postWithResultBody("/v1/addons/islands/state/bulk", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"values\":" + stringMapJson(values) + "}");
+    }
+
+    @Override
+    public CompletableFuture<String> putAddonIslandState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        if (blank(addonId) || missingIslandId(islandId)) {
+            return invalidAddonState("Addon id and island id are required");
+        }
+        return postWithResultBody("/v1/addons/islands/state/save", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
     }
 
     @Override
@@ -1093,6 +1109,24 @@ public final class JdkCoreApiClient implements CoreApiClient {
             }
             first = false;
             builder.append("\"").append(escape(entry.getKey())).append("\":\"").append(escape(entry.getValue())).append("\"");
+        }
+        return builder.append("}").toString();
+    }
+
+    private String tableMapJson(Map<String, Map<String, String>> tables) {
+        StringBuilder builder = new StringBuilder("{");
+        boolean first = true;
+        if (tables != null) {
+            for (Map.Entry<String, Map<String, String>> entry : tables.entrySet()) {
+                if (entry.getKey() == null || entry.getKey().isBlank() || entry.getValue() == null) {
+                    continue;
+                }
+                if (!first) {
+                    builder.append(',');
+                }
+                first = false;
+                builder.append("\"").append(escape(entry.getKey())).append("\":").append(stringMapJson(entry.getValue()));
+            }
         }
         return builder.append("}").toString();
     }

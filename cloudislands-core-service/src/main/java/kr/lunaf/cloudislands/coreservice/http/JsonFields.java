@@ -19,29 +19,7 @@ public final class JsonFields {
     }
 
     public static Map<String, String> object(String json, String field) {
-        int fieldStart = json.indexOf("\"" + field + "\":");
-        if (fieldStart < 0) {
-            return Map.of();
-        }
-        int objectStart = json.indexOf('{', fieldStart);
-        if (objectStart < 0) {
-            return Map.of();
-        }
-        int depth = 0;
-        int objectEnd = -1;
-        for (int i = objectStart; i < json.length(); i++) {
-            char c = json.charAt(i);
-            if (c == '{') depth++;
-            if (c == '}') depth--;
-            if (depth == 0) {
-                objectEnd = i;
-                break;
-            }
-        }
-        if (objectEnd < 0) {
-            return Map.of();
-        }
-        String body = json.substring(objectStart + 1, objectEnd).trim();
+        String body = objectBody(json, field);
         if (body.isBlank()) {
             return Map.of();
         }
@@ -55,11 +33,72 @@ public final class JsonFields {
         return Map.copyOf(values);
     }
 
+    public static Map<String, Map<String, String>> objectMap(String json, String field) {
+        String body = objectBody(json, field);
+        if (body.isBlank()) {
+            return Map.of();
+        }
+        Map<String, Map<String, String>> values = new LinkedHashMap<>();
+        for (String pair : splitTopLevelPairs(body)) {
+            int colon = pair.indexOf(':');
+            if (colon <= 0) {
+                continue;
+            }
+            String key = unquote(pair.substring(0, colon));
+            Map<String, String> nested = object("{\"value\":" + pair.substring(colon + 1) + "}", "value");
+            if (!key.isBlank() && !nested.isEmpty()) {
+                values.put(key, nested);
+            }
+        }
+        return Map.copyOf(values);
+    }
+
+    private static String objectBody(String json, String field) {
+        int fieldStart = json.indexOf("\"" + field + "\":");
+        if (fieldStart < 0) {
+            return "";
+        }
+        int objectStart = json.indexOf('{', fieldStart);
+        if (objectStart < 0) {
+            return "";
+        }
+        int depth = 0;
+        boolean quoted = false;
+        boolean escaped = false;
+        int objectEnd = -1;
+        for (int i = objectStart; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (c == '"') {
+                quoted = !quoted;
+                continue;
+            }
+            if (!quoted && c == '{') depth++;
+            if (!quoted && c == '}') depth--;
+            if (!quoted && depth == 0) {
+                objectEnd = i;
+                break;
+            }
+        }
+        if (objectEnd < 0) {
+            return "";
+        }
+        return json.substring(objectStart + 1, objectEnd).trim();
+    }
+
     private static java.util.List<String> splitTopLevelPairs(String body) {
         java.util.List<String> pairs = new java.util.ArrayList<>();
         StringBuilder current = new StringBuilder();
         boolean quoted = false;
         boolean escaped = false;
+        int depth = 0;
         for (int index = 0; index < body.length(); index++) {
             char value = body.charAt(index);
             if (escaped) {
@@ -75,7 +114,13 @@ public final class JsonFields {
             if (value == '"') {
                 quoted = !quoted;
             }
-            if (value == ',' && !quoted) {
+            if (!quoted && (value == '{' || value == '[')) {
+                depth++;
+            }
+            if (!quoted && (value == '}' || value == ']')) {
+                depth--;
+            }
+            if (value == ',' && !quoted && depth == 0) {
                 pairs.add(current.toString());
                 current.setLength(0);
                 continue;
