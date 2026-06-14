@@ -793,6 +793,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             getLogger().info("Registered CloudIslands addon: " + addon.id() + " enabled=" + addon.enabled());
             if (!addon.enabled()) {
                 getLogger().info("CloudIslands disabled this addon through the parent config.");
+                addonRuntimeEnabled = false;
+                effectiveFeatures = Map.of();
                 return false;
             }
         } catch (RuntimeException exception) {
@@ -863,6 +865,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("skyblock-provider", "CLOUDISLANDS");
         metadata.put("cloudislands-adapter", Boolean.toString(configs.main().getBoolean("integration.cloudislands-adapter", true)));
         metadata.put("requires-cloudislands-api", Boolean.toString(requiresCloudIslandsApi()));
+        metadata.put("satis-enabled-configured", Boolean.toString(enabledByDefault()));
+        metadata.put("addon-runtime-enabled", Boolean.toString(addonRuntimeEnabled));
         metadata.put("database-scope", scope);
         metadata.put("database-configured-backend", configuredDatabaseBackendName());
         metadata.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
@@ -876,7 +880,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("satis-state-schema", "3");
         metadata.put("legacy-satismc-import", "factory admin migration scan|dryrun|import <sqlitePath>");
         metadata.put("legacy-satismc-scan-mode", "scan-and-dryrun-read-only");
-        metadata.put("legacy-satismc-import-mode", "sqlite-attach-insert-ignore");
+        metadata.put("legacy-satismc-import-mode", "cross-backend-sqlite-copy");
         metadata.put("island-position-remap", "center-delta");
         metadata.put("addon-state-sync", Boolean.toString(configuredFeatureEnabled("addon-state")));
         metadata.put("feature-aliases", featureAliasesMetadata());
