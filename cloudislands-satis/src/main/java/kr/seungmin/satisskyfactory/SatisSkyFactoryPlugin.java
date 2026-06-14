@@ -1948,7 +1948,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             configured = configs.main().getStringList("database.fallback.order");
         }
         if (configured == null || configured.isEmpty()) {
-            configured = List.of("POSTGRESQL", "MYSQL", "SQLITE");
+            configured = List.of("POSTGRESQL", "MYSQL", "MARIADB", "SQLITE");
         }
         List<DatabaseService.StorageBackend> backends = new ArrayList<>();
         for (String entry : configured) {

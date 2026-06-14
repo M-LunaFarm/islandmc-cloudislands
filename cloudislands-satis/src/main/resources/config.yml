@@ -108,6 +108,7 @@ database:
     order:
       - POSTGRESQL
       - MYSQL
+      - MARIADB
       - SQLITE
   jdbc:
     # Optional shortcut. If set, it wins over host/database fields.
