@@ -2227,7 +2227,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return configured.trim();
         }
         String host = firstNonBlank(configs.main().getString("setup.database." + section + ".host", ""), configs.main().getString("database." + section + ".host", "127.0.0.1"));
-        String databaseName = firstNonBlank(configs.main().getString("setup.database." + section + ".database", ""), configs.main().getString("database." + section + ".database", ""));
+        String databaseName = firstNonBlank(configs.main().getString("setup.database." + section + ".name", ""),
+                firstNonBlank(configs.main().getString("setup.database." + section + ".database", ""),
+                        firstNonBlank(configs.main().getString("database." + section + ".name", ""),
+                                configs.main().getString("database." + section + ".database", ""))));
         if (host == null || host.isBlank() || databaseName == null || databaseName.isBlank()) {
             return "";
         }
@@ -2520,6 +2523,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String backend = configuredDatabaseBackendName().toLowerCase(java.util.Locale.ROOT);
         if (nonBlankConfig("setup.database." + backend + ".url")
                 || nonBlankConfig("setup.database." + backend + ".host")
+                || nonBlankConfig("setup.database." + backend + ".name")
                 || nonBlankConfig("setup.database." + backend + ".database")) {
             return "setup.database." + backend;
         }

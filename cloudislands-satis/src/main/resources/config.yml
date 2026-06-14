@@ -57,6 +57,7 @@ setup:
       url: ""
       host: ""
       port: 0
+      name: ""
       database: ""
       options: ""
       username: ""
@@ -68,6 +69,7 @@ setup:
       url: ""
       host: ""
       port: 0
+      name: ""
       database: ""
       options: ""
       username: ""
@@ -79,6 +81,7 @@ setup:
       url: ""
       host: ""
       port: 0
+      name: ""
       database: ""
       options: ""
       username: ""
