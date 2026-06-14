@@ -2222,7 +2222,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String jdbcUrl(String section, String prefix, int defaultPort) {
-        String configured = firstNonBlank(configs.main().getString("setup.database." + section + ".url", ""), configs.main().getString("database." + section + ".url", ""));
+        String configured = firstNonBlank(configs.main().getString("setup.database." + section + ".jdbc-url", ""),
+                firstNonBlank(configs.main().getString("setup.database." + section + ".url", ""),
+                        firstNonBlank(configs.main().getString("database." + section + ".jdbc-url", ""),
+                                configs.main().getString("database." + section + ".url", ""))));
         if (configured != null && !configured.isBlank()) {
             return configured.trim();
         }
@@ -2521,7 +2524,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return "database.jdbc.url";
         }
         String backend = configuredDatabaseBackendName().toLowerCase(java.util.Locale.ROOT);
-        if (nonBlankConfig("setup.database." + backend + ".url")
+        if (nonBlankConfig("setup.database." + backend + ".jdbc-url")
+                || nonBlankConfig("setup.database." + backend + ".url")
                 || nonBlankConfig("setup.database." + backend + ".host")
                 || nonBlankConfig("setup.database." + backend + ".name")
                 || nonBlankConfig("setup.database." + backend + ".database")) {
