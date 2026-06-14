@@ -837,6 +837,7 @@ public final class AdminFactoryCommand {
                 || command.contains(" gennodes ") && !enabled("resource-nodes")
                 || command.contains(" migration") && !enabled("migration")
                 || command.contains(" state") && !enabled("addon-state")
+                || command.contains(" debug ") && !debugCommandsVisible()
                 || command.contains(" debug networks") && !enabled("machines");
     }
 
