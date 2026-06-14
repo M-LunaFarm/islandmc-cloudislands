@@ -1250,7 +1250,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandActivated(IslandActivatedEvent event) {
-        runSatisLifecycle(event.islandId(), "activated", () -> synchronizeSatisIsland(event.islandId(), "activated"));
+        String operation = "activated:" + lifecycleNode(event.nodeId());
+        runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
     }
 
     @Override
@@ -1389,14 +1390,20 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String lifecycleActiveNode(String operation) {
-        if (operation == null || !operation.startsWith("migrated:")) {
+        if (operation == null) {
             return "";
         }
-        int arrow = operation.indexOf("->");
-        if (arrow < 0 || arrow + 2 >= operation.length()) {
-            return "";
+        if (operation.startsWith("activated:")) {
+            return lifecycleNode(operation.substring("activated:".length()));
         }
-        return lifecycleNode(operation.substring(arrow + 2));
+        if (operation.startsWith("migrated:")) {
+            int arrow = operation.indexOf("->");
+            if (arrow < 0 || arrow + 2 >= operation.length()) {
+                return "";
+            }
+            return lifecycleNode(operation.substring(arrow + 2));
+        }
+        return "";
     }
 
     private void synchronizeSatisIsland(UUID islandId) {
