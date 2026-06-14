@@ -908,6 +908,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
         metadata.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
         metadata.put("database-fallback-reason", databaseFallbackReason);
+        metadata.put("database-fallback-active", Boolean.toString(databaseFallbackActive()));
+        metadata.put("database-fallback-status", databaseFallbackStatus());
         metadata.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
         metadata.put("database-fallback-order", databaseFallbackOrderMetadata());
         metadata.put("database-fallback-source", databaseFallbackSource());
@@ -1110,6 +1112,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
         state.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
         state.put("database-fallback-reason", databaseFallbackReason);
+        state.put("database-fallback-active", Boolean.toString(databaseFallbackActive()));
+        state.put("database-fallback-status", databaseFallbackStatus());
         state.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
         state.put("database-fallback-order", databaseFallbackOrderMetadata());
         state.put("database-config-source", databaseConfigSource());
@@ -1162,6 +1166,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
         state.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
         state.put("database-fallback-reason", databaseFallbackReason);
+        state.put("database-fallback-active", Boolean.toString(databaseFallbackActive()));
+        state.put("database-fallback-status", databaseFallbackStatus());
         state.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
         state.put("database-fallback-order", databaseFallbackOrderMetadata());
         state.put("database-config-source", databaseConfigSource());
@@ -2427,6 +2433,20 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 .map(DatabaseService.StorageBackend::name)
                 .reduce((left, right) -> left + "," + right)
                 .orElse("none");
+    }
+
+    private boolean databaseFallbackActive() {
+        return databaseFallbackReason != null
+                && !databaseFallbackReason.isBlank()
+                && !"none".equalsIgnoreCase(databaseFallbackReason);
+    }
+
+    private String databaseFallbackStatus() {
+        if (!databaseFallbackActive()) {
+            return databaseSettings().fallbackEnabled() ? "ready" : "disabled";
+        }
+        String active = database == null ? "NOT_OPEN" : database.activeBackend().name();
+        return "active:" + active;
     }
 
     private int setupInt(String path, int fallback) {
