@@ -1306,6 +1306,9 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private String routeFailureMessage(Throwable error, String fallback) {
+        if (coreUnavailable(error)) {
+            return routeMessage("core-service-maintenance", "현재 섬 서비스 일부 기능이 점검 중입니다.");
+        }
         Throwable current = error;
         while (current != null) {
             if (current instanceof CoreApiException coreError) {
@@ -1412,7 +1415,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }).exceptionally(error -> {
             clearRouteLoading(player);
             clearFailedRoute(ticket, "SESSION_PUBLISH_FAILED");
-            message(player, failureMessage);
+            message(player, routeFailureMessage(error, failureMessage));
             return null;
         });
     }
