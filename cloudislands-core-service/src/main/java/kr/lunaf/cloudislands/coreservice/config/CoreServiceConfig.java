@@ -61,18 +61,18 @@ public record CoreServiceConfig(
         return new CoreServiceConfig(
             env("CI_BIND", setting(config, "server.bind", "0.0.0.0")),
             integer("CI_PORT", configInteger(config, "server.port", 8443)),
-            env("CI_REPOSITORY_MODE", "JDBC"),
-            env("CI_JOB_QUEUE_MODE", "REDIS"),
-            env("CI_EVENT_BUS_MODE", "REDIS"),
-            env("CI_JDBC_URL", setting(config, "database.jdbc-url", "jdbc:postgresql://postgres.internal:5432/cloudislands")),
-            env("CI_DB_USERNAME", setting(config, "database.username", "cloudislands")),
-            env("CI_DB_PASSWORD", setting(config, "database.password", env("DB_PASSWORD", ""))),
-            integer("CI_DB_POOL_SIZE", configInteger(config, "database.pool-size", 20)),
-            URI.create(env("CI_REDIS_URI", setting(config, "redis.uri", "redis://redis.internal:6379"))),
-            env("CI_STORAGE_TYPE", setting(config, "storage.type", "S3")),
-            URI.create(env("CI_STORAGE_ENDPOINT", setting(config, "storage.endpoint", "http://minio.internal:9000"))),
-            env("CI_STORAGE_BUCKET", setting(config, "storage.bucket", "cloudislands")),
-            env("CI_STORAGE_LOCAL_PATH", setting(config, "storage.local-path", "cloudislands-storage")),
+            env("CI_REPOSITORY_MODE", setupSetting(config, "repository-mode", "JDBC")),
+            env("CI_JOB_QUEUE_MODE", setupSetting(config, "job-queue-mode", "REDIS")),
+            env("CI_EVENT_BUS_MODE", setupSetting(config, "event-bus-mode", "REDIS")),
+            env("CI_JDBC_URL", setupSetting(config, "jdbc-url", setting(config, "database.jdbc-url", "jdbc:postgresql://postgres.internal:5432/cloudislands"))),
+            env("CI_DB_USERNAME", setupSetting(config, "database-username", setting(config, "database.username", "cloudislands"))),
+            env("CI_DB_PASSWORD", setupSetting(config, "database-password", setting(config, "database.password", env("DB_PASSWORD", "")))),
+            integer("CI_DB_POOL_SIZE", setupInteger(config, "database-pool-size", configInteger(config, "database.pool-size", 20))),
+            URI.create(env("CI_REDIS_URI", setupSetting(config, "redis-uri", setting(config, "redis.uri", "redis://redis.internal:6379")))),
+            env("CI_STORAGE_TYPE", setupSetting(config, "storage-type", setting(config, "storage.type", "S3"))),
+            URI.create(env("CI_STORAGE_ENDPOINT", setupSetting(config, "storage-endpoint", setting(config, "storage.endpoint", "http://minio.internal:9000")))),
+            env("CI_STORAGE_BUCKET", setupSetting(config, "storage-bucket", setting(config, "storage.bucket", "cloudislands"))),
+            env("CI_STORAGE_LOCAL_PATH", setupSetting(config, "storage-local-path", setting(config, "storage.local-path", "cloudislands-storage"))),
             env("CI_STORAGE_REGION", setting(config, "storage.region", "us-east-1")),
             env("CI_STORAGE_ACCESS_KEY", setting(config, "storage.access-key", env("S3_ACCESS_KEY", ""))),
             env("CI_STORAGE_SECRET_KEY", setting(config, "storage.secret-key", env("S3_SECRET_KEY", ""))),
@@ -161,6 +161,14 @@ public record CoreServiceConfig(
     private static String setting(Map<String, String> config, String key, String fallback) {
         String value = config.get(key);
         return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private static String setupSetting(Map<String, String> config, String key, String fallback) {
+        return setting(config, "setup." + key, fallback);
+    }
+
+    private static int setupInteger(Map<String, String> config, String key, int fallback) {
+        return configInteger(config, "setup." + key, fallback);
     }
 
     private static kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotRetentionPolicy(Map<String, String> config) {
