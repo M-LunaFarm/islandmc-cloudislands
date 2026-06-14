@@ -313,8 +313,24 @@ public record CoreServiceConfig(
             return normalizeDatabaseType(setupType);
         }
         String setupJdbcUrl = setupDatabaseSetting(config, "jdbc-url", setting(config, "setup.jdbc-url", ""));
+        if (setupJdbcUrl.isBlank()) {
+            setupJdbcUrl = typedSetupJdbcUrl(config);
+        }
         String jdbcUrl = env("CI_JDBC_URL", setupJdbcUrl.isBlank() ? setting(config, "database.jdbc-url", "") : setupJdbcUrl);
         return jdbcUrlDatabaseType(jdbcUrl);
+    }
+
+    private static String typedSetupJdbcUrl(Map<String, String> config) {
+        for (String scope : java.util.List.of("postgresql", "mysql", "mariadb")) {
+            String url = setting(config, "setup.database." + scope + ".jdbc-url", "");
+            if (url.isBlank()) {
+                url = setting(config, "setup.database." + scope + ".url", "");
+            }
+            if (!url.isBlank()) {
+                return url;
+            }
+        }
+        return "";
     }
 
     private static String jdbcUrlDatabaseType(String jdbcUrl) {

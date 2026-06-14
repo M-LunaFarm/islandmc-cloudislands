@@ -2397,7 +2397,7 @@ public final class CloudIslandsCoreApplication {
             + "\"coreSetupDatabasePrecedence\":\"env,nested-setup-database,legacy-flat-setup,database-default\","
             + "\"coreSetupDatabaseNameAliases\":\"setup.database.name,setup.database.database,setup.database-name\","
             + "\"coreSetupDatabaseJdbcAliases\":\"CI_JDBC_URL,setup.database.jdbc-url,setup.jdbc-url,database.jdbc-url\","
-            + "\"coreSetupDatabaseTypeInference\":\"CI_DATABASE_TYPE,setup.database.type,setup.database-type,CI_JDBC_URL,setup.database.jdbc-url,setup.jdbc-url,database.jdbc-url\","
+            + "\"coreSetupDatabaseTypeInference\":\"CI_DATABASE_TYPE,setup.database.type,setup.database-type,CI_JDBC_URL,setup.database.jdbc-url,setup.jdbc-url,setup.database.postgresql.jdbc-url,setup.database.postgresql.url,setup.database.mysql.jdbc-url,setup.database.mysql.url,setup.database.mariadb.jdbc-url,setup.database.mariadb.url,database.jdbc-url\","
             + "\"coreJdbcFallbackReason\":\"" + escape(coreJdbcFallbackReason(config)) + "\","
             + "\"addonStateBulkSaveApi\":true,"
             + "\"addonStateBulkSaveGlobalEndpoint\":\"/v1/addons/state/table-key-value/bulk-save\","
