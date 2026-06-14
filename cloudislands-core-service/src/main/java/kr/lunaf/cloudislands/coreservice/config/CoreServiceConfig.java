@@ -18,6 +18,7 @@ public record CoreServiceConfig(
     String jobQueueMode,
     String eventBusMode,
     String jdbcUrl,
+    String configuredDatabaseType,
     String databaseUsername,
     String databasePassword,
     int databasePoolSize,
@@ -67,6 +68,7 @@ public record CoreServiceConfig(
             env("CI_JOB_QUEUE_MODE", setupSetting(config, "job-queue-mode", "REDIS")),
             env("CI_EVENT_BUS_MODE", setupSetting(config, "event-bus-mode", "REDIS")),
             env("CI_JDBC_URL", setupJdbcUrl(config, setting(config, "database.jdbc-url", "jdbc:postgresql://postgres.internal:5432/cloudislands"))),
+            env("CI_DATABASE_TYPE", configuredDatabaseType(config)),
             env("CI_DB_USERNAME", setupSetting(config, "database-username", setting(config, "database.username", "cloudislands"))),
             env("CI_DB_PASSWORD", setupSetting(config, "database-password", setting(config, "database.password", env("DB_PASSWORD", "")))),
             integer("CI_DB_POOL_SIZE", setupInteger(config, "database-pool-size", configInteger(config, "database.pool-size", 20))),
@@ -121,7 +123,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, databasePoolSize, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, rateLimitRequests, rateLimitWindow);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, rateLimitRequests, rateLimitWindow);
     }
 
     private static String env(String key, String fallback) {
@@ -234,6 +236,34 @@ public record CoreServiceConfig(
             return "JDBC";
         }
         return coreJdbcTypeSupported(databaseType) ? "JDBC" : "IN_MEMORY";
+    }
+
+    private static String configuredDatabaseType(Map<String, String> config) {
+        String setupType = setting(config, "setup.database-type", "");
+        if (!setupType.isBlank()) {
+            return normalizeDatabaseType(setupType);
+        }
+        String jdbcUrl = setting(config, "database.jdbc-url", "");
+        if (jdbcUrl.toLowerCase(Locale.ROOT).startsWith("jdbc:mysql:")) {
+            return "MYSQL";
+        }
+        if (jdbcUrl.toLowerCase(Locale.ROOT).startsWith("jdbc:mariadb:")) {
+            return "MARIADB";
+        }
+        if (jdbcUrl.toLowerCase(Locale.ROOT).startsWith("jdbc:postgresql:")) {
+            return "POSTGRESQL";
+        }
+        return "UNKNOWN";
+    }
+
+    private static String normalizeDatabaseType(String type) {
+        return switch (type.trim().replace('-', '_').toUpperCase(Locale.ROOT)) {
+            case "POSTGRES", "POSTGRESQL" -> "POSTGRESQL";
+            case "MYSQL" -> "MYSQL";
+            case "MARIA", "MARIADB" -> "MARIADB";
+            case "CORE", "CORE_API" -> "CORE_API";
+            default -> "UNKNOWN";
+        };
     }
 
     private static boolean coreJdbcSupported(String jdbcUrl) {

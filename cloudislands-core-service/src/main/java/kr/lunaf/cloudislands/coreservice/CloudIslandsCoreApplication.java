@@ -2343,6 +2343,7 @@ public final class CloudIslandsCoreApplication {
             + "\"effectiveEventBusMode\":\"" + (config.redisEvents() ? "REDIS" : "IN_MEMORY") + "\","
             + "\"coreJdbcRepositoriesEnabled\":" + config.jdbcRepositories() + ","
             + "\"coreJdbcJobsEnabled\":" + config.jdbcJobs() + ","
+            + "\"configuredDatabaseType\":\"" + escape(config.configuredDatabaseType()) + "\","
             + "\"databaseBackend\":\"" + escape(jdbcBackend(config.jdbcUrl())) + "\","
             + "\"coreJdbcSupported\":" + coreJdbcSupported(config.jdbcUrl()) + ","
             + "\"coreJdbcFallbackReason\":\"" + escape(coreJdbcFallbackReason(config)) + "\","
@@ -2392,6 +2393,10 @@ public final class CloudIslandsCoreApplication {
     }
 
     private static String coreJdbcFallbackReason(CoreServiceConfig config) {
+        String configuredType = config.configuredDatabaseType() == null ? "" : config.configuredDatabaseType();
+        if (!configuredType.isBlank() && !configuredType.equals("POSTGRESQL") && !configuredType.equals("UNKNOWN")) {
+            return "CORE_JDBC_DISABLED_FOR_" + configuredType;
+        }
         if (coreJdbcSupported(config.jdbcUrl())) {
             return "";
         }
