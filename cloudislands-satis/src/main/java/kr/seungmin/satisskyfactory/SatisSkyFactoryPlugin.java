@@ -121,6 +121,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private Map<String, Boolean> effectiveFeatures = Map.of();
     private final Set<UUID> coreHydratedIslands = ConcurrentHashMap.newKeySet();
     private String databaseFallbackReason = "none";
+    private String databaseSettingsFingerprint = "";
 
     @Override
     public void onEnable() {
@@ -152,6 +153,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         configureSkyblockHook();
 
         DatabaseService.Settings settings = databaseSettings();
+        databaseSettingsFingerprint = databaseSettingsFingerprint(settings);
         databaseFallbackReason = "none";
         database = new DatabaseService(this, settings);
         database.open();
@@ -171,15 +173,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         boosts.configure(configs.main());
         nodes = new ResourceNodeService(database);
         dirtySaves = new DirtySaveService(this, database);
-        if (database.activeBackend() == DatabaseService.StorageBackend.CORE_API && featureEnabled("addon-state")) {
-            coreApiState = new CoreApiSatisStateService(getLogger(), cloudIslandsApi, ADDON_ID);
-            database.coreStateWriter(coreApiState::publishRow);
-            database.coreTableWriter(coreApiState::publishTable);
-            database.coreGlobalStateWriter(coreApiState::publishGlobalRow);
-            coreApiState.hydrateGlobal(database);
-            dirtySaves.coreStatePublisher(coreApiState::publishDirtyBatch);
-            dirtySaves.coreStateDeletePublisher(delete -> coreApiState.removeRow(delete.islandUuid(), delete.key()));
-        }
+        configureCoreApiStateWriters();
         storage.dirtySaves(dirtySaves);
         islands.dirtySaves(dirtySaves);
         machines.dirtySaves(dirtySaves);
@@ -240,6 +234,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             stopRuntimeActivity();
             return;
         }
+        reloadDatabaseIfNeeded();
         configureSkyblockHook();
         boosts.configure(configs.main());
         loadDefinitions();
@@ -685,8 +680,90 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return;
         }
         if (placeholderHook == null) {
-            registerPlaceholders();
+        registerPlaceholders();
+    }
+
+    private void reloadDatabaseIfNeeded() {
+        DatabaseService.Settings settings = databaseSettings();
+        String nextFingerprint = databaseSettingsFingerprint(settings);
+        if (database != null && nextFingerprint.equals(databaseSettingsFingerprint)) {
+            configureCoreApiStateWriters();
+            return;
         }
+        if (ticker != null) {
+            ticker.stop();
+            ticker = null;
+        }
+        if (maintenanceTicker != null) {
+            maintenanceTicker.stop();
+            maintenanceTicker = null;
+        }
+        if (dirtySaves != null) {
+            dirtySaves.stop();
+            dirtySaves.discard();
+        }
+        closeOpenFactoryGuis();
+        machineListenerRegistered = unregisterListener(machineListener, machineListenerRegistered);
+        machineListener = null;
+        guiListenerRegistered = unregisterListener(guiListener, guiListenerRegistered);
+        guiListener = null;
+        lifecycleListenerRegistered = unregisterListener(lifecycleListener, lifecycleListenerRegistered);
+        lifecycleListener = null;
+        commandsRegistered = false;
+        if (database != null) {
+            database.coreStateWriter(null);
+            database.coreTableWriter(null);
+            database.coreGlobalStateWriter(null);
+            database.close();
+        }
+        databaseSettingsFingerprint = nextFingerprint;
+        databaseFallbackReason = "none";
+        database = new DatabaseService(this, settings);
+        database.open();
+        applyCoreApiDatabaseFallback(settings);
+        warnIfUnsharedDatabaseInCloudIslandsMode();
+        getLogger().info("Reloaded Satis database backend: " + database.activeBackend() + " (" + database.databaseDescription() + ")");
+        storage = new StorageService(database, configInt("storage.default-capacity", "limits.default-storage-capacity", 10000));
+        islands = new FactoryIslandService(skyblock, database);
+        machines = new MachineService(database, machineDefinitions, storage);
+        nodes = new ResourceNodeService(database);
+        dirtySaves = new DirtySaveService(this, database);
+        configureCoreApiStateWriters();
+        storage.dirtySaves(dirtySaves);
+        islands.dirtySaves(dirtySaves);
+        machines.dirtySaves(dirtySaves);
+        nodes.dirtySaves(dirtySaves);
+        itemNetworks = new ItemNetworkService(database, machines, machineDefinitions);
+        power = new PowerNetworkService(database, machines, machineDefinitions, recipes, storage);
+        market = new MarketService(storage, economy, database, itemRegistry, () -> featureEnabled("maintenance"));
+        contracts = new ContractService(storage, economy, database, boosts, () -> featureEnabled("maintenance"));
+        maintenance = new MaintenanceService(machines, economy, database);
+        research = new ResearchService(database, economy, () -> featureEnabled("maintenance"));
+        gui = new FactoryGuiService(storage, itemRegistry, machineDefinitions, recipes, islands, research, economy, messages, this::operationalFeatureEnabled);
+        coreHydratedIslands.clear();
+    }
+
+    private void configureCoreApiStateWriters() {
+        if (database == null || dirtySaves == null) {
+            return;
+        }
+        database.coreStateWriter(null);
+        database.coreTableWriter(null);
+        database.coreGlobalStateWriter(null);
+        dirtySaves.coreStatePublisher(null);
+        dirtySaves.coreStateDeletePublisher(null);
+        coreApiState = null;
+        if (database.activeBackend() != DatabaseService.StorageBackend.CORE_API || !featureEnabled("addon-state")) {
+            return;
+        }
+        coreApiState = new CoreApiSatisStateService(getLogger(), cloudIslandsApi, ADDON_ID);
+        database.coreStateWriter(coreApiState::publishRow);
+        database.coreTableWriter(coreApiState::publishTable);
+        database.coreGlobalStateWriter(coreApiState::publishGlobalRow);
+        coreApiState.hydrateGlobal(database);
+        dirtySaves.coreStatePublisher(coreApiState::publishDirtyBatch);
+        dirtySaves.coreStateDeletePublisher(delete -> coreApiState.removeRow(delete.islandUuid(), delete.key()));
+    }
     }
 
     private boolean registerCloudIslandsAddon() {
@@ -1703,6 +1780,32 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         );
     }
 
+    private String databaseSettingsFingerprint(DatabaseService.Settings settings) {
+        if (settings == null) {
+            return "";
+        }
+        String fallbackOrder = settings.fallbackOrder() == null
+                ? ""
+                : settings.fallbackOrder().stream()
+                .map(backend -> backend == null ? "" : backend.name())
+                .reduce((left, right) -> left + "," + right)
+                .orElse("");
+        return String.join("|",
+                settings.backend() == null ? "" : settings.backend().name(),
+                safe(settings.sqliteFileName()),
+                safe(settings.jdbcUrl()),
+                safe(settings.postgresqlJdbcUrl()),
+                safe(settings.mysqlJdbcUrl()),
+                safe(settings.mariadbJdbcUrl()),
+                safe(settings.username()),
+                Integer.toHexString(safe(settings.password()).hashCode()),
+                Integer.toString(settings.maxPoolSize()),
+                Long.toString(settings.connectionTimeoutMillis()),
+                Boolean.toString(settings.fallbackEnabled()),
+                fallbackOrder
+        );
+    }
+
     private List<DatabaseService.StorageBackend> databaseFallbackOrder() {
         List<String> configured = configs.main().getStringList("setup.database.fallback.order");
         if (configured == null || configured.isEmpty()) {
@@ -1791,6 +1894,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return first.trim();
         }
         return second == null ? "" : second.trim();
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value;
     }
 
     private String configuredDatabaseFileName() {
