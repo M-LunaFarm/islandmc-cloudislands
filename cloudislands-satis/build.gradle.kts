@@ -5,6 +5,9 @@ dependencies {
     compileOnly("com.github.MilkBowl:VaultAPI:1.7")
     compileOnly("me.clip:placeholderapi:2.11.6")
     implementation("org.xerial:sqlite-jdbc:3.46.1.0")
+    implementation("org.postgresql:postgresql:42.7.4")
+    implementation("com.mysql:mysql-connector-j:9.1.0")
+    implementation("org.mariadb.jdbc:mariadb-java-client:3.5.1")
     implementation("com.zaxxer:HikariCP:5.1.0")
     compileOnly(project(":cloudislands-api"))
 }

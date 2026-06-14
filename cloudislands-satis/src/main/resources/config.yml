@@ -64,9 +64,40 @@ economy:
   use-vault: true
   currency-symbol: "원"
 database:
+  # SQLITE, POSTGRESQL, MYSQL, MARIADB, CORE_API.
+  # CORE_API is reserved for a future CloudIslands table-storage endpoint; until that exists,
+  # it fails fast and uses the fallback chain below.
   type: SQLITE
+  fallback:
+    enabled: true
+    order:
+      - POSTGRESQL
+      - MYSQL
+      - SQLITE
+  jdbc:
+    # Optional shortcut. If set, it wins over host/database fields.
+    # Examples:
+    #   jdbc:postgresql://127.0.0.1:5432/cloudislands_satis
+    #   jdbc:mysql://127.0.0.1:3306/cloudislands_satis?useSSL=false&allowPublicKeyRetrieval=true
+    #   jdbc:mariadb://127.0.0.1:3306/cloudislands_satis
+    url: ""
+    username: ""
+    password: ""
+    max-pool-size: 8
+    connection-timeout-ms: 5000
+  mysql:
+    host: "127.0.0.1"
+    port: 3306
+    database: "cloudislands_satis"
+    options: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+  postgresql:
+    host: "127.0.0.1"
+    port: 5432
+    database: "cloudislands_satis"
+    options: "sslmode=disable"
   # Use one of these in multi-node CloudIslands setups so A/B island nodes share Satis state.
-  # Environment variable CLOUDISLANDS_SATIS_DB has the highest priority.
+  # Environment variable CLOUDISLANDS_SATIS_DB has the highest priority for SQLite file paths.
+  # Environment variable CLOUDISLANDS_SATIS_JDBC_URL has the highest priority for JDBC backends.
   path: ""
   shared-directory: "../CloudIslands/satis-state"
   sqlite-file: "data.db"

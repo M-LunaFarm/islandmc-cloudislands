@@ -27,21 +27,73 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 public final class DatabaseService {
+    public enum StorageBackend {
+        SQLITE,
+        POSTGRESQL,
+        MYSQL,
+        MARIADB,
+        CORE_API;
+
+        public static StorageBackend parse(String value, StorageBackend fallback) {
+            if (value == null || value.isBlank()) {
+                return fallback;
+            }
+            try {
+                return StorageBackend.valueOf(value.trim().replace('-', '_').toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException ignored) {
+                return fallback;
+            }
+        }
+    }
+
+    public record Settings(
+            StorageBackend backend,
+            String sqliteFileName,
+            String jdbcUrl,
+            String postgresqlJdbcUrl,
+            String mysqlJdbcUrl,
+            String mariadbJdbcUrl,
+            String username,
+            String password,
+            int maxPoolSize,
+            long connectionTimeoutMillis,
+            boolean fallbackEnabled,
+            List<StorageBackend> fallbackOrder
+    ) {
+        public static Settings sqlite(String sqliteFileName) {
+            return new Settings(StorageBackend.SQLITE, sqliteFileName, "", "", "", "", "", "", 4, 5000L, false, List.of());
+        }
+    }
+
+    private enum SqlDialect {
+        SQLITE,
+        POSTGRESQL,
+        MYSQL
+    }
+
     private final File dataFolder;
-    private final String sqliteFileName;
+    private final Settings settings;
     private HikariDataSource dataSource;
+    private StorageBackend activeBackend = StorageBackend.SQLITE;
+    private SqlDialect sqlDialect = SqlDialect.SQLITE;
+    private String activeDescription = "";
 
     public DatabaseService(JavaPlugin plugin) {
         this(plugin.getDataFolder());
     }
 
     public DatabaseService(JavaPlugin plugin, String sqliteFileName) {
-        this(plugin.getDataFolder(), sqliteFileName);
+        this(plugin.getDataFolder(), Settings.sqlite(sqliteFileName));
+    }
+
+    public DatabaseService(JavaPlugin plugin, Settings settings) {
+        this(plugin.getDataFolder(), settings);
     }
 
     DatabaseService(File dataFolder) {
@@ -49,14 +101,66 @@ public final class DatabaseService {
     }
 
     public DatabaseService(File dataFolder, String sqliteFileName) {
+        this(dataFolder, Settings.sqlite(sqliteFileName));
+    }
+
+    public DatabaseService(File dataFolder, Settings settings) {
         this.dataFolder = dataFolder;
-        this.sqliteFileName = sqliteFileName == null || sqliteFileName.isBlank() ? "data.db" : sqliteFileName;
+        this.settings = settings == null ? Settings.sqlite("data.db") : settings;
     }
 
     public void open() {
         if (dataSource != null && !dataSource.isClosed()) {
             return;
         }
+        List<StorageBackend> attempts = backendAttempts();
+        RuntimeException firstFailure = null;
+        for (StorageBackend backend : attempts) {
+            try {
+                openBackend(backend);
+                return;
+            } catch (RuntimeException exception) {
+                close();
+                if (firstFailure == null) {
+                    firstFailure = exception;
+                }
+            }
+        }
+        throw new IllegalStateException("Failed to open Satis database with backend chain " + attempts, firstFailure);
+    }
+
+    private List<StorageBackend> backendAttempts() {
+        List<StorageBackend> attempts = new ArrayList<>();
+        attempts.add(settings.backend() == null ? StorageBackend.SQLITE : settings.backend());
+        if (settings.fallbackEnabled()) {
+            List<StorageBackend> fallbackOrder = settings.fallbackOrder() == null ? List.of() : settings.fallbackOrder();
+            for (StorageBackend backend : fallbackOrder) {
+                if (backend != null && !attempts.contains(backend)) {
+                    attempts.add(backend);
+                }
+            }
+        }
+        return attempts;
+    }
+
+    private void openBackend(StorageBackend backend) {
+        if (backend == StorageBackend.CORE_API) {
+            throw new IllegalStateException("Satis core-api table storage is not available from this CloudIslands API yet");
+        }
+        if (backend == StorageBackend.SQLITE) {
+            openSqlite();
+            activeBackend = StorageBackend.SQLITE;
+            sqlDialect = SqlDialect.SQLITE;
+            activeDescription = databaseFile().getAbsolutePath();
+            return;
+        }
+        openJdbc(backend);
+        activeBackend = backend;
+        sqlDialect = backend == StorageBackend.POSTGRESQL ? SqlDialect.POSTGRESQL : SqlDialect.MYSQL;
+        activeDescription = safeJdbcDescription(jdbcUrl(backend));
+    }
+
+    private void openSqlite() {
         ensureDirectory(dataFolder, "Satis data folder");
         File database = databaseFile();
         File parent = database.getParentFile();
@@ -79,17 +183,76 @@ public final class DatabaseService {
         poolConfig.setDataSourceProperties(sqliteConfig.toProperties());
         dataSource = new HikariDataSource(poolConfig);
         try (Connection connection = connection()) {
-            new MigrationService().migrate(connection);
+            new MigrationService().migrate(connection, MigrationService.Dialect.SQLITE);
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to migrate SQLite database", exception);
         }
+    }
+
+    private void openJdbc(StorageBackend backend) {
+        String jdbcUrl = jdbcUrl(backend);
+        if (jdbcUrl.isBlank()) {
+            throw new IllegalStateException("Satis " + backend + " backend needs a JDBC URL");
+        }
+        HikariConfig poolConfig = new HikariConfig();
+        poolConfig.setJdbcUrl(jdbcUrl);
+        if (settings.username() != null && !settings.username().isBlank()) {
+            poolConfig.setUsername(settings.username());
+        }
+        if (settings.password() != null && !settings.password().isBlank()) {
+            poolConfig.setPassword(settings.password());
+        }
+        poolConfig.setMaximumPoolSize(Math.max(1, settings.maxPoolSize()));
+        poolConfig.setConnectionTimeout(Math.max(1000L, settings.connectionTimeoutMillis()));
+        poolConfig.setPoolName("SatisSkyFactory-" + backend.name());
+        dataSource = new HikariDataSource(poolConfig);
+        MigrationService.Dialect migrationDialect = backend == StorageBackend.POSTGRESQL
+                ? MigrationService.Dialect.POSTGRESQL
+                : MigrationService.Dialect.MYSQL;
+        try (Connection connection = connection()) {
+            new MigrationService().migrate(connection, migrationDialect);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to migrate " + backend + " database", exception);
+        }
+    }
+
+    private String jdbcUrl(StorageBackend backend) {
+        String configured = settings.jdbcUrl() == null ? "" : settings.jdbcUrl().trim();
+        if (!configured.isBlank()) {
+            return configured;
+        }
+        String backendUrl = switch (backend) {
+            case POSTGRESQL -> settings.postgresqlJdbcUrl();
+            case MYSQL -> settings.mysqlJdbcUrl();
+            case MARIADB -> settings.mariadbJdbcUrl();
+            default -> "";
+        };
+        return backendUrl == null ? "" : backendUrl.trim();
+    }
+
+    private String safeJdbcDescription(String jdbcUrl) {
+        if (jdbcUrl == null || jdbcUrl.isBlank()) {
+            return "";
+        }
+        int query = jdbcUrl.indexOf('?');
+        String withoutQuery = query >= 0 ? jdbcUrl.substring(0, query) : jdbcUrl;
+        return withoutQuery.replaceAll("(?i)(password=)[^;&]+", "$1***");
     }
 
     public File databasePath() {
         return databaseFile();
     }
 
+    public StorageBackend activeBackend() {
+        return activeBackend;
+    }
+
+    public String databaseDescription() {
+        return activeDescription == null || activeDescription.isBlank() ? databaseFile().getAbsolutePath() : activeDescription;
+    }
+
     private File databaseFile() {
+        String sqliteFileName = settings.sqliteFileName() == null || settings.sqliteFileName().isBlank() ? "data.db" : settings.sqliteFileName();
         File configured = new File(sqliteFileName);
         return configured.isAbsolute() ? configured : new File(dataFolder, sqliteFileName);
     }
@@ -159,6 +322,7 @@ public final class DatabaseService {
     }
 
     public LegacyImportResult importLegacyDatabase(File sourceDatabase) {
+        requireSqliteLegacyMigration();
         File source = legacySourceDatabase(sourceDatabase);
         List<String> copiedTables = new ArrayList<>();
         List<String> skippedTables = new ArrayList<>();
@@ -192,6 +356,7 @@ public final class DatabaseService {
     }
 
     public LegacyImportPlan scanLegacyDatabase(File sourceDatabase) {
+        requireSqliteLegacyMigration();
         File source = legacySourceDatabase(sourceDatabase);
         List<LegacyImportTablePlan> tables = new ArrayList<>();
         long importableRows = 0L;
@@ -263,6 +428,12 @@ public final class DatabaseService {
             statement.executeUpdate("DETACH DATABASE legacy_satis");
         } catch (SQLException ignored) {
             // Best effort cleanup after import failure.
+        }
+    }
+
+    private void requireSqliteLegacyMigration() {
+        if (sqlDialect != SqlDialect.SQLITE) {
+            throw new IllegalStateException("Legacy Satis SQLite import is only available while the active Satis backend is SQLITE");
         }
     }
 
@@ -475,20 +646,7 @@ public final class DatabaseService {
         }
         island.updatedAt(now);
         try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("""
-                     INSERT INTO factory_islands(island_uuid, owner_uuid, tier, research_points, reputation, maintenance_debt,
-                       maintenance_status, factory_score, last_maintenance_at, last_tick_at, emergency_contracts_used_today,
-                       active_world, active_center_x, active_center_y, active_center_z, created_at, updated_at)
-                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                     ON CONFLICT(island_uuid) DO UPDATE SET owner_uuid=excluded.owner_uuid, tier=excluded.tier,
-                       research_points=excluded.research_points, reputation=excluded.reputation,
-                       maintenance_debt=excluded.maintenance_debt, maintenance_status=excluded.maintenance_status,
-                       factory_score=excluded.factory_score, last_maintenance_at=excluded.last_maintenance_at,
-                       last_tick_at=excluded.last_tick_at, emergency_contracts_used_today=excluded.emergency_contracts_used_today,
-                       active_world=excluded.active_world, active_center_x=excluded.active_center_x,
-                       active_center_y=excluded.active_center_y, active_center_z=excluded.active_center_z,
-                       updated_at=excluded.updated_at
-                     """)) {
+             PreparedStatement statement = connection.prepareStatement(saveIslandSql())) {
             statement.setString(1, island.islandUuid().toString());
             statement.setString(2, island.ownerUuid().toString());
             statement.setInt(3, island.tier());
@@ -510,6 +668,39 @@ public final class DatabaseService {
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to save factory island", exception);
         }
+    }
+
+    private String saveIslandSql() {
+        if (sqlDialect == SqlDialect.MYSQL) {
+            return """
+                     INSERT INTO factory_islands(island_uuid, owner_uuid, tier, research_points, reputation, maintenance_debt,
+                       maintenance_status, factory_score, last_maintenance_at, last_tick_at, emergency_contracts_used_today,
+                       active_world, active_center_x, active_center_y, active_center_z, created_at, updated_at)
+                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE owner_uuid=VALUES(owner_uuid), tier=VALUES(tier),
+                       research_points=VALUES(research_points), reputation=VALUES(reputation),
+                       maintenance_debt=VALUES(maintenance_debt), maintenance_status=VALUES(maintenance_status),
+                       factory_score=VALUES(factory_score), last_maintenance_at=VALUES(last_maintenance_at),
+                       last_tick_at=VALUES(last_tick_at), emergency_contracts_used_today=VALUES(emergency_contracts_used_today),
+                       active_world=VALUES(active_world), active_center_x=VALUES(active_center_x),
+                       active_center_y=VALUES(active_center_y), active_center_z=VALUES(active_center_z),
+                       updated_at=VALUES(updated_at)
+                    """;
+        }
+        return """
+                     INSERT INTO factory_islands(island_uuid, owner_uuid, tier, research_points, reputation, maintenance_debt,
+                       maintenance_status, factory_score, last_maintenance_at, last_tick_at, emergency_contracts_used_today,
+                       active_world, active_center_x, active_center_y, active_center_z, created_at, updated_at)
+                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     ON CONFLICT(island_uuid) DO UPDATE SET owner_uuid=excluded.owner_uuid, tier=excluded.tier,
+                       research_points=excluded.research_points, reputation=excluded.reputation,
+                       maintenance_debt=excluded.maintenance_debt, maintenance_status=excluded.maintenance_status,
+                       factory_score=excluded.factory_score, last_maintenance_at=excluded.last_maintenance_at,
+                       last_tick_at=excluded.last_tick_at, emergency_contracts_used_today=excluded.emergency_contracts_used_today,
+                       active_world=excluded.active_world, active_center_x=excluded.active_center_x,
+                       active_center_y=excluded.active_center_y, active_center_z=excluded.active_center_z,
+                       updated_at=excluded.updated_at
+                    """;
     }
 
     public List<MachineInstance> loadMachines() {
@@ -554,17 +745,7 @@ public final class DatabaseService {
         }
         machine.updatedAt(now);
         try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("""
-                     INSERT INTO machines(machine_id, island_uuid, owner_uuid, type_id, tier, world, x, y, z, direction, status,
-                       input_inventory_id, output_inventory_id, power_network_id, item_network_id, linked_resource_node_id,
-                       last_process_at, wear, config_json, created_at, updated_at)
-                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                     ON CONFLICT(machine_id) DO UPDATE SET world=excluded.world, x=excluded.x, y=excluded.y, z=excluded.z,
-                       direction=excluded.direction, status=excluded.status, input_inventory_id=excluded.input_inventory_id,
-                       output_inventory_id=excluded.output_inventory_id, power_network_id=excluded.power_network_id,
-                       item_network_id=excluded.item_network_id, linked_resource_node_id=excluded.linked_resource_node_id,
-                       last_process_at=excluded.last_process_at, wear=excluded.wear, config_json=excluded.config_json, updated_at=excluded.updated_at
-                     """)) {
+             PreparedStatement statement = connection.prepareStatement(saveMachineSql())) {
             statement.setString(1, machine.machineId().toString());
             statement.setString(2, machine.islandUuid().toString());
             statement.setString(3, machine.ownerUuid().toString());
@@ -590,6 +771,34 @@ public final class DatabaseService {
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to save machine", exception);
         }
+    }
+
+    private String saveMachineSql() {
+        if (sqlDialect == SqlDialect.MYSQL) {
+            return """
+                     INSERT INTO machines(machine_id, island_uuid, owner_uuid, type_id, tier, world, x, y, z, direction, status,
+                       input_inventory_id, output_inventory_id, power_network_id, item_network_id, linked_resource_node_id,
+                       last_process_at, wear, config_json, created_at, updated_at)
+                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE world=VALUES(world), x=VALUES(x), y=VALUES(y), z=VALUES(z),
+                       direction=VALUES(direction), status=VALUES(status), input_inventory_id=VALUES(input_inventory_id),
+                       output_inventory_id=VALUES(output_inventory_id), power_network_id=VALUES(power_network_id),
+                       item_network_id=VALUES(item_network_id), linked_resource_node_id=VALUES(linked_resource_node_id),
+                       last_process_at=VALUES(last_process_at), wear=VALUES(wear), config_json=VALUES(config_json),
+                       updated_at=VALUES(updated_at)
+                    """;
+        }
+        return """
+                     INSERT INTO machines(machine_id, island_uuid, owner_uuid, type_id, tier, world, x, y, z, direction, status,
+                       input_inventory_id, output_inventory_id, power_network_id, item_network_id, linked_resource_node_id,
+                       last_process_at, wear, config_json, created_at, updated_at)
+                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     ON CONFLICT(machine_id) DO UPDATE SET world=excluded.world, x=excluded.x, y=excluded.y, z=excluded.z,
+                       direction=excluded.direction, status=excluded.status, input_inventory_id=excluded.input_inventory_id,
+                       output_inventory_id=excluded.output_inventory_id, power_network_id=excluded.power_network_id,
+                       item_network_id=excluded.item_network_id, linked_resource_node_id=excluded.linked_resource_node_id,
+                       last_process_at=excluded.last_process_at, wear=excluded.wear, config_json=excluded.config_json, updated_at=excluded.updated_at
+                    """;
     }
 
     private String selectedRecipeId(String json) {
@@ -946,11 +1155,7 @@ public final class DatabaseService {
         long now = Instant.now().toEpochMilli();
         try (Connection connection = connection()) {
             connection.setAutoCommit(false);
-            try (PreparedStatement inv = connection.prepareStatement("""
-                    INSERT INTO virtual_inventories(inventory_id, island_uuid, holder_type, holder_id, capacity, created_at, updated_at)
-                    VALUES(?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(inventory_id) DO UPDATE SET capacity=excluded.capacity, updated_at=excluded.updated_at
-                    """)) {
+            try (PreparedStatement inv = connection.prepareStatement(saveInventorySql())) {
                 inv.setString(1, inventory.inventoryId().toString());
                 inv.setString(2, inventory.islandUuid().toString());
                 inv.setString(3, inventory.holderType());
@@ -977,6 +1182,21 @@ public final class DatabaseService {
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to save inventory", exception);
         }
+    }
+
+    private String saveInventorySql() {
+        if (sqlDialect == SqlDialect.MYSQL) {
+            return """
+                    INSERT INTO virtual_inventories(inventory_id, island_uuid, holder_type, holder_id, capacity, created_at, updated_at)
+                    VALUES(?, ?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE capacity=VALUES(capacity), updated_at=VALUES(updated_at)
+                    """;
+        }
+        return """
+                    INSERT INTO virtual_inventories(inventory_id, island_uuid, holder_type, holder_id, capacity, created_at, updated_at)
+                    VALUES(?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(inventory_id) DO UPDATE SET capacity=excluded.capacity, updated_at=excluded.updated_at
+                    """;
     }
 
     public Optional<VirtualInventory> loadInventory(UUID inventoryId) {
@@ -1076,13 +1296,7 @@ public final class DatabaseService {
         }
         node.updatedAt(now);
         try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("""
-                     INSERT INTO resource_nodes(node_id, island_uuid, node_type, resource_id, purity, remaining, max_remaining,
-                       regen_per_hour, required_machine_tier, world, x, y, z, created_at, updated_at)
-                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                     ON CONFLICT(node_id) DO UPDATE SET remaining=excluded.remaining, world=excluded.world,
-                       x=excluded.x, y=excluded.y, z=excluded.z, updated_at=excluded.updated_at
-                     """)) {
+             PreparedStatement statement = connection.prepareStatement(saveNodeSql())) {
             statement.setString(1, node.nodeId().toString());
             statement.setString(2, node.islandUuid().toString());
             statement.setString(3, node.nodeType());
@@ -1102,6 +1316,25 @@ public final class DatabaseService {
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to save resource node", exception);
         }
+    }
+
+    private String saveNodeSql() {
+        if (sqlDialect == SqlDialect.MYSQL) {
+            return """
+                     INSERT INTO resource_nodes(node_id, island_uuid, node_type, resource_id, purity, remaining, max_remaining,
+                       regen_per_hour, required_machine_tier, world, x, y, z, created_at, updated_at)
+                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE remaining=VALUES(remaining), world=VALUES(world),
+                       x=VALUES(x), y=VALUES(y), z=VALUES(z), updated_at=VALUES(updated_at)
+                    """;
+        }
+        return """
+                     INSERT INTO resource_nodes(node_id, island_uuid, node_type, resource_id, purity, remaining, max_remaining,
+                       regen_per_hour, required_machine_tier, world, x, y, z, created_at, updated_at)
+                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     ON CONFLICT(node_id) DO UPDATE SET remaining=excluded.remaining, world=excluded.world,
+                       x=excluded.x, y=excluded.y, z=excluded.z, updated_at=excluded.updated_at
+                    """;
     }
 
     public void addLedger(UUID islandUuid, String type, long amount, String reason) {
@@ -1152,25 +1385,14 @@ public final class DatabaseService {
     public void recordMarketSale(UUID islandUuid, String itemId, String dateKey, long amount, double demandFactor) {
         try (Connection connection = connection()) {
             connection.setAutoCommit(false);
-            try (PreparedStatement daily = connection.prepareStatement("""
-                    INSERT INTO market_daily(item_id, date_key, sold_amount, demand_factor)
-                    VALUES(?, ?, ?, ?)
-                    ON CONFLICT(item_id, date_key) DO UPDATE SET
-                      sold_amount = sold_amount + excluded.sold_amount,
-                      demand_factor = excluded.demand_factor
-                    """)) {
+            try (PreparedStatement daily = connection.prepareStatement(recordMarketDailySql())) {
                 daily.setString(1, itemId);
                 daily.setString(2, dateKey);
                 daily.setLong(3, amount);
                 daily.setDouble(4, demandFactor);
                 daily.executeUpdate();
             }
-            try (PreparedStatement personal = connection.prepareStatement("""
-                    INSERT INTO market_personal_daily(island_uuid, item_id, date_key, sold_amount)
-                    VALUES(?, ?, ?, ?)
-                    ON CONFLICT(island_uuid, item_id, date_key) DO UPDATE SET
-                      sold_amount = sold_amount + excluded.sold_amount
-                    """)) {
+            try (PreparedStatement personal = connection.prepareStatement(recordMarketPersonalSql())) {
                 personal.setString(1, islandUuid.toString());
                 personal.setString(2, itemId);
                 personal.setString(3, dateKey);
@@ -1181,6 +1403,42 @@ public final class DatabaseService {
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to record market sale", exception);
         }
+    }
+
+    private String recordMarketDailySql() {
+        if (sqlDialect == SqlDialect.MYSQL) {
+            return """
+                    INSERT INTO market_daily(item_id, date_key, sold_amount, demand_factor)
+                    VALUES(?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE
+                      sold_amount = sold_amount + VALUES(sold_amount),
+                      demand_factor = VALUES(demand_factor)
+                    """;
+        }
+        return """
+                    INSERT INTO market_daily(item_id, date_key, sold_amount, demand_factor)
+                    VALUES(?, ?, ?, ?)
+                    ON CONFLICT(item_id, date_key) DO UPDATE SET
+                      sold_amount = sold_amount + excluded.sold_amount,
+                      demand_factor = excluded.demand_factor
+                    """;
+    }
+
+    private String recordMarketPersonalSql() {
+        if (sqlDialect == SqlDialect.MYSQL) {
+            return """
+                    INSERT INTO market_personal_daily(island_uuid, item_id, date_key, sold_amount)
+                    VALUES(?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE
+                      sold_amount = sold_amount + VALUES(sold_amount)
+                    """;
+        }
+        return """
+                    INSERT INTO market_personal_daily(island_uuid, item_id, date_key, sold_amount)
+                    VALUES(?, ?, ?, ?)
+                    ON CONFLICT(island_uuid, item_id, date_key) DO UPDATE SET
+                      sold_amount = sold_amount + excluded.sold_amount
+                    """;
     }
 
     public List<StoredContract> loadContracts(UUID islandUuid, String status) {
@@ -1250,13 +1508,7 @@ public final class DatabaseService {
     public void saveContract(StoredContract contract) {
         long now = Instant.now().toEpochMilli();
         try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("""
-                     INSERT INTO contracts(contract_id, island_uuid, template_id, contract_type, tier, required_json,
-                       progress_json, rewards_json, status, expires_at, created_at, updated_at)
-                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                     ON CONFLICT(contract_id) DO UPDATE SET progress_json=excluded.progress_json,
-                       status=excluded.status, updated_at=excluded.updated_at
-                     """)) {
+             PreparedStatement statement = connection.prepareStatement(saveContractSql())) {
             statement.setString(1, contract.contractId().toString());
             statement.setString(2, contract.islandUuid().toString());
             statement.setString(3, contract.templateId());
@@ -1273,6 +1525,25 @@ public final class DatabaseService {
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to save contract", exception);
         }
+    }
+
+    private String saveContractSql() {
+        if (sqlDialect == SqlDialect.MYSQL) {
+            return """
+                     INSERT INTO contracts(contract_id, island_uuid, template_id, contract_type, tier, required_json,
+                       progress_json, rewards_json, status, expires_at, created_at, updated_at)
+                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE progress_json=VALUES(progress_json),
+                       status=VALUES(status), updated_at=VALUES(updated_at)
+                    """;
+        }
+        return """
+                     INSERT INTO contracts(contract_id, island_uuid, template_id, contract_type, tier, required_json,
+                       progress_json, rewards_json, status, expires_at, created_at, updated_at)
+                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     ON CONFLICT(contract_id) DO UPDATE SET progress_json=excluded.progress_json,
+                       status=excluded.status, updated_at=excluded.updated_at
+                    """;
     }
 
     public void updateContractStatus(UUID contractId, String status, String progressJson) {
@@ -1308,10 +1579,7 @@ public final class DatabaseService {
 
     public void saveUnlock(UUID islandUuid, String unlockId) {
         try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("""
-                     INSERT OR IGNORE INTO island_unlocks(island_uuid, unlock_id, unlocked_at)
-                     VALUES(?, ?, ?)
-                     """)) {
+             PreparedStatement statement = connection.prepareStatement(saveUnlockSql())) {
             statement.setString(1, islandUuid.toString());
             statement.setString(2, unlockId);
             statement.setLong(3, Instant.now().toEpochMilli());
@@ -1319,6 +1587,26 @@ public final class DatabaseService {
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to save unlock", exception);
         }
+    }
+
+    private String saveUnlockSql() {
+        if (sqlDialect == SqlDialect.MYSQL) {
+            return """
+                     INSERT IGNORE INTO island_unlocks(island_uuid, unlock_id, unlocked_at)
+                     VALUES(?, ?, ?)
+                    """;
+        }
+        if (sqlDialect == SqlDialect.POSTGRESQL) {
+            return """
+                     INSERT INTO island_unlocks(island_uuid, unlock_id, unlocked_at)
+                     VALUES(?, ?, ?)
+                     ON CONFLICT(island_uuid, unlock_id) DO NOTHING
+                    """;
+        }
+        return """
+                     INSERT OR IGNORE INTO island_unlocks(island_uuid, unlock_id, unlocked_at)
+                     VALUES(?, ?, ?)
+                    """;
     }
 
     private void loadInventoryItems(Connection connection, VirtualInventory inventory) throws SQLException {

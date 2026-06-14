@@ -146,10 +146,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         configureSkyblockHook();
 
-        database = new DatabaseService(this, resolveDatabaseFileName());
+        database = new DatabaseService(this, databaseSettings());
         database.open();
         warnIfUnsharedDatabaseInCloudIslandsMode();
-        getLogger().info("Satis database path: " + database.databasePath().getAbsolutePath());
+        getLogger().info("Satis database backend: " + database.activeBackend() + " (" + database.databaseDescription() + ")");
 
         economy = EconomyModeFactory.create(this, configs.main());
         itemRegistry = new ItemRegistry();
@@ -1620,12 +1620,80 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return sqliteFile;
     }
 
+    private DatabaseService.Settings databaseSettings() {
+        DatabaseService.StorageBackend backend = DatabaseService.StorageBackend.parse(
+                configs.main().getString("database.type", "SQLITE"), DatabaseService.StorageBackend.SQLITE);
+        return new DatabaseService.Settings(
+                backend,
+                resolveDatabaseFileName(),
+                firstNonBlank(System.getenv("CLOUDISLANDS_SATIS_JDBC_URL"), configs.main().getString("database.jdbc.url", "")),
+                jdbcUrl("postgresql", "jdbc:postgresql", 5432),
+                jdbcUrl("mysql", "jdbc:mysql", 3306),
+                jdbcUrl("mariadb", "jdbc:mariadb", 3306),
+                configs.main().getString("database.jdbc.username", ""),
+                configs.main().getString("database.jdbc.password", ""),
+                Math.max(1, configs.main().getInt("database.jdbc.max-pool-size", 8)),
+                Math.max(1000L, configs.main().getLong("database.jdbc.connection-timeout-ms", 5000L)),
+                configs.main().getBoolean("database.fallback.enabled", true),
+                databaseFallbackOrder()
+        );
+    }
+
+    private List<DatabaseService.StorageBackend> databaseFallbackOrder() {
+        List<String> configured = configs.main().getStringList("database.fallback.order");
+        if (configured == null || configured.isEmpty()) {
+            configured = List.of("POSTGRESQL", "MYSQL", "SQLITE");
+        }
+        List<DatabaseService.StorageBackend> backends = new ArrayList<>();
+        for (String entry : configured) {
+            DatabaseService.StorageBackend backend = DatabaseService.StorageBackend.parse(entry, null);
+            if (backend != null && !backends.contains(backend)) {
+                backends.add(backend);
+            }
+        }
+        return backends;
+    }
+
+    private String jdbcUrl(String section, String prefix, int defaultPort) {
+        String configured = configs.main().getString("database." + section + ".url", "");
+        if (configured != null && !configured.isBlank()) {
+            return configured.trim();
+        }
+        String host = configs.main().getString("database." + section + ".host", "127.0.0.1");
+        String databaseName = configs.main().getString("database." + section + ".database", "");
+        if (host == null || host.isBlank() || databaseName == null || databaseName.isBlank()) {
+            return "";
+        }
+        int port = Math.max(1, configs.main().getInt("database." + section + ".port", defaultPort));
+        String options = configs.main().getString("database." + section + ".options", "");
+        String url = prefix + "://" + host.trim() + ":" + port + "/" + databaseName.trim();
+        if (options != null && !options.isBlank()) {
+            url += "?" + options.trim();
+        }
+        return url;
+    }
+
+    private String firstNonBlank(String first, String second) {
+        if (first != null && !first.isBlank()) {
+            return first.trim();
+        }
+        return second == null ? "" : second.trim();
+    }
+
     private String configuredDatabaseFileName() {
         String sqliteFile = configs.main().getString("database.sqlite-file", "data.db");
         return sqliteFile == null || sqliteFile.isBlank() ? "data.db" : sqliteFile.trim();
     }
 
     private String databaseScope() {
+        DatabaseService.StorageBackend backend = DatabaseService.StorageBackend.parse(
+                configs.main().getString("database.type", "SQLITE"), DatabaseService.StorageBackend.SQLITE);
+        if (backend == DatabaseService.StorageBackend.CORE_API) {
+            return "CORE_API";
+        }
+        if (backend != DatabaseService.StorageBackend.SQLITE) {
+            return backend.name();
+        }
         String envPath = System.getenv("CLOUDISLANDS_SATIS_DB");
         if (envPath != null && !envPath.isBlank()) {
             return "ENV_SHARED";
@@ -1643,10 +1711,18 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private boolean databaseShared() {
         String scope = databaseScope();
+        if (scope.equals("POSTGRESQL") || scope.equals("MYSQL") || scope.equals("MARIADB") || scope.equals("CORE_API")) {
+            return true;
+        }
         return !scope.equals("PLUGIN_LOCAL") && !scope.equals("PLUGIN_RELATIVE_PATH");
     }
 
     private String databaseConfigSource() {
+        DatabaseService.StorageBackend backend = DatabaseService.StorageBackend.parse(
+                configs.main().getString("database.type", "SQLITE"), DatabaseService.StorageBackend.SQLITE);
+        if (backend != DatabaseService.StorageBackend.SQLITE) {
+            return "database.type";
+        }
         String envPath = System.getenv("CLOUDISLANDS_SATIS_DB");
         if (envPath != null && !envPath.isBlank()) {
             return "CLOUDISLANDS_SATIS_DB";
