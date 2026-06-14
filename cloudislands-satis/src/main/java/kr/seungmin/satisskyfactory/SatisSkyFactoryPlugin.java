@@ -881,6 +881,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-credentials-source", databaseCredentialsSource());
         metadata.put("database-pool-source", databasePoolSource());
         metadata.put("database-fallback-source", databaseFallbackSource());
+        metadata.put("database-fallback-env", "CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED,CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER");
         metadata.put("database-file", configuredDatabaseFileName());
         metadata.put("database-path", resolveDatabaseFileName());
         metadata.put("database-shared", Boolean.toString(databaseShared()));
@@ -1049,6 +1050,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-credentials-source", databaseCredentialsSource());
         state.put("database-pool-source", databasePoolSource());
         state.put("database-fallback-source", databaseFallbackSource());
+        state.put("database-fallback-env", "CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED,CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER");
         state.put("database-path", resolveDatabaseFileName());
         state.put("database-open", Boolean.toString(database != null));
         state.put("satis-state-schema", "3");
@@ -1086,6 +1088,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-credentials-source", databaseCredentialsSource());
         state.put("database-pool-source", databasePoolSource());
         state.put("database-fallback-source", databaseFallbackSource());
+        state.put("database-fallback-env", "CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED,CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER");
         state.put("database-path", resolveDatabaseFileName());
         state.put("database-open", Boolean.toString(database != null));
         state.put("satis-state-schema", "3");
