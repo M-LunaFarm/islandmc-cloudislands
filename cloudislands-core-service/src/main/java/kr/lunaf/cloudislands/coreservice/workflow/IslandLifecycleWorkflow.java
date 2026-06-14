@@ -309,6 +309,9 @@ public final class IslandLifecycleWorkflow {
         if (runtime == null) {
             return true;
         }
+        if (runtime.state() == IslandState.RECOVERY_REQUIRED) {
+            return true;
+        }
         if (runtime.activeNode() != null && !runtime.activeNode().isBlank()) {
             return false;
         }
