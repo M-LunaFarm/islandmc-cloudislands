@@ -699,6 +699,10 @@ public final class AdminFactoryCommand {
             state = Map.of("status", "unavailable", "error", exception.getMessage() == null ? "unknown" : exception.getMessage());
         }
         Map<String, String> visible = new LinkedHashMap<>(state);
+        if (database != null) {
+            visible.put("local.database-active-backend", database.activeBackend().name());
+            visible.put("local.database-description", database.databaseDescription());
+        }
         if (sender instanceof Player player && addonIslandState != null) {
             islands.context(player).ifPresent(context -> {
                 Map<String, String> islandState;
