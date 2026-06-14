@@ -1251,6 +1251,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (islands == null) {
             return;
         }
+        hydrateSatisIslandFromCore(islandId);
         islands.find(islandId).ifPresent(island -> {
             org.bukkit.Location activeCenter = activeIslandCenter(islandId);
             if (activeCenter != null && activeCenter.getWorld() != null) {
@@ -1279,6 +1280,28 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             islands.save(island);
             publishLifecycleState(islandId, operation, island);
         });
+    }
+
+    private void hydrateSatisIslandFromCore(UUID islandId) {
+        if (islandId == null || database == null || coreApiState == null) {
+            return;
+        }
+        if (database.activeBackend() != DatabaseService.StorageBackend.CORE_API) {
+            return;
+        }
+        if (islands != null && islands.find(islandId).isPresent()) {
+            return;
+        }
+        if (coreApiState.hydrateIsland(islandId, database)) {
+            refreshIslandCache();
+            refreshMachineCache();
+            if (nodes != null) {
+                nodes.forgetIsland(islandId);
+            }
+            if (storage != null) {
+                storage.forgetIsland(islandId);
+            }
+        }
     }
 
     private org.bukkit.Location activeIslandCenter(UUID islandId) {
