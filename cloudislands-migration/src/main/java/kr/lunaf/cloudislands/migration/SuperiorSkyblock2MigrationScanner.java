@@ -432,27 +432,196 @@ public final class SuperiorSkyblock2MigrationScanner {
 
     private List<MigrationBlockValue> parseBlockValues(String content) {
         LinkedHashMap<String, MigrationBlockValue> values = new LinkedHashMap<>();
-        Matcher matcher = Pattern.compile("blockValues\\.([A-Za-z0-9:_/-]+)\\.(?:worth|level|levelPoints|limit)").matcher(content);
+        Matcher matcher = Pattern.compile("(blockValues|block-values|block_values|worthValues|worth-values|worth_values)\\.([A-Za-z0-9:_/-]+)\\.(?:worth|value|price|level|levelPoints|points|limit|max)").matcher(content);
         while (matcher.find()) {
-            String materialKey = matcher.group(1).toLowerCase();
-            String prefix = "blockValues." + materialKey + ".";
-            String worth = parseString(content, prefix + "worth", "0.00");
-            long levelPoints = parseLong(content, prefix + "levelPoints", parseLong(content, prefix + "level", 0L));
-            long limit = parseLong(content, prefix + "limit", 0L);
+            String root = matcher.group(1);
+            String rawMaterialKey = matcher.group(2);
+            String materialKey = safeMaterialKey(rawMaterialKey);
+            String prefix = root + "." + rawMaterialKey + ".";
+            String worth = parseString(content, prefix + "worth", parseString(content, prefix + "value", parseString(content, prefix + "price", "0.00")));
+            long levelPoints = parseLong(content, prefix + "levelPoints", parseLong(content, prefix + "points", parseLong(content, prefix + "level", 0L)));
+            long limit = parseLong(content, prefix + "limit", parseLong(content, prefix + "max", 0L));
             values.putIfAbsent(materialKey, new MigrationBlockValue(materialKey, worth, levelPoints, limit));
         }
+        addYamlBlockValues(values, content, "blockValues", "block-values", "block_values", "worthValues", "worth-values", "worth_values");
         return List.copyOf(values.values());
     }
 
     private List<MigrationBlockCount> parseBlockCounts(String content) {
         LinkedHashMap<String, MigrationBlockCount> counts = new LinkedHashMap<>();
-        Matcher matcher = Pattern.compile("blockCounts\\.([A-Za-z0-9:_/-]+)").matcher(content);
+        Matcher matcher = Pattern.compile("(blockCounts|block-counts|block_counts|blockAmounts|block-amounts|block_amounts|blocks)\\.([A-Za-z0-9:_/-]+)").matcher(content);
         while (matcher.find()) {
-            String materialKey = matcher.group(1).toLowerCase();
-            long count = Math.max(0L, parseLong(content, "blockCounts." + materialKey, 0L));
+            String root = matcher.group(1);
+            String rawMaterialKey = matcher.group(2);
+            String materialKey = safeMaterialKey(rawMaterialKey);
+            long count = Math.max(0L, parseLong(content, root + "." + rawMaterialKey, 0L));
             counts.putIfAbsent(materialKey, new MigrationBlockCount(materialKey, count));
         }
+        addYamlBlockCounts(counts, content, "blockCounts", "block-counts", "block_counts", "blockAmounts", "block-amounts", "block_amounts", "blocks");
         return List.copyOf(counts.values());
+    }
+
+    private void addYamlBlockValues(LinkedHashMap<String, MigrationBlockValue> values, String content, String... roots) {
+        String[] lines = content.split("\\R");
+        for (String root : roots) {
+            for (int index = 0; index < lines.length; index++) {
+                String line = lines[index];
+                String trimmed = line.trim();
+                if (trimmed.isEmpty() || trimmed.startsWith("#") || !root.equals(yamlKey(trimmed))) {
+                    continue;
+                }
+                int parentIndent = line.indexOf(trimmed);
+                int child = index + 1;
+                while (child < lines.length) {
+                    String childLine = lines[child];
+                    String childTrimmed = childLine.trim();
+                    if (childTrimmed.isEmpty() || childTrimmed.startsWith("#")) {
+                        child++;
+                        continue;
+                    }
+                    int childIndent = childLine.indexOf(childTrimmed);
+                    if (childIndent <= parentIndent) {
+                        break;
+                    }
+                    String materialKey = safeMaterialKey(yamlKey(childTrimmed));
+                    if (materialKey.isBlank()) {
+                        child++;
+                        continue;
+                    }
+                    String inlineValue = yamlValue(childTrimmed);
+                    String worth = inlineValue.isBlank() || inlineValue.startsWith("{") ? inlineMapValue(inlineValue, "worth", inlineMapValue(inlineValue, "value", inlineMapValue(inlineValue, "price", "0.00"))) : inlineValue;
+                    long levelPoints = parseLongLiteral(inlineMapValue(inlineValue, "levelPoints", inlineMapValue(inlineValue, "points", inlineMapValue(inlineValue, "level", "0"))), 0L);
+                    long limit = parseLongLiteral(inlineMapValue(inlineValue, "limit", inlineMapValue(inlineValue, "max", "0")), 0L);
+                    int grand = child + 1;
+                    while (grand < lines.length) {
+                        String grandLine = lines[grand];
+                        String grandTrimmed = grandLine.trim();
+                        if (grandTrimmed.isEmpty() || grandTrimmed.startsWith("#")) {
+                            grand++;
+                            continue;
+                        }
+                        int grandIndent = grandLine.indexOf(grandTrimmed);
+                        if (grandIndent <= childIndent) {
+                            break;
+                        }
+                        String key = yamlKey(grandTrimmed);
+                        String value = yamlValue(grandTrimmed);
+                        if (matchesAny(key, "worth", "value", "price")) {
+                            worth = value.isBlank() ? worth : value;
+                        } else if (matchesAny(key, "levelPoints", "level-points", "points", "level")) {
+                            levelPoints = parseLongLiteral(value, levelPoints);
+                        } else if (matchesAny(key, "limit", "max", "blockLimit", "block-limit")) {
+                            limit = parseLongLiteral(value, limit);
+                        }
+                        grand++;
+                    }
+                    values.putIfAbsent(materialKey, new MigrationBlockValue(materialKey, worth, Math.max(0L, levelPoints), Math.max(0L, limit)));
+                    child = grand;
+                }
+            }
+        }
+    }
+
+    private void addYamlBlockCounts(LinkedHashMap<String, MigrationBlockCount> counts, String content, String... roots) {
+        String[] lines = content.split("\\R");
+        for (String root : roots) {
+            for (int index = 0; index < lines.length; index++) {
+                String line = lines[index];
+                String trimmed = line.trim();
+                if (trimmed.isEmpty() || trimmed.startsWith("#") || !root.equals(yamlKey(trimmed))) {
+                    continue;
+                }
+                int parentIndent = line.indexOf(trimmed);
+                for (int child = index + 1; child < lines.length; child++) {
+                    String childLine = lines[child];
+                    String childTrimmed = childLine.trim();
+                    if (childTrimmed.isEmpty() || childTrimmed.startsWith("#")) {
+                        continue;
+                    }
+                    int childIndent = childLine.indexOf(childTrimmed);
+                    if (childIndent <= parentIndent) {
+                        break;
+                    }
+                    String materialKey = safeMaterialKey(yamlKey(childTrimmed));
+                    String value = yamlValue(childTrimmed);
+                    if (!materialKey.isBlank() && !value.isBlank()) {
+                        counts.putIfAbsent(materialKey, new MigrationBlockCount(materialKey, Math.max(0L, parseLongLiteral(value, 0L))));
+                    }
+                }
+            }
+        }
+    }
+
+    private String yamlKey(String trimmedLine) {
+        String line = trimmedLine;
+        if (line.startsWith("-")) {
+            line = line.substring(1).trim();
+        }
+        int colon = line.indexOf(':');
+        if (colon < 0) {
+            return "";
+        }
+        String key = line.substring(0, colon).trim();
+        if ((key.startsWith("\"") && key.endsWith("\"")) || (key.startsWith("'") && key.endsWith("'"))) {
+            key = key.substring(1, key.length() - 1);
+        }
+        return key.trim();
+    }
+
+    private String yamlValue(String trimmedLine) {
+        String line = trimmedLine;
+        if (line.startsWith("-")) {
+            line = line.substring(1).trim();
+        }
+        int colon = line.indexOf(':');
+        if (colon < 0) {
+            return "";
+        }
+        return cleanScalar(line.substring(colon + 1).trim());
+    }
+
+    private String inlineMapValue(String text, String key, String fallback) {
+        if (text == null || text.isBlank()) {
+            return fallback;
+        }
+        Matcher matcher = Pattern.compile("(?i)(?:^|[,{\\s])\"?" + Pattern.quote(key) + "\"?\\s*[:=]\\s*\"?([^,}\\s\"]+)\"?").matcher(text);
+        return matcher.find() ? cleanScalar(matcher.group(1)) : fallback;
+    }
+
+    private long parseLongLiteral(String value, long fallback) {
+        try {
+            return Long.parseLong(cleanScalar(value));
+        } catch (NumberFormatException exception) {
+            return fallback;
+        }
+    }
+
+    private boolean matchesAny(String value, String... candidates) {
+        for (String candidate : candidates) {
+            if (candidate.equalsIgnoreCase(value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String safeMaterialKey(String materialKey) {
+        return cleanScalar(materialKey).toLowerCase().replace(' ', '_');
+    }
+
+    private String cleanScalar(String value) {
+        String cleaned = value == null ? "" : value.trim();
+        if (cleaned.startsWith("{") && cleaned.endsWith("}")) {
+            return cleaned;
+        }
+        if ((cleaned.startsWith("\"") && cleaned.endsWith("\"")) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+            cleaned = cleaned.substring(1, cleaned.length() - 1);
+        }
+        int comment = cleaned.indexOf(" #");
+        if (comment >= 0) {
+            cleaned = cleaned.substring(0, comment).trim();
+        }
+        return cleaned;
     }
 
     private void addLimit(String content, List<MigrationLimit> limits, String limitKey, String... keys) {
