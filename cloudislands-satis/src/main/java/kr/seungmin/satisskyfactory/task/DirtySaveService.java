@@ -22,11 +22,20 @@ public final class DirtySaveService {
     private final Map<UUID, ResourceNode> nodes = new ConcurrentHashMap<>();
     private final Map<UUID, FactoryIsland> islands = new ConcurrentHashMap<>();
     private final Object flushLock = new Object();
+    private Consumer<DirtySaveBatch> coreStatePublisher;
     private BukkitTask task;
 
     public DirtySaveService(JavaPlugin plugin, DatabaseService database) {
         this.plugin = plugin;
         this.database = database;
+    }
+
+    public record DirtySaveBatch(Map<UUID, MachineInstance> machines, Map<UUID, VirtualInventory> inventories,
+                                 Map<UUID, ResourceNode> nodes, Map<UUID, FactoryIsland> islands) {
+    }
+
+    public void coreStatePublisher(Consumer<DirtySaveBatch> coreStatePublisher) {
+        this.coreStatePublisher = coreStatePublisher;
     }
 
     public void start(long intervalTicks) {
@@ -141,10 +150,15 @@ public final class DirtySaveService {
 
     private void flush() {
         synchronized (flushLock) {
-            saveBatch("inventory", drain(inventories), inventories, database::saveInventory);
-            saveBatch("machine", drain(machines), machines, database::saveMachine);
-            saveBatch("node", drain(nodes), nodes, database::saveNode);
-            saveBatch("island", drain(islands), islands, database::saveIsland);
+            Map<UUID, VirtualInventory> inventoryBatch = drain(inventories);
+            Map<UUID, MachineInstance> machineBatch = drain(machines);
+            Map<UUID, ResourceNode> nodeBatch = drain(nodes);
+            Map<UUID, FactoryIsland> islandBatch = drain(islands);
+            saveBatch("inventory", inventoryBatch, inventories, database::saveInventory);
+            saveBatch("machine", machineBatch, machines, database::saveMachine);
+            saveBatch("node", nodeBatch, nodes, database::saveNode);
+            saveBatch("island", islandBatch, islands, database::saveIsland);
+            publishCoreState(machineBatch, inventoryBatch, nodeBatch, islandBatch);
         }
     }
 
@@ -153,13 +167,38 @@ public final class DirtySaveService {
             return;
         }
         synchronized (flushLock) {
-            saveBatch("inventory", drainIsland(inventories, islandUuid), inventories, database::saveInventory);
-            saveBatch("machine", drainIsland(machines, islandUuid), machines, database::saveMachine);
-            saveBatch("node", drainIsland(nodes, islandUuid), nodes, database::saveNode);
+            Map<UUID, VirtualInventory> inventoryBatch = drainIsland(inventories, islandUuid);
+            Map<UUID, MachineInstance> machineBatch = drainIsland(machines, islandUuid);
+            Map<UUID, ResourceNode> nodeBatch = drainIsland(nodes, islandUuid);
             FactoryIsland island = islands.remove(islandUuid);
+            Map<UUID, FactoryIsland> islandBatch = island == null ? Map.of() : Map.of(islandUuid, island);
+            saveBatch("inventory", inventoryBatch, inventories, database::saveInventory);
+            saveBatch("machine", machineBatch, machines, database::saveMachine);
+            saveBatch("node", nodeBatch, nodes, database::saveNode);
             if (island != null) {
-                saveBatch("island", Map.of(islandUuid, island), islands, database::saveIsland);
+                saveBatch("island", islandBatch, islands, database::saveIsland);
             }
+            publishCoreState(machineBatch, inventoryBatch, nodeBatch, islandBatch);
+        }
+    }
+
+    private void publishCoreState(Map<UUID, MachineInstance> machineBatch, Map<UUID, VirtualInventory> inventoryBatch,
+                                  Map<UUID, ResourceNode> nodeBatch, Map<UUID, FactoryIsland> islandBatch) {
+        if (coreStatePublisher == null) {
+            return;
+        }
+        if (machineBatch.isEmpty() && inventoryBatch.isEmpty() && nodeBatch.isEmpty() && islandBatch.isEmpty()) {
+            return;
+        }
+        try {
+            coreStatePublisher.accept(new DirtySaveBatch(
+                    Map.copyOf(machineBatch),
+                    Map.copyOf(inventoryBatch),
+                    Map.copyOf(nodeBatch),
+                    Map.copyOf(islandBatch)
+            ));
+        } catch (RuntimeException exception) {
+            plugin.getLogger().warning("Core API Satis state publish failed: " + exception.getMessage());
         }
     }
 

@@ -51,6 +51,7 @@ import kr.seungmin.satisskyfactory.node.ResourceNodeService;
 import kr.seungmin.satisskyfactory.power.PowerNetworkService;
 import kr.seungmin.satisskyfactory.recipe.RecipeService;
 import kr.seungmin.satisskyfactory.research.ResearchService;
+import kr.seungmin.satisskyfactory.storage.CoreApiSatisStateService;
 import kr.seungmin.satisskyfactory.storage.StorageService;
 import kr.seungmin.satisskyfactory.task.DirtySaveService;
 import kr.seungmin.satisskyfactory.task.MachineTickService;
@@ -102,6 +103,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private ResearchService research;
     private FactoryGuiService gui;
     private DirtySaveService dirtySaves;
+    private CoreApiSatisStateService coreApiState;
     private MachineTickService ticker;
     private MaintenanceTickService maintenanceTicker;
     private PlaceholderHook placeholderHook;
@@ -163,6 +165,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         boosts.configure(configs.main());
         nodes = new ResourceNodeService(database);
         dirtySaves = new DirtySaveService(this, database);
+        if (database.activeBackend() == DatabaseService.StorageBackend.CORE_API && featureEnabled("addon-state")) {
+            coreApiState = new CoreApiSatisStateService(getLogger(), cloudIslandsApi, ADDON_ID);
+            dirtySaves.coreStatePublisher(coreApiState::publishDirtyBatch);
+        }
         storage.dirtySaves(dirtySaves);
         islands.dirtySaves(dirtySaves);
         machines.dirtySaves(dirtySaves);
@@ -1327,6 +1333,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (dirtySaves != null) {
             dirtySaves.discard();
         }
+        coreApiState = null;
         if (placeholderHook != null) {
             placeholderHook.unregister();
             placeholderHook = null;

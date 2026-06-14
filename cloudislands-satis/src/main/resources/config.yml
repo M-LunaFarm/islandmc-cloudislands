@@ -65,8 +65,8 @@ economy:
   currency-symbol: "원"
 database:
   # SQLITE, POSTGRESQL, MYSQL, MARIADB, CORE_API.
-  # CORE_API is reserved for a future CloudIslands table-storage endpoint; until that exists,
-  # it fails fast and uses the fallback chain below.
+  # CORE_API stores Satis table rows as island-scoped CloudIslands addon-state keys and keeps
+  # a local SQLite cache for fast runtime reads.
   type: SQLITE
   fallback:
     enabled: true

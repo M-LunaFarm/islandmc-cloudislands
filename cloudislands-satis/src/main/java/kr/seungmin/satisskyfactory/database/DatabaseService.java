@@ -145,7 +145,11 @@ public final class DatabaseService {
 
     private void openBackend(StorageBackend backend) {
         if (backend == StorageBackend.CORE_API) {
-            throw new IllegalStateException("Satis core-api table storage is not available from this CloudIslands API yet");
+            openSqlite();
+            activeBackend = StorageBackend.CORE_API;
+            sqlDialect = SqlDialect.SQLITE;
+            activeDescription = "cloudislands-addon-state-with-local-sqlite-cache:" + databaseFile().getAbsolutePath();
+            return;
         }
         if (backend == StorageBackend.SQLITE) {
             openSqlite();
