@@ -2,6 +2,13 @@ plugin:
   language: "ko_kr"
   debug: false
 
+setup-core-api:
+  # Optional first-install Core API connection block. Empty values fall back to core-api below.
+  base-url: ""
+  auth-token: ""
+  admin-token: ""
+  timeout-ms: 0
+
 core-api:
   base-url: "https://core-api.internal:8443"
   auth-token: "${CI_CORE_TOKEN}"

@@ -122,10 +122,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         String velocityServerName = getConfig().getString("node.velocity-server-name", nodeId);
         AgentRole role = AgentRole.valueOf(getConfig().getString("node.role", "ISLAND_NODE"));
         CoreApiClient client = new JdkCoreApiClient(
-            URI.create(getConfig().getString("core-api.base-url", "https://core-api.internal:8443")),
+            URI.create(coreApiBaseUrl()),
             coreApiToken(),
             coreAdminToken(),
-            Duration.ofMillis(Math.max(1L, getConfig().getLong("core-api.timeout-ms", 3000L)))
+            Duration.ofMillis(coreApiTimeoutMillis())
         );
         this.agent = new CloudIslandsPaperAgent(this, role, client, nodeId);
         this.localCaches = new LocalCacheManager();
@@ -510,7 +510,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         if (envToken != null && !envToken.isBlank()) {
             return envToken;
         }
-        return resolveEnv(getConfig().getString("core-api.auth-token", ""));
+        return setupString("setup.core-api.auth-token", "core-api.auth-token", "");
     }
 
     private String coreAdminToken() {
@@ -518,7 +518,25 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         if (envToken != null && !envToken.isBlank()) {
             return envToken;
         }
-        return resolveEnv(getConfig().getString("core-api.admin-token", ""));
+        return setupString("setup.core-api.admin-token", "core-api.admin-token", "");
+    }
+
+    private String coreApiBaseUrl() {
+        return setupString("setup.core-api.base-url", "core-api.base-url", "https://core-api.internal:8443");
+    }
+
+    private long coreApiTimeoutMillis() {
+        long setupTimeout = getConfig().getLong("setup.core-api.timeout-ms", 0L);
+        long timeout = setupTimeout > 0L ? setupTimeout : getConfig().getLong("core-api.timeout-ms", 3000L);
+        return Math.max(1L, timeout);
+    }
+
+    private String setupString(String setupPath, String legacyPath, String fallback) {
+        String value = getConfig().getString(setupPath, "");
+        if (value == null || value.isBlank()) {
+            value = getConfig().getString(legacyPath, fallback);
+        }
+        return resolveEnv(value);
     }
 
     private void logSecurityPosture() {

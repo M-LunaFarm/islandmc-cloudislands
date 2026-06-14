@@ -134,10 +134,10 @@ public final class CloudIslandsVelocityPlugin {
         return new VelocityConfig(
             values.getOrDefault("plugin.language", "ko_kr"),
             bool(values.get("plugin.debug"), false),
-            values.getOrDefault("core-api.base-url", "https://core-api.internal:8443"),
-            values.getOrDefault("core-api.auth-token", ""),
-            values.getOrDefault("core-api.admin-token", ""),
-            integer(values.get("core-api.timeout-ms"), 3000),
+            value(values, "setup-core-api.base-url", value(values, "core-api.base-url", "https://core-api.internal:8443")),
+            value(values, "setup-core-api.auth-token", value(values, "core-api.auth-token", "")),
+            value(values, "setup-core-api.admin-token", value(values, "core-api.admin-token", "")),
+            positiveInteger(values.get("setup-core-api.timeout-ms"), integer(values.get("core-api.timeout-ms"), 3000)),
             values.getOrDefault("routing.fallback-on-failure", values.getOrDefault("routing.default-lobby", "Lobby")),
             integer(values.get("routing.wait-for-activation-timeout-seconds"), 20),
             values.getOrDefault("routing.island-pool", "island"),
@@ -186,12 +186,22 @@ public final class CloudIslandsVelocityPlugin {
         return trimmed;
     }
 
+    private static String value(Map<String, String> values, String key, String fallback) {
+        String value = values.get(key);
+        return value == null || value.isBlank() ? fallback : value;
+    }
+
     private static int integer(String value, int fallback) {
         try {
             return value == null || value.isBlank() ? fallback : Integer.parseInt(value);
         } catch (NumberFormatException exception) {
             return fallback;
         }
+    }
+
+    private static int positiveInteger(String value, int fallback) {
+        int parsed = integer(value, fallback);
+        return parsed <= 0 ? fallback : parsed;
     }
 
     private static boolean bool(String value, boolean fallback) {
