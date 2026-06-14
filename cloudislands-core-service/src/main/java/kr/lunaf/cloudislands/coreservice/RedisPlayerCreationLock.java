@@ -3,8 +3,10 @@ package kr.lunaf.cloudislands.coreservice;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
 import kr.lunaf.cloudislands.common.cache.RedisTtls;
@@ -14,6 +16,7 @@ public final class RedisPlayerCreationLock {
     private final URI redisUri;
     private final long ttlMillis;
     private final AtomicLong failures = new AtomicLong();
+    private final Map<UUID, LocalLock> localLocks = new ConcurrentHashMap<>();
 
     public RedisPlayerCreationLock(URI redisUri, Duration ttl) {
         this.redisUri = redisUri;
@@ -35,7 +38,7 @@ public final class RedisPlayerCreationLock {
             return Optional.empty();
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
-            return Optional.empty();
+            return acquireLocal(playerUuid, token);
         }
     }
 
@@ -50,6 +53,8 @@ public final class RedisPlayerCreationLock {
             }
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
+        } finally {
+            releaseLocal(lease);
         }
     }
 
@@ -58,4 +63,21 @@ public final class RedisPlayerCreationLock {
     }
 
     public record Lease(UUID playerUuid, String token) {}
+
+    private Optional<Lease> acquireLocal(UUID playerUuid, String token) {
+        if (playerUuid == null) {
+            return Optional.empty();
+        }
+        long now = System.currentTimeMillis();
+        long expiresAt = now + ttlMillis;
+        LocalLock next = new LocalLock(token, expiresAt);
+        LocalLock lock = localLocks.compute(playerUuid, (_key, current) -> current == null || current.expiresAt() <= now ? next : current);
+        return next.equals(lock) ? Optional.of(new Lease(playerUuid, token)) : Optional.empty();
+    }
+
+    private void releaseLocal(Lease lease) {
+        localLocks.computeIfPresent(lease.playerUuid(), (_key, current) -> lease.token().equals(current.token()) ? null : current);
+    }
+
+    private record LocalLock(String token, long expiresAt) {}
 }
