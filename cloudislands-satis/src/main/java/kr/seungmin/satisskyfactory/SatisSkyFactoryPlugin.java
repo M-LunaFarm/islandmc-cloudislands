@@ -1302,7 +1302,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandActivated(IslandActivatedEvent event) {
-        String operation = "activated:" + lifecycleNode(event.nodeId()) + lifecycleWorldToken(event.worldName());
+        String operation = "activated:" + lifecycleNode(event.nodeId()) + lifecycleWorldToken(event.worldName()) + lifecycleCellToken(event.cellX(), event.cellZ());
         runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
     }
 
@@ -1319,7 +1319,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandMigrated(IslandMigratedEvent event) {
-        String operation = "migrated:" + lifecycleNode(event.fromNode()) + "->" + lifecycleNode(event.toNode()) + lifecycleWorldToken(event.worldName());
+        String operation = "migrated:" + lifecycleNode(event.fromNode()) + "->" + lifecycleNode(event.toNode()) + lifecycleWorldToken(event.worldName()) + lifecycleCellToken(event.cellX(), event.cellZ());
         runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
     }
 
@@ -1451,12 +1451,18 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return safeWorld.isBlank() ? "" : "@" + safeWorld;
     }
 
+    private String lifecycleCellToken(int cellX, int cellZ) {
+        return "#" + cellX + "," + cellZ;
+    }
+
     private String lifecycleNodePart(String nodeId) {
         if (nodeId == null || nodeId.isBlank()) {
             return "";
         }
         int worldSeparator = nodeId.indexOf('@');
-        return lifecycleNode(worldSeparator < 0 ? nodeId : nodeId.substring(0, worldSeparator));
+        int cellSeparator = nodeId.indexOf('#');
+        int end = worldSeparator < 0 ? cellSeparator : (cellSeparator < 0 ? worldSeparator : Math.min(worldSeparator, cellSeparator));
+        return lifecycleNode(end < 0 ? nodeId : nodeId.substring(0, end));
     }
 
     private String lifecycleActiveNode(String operation) {
@@ -1495,7 +1501,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (worldSeparator < 0 || worldSeparator + 1 >= operation.length()) {
             return "";
         }
-        return lifecycleWorld(operation.substring(worldSeparator + 1));
+        String world = operation.substring(worldSeparator + 1);
+        int cellSeparator = world.indexOf('#');
+        return lifecycleWorld(cellSeparator < 0 ? world : world.substring(0, cellSeparator));
     }
 
     private void synchronizeSatisIsland(UUID islandId) {

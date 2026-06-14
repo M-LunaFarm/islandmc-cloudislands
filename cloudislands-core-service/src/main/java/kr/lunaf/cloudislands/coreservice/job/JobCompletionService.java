@@ -82,7 +82,14 @@ public final class JobCompletionService {
             }
             setIslandState(job.islandId(), IslandState.ACTIVE);
             int readyTickets = tickets.markReadyForIsland(job.islandId(), job.targetNode(), worldName, Instant.now().plus(routeTicketTtl), Map.of());
-            events.publish(job.type() == IslandJobType.RESET_ISLAND ? CloudIslandEventType.ISLAND_RESET.name() : CloudIslandEventType.ISLAND_ACTIVATED.name(), Map.of("islandId", job.islandId().toString(), "nodeId", job.targetNode() == null ? "" : job.targetNode(), "readyTickets", Integer.toString(readyTickets)));
+            events.publish(job.type() == IslandJobType.RESET_ISLAND ? CloudIslandEventType.ISLAND_RESET.name() : CloudIslandEventType.ISLAND_ACTIVATED.name(), Map.of(
+                "islandId", job.islandId().toString(),
+                "nodeId", job.targetNode() == null ? "" : job.targetNode(),
+                "worldName", worldName,
+                "cellX", job.payload().getOrDefault("cellX", "0"),
+                "cellZ", job.payload().getOrDefault("cellZ", "0"),
+                "readyTickets", Integer.toString(readyTickets)
+            ));
             return;
         }
         if (job.type() == IslandJobType.DEACTIVATE_ISLAND) {
@@ -154,6 +161,8 @@ public final class JobCompletionService {
                 "fromNode", job.payload().getOrDefault("sourceNode", ""),
                 "targetNode", job.targetNode() == null ? "" : job.targetNode(),
                 "worldName", worldName,
+                "cellX", job.payload().getOrDefault("cellX", "0"),
+                "cellZ", job.payload().getOrDefault("cellZ", "0"),
                 "fencingToken", job.payload().getOrDefault("fencingToken", "0"),
                 "readyTickets", Integer.toString(readyTickets)
             ));
