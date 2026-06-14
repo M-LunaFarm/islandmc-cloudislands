@@ -145,8 +145,8 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         }
         if (enabled("maintenance")) {
             maintenance.chargeIfDue(island, player, factoryContext.islandRef().raw());
+            islands.save(island);
         }
-        islands.save(island);
         switch (sub) {
             case "help", "commands", "command", "command-list", "명령어", "명령어목록" -> help(player, label, helpPage(args));
             case "main" -> {
