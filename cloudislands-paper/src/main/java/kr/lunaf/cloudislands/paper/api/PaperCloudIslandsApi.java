@@ -193,6 +193,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         private final Map<String, CloudIslandsAddon> addonObjects = new ConcurrentHashMap<>();
         private final Map<String, CloudIslandsAddonSnapshot> addons = new ConcurrentHashMap<>();
         private final Map<String, Map<String, String>> addonStates = new ConcurrentHashMap<>();
+        private final Map<String, Map<UUID, Map<String, String>>> addonIslandStates = new ConcurrentHashMap<>();
         private GlobalEventSubscription eventSubscription;
         private boolean eventSubscriptionStarting;
 
@@ -473,6 +474,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             registrations.remove(safeId);
             addons.remove(safeId);
             addonStates.remove(safeId);
+            addonIslandStates.remove(safeId);
             CloudIslandsAddon addon = addonObjects.remove(safeId);
             if (addon != null) {
                 notifyUnregistered(addon);
@@ -684,7 +686,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             }
             return coreClient.addonIslandState(safeId, islandId)
                 .thenApply(this::stateFromJson)
-                .exceptionally(_error -> Map.of());
+                .thenApply(state -> {
+                    writeAddonIslandState(safeId, islandId, state);
+                    return state;
+                })
+                .exceptionally(_error -> readAddonIslandState(safeId, islandId));
         }
 
         @Override
@@ -699,14 +705,31 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (!addonAcceptsIslandStateWrites(safeId)) {
                 return islandState(safeId, islandId);
             }
-            CompletableFuture<Map<String, String>> result = CompletableFuture.completedFuture(Map.of());
+            Map<String, String> localState = new HashMap<>(readAddonIslandState(safeId, islandId));
+            Map<String, String> changedState = new HashMap<>();
+            values.forEach((key, value) -> {
+                if (key != null && !key.isBlank() && value != null) {
+                    localState.put(key, value);
+                    changedState.put(key, value);
+                }
+            });
+            if (changedState.isEmpty()) {
+                return CompletableFuture.completedFuture(Map.copyOf(localState));
+            }
+            writeAddonIslandState(safeId, islandId, localState);
+            CompletableFuture<Map<String, String>> result = CompletableFuture.completedFuture(Map.copyOf(localState));
             for (Map.Entry<String, String> entry : values.entrySet()) {
                 if (entry.getKey() == null || entry.getKey().isBlank() || entry.getValue() == null) {
                     continue;
                 }
                 result = result.thenCompose(_ignored -> coreClient.putAddonIslandState(safeId, islandId, entry.getKey(), entry.getValue()).thenApply(this::stateFromJson));
             }
-            return result.exceptionally(_error -> Map.of());
+            return result
+                .thenApply(state -> {
+                    writeAddonIslandState(safeId, islandId, state);
+                    return state;
+                })
+                .exceptionally(_error -> Map.copyOf(localState));
         }
 
         @Override
@@ -721,9 +744,16 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (!addonAcceptsIslandStateWrites(safeId)) {
                 return islandState(safeId, islandId);
             }
+            Map<String, String> state = new HashMap<>(readAddonIslandState(safeId, islandId));
+            state.remove(key);
+            writeAddonIslandState(safeId, islandId, state);
             return coreClient.removeAddonIslandState(safeId, islandId, key)
                 .thenApply(this::stateFromJson)
-                .exceptionally(_error -> Map.of());
+                .thenApply(coreState -> {
+                    writeAddonIslandState(safeId, islandId, coreState);
+                    return coreState;
+                })
+                .exceptionally(_error -> Map.copyOf(state));
         }
 
         @Override
@@ -734,6 +764,15 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             String safeId = safeRegistrationId(id);
             if (!addonAcceptsIslandStateWrites(safeId)) {
                 return CompletableFuture.completedFuture(null);
+            }
+            Map<UUID, Map<String, String>> islandStates = addonIslandStates.get(safeId);
+            if (islandStates != null) {
+                islandStates.remove(islandId);
+            }
+            try {
+                Files.deleteIfExists(addonIslandStatePath(safeId, islandId));
+            } catch (IOException exception) {
+                plugin.getLogger().warning("CloudIslands addon island state clear failed for " + safeId + "/" + islandId + ": " + exception.getMessage());
             }
             return coreClient.clearAddonIslandState(safeId, islandId).thenApply(_body -> null).exceptionally(_error -> null);
         }
@@ -870,11 +909,73 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             }
         }
 
+        private Map<String, String> readAddonIslandState(String id, UUID islandId) {
+            if (islandId == null) {
+                return Map.of();
+            }
+            String safeId = safeRegistrationId(id);
+            Map<UUID, Map<String, String>> islandStates = addonIslandStates.computeIfAbsent(safeId, _key -> new ConcurrentHashMap<>());
+            Map<String, String> cached = islandStates.get(islandId);
+            if (cached != null) {
+                return cached;
+            }
+            Path path = addonIslandStatePath(safeId, islandId);
+            if (!Files.exists(path)) {
+                islandStates.put(islandId, Map.of());
+                return Map.of();
+            }
+            Properties properties = new Properties();
+            try (InputStream input = Files.newInputStream(path)) {
+                properties.load(input);
+            } catch (IOException exception) {
+                plugin.getLogger().warning("CloudIslands addon island state read failed for " + safeId + "/" + islandId + ": " + exception.getMessage());
+                return Map.of();
+            }
+            Map<String, String> state = new HashMap<>();
+            for (String key : properties.stringPropertyNames()) {
+                state.put(key, properties.getProperty(key));
+            }
+            Map<String, String> immutable = Map.copyOf(state);
+            islandStates.put(islandId, immutable);
+            return immutable;
+        }
+
+        private void writeAddonIslandState(String id, UUID islandId, Map<String, String> state) {
+            if (islandId == null) {
+                return;
+            }
+            String safeId = safeRegistrationId(id);
+            Path path = addonIslandStatePath(safeId, islandId);
+            try {
+                Files.createDirectories(path.getParent());
+                Properties properties = new Properties();
+                state.forEach((key, value) -> {
+                    if (key != null && !key.isBlank() && value != null) {
+                        properties.setProperty(key, value);
+                    }
+                });
+                try (OutputStream output = Files.newOutputStream(path)) {
+                    properties.store(output, "CloudIslands addon island state");
+                }
+                addonIslandStates.computeIfAbsent(safeId, _key -> new ConcurrentHashMap<>()).put(islandId, Map.copyOf(state));
+            } catch (IOException exception) {
+                plugin.getLogger().warning("CloudIslands addon island state write failed for " + safeId + "/" + islandId + ": " + exception.getMessage());
+            }
+        }
+
         private Path addonStatePath(String id) {
             return plugin.getDataFolder().toPath()
                 .resolve("addons")
                 .resolve(stateDirectoryName(id))
                 .resolve("state.properties");
+        }
+
+        private Path addonIslandStatePath(String id, UUID islandId) {
+            return plugin.getDataFolder().toPath()
+                .resolve("addons")
+                .resolve(stateDirectoryName(id))
+                .resolve("islands")
+                .resolve(islandId + ".properties");
         }
 
         private String stateDirectoryName(String id) {
