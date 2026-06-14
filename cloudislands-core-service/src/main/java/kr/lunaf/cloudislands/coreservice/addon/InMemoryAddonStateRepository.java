@@ -62,11 +62,15 @@ public final class InMemoryAddonStateRepository implements AddonStateRepository 
             return Map.copyOf(state);
         }
         String safePrefix = keyPrefix.trim();
-        state.keySet().removeIf(key -> key.startsWith(safePrefix));
-        safeValues(values).forEach((key, value) -> {
-            AddonStateRepository.requireKeyCapacity(state, key);
-            state.put(key, value);
-        });
+        Map<String, String> safeValues = safeValues(values);
+        Map<String, String> next = new ConcurrentHashMap<>(state);
+        next.keySet().removeIf(key -> key.startsWith(safePrefix));
+        if (next.size() + safeValues.keySet().stream().filter(key -> !next.containsKey(key)).count() > AddonStateRepository.MAX_KEYS_PER_ADDON) {
+            throw new IllegalArgumentException("Addon state key limit reached");
+        }
+        next.putAll(safeValues);
+        state.clear();
+        state.putAll(next);
         return Map.copyOf(state);
     }
 
@@ -129,11 +133,15 @@ public final class InMemoryAddonStateRepository implements AddonStateRepository 
             return Map.copyOf(state);
         }
         String safePrefix = keyPrefix.trim();
-        state.keySet().removeIf(key -> key.startsWith(safePrefix));
-        safeValues(values).forEach((key, value) -> {
-            AddonStateRepository.requireKeyCapacity(state, key);
-            state.put(key, value);
-        });
+        Map<String, String> safeValues = safeValues(values);
+        Map<String, String> next = new ConcurrentHashMap<>(state);
+        next.keySet().removeIf(key -> key.startsWith(safePrefix));
+        if (next.size() + safeValues.keySet().stream().filter(key -> !next.containsKey(key)).count() > AddonStateRepository.MAX_KEYS_PER_ADDON) {
+            throw new IllegalArgumentException("Addon island state key limit reached");
+        }
+        next.putAll(safeValues);
+        state.clear();
+        state.putAll(next);
         return Map.copyOf(state);
     }
 
