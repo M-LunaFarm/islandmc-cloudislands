@@ -599,6 +599,7 @@ public final class AdminFactoryCommand {
         Map<String, String> state = new LinkedHashMap<>();
         state.put("satis-schema", "3");
         state.put("satis-storage-key", "cloudislands-island-uuid");
+        state.put("superior-migration-input-only", "true");
         state.put("superior-runtime-dependency", "false");
         state.put("superior-import-scan", "/ciadmin migrate-superiorskyblock2 scan [path]");
         state.put("superior-import-dryrun", "/ciadmin migrate-superiorskyblock2 dryrun [path]");

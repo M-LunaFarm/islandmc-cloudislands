@@ -952,6 +952,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 "addon-packaging", "external-plugin",
                 "extension-model", "superiorskyblock-style-addon",
                 "removable-addon", "true",
+                "superior-migration-input-only", "true",
                 "superior-runtime-dependency", "false",
                 "cloudislands-api-only", "true",
                 "feature-gate-scope", "global-and-per-feature",
