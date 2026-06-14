@@ -600,8 +600,15 @@ public final class AdminFactoryCommand {
         state.put("satis-schema", "3");
         state.put("satis-storage-key", "cloudislands-island-uuid");
         state.put("superior-runtime-dependency", "false");
-        state.put("superior-import-path", "/ciadmin migrate-superiorskyblock2 scan|dryrun|import|verify|rollback");
-        state.put("satismc-import-path", "/factory admin migration scan|dryrun|verify|import <sqlitePath>");
+        state.put("superior-import-scan", "/ciadmin migrate-superiorskyblock2 scan [path]");
+        state.put("superior-import-dryrun", "/ciadmin migrate-superiorskyblock2 dryrun [path]");
+        state.put("superior-import-import", "/ciadmin migrate-superiorskyblock2 import <approvalToken>");
+        state.put("superior-import-verify", "/ciadmin migrate-superiorskyblock2 verify [path]");
+        state.put("superior-import-rollback", "/ciadmin migrate-superiorskyblock2 rollback [path]");
+        state.put("satismc-import-scan", "/factory admin migration scan <sqlitePath>");
+        state.put("satismc-import-dryrun", "/factory admin migration dryrun <sqlitePath>");
+        state.put("satismc-import-verify", "/factory admin migration verify <sqlitePath>");
+        state.put("satismc-import-import", "/factory admin migration import <sqlitePath>");
         state.put("satismc-import-mode", "cross-backend-sqlite-copy");
         state.put("satismc-rollback-mode", "manual-restore-from-backup");
         state.put("feature-gate", "migration=" + enabled("migration"));
