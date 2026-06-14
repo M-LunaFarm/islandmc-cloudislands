@@ -1149,6 +1149,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String eventNode = lifecycleEventNode(safeOperation);
         String activeNode = lifecycleActiveNode(safeOperation);
         String eventWorld = lifecycleEventWorld(safeOperation);
+        String eventCell = lifecycleEventCell(safeOperation);
         Map<String, String> state = new LinkedHashMap<>();
         state.put("last-lifecycle-island", islandId.toString());
         state.put("last-lifecycle-operation", safeOperation);
@@ -1166,6 +1167,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (!eventWorld.isBlank()) {
             state.put("last-lifecycle-active-world", eventWorld);
+        }
+        if (!eventCell.isBlank()) {
+            state.put("last-lifecycle-active-cell", eventCell);
         }
         if (island != null && island.hasActiveCenter()) {
             state.put("last-lifecycle-active-world", island.activeWorld());
@@ -1188,6 +1192,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String eventNode = lifecycleEventNode(safeOperation);
         String activeNode = lifecycleActiveNode(safeOperation);
         String eventWorld = lifecycleEventWorld(safeOperation);
+        String eventCell = lifecycleEventCell(safeOperation);
         Map<String, String> state = new LinkedHashMap<>();
         state.put("last-lifecycle-island", islandId.toString());
         state.put("last-lifecycle-operation", safeOperation);
@@ -1206,6 +1211,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (!eventWorld.isBlank()) {
             state.put("last-lifecycle-active-world", eventWorld);
         }
+        if (!eventCell.isBlank()) {
+            state.put("last-lifecycle-active-cell", eventCell);
+        }
         cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
             getLogger().warning("Failed to publish CloudIslands Satis lifecycle failure: " + error.getMessage());
             return Map.of();
@@ -1221,6 +1229,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String eventNode = lifecycleEventNode(safeOperation);
         String activeNode = lifecycleActiveNode(safeOperation);
         String eventWorld = lifecycleEventWorld(safeOperation);
+        String eventCell = lifecycleEventCell(safeOperation);
         Map<String, String> state = new LinkedHashMap<>();
         state.put("island", islandId.toString());
         state.put("operation", safeOperation);
@@ -1239,6 +1248,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (!eventWorld.isBlank()) {
             state.put("active-world", eventWorld);
+        }
+        if (!eventCell.isBlank()) {
+            state.put("active-cell", eventCell);
         }
         if (island != null && island.hasActiveCenter()) {
             state.put("active-world", island.activeWorld());
@@ -1519,6 +1531,19 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String world = operation.substring(worldSeparator + 1);
         int cellSeparator = world.indexOf('#');
         return lifecycleWorld(cellSeparator < 0 ? world : world.substring(0, cellSeparator));
+    }
+
+    private String lifecycleEventCell(String operation) {
+        if (operation == null) {
+            return "";
+        }
+        int cellSeparator = operation.indexOf('#');
+        if (cellSeparator < 0 || cellSeparator + 1 >= operation.length()) {
+            return "";
+        }
+        String cell = operation.substring(cellSeparator + 1);
+        int separator = cell.indexOf(' ');
+        return separator < 0 ? cell : cell.substring(0, separator);
     }
 
     private void synchronizeSatisIsland(UUID islandId) {
