@@ -376,6 +376,8 @@ messages:
     admin-command-core-config-setup-fallback-backends-prefix: " setupFallbackBackends="
     admin-command-core-config-setup-fallback-mode-prefix: " setupFallbackMode="
     admin-command-core-config-setup-db-operational-modes-prefix: " setupDbModes="
+    admin-command-core-config-setup-db-loader-prefix: " setupDbLoader="
+    admin-command-core-config-setup-db-paths-prefix: " setupDbPaths="
     admin-command-core-config-setup-db-shapes-prefix: " setupDbShapes="
     admin-command-core-config-setup-db-typed-shapes-prefix: " setupDbTypedShapes="
     admin-command-core-config-setup-db-typed-host-mode-prefix: " setupDbTypedHostMode="
