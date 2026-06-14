@@ -85,10 +85,14 @@ public final class DatabaseService {
     private SqlDialect sqlDialect = SqlDialect.SQLITE;
     private String activeDescription = "";
     private Consumer<CoreRowWrite> coreStateWriter;
+    private Consumer<CoreTableWrite> coreTableWriter;
     private Consumer<CoreGlobalRowWrite> coreGlobalStateWriter;
     private boolean coreStatePublishingSuspended;
 
     public record CoreRowWrite(UUID islandUuid, String key, String value) {
+    }
+
+    public record CoreTableWrite(UUID islandUuid, String table, java.util.Map<String, String> values) {
     }
 
     public record CoreGlobalRowWrite(String key, String value) {
@@ -299,6 +303,10 @@ public final class DatabaseService {
 
     public void coreStateWriter(Consumer<CoreRowWrite> coreStateWriter) {
         this.coreStateWriter = coreStateWriter;
+    }
+
+    public void coreTableWriter(Consumer<CoreTableWrite> coreTableWriter) {
+        this.coreTableWriter = coreTableWriter;
     }
 
     public void coreGlobalStateWriter(Consumer<CoreGlobalRowWrite> coreGlobalStateWriter) {
@@ -1795,20 +1803,36 @@ public final class DatabaseService {
         if (islandUuid == null || networks == null) {
             return;
         }
-        publishCoreRow(islandUuid, "table/item_networks/index", "{\"networkIds\":\"" + escape(networkIdsCsv(networks)) + "\"}");
+        java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>();
+        values.put("index", "{\"networkIds\":\"" + escape(networkIdsCsv(networks)) + "\"}");
         for (ItemNetwork network : networks) {
-            publishCoreRow(islandUuid, "table/item_networks/" + network.networkId(), itemNetworkJson(network));
+            values.put(network.networkId().toString(), itemNetworkJson(network));
         }
+        publishCoreTable(islandUuid, "item_networks", values);
     }
 
     private void publishPowerNetworks(UUID islandUuid, List<PowerNetwork> networks) {
         if (islandUuid == null || networks == null) {
             return;
         }
-        publishCoreRow(islandUuid, "table/power_networks/index", "{\"networkIds\":\"" + escape(networkIdsCsv(networks)) + "\"}");
+        java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>();
+        values.put("index", "{\"networkIds\":\"" + escape(networkIdsCsv(networks)) + "\"}");
         for (PowerNetwork network : networks) {
-            publishCoreRow(islandUuid, "table/power_networks/" + network.networkId(), powerNetworkJson(network));
+            values.put(network.networkId().toString(), powerNetworkJson(network));
         }
+        publishCoreTable(islandUuid, "power_networks", values);
+    }
+
+    private void publishCoreTable(UUID islandUuid, String table, java.util.Map<String, String> values) {
+        if (coreStatePublishingSuspended || islandUuid == null || table == null || table.isBlank() || values == null || values.isEmpty()) {
+            return;
+        }
+        if (coreTableWriter != null) {
+            coreTableWriter.accept(new CoreTableWrite(islandUuid, table, java.util.Map.copyOf(values)));
+            return;
+        }
+        String safeTable = table.startsWith("table/") ? table.substring("table/".length()) : table;
+        values.forEach((key, value) -> publishCoreRow(islandUuid, "table/" + safeTable + "/" + key, value));
     }
 
     private String itemNetworkJson(ItemNetwork network) {

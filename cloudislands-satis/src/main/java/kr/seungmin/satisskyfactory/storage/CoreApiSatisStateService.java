@@ -78,6 +78,19 @@ public final class CoreApiSatisStateService {
         });
     }
 
+    public void publishTable(DatabaseService.CoreTableWrite table) {
+        if (cloudIslandsApi == null || table == null || table.islandUuid() == null || table.table() == null || table.table().isBlank()) {
+            return;
+        }
+        if (table.values() == null || table.values().isEmpty()) {
+            return;
+        }
+        cloudIslandsApi.addons().putIslandTableState(addonId, table.islandUuid(), table.table(), table.values()).exceptionally(error -> {
+            logger.warning("Failed to publish Satis core-api table " + table.table() + " for island " + table.islandUuid() + ": " + error.getMessage());
+            return Map.of();
+        });
+    }
+
     public void publishGlobalRow(DatabaseService.CoreGlobalRowWrite row) {
         if (cloudIslandsApi == null || row == null || row.key() == null || row.key().isBlank()) {
             return;
