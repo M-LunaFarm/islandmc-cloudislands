@@ -2473,6 +2473,8 @@ public final class CloudIslandsCoreApplication {
             + "\"coreSetupDatabaseJdbcAliases\":\"CI_JDBC_URL,setup.database.jdbc-url,setup.jdbc-url,database.jdbc-url\","
             + "\"coreSetupDatabaseTypeInference\":\"CI_DATABASE_TYPE,setup.database.type,setup.database-type,setup.database.core-api.enabled,CI_JDBC_URL,setup.database.jdbc-url,setup.jdbc-url,setup.database.postgresql.jdbc-url,setup.database.postgresql.url,setup.database.mysql.jdbc-url,setup.database.mysql.url,setup.database.mariadb.jdbc-url,setup.database.mariadb.url,typed-host-name,database.jdbc-url\","
             + "\"coreJdbcFallbackReason\":\"" + escape(coreJdbcFallbackReason(config)) + "\","
+            + "\"coreJdbcFallbackActive\":" + coreJdbcFallbackActive(config) + ","
+            + "\"coreJdbcFallbackStatus\":\"" + escape(coreJdbcFallbackStatus(config)) + "\","
             + "\"addonStateBulkSaveApi\":true,"
             + "\"addonStateBulkSaveGlobalEndpoint\":\"/v1/addons/state/table-key-value/bulk-save\","
             + "\"addonStateBulkSaveIslandEndpoint\":\"/v1/addons/islands/state/table-key-value/bulk-save\","
@@ -2535,6 +2537,19 @@ public final class CloudIslandsCoreApplication {
             return "CORE_JDBC_POSTGRESQL_ONLY";
         }
         return "CORE_JDBC_DISABLED_FOR_" + jdbcBackend(config.jdbcUrl());
+    }
+
+    private static boolean coreJdbcFallbackActive(CoreServiceConfig config) {
+        String reason = coreJdbcFallbackReason(config);
+        return reason != null && !reason.isBlank();
+    }
+
+    private static String coreJdbcFallbackStatus(CoreServiceConfig config) {
+        if (!coreJdbcFallbackActive(config)) {
+            return "native-postgresql-jdbc";
+        }
+        return "active:repo=" + (config.jdbcRepositories() ? "JDBC" : "IN_MEMORY")
+            + ",jobs=" + (config.jdbcJobs() ? "JDBC" : config.redisJobs() ? "REDIS" : "IN_MEMORY");
     }
 
     private static void logSecurityPosture(CoreServiceConfig config) {

@@ -1821,6 +1821,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-core-config-setup-db-jdbc-aliases-prefix", " setupDbJdbcAliases=") + textValue(body, "coreSetupDatabaseJdbcAliases")
             + adminText("admin-command-core-config-setup-db-type-inference-prefix", " setupDbTypeInference=") + textValue(body, "coreSetupDatabaseTypeInference")
             + adminText("admin-command-core-config-jdbc-fallback-prefix", " jdbcFallback=") + textValue(body, "coreJdbcFallbackReason")
+            + adminText("admin-command-core-config-jdbc-fallback-active-prefix", " jdbcFallbackActive=") + boolValue(body, "coreJdbcFallbackActive")
+            + adminText("admin-command-core-config-jdbc-fallback-status-prefix", " jdbcFallbackStatus=") + textValue(body, "coreJdbcFallbackStatus")
             + adminText("admin-command-core-config-addon-bulk-prefix", " addonBulkSave=") + boolValue(body, "addonStateBulkSaveApi")
             + adminText("admin-command-core-config-addon-bulk-global-prefix", " addonBulkGlobal=") + textValue(body, "addonStateBulkSaveGlobalEndpoint")
             + adminText("admin-command-core-config-addon-bulk-island-prefix", " addonBulkIsland=") + textValue(body, "addonStateBulkSaveIslandEndpoint")
