@@ -160,6 +160,8 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_island_snapshot_seconds", "gauge");
         help(out, "cloudislands_paper_periodic_save_retry_queue", "Periodic island saves waiting for retry on Paper nodes");
         type(out, "cloudislands_paper_periodic_save_retry_queue", "gauge");
+        help(out, "cloudislands_island_save_failures_total", "Island save failures observed by Paper nodes");
+        type(out, "cloudislands_island_save_failures_total", "counter");
         help(out, "cloudislands_paper_periodic_save_failures_total", "Periodic island save failures observed by Paper nodes");
         type(out, "cloudislands_paper_periodic_save_failures_total", "counter");
         help(out, "cloudislands_paper_proxy_source_rejections_total", "Paper logins rejected because the source was not an allowed proxy");
@@ -296,6 +298,7 @@ public final class PrometheusMetricsRenderer {
             appendMetadataGauge(out, "cloudislands_island_activation_seconds", node, "storageDownloadSeconds");
             appendMetadataGauge(out, "cloudislands_island_snapshot_seconds", node, "storageUploadSeconds");
             appendMetadataGauge(out, "cloudislands_paper_periodic_save_retry_queue", node, "periodicSaveRetryQueue");
+            appendMetadataGauge(out, "cloudislands_island_save_failures_total", node, "periodicSaveFailures");
             appendMetadataGauge(out, "cloudislands_paper_periodic_save_failures_total", node, "periodicSaveFailures");
             appendMetadataGauge(out, "cloudislands_paper_proxy_source_rejections_total", node, "proxySourceRejections");
             appendMetadataGauge(out, "cloudislands_paper_forwarding_rejections_total", node, "forwardingRejections");
