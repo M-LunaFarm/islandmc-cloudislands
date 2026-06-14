@@ -1797,6 +1797,7 @@ public final class VelocityRoutingController {
             + " setupFallbackMode=" + jsonValue(body, "coreSetupFallbackMode")
             + " setupDbShapes=" + jsonValue(body, "coreSetupDatabaseConfigShapes")
             + " setupDbTypedShapes=" + jsonValue(body, "coreSetupDatabaseTypedShapes")
+            + " setupDbTypedHostMode=" + jsonValue(body, "coreSetupDatabaseTypedHostMode")
             + " setupDbEnv=" + jsonValue(body, "coreSetupDatabaseEnv")
             + " setupDbPrecedence=" + jsonValue(body, "coreSetupDatabasePrecedence")
             + " setupDbNameAliases=" + jsonValue(body, "coreSetupDatabaseNameAliases")

@@ -388,6 +388,7 @@ public final class TranslationManager {
         values.put("admin-command-core-config-setup-fallback-mode-prefix", " setupFallbackMode=");
         values.put("admin-command-core-config-setup-db-shapes-prefix", " setupDbShapes=");
         values.put("admin-command-core-config-setup-db-typed-shapes-prefix", " setupDbTypedShapes=");
+        values.put("admin-command-core-config-setup-db-typed-host-mode-prefix", " setupDbTypedHostMode=");
         values.put("admin-command-core-config-setup-db-env-prefix", " setupDbEnv=");
         values.put("admin-command-core-config-setup-db-precedence-prefix", " setupDbPrecedence=");
         values.put("admin-command-core-config-setup-db-name-aliases-prefix", " setupDbNameAliases=");
