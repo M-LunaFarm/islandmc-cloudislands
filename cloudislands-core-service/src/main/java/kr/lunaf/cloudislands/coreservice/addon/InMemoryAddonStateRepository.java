@@ -63,13 +63,13 @@ public final class InMemoryAddonStateRepository implements AddonStateRepository 
         }
         String safePrefix = keyPrefix.trim();
         Map<String, String> safeValues = safeValues(values);
-        Map<String, String> next = new ConcurrentHashMap<>(state);
-        next.keySet().removeIf(key -> key.startsWith(safePrefix));
-        if (next.size() + safeValues.keySet().stream().filter(key -> !next.containsKey(key)).count() > AddonStateRepository.MAX_KEYS_PER_ADDON) {
-            throw new IllegalArgumentException("Addon state key limit reached");
-        }
-        next.putAll(safeValues);
         synchronized (state) {
+            Map<String, String> next = new ConcurrentHashMap<>(state);
+            next.keySet().removeIf(key -> key.startsWith(safePrefix));
+            if (next.size() + safeValues.keySet().stream().filter(key -> !next.containsKey(key)).count() > AddonStateRepository.MAX_KEYS_PER_ADDON) {
+                throw new IllegalArgumentException("Addon state key limit reached");
+            }
+            next.putAll(safeValues);
             state.clear();
             state.putAll(next);
             return Map.copyOf(state);
@@ -136,13 +136,13 @@ public final class InMemoryAddonStateRepository implements AddonStateRepository 
         }
         String safePrefix = keyPrefix.trim();
         Map<String, String> safeValues = safeValues(values);
-        Map<String, String> next = new ConcurrentHashMap<>(state);
-        next.keySet().removeIf(key -> key.startsWith(safePrefix));
-        if (next.size() + safeValues.keySet().stream().filter(key -> !next.containsKey(key)).count() > AddonStateRepository.MAX_KEYS_PER_ADDON) {
-            throw new IllegalArgumentException("Addon island state key limit reached");
-        }
-        next.putAll(safeValues);
         synchronized (state) {
+            Map<String, String> next = new ConcurrentHashMap<>(state);
+            next.keySet().removeIf(key -> key.startsWith(safePrefix));
+            if (next.size() + safeValues.keySet().stream().filter(key -> !next.containsKey(key)).count() > AddonStateRepository.MAX_KEYS_PER_ADDON) {
+                throw new IllegalArgumentException("Addon island state key limit reached");
+            }
+            next.putAll(safeValues);
             state.clear();
             state.putAll(next);
             return Map.copyOf(state);
