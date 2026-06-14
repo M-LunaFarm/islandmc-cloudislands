@@ -2419,6 +2419,12 @@ public final class CloudIslandsCoreApplication {
         if ((config.ipAllowlist() == null || config.ipAllowlist().isBlank()) && publicBind(config.bind())) {
             LOGGER.warning("CloudIslands security: Core API is bound to " + config.bind() + " without an IP allowlist");
         }
+        String jdbcFallbackReason = coreJdbcFallbackReason(config);
+        if (jdbcFallbackReason != null && !jdbcFallbackReason.isBlank()) {
+            LOGGER.warning("CloudIslands setup: Core JDBC repositories are disabled: " + jdbcFallbackReason
+                + " configuredDatabaseType=" + config.configuredDatabaseType()
+                + " jdbcBackend=" + jdbcBackend(config.jdbcUrl()));
+        }
         warnIfPublicHost("Redis", config.redisUri() == null ? "" : config.redisUri().getHost());
         warnIfPublicHost("PostgreSQL", jdbcHost(config.jdbcUrl()));
         if ("S3".equalsIgnoreCase(config.storageType())) {
