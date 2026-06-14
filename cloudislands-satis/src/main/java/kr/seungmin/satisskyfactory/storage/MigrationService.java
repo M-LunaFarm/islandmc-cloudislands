@@ -70,9 +70,9 @@ public final class MigrationService {
                     )
                     """, dialect));
             createIndexIfMissing(connection, statement, "idx_machines_location", "machines",
-                    "CREATE UNIQUE INDEX idx_machines_location ON machines(world, x, y, z)");
+                    "CREATE UNIQUE INDEX idx_machines_location ON machines(world, x, y, z)", dialect);
             createIndexIfMissing(connection, statement, "idx_machines_island", "machines",
-                    "CREATE INDEX idx_machines_island ON machines(island_uuid)");
+                    "CREATE INDEX idx_machines_island ON machines(island_uuid)", dialect);
             statement.executeUpdate(ddl("""
                     CREATE TABLE IF NOT EXISTS virtual_inventories (
                       inventory_id TEXT PRIMARY KEY,
@@ -234,7 +234,7 @@ public final class MigrationService {
         }
     }
 
-    private void createIndexIfMissing(Connection connection, Statement statement, String index, String table, String sql)
+    private void createIndexIfMissing(Connection connection, Statement statement, String index, String table, String sql, Dialect dialect)
             throws SQLException {
         DatabaseMetaData metaData = connection.getMetaData();
         try (ResultSet rs = metaData.getIndexInfo(connection.getCatalog(), null, table, false, false)) {
@@ -244,7 +244,7 @@ public final class MigrationService {
                 }
             }
         }
-        statement.executeUpdate(sql);
+        statement.executeUpdate(ddl(sql, dialect));
     }
 
     private String ddl(String sql, Dialect dialect) {
