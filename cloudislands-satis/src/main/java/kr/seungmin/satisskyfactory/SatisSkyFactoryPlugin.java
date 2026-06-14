@@ -996,7 +996,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String featureDependenciesMetadata() {
-        return "resource-nodes:machines,market:storage,contracts:storage";
+        return "resource-nodes:machines,generators:factories,market:storage,contracts:storage,missions:storage";
     }
 
     @Override
