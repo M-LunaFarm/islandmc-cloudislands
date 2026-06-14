@@ -1681,11 +1681,14 @@ public final class CloudIslandsCoreApplication {
         });
         route("/v1/admin/islands/snapshot", exchange -> {
             String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             String reason = JsonFields.text(body, "reason", "MANUAL");
             if (!reason.toUpperCase(java.util.Locale.ROOT).contains("MANUAL")) {
                 reason = "MANUAL:" + (reason.isBlank() ? "snapshot" : reason);
             }
-            lifecycle(exchange, lifecycle.snapshot(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), reason));
+            IslandLifecycleWorkflow.Result result = lifecycle.snapshot(islandId, reason);
+            audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_SNAPSHOT_REQUEST", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code(), "reason", reason));
+            lifecycle(exchange, result);
         });
         route("/v1/admin/islands/restore", exchange -> {
             String body = readBody(exchange);
@@ -1693,9 +1696,17 @@ public final class CloudIslandsCoreApplication {
             long snapshotNo = JsonFields.longValue(body, "snapshotNo", 0L);
             java.util.Optional<kr.lunaf.cloudislands.api.model.IslandSnapshotRecord> snapshot = snapshotRepository.find(islandId, snapshotNo);
             if (snapshotNo <= 0L || snapshot.isEmpty()) {
+                audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_RESTORE_REQUEST", "ISLAND", islandId.toString(), Map.of("accepted", "false", "code", "SNAPSHOT_NOT_FOUND", "snapshotNo", Long.toString(snapshotNo)));
                 write(exchange, 404, ApiResponses.error("SNAPSHOT_NOT_FOUND", "Snapshot was not found"));
             } else {
-                lifecycle(exchange, lifecycle.restore(islandId, snapshotNo, snapshot.get().storagePath()));
+                IslandLifecycleWorkflow.Result result = lifecycle.restore(islandId, snapshotNo, snapshot.get().storagePath());
+                audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_RESTORE_REQUEST", "ISLAND", islandId.toString(), Map.of(
+                    "accepted", Boolean.toString(result.accepted()),
+                    "code", result.code(),
+                    "snapshotNo", Long.toString(snapshotNo),
+                    "storagePath", snapshot.get().storagePath() == null ? "" : snapshot.get().storagePath()
+                ));
+                lifecycle(exchange, result);
             }
         });
         route("/v1/admin/islands/quarantine", exchange -> {
