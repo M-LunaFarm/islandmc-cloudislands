@@ -182,6 +182,10 @@ public interface IslandAddonService {
         return putState(id, tableStateValues(table, values));
     }
 
+    default CompletableFuture<Map<String, String>> clearTableState(String id, String table) {
+        return state(id);
+    }
+
     default CompletableFuture<Optional<String>> putState(String id, String key, String value) {
         if (key == null || value == null) {
             return CompletableFuture.completedFuture(Optional.empty());
@@ -214,6 +218,10 @@ public interface IslandAddonService {
 
     default CompletableFuture<Map<String, String>> putIslandTableState(String id, UUID islandId, String table, Map<String, String> values) {
         return putIslandState(id, islandId, tableStateValues(table, values));
+    }
+
+    default CompletableFuture<Map<String, String>> clearIslandTableState(String id, UUID islandId, String table) {
+        return islandState(id, islandId);
     }
 
     default CompletableFuture<Optional<String>> putIslandState(String id, UUID islandId, String key, String value) {

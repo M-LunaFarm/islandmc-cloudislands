@@ -424,6 +424,30 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
+        route("/v1/addons/state/table/clear", exchange -> {
+            String body = readBody(exchange);
+            String addonId = JsonFields.text(body, "addonId", "");
+            String table = JsonFields.text(body, "table", "");
+            if (addonId.isBlank() || table.isBlank()) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id and table are required"));
+                return;
+            }
+            try {
+                String safeTable = safeTableName(table);
+                String prefix = tableStatePrefix(safeTable);
+                Map<String, String> state = addonStates.list(addonId);
+                state.keySet().stream()
+                        .filter(key -> key.startsWith(prefix))
+                        .toList()
+                        .forEach(key -> addonStates.remove(addonId, key));
+                Map<String, String> updated = addonStates.list(addonId);
+                audit.log(new UUID(0L, 0L), "API", "ADDON_TABLE_STATE_CLEAR", "ADDON", addonId, Map.of("table", safeTable));
+                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "operation", "TABLE_CLEAR", "table", safeTable));
+                write(exchange, 202, addonStateJson(updated));
+            } catch (IllegalArgumentException exception) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
+            }
+        });
         route("/v1/addons/state/remove", exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
@@ -525,6 +549,31 @@ public final class CloudIslandsCoreApplication {
                 audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_TABLE_STATE_BULK_SET", "ADDON", addonId, Map.of("islandId", islandId.toString(), "table", safeTable, "keys", Integer.toString(tableValues.size())));
                 events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", "TABLE_BULK_SET", "table", safeTable, "keys", Integer.toString(tableValues.size())));
                 write(exchange, 202, addonStateJson(state));
+            } catch (IllegalArgumentException exception) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
+            }
+        });
+        route("/v1/addons/islands/state/table/clear", exchange -> {
+            String body = readBody(exchange);
+            String addonId = JsonFields.text(body, "addonId", "");
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            String table = JsonFields.text(body, "table", "");
+            if (addonId.isBlank() || islandId.equals(new UUID(0L, 0L)) || table.isBlank()) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id, island id, and table are required"));
+                return;
+            }
+            try {
+                String safeTable = safeTableName(table);
+                String prefix = tableStatePrefix(safeTable);
+                Map<String, String> state = addonStates.listIsland(addonId, islandId);
+                state.keySet().stream()
+                        .filter(key -> key.startsWith(prefix))
+                        .toList()
+                        .forEach(key -> addonStates.removeIsland(addonId, islandId, key));
+                Map<String, String> updated = addonStates.listIsland(addonId, islandId);
+                audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_TABLE_STATE_CLEAR", "ADDON", addonId, Map.of("islandId", islandId.toString(), "table", safeTable));
+                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", "TABLE_CLEAR", "table", safeTable));
+                write(exchange, 202, addonStateJson(updated));
             } catch (IllegalArgumentException exception) {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
@@ -3037,10 +3086,14 @@ public final class CloudIslandsCoreApplication {
         java.util.HashMap<String, String> state = new java.util.HashMap<>();
         values.forEach((key, value) -> {
             if (key != null && !key.isBlank() && value != null) {
-                state.put("table/" + safeTable + "/" + key.trim(), value);
+                state.put(tableStatePrefix(safeTable) + key.trim(), value);
             }
         });
         return Map.copyOf(state);
+    }
+
+    private static String tableStatePrefix(String table) {
+        return "table/" + safeTableName(table) + "/";
     }
 
     private static String safeTableName(String table) {

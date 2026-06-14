@@ -642,9 +642,50 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 .exceptionally(_error -> Map.copyOf(localState));
         }
 
+        @Override
+        public CompletableFuture<Map<String, String>> clearTableState(String id, String table) {
+            String safeId = safeRegistrationId(id);
+            if (table == null || table.isBlank()) {
+                return state(safeId);
+            }
+            if (!addonAcceptsGlobalStateWrites(safeId)) {
+                return state(safeId);
+            }
+            String prefix = tableStatePrefix(table);
+            Map<String, String> localState = new HashMap<>(readAddonState(safeId));
+            localState.keySet().removeIf(key -> key.startsWith(prefix));
+            writeAddonState(safeId, localState);
+            return coreClient.clearAddonTableState(safeId, table)
+                .thenApply(this::stateFromJson)
+                .thenApply(state -> {
+                    addonStates.put(safeId, state);
+                    writeAddonState(safeId, state);
+                    return state;
+                })
+                .exceptionally(_error -> Map.copyOf(localState));
+        }
+
         private boolean addonAcceptsGlobalStateWrites(String id) {
             CloudIslandsAddonSnapshot snapshot = addons.get(safeRegistrationId(id));
             return snapshot == null || snapshot.configuredFeatureEnabled("addon-state", true);
+        }
+
+        private String tableStatePrefix(String table) {
+            return "table/" + safeTableName(table) + "/";
+        }
+
+        private String safeTableName(String table) {
+            String value = table == null ? "" : table.trim();
+            if (value.startsWith("table/")) {
+                value = value.substring("table/".length());
+            }
+            while (value.startsWith("/")) {
+                value = value.substring(1);
+            }
+            while (value.endsWith("/")) {
+                value = value.substring(0, value.length() - 1);
+            }
+            return value;
         }
 
         @Override
@@ -718,6 +759,28 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             }
             writeAddonIslandState(safeId, islandId, localState);
             return coreClient.putAddonIslandState(safeId, islandId, changedState)
+                .thenApply(this::stateFromJson)
+                .thenApply(state -> {
+                    writeAddonIslandState(safeId, islandId, state);
+                    return state;
+                })
+                .exceptionally(_error -> Map.copyOf(localState));
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> clearIslandTableState(String id, UUID islandId, String table) {
+            String safeId = safeRegistrationId(id);
+            if (islandId == null || table == null || table.isBlank()) {
+                return islandState(safeId, islandId);
+            }
+            if (!addonAcceptsIslandStateWrites(safeId)) {
+                return islandState(safeId, islandId);
+            }
+            String prefix = tableStatePrefix(table);
+            Map<String, String> localState = new HashMap<>(readAddonIslandState(safeId, islandId));
+            localState.keySet().removeIf(key -> key.startsWith(prefix));
+            writeAddonIslandState(safeId, islandId, localState);
+            return coreClient.clearAddonIslandTableState(safeId, islandId, table)
                 .thenApply(this::stateFromJson)
                 .thenApply(state -> {
                     writeAddonIslandState(safeId, islandId, state);

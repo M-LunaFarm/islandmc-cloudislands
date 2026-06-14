@@ -85,7 +85,9 @@ public final class CoreApiSatisStateService {
         if (table.values() == null || table.values().isEmpty()) {
             return;
         }
-        cloudIslandsApi.addons().putIslandTableState(addonId, table.islandUuid(), table.table(), table.values()).exceptionally(error -> {
+        cloudIslandsApi.addons().clearIslandTableState(addonId, table.islandUuid(), table.table())
+                .thenCompose(_cleared -> cloudIslandsApi.addons().putIslandTableState(addonId, table.islandUuid(), table.table(), table.values()))
+                .exceptionally(error -> {
             logger.warning("Failed to publish Satis core-api table " + table.table() + " for island " + table.islandUuid() + ": " + error.getMessage());
             return Map.of();
         });
