@@ -316,6 +316,10 @@ public record CoreServiceConfig(
         if (setupJdbcUrl.isBlank()) {
             setupJdbcUrl = typedSetupJdbcUrl(config);
         }
+        String typedHostType = typedSetupHostDatabaseType(config);
+        if (!typedHostType.isBlank()) {
+            return typedHostType;
+        }
         String jdbcUrl = env("CI_JDBC_URL", setupJdbcUrl.isBlank() ? setting(config, "database.jdbc-url", "") : setupJdbcUrl);
         return jdbcUrlDatabaseType(jdbcUrl);
     }
@@ -328,6 +332,25 @@ public record CoreServiceConfig(
             }
             if (!url.isBlank()) {
                 return url;
+            }
+        }
+        return "";
+    }
+
+    private static String typedSetupHostDatabaseType(Map<String, String> config) {
+        for (String scope : java.util.List.of("postgresql", "mysql", "mariadb")) {
+            String host = setting(config, "setup.database." + scope + ".host", "");
+            String name = setting(config, "setup.database." + scope + ".name", "");
+            if (name.isBlank()) {
+                name = setting(config, "setup.database." + scope + ".database", "");
+            }
+            if (!host.isBlank() && !name.isBlank()) {
+                return switch (scope) {
+                    case "postgresql" -> "POSTGRESQL";
+                    case "mysql" -> "MYSQL";
+                    case "mariadb" -> "MARIADB";
+                    default -> "";
+                };
             }
         }
         return "";
