@@ -80,7 +80,7 @@ public final class CoreApiSatisStateService {
     }
 
     public void publishRow(DatabaseService.CoreRowWrite row) {
-        if (cloudIslandsApi == null || row == null || row.islandUuid() == null || row.key() == null || row.key().isBlank()) {
+        if (cloudIslandsApi == null || row == null || row.islandUuid() == null || row.key() == null || row.key().isBlank() || row.value() == null) {
             return;
         }
         Map<String, Map<String, String>> tablePayload = tablePayload(row.key(), row.value());
@@ -170,7 +170,7 @@ public final class CoreApiSatisStateService {
     }
 
     public void publishGlobalRow(DatabaseService.CoreGlobalRowWrite row) {
-        if (cloudIslandsApi == null || row == null || row.key() == null || row.key().isBlank()) {
+        if (cloudIslandsApi == null || row == null || row.key() == null || row.key().isBlank() || row.value() == null) {
             return;
         }
         Map<String, Map<String, String>> tablePayload = tablePayload(row.key(), row.value());
