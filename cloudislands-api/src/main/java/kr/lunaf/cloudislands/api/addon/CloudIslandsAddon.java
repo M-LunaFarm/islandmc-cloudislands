@@ -4,6 +4,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.event.CloudEvent;
+import kr.lunaf.cloudislands.api.event.CoreCacheClearEvent;
+import kr.lunaf.cloudislands.api.event.CoreReloadEvent;
 import kr.lunaf.cloudislands.api.event.IslandActivationRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandActivatedEvent;
 import kr.lunaf.cloudislands.api.event.IslandCreatedEvent;
@@ -27,6 +29,7 @@ import kr.lunaf.cloudislands.api.event.IslandRestoreRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandRuntimeChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotCreateEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotRequestEvent;
+import kr.lunaf.cloudislands.api.event.IslandTemplateChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandUpgradeEvent;
 import kr.lunaf.cloudislands.api.event.IslandWorthChangeEvent;
 import kr.lunaf.cloudislands.api.event.NodeStateChangedEvent;
@@ -132,6 +135,12 @@ public interface CloudIslandsAddon {
             onRouteTicketFailed(routeTicketFailed);
         } else if (event instanceof RouteTicketClearedEvent routeTicketCleared) {
             onRouteTicketCleared(routeTicketCleared);
+        } else if (event instanceof IslandTemplateChangeEvent templateChanged) {
+            onIslandTemplateChanged(templateChanged);
+        } else if (event instanceof CoreCacheClearEvent cacheCleared) {
+            onCoreCacheCleared(cacheCleared);
+        } else if (event instanceof CoreReloadEvent coreReloaded) {
+            onCoreReloaded(coreReloaded);
         }
     }
 
@@ -226,6 +235,15 @@ public interface CloudIslandsAddon {
     }
 
     default void onRouteTicketCleared(RouteTicketClearedEvent event) {
+    }
+
+    default void onIslandTemplateChanged(IslandTemplateChangeEvent event) {
+    }
+
+    default void onCoreCacheCleared(CoreCacheClearEvent event) {
+    }
+
+    default void onCoreReloaded(CoreReloadEvent event) {
     }
 
     default CompletableFuture<CloudIslandsAddonSnapshot> register(CloudIslandsApi api) {
