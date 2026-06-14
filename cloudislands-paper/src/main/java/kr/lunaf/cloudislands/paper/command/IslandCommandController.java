@@ -12,6 +12,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
@@ -1041,7 +1042,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 message(player, "섬 생성을 시작했습니다.");
             })
             .exceptionally(error -> {
-                message(player, "섬 생성을 시작하지 못했습니다.");
+                message(player, coreWriteFailureMessage(error, "섬 생성을 시작하지 못했습니다."));
                 return null;
             });
     }
@@ -1057,7 +1058,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                     message(player, "섬 삭제를 요청했습니다.");
                 })
                 .exceptionally(error -> {
-                    message(player, "섬을 삭제하지 못했습니다.");
+                    message(player, coreWriteFailureMessage(error, "섬을 삭제하지 못했습니다."));
                     return null;
                 });
         });
@@ -1068,7 +1069,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             coreApiClient.resetIslandResult(islandId, player.getUniqueId(), reason)
                 .thenAccept(body -> message(player, actionResultMessage("섬 리셋 요청", islandId, body)))
                 .exceptionally(error -> {
-                    message(player, "섬을 리셋하지 못했습니다.");
+                    message(player, coreWriteFailureMessage(error, "섬을 리셋하지 못했습니다."));
                     return null;
                 });
         });
@@ -2382,7 +2383,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             coreApiClient.setIslandFlagResult(islandId, player.getUniqueId(), flag, value)
                 .thenAccept(body -> message(player, actionResultMessage("섬 플래그 변경 " + flag.name() + "=" + value, flag.name(), body)))
                 .exceptionally(error -> {
-                    message(player, "섬 플래그를 변경하지 못했습니다.");
+                    message(player, coreWriteFailureMessage(error, "섬 플래그를 변경하지 못했습니다."));
                     return null;
                 });
         });
@@ -2464,7 +2465,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             coreApiClient.setIslandPermissionResult(islandId, player.getUniqueId(), role, permission, allowed)
                 .thenAccept(body -> message(player, actionResultMessage("섬 권한 변경 " + role.name() + ":" + permission.name() + "=" + allowed, role.name(), body)))
                 .exceptionally(error -> {
-                    message(player, "섬 권한을 변경하지 못했습니다.");
+                    message(player, coreWriteFailureMessage(error, "섬 권한을 변경하지 못했습니다."));
                     return null;
                 });
         });
@@ -3201,6 +3202,26 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void message(Player player, String message) {
         plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message));
+    }
+
+    private String coreWriteFailureMessage(Throwable error, String fallback) {
+        return coreUnavailable(error)
+            ? routeMessage("core-service-maintenance", "현재 섬 서비스 일부 기능이 점검 중입니다.")
+            : fallback;
+    }
+
+    private boolean coreUnavailable(Throwable error) {
+        Throwable current = error;
+        while (current instanceof CompletionException && current.getCause() != null) {
+            current = current.getCause();
+        }
+        if (current instanceof CoreApiException exception) {
+            return exception.status() == 0 || exception.status() >= 500;
+        }
+        return current instanceof java.io.IOException
+            || current instanceof java.net.ConnectException
+            || current instanceof java.net.http.HttpTimeoutException
+            || current instanceof java.net.http.HttpConnectTimeoutException;
     }
 
     private record Point(String worldName, double x, double y, double z, float yaw, float pitch, boolean publicAccess) {}

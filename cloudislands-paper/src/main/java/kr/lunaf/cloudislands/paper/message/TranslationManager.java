@@ -181,6 +181,7 @@ public final class TranslationManager {
         values.put("route-command-failed", "섬으로 이동하지 못했습니다.");
         values.put("route-command-publish-failed", "섬 이동 경로를 준비하지 못했습니다.");
         values.put("route-command-started", "섬으로 이동합니다.");
+        values.put("core-service-maintenance", "현재 섬 서비스 일부 기능이 점검 중입니다.");
         values.put("route-target-world-missing", "대상 월드를 찾을 수 없습니다.");
         values.put("visitor-kick-target-offline", "방문자 추방을 기록했습니다. 대상 플레이어는 현재 온라인이 아닙니다.");
         values.put("visitor-kick-target-not-on-island", "방문자 추방을 기록했습니다. 대상 플레이어는 현재 이 섬에 없습니다.");
