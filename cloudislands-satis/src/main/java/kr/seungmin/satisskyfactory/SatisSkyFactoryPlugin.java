@@ -885,9 +885,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-path", resolveDatabaseFileName());
         metadata.put("database-shared", Boolean.toString(databaseShared()));
         metadata.put("satis-state-schema", "3");
-        metadata.put("legacy-satismc-import", "factory admin migration scan|dryrun|import <sqlitePath>");
-        metadata.put("legacy-satismc-scan-mode", "scan-and-dryrun-read-only");
+        metadata.put("legacy-satismc-import", "factory admin migration scan|dryrun|verify|import <sqlitePath>");
+        metadata.put("legacy-satismc-scan-mode", "scan-dryrun-verify-read-only");
         metadata.put("legacy-satismc-import-mode", "cross-backend-sqlite-copy");
+        metadata.put("legacy-satismc-rollback-mode", "manual-restore-from-backup");
         metadata.put("island-position-remap", "center-delta");
         metadata.put("addon-state-sync", Boolean.toString(configuredFeatureEnabled("addon-state")));
         metadata.put("addon-state-bulk-save-api", "true");
