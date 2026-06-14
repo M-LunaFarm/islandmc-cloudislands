@@ -703,6 +703,7 @@ public final class DatabaseService {
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to save factory island", exception);
         }
+        publishCoreRow(island.islandUuid(), "table/factory_islands/" + island.islandUuid(), factoryIslandJson(island));
     }
 
     private String saveIslandSql() {
@@ -1836,6 +1837,28 @@ public final class DatabaseService {
                 + field("rewardsJson", contract.rewardsJson()) + ","
                 + field("status", contract.status()) + ","
                 + number("expiresAt", contract.expiresAt())
+                + "}";
+    }
+
+    private String factoryIslandJson(FactoryIsland island) {
+        return "{"
+                + field("islandUuid", island.islandUuid().toString()) + ","
+                + field("ownerUuid", island.ownerUuid().toString()) + ","
+                + number("tier", island.tier()) + ","
+                + number("researchPoints", island.researchPoints()) + ","
+                + number("reputation", island.reputation()) + ","
+                + number("maintenanceDebt", island.maintenanceDebt()) + ","
+                + field("maintenanceStatus", island.maintenanceStatus().name()) + ","
+                + number("factoryScore", island.factoryScore()) + ","
+                + number("lastMaintenanceAt", island.lastMaintenanceAt()) + ","
+                + number("lastTickAt", island.lastTickAt()) + ","
+                + number("emergencyContractsUsedToday", island.emergencyContractsUsedToday()) + ","
+                + field("activeWorld", island.activeWorld()) + ","
+                + number("activeCenterX", island.activeCenterX()) + ","
+                + number("activeCenterY", island.activeCenterY()) + ","
+                + number("activeCenterZ", island.activeCenterZ()) + ","
+                + number("createdAt", island.createdAt()) + ","
+                + number("updatedAt", island.updatedAt())
                 + "}";
     }
 
