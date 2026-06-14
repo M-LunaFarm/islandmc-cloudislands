@@ -183,6 +183,12 @@ public interface CoreApiClient {
     default CompletableFuture<String> bulkSaveAddonState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         return saveAddonState(addonId, values, tables);
     }
+    default CompletableFuture<String> tableKeyValueBulkSaveAddonState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return bulkSaveAddonState(addonId, values, tables);
+    }
+    default CompletableFuture<String> bulkSaveAddonTableKeyValueState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return tableKeyValueBulkSaveAddonState(addonId, values, tables);
+    }
     CompletableFuture<String> putAddonTableState(String addonId, String table, Map<String, String> values);
     default CompletableFuture<String> saveAddonTableState(String addonId, String table, Map<String, String> values) {
         return putAddonTableState(addonId, table, values);
@@ -203,6 +209,12 @@ public interface CoreApiClient {
     }
     default CompletableFuture<String> bulkSaveAddonIslandState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         return saveAddonIslandState(addonId, islandId, values, tables);
+    }
+    default CompletableFuture<String> tableKeyValueBulkSaveAddonIslandState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return bulkSaveAddonIslandState(addonId, islandId, values, tables);
+    }
+    default CompletableFuture<String> bulkSaveAddonIslandTableKeyValueState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return tableKeyValueBulkSaveAddonIslandState(addonId, islandId, values, tables);
     }
     CompletableFuture<String> putAddonIslandTableState(String addonId, UUID islandId, String table, Map<String, String> values);
     default CompletableFuture<String> saveAddonIslandTableState(String addonId, UUID islandId, String table, Map<String, String> values) {
