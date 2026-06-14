@@ -1235,6 +1235,12 @@ public final class CloudIslandsCoreApplication {
                 return;
             }
             sessions.put(ticket);
+            audit.log(ticket.playerUuid(), "PLAYER", "ROUTE_SESSION_PUBLISH", "ROUTE", ticket.ticketId().toString(), Map.of(
+                "islandId", ticket.islandId().toString(),
+                "action", ticket.action().name(),
+                "targetNode", ticket.targetNode(),
+                "targetServerName", ticket.payload().getOrDefault("targetServerName", ticket.targetNode())
+            ));
             events.publish(CloudIslandEventType.ROUTE_SESSION_PUBLISHED.name(), Map.of(
                 "ticketId", ticket.ticketId().toString(),
                 "playerUuid", ticket.playerUuid().toString(),
@@ -1279,6 +1285,12 @@ public final class CloudIslandsCoreApplication {
             String nodeId = JsonFields.text(body, "nodeId", "");
             boolean reportMissing = JsonFields.bool(body, "reportMissing", true);
             PlayerRouteSession session = sessions.consume(playerUuid, nodeId).orElse(null);
+            if (session != null) {
+                audit.log(session.playerUuid(), "PLAYER", "ROUTE_SESSION_CONSUME", "ROUTE", session.ticketId().toString(), Map.of(
+                    "targetNode", session.targetNode(),
+                    "targetServerName", session.targetServerName()
+                ));
+            }
             if (session == null && reportMissing) {
                 PlayerRouteSession existing = sessions.findAny(playerUuid).orElse(null);
                 events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), existing == null
@@ -1294,6 +1306,9 @@ public final class CloudIslandsCoreApplication {
                         "requestedNode", nodeId,
                         "reason", "SESSION_NODE_MISMATCH"
                     ));
+                audit.log(playerUuid, "PLAYER", "ROUTE_SESSION_CONSUME_FAILED", "ROUTE", existing == null ? "" : existing.ticketId().toString(), existing == null
+                    ? Map.of("targetNode", nodeId, "reason", "SESSION_NOT_FOUND")
+                    : Map.of("targetNode", existing.targetNode(), "requestedNode", nodeId, "reason", "SESSION_NODE_MISMATCH"));
             }
             write(exchange, session == null ? 404 : 200, session == null ? "" : sessionJson(session));
         });
