@@ -1784,11 +1784,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 jdbcUrl("postgresql", "jdbc:postgresql", 5432),
                 jdbcUrl("mysql", "jdbc:mysql", 3306),
                 jdbcUrl("mariadb", "jdbc:mariadb", 3306),
-                firstNonBlank(configs.main().getString("setup.database.jdbc.username", ""), configs.main().getString("database.jdbc.username", "")),
-                firstNonBlank(configs.main().getString("setup.database.jdbc.password", ""), configs.main().getString("database.jdbc.password", "")),
-                Math.max(1, setupInt("database.jdbc.max-pool-size", 8)),
-                Math.max(1000L, setupLong("database.jdbc.connection-timeout-ms", 5000L)),
-                setupBoolean("database.fallback.enabled", true),
+                firstNonBlank(System.getenv("CLOUDISLANDS_SATIS_DB_USERNAME"),
+                        firstNonBlank(configs.main().getString("setup.database.jdbc.username", ""), configs.main().getString("database.jdbc.username", ""))),
+                firstNonBlank(System.getenv("CLOUDISLANDS_SATIS_DB_PASSWORD"),
+                        firstNonBlank(configs.main().getString("setup.database.jdbc.password", ""), configs.main().getString("database.jdbc.password", ""))),
+                Math.max(1, envInt("CLOUDISLANDS_SATIS_DB_MAX_POOL_SIZE", setupInt("database.jdbc.max-pool-size", 8))),
+                Math.max(1000L, envLong("CLOUDISLANDS_SATIS_DB_CONNECTION_TIMEOUT_MS", setupLong("database.jdbc.connection-timeout-ms", 5000L))),
+                envBoolean("CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED", setupBoolean("database.fallback.enabled", true)),
                 databaseFallbackOrder()
         );
     }
@@ -1820,7 +1822,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private List<DatabaseService.StorageBackend> databaseFallbackOrder() {
-        List<String> configured = configs.main().getStringList("setup.database.fallback.order");
+        String envOrder = System.getenv("CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER");
+        List<String> configured = envOrder == null || envOrder.isBlank()
+                ? configs.main().getStringList("setup.database.fallback.order")
+                : java.util.Arrays.stream(envOrder.split(",")).map(String::trim).filter(value -> !value.isBlank()).toList();
         if (configured == null || configured.isEmpty()) {
             configured = configs.main().getStringList("database.fallback.order");
         }
@@ -1956,6 +1961,42 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return configs.main().getBoolean(setupPath, fallback);
         }
         return configs.main().getBoolean(path, fallback);
+    }
+
+    private int envInt(String key, int fallback) {
+        String value = System.getenv(key);
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException exception) {
+            return fallback;
+        }
+    }
+
+    private long envLong(String key, long fallback) {
+        String value = System.getenv(key);
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Long.parseLong(value.trim());
+        } catch (NumberFormatException exception) {
+            return fallback;
+        }
+    }
+
+    private boolean envBoolean(String key, boolean fallback) {
+        String value = System.getenv(key);
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        return switch (value.trim().toLowerCase(java.util.Locale.ROOT)) {
+            case "true", "yes", "on", "1", "enable", "enabled" -> true;
+            case "false", "no", "off", "0", "disable", "disabled" -> false;
+            default -> fallback;
+        };
     }
 
     private String databaseScope() {

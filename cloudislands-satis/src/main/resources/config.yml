@@ -133,6 +133,10 @@ database:
   # Use one of these in multi-node CloudIslands setups so A/B island nodes share Satis state.
   # Environment variable CLOUDISLANDS_SATIS_DB has the highest priority for SQLite file paths.
   # Environment variable CLOUDISLANDS_SATIS_JDBC_URL has the highest priority for JDBC backends.
+  # Other env overrides: CLOUDISLANDS_SATIS_DATABASE_TYPE, CLOUDISLANDS_SATIS_DB_USERNAME,
+  # CLOUDISLANDS_SATIS_DB_PASSWORD, CLOUDISLANDS_SATIS_DB_MAX_POOL_SIZE,
+  # CLOUDISLANDS_SATIS_DB_CONNECTION_TIMEOUT_MS, CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED,
+  # CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER.
   path: ""
   shared-directory: "../CloudIslands/satis-state"
   sqlite-file: "data.db"
