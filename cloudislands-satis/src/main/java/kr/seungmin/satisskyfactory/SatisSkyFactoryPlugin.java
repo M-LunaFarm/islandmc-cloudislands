@@ -3,6 +3,8 @@ package kr.seungmin.satisskyfactory;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddonBootstrap;
+import kr.lunaf.cloudislands.api.event.CoreCacheClearEvent;
+import kr.lunaf.cloudislands.api.event.CoreReloadEvent;
 import kr.lunaf.cloudislands.api.event.IslandActivatedEvent;
 import kr.lunaf.cloudislands.api.event.IslandCreatedEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeactivationRequestEvent;
@@ -865,6 +867,25 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return;
         }
         applyAddonRuntimeState();
+    }
+
+    @Override
+    public void onCoreCacheCleared(CoreCacheClearEvent event) {
+        reloadSatisRuntimeFromCore("core-cache-clear");
+    }
+
+    @Override
+    public void onCoreReloaded(CoreReloadEvent event) {
+        reloadSatisRuntimeFromCore("core-reload");
+    }
+
+    private void reloadSatisRuntimeFromCore(String reason) {
+        getServer().getScheduler().runTask(this, () -> {
+            if (!isEnabled() || database == null) {
+                return;
+            }
+            applyAddonRuntimeState();
+        });
     }
 
     private void publishAddonState(CloudIslandsAddonSnapshot snapshot, String reason) {
