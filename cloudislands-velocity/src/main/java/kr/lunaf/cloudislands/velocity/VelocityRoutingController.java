@@ -1800,6 +1800,7 @@ public final class VelocityRoutingController {
             + " setupDbPaths=" + jsonValue(body, "coreSetupDatabaseResolvedPathExamples")
             + " setupDbShapes=" + jsonValue(body, "coreSetupDatabaseConfigShapes")
             + " setupDbTypedShapes=" + jsonValue(body, "coreSetupDatabaseTypedShapes")
+            + " setupDbTypedCredentials=" + jsonValue(body, "coreSetupDatabaseTypedCredentialKeys")
             + " setupDbTypedHostMode=" + jsonValue(body, "coreSetupDatabaseTypedHostMode")
             + " setupDbTypedProbeOrder=" + jsonValue(body, "coreSetupDatabaseTypedProbeOrder")
             + " setupDbCoreApiMode=" + jsonValue(body, "coreSetupDatabaseCoreApiMode")

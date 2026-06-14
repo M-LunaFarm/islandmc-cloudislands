@@ -391,6 +391,7 @@ public final class TranslationManager {
         values.put("admin-command-core-config-setup-db-paths-prefix", " setupDbPaths=");
         values.put("admin-command-core-config-setup-db-shapes-prefix", " setupDbShapes=");
         values.put("admin-command-core-config-setup-db-typed-shapes-prefix", " setupDbTypedShapes=");
+        values.put("admin-command-core-config-setup-db-typed-credentials-prefix", " setupDbTypedCredentials=");
         values.put("admin-command-core-config-setup-db-typed-host-mode-prefix", " setupDbTypedHostMode=");
         values.put("admin-command-core-config-setup-db-typed-probe-order-prefix", " setupDbTypedProbeOrder=");
         values.put("admin-command-core-config-setup-db-env-prefix", " setupDbEnv=");

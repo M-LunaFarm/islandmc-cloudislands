@@ -31,6 +31,9 @@ setup:
       name: ""
       database: ""
       options: ""
+      username: ""
+      password: ""
+      pool-size: 0
     mysql:
       # MySQL can be configured for external integrations, but Core repositories still use safe non-JDBC fallback.
       url: ""
@@ -40,6 +43,9 @@ setup:
       name: ""
       database: ""
       options: ""
+      username: ""
+      password: ""
+      pool-size: 0
     mariadb:
       # MariaDB can be configured for external integrations, but Core repositories still use safe non-JDBC fallback.
       url: ""
@@ -49,6 +55,9 @@ setup:
       name: ""
       database: ""
       options: ""
+      username: ""
+      password: ""
+      pool-size: 0
     core-api:
       # Selection marker for setup.database.type=CORE_API. Core JDBC stays disabled.
       enabled: false
