@@ -5,6 +5,7 @@ import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddonBootstrap;
 import kr.lunaf.cloudislands.api.event.IslandActivatedEvent;
 import kr.lunaf.cloudislands.api.event.IslandCreatedEvent;
+import kr.lunaf.cloudislands.api.event.IslandDeactivationRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeactivateEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeletedEvent;
 import kr.lunaf.cloudislands.api.event.IslandLevelRecalculateEvent;
@@ -14,6 +15,7 @@ import kr.lunaf.cloudislands.api.event.IslandMigratedEvent;
 import kr.lunaf.cloudislands.api.event.IslandPermissionChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandRuntimeChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotCreateEvent;
+import kr.lunaf.cloudislands.api.event.IslandSnapshotRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandUpgradeEvent;
 import kr.lunaf.cloudislands.api.event.IslandWorthChangeEvent;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
@@ -1060,6 +1062,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     @Override
+    public void onIslandDeactivationRequested(IslandDeactivationRequestEvent event) {
+        runSatisLifecycle(event.islandId(), "deactivation-requested", () -> flushSatisIsland(event.islandId()));
+    }
+
+    @Override
     public void onIslandDeactivated(IslandDeactivateEvent event) {
         runSatisLifecycle(event.islandId(), "flush", () -> flushSatisIsland(event.islandId()));
     }
@@ -1151,6 +1158,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     @Override
     public void onIslandLimitChanged(IslandLimitChangeEvent event) {
         runSatisLifecycle(event.islandId(), "limit-change", () -> synchronizeSatisIsland(event.islandId(), "limit-change"));
+    }
+
+    @Override
+    public void onIslandSnapshotRequested(IslandSnapshotRequestEvent event) {
+        runSatisLifecycle(event.islandId(), "snapshot-requested", () -> flushSatisIsland(event.islandId()));
     }
 
     @Override

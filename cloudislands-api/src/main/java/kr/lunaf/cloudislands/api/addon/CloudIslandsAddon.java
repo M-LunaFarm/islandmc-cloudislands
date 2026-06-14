@@ -4,8 +4,10 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.event.CloudEvent;
+import kr.lunaf.cloudislands.api.event.IslandActivationRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandActivatedEvent;
 import kr.lunaf.cloudislands.api.event.IslandCreatedEvent;
+import kr.lunaf.cloudislands.api.event.IslandDeactivationRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeactivateEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeleteRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeletedEvent;
@@ -21,6 +23,7 @@ import kr.lunaf.cloudislands.api.event.IslandRestoredEvent;
 import kr.lunaf.cloudislands.api.event.IslandRestoreRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandRuntimeChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotCreateEvent;
+import kr.lunaf.cloudislands.api.event.IslandSnapshotRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandUpgradeEvent;
 import kr.lunaf.cloudislands.api.event.IslandWorthChangeEvent;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
@@ -57,8 +60,12 @@ public interface CloudIslandsAddon {
     default void onCloudEvent(CloudEvent event) {
         if (event instanceof IslandCreatedEvent created) {
             onIslandCreated(created);
+        } else if (event instanceof IslandActivationRequestEvent activationRequested) {
+            onIslandActivationRequested(activationRequested);
         } else if (event instanceof IslandActivatedEvent activated) {
             onIslandActivated(activated);
+        } else if (event instanceof IslandDeactivationRequestEvent deactivationRequested) {
+            onIslandDeactivationRequested(deactivationRequested);
         } else if (event instanceof IslandDeactivateEvent deactivated) {
             onIslandDeactivated(deactivated);
         } else if (event instanceof IslandMigratedEvent migrated) {
@@ -94,6 +101,8 @@ public interface CloudIslandsAddon {
             onIslandUpgradeChanged(upgrade);
         } else if (event instanceof IslandLimitChangeEvent limit) {
             onIslandLimitChanged(limit);
+        } else if (event instanceof IslandSnapshotRequestEvent snapshotRequested) {
+            onIslandSnapshotRequested(snapshotRequested);
         } else if (event instanceof IslandSnapshotCreateEvent snapshotCreated) {
             onIslandSnapshotCreated(snapshotCreated);
         }
@@ -102,7 +111,13 @@ public interface CloudIslandsAddon {
     default void onIslandCreated(IslandCreatedEvent event) {
     }
 
+    default void onIslandActivationRequested(IslandActivationRequestEvent event) {
+    }
+
     default void onIslandActivated(IslandActivatedEvent event) {
+    }
+
+    default void onIslandDeactivationRequested(IslandDeactivationRequestEvent event) {
     }
 
     default void onIslandDeactivated(IslandDeactivateEvent event) {
@@ -151,6 +166,9 @@ public interface CloudIslandsAddon {
     }
 
     default void onIslandLimitChanged(IslandLimitChangeEvent event) {
+    }
+
+    default void onIslandSnapshotRequested(IslandSnapshotRequestEvent event) {
     }
 
     default void onIslandSnapshotCreated(IslandSnapshotCreateEvent event) {

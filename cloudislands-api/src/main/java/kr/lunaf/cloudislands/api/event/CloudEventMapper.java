@@ -24,7 +24,9 @@ public final class CloudEventMapper {
             case "ISLAND_CREATED" -> Optional.of(new IslandCreatedEvent(uuid(fields, "islandId"), uuid(fields, "ownerUuid"), occurredAt));
             case "ISLAND_DELETED" -> Optional.of(new IslandDeletedEvent(uuid(fields, "islandId"), longValue(fields, "snapshotNo"), occurredAt));
             case "ISLAND_DELETE_REQUESTED" -> Optional.of(new IslandDeleteRequestEvent(uuid(fields, "islandId"), firstText(fields, "targetNode", "nodeId"), text(fields, "reason"), occurredAt));
+            case "ISLAND_ACTIVATE_REQUESTED" -> Optional.of(new IslandActivationRequestEvent(uuid(fields, "islandId"), text(fields, "state"), firstText(fields, "targetNode", "nodeId"), occurredAt));
             case "ISLAND_ACTIVATED" -> Optional.of(new IslandActivatedEvent(uuid(fields, "islandId"), text(fields, "nodeId"), text(fields, "worldName"), occurredAt));
+            case "ISLAND_DEACTIVATE_REQUESTED" -> Optional.of(new IslandDeactivationRequestEvent(uuid(fields, "islandId"), text(fields, "state"), occurredAt));
             case "ISLAND_DEACTIVATED" -> Optional.of(new IslandDeactivateEvent(uuid(fields, "islandId"), text(fields, "nodeId"), occurredAt));
             case "ISLAND_MIGRATED" -> Optional.of(new IslandMigratedEvent(uuid(fields, "islandId"), text(fields, "fromNode"), firstText(fields, "toNode", "targetNode"), text(fields, "worldName"), longValue(fields, "fencingToken"), occurredAt));
             case "ISLAND_RESTORE_REQUESTED" -> Optional.of(new IslandRestoreRequestEvent(uuid(fields, "islandId"), text(fields, "state"), firstText(fields, "targetNode", "nodeId"), longValue(fields, "snapshotNo"), occurredAt));
@@ -43,6 +45,7 @@ public final class CloudEventMapper {
             case "ISLAND_WORTH_CHANGED" -> Optional.of(new IslandWorthChangeEvent(uuid(fields, "islandId"), decimal(fields, "worth"), occurredAt));
             case "ISLAND_UPGRADE" -> Optional.of(new IslandUpgradeEvent(uuid(fields, "islandId"), text(fields, "upgradeKey"), intValue(fields, "level"), occurredAt));
             case "ISLAND_LIMIT_CHANGED" -> Optional.of(new IslandLimitChangeEvent(uuid(fields, "islandId"), firstText(fields, "limitKey", "key"), longValue(fields, "value"), occurredAt));
+            case "ISLAND_SNAPSHOT_REQUESTED" -> Optional.of(new IslandSnapshotRequestEvent(uuid(fields, "islandId"), text(fields, "reason"), occurredAt));
             case "ISLAND_SNAPSHOT_CREATED" -> Optional.of(new IslandSnapshotCreateEvent(uuid(fields, "islandId"), longValue(fields, "snapshotNo"), text(fields, "reason"), occurredAt));
             case "NODE_STATE_CHANGED" -> Optional.of(new NodeStateChangedEvent(text(fields, "nodeId"), text(fields, "state"), text(fields, "operation"), text(fields, "reason"), intValue(fields, "recoveryRequired"), occurredAt));
             case "ROUTE_TICKET_CREATED" -> Optional.of(new RouteTicketCreatedEvent(uuid(fields, "ticketId"), uuid(fields, "islandId"), uuid(fields, "playerUuid"), text(fields, "action"), text(fields, "targetNode"), text(fields, "state"), occurredAt));
