@@ -338,10 +338,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean lifecycleListenerNeeded() {
-        return featureEnabled("lifecycle")
-                && (featureEnabled("machines")
-                || operationalFeatureEnabled("resource-nodes")
-                || featureEnabled("maintenance"));
+        return featureEnabled("lifecycle") && lifecycleStateEnabled();
     }
 
     private boolean storageDataEnabled() {
