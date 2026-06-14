@@ -1763,10 +1763,8 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 403, ApiResponses.error("SNAPSHOT_NODE_MISMATCH", "Snapshot must be recorded by the active island node"));
                 return;
             }
-            snapshotRepository.record(islandId, snapshotNo, storagePath, reason, null, checksum, sizeBytes);
-            snapshotRepository.prune(islandId, snapshotRetentionPolicy);
-            events.publish(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name(), Map.of("islandId", islandId.toString(), "snapshotNo", Long.toString(snapshotNo), "reason", reason));
-            write(exchange, 202, "{\"accepted\":true,\"snapshotNo\":" + snapshotNo + "}");
+            int pruned = recordSnapshotAndPublish(islandId, snapshotNo, storagePath, reason, checksum, sizeBytes, nodeId);
+            write(exchange, 202, "{\"accepted\":true,\"snapshotNo\":" + snapshotNo + ",\"storagePath\":\"" + escape(storagePath) + "\",\"checksum\":\"" + escape(checksum) + "\",\"sizeBytes\":" + sizeBytes + ",\"pruned\":" + pruned + "}");
         });
         route("/v1/admin/block-values", exchange -> {
             String body = readBody(exchange);
@@ -2768,14 +2766,29 @@ public final class CloudIslandsCoreApplication {
             String storagePath = storedBundle.storagePath() == null || storedBundle.storagePath().isBlank()
                 ? "islands/" + islandId + "/backups/delete-" + String.format("%06d", snapshotNo) + "/bundle.tar.zst"
                 : storedBundle.storagePath();
-            snapshotRepository.record(islandId, snapshotNo, storagePath, reason, null, storedBundle.checksum(), storedBundle.sizeBytes());
-            snapshotRepository.prune(islandId, snapshotRetentionPolicy);
+            recordSnapshotAndPublish(islandId, snapshotNo, storagePath, reason, storedBundle.checksum(), storedBundle.sizeBytes(), "");
             deleteStorage.deleteLiveState(islandId);
             return true;
         } catch (IOException exception) {
             events.publish("ISLAND_DELETE_BACKUP_FAILED", Map.of("islandId", islandId.toString(), "reason", reason, "error", exception.getMessage() == null ? "" : exception.getMessage()));
             return false;
         }
+    }
+
+    private int recordSnapshotAndPublish(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId) {
+        snapshotRepository.record(islandId, snapshotNo, storagePath, reason, null, checksum, sizeBytes);
+        int pruned = snapshotRepository.prune(islandId, snapshotRetentionPolicy);
+        events.publish(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name(), Map.of(
+            "islandId", islandId.toString(),
+            "snapshotNo", Long.toString(snapshotNo),
+            "reason", reason == null ? "" : reason,
+            "storagePath", storagePath == null ? "" : storagePath,
+            "checksum", checksum == null ? "" : checksum,
+            "sizeBytes", Long.toString(sizeBytes),
+            "nodeId", nodeId == null ? "" : nodeId,
+            "pruned", Integer.toString(pruned)
+        ));
+        return pruned;
     }
 
     private static String jobsJson(IslandJobQueue jobs) {
