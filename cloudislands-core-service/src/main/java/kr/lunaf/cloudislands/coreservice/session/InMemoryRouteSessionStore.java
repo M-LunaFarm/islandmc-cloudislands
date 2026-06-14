@@ -83,6 +83,19 @@ public final class InMemoryRouteSessionStore implements RouteSessionStore {
         return byPlayer.remove(playerUuid) != null;
     }
 
+    @Override
+    public int clearForNode(String nodeId) {
+        int cleared = 0;
+        for (PlayerRouteSession session : byPlayer.values()) {
+            if (expired(session) || session.targetNode().equals(nodeId)) {
+                if (byPlayer.remove(session.playerUuid(), session)) {
+                    cleared++;
+                }
+            }
+        }
+        return cleared;
+    }
+
     public int clearAll() {
         int cleared = byPlayer.size();
         byPlayer.clear();

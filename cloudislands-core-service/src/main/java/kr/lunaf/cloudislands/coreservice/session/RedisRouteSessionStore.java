@@ -110,6 +110,33 @@ public final class RedisRouteSessionStore implements RouteSessionStore {
         }
     }
 
+    @Override
+    public int clearForNode(String nodeId) {
+        int cleared = 0;
+        try {
+            for (String key : sessionKeys()) {
+                try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+                    String value = redis.command("GET", key);
+                    if (value == null || value.isBlank()) {
+                        continue;
+                    }
+                    PlayerRouteSession session = decode(value);
+                    if (session.expiresAt().isBefore(Instant.now()) || session.targetNode().equals(nodeId)) {
+                        if (!"0".equals(redis.command("DEL", key))) {
+                            cleared++;
+                        }
+                    }
+                } catch (IOException | RuntimeException exception) {
+                    failures.incrementAndGet();
+                }
+            }
+            return Math.max(cleared, fallback.clearForNode(nodeId));
+        } catch (RuntimeException exception) {
+            failures.incrementAndGet();
+            return fallback.clearForNode(nodeId);
+        }
+    }
+
     public int clearAll() {
         int cleared = 0;
         try {

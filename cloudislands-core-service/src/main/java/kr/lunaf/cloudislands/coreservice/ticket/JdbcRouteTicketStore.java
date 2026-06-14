@@ -106,6 +106,39 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
     }
 
     @Override
+    public List<RouteTicket> markFailedForNode(String targetNode, String reason) {
+        List<RouteTicket> failedTickets = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT * FROM route_tickets WHERE target_node = ? AND state IN ('PREPARING', 'READY')")) {
+            statement.setString(1, targetNode);
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    RouteTicket ticket = map(rs);
+                    LinkedHashMap<String, String> payload = new LinkedHashMap<>(ticket.payload());
+                    payload.put("failureReason", reason == null ? "" : reason);
+                    RouteTicket failed = new RouteTicket(
+                        ticket.ticketId(),
+                        ticket.playerUuid(),
+                        ticket.action(),
+                        ticket.islandId(),
+                        ticket.targetNode(),
+                        ticket.targetWorld(),
+                        RouteTicketState.FAILED,
+                        ticket.expiresAt(),
+                        ticket.nonce(),
+                        Map.copyOf(payload)
+                    );
+                    save(failed);
+                    failedTickets.add(failed);
+                }
+            }
+            return failedTickets;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to mark node route tickets failed", exception);
+        }
+    }
+
+    @Override
     public Optional<RouteTicket> consume(UUID ticketId, UUID playerUuid, String nodeId, String nonce) {
         RouteTicket ticket = find(ticketId).orElse(null);
         if (ticket == null || ticket.state() != RouteTicketState.READY) {

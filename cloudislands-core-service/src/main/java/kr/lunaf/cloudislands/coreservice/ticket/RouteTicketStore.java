@@ -14,6 +14,8 @@ public interface RouteTicketStore {
 
     List<RouteTicket> markFailedForIsland(UUID islandId, String targetNode, String reason);
 
+    List<RouteTicket> markFailedForNode(String targetNode, String reason);
+
     Optional<RouteTicket> consume(UUID ticketId, UUID playerUuid, String nodeId, String nonce);
 
     Optional<RouteTicket> find(UUID ticketId);

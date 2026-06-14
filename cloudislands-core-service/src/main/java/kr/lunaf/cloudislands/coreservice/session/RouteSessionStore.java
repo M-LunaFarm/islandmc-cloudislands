@@ -11,5 +11,6 @@ public interface RouteSessionStore {
     Optional<PlayerRouteSession> findAny(UUID playerUuid);
     Optional<PlayerRouteSession> consume(UUID playerUuid, String nodeId);
     boolean clear(UUID playerUuid);
+    int clearForNode(String nodeId);
     int clearAll();
 }

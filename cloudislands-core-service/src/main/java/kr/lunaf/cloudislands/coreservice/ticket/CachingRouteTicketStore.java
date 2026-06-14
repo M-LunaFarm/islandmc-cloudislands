@@ -55,6 +55,16 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
     }
 
     @Override
+    public List<RouteTicket> markFailedForNode(String targetNode, String reason) {
+        List<RouteTicket> failed = delegate.markFailedForNode(targetNode, reason);
+        failed.forEach(this::cache);
+        if (!failed.isEmpty()) {
+            invalidateTicketCounts();
+        }
+        return failed;
+    }
+
+    @Override
     public Optional<RouteTicket> consume(UUID ticketId, UUID playerUuid, String nodeId, String nonce) {
         Optional<RouteTicket> ticket = delegate.consume(ticketId, playerUuid, nodeId, nonce);
         ticket.ifPresent(consumed -> {

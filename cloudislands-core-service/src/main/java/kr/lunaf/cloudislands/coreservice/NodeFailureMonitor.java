@@ -10,9 +10,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandState;
+import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
+import kr.lunaf.cloudislands.coreservice.session.RouteSessionStore;
+import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
 
 public final class NodeFailureMonitor {
     private static final Logger LOGGER = Logger.getLogger(NodeFailureMonitor.class.getName());
@@ -20,16 +23,24 @@ public final class NodeFailureMonitor {
     private final IslandRuntimeRepository runtimes;
     private final IslandRepository islands;
     private final GlobalEventPublisher events;
+    private final RouteTicketStore tickets;
+    private final RouteSessionStore sessions;
     private final Duration heartbeatTimeout;
     private final ScheduledExecutorService executor;
     private final AtomicBoolean started = new AtomicBoolean(false);
     private volatile long lastFailureLogMillis;
 
     public NodeFailureMonitor(NodeRegistry nodes, IslandRuntimeRepository runtimes, IslandRepository islands, GlobalEventPublisher events, Duration heartbeatTimeout) {
+        this(nodes, runtimes, islands, events, heartbeatTimeout, null, null);
+    }
+
+    public NodeFailureMonitor(NodeRegistry nodes, IslandRuntimeRepository runtimes, IslandRepository islands, GlobalEventPublisher events, Duration heartbeatTimeout, RouteTicketStore tickets, RouteSessionStore sessions) {
         this.nodes = nodes;
         this.runtimes = runtimes;
         this.islands = islands;
         this.events = events;
+        this.tickets = tickets;
+        this.sessions = sessions;
         this.heartbeatTimeout = heartbeatTimeout;
         this.executor = Executors.newSingleThreadScheduledExecutor(task -> {
             Thread thread = new Thread(task, "cloudislands-node-failure-monitor");
@@ -58,7 +69,23 @@ public final class NodeFailureMonitor {
         List<String> downNodes = nodes.markStaleDown(heartbeatTimeout);
         for (String nodeId : downNodes) {
             int affected = markRecoveryRequiredForNode(nodeId);
-            events.publish(kr.lunaf.cloudislands.common.event.CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "DOWN", "recoveryRequired", Integer.toString(affected)));
+            int failedTickets = failRoutesForNode(nodeId);
+            int clearedSessions = clearSessionsForNode(nodeId);
+            events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of(
+                "nodeId", nodeId,
+                "state", "DOWN",
+                "recoveryRequired", Integer.toString(affected),
+                "failedTickets", Integer.toString(failedTickets),
+                "clearedSessions", Integer.toString(clearedSessions)
+            ));
+            if (failedTickets > 0 || clearedSessions > 0) {
+                events.publish(CloudIslandEventType.ROUTE_TICKET_CLEARED.name(), Map.of(
+                    "targetNode", nodeId,
+                    "reason", "NODE_DOWN",
+                    "clearedTickets", Integer.toString(failedTickets),
+                    "clearedSessions", Integer.toString(clearedSessions)
+                ));
+            }
         }
     }
 
@@ -69,7 +96,7 @@ public final class NodeFailureMonitor {
         int affected = runtimes.markRecoveryRequiredForNode(nodeId);
         for (IslandRuntimeSnapshot runtime : affectedIslands) {
             islands.setState(runtime.islandId(), IslandState.RECOVERY_REQUIRED);
-            events.publish(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_RECOVERY_REQUIRED.name(), Map.of(
+            events.publish(CloudIslandEventType.ISLAND_RECOVERY_REQUIRED.name(), Map.of(
                 "islandId", runtime.islandId().toString(),
                 "nodeId", nodeId,
                 "previousState", runtime.state().name(),
@@ -80,6 +107,20 @@ public final class NodeFailureMonitor {
             ));
         }
         return affected;
+    }
+
+    private int failRoutesForNode(String nodeId) {
+        if (tickets == null) {
+            return 0;
+        }
+        return tickets.markFailedForNode(nodeId, "NODE_DOWN").size();
+    }
+
+    private int clearSessionsForNode(String nodeId) {
+        if (sessions == null) {
+            return 0;
+        }
+        return sessions.clearForNode(nodeId);
     }
 
     private static boolean requiresRecovery(IslandRuntimeSnapshot runtime) {

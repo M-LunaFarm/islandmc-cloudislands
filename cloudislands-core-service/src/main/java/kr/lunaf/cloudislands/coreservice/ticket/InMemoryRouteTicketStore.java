@@ -83,6 +83,33 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
         return failedTickets;
     }
 
+    @Override
+    public List<RouteTicket> markFailedForNode(String targetNode, String reason) {
+        List<RouteTicket> failedTickets = new ArrayList<>();
+        for (RouteTicket ticket : tickets.values()) {
+            if ((ticket.state() != RouteTicketState.PREPARING && ticket.state() != RouteTicketState.READY) || !ticket.targetNode().equals(targetNode)) {
+                continue;
+            }
+            java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>(ticket.payload());
+            payload.put("failureReason", reason == null ? "" : reason);
+            RouteTicket failed = new RouteTicket(
+                ticket.ticketId(),
+                ticket.playerUuid(),
+                ticket.action(),
+                ticket.islandId(),
+                ticket.targetNode(),
+                ticket.targetWorld(),
+                RouteTicketState.FAILED,
+                ticket.expiresAt(),
+                ticket.nonce(),
+                Map.copyOf(payload)
+            );
+            tickets.put(ticket.ticketId(), failed);
+            failedTickets.add(failed);
+        }
+        return failedTickets;
+    }
+
     public Optional<RouteTicket> consume(UUID ticketId, UUID playerUuid, String nodeId, String nonce) {
         Instant now = clock.instant();
         java.util.concurrent.atomic.AtomicReference<RouteTicket> consumed = new java.util.concurrent.atomic.AtomicReference<>();
