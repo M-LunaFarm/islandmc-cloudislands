@@ -28,6 +28,7 @@ public final class CoreApiSatisStateService {
     private final CloudIslandsApi cloudIslandsApi;
     private final String addonId;
     private volatile String lastTableStatusFingerprint = "";
+    private volatile String lastGlobalTableStatusFingerprint = "";
 
     public CoreApiSatisStateService(Logger logger, CloudIslandsApi cloudIslandsApi, String addonId) {
         this.logger = logger;
@@ -208,10 +209,16 @@ public final class CoreApiSatisStateService {
             return;
         }
         if (table.values().isEmpty()) {
-            cloudIslandsApi.addons().clearTableState(addonId, table.table()).exceptionally(error -> {
-                logger.warning("Failed to clear Satis core-api global table " + table.table() + ": " + error.getMessage());
-                return Map.of();
-            });
+            cloudIslandsApi.addons().clearTableState(addonId, table.table())
+                    .thenApply(state -> {
+                        publishGlobalTableStatus(table, "cleared", "");
+                        return state;
+                    })
+                    .exceptionally(error -> {
+                        logger.warning("Failed to clear Satis core-api global table " + table.table() + ": " + error.getMessage());
+                        publishGlobalTableStatus(table, "failed", error.getMessage());
+                        return Map.of();
+                    });
             return;
         }
         cloudIslandsApi.addons().replaceTableState(addonId, table.table(), table.values())
@@ -228,10 +235,40 @@ public final class CoreApiSatisStateService {
                             .thenCompose(_cleared -> cloudIslandsApi.addons().putTableState(addonId, table.table(), table.values()));
                 })
                 .thenCompose(result -> result)
+                .thenApply(state -> {
+                    publishGlobalTableStatus(table, "success", "");
+                    return state;
+                })
                 .exceptionally(error -> {
                     logger.warning("Failed to publish Satis core-api global table " + table.table() + ": " + error.getMessage());
+                    publishGlobalTableStatus(table, "failed", error.getMessage());
                     return Map.of();
                 });
+    }
+
+    private void publishGlobalTableStatus(DatabaseService.CoreGlobalTableWrite table, String status, String error) {
+        if (cloudIslandsApi == null || table == null) {
+            return;
+        }
+        String tableName = table.table() == null ? "" : table.table();
+        String keyCount = table.values() == null ? "0" : Integer.toString(table.values().size());
+        String safeStatus = status == null || status.isBlank() ? "unknown" : status;
+        String safeError = error == null ? "" : error;
+        String fingerprint = tableName + "|" + keyCount + "|" + safeStatus + "|" + safeError;
+        if (fingerprint.equals(lastGlobalTableStatusFingerprint)) {
+            return;
+        }
+        lastGlobalTableStatusFingerprint = fingerprint;
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("last-core-global-table-publish-table", tableName);
+        state.put("last-core-global-table-publish-keys", keyCount);
+        state.put("last-core-global-table-publish-status", safeStatus);
+        state.put("last-core-global-table-publish-error", safeError);
+        state.put("last-core-global-table-publish-at", Instant.now().toString());
+        cloudIslandsApi.addons().putState(addonId, state).exceptionally(publishError -> {
+            logger.warning("Failed to publish Satis core-api global table status: " + publishError.getMessage());
+            return Map.of();
+        });
     }
 
     public boolean hydrateGlobal(DatabaseService database) {
