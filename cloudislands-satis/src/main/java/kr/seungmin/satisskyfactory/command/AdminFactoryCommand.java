@@ -761,6 +761,9 @@ public final class AdminFactoryCommand {
                         "runtime-dirty-save-running",
                         "runtime-core-api-state-writer",
                         "addon-state-bulk-save-api",
+                        "addon-state-bulk-save-global-endpoint",
+                        "addon-state-bulk-save-island-endpoint",
+                        "addon-state-bulk-save-methods",
                         "core-api-table-save-mode"
                 ).forEach(key -> {
                     String value = metadata.get(key);
