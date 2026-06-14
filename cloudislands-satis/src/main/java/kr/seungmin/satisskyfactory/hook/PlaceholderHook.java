@@ -68,7 +68,7 @@ public final class PlaceholderHook extends PlaceholderExpansion {
     @Override
     public String onRequest(OfflinePlayer offlinePlayer, String params) {
         Player player = offlinePlayer == null ? null : offlinePlayer.getPlayer();
-        if (player == null) {
+        if (player == null || params == null || params.isBlank()) {
             return "";
         }
         Optional<FactoryContext> context = islands.existingContext(player);
@@ -76,7 +76,7 @@ public final class PlaceholderHook extends PlaceholderExpansion {
             return "";
         }
         FactoryIsland island = context.get().factoryIsland();
-        String key = params.toLowerCase(Locale.ROOT);
+        String key = params.trim().toLowerCase(Locale.ROOT);
         if (!canResolve(key)) {
             return "";
         }
@@ -164,7 +164,7 @@ public final class PlaceholderHook extends PlaceholderExpansion {
             return String.valueOf(contracts.activeContracts(island).size());
         }
         if (key.startsWith("unlocked_")) {
-            return String.valueOf(research.unlocked(island).contains(params.substring("unlocked_".length())));
+            return String.valueOf(research.unlocked(island).contains(key.substring("unlocked_".length())));
         }
         return null;
     }
