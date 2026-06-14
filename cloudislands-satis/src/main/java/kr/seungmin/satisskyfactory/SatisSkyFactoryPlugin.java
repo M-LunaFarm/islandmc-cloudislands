@@ -1148,6 +1148,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         String safeOperation = operation == null || operation.isBlank() ? "unknown" : operation;
         String eventNode = lifecycleEventNode(safeOperation);
+        String activeNode = lifecycleActiveNode(safeOperation);
+        String eventWorld = lifecycleEventWorld(safeOperation);
         Map<String, String> state = new LinkedHashMap<>();
         state.put("last-lifecycle-island", islandId.toString());
         state.put("last-lifecycle-operation", safeOperation);
@@ -1159,6 +1161,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("last-lifecycle-error", shortError(exception));
         if (!eventNode.isBlank()) {
             state.put("last-lifecycle-node", eventNode);
+        }
+        if (!activeNode.isBlank()) {
+            state.put("last-lifecycle-active-node", activeNode);
+        }
+        if (!eventWorld.isBlank()) {
+            state.put("last-lifecycle-active-world", eventWorld);
         }
         cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
             getLogger().warning("Failed to publish CloudIslands Satis lifecycle failure: " + error.getMessage());
