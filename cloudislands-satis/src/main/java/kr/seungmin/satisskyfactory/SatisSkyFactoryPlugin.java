@@ -945,7 +945,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("addon-state-bulk-save-island-endpoint", "/v1/addons/islands/state/table-key-value/bulk-save");
         metadata.put("addon-state-table-key-value-bulk-save-global-endpoint", "/v1/addons/state/table/key-value/bulk-save");
         metadata.put("addon-state-table-key-value-bulk-save-island-endpoint", "/v1/addons/islands/state/table/key-value/bulk-save");
-        metadata.put("addon-state-bulk-save-methods", "bulkSaveState,bulkSaveIslandState");
+        metadata.put("addon-state-bulk-save-methods", "bulkSaveState,tableKeyValueBulkSaveState,bulkSaveTableKeyValueState,bulkSaveIslandState,tableKeyValueBulkSaveIslandState,bulkSaveIslandTableKeyValueState");
         metadata.put("core-api-table-save-mode", "bulk-save-with-table-prefix");
         metadata.put("feature-aliases", featureAliasesMetadata());
         metadata.put("feature-alias-disabled", disabledFeatureAliases());
@@ -1137,7 +1137,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("addon-state-bulk-save-island-endpoint", "/v1/addons/islands/state/table-key-value/bulk-save");
         state.put("addon-state-table-key-value-bulk-save-global-endpoint", "/v1/addons/state/table/key-value/bulk-save");
         state.put("addon-state-table-key-value-bulk-save-island-endpoint", "/v1/addons/islands/state/table/key-value/bulk-save");
-        state.put("addon-state-bulk-save-methods", "bulkSaveState,bulkSaveIslandState");
+        state.put("addon-state-bulk-save-methods", "bulkSaveState,tableKeyValueBulkSaveState,bulkSaveTableKeyValueState,bulkSaveIslandState,tableKeyValueBulkSaveIslandState,bulkSaveIslandTableKeyValueState");
         state.put("core-api-table-save-mode", "bulk-save-with-table-prefix");
         state.put("configured-features", featureState(snapshot.configuredFeatures()));
         state.put("effective-features", featureState(snapshot.features()));
