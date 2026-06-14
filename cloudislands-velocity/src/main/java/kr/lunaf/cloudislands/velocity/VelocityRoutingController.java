@@ -1795,6 +1795,8 @@ public final class VelocityRoutingController {
             + " jdbcSupportedBackends=" + jsonValue(body, "coreJdbcSupportedBackends")
             + " setupFallbackBackends=" + jsonValue(body, "coreSetupFallbackBackends")
             + " setupFallbackMode=" + jsonValue(body, "coreSetupFallbackMode")
+            + " setupDbShapes=" + jsonValue(body, "coreSetupDatabaseConfigShapes")
+            + " setupDbEnv=" + jsonValue(body, "coreSetupDatabaseEnv")
             + " jdbcFallback=" + jsonValue(body, "coreJdbcFallbackReason")
             + " addonBulkSave=" + boolValue(body, "addonStateBulkSaveApi")
             + " addonBulkGlobal=" + jsonValue(body, "addonStateBulkSaveGlobalEndpoint")
