@@ -1074,6 +1074,10 @@ public final class VelocityRoutingController {
         sendBodyResult(player, coreApiClient.storageStatus().thenApply(this::storageStatusMessage), "Storage 상태를 불러오지 못했습니다.");
     }
 
+    public void addonStateSummary(Player player) {
+        sendBodyResult(player, coreApiClient.addonStateSummary().thenApply(this::addonStateSummaryMessage), "Addon state 상태를 불러오지 못했습니다.");
+    }
+
     public void listBlockValues(Player player) {
         sendBodyResult(player, coreApiClient.listBlockValues().thenApply(this::blockValueListMessage), "블록 가치 목록을 불러오지 못했습니다.");
     }
@@ -1430,6 +1434,36 @@ public final class VelocityRoutingController {
             index = objectEnd + 1;
         }
         return "Block values: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String addonStateSummaryMessage(String body) {
+        String addons = arrayValue(body, "addons");
+        if (addons.isBlank()) {
+            return "Addon state: empty";
+        }
+        java.util.List<String> entries = new java.util.ArrayList<>();
+        int total = 0;
+        int index = 0;
+        while (index < addons.length()) {
+            int objectStart = addons.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(addons, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            total++;
+            if (entries.size() < 10) {
+                String object = addons.substring(objectStart, objectEnd + 1);
+                entries.add(jsonValue(object, "addonId")
+                    + " global=" + longValue(object, "globalKeys")
+                    + " island=" + longValue(object, "islandKeys")
+                    + " totalKeys=" + longValue(object, "totalKeys"));
+            }
+            index = objectEnd + 1;
+        }
+        return "Addon state: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     private String templateListMessage(String body) {

@@ -471,6 +471,10 @@ public final class CloudIslandsVelocityPlugin {
             routingController.storageStatus(player);
             return;
         }
+        if (args.length >= 1 && args[0].equalsIgnoreCase("addons") && (args.length == 1 || args[1].equalsIgnoreCase("state") || args[1].equalsIgnoreCase("state-summary"))) {
+            routingController.addonStateSummary(player);
+            return;
+        }
         if (args.length >= 1 && args[0].equalsIgnoreCase("block-values") && (args.length == 1 || args[1].equalsIgnoreCase("list"))) {
             routingController.listBlockValues(player);
             return;
@@ -1395,7 +1399,7 @@ public final class CloudIslandsVelocityPlugin {
             return "";
         }
         return switch (root) {
-            case "status", "config", "cache", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
+            case "status", "config", "cache", "addons", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
     }
