@@ -842,13 +842,21 @@ public final class AdminFactoryCommand {
     }
 
     private int helpPage(String[] args) {
-        if (args.length > 3 && args[1].equalsIgnoreCase("command") && (args[2].equalsIgnoreCase("list") || args[2].equals("목록"))) {
+        if (args.length > 3 && isCommandListRoot(args[1]) && (args[2].equalsIgnoreCase("list") || args[2].equals("목록"))) {
             return (int) parseLong(args, 3, 1);
         }
         if (args.length > 2) {
             return (int) parseLong(args, 2, 1);
         }
         return 1;
+    }
+
+    private boolean isCommandListRoot(String value) {
+        return value.equalsIgnoreCase("command")
+                || value.equalsIgnoreCase("commands")
+                || value.equalsIgnoreCase("command-list")
+                || value.equals("명령어")
+                || value.equals("명령어목록");
     }
 
     private String joined(String[] args, int fromIndex) {

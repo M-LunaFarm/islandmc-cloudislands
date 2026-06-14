@@ -554,7 +554,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             return false;
         }
         String first = args[0].toLowerCase(Locale.ROOT);
-        if (first.equals("command") && args.length > 1 && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
+        if (isCommandListRoot(first) && args.length > 1 && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
             return true;
         }
         return first.equals("help") || first.equals("commands") || first.equals("command") || first.equals("command-list")
@@ -562,13 +562,21 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     }
 
     private int helpPage(String[] args) {
-        if (args.length > 2 && args[0].equalsIgnoreCase("command") && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
+        if (args.length > 2 && isCommandListRoot(args[0]) && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
             return (int) parseLong(args, 2, 1);
         }
         if (args.length > 1) {
             return (int) parseLong(args, 1, 1);
         }
         return 1;
+    }
+
+    private boolean isCommandListRoot(String value) {
+        return value.equalsIgnoreCase("command")
+                || value.equalsIgnoreCase("commands")
+                || value.equalsIgnoreCase("command-list")
+                || value.equals("명령어")
+                || value.equals("명령어목록");
     }
 
     private boolean enabled(String feature) {
