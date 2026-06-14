@@ -132,15 +132,23 @@ database:
     max-pool-size: 8
     connection-timeout-ms: 5000
   mysql:
+    url: ""
     host: "127.0.0.1"
     port: 3306
     database: "cloudislands_satis"
     options: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
   postgresql:
+    url: ""
     host: "127.0.0.1"
     port: 5432
     database: "cloudislands_satis"
     options: "sslmode=disable"
+  mariadb:
+    url: ""
+    host: "127.0.0.1"
+    port: 3306
+    database: "cloudislands_satis"
+    options: "useSSL=false&serverTimezone=UTC"
   # Use one of these in multi-node CloudIslands setups so A/B island nodes share Satis state.
   # Environment variable CLOUDISLANDS_SATIS_DB has the highest priority for SQLite file paths.
   # Environment variable CLOUDISLANDS_SATIS_JDBC_URL has the highest priority for JDBC backends.
