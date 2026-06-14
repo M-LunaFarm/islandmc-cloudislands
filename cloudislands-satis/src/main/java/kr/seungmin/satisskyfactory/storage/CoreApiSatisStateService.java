@@ -39,24 +39,34 @@ public final class CoreApiSatisStateService {
         if (cloudIslandsApi == null || batch == null) {
             return;
         }
-        Map<UUID, Map<String, String>> stateByIsland = new LinkedHashMap<>();
-        batch.islands().values().forEach(island -> state(stateByIsland, island.islandUuid())
-                .put("table/factory_islands/" + island.islandUuid(), islandJson(island)));
-        batch.machines().values().forEach(machine -> state(stateByIsland, machine.islandUuid())
-                .put("table/machines/" + machine.machineId(), machineJson(machine)));
-        batch.inventories().values().forEach(inventory -> state(stateByIsland, inventory.islandUuid())
-                .put("table/virtual_inventories/" + inventory.inventoryId(), inventoryJson(inventory)));
-        batch.nodes().values().forEach(node -> state(stateByIsland, node.islandUuid())
-                .put("table/resource_nodes/" + node.nodeId(), nodeJson(node)));
-        stateByIsland.forEach((islandId, state) -> {
-            state.put("core-api-sync-schema", "1");
-            state.put("core-api-sync-updated-at", Instant.now().toString());
-            state.put("core-api-sync-keys", Integer.toString(state.size()));
-            cloudIslandsApi.addons().putIslandState(addonId, islandId, state).exceptionally(error -> {
+        Map<UUID, Map<String, String>> valuesByIsland = new LinkedHashMap<>();
+        Map<UUID, Map<String, Map<String, String>>> tablesByIsland = new LinkedHashMap<>();
+        batch.islands().values().forEach(island -> table(tablesByIsland, island.islandUuid(), "factory_islands")
+                .put(island.islandUuid().toString(), islandJson(island)));
+        batch.machines().values().forEach(machine -> table(tablesByIsland, machine.islandUuid(), "machines")
+                .put(machine.machineId(), machineJson(machine)));
+        batch.inventories().values().forEach(inventory -> table(tablesByIsland, inventory.islandUuid(), "virtual_inventories")
+                .put(inventory.inventoryId(), inventoryJson(inventory)));
+        batch.nodes().values().forEach(node -> table(tablesByIsland, node.islandUuid(), "resource_nodes")
+                .put(node.nodeId(), nodeJson(node)));
+        tablesByIsland.forEach((islandId, tables) -> {
+            Map<String, String> values = state(valuesByIsland, islandId);
+            int tableKeys = tables.values().stream().mapToInt(Map::size).sum();
+            values.put("core-api-sync-schema", "1");
+            values.put("core-api-sync-updated-at", Instant.now().toString());
+            values.put("core-api-sync-keys", Integer.toString(values.size() + tableKeys));
+            values.put("core-api-sync-tables", Integer.toString(tables.size()));
+            cloudIslandsApi.addons().putIslandState(addonId, islandId, values, tables).exceptionally(error -> {
                 logger.warning("Failed to publish Satis core-api table state for island " + islandId + ": " + error.getMessage());
                 return Map.of();
             });
         });
+    }
+
+    private Map<String, String> table(Map<UUID, Map<String, Map<String, String>>> tablesByIsland, UUID islandId, String table) {
+        return tablesByIsland
+                .computeIfAbsent(islandId, _ignored -> new LinkedHashMap<>())
+                .computeIfAbsent(table, _ignored -> new LinkedHashMap<>());
     }
 
     public void removeRow(UUID islandId, String key) {
