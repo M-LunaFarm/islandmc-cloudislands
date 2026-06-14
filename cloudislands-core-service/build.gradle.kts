@@ -12,3 +12,12 @@ dependencies {
 application {
     mainClass.set("kr.lunaf.cloudislands.coreservice.CloudIslandsCoreApplication")
 }
+
+tasks.jar {
+    manifest {
+        attributes(
+            "SuperiorSkyblock2-Migration-Input-Only" to "true",
+            "SuperiorSkyblock2-Runtime-Dependency" to "false"
+        )
+    }
+}

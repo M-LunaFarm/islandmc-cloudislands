@@ -17,6 +17,12 @@ tasks.test {
 tasks.jar {
     archiveBaseName.set("CloudIslands-Paper")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes(
+            "SuperiorSkyblock2-Migration-Input-Only" to "true",
+            "SuperiorSkyblock2-Runtime-Dependency" to "false"
+        )
+    }
     from(configurations.runtimeClasspath.get().map {
         if (it.isDirectory) it else zipTree(it)
     })
