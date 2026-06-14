@@ -877,6 +877,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
         metadata.put("database-fallback-order", databaseFallbackOrderMetadata());
         metadata.put("database-config-source", databaseConfigSource());
+        metadata.put("database-jdbc-source", databaseJdbcSource());
         metadata.put("database-credentials-source", databaseCredentialsSource());
         metadata.put("database-pool-source", databasePoolSource());
         metadata.put("database-fallback-source", databaseFallbackSource());
@@ -2090,6 +2091,25 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return "database.jdbc.username/password";
     }
 
+    private String databaseJdbcSource() {
+        if (envPresent("CLOUDISLANDS_SATIS_JDBC_URL")) {
+            return "CLOUDISLANDS_SATIS_JDBC_URL";
+        }
+        if (nonBlankConfig("setup.database.jdbc.url")) {
+            return "setup.database.jdbc.url";
+        }
+        if (nonBlankConfig("database.jdbc.url")) {
+            return "database.jdbc.url";
+        }
+        String backend = configuredDatabaseBackendName().toLowerCase(java.util.Locale.ROOT);
+        if (nonBlankConfig("setup.database." + backend + ".url")
+                || nonBlankConfig("setup.database." + backend + ".host")
+                || nonBlankConfig("setup.database." + backend + ".database")) {
+            return "setup.database." + backend;
+        }
+        return "database." + backend;
+    }
+
     private String databasePoolSource() {
         if (envPresent("CLOUDISLANDS_SATIS_DB_MAX_POOL_SIZE") || envPresent("CLOUDISLANDS_SATIS_DB_CONNECTION_TIMEOUT_MS")) {
             return "CLOUDISLANDS_SATIS_DB_MAX_POOL_SIZE/CONNECTION_TIMEOUT_MS";
@@ -2114,6 +2134,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private boolean envPresent(String key) {
         String value = System.getenv(key);
+        return value != null && !value.isBlank();
+    }
+
+    private boolean nonBlankConfig(String path) {
+        String value = configs.main().getString(path, "");
         return value != null && !value.isBlank();
     }
 

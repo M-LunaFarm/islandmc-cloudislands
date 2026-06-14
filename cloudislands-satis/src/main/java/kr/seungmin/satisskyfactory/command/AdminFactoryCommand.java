@@ -709,6 +709,7 @@ public final class AdminFactoryCommand {
                         "database-fallback-enabled",
                         "database-fallback-order",
                         "database-config-source",
+                        "database-jdbc-source",
                         "database-credentials-source",
                         "database-pool-source",
                         "database-fallback-source",
