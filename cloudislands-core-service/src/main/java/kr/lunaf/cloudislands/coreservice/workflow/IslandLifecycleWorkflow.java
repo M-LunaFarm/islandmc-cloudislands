@@ -180,6 +180,13 @@ public final class IslandLifecycleWorkflow {
         if (runtime.activeNode() == null || runtime.activeNode().isBlank()) {
             return new Result(false, "ISLAND_NOT_ACTIVE", runtime);
         }
+        NodeLoad activeNode = nodes.find(runtime.activeNode()).orElse(null);
+        if (activeNode == null) {
+            return new Result(false, "NODE_UNAVAILABLE", runtime);
+        }
+        if (!activeNode.storageAvailable()) {
+            return new Result(false, "STORAGE_UNAVAILABLE", runtime);
+        }
         try {
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.SNAPSHOT_ISLAND, islandId, runtime.activeNode(), 20, Map.of("reason", reason, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
         } catch (RuntimeException exception) {
@@ -261,8 +268,12 @@ public final class IslandLifecycleWorkflow {
     }
 
     private Result restoreActive(UUID islandId, IslandRuntimeSnapshot current, long snapshotNo, String storagePath) {
-        if (current.activeNode() == null || current.activeNode().isBlank() || nodes.find(current.activeNode()).isEmpty()) {
+        NodeLoad activeNode = current.activeNode() == null || current.activeNode().isBlank() ? null : nodes.find(current.activeNode()).orElse(null);
+        if (activeNode == null) {
             return new Result(false, "NODE_UNAVAILABLE", current);
+        }
+        if (!activeNode.storageAvailable()) {
+            return new Result(false, "STORAGE_UNAVAILABLE", current);
         }
         IslandRuntimeSnapshot runtime = runtimes.setState(islandId, IslandState.ACTIVATING);
         islands.setState(islandId, IslandState.ACTIVATING);
@@ -283,8 +294,12 @@ public final class IslandLifecycleWorkflow {
     }
 
     private Result resetActive(UUID islandId, IslandRuntimeSnapshot current, String reason) {
-        if (current.activeNode() == null || current.activeNode().isBlank() || nodes.find(current.activeNode()).isEmpty()) {
+        NodeLoad activeNode = current.activeNode() == null || current.activeNode().isBlank() ? null : nodes.find(current.activeNode()).orElse(null);
+        if (activeNode == null) {
             return new Result(false, "NODE_UNAVAILABLE", current);
+        }
+        if (!activeNode.storageAvailable()) {
+            return new Result(false, "STORAGE_UNAVAILABLE", current);
         }
         String templateId = islands.templateId(islandId).orElse("default");
         IslandRuntimeSnapshot runtime = runtimes.setState(islandId, IslandState.ACTIVATING);
