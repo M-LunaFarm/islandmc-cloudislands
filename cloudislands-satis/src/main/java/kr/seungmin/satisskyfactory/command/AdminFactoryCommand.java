@@ -767,6 +767,11 @@ public final class AdminFactoryCommand {
         }
         if (database != null) {
             visible.put("local.database-active-backend", database.activeBackend().name());
+            visible.put("local.database-attempted-backends", database.attemptedBackends().stream()
+                    .map(DatabaseService.StorageBackend::name)
+                    .reduce((left, right) -> left + "," + right)
+                    .orElse("none"));
+            visible.put("local.database-fallback-reason", database.fallbackReason());
             visible.put("local.database-description", database.databaseDescription());
         }
         if (sender instanceof Player player && addonIslandState != null) {
