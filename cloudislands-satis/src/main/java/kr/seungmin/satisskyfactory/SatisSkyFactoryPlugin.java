@@ -1430,11 +1430,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     public void onIslandRuntimeChanged(IslandRuntimeChangeEvent event) {
         String state = event.state() == null ? "" : event.state();
         if (state.equalsIgnoreCase("SAVING") || state.equalsIgnoreCase("DEACTIVATING") || state.equalsIgnoreCase("RECOVERY_REQUIRED") || state.equalsIgnoreCase("QUARANTINED")) {
-            runSatisLifecycle(event.islandId(), "runtime:" + state, () -> flushSatisIsland(event.islandId()));
+            runSatisLifecycle(event.islandId(), runtimeOperation(state, event.targetNode()), () -> flushSatisIsland(event.islandId()));
             return;
         }
         if (state.equalsIgnoreCase("ACTIVE")) {
-            runSatisLifecycle(event.islandId(), "runtime:ACTIVE", () -> synchronizeSatisIsland(event.islandId(), "runtime:ACTIVE"));
+            String operation = runtimeOperation(state, event.targetNode());
+            runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
         }
     }
 
@@ -1558,7 +1559,18 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (operation != null && operation.startsWith("deactivated:")) {
             return lifecycleNodePart(operation.substring("deactivated:".length()));
         }
+        if (operation != null && operation.startsWith("runtime:")) {
+            int nodeSeparator = operation.lastIndexOf(':');
+            if (nodeSeparator > "runtime:".length() && nodeSeparator + 1 < operation.length()) {
+                return lifecycleNodePart(operation.substring(nodeSeparator + 1));
+            }
+        }
         return "";
+    }
+
+    private String runtimeOperation(String state, String targetNode) {
+        String safeState = state == null || state.isBlank() ? "UNKNOWN" : state;
+        return "runtime:" + safeState + ":" + lifecycleNode(targetNode);
     }
 
     private String lifecycleEventWorld(String operation) {
