@@ -133,6 +133,11 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         String sub = args.length == 0 ? "main" : args[0].toLowerCase(Locale.ROOT);
+        String disabledFeature = disabledFeatureFor(sub);
+        if (disabledFeature != null) {
+            messages.send(player, "feature-disabled", Map.of("feature", disabledFeature));
+            return true;
+        }
         Optional<FactoryContext> context = readOnlyCommand(sub) ? islands.existingContext(player) : islands.context(player);
         if (context.isEmpty()) {
             messages.send(player, "no-island");
@@ -262,6 +267,23 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
 
     private boolean readOnlyCommand(String subcommand) {
         return subcommand.equals("status") || subcommand.equals("machines");
+    }
+
+    private String disabledFeatureFor(String subcommand) {
+        return switch (subcommand) {
+            case "main" -> enabled("gui") ? null : "gui";
+            case "machines" -> enabled("machines") ? null : "machines";
+            case "storage" -> !enabled("storage") ? "storage" : (!enabled("gui") ? "gui" : null);
+            case "deposit", "withdraw" -> enabled("storage") ? null : "storage";
+            case "market" -> !enabled("market") ? "market" : (!enabled("storage") ? "storage" : (!enabled("gui") ? "gui" : null));
+            case "contracts" -> !enabled("contracts") ? "contracts" : (!enabled("storage") ? "storage" : null);
+            case "research" -> enabled("research") ? null : "research";
+            case "emergency" -> !enabled("contracts") ? "contracts" : (!enabled("maintenance") ? "maintenance" : (!enabled("storage") ? "storage" : null));
+            case "node" -> enabled("resource-nodes") ? null : "resource-nodes";
+            case "sell" -> !enabled("market") ? "market" : (!enabled("storage") ? "storage" : null);
+            case "repair" -> !enabled("maintenance") ? "maintenance" : (!enabled("storage") ? "storage" : null);
+            default -> null;
+        };
     }
 
     private void ensureResourceNodes(Player player, FactoryContext context) {
