@@ -1667,25 +1667,29 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private DatabaseService.Settings databaseSettings() {
         DatabaseService.StorageBackend backend = DatabaseService.StorageBackend.parse(
-                configs.main().getString("database.type", "SQLITE"), DatabaseService.StorageBackend.SQLITE);
+                configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE);
         return new DatabaseService.Settings(
                 backend,
                 resolveDatabaseFileName(),
-                firstNonBlank(System.getenv("CLOUDISLANDS_SATIS_JDBC_URL"), configs.main().getString("database.jdbc.url", "")),
+                firstNonBlank(System.getenv("CLOUDISLANDS_SATIS_JDBC_URL"),
+                        firstNonBlank(configs.main().getString("setup.database.jdbc.url", ""), configs.main().getString("database.jdbc.url", ""))),
                 jdbcUrl("postgresql", "jdbc:postgresql", 5432),
                 jdbcUrl("mysql", "jdbc:mysql", 3306),
                 jdbcUrl("mariadb", "jdbc:mariadb", 3306),
-                configs.main().getString("database.jdbc.username", ""),
-                configs.main().getString("database.jdbc.password", ""),
-                Math.max(1, configs.main().getInt("database.jdbc.max-pool-size", 8)),
-                Math.max(1000L, configs.main().getLong("database.jdbc.connection-timeout-ms", 5000L)),
-                configs.main().getBoolean("database.fallback.enabled", true),
+                firstNonBlank(configs.main().getString("setup.database.jdbc.username", ""), configs.main().getString("database.jdbc.username", "")),
+                firstNonBlank(configs.main().getString("setup.database.jdbc.password", ""), configs.main().getString("database.jdbc.password", "")),
+                Math.max(1, setupInt("database.jdbc.max-pool-size", 8)),
+                Math.max(1000L, setupLong("database.jdbc.connection-timeout-ms", 5000L)),
+                setupBoolean("database.fallback.enabled", true),
                 databaseFallbackOrder()
         );
     }
 
     private List<DatabaseService.StorageBackend> databaseFallbackOrder() {
-        List<String> configured = configs.main().getStringList("database.fallback.order");
+        List<String> configured = configs.main().getStringList("setup.database.fallback.order");
+        if (configured == null || configured.isEmpty()) {
+            configured = configs.main().getStringList("database.fallback.order");
+        }
         if (configured == null || configured.isEmpty()) {
             configured = List.of("POSTGRESQL", "MYSQL", "SQLITE");
         }
@@ -1768,13 +1772,42 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String configuredDatabaseFileName() {
-        String sqliteFile = configs.main().getString("database.sqlite-file", "data.db");
+        String sqliteFile = firstNonBlank(configs.main().getString("setup.database.sqlite-file", ""), configs.main().getString("database.sqlite-file", "data.db"));
         return sqliteFile == null || sqliteFile.isBlank() ? "data.db" : sqliteFile.trim();
+    }
+
+    private String configuredDatabaseType() {
+        return firstNonBlank(System.getenv("CLOUDISLANDS_SATIS_DATABASE_TYPE"),
+                firstNonBlank(configs.main().getString("setup.database.type", ""), configs.main().getString("database.type", "SQLITE")));
+    }
+
+    private int setupInt(String path, int fallback) {
+        String setupPath = "setup." + path;
+        if (configs.main().contains(setupPath) && configs.main().getInt(setupPath, 0) > 0) {
+            return configs.main().getInt(setupPath, fallback);
+        }
+        return configs.main().getInt(path, fallback);
+    }
+
+    private long setupLong(String path, long fallback) {
+        String setupPath = "setup." + path;
+        if (configs.main().contains(setupPath) && configs.main().getLong(setupPath, 0L) > 0L) {
+            return configs.main().getLong(setupPath, fallback);
+        }
+        return configs.main().getLong(path, fallback);
+    }
+
+    private boolean setupBoolean(String path, boolean fallback) {
+        String setupPath = "setup." + path;
+        if (configs.main().contains(setupPath)) {
+            return configs.main().getBoolean(setupPath, fallback);
+        }
+        return configs.main().getBoolean(path, fallback);
     }
 
     private String databaseScope() {
         DatabaseService.StorageBackend backend = DatabaseService.StorageBackend.parse(
-                configs.main().getString("database.type", "SQLITE"), DatabaseService.StorageBackend.SQLITE);
+                configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE);
         if (backend == DatabaseService.StorageBackend.CORE_API) {
             return "CORE_API";
         }

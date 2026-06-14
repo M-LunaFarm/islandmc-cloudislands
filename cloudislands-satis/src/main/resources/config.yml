@@ -25,6 +25,20 @@ integration:
   mode: ADDON
   skyblock-provider: CLOUDISLANDS
   cloudislands-adapter: true
+setup:
+  database:
+    # Empty values inherit from database.* below. Use this block for first-install setup.
+    # type: SQLITE, POSTGRESQL, MYSQL, MARIADB, CORE_API
+    type: ""
+    sqlite-file: ""
+    fallback:
+      order: []
+    jdbc:
+      url: ""
+      username: ""
+      password: ""
+      max-pool-size: 0
+      connection-timeout-ms: 0
 settings:
   language: ko_kr
   debug: false
