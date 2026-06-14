@@ -132,12 +132,12 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             help(player, label, helpPage(args));
             return true;
         }
-        Optional<FactoryContext> context = islands.context(player);
+        String sub = args.length == 0 ? "main" : args[0].toLowerCase(Locale.ROOT);
+        Optional<FactoryContext> context = readOnlyCommand(sub) ? islands.existingContext(player) : islands.context(player);
         if (context.isEmpty()) {
             messages.send(player, "no-island");
             return true;
         }
-        String sub = args.length == 0 ? "main" : args[0].toLowerCase(Locale.ROOT);
         FactoryContext factoryContext = context.get();
         FactoryIsland island = factoryContext.factoryIsland();
         if (enabled("resource-nodes")) {
@@ -258,6 +258,10 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         return skyblock.getIslandAt(location)
                 .map(ref -> ref.islandUuid().equals(island.islandUuid()))
                 .orElse(false);
+    }
+
+    private boolean readOnlyCommand(String subcommand) {
+        return subcommand.equals("status") || subcommand.equals("machines");
     }
 
     private void ensureResourceNodes(Player player, FactoryContext context) {
