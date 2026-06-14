@@ -96,31 +96,33 @@ public final class CoreApiSatisStateService {
         if (state == null || state.isEmpty()) {
             return false;
         }
-        boolean restored = false;
-        for (Map.Entry<String, String> entry : state.entrySet()) {
-            String key = entry.getKey();
-            String value = entry.getValue();
-            if (key == null || value == null || !key.startsWith("table/market_daily/")) {
-                continue;
-            }
-            try {
-                String itemId = text(value, "itemId", "");
-                String dateKey = text(value, "dateKey", "");
-                if (itemId.isBlank() || dateKey.isBlank()) {
+        boolean[] restored = {false};
+        database.withCoreStatePublishingSuspended(() -> {
+            for (Map.Entry<String, String> entry : state.entrySet()) {
+                String key = entry.getKey();
+                String value = entry.getValue();
+                if (key == null || value == null || !key.startsWith("table/market_daily/")) {
                     continue;
                 }
-                database.saveMarketDailySnapshot(
-                        itemId,
-                        dateKey,
-                        longValue(value, "soldAmount", 0L),
-                        decimal(value, "demandFactor", 1.0D)
-                );
-                restored = true;
-            } catch (RuntimeException exception) {
-                logger.warning("Failed to hydrate Satis core-api global row " + key + ": " + exception.getMessage());
+                try {
+                    String itemId = text(value, "itemId", "");
+                    String dateKey = text(value, "dateKey", "");
+                    if (itemId.isBlank() || dateKey.isBlank()) {
+                        continue;
+                    }
+                    database.saveMarketDailySnapshot(
+                            itemId,
+                            dateKey,
+                            longValue(value, "soldAmount", 0L),
+                            decimal(value, "demandFactor", 1.0D)
+                    );
+                    restored[0] = true;
+                } catch (RuntimeException exception) {
+                    logger.warning("Failed to hydrate Satis core-api global row " + key + ": " + exception.getMessage());
+                }
             }
-        }
-        return restored;
+        });
+        return restored[0];
     }
 
     public boolean hydrateIsland(UUID islandId, DatabaseService database) {
@@ -137,64 +139,66 @@ public final class CoreApiSatisStateService {
         if (state == null || state.isEmpty()) {
             return false;
         }
-        boolean restored = false;
-        for (Map.Entry<String, String> entry : state.entrySet()) {
-            String key = entry.getKey();
-            String value = entry.getValue();
-            if (key == null || value == null) {
-                continue;
-            }
-            try {
-                if (key.startsWith("table/factory_islands/")) {
-                    database.saveIsland(island(value));
-                    restored = true;
-                } else if (key.startsWith("table/virtual_inventories/")) {
-                    database.saveInventory(inventory(value));
-                    restored = true;
-                } else if (key.startsWith("table/machines/")) {
-                    database.saveMachine(machine(value));
-                    restored = true;
-                } else if (key.startsWith("table/resource_nodes/")) {
-                    database.saveNode(node(value));
-                    restored = true;
-                } else if (key.startsWith("table/contracts/")) {
-                    database.saveContract(contract(value));
-                    restored = true;
-                } else if (key.startsWith("table/island_unlocks/")) {
-                    String unlockId = text(value, "unlockId", "");
-                    if (!unlockId.isBlank()) {
-                        database.saveUnlock(islandId, unlockId);
-                        restored = true;
-                    }
-                } else if (key.startsWith("table/market_personal_daily/")) {
-                    String itemId = text(value, "itemId", "");
-                    String dateKey = text(value, "dateKey", "");
-                    if (itemId.isBlank() || dateKey.isBlank()) {
-                        continue;
-                    }
-                    database.saveMarketPersonalSnapshot(
-                            uuid(text(value, "islandUuid", islandId.toString())),
-                            itemId,
-                            dateKey,
-                            longValue(value, "soldAmount", 0L)
-                    );
-                    restored = true;
-                } else if (key.startsWith("table/ledger/")) {
-                    database.saveLedgerSnapshot(
-                            uuid(text(value, "ledgerId", "")),
-                            uuid(text(value, "islandUuid", islandId.toString())),
-                            text(value, "type", ""),
-                            longValue(value, "amount", 0L),
-                            text(value, "reason", ""),
-                            longValue(value, "createdAt", System.currentTimeMillis())
-                    );
-                    restored = true;
+        boolean[] restored = {false};
+        database.withCoreStatePublishingSuspended(() -> {
+            for (Map.Entry<String, String> entry : state.entrySet()) {
+                String key = entry.getKey();
+                String value = entry.getValue();
+                if (key == null || value == null) {
+                    continue;
                 }
-            } catch (RuntimeException exception) {
-                logger.warning("Failed to hydrate Satis core-api row " + key + " for island " + islandId + ": " + exception.getMessage());
+                try {
+                    if (key.startsWith("table/factory_islands/")) {
+                        database.saveIsland(island(value));
+                        restored[0] = true;
+                    } else if (key.startsWith("table/virtual_inventories/")) {
+                        database.saveInventory(inventory(value));
+                        restored[0] = true;
+                    } else if (key.startsWith("table/machines/")) {
+                        database.saveMachine(machine(value));
+                        restored[0] = true;
+                    } else if (key.startsWith("table/resource_nodes/")) {
+                        database.saveNode(node(value));
+                        restored[0] = true;
+                    } else if (key.startsWith("table/contracts/")) {
+                        database.saveContract(contract(value));
+                        restored[0] = true;
+                    } else if (key.startsWith("table/island_unlocks/")) {
+                        String unlockId = text(value, "unlockId", "");
+                        if (!unlockId.isBlank()) {
+                            database.saveUnlock(islandId, unlockId);
+                            restored[0] = true;
+                        }
+                    } else if (key.startsWith("table/market_personal_daily/")) {
+                        String itemId = text(value, "itemId", "");
+                        String dateKey = text(value, "dateKey", "");
+                        if (itemId.isBlank() || dateKey.isBlank()) {
+                            continue;
+                        }
+                        database.saveMarketPersonalSnapshot(
+                                uuid(text(value, "islandUuid", islandId.toString())),
+                                itemId,
+                                dateKey,
+                                longValue(value, "soldAmount", 0L)
+                        );
+                        restored[0] = true;
+                    } else if (key.startsWith("table/ledger/")) {
+                        database.saveLedgerSnapshot(
+                                uuid(text(value, "ledgerId", "")),
+                                uuid(text(value, "islandUuid", islandId.toString())),
+                                text(value, "type", ""),
+                                longValue(value, "amount", 0L),
+                                text(value, "reason", ""),
+                                longValue(value, "createdAt", System.currentTimeMillis())
+                        );
+                        restored[0] = true;
+                    }
+                } catch (RuntimeException exception) {
+                    logger.warning("Failed to hydrate Satis core-api row " + key + " for island " + islandId + ": " + exception.getMessage());
+                }
             }
-        }
-        return restored;
+        });
+        return restored[0];
     }
 
     private Map<String, String> state(Map<UUID, Map<String, String>> stateByIsland, UUID islandId) {

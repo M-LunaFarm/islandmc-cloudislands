@@ -86,6 +86,7 @@ public final class DatabaseService {
     private String activeDescription = "";
     private Consumer<CoreRowWrite> coreStateWriter;
     private Consumer<CoreGlobalRowWrite> coreGlobalStateWriter;
+    private boolean coreStatePublishingSuspended;
 
     public record CoreRowWrite(UUID islandUuid, String key, String value) {
     }
@@ -302,6 +303,19 @@ public final class DatabaseService {
 
     public void coreGlobalStateWriter(Consumer<CoreGlobalRowWrite> coreGlobalStateWriter) {
         this.coreGlobalStateWriter = coreGlobalStateWriter;
+    }
+
+    public void withCoreStatePublishingSuspended(Runnable action) {
+        if (action == null) {
+            return;
+        }
+        boolean previous = coreStatePublishingSuspended;
+        coreStatePublishingSuspended = true;
+        try {
+            action.run();
+        } finally {
+            coreStatePublishingSuspended = previous;
+        }
     }
 
     public void purgeIsland(UUID islandUuid) {
@@ -1768,14 +1782,14 @@ public final class DatabaseService {
     }
 
     private void publishCoreRow(UUID islandUuid, String key, String value) {
-        if (coreStateWriter == null || islandUuid == null || key == null || key.isBlank() || value == null) {
+        if (coreStatePublishingSuspended || coreStateWriter == null || islandUuid == null || key == null || key.isBlank() || value == null) {
             return;
         }
         coreStateWriter.accept(new CoreRowWrite(islandUuid, key, value));
     }
 
     private void publishCoreGlobalRow(String key, String value) {
-        if (coreGlobalStateWriter == null || key == null || key.isBlank() || value == null) {
+        if (coreStatePublishingSuspended || coreGlobalStateWriter == null || key == null || key.isBlank() || value == null) {
             return;
         }
         coreGlobalStateWriter.accept(new CoreGlobalRowWrite(key, value));
