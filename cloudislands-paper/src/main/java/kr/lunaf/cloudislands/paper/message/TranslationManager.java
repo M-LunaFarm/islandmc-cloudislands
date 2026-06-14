@@ -383,7 +383,9 @@ public final class TranslationManager {
         values.put("admin-command-core-config-effective-jobs-prefix", " effectiveJobs=");
         values.put("admin-command-core-config-storage-prefix", " storage=");
         values.put("admin-command-core-config-db-type-prefix", " dbType=");
+        values.put("admin-command-core-config-db-type-source-prefix", " dbTypeSource=");
         values.put("admin-command-core-config-db-backend-prefix", " dbBackend=");
+        values.put("admin-command-core-config-jdbc-source-prefix", " jdbcSource=");
         values.put("admin-command-core-config-jdbc-supported-prefix", " jdbcSupported=");
         values.put("admin-command-core-config-jdbc-supported-backends-prefix", " jdbcSupportedBackends=");
         values.put("admin-command-core-config-setup-fallback-backends-prefix", " setupFallbackBackends=");

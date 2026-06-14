@@ -126,9 +126,86 @@ public record CoreServiceConfig(
         return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, rateLimitRequests, rateLimitWindow);
     }
 
+    public static String configuredDatabaseTypeSource() {
+        Map<String, String> config = applicationConfig();
+        if (presentEnv("CI_DATABASE_TYPE")) {
+            return "CI_DATABASE_TYPE";
+        }
+        if (presentConfig(config, "setup.database.type")) {
+            return "setup.database.type";
+        }
+        if (presentConfig(config, "setup.database-type")) {
+            return "setup.database-type";
+        }
+        if (configBoolean(config, "setup.database.core-api.enabled", false)) {
+            return "setup.database.core-api.enabled";
+        }
+        if (presentEnv("CI_JDBC_URL")) {
+            return "CI_JDBC_URL";
+        }
+        if (presentConfig(config, "setup.database.jdbc-url")) {
+            return "setup.database.jdbc-url";
+        }
+        if (presentConfig(config, "setup.jdbc-url")) {
+            return "setup.jdbc-url";
+        }
+        String typedJdbc = typedSetupJdbcUrlSource(config);
+        if (!typedJdbc.isBlank()) {
+            return typedJdbc;
+        }
+        String typedHost = typedSetupHostDatabaseTypeSource(config);
+        if (!typedHost.isBlank()) {
+            return typedHost;
+        }
+        if (presentConfig(config, "database.jdbc-url")) {
+            return "database.jdbc-url";
+        }
+        return "database.jdbc-url-default";
+    }
+
+    public static String configuredJdbcUrlSource() {
+        Map<String, String> config = applicationConfig();
+        if (presentEnv("CI_JDBC_URL")) {
+            return "CI_JDBC_URL";
+        }
+        String type = configuredDatabaseType(config);
+        String typedSource = typedSetupDatabaseSettingSource(config, type, "jdbc-url");
+        if (!typedSource.isBlank()) {
+            return typedSource;
+        }
+        if (presentConfig(config, "setup.database.jdbc-url")) {
+            return "setup.database.jdbc-url";
+        }
+        if (presentConfig(config, "setup.jdbc-url")) {
+            return "setup.jdbc-url";
+        }
+        typedSource = typedSetupDatabaseSettingSource(config, type, "url");
+        if (!typedSource.isBlank()) {
+            return typedSource;
+        }
+        String hostSource = typedSetupHostDatabaseTypeSource(config);
+        if (!hostSource.isBlank()) {
+            return hostSource;
+        }
+        if (presentConfig(config, "database.jdbc-url")) {
+            return "database.jdbc-url";
+        }
+        return "database.jdbc-url-default";
+    }
+
     private static String env(String key, String fallback) {
         String value = System.getenv(key);
         return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private static boolean presentEnv(String key) {
+        String value = System.getenv(key);
+        return value != null && !value.isBlank();
+    }
+
+    private static boolean presentConfig(Map<String, String> config, String key) {
+        String value = config.get(key);
+        return value != null && !value.isBlank();
     }
 
     private static Map<String, String> applicationConfig() {
@@ -377,6 +454,27 @@ public record CoreServiceConfig(
         return "";
     }
 
+    private static String typedSetupJdbcUrlSource(Map<String, String> config) {
+        for (String scope : java.util.List.of("postgresql", "mysql", "mariadb")) {
+            if (presentConfig(config, "setup.database." + scope + ".jdbc-url")) {
+                return "setup.database." + scope + ".jdbc-url";
+            }
+            if (presentConfig(config, "setup.database." + scope + ".url")) {
+                return "setup.database." + scope + ".url";
+            }
+        }
+        return "";
+    }
+
+    private static String typedSetupDatabaseSettingSource(Map<String, String> config, String type, String key) {
+        String scope = databaseSetupScope(type);
+        if (scope.isBlank()) {
+            return "";
+        }
+        String path = "setup.database." + scope + "." + key;
+        return presentConfig(config, path) ? path : "";
+    }
+
     private static String typedSetupHostDatabaseType(Map<String, String> config) {
         for (String scope : java.util.List.of("postgresql", "mysql", "mariadb")) {
             String host = setting(config, "setup.database." + scope + ".host", "");
@@ -391,6 +489,17 @@ public record CoreServiceConfig(
                     case "mariadb" -> "MARIADB";
                     default -> "";
                 };
+            }
+        }
+        return "";
+    }
+
+    private static String typedSetupHostDatabaseTypeSource(Map<String, String> config) {
+        for (String scope : java.util.List.of("postgresql", "mysql", "mariadb")) {
+            boolean hasHost = presentConfig(config, "setup.database." + scope + ".host");
+            boolean hasName = presentConfig(config, "setup.database." + scope + ".name") || presentConfig(config, "setup.database." + scope + ".database");
+            if (hasHost && hasName) {
+                return "setup.database." + scope + ".host/name";
             }
         }
         return "";
