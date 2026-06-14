@@ -49,7 +49,9 @@ public record CoreServiceConfig(
     boolean adminApiEnabled,
     boolean requireMtls,
     String mtlsVerifiedHeader,
-    String mtlsVerifiedValue
+    String mtlsVerifiedValue,
+    int rateLimitRequests,
+    Duration rateLimitWindow
 ) {
     public static CoreServiceConfig fromEnvironment() {
         Map<String, String> config = applicationConfig();
@@ -96,7 +98,9 @@ public record CoreServiceConfig(
             bool("CI_ADMIN_API_ENABLED", configBoolean(config, "security.admin-api-enabled", true)),
             bool("CI_REQUIRE_MTLS", configBoolean(config, "security.require-mtls", true)),
             env("CI_MTLS_VERIFIED_HEADER", setting(config, "security.mtls-verified-header", "X-SSL-Client-Verify")),
-            env("CI_MTLS_VERIFIED_VALUE", setting(config, "security.mtls-verified-value", "SUCCESS"))
+            env("CI_MTLS_VERIFIED_VALUE", setting(config, "security.mtls-verified-value", "SUCCESS")),
+            integer("CI_RATE_LIMIT_REQUESTS", configInteger(config, "security.rate-limit-requests", 240)),
+            Duration.ofSeconds(integer("CI_RATE_LIMIT_WINDOW_SECONDS", configInteger(config, "security.rate-limit-window-seconds", 60)))
         );
     }
 
@@ -117,7 +121,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, databasePoolSize, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, databaseUsername, databasePassword, databasePoolSize, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, rateLimitRequests, rateLimitWindow);
     }
 
     private static String env(String key, String fallback) {

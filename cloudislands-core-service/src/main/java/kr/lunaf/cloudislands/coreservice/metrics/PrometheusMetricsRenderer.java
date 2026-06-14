@@ -41,20 +41,22 @@ public final class PrometheusMetricsRenderer {
     private final BooleanSupplier postgresqlPublicHost;
     private final BooleanSupplier objectStoragePublicHost;
     private final BooleanSupplier objectStoragePlainHttpPublicHost;
+    private final LongSupplier rateLimitRequests;
+    private final LongSupplier rateLimitWindowSeconds;
     private final LongSupplier rankingDirtyDrainedTotal;
     private final LongSupplier rankingRecalculatedTotal;
     private final LongSupplier rankingRecalculationFailuresTotal;
     private final LongSupplier rankingRecalculationLastBatchSize;
 
     public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures) {
-        this(nodes, jobs, tickets, runtimes, events, heartbeatTimeout, databaseQuerySeconds, databaseActiveConnections, databaseOpenedConnections, databaseConnectionFailures, databaseQueryFailures, redisEventFailures, redisCacheFailures, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> 0L, () -> 0L, () -> 0L, () -> 0L);
+        this(nodes, jobs, tickets, runtimes, events, heartbeatTimeout, databaseQuerySeconds, databaseActiveConnections, databaseOpenedConnections, databaseConnectionFailures, databaseQueryFailures, redisEventFailures, redisCacheFailures, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L);
     }
 
     public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures, BooleanSupplier coreTokenConfigured, BooleanSupplier adminTokenConfigured, BooleanSupplier adminApiEnabled, BooleanSupplier mtlsRequired, BooleanSupplier ipAllowlistEnabled, BooleanSupplier publicBindWithoutIpAllowlist, BooleanSupplier redisPublicHost, BooleanSupplier postgresqlPublicHost, BooleanSupplier objectStoragePublicHost, BooleanSupplier objectStoragePlainHttpPublicHost) {
-        this(nodes, jobs, tickets, runtimes, events, heartbeatTimeout, databaseQuerySeconds, databaseActiveConnections, databaseOpenedConnections, databaseConnectionFailures, databaseQueryFailures, redisEventFailures, redisCacheFailures, coreTokenConfigured, adminTokenConfigured, adminApiEnabled, mtlsRequired, ipAllowlistEnabled, publicBindWithoutIpAllowlist, redisPublicHost, postgresqlPublicHost, objectStoragePublicHost, objectStoragePlainHttpPublicHost, () -> 0L, () -> 0L, () -> 0L, () -> 0L);
+        this(nodes, jobs, tickets, runtimes, events, heartbeatTimeout, databaseQuerySeconds, databaseActiveConnections, databaseOpenedConnections, databaseConnectionFailures, databaseQueryFailures, redisEventFailures, redisCacheFailures, coreTokenConfigured, adminTokenConfigured, adminApiEnabled, mtlsRequired, ipAllowlistEnabled, publicBindWithoutIpAllowlist, redisPublicHost, postgresqlPublicHost, objectStoragePublicHost, objectStoragePlainHttpPublicHost, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L);
     }
 
-    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures, BooleanSupplier coreTokenConfigured, BooleanSupplier adminTokenConfigured, BooleanSupplier adminApiEnabled, BooleanSupplier mtlsRequired, BooleanSupplier ipAllowlistEnabled, BooleanSupplier publicBindWithoutIpAllowlist, BooleanSupplier redisPublicHost, BooleanSupplier postgresqlPublicHost, BooleanSupplier objectStoragePublicHost, BooleanSupplier objectStoragePlainHttpPublicHost, LongSupplier rankingDirtyDrainedTotal, LongSupplier rankingRecalculatedTotal, LongSupplier rankingRecalculationFailuresTotal, LongSupplier rankingRecalculationLastBatchSize) {
+    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures, BooleanSupplier coreTokenConfigured, BooleanSupplier adminTokenConfigured, BooleanSupplier adminApiEnabled, BooleanSupplier mtlsRequired, BooleanSupplier ipAllowlistEnabled, BooleanSupplier publicBindWithoutIpAllowlist, BooleanSupplier redisPublicHost, BooleanSupplier postgresqlPublicHost, BooleanSupplier objectStoragePublicHost, BooleanSupplier objectStoragePlainHttpPublicHost, LongSupplier rateLimitRequests, LongSupplier rateLimitWindowSeconds, LongSupplier rankingDirtyDrainedTotal, LongSupplier rankingRecalculatedTotal, LongSupplier rankingRecalculationFailuresTotal, LongSupplier rankingRecalculationLastBatchSize) {
         this.nodes = nodes;
         this.jobs = jobs;
         this.tickets = tickets;
@@ -78,6 +80,8 @@ public final class PrometheusMetricsRenderer {
         this.postgresqlPublicHost = postgresqlPublicHost;
         this.objectStoragePublicHost = objectStoragePublicHost;
         this.objectStoragePlainHttpPublicHost = objectStoragePlainHttpPublicHost;
+        this.rateLimitRequests = rateLimitRequests;
+        this.rateLimitWindowSeconds = rateLimitWindowSeconds;
         this.rankingDirtyDrainedTotal = rankingDirtyDrainedTotal;
         this.rankingRecalculatedTotal = rankingRecalculatedTotal;
         this.rankingRecalculationFailuresTotal = rankingRecalculationFailuresTotal;
@@ -187,6 +191,12 @@ public final class PrometheusMetricsRenderer {
         help(out, "cloudislands_core_ip_allowlist_enabled", "Whether Core API IP allowlist is configured");
         type(out, "cloudislands_core_ip_allowlist_enabled", "gauge");
         out.append("cloudislands_core_ip_allowlist_enabled ").append(ipAllowlistEnabled.getAsBoolean() ? 1 : 0).append('\n');
+        help(out, "cloudislands_core_rate_limit_requests", "Configured Core API fixed-window request limit per remote address, or zero when disabled");
+        type(out, "cloudislands_core_rate_limit_requests", "gauge");
+        out.append("cloudislands_core_rate_limit_requests ").append(Math.max(0L, rateLimitRequests.getAsLong())).append('\n');
+        help(out, "cloudislands_core_rate_limit_window_seconds", "Configured Core API fixed-window rate limit duration in seconds");
+        type(out, "cloudislands_core_rate_limit_window_seconds", "gauge");
+        out.append("cloudislands_core_rate_limit_window_seconds ").append(Math.max(0L, rateLimitWindowSeconds.getAsLong())).append('\n');
         help(out, "cloudislands_core_public_bind_without_ip_allowlist", "Whether Core API is publicly bound without an IP allowlist");
         type(out, "cloudislands_core_public_bind_without_ip_allowlist", "gauge");
         out.append("cloudislands_core_public_bind_without_ip_allowlist ").append(publicBindWithoutIpAllowlist.getAsBoolean() ? 1 : 0).append('\n');

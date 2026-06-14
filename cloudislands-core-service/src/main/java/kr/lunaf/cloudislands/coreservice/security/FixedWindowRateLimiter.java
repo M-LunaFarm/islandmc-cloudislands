@@ -17,6 +17,9 @@ public final class FixedWindowRateLimiter {
     }
 
     public boolean allow(String key) {
+        if (maxRequests <= 0 || windowMillis <= 0L) {
+            return true;
+        }
         long now = clock.millis();
         Bucket bucket = buckets.compute(key, (ignored, current) -> current == null || now >= current.windowStart() + windowMillis ? new Bucket(now, 1) : current.increment());
         return bucket.count() <= maxRequests;
