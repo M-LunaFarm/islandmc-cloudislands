@@ -686,7 +686,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private void reloadDatabaseIfNeeded() {
         DatabaseService.Settings settings = databaseSettings();
         String nextFingerprint = databaseSettingsFingerprint(settings);
-        if (database != null && nextFingerprint.equals(databaseSettingsFingerprint)) {
+        if (database != null && nextFingerprint.equals(databaseSettingsFingerprint) && !coreApiFallbackRecovered(settings)) {
             configureCoreApiStateWriters();
             return;
         }
@@ -741,6 +741,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         research = new ResearchService(database, economy, () -> featureEnabled("maintenance"));
         gui = new FactoryGuiService(storage, itemRegistry, machineDefinitions, recipes, islands, research, economy, messages, this::operationalFeatureEnabled);
         coreHydratedIslands.clear();
+    }
+
+    private boolean coreApiFallbackRecovered(DatabaseService.Settings settings) {
+        return settings != null
+                && settings.backend() == DatabaseService.StorageBackend.CORE_API
+                && database != null
+                && database.activeBackend() != DatabaseService.StorageBackend.CORE_API
+                && cloudIslandsApi != null
+                && configuredFeatureEnabled("addon-state");
     }
 
     private void configureCoreApiStateWriters() {
