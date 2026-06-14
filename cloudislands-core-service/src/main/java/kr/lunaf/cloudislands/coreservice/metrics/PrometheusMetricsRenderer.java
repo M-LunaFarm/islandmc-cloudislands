@@ -209,9 +209,26 @@ public final class PrometheusMetricsRenderer {
         long totalActivationQueue = 0L;
         long storageAvailableNodes = 0L;
         long activationEligibleNodes = 0L;
+        long staleNodes = 0L;
+        long routeCandidateNodes = 0L;
+        long routingHealthyNodes = 0L;
         double maxMspt = 0.0D;
         for (NodeLoad node : nodes.snapshot()) {
-            boolean fresh = Duration.between(node.lastHeartbeat(), now).compareTo(heartbeatTimeout) <= 0;
+            long heartbeatAgeSeconds = node.lastHeartbeat() == null ? -1L : Math.max(0L, Duration.between(node.lastHeartbeat(), now).toSeconds());
+            boolean fresh = node.lastHeartbeat() != null && Duration.between(node.lastHeartbeat(), now).compareTo(heartbeatTimeout) <= 0;
+            boolean stale = !fresh;
+            String allocationBlockReason = node.allocationBlockReason(now, heartbeatTimeout);
+            boolean routeCandidate = allocationBlockReason.isBlank();
+            boolean routingHealthy = fresh && node.state() != NodeState.DOWN && routeCandidate;
+            if (stale) {
+                staleNodes++;
+            }
+            if (routeCandidate) {
+                routeCandidateNodes++;
+            }
+            if (routingHealthy) {
+                routingHealthyNodes++;
+            }
             if (fresh && node.state() != NodeState.DOWN) {
                 onlineNodes++;
                 totalPlayers += node.players();
@@ -223,6 +240,10 @@ public final class PrometheusMetricsRenderer {
                 maxMspt = Math.max(maxMspt, node.mspt());
             }
             labels(out, "cloudislands_nodes_online", node, null).append(fresh && node.state() != NodeState.DOWN ? 1 : 0).append('\n');
+            labels(out, "cloudislands_node_heartbeat_age_seconds", node, null).append(heartbeatAgeSeconds).append('\n');
+            labels(out, "cloudislands_node_stale", node, null).append(stale ? 1 : 0).append('\n');
+            labels(out, "cloudislands_node_route_candidate", node, "reason=\"" + escape(routeCandidate ? "OK" : allocationBlockReason) + "\"").append(routeCandidate ? 1 : 0).append('\n');
+            labels(out, "cloudislands_node_routing_healthy", node, "reason=\"" + escape(routingHealthy ? "OK" : allocationBlockReason.isBlank() ? stale ? "STALE_HEARTBEAT" : "NODE_DOWN" : allocationBlockReason) + "\"").append(routingHealthy ? 1 : 0).append('\n');
             labels(out, "cloudislands_node_players", node, null).append(node.players()).append('\n');
             labels(out, "cloudislands_node_soft_player_cap", node, null).append(node.softPlayerCap()).append('\n');
             labels(out, "cloudislands_node_hard_player_cap", node, null).append(node.hardPlayerCap()).append('\n');
@@ -239,7 +260,6 @@ public final class PrometheusMetricsRenderer {
             labels(out, "cloudislands_node_memory_pressure", node, null).append(memoryPressure(node)).append('\n');
             labels(out, "cloudislands_node_storage_available", node, null).append(node.storageAvailable() ? 1 : 0).append('\n');
             labels(out, "cloudislands_node_routing_score", node, null).append(node.score()).append('\n');
-            String allocationBlockReason = node.allocationBlockReason(now, heartbeatTimeout);
             if (fresh && allocationBlockReason.isBlank()) {
                 activationEligibleNodes++;
             }
@@ -277,6 +297,9 @@ public final class PrometheusMetricsRenderer {
         out.append("cloudislands_cluster_activation_queue ").append(totalActivationQueue).append('\n');
         out.append("cloudislands_cluster_storage_available_nodes ").append(storageAvailableNodes).append('\n');
         out.append("cloudislands_cluster_activation_eligible_nodes ").append(activationEligibleNodes).append('\n');
+        out.append("cloudislands_cluster_stale_nodes ").append(staleNodes).append('\n');
+        out.append("cloudislands_cluster_route_candidate_nodes ").append(routeCandidateNodes).append('\n');
+        out.append("cloudislands_cluster_routing_healthy_nodes ").append(routingHealthyNodes).append('\n');
         out.append("cloudislands_cluster_max_mspt ").append(maxMspt).append('\n');
         help(out, "cloudislands_jobs_total", "Island jobs by in-memory state or backend mode");
         type(out, "cloudislands_jobs_total", "gauge");
