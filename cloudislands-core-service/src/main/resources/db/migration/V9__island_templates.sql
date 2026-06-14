@@ -10,5 +10,5 @@ CREATE TABLE island_templates (
 INSERT INTO island_templates(id, display_name, enabled)
 VALUES
     ('default', 'Default Island', true),
-    ('superiorskyblock2', 'SuperiorSkyblock2 Migration', true)
+    ('superiorskyblock2', 'SuperiorSkyblock2 Migration Input', false)
 ON CONFLICT (id) DO NOTHING;

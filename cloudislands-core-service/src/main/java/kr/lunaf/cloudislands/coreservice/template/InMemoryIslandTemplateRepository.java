@@ -11,7 +11,7 @@ public final class InMemoryIslandTemplateRepository implements IslandTemplateRep
 
     public InMemoryIslandTemplateRepository() {
         templates.put("default", new IslandTemplateSnapshot("default", "Default Island", true, ""));
-        templates.put("superiorskyblock2", new IslandTemplateSnapshot("superiorskyblock2", "SuperiorSkyblock2 Migration", true, ""));
+        templates.put("superiorskyblock2", new IslandTemplateSnapshot("superiorskyblock2", "SuperiorSkyblock2 Migration Input", false, ""));
     }
 
     @Override
