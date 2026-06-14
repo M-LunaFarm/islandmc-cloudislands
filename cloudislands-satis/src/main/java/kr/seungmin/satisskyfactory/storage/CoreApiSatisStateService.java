@@ -99,10 +99,32 @@ public final class CoreApiSatisStateService {
                             .thenCompose(_cleared -> cloudIslandsApi.addons().putIslandTableState(addonId, table.islandUuid(), table.table(), table.values()));
                 })
                 .thenCompose(result -> result)
+                .thenApply(state -> {
+                    publishTableStatus(table, "success", "");
+                    return state;
+                })
                 .exceptionally(error -> {
                     logger.warning("Failed to publish Satis core-api table " + table.table() + " for island " + table.islandUuid() + ": " + error.getMessage());
+                    publishTableStatus(table, "failed", error.getMessage());
                     return Map.of();
                 });
+    }
+
+    private void publishTableStatus(DatabaseService.CoreTableWrite table, String status, String error) {
+        if (cloudIslandsApi == null || table == null) {
+            return;
+        }
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("last-core-table-publish-island", table.islandUuid() == null ? "" : table.islandUuid().toString());
+        state.put("last-core-table-publish-table", table.table() == null ? "" : table.table());
+        state.put("last-core-table-publish-keys", table.values() == null ? "0" : Integer.toString(table.values().size()));
+        state.put("last-core-table-publish-status", status == null || status.isBlank() ? "unknown" : status);
+        state.put("last-core-table-publish-error", error == null ? "" : error);
+        state.put("last-core-table-publish-at", Instant.now().toString());
+        cloudIslandsApi.addons().putState(addonId, state).exceptionally(publishError -> {
+            logger.warning("Failed to publish Satis core-api table status: " + publishError.getMessage());
+            return Map.of();
+        });
     }
 
     public void publishGlobalRow(DatabaseService.CoreGlobalRowWrite row) {
