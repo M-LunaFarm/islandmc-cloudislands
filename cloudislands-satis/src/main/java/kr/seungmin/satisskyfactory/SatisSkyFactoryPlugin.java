@@ -781,6 +781,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-configured-backend", configuredDatabaseBackendName());
         metadata.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
         metadata.put("database-fallback-reason", databaseFallbackReason);
+        metadata.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
+        metadata.put("database-fallback-order", databaseFallbackOrderMetadata());
         metadata.put("database-config-source", databaseConfigSource());
         metadata.put("database-file", configuredDatabaseFileName());
         metadata.put("database-path", resolveDatabaseFileName());
@@ -940,6 +942,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-configured-backend", configuredDatabaseBackendName());
         state.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
         state.put("database-fallback-reason", databaseFallbackReason);
+        state.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
+        state.put("database-fallback-order", databaseFallbackOrderMetadata());
         state.put("database-config-source", databaseConfigSource());
         state.put("database-path", resolveDatabaseFileName());
         state.put("database-open", Boolean.toString(database != null));
@@ -969,6 +973,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-configured-backend", configuredDatabaseBackendName());
         state.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
         state.put("database-fallback-reason", databaseFallbackReason);
+        state.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
+        state.put("database-fallback-order", databaseFallbackOrderMetadata());
         state.put("database-config-source", databaseConfigSource());
         state.put("database-path", resolveDatabaseFileName());
         state.put("database-open", Boolean.toString(database != null));
@@ -1798,6 +1804,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private String configuredDatabaseBackendName() {
         return DatabaseService.StorageBackend.parse(configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE).name();
+    }
+
+    private String databaseFallbackOrderMetadata() {
+        return databaseFallbackOrder().stream()
+                .map(DatabaseService.StorageBackend::name)
+                .reduce((left, right) -> left + "," + right)
+                .orElse("none");
     }
 
     private int setupInt(String path, int fallback) {
