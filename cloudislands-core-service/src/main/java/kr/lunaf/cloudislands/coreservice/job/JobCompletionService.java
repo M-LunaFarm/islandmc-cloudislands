@@ -165,6 +165,10 @@ public final class JobCompletionService {
         if (isStaleFencingFailure(job, errorMessage)) {
             return;
         }
+        if (job.type() == IslandJobType.SAVE_ISLAND || job.type() == IslandJobType.SNAPSHOT_ISLAND) {
+            preserveRuntimeOnSnapshotFailure(job, errorMessage);
+            return;
+        }
         IslandState state = switch (job.type()) {
             case CREATE_ISLAND -> IslandState.ERROR_CREATING;
             case ACTIVATE_ISLAND, MIGRATE_ISLAND, RESTORE_ISLAND, RESET_ISLAND -> IslandState.ERROR_ACTIVATING;
@@ -178,6 +182,21 @@ public final class JobCompletionService {
         if (job.type() == IslandJobType.MIGRATE_ISLAND || (job.type() == IslandJobType.DEACTIVATE_ISLAND && job.payload().containsKey("migrateTargetNode"))) {
             releaseMigrationLock(job);
         }
+    }
+
+    private void preserveRuntimeOnSnapshotFailure(IslandJob job, String errorMessage) {
+        kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot current = runtimes.find(job.islandId()).orElse(null);
+        if (current == null || current.state() != IslandState.ACTIVE) {
+            runtimes.setState(job.islandId(), IslandState.ERROR_SAVING);
+            setIslandState(job.islandId(), IslandState.ERROR_SAVING);
+        }
+        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
+            "islandId", job.islandId().toString(),
+            "state", current == null ? IslandState.ERROR_SAVING.name() : current.state().name(),
+            "jobType", job.type().name(),
+            "error", errorMessage == null ? "" : errorMessage,
+            "runtimePreserved", Boolean.toString(current != null && current.state() == IslandState.ACTIVE)
+        ));
     }
 
     private boolean isStaleFencingFailure(IslandJob job, String errorMessage) {
