@@ -6,9 +6,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 
@@ -43,7 +41,7 @@ public final class ConfigUpgradePolicy {
         int explicitMaxLevel = 0;
         BigDecimal explicitBaseCost = null;
         BigDecimal explicitMultiplier = null;
-        List<BigDecimal> levelCosts = new ArrayList<>();
+        Map<Integer, BigDecimal> levelCosts = new LinkedHashMap<>();
         Map<Integer, Long> levelValues = new LinkedHashMap<>();
         int currentLevel = 0;
         for (String rawLine : yaml.split("\\R")) {
@@ -60,7 +58,7 @@ public final class ConfigUpgradePolicy {
                 explicitMaxLevel = 0;
                 explicitBaseCost = null;
                 explicitMultiplier = null;
-                levelCosts = new ArrayList<>();
+                levelCosts = new LinkedHashMap<>();
                 levelValues = new LinkedHashMap<>();
                 currentLevel = 0;
                 continue;
@@ -81,7 +79,7 @@ public final class ConfigUpgradePolicy {
             } else if (rawLine.startsWith("        ") && line.startsWith("cost:")) {
                 BigDecimal cost = decimal(value(line), null);
                 if (cost != null) {
-                    levelCosts.add(cost);
+                    levelCosts.put(currentLevel, cost);
                 }
             } else if (rawLine.startsWith("        ") && currentLevel > 0) {
                 Long limitValue = longValue(value(line), null);
@@ -96,18 +94,18 @@ public final class ConfigUpgradePolicy {
         return rules;
     }
 
-    private static void putRule(Map<String, UpgradeRule> rules, String key, UpgradeType type, int maxLevel, BigDecimal baseCost, BigDecimal multiplier, List<BigDecimal> levelCosts, Map<Integer, Long> levelValues) {
-        int inferredMaxLevel = maxLevel > 0 ? maxLevel : Math.max(1, Math.max(levelCosts.size(), levelValues.keySet().stream().mapToInt(Integer::intValue).max().orElse(0)));
-        BigDecimal inferredBaseCost = baseCost != null ? baseCost : levelCosts.stream().filter(cost -> cost.signum() > 0).findFirst().orElse(BigDecimal.ZERO);
+    private static void putRule(Map<String, UpgradeRule> rules, String key, UpgradeType type, int maxLevel, BigDecimal baseCost, BigDecimal multiplier, Map<Integer, BigDecimal> levelCosts, Map<Integer, Long> levelValues) {
+        int inferredMaxLevel = maxLevel > 0 ? maxLevel : Math.max(1, Math.max(levelCosts.keySet().stream().mapToInt(Integer::intValue).max().orElse(0), levelValues.keySet().stream().mapToInt(Integer::intValue).max().orElse(0)));
+        BigDecimal inferredBaseCost = baseCost != null ? baseCost : levelCosts.values().stream().filter(cost -> cost.signum() > 0).findFirst().orElse(BigDecimal.ZERO);
         BigDecimal inferredMultiplier = multiplier != null ? multiplier : inferMultiplier(levelCosts, inferredBaseCost);
-        rules.put(key.toLowerCase(), new UpgradeRule(key.toLowerCase(), type == null ? UpgradePolicy.typeFor(key) : type, inferredMaxLevel, inferredBaseCost, inferredMultiplier, levelValues));
+        rules.put(key.toLowerCase(), new UpgradeRule(key.toLowerCase(), type == null ? UpgradePolicy.typeFor(key) : type, inferredMaxLevel, inferredBaseCost, inferredMultiplier, levelCosts, levelValues));
     }
 
-    private static BigDecimal inferMultiplier(List<BigDecimal> levelCosts, BigDecimal baseCost) {
+    private static BigDecimal inferMultiplier(Map<Integer, BigDecimal> levelCosts, BigDecimal baseCost) {
         if (baseCost.signum() <= 0) {
             return BigDecimal.ONE;
         }
-        return levelCosts.stream()
+        return levelCosts.values().stream()
             .filter(cost -> cost.compareTo(baseCost) > 0)
             .findFirst()
             .map(cost -> cost.divide(baseCost, java.math.MathContext.DECIMAL64))
