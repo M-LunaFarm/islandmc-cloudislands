@@ -71,6 +71,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIslandsAddon {
     private static final String ADDON_ID = "cloudislands-satis";
@@ -118,6 +119,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private FactoryGuiListener guiListener;
     private FactoryLifecycleListener lifecycleListener;
     private Map<String, Boolean> effectiveFeatures = Map.of();
+    private final Set<UUID> coreHydratedIslands = ConcurrentHashMap.newKeySet();
 
     @Override
     public void onEnable() {
@@ -1293,7 +1295,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (database.activeBackend() != DatabaseService.StorageBackend.CORE_API) {
             return;
         }
-        if (islands != null && islands.find(islandId).isPresent()) {
+        if (!coreHydratedIslands.add(islandId)) {
             return;
         }
         if (coreApiState.hydrateIsland(islandId, database)) {
@@ -1341,6 +1343,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (dirtySaves != null) {
             dirtySaves.forgetIsland(islandId);
         }
+        coreHydratedIslands.remove(islandId);
         database.purgeIsland(islandId);
         publishLifecycleState(islandId, "purge");
         clearIslandLifecycleState(islandId);
@@ -1365,6 +1368,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             database.coreGlobalStateWriter(null);
         }
         coreApiState = null;
+        coreHydratedIslands.clear();
         if (placeholderHook != null) {
             placeholderHook.unregister();
             placeholderHook = null;
