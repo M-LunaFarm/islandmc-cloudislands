@@ -6,6 +6,22 @@ setup:
   repository-mode: ""
   job-queue-mode: ""
   event-bus-mode: ""
+  # Preferred first-install database setup block. Legacy flat keys below still work.
+  database:
+    # POSTGRESQL enables Core JDBC repositories/jobs. MYSQL, MARIADB, and CORE_API stay in safe non-JDBC fallback for core data.
+    # CI_DATABASE_TYPE overrides this value.
+    type: ""
+    # CI_JDBC_URL overrides this value. If empty, host/name/options are used when possible.
+    jdbc-url: ""
+    host: ""
+    port: 0
+    # name is the database/schema name. database is accepted as an alias by the loader.
+    name: ""
+    database: ""
+    options: ""
+    username: ""
+    password: ""
+    pool-size: 0
   # Empty jdbc-url inherits database.jdbc-url only for POSTGRESQL.
   # MYSQL/MARIADB need database-type + host/name or CI_JDBC_URL.
   # CORE_API leaves Core JDBC disabled and reports dbBackend=NONE.

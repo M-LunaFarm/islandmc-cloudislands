@@ -69,9 +69,9 @@ public record CoreServiceConfig(
             env("CI_EVENT_BUS_MODE", setupSetting(config, "event-bus-mode", "REDIS")),
             env("CI_JDBC_URL", setupJdbcUrl(config, setting(config, "database.jdbc-url", "jdbc:postgresql://postgres.internal:5432/cloudislands"))),
             configuredDatabaseType(config),
-            env("CI_DB_USERNAME", setupSetting(config, "database-username", setting(config, "database.username", "cloudislands"))),
-            env("CI_DB_PASSWORD", setupSetting(config, "database-password", setting(config, "database.password", env("DB_PASSWORD", "")))),
-            integer("CI_DB_POOL_SIZE", setupInteger(config, "database-pool-size", configInteger(config, "database.pool-size", 20))),
+            env("CI_DB_USERNAME", setupDatabaseSetting(config, "username", setting(config, "database.username", "cloudislands"))),
+            env("CI_DB_PASSWORD", setupDatabaseSetting(config, "password", setting(config, "database.password", env("DB_PASSWORD", "")))),
+            integer("CI_DB_POOL_SIZE", setupDatabaseInteger(config, "pool-size", configInteger(config, "database.pool-size", 20))),
             URI.create(env("CI_REDIS_URI", setupSetting(config, "redis-uri", setting(config, "redis.uri", "redis://redis.internal:6379")))),
             env("CI_STORAGE_TYPE", setupSetting(config, "storage-type", setting(config, "storage.type", "S3"))),
             URI.create(env("CI_STORAGE_ENDPOINT", setupSetting(config, "storage-endpoint", setting(config, "storage.endpoint", "http://minio.internal:9000")))),
@@ -186,8 +186,29 @@ public record CoreServiceConfig(
         }
     }
 
+    private static String setupDatabaseSetting(Map<String, String> config, String key, String fallback) {
+        String nested = setting(config, "setup.database." + key, "");
+        if (!nested.isBlank()) {
+            return nested;
+        }
+        return setupSetting(config, "database-" + key, fallback);
+    }
+
+    private static int setupDatabaseInteger(Map<String, String> config, String key, int fallback) {
+        String nested = config.get("setup.database." + key);
+        if (nested != null && !nested.isBlank()) {
+            try {
+                int parsed = Integer.parseInt(nested);
+                return parsed <= 0 ? fallback : parsed;
+            } catch (NumberFormatException exception) {
+                return fallback;
+            }
+        }
+        return setupInteger(config, "database-" + key, fallback);
+    }
+
     private static String setupJdbcUrl(Map<String, String> config, String fallback) {
-        String explicit = setting(config, "setup.jdbc-url", "");
+        String explicit = setupDatabaseSetting(config, "jdbc-url", setting(config, "setup.jdbc-url", ""));
         if (!explicit.isBlank()) {
             return explicit;
         }
@@ -195,8 +216,11 @@ public record CoreServiceConfig(
         if (!coreJdbcTypeSupported(type) && !type.equals("MYSQL") && !type.equals("MARIADB")) {
             return "";
         }
-        String host = setting(config, "setup.database-host", "");
-        String database = setting(config, "setup.database-name", "");
+        String host = setupDatabaseSetting(config, "host", "");
+        String database = setupDatabaseSetting(config, "name", "");
+        if (database.isBlank()) {
+            database = setupDatabaseSetting(config, "database", "");
+        }
         if (type.isBlank() || host.isBlank() || database.isBlank()) {
             return coreJdbcTypeSupported(type) ? fallback : "";
         }
@@ -204,9 +228,9 @@ public record CoreServiceConfig(
         if (prefix.isBlank()) {
             return "";
         }
-        int port = setupInteger(config, "database-port", defaultDatabasePort(type));
+        int port = setupDatabaseInteger(config, "port", defaultDatabasePort(type));
         String url = prefix + "://" + host.trim() + ":" + port + "/" + database.trim();
-        String options = setting(config, "setup.database-options", "");
+        String options = setupDatabaseSetting(config, "options", "");
         if (!options.isBlank()) {
             url += "?" + options.trim();
         }
@@ -246,7 +270,7 @@ public record CoreServiceConfig(
         if (!envType.isBlank()) {
             return normalizeDatabaseType(envType);
         }
-        String setupType = setting(config, "setup.database-type", "");
+        String setupType = setupDatabaseSetting(config, "type", "");
         if (!setupType.isBlank()) {
             return normalizeDatabaseType(setupType);
         }
