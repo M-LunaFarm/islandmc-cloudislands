@@ -86,6 +86,10 @@ public final class JobCompletionService {
             return;
         }
         if (job.type() == IslandJobType.DEACTIVATE_ISLAND) {
+            if (job.payload().containsKey("migrateTargetNode")) {
+                completeMigrationSourceSave(job);
+                return;
+            }
             if (!markInactiveFromJob(job)) {
                 return;
             }
@@ -211,6 +215,26 @@ public final class JobCompletionService {
         if (activationLock != null) {
             activationLock.releaseIfOwner(job.islandId(), "migrate");
         }
+    }
+
+    private void completeMigrationSourceSave(IslandJob job) {
+        long fencingToken = longValue(job.payload().get("fencingToken"));
+        kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot current = runtimes.find(job.islandId()).orElse(null);
+        String staleReason = staleCompletionReason(job, current, fencingToken);
+        if (!staleReason.isBlank()) {
+            publishIgnoredCompletion(job, current, fencingToken, staleReason);
+            return;
+        }
+        long snapshotNo = recordCompletedSnapshot(job, job.type().name(), true);
+        runtimes.setState(job.islandId(), IslandState.ACTIVATING);
+        setIslandState(job.islandId(), IslandState.ACTIVATING);
+        publishMigrationActivation(job);
+        events.publish(CloudIslandEventType.ISLAND_DEACTIVATED.name(), Map.of(
+            "islandId", job.islandId().toString(),
+            "phase", "MIGRATION_SOURCE_SAVED",
+            "targetNode", job.payload().getOrDefault("migrateTargetNode", ""),
+            "snapshotNo", Long.toString(snapshotNo)
+        ));
     }
 
     private void setIslandState(UUID islandId, IslandState state) {
