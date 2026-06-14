@@ -458,27 +458,6 @@ public final class DatabaseService {
         return DriverManager.getConnection("jdbc:sqlite:" + source.getAbsolutePath());
     }
 
-    private void attachLegacyDatabase(Connection connection, File source) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("ATTACH DATABASE ? AS legacy_satis")) {
-            statement.setString(1, source.getAbsolutePath());
-            statement.executeUpdate();
-        }
-    }
-
-    private void detachLegacyDatabase(Connection connection) {
-        try (Statement statement = connection.createStatement()) {
-            statement.executeUpdate("DETACH DATABASE legacy_satis");
-        } catch (SQLException ignored) {
-            // Best effort cleanup after import failure.
-        }
-    }
-
-    private void requireSqliteLegacyMigration() {
-        if (sqlDialect != SqlDialect.SQLITE) {
-            throw new IllegalStateException("Legacy Satis SQLite import is only available while the active Satis backend is SQLITE");
-        }
-    }
-
     private List<String> legacyImportTables() {
         return List.of(
                 "factory_islands",
