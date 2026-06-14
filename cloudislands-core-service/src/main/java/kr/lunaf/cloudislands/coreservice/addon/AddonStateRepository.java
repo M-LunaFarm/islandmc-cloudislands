@@ -9,6 +9,8 @@ public interface AddonStateRepository {
     int MAX_VALUE_LENGTH = 65535;
     int MAX_KEYS_PER_ADDON = 4096;
 
+    Map<String, Integer> globalStateCounts();
+    Map<String, Integer> islandStateCounts();
     Map<String, String> list(String addonId);
     Map<String, String> put(String addonId, String key, String value);
     Map<String, String> put(String addonId, Map<String, String> values);

@@ -356,6 +356,7 @@ public final class CloudIslandsCoreApplication {
             write(exchange, 200, inMemoryEvents.toJson(limit, sinceSeq));
         });
         route("/v1/audit", exchange -> write(exchange, 200, auditJson.get()));
+        route("/v1/admin/addons/state/summary", exchange -> write(exchange, 200, addonStateSummaryJson(addonStates.globalStateCounts(), addonStates.islandStateCounts())));
         route("/v1/addons/state", exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
@@ -3332,6 +3333,28 @@ public final class CloudIslandsCoreApplication {
             builder.append('"').append(escape(entry.getKey())).append("\":\"").append(escape(entry.getValue())).append('"');
         }
         return builder.append("}}").toString();
+    }
+
+    private static String addonStateSummaryJson(Map<String, Integer> globalCounts, Map<String, Integer> islandCounts) {
+        java.util.TreeSet<String> addonIds = new java.util.TreeSet<>();
+        addonIds.addAll(globalCounts == null ? Map.<String, Integer>of().keySet() : globalCounts.keySet());
+        addonIds.addAll(islandCounts == null ? Map.<String, Integer>of().keySet() : islandCounts.keySet());
+        StringBuilder builder = new StringBuilder("{\"addons\":[");
+        boolean first = true;
+        for (String addonId : addonIds) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            int globalKeys = globalCounts == null ? 0 : globalCounts.getOrDefault(addonId, 0);
+            int islandKeys = islandCounts == null ? 0 : islandCounts.getOrDefault(addonId, 0);
+            builder.append("{\"addonId\":\"").append(escape(addonId))
+                .append("\",\"globalKeys\":").append(globalKeys)
+                .append(",\"islandKeys\":").append(islandKeys)
+                .append(",\"totalKeys\":").append(globalKeys + islandKeys)
+                .append('}');
+        }
+        return builder.append("]}").toString();
     }
 
     private static NodeHeartbeatRequest heartbeat(String body) {

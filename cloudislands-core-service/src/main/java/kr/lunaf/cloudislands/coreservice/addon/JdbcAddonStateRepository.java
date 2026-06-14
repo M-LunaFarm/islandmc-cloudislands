@@ -17,6 +17,36 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
     }
 
     @Override
+    public Map<String, Integer> globalStateCounts() {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT addon_id, COUNT(*) AS key_count FROM addon_state GROUP BY addon_id ORDER BY addon_id");
+             ResultSet rs = statement.executeQuery()) {
+            Map<String, Integer> counts = new HashMap<>();
+            while (rs.next()) {
+                counts.put(rs.getString("addon_id"), rs.getInt("key_count"));
+            }
+            return Map.copyOf(counts);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read addon state counts", exception);
+        }
+    }
+
+    @Override
+    public Map<String, Integer> islandStateCounts() {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT addon_id, COUNT(*) AS key_count FROM addon_island_state GROUP BY addon_id ORDER BY addon_id");
+             ResultSet rs = statement.executeQuery()) {
+            Map<String, Integer> counts = new HashMap<>();
+            while (rs.next()) {
+                counts.put(rs.getString("addon_id"), rs.getInt("key_count"));
+            }
+            return Map.copyOf(counts);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read addon island state counts", exception);
+        }
+    }
+
+    @Override
     public Map<String, String> list(String addonId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT state_key, state_value FROM addon_state WHERE addon_id = ? ORDER BY state_key")) {

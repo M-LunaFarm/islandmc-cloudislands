@@ -9,6 +9,33 @@ public final class InMemoryAddonStateRepository implements AddonStateRepository 
     private final Map<String, Map<String, String>> islandStates = new ConcurrentHashMap<>();
 
     @Override
+    public Map<String, Integer> globalStateCounts() {
+        Map<String, Integer> counts = new java.util.TreeMap<>();
+        states.forEach((addonId, state) -> {
+            synchronized (state) {
+                counts.put(addonId, state.size());
+            }
+        });
+        return Map.copyOf(counts);
+    }
+
+    @Override
+    public Map<String, Integer> islandStateCounts() {
+        Map<String, Integer> counts = new java.util.TreeMap<>();
+        islandStates.forEach((stateId, state) -> {
+            int separator = stateId.lastIndexOf('/');
+            if (separator <= 0) {
+                return;
+            }
+            String addonId = stateId.substring(0, separator);
+            synchronized (state) {
+                counts.merge(addonId, state.size(), Integer::sum);
+            }
+        });
+        return Map.copyOf(counts);
+    }
+
+    @Override
     public Map<String, String> list(String addonId) {
         Map<String, String> state = states.get(AddonStateRepository.safeAddonId(addonId));
         if (state == null) {
