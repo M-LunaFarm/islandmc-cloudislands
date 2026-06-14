@@ -183,18 +183,30 @@ database:
     port: 3306
     database: "cloudislands_satis"
     options: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+    username: ""
+    password: ""
+    max-pool-size: 0
+    connection-timeout-ms: 0
   postgresql:
     url: ""
     host: "127.0.0.1"
     port: 5432
     database: "cloudislands_satis"
     options: "sslmode=disable"
+    username: ""
+    password: ""
+    max-pool-size: 0
+    connection-timeout-ms: 0
   mariadb:
     url: ""
     host: "127.0.0.1"
     port: 3306
     database: "cloudislands_satis"
     options: "useSSL=false&serverTimezone=UTC"
+    username: ""
+    password: ""
+    max-pool-size: 0
+    connection-timeout-ms: 0
   # Use one of these in multi-node CloudIslands setups so A/B island nodes share Satis state.
   # Environment variable CLOUDISLANDS_SATIS_DB has the highest priority for SQLite file paths.
   # Environment variable CLOUDISLANDS_SATIS_JDBC_URL has the highest priority for JDBC backends.

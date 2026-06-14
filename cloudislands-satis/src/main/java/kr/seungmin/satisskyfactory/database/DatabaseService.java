@@ -65,11 +65,20 @@ public final class DatabaseService {
             String password,
             int maxPoolSize,
             long connectionTimeoutMillis,
+            BackendSettings postgresqlSettings,
+            BackendSettings mysqlSettings,
+            BackendSettings mariadbSettings,
             boolean fallbackEnabled,
             List<StorageBackend> fallbackOrder
     ) {
         public static Settings sqlite(String sqliteFileName) {
-            return new Settings(StorageBackend.SQLITE, sqliteFileName, "", "", "", "", "", "", 4, 5000L, false, List.of());
+            return new Settings(StorageBackend.SQLITE, sqliteFileName, "", "", "", "", "", "", 4, 5000L, BackendSettings.empty(), BackendSettings.empty(), BackendSettings.empty(), false, List.of());
+        }
+    }
+
+    public record BackendSettings(String username, String password, int maxPoolSize, long connectionTimeoutMillis) {
+        public static BackendSettings empty() {
+            return new BackendSettings("", "", 0, 0L);
         }
     }
 
@@ -246,14 +255,19 @@ public final class DatabaseService {
         }
         HikariConfig poolConfig = new HikariConfig();
         poolConfig.setJdbcUrl(jdbcUrl);
-        if (settings.username() != null && !settings.username().isBlank()) {
-            poolConfig.setUsername(settings.username());
+        BackendSettings backendSettings = backendSettings(backend);
+        String username = firstNonBlank(backendSettings.username(), settings.username());
+        String password = firstNonBlank(backendSettings.password(), settings.password());
+        int maxPoolSize = backendSettings.maxPoolSize() > 0 ? backendSettings.maxPoolSize() : settings.maxPoolSize();
+        long connectionTimeoutMillis = backendSettings.connectionTimeoutMillis() > 0L ? backendSettings.connectionTimeoutMillis() : settings.connectionTimeoutMillis();
+        if (username != null && !username.isBlank()) {
+            poolConfig.setUsername(username);
         }
-        if (settings.password() != null && !settings.password().isBlank()) {
-            poolConfig.setPassword(settings.password());
+        if (password != null && !password.isBlank()) {
+            poolConfig.setPassword(password);
         }
-        poolConfig.setMaximumPoolSize(Math.max(1, settings.maxPoolSize()));
-        poolConfig.setConnectionTimeout(Math.max(1000L, settings.connectionTimeoutMillis()));
+        poolConfig.setMaximumPoolSize(Math.max(1, maxPoolSize));
+        poolConfig.setConnectionTimeout(Math.max(1000L, connectionTimeoutMillis));
         poolConfig.setPoolName("SatisSkyFactory-" + backend.name());
         dataSource = new HikariDataSource(poolConfig);
         MigrationService.Dialect migrationDialect = switch (backend) {
@@ -281,6 +295,23 @@ public final class DatabaseService {
             default -> "";
         };
         return backendUrl == null ? "" : backendUrl.trim();
+    }
+
+    private BackendSettings backendSettings(StorageBackend backend) {
+        BackendSettings backendSettings = switch (backend) {
+            case POSTGRESQL -> settings.postgresqlSettings();
+            case MYSQL -> settings.mysqlSettings();
+            case MARIADB -> settings.mariadbSettings();
+            default -> BackendSettings.empty();
+        };
+        return backendSettings == null ? BackendSettings.empty() : backendSettings;
+    }
+
+    private String firstNonBlank(String first, String second) {
+        if (first != null && !first.isBlank()) {
+            return first.trim();
+        }
+        return second == null ? "" : second.trim();
     }
 
     private String safeJdbcDescription(String jdbcUrl) {

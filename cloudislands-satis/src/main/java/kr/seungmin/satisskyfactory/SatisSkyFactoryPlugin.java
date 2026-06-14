@@ -2090,6 +2090,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 databasePassword(),
                 Math.max(1, databaseMaxPoolSize(8)),
                 Math.max(1000L, databaseConnectionTimeoutMillis(5000L)),
+                databaseBackendSettings("postgresql"),
+                databaseBackendSettings("mysql"),
+                databaseBackendSettings("mariadb"),
                 envBoolean("CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED", setupBoolean("database.fallback.enabled", true)),
                 databaseFallbackOrder(true)
         );
@@ -2116,8 +2119,23 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Integer.toHexString(safe(settings.password()).hashCode()),
                 Integer.toString(settings.maxPoolSize()),
                 Long.toString(settings.connectionTimeoutMillis()),
+                backendSettingsFingerprint(settings.postgresqlSettings()),
+                backendSettingsFingerprint(settings.mysqlSettings()),
+                backendSettingsFingerprint(settings.mariadbSettings()),
                 Boolean.toString(settings.fallbackEnabled()),
                 fallbackOrder
+        );
+    }
+
+    private String backendSettingsFingerprint(DatabaseService.BackendSettings settings) {
+        if (settings == null) {
+            return "";
+        }
+        return String.join(":",
+                safe(settings.username()),
+                Integer.toHexString(safe(settings.password()).hashCode()),
+                Integer.toString(settings.maxPoolSize()),
+                Long.toString(settings.connectionTimeoutMillis())
         );
     }
 
@@ -2203,6 +2221,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 settings.password(),
                 settings.maxPoolSize(),
                 settings.connectionTimeoutMillis(),
+                settings.postgresqlSettings(),
+                settings.mysqlSettings(),
+                settings.mariadbSettings(),
                 true,
                 fallbackOrder
         ));
@@ -2323,6 +2344,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return typed > 0L ? typed : setupLong("database.jdbc.connection-timeout-ms", fallback);
     }
 
+    private DatabaseService.BackendSettings databaseBackendSettings(String section) {
+        return new DatabaseService.BackendSettings(
+                firstNonBlank(configs.main().getString("setup.database." + section + ".username", ""), configs.main().getString("database." + section + ".username", "")),
+                firstNonBlank(configs.main().getString("setup.database." + section + ".password", ""), configs.main().getString("database." + section + ".password", "")),
+                positiveInt("setup.database." + section + ".max-pool-size", positiveInt("database." + section + ".max-pool-size", 0)),
+                positiveLong("setup.database." + section + ".connection-timeout-ms", positiveLong("database." + section + ".connection-timeout-ms", 0L))
+        );
+    }
+
     private String typedDatabaseSetting(String key) {
         String section = databaseSetupSection();
         return section.isBlank() ? "" : configs.main().getString("setup.database." + section + "." + key, "");
@@ -2407,12 +2437,22 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return configs.main().getInt(path, fallback);
     }
 
+    private int positiveInt(String path, int fallback) {
+        int value = configs.main().getInt(path, 0);
+        return value > 0 ? value : fallback;
+    }
+
     private long setupLong(String path, long fallback) {
         String setupPath = "setup." + path;
         if (configs.main().contains(setupPath) && configs.main().getLong(setupPath, 0L) > 0L) {
             return configs.main().getLong(setupPath, fallback);
         }
         return configs.main().getLong(path, fallback);
+    }
+
+    private long positiveLong(String path, long fallback) {
+        long value = configs.main().getLong(path, 0L);
+        return value > 0L ? value : fallback;
     }
 
     private boolean setupBoolean(String path, boolean fallback) {
