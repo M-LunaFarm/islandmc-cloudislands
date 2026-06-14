@@ -23,6 +23,7 @@ public final class DirtySaveService {
     private final Map<UUID, FactoryIsland> islands = new ConcurrentHashMap<>();
     private final Object flushLock = new Object();
     private Consumer<DirtySaveBatch> coreStatePublisher;
+    private Consumer<DirtyRowDelete> coreStateDeletePublisher;
     private BukkitTask task;
 
     public DirtySaveService(JavaPlugin plugin, DatabaseService database) {
@@ -34,8 +35,15 @@ public final class DirtySaveService {
                                  Map<UUID, ResourceNode> nodes, Map<UUID, FactoryIsland> islands) {
     }
 
+    public record DirtyRowDelete(UUID islandUuid, String key) {
+    }
+
     public void coreStatePublisher(Consumer<DirtySaveBatch> coreStatePublisher) {
         this.coreStatePublisher = coreStatePublisher;
+    }
+
+    public void coreStateDeletePublisher(Consumer<DirtyRowDelete> coreStateDeletePublisher) {
+        this.coreStateDeletePublisher = coreStateDeletePublisher;
     }
 
     public void start(long intervalTicks) {
@@ -78,6 +86,14 @@ public final class DirtySaveService {
         machines.remove(machineId);
     }
 
+    public void deleteMachine(UUID islandUuid, UUID machineId) {
+        if (machineId == null) {
+            return;
+        }
+        forgetMachine(machineId);
+        publishCoreDelete(islandUuid, "table/machines/" + machineId);
+    }
+
     public void forgetMachines() {
         machines.clear();
     }
@@ -94,6 +110,14 @@ public final class DirtySaveService {
             return;
         }
         inventories.remove(inventoryId);
+    }
+
+    public void deleteInventory(UUID islandUuid, UUID inventoryId) {
+        if (inventoryId == null) {
+            return;
+        }
+        forgetInventory(inventoryId);
+        publishCoreDelete(islandUuid, "table/virtual_inventories/" + inventoryId);
     }
 
     public void forgetInventories() {
@@ -199,6 +223,17 @@ public final class DirtySaveService {
             ));
         } catch (RuntimeException exception) {
             plugin.getLogger().warning("Core API Satis state publish failed: " + exception.getMessage());
+        }
+    }
+
+    private void publishCoreDelete(UUID islandUuid, String key) {
+        if (coreStateDeletePublisher == null || islandUuid == null || key == null || key.isBlank()) {
+            return;
+        }
+        try {
+            coreStateDeletePublisher.accept(new DirtyRowDelete(islandUuid, key));
+        } catch (RuntimeException exception) {
+            plugin.getLogger().warning("Core API Satis state delete failed: " + exception.getMessage());
         }
     }
 

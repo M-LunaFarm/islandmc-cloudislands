@@ -52,6 +52,16 @@ public final class CoreApiSatisStateService {
         });
     }
 
+    public void removeRow(UUID islandId, String key) {
+        if (cloudIslandsApi == null || islandId == null || key == null || key.isBlank()) {
+            return;
+        }
+        cloudIslandsApi.addons().removeIslandState(addonId, islandId, key).exceptionally(error -> {
+            logger.warning("Failed to remove Satis core-api table state " + key + " for island " + islandId + ": " + error.getMessage());
+            return Map.of();
+        });
+    }
+
     public boolean hydrateIsland(UUID islandId, DatabaseService database) {
         if (cloudIslandsApi == null || islandId == null || database == null) {
             return false;

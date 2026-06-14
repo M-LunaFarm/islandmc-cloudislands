@@ -168,6 +168,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (database.activeBackend() == DatabaseService.StorageBackend.CORE_API && featureEnabled("addon-state")) {
             coreApiState = new CoreApiSatisStateService(getLogger(), cloudIslandsApi, ADDON_ID);
             dirtySaves.coreStatePublisher(coreApiState::publishDirtyBatch);
+            dirtySaves.coreStateDeletePublisher(delete -> coreApiState.removeRow(delete.islandUuid(), delete.key()));
         }
         storage.dirtySaves(dirtySaves);
         islands.dirtySaves(dirtySaves);

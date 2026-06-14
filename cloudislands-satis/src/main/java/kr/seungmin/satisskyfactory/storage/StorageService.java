@@ -89,9 +89,13 @@ public final class StorageService {
         if (inventoryId == null) {
             return;
         }
-        cache.remove(inventoryId);
+        VirtualInventory removed = cache.remove(inventoryId);
         if (dirtySaves != null) {
-            dirtySaves.forgetInventory(inventoryId);
+            if (removed == null) {
+                dirtySaves.forgetInventory(inventoryId);
+            } else {
+                dirtySaves.deleteInventory(removed.islandUuid(), inventoryId);
+            }
         }
         database.deleteInventory(inventoryId);
     }

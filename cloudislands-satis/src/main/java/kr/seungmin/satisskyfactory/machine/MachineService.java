@@ -161,7 +161,7 @@ public final class MachineService {
         machines.remove(machine.machineId());
         byLocation.remove(LocationKey.from(machine.location()));
         if (dirtySaves != null) {
-            dirtySaves.forgetMachine(machine.machineId());
+            dirtySaves.deleteMachine(machine.islandUuid(), machine.machineId());
         }
         database.deleteMachine(machine.machineId());
         deleteInventories(machine);
