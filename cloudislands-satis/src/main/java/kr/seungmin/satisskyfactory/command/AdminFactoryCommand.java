@@ -606,7 +606,7 @@ public final class AdminFactoryCommand {
             return;
         }
         try {
-            DatabaseService.LegacyImportPlan plan = database.scanLegacyDatabase(new File(args[3]));
+            DatabaseService.LegacyImportPlan plan = database.scanLegacyDatabase(new File(joined(args, 3)));
             sender.sendMessage(messages.raw("admin-migration-title"));
             Map<String, String> state = new LinkedHashMap<>();
             state.put("source", plan.sourcePath());
@@ -639,7 +639,7 @@ public final class AdminFactoryCommand {
             return;
         }
         try {
-            DatabaseService.LegacyImportResult result = database.importLegacyDatabase(new File(args[3]));
+            DatabaseService.LegacyImportResult result = database.importLegacyDatabase(new File(joined(args, 3)));
             reload.run();
             sender.sendMessage(messages.raw("admin-migration-title"));
             Map<String, String> state = new LinkedHashMap<>();
@@ -733,6 +733,13 @@ public final class AdminFactoryCommand {
             return (int) parseLong(args, 2, 1);
         }
         return 1;
+    }
+
+    private String joined(String[] args, int fromIndex) {
+        if (args.length <= fromIndex) {
+            return "";
+        }
+        return String.join(" ", java.util.Arrays.copyOfRange(args, fromIndex, args.length)).trim();
     }
 
     private void withPlayerContext(CommandSender sender, String[] args, int playerIndex, AdminContextConsumer consumer) {
