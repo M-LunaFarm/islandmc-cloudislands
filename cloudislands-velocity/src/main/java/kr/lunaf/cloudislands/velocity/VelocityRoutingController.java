@@ -123,6 +123,8 @@ public final class VelocityRoutingController {
     public String statusSummary() {
         return "CloudIslands Velocity router online, fallback=" + fallbackServer
             + ", islandPool=" + islandPool
+            + ", islandPoolServers=" + islandPoolServerCount()
+            + ", islandPoolServerNames=" + islandPoolServerNames()
             + ", routeWaitSeconds=" + routeWaitSeconds
             + ", routeTicketTtlSeconds=" + routeTicketTtlSeconds
             + ", onlinePlayers=" + proxy.getPlayerCount()
@@ -131,15 +133,53 @@ public final class VelocityRoutingController {
             + ", hideNodeNames=" + hideNodeNames
             + ", routeAttempts=" + routeAttempts.get()
             + ", routeSuccesses=" + routeSuccesses.get()
-            + ", routeFailures=" + routeFailures.get();
+            + ", routeFailures=" + routeFailures.get()
+            + ", fallbackTransfers=" + fallbackTransfers.get();
     }
 
     public String routingMetricsText() {
         return ""
+            + "cloudislands_velocity_island_pool_servers " + islandPoolServerCount() + "\n"
             + "cloudislands_velocity_route_attempts_total " + routeAttempts.get() + "\n"
             + "cloudislands_velocity_route_success_total " + routeSuccesses.get() + "\n"
             + "cloudislands_velocity_route_failed_total " + routeFailures.get() + "\n"
             + "cloudislands_velocity_fallback_transfers_total " + fallbackTransfers.get() + "\n";
+    }
+
+    private int islandPoolServerCount() {
+        int count = 0;
+        for (RegisteredServer server : proxy.getAllServers()) {
+            if (isIslandPoolServer(server.getServerInfo().getName())) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private String islandPoolServerNames() {
+        StringBuilder names = new StringBuilder();
+        for (RegisteredServer server : proxy.getAllServers()) {
+            String name = server.getServerInfo().getName();
+            if (!isIslandPoolServer(name)) {
+                continue;
+            }
+            if (!names.isEmpty()) {
+                names.append(',');
+            }
+            names.append(name);
+        }
+        return names.isEmpty() ? "-" : names.toString();
+    }
+
+    private boolean isIslandPoolServer(String serverName) {
+        if (serverName == null || serverName.isBlank()) {
+            return false;
+        }
+        String normalizedServer = serverName.toLowerCase(Locale.ROOT);
+        String normalizedPool = islandPool.toLowerCase(Locale.ROOT);
+        return normalizedServer.equals(normalizedPool)
+            || normalizedServer.startsWith(normalizedPool + "-")
+            || normalizedServer.startsWith(normalizedPool + "_");
     }
 
     public void resetIsland(Player player, UUID islandId, String reason) {
