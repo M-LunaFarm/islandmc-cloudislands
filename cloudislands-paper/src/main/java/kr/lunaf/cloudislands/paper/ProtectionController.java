@@ -119,7 +119,15 @@ public final class ProtectionController {
 
     private IslandFlag visitorFlag(IslandPermission permission) {
         return switch (permission) {
-            case INTERACT -> IslandFlag.VISITOR_INTERACT;
+            case INTERACT,
+                USE_DOOR,
+                USE_BUTTON,
+                USE_PRESSURE_PLATE,
+                USE_REDSTONE,
+                USE_SPAWNER,
+                USE_ANVIL,
+                USE_ENCHANT_TABLE,
+                USE_BREWING_STAND -> IslandFlag.VISITOR_INTERACT;
             case OPEN_CONTAINER -> IslandFlag.VISITOR_CONTAINER;
             case PICKUP_ITEM -> IslandFlag.VISITOR_PICKUP;
             case DROP_ITEM -> IslandFlag.VISITOR_DROP;
