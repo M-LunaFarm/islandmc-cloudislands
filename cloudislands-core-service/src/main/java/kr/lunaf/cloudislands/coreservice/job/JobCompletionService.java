@@ -314,10 +314,21 @@ public final class JobCompletionService {
         if (current.state() == IslandState.RECOVERY_REQUIRED || current.state() == IslandState.QUARANTINED || current.state() == IslandState.DELETED) {
             return "RUNTIME_NOT_ACCEPTING_COMPLETION";
         }
+        if (isMigrationSourceDeactivation(job, current)) {
+            return "";
+        }
         if (current.fencingToken() == fencingToken && !sameNode(job.targetNode(), current.leaseOwner(), current.activeNode())) {
             return "STALE_NODE_COMPLETION";
         }
         return "";
+    }
+
+    private boolean isMigrationSourceDeactivation(IslandJob job, kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot current) {
+        if (job.type() != IslandJobType.DEACTIVATE_ISLAND || current == null || current.state() != IslandState.DEACTIVATING) {
+            return false;
+        }
+        String migrateTargetNode = job.payload().getOrDefault("migrateTargetNode", "");
+        return !migrateTargetNode.isBlank() && sameNode(migrateTargetNode, current.leaseOwner(), current.activeNode());
     }
 
     private boolean sameNode(String jobNode, String leaseOwner, String activeNode) {
