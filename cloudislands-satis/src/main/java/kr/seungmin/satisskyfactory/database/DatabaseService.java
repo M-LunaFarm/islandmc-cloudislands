@@ -1816,7 +1816,7 @@ public final class DatabaseService {
                 + field("networkId", network.networkId().toString()) + ","
                 + field("islandUuid", network.islandUuid().toString()) + ","
                 + number("throughputPerMinute", network.throughputPerMinute()) + ","
-                + field("bufferInventoryId", string(network.bufferInventoryId())) + ","
+                + field("bufferInventoryId", network.bufferInventoryId() == null ? "" : network.bufferInventoryId().toString()) + ","
                 + field("dirty", Boolean.toString(network.dirty())) + ","
                 + number("updatedAt", network.updatedAt()) + ","
                 + field("connectedMachineIds", uuidSetCsv(network.connectedMachineIds()))
