@@ -776,6 +776,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("cloudislands-adapter", Boolean.toString(configs.main().getBoolean("integration.cloudislands-adapter", true)));
         metadata.put("requires-cloudislands-api", Boolean.toString(requiresCloudIslandsApi()));
         metadata.put("database-scope", scope);
+        metadata.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
         metadata.put("database-config-source", databaseConfigSource());
         metadata.put("database-file", configuredDatabaseFileName());
         metadata.put("database-path", resolveDatabaseFileName());
@@ -932,6 +933,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-enabled", Boolean.toString(snapshot.enabled()));
         state.put("database-shared", Boolean.toString(databaseShared()));
         state.put("database-scope", databaseScope());
+        state.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
         state.put("database-config-source", databaseConfigSource());
         state.put("database-path", resolveDatabaseFileName());
         state.put("database-open", Boolean.toString(database != null));
@@ -958,6 +960,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-enabled", "false");
         state.put("database-shared", Boolean.toString(databaseShared()));
         state.put("database-scope", databaseScope());
+        state.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
         state.put("database-config-source", databaseConfigSource());
         state.put("database-path", resolveDatabaseFileName());
         state.put("database-open", Boolean.toString(database != null));
@@ -1807,8 +1810,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String databaseScope() {
-        DatabaseService.StorageBackend backend = DatabaseService.StorageBackend.parse(
-                configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE);
+        DatabaseService.StorageBackend backend = database == null
+                ? DatabaseService.StorageBackend.parse(configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE)
+                : database.activeBackend();
         if (backend == DatabaseService.StorageBackend.CORE_API) {
             return "CORE_API";
         }
