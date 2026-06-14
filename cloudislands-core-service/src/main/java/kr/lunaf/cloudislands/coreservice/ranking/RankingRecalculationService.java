@@ -31,6 +31,7 @@ public final class RankingRecalculationService {
         IslandRankSnapshot snapshot = new IslandRankSnapshot(islandId, Math.floorDiv(levelPoints, 1000L), worth, memberCount, Instant.now());
         rankings.save(snapshot);
         events.publish(CloudIslandEventType.ISLAND_LEVEL_UPDATED.name(), Map.of("islandId", islandId.toString(), "level", Long.toString(snapshot.level()), "worth", snapshot.worth().toPlainString()));
+        events.publish(CloudIslandEventType.ISLAND_WORTH_CHANGED.name(), Map.of("islandId", islandId.toString(), "worth", snapshot.worth().toPlainString()));
         return snapshot;
     }
 

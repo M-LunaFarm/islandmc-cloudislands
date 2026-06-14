@@ -791,7 +791,7 @@ public final class PermissionEventPoller {
             if (playerUuid != null) {
                 Bukkit.getPluginManager().callEvent(new IslandRoleChangeEvent(islandId, playerUuid, fields.getOrDefault("oldRole", ""), "OWNER", fields));
             }
-        } else if (type.equals(CloudIslandEventType.ISLAND_LEVEL_UPDATED.name()) || type.equals(CloudIslandEventType.ISLAND_BLOCKS_CHANGED.name())) {
+        } else if (type.equals(CloudIslandEventType.ISLAND_LEVEL_UPDATED.name()) || type.equals(CloudIslandEventType.ISLAND_BLOCKS_CHANGED.name()) || type.equals(CloudIslandEventType.ISLAND_WORTH_CHANGED.name())) {
             if (fields.containsKey("level")) {
                 Bukkit.getPluginManager().callEvent(new IslandLevelRecalculateEvent(islandId, longField(fields, "level"), fields));
             }

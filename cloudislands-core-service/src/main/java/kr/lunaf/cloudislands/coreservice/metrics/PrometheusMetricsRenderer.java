@@ -444,6 +444,7 @@ public final class PrometheusMetricsRenderer {
         eventCounter(out, "cloudislands_island_migrated_total", "Island migrations completed by node workers", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_MIGRATED);
         eventCounter(out, "cloudislands_island_recovery_required_total", "Islands marked for recovery after node failure", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_RECOVERY_REQUIRED);
         eventCounter(out, "cloudislands_island_level_updated_total", "Island level recalculations completed by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_LEVEL_UPDATED);
+        eventCounter(out, "cloudislands_island_worth_changed_total", "Island worth recalculations completed by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_WORTH_CHANGED);
         eventCounter(out, "cloudislands_island_block_value_changed_total", "Island block value rules changed through Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_BLOCK_VALUE_CHANGED);
         help(out, "cloudislands_ranking_dirty_drained_total", "Dirty island rankings drained by the Core recalculation worker");
         type(out, "cloudislands_ranking_dirty_drained_total", "counter");
