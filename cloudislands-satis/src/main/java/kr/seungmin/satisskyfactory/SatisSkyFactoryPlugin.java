@@ -158,7 +158,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         databaseFallbackReason = "none";
         database = new DatabaseService(this, settings);
         database.open();
+        syncDatabaseFallbackReason();
         applyCoreApiDatabaseFallback(settings);
+        syncDatabaseFallbackReason();
         warnIfUnsharedDatabaseInCloudIslandsMode();
         getLogger().info("Satis database backend: " + database.activeBackend() + " (" + database.databaseDescription() + ")");
 
@@ -734,7 +736,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         databaseFallbackReason = "none";
         database = new DatabaseService(this, settings);
         database.open();
+        syncDatabaseFallbackReason();
         applyCoreApiDatabaseFallback(settings);
+        syncDatabaseFallbackReason();
         warnIfUnsharedDatabaseInCloudIslandsMode();
         getLogger().info("Reloaded Satis database backend: " + database.activeBackend() + " (" + database.databaseDescription() + ")");
         storage = new StorageService(database, configInt("storage.default-capacity", "limits.default-storage-capacity", 10000));
@@ -2080,6 +2084,23 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 fallbackOrder
         ));
         database.open();
+        String backendFallback = database.fallbackReason();
+        if (backendFallback != null && !backendFallback.isBlank() && !"none".equalsIgnoreCase(backendFallback)) {
+            databaseFallbackReason = databaseFallbackReason + ";" + backendFallback;
+        }
+    }
+
+    private void syncDatabaseFallbackReason() {
+        if (database == null) {
+            return;
+        }
+        String reason = database.fallbackReason();
+        if (reason == null || reason.isBlank() || "none".equalsIgnoreCase(reason)) {
+            return;
+        }
+        if (databaseFallbackReason == null || databaseFallbackReason.isBlank() || "none".equalsIgnoreCase(databaseFallbackReason)) {
+            databaseFallbackReason = reason;
+        }
     }
 
     private String jdbcUrl(String section, String prefix, int defaultPort) {

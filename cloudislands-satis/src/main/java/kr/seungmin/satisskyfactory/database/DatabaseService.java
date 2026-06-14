@@ -85,6 +85,8 @@ public final class DatabaseService {
     private StorageBackend activeBackend = StorageBackend.SQLITE;
     private SqlDialect sqlDialect = SqlDialect.SQLITE;
     private String activeDescription = "";
+    private String fallbackReason = "none";
+    private List<StorageBackend> attemptedBackends = List.of();
     private Consumer<CoreRowWrite> coreStateWriter;
     private Consumer<CoreTableWrite> coreTableWriter;
     private Consumer<CoreGlobalRowWrite> coreGlobalStateWriter;
@@ -133,19 +135,44 @@ public final class DatabaseService {
             return;
         }
         List<StorageBackend> attempts = backendAttempts();
+        attemptedBackends = List.copyOf(attempts);
+        fallbackReason = "none";
         RuntimeException firstFailure = null;
+        List<String> failures = new ArrayList<>();
         for (StorageBackend backend : attempts) {
             try {
                 openBackend(backend);
+                if (!failures.isEmpty()) {
+                    fallbackReason = String.join(",", failures) + "->" + backend.name();
+                }
                 return;
             } catch (RuntimeException exception) {
                 close();
                 if (firstFailure == null) {
                     firstFailure = exception;
                 }
+                failures.add(backend.name() + "_FAILED:" + failureCode(exception));
             }
         }
+        fallbackReason = failures.isEmpty() ? "none" : String.join(",", failures);
         throw new IllegalStateException("Failed to open Satis database with backend chain " + attempts, firstFailure);
+    }
+
+    private String failureCode(RuntimeException exception) {
+        Throwable root = exception;
+        while (root.getCause() != null) {
+            root = root.getCause();
+        }
+        String code = root.getClass().getSimpleName();
+        String message = root.getMessage();
+        if (message == null || message.isBlank()) {
+            return code;
+        }
+        String compact = message.replace('\n', ' ').replace('\r', ' ').trim();
+        if (compact.length() > 80) {
+            compact = compact.substring(0, 80);
+        }
+        return code + "(" + compact.replace(',', ';') + ")";
     }
 
     private List<StorageBackend> backendAttempts() {
@@ -274,6 +301,14 @@ public final class DatabaseService {
 
     public String databaseDescription() {
         return activeDescription == null || activeDescription.isBlank() ? databaseFile().getAbsolutePath() : activeDescription;
+    }
+
+    public String fallbackReason() {
+        return fallbackReason == null || fallbackReason.isBlank() ? "none" : fallbackReason;
+    }
+
+    public List<StorageBackend> attemptedBackends() {
+        return attemptedBackends == null ? List.of() : List.copyOf(attemptedBackends);
     }
 
     private File databaseFile() {
