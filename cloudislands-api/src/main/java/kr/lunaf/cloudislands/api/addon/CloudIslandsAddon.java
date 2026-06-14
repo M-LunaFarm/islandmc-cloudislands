@@ -30,6 +30,11 @@ import kr.lunaf.cloudislands.api.event.IslandSnapshotRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandUpgradeEvent;
 import kr.lunaf.cloudislands.api.event.IslandWorthChangeEvent;
 import kr.lunaf.cloudislands.api.event.NodeStateChangedEvent;
+import kr.lunaf.cloudislands.api.event.RouteSessionPublishedEvent;
+import kr.lunaf.cloudislands.api.event.RouteTicketClearedEvent;
+import kr.lunaf.cloudislands.api.event.RouteTicketConsumedGlobalEvent;
+import kr.lunaf.cloudislands.api.event.RouteTicketCreatedEvent;
+import kr.lunaf.cloudislands.api.event.RouteTicketFailedEvent;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 
 public interface CloudIslandsAddon {
@@ -117,6 +122,16 @@ public interface CloudIslandsAddon {
             onIslandSnapshotCreated(snapshotCreated);
         } else if (event instanceof NodeStateChangedEvent nodeStateChanged) {
             onNodeStateChanged(nodeStateChanged);
+        } else if (event instanceof RouteTicketCreatedEvent routeTicketCreated) {
+            onRouteTicketCreated(routeTicketCreated);
+        } else if (event instanceof RouteSessionPublishedEvent routeSessionPublished) {
+            onRouteSessionPublished(routeSessionPublished);
+        } else if (event instanceof RouteTicketConsumedGlobalEvent routeTicketConsumed) {
+            onRouteTicketConsumed(routeTicketConsumed);
+        } else if (event instanceof RouteTicketFailedEvent routeTicketFailed) {
+            onRouteTicketFailed(routeTicketFailed);
+        } else if (event instanceof RouteTicketClearedEvent routeTicketCleared) {
+            onRouteTicketCleared(routeTicketCleared);
         }
     }
 
@@ -196,6 +211,21 @@ public interface CloudIslandsAddon {
     }
 
     default void onNodeStateChanged(NodeStateChangedEvent event) {
+    }
+
+    default void onRouteTicketCreated(RouteTicketCreatedEvent event) {
+    }
+
+    default void onRouteSessionPublished(RouteSessionPublishedEvent event) {
+    }
+
+    default void onRouteTicketConsumed(RouteTicketConsumedGlobalEvent event) {
+    }
+
+    default void onRouteTicketFailed(RouteTicketFailedEvent event) {
+    }
+
+    default void onRouteTicketCleared(RouteTicketClearedEvent event) {
     }
 
     default CompletableFuture<CloudIslandsAddonSnapshot> register(CloudIslandsApi api) {
