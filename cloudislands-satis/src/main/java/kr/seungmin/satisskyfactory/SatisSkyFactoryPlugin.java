@@ -1998,8 +1998,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private DatabaseService.Settings databaseSettings() {
-        DatabaseService.StorageBackend backend = DatabaseService.StorageBackend.parse(
-                configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE);
+        String configuredType = configuredDatabaseType();
+        DatabaseService.StorageBackend backend = DatabaseService.StorageBackend.parse(configuredType, null);
+        if (backend == null) {
+            backend = DatabaseService.StorageBackend.SQLITE;
+            appendDatabaseFallbackReason("invalid-database-backend:" + safeReasonToken(configuredType) + "->SQLITE");
+        }
         return new DatabaseService.Settings(
                 backend,
                 resolveDatabaseFileName(),
@@ -2126,6 +2130,28 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (databaseFallbackReason == null || databaseFallbackReason.isBlank() || "none".equalsIgnoreCase(databaseFallbackReason)) {
             databaseFallbackReason = reason;
         }
+    }
+
+    private void appendDatabaseFallbackReason(String reason) {
+        if (reason == null || reason.isBlank() || "none".equalsIgnoreCase(reason)) {
+            return;
+        }
+        if (databaseFallbackReason == null || databaseFallbackReason.isBlank() || "none".equalsIgnoreCase(databaseFallbackReason)) {
+            databaseFallbackReason = reason;
+            return;
+        }
+        if (!databaseFallbackReason.contains(reason)) {
+            databaseFallbackReason = databaseFallbackReason + ";" + reason;
+        }
+    }
+
+    private String safeReasonToken(String value) {
+        String safe = value == null ? "" : value.trim();
+        if (safe.isBlank()) {
+            return "blank";
+        }
+        safe = safe.replaceAll("[^A-Za-z0-9_.:-]", "_");
+        return safe.length() > 48 ? safe.substring(0, 48) : safe;
     }
 
     private String jdbcUrl(String section, String prefix, int defaultPort) {
