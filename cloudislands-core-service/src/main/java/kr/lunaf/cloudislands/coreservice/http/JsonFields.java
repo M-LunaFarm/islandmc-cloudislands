@@ -46,13 +46,46 @@ public final class JsonFields {
             return Map.of();
         }
         Map<String, String> values = new LinkedHashMap<>();
-        for (String pair : body.split(",")) {
+        for (String pair : splitTopLevelPairs(body)) {
             int colon = pair.indexOf(':');
             if (colon > 0) {
                 values.put(unquote(pair.substring(0, colon)), unquote(pair.substring(colon + 1)));
             }
         }
         return Map.copyOf(values);
+    }
+
+    private static java.util.List<String> splitTopLevelPairs(String body) {
+        java.util.List<String> pairs = new java.util.ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        boolean quoted = false;
+        boolean escaped = false;
+        for (int index = 0; index < body.length(); index++) {
+            char value = body.charAt(index);
+            if (escaped) {
+                current.append(value);
+                escaped = false;
+                continue;
+            }
+            if (value == '\\') {
+                current.append(value);
+                escaped = true;
+                continue;
+            }
+            if (value == '"') {
+                quoted = !quoted;
+            }
+            if (value == ',' && !quoted) {
+                pairs.add(current.toString());
+                current.setLength(0);
+                continue;
+            }
+            current.append(value);
+        }
+        if (!current.isEmpty()) {
+            pairs.add(current.toString());
+        }
+        return pairs;
     }
 
     public static int integer(String json, String field, int fallback) {

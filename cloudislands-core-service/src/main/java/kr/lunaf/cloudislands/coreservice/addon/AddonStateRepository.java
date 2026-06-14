@@ -6,15 +6,17 @@ import java.util.UUID;
 public interface AddonStateRepository {
     int MAX_ADDON_ID_LENGTH = 128;
     int MAX_KEY_LENGTH = 128;
-    int MAX_VALUE_LENGTH = 4096;
-    int MAX_KEYS_PER_ADDON = 128;
+    int MAX_VALUE_LENGTH = 65535;
+    int MAX_KEYS_PER_ADDON = 4096;
 
     Map<String, String> list(String addonId);
     Map<String, String> put(String addonId, String key, String value);
+    Map<String, String> put(String addonId, Map<String, String> values);
     Map<String, String> remove(String addonId, String key);
     void clear(String addonId);
     Map<String, String> listIsland(String addonId, UUID islandId);
     Map<String, String> putIsland(String addonId, UUID islandId, String key, String value);
+    Map<String, String> putIsland(String addonId, UUID islandId, Map<String, String> values);
     Map<String, String> removeIsland(String addonId, UUID islandId, String key);
     void clearIsland(String addonId, UUID islandId);
 

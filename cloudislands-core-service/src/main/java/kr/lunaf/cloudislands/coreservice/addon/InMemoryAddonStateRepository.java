@@ -15,12 +15,19 @@ public final class InMemoryAddonStateRepository implements AddonStateRepository 
 
     @Override
     public Map<String, String> put(String addonId, String key, String value) {
+        Map<String, String> values = new java.util.HashMap<>();
+        values.put(key, value);
+        return put(addonId, values);
+    }
+
+    @Override
+    public Map<String, String> put(String addonId, Map<String, String> values) {
         String safeAddonId = AddonStateRepository.safeAddonId(addonId);
-        String safeKey = AddonStateRepository.safeKey(key);
-        String safeValue = AddonStateRepository.safeValue(value);
         Map<String, String> state = states.computeIfAbsent(safeAddonId, _ignored -> new ConcurrentHashMap<>());
-        AddonStateRepository.requireKeyCapacity(state, safeKey);
-        state.put(safeKey, safeValue);
+        safeValues(values).forEach((key, value) -> {
+            AddonStateRepository.requireKeyCapacity(state, key);
+            state.put(key, value);
+        });
         return Map.copyOf(state);
     }
 
@@ -47,12 +54,19 @@ public final class InMemoryAddonStateRepository implements AddonStateRepository 
 
     @Override
     public Map<String, String> putIsland(String addonId, UUID islandId, String key, String value) {
+        Map<String, String> values = new java.util.HashMap<>();
+        values.put(key, value);
+        return putIsland(addonId, islandId, values);
+    }
+
+    @Override
+    public Map<String, String> putIsland(String addonId, UUID islandId, Map<String, String> values) {
         String stateId = islandStateId(addonId, islandId);
-        String safeKey = AddonStateRepository.safeKey(key);
-        String safeValue = AddonStateRepository.safeValue(value);
         Map<String, String> state = islandStates.computeIfAbsent(stateId, _ignored -> new ConcurrentHashMap<>());
-        AddonStateRepository.requireKeyCapacity(state, safeKey);
-        state.put(safeKey, safeValue);
+        safeValues(values).forEach((key, value) -> {
+            AddonStateRepository.requireKeyCapacity(state, key);
+            state.put(key, value);
+        });
         return Map.copyOf(state);
     }
 
@@ -74,5 +88,18 @@ public final class InMemoryAddonStateRepository implements AddonStateRepository 
 
     private String islandStateId(String addonId, UUID islandId) {
         return AddonStateRepository.safeAddonId(addonId) + "/" + AddonStateRepository.safeIslandId(islandId);
+    }
+
+    private Map<String, String> safeValues(Map<String, String> values) {
+        if (values == null || values.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> safe = new java.util.HashMap<>();
+        values.forEach((key, value) -> {
+            if (key != null && !key.isBlank() && value != null) {
+                safe.put(AddonStateRepository.safeKey(key), AddonStateRepository.safeValue(value));
+            }
+        });
+        return Map.copyOf(safe);
     }
 }

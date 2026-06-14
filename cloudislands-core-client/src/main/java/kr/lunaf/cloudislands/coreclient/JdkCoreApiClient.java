@@ -811,6 +811,14 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> putAddonState(String addonId, Map<String, String> values) {
+        if (blank(addonId)) {
+            return invalidAddonState("Addon id is required");
+        }
+        return postWithResultBody("/v1/addons/state/bulk", "{\"addonId\":\"" + escape(addonId) + "\",\"values\":" + stringMapJson(values) + "}");
+    }
+
+    @Override
     public CompletableFuture<String> removeAddonState(String addonId, String key) {
         if (blank(addonId) || blank(key)) {
             return invalidAddonState("Addon id and key are required");
@@ -843,6 +851,14 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> putAddonIslandState(String addonId, UUID islandId, Map<String, String> values) {
+        if (blank(addonId) || missingIslandId(islandId)) {
+            return invalidAddonState("Addon id and island id are required");
+        }
+        return postWithResultBody("/v1/addons/islands/state/bulk", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"values\":" + stringMapJson(values) + "}");
+    }
+
+    @Override
     public CompletableFuture<String> removeAddonIslandState(String addonId, UUID islandId, String key) {
         if (blank(addonId) || missingIslandId(islandId) || blank(key)) {
             return invalidAddonState("Addon id, island id, and key are required");
@@ -868,6 +884,16 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     private static CompletableFuture<String> invalidAddonState(String message) {
         return CompletableFuture.completedFuture("{\"code\":\"INVALID_ADDON_STATE\",\"message\":\"" + escape(message) + "\"}");
+    }
+
+    private static String stringMapJson(Map<String, String> values) {
+        if (values == null || values.isEmpty()) {
+            return "{}";
+        }
+        return values.entrySet().stream()
+                .filter(entry -> entry.getKey() != null && !entry.getKey().isBlank() && entry.getValue() != null)
+                .map(entry -> "\"" + escape(entry.getKey()) + "\":\"" + escape(entry.getValue()) + "\"")
+                .collect(Collectors.joining(",", "{", "}"));
     }
 
     @Override

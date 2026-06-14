@@ -628,12 +628,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                     changedState.put(key, value);
                 }
             });
-            writeAddonState(safeId, localState);
-            CompletableFuture<Map<String, String>> result = CompletableFuture.completedFuture(Map.copyOf(localState));
-            for (Map.Entry<String, String> entry : changedState.entrySet()) {
-                result = result.thenCompose(_ignored -> coreClient.putAddonState(safeId, entry.getKey(), entry.getValue()).thenApply(this::stateFromJson));
+            if (changedState.isEmpty()) {
+                return CompletableFuture.completedFuture(Map.copyOf(localState));
             }
-            return result
+            writeAddonState(safeId, localState);
+            return coreClient.putAddonState(safeId, changedState)
+                .thenApply(this::stateFromJson)
                 .thenApply(state -> {
                     addonStates.put(safeId, state);
                     writeAddonState(safeId, state);
@@ -717,14 +717,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 return CompletableFuture.completedFuture(Map.copyOf(localState));
             }
             writeAddonIslandState(safeId, islandId, localState);
-            CompletableFuture<Map<String, String>> result = CompletableFuture.completedFuture(Map.copyOf(localState));
-            for (Map.Entry<String, String> entry : values.entrySet()) {
-                if (entry.getKey() == null || entry.getKey().isBlank() || entry.getValue() == null) {
-                    continue;
-                }
-                result = result.thenCompose(_ignored -> coreClient.putAddonIslandState(safeId, islandId, entry.getKey(), entry.getValue()).thenApply(this::stateFromJson));
-            }
-            return result
+            return coreClient.putAddonIslandState(safeId, islandId, changedState)
+                .thenApply(this::stateFromJson)
                 .thenApply(state -> {
                     writeAddonIslandState(safeId, islandId, state);
                     return state;
