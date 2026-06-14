@@ -909,6 +909,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-fallback-source", databaseFallbackSource());
         metadata.put("database-fallback-env", "CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED,CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER");
         metadata.put("database-config-source", databaseConfigSource());
+        metadata.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         metadata.put("database-config-env", "CLOUDISLANDS_SATIS_DATABASE_TYPE,CLOUDISLANDS_SATIS_DB");
         metadata.put("database-jdbc-source", databaseJdbcSource());
         metadata.put("database-jdbc-env", "CLOUDISLANDS_SATIS_JDBC_URL");
@@ -1093,6 +1094,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
         state.put("database-fallback-order", databaseFallbackOrderMetadata());
         state.put("database-config-source", databaseConfigSource());
+        state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         state.put("database-config-env", "CLOUDISLANDS_SATIS_DATABASE_TYPE,CLOUDISLANDS_SATIS_DB");
         state.put("database-jdbc-source", databaseJdbcSource());
         state.put("database-jdbc-env", "CLOUDISLANDS_SATIS_JDBC_URL");
@@ -1141,6 +1143,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
         state.put("database-fallback-order", databaseFallbackOrderMetadata());
         state.put("database-config-source", databaseConfigSource());
+        state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         state.put("database-config-env", "CLOUDISLANDS_SATIS_DATABASE_TYPE,CLOUDISLANDS_SATIS_DB");
         state.put("database-jdbc-source", databaseJdbcSource());
         state.put("database-jdbc-env", "CLOUDISLANDS_SATIS_JDBC_URL");
@@ -2257,8 +2260,18 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String configuredDatabaseType() {
-        return firstNonBlank(System.getenv("CLOUDISLANDS_SATIS_DATABASE_TYPE"),
-                firstNonBlank(configs.main().getString("setup.database.type", ""), configs.main().getString("database.type", "SQLITE")));
+        String envType = System.getenv("CLOUDISLANDS_SATIS_DATABASE_TYPE");
+        if (envType != null && !envType.isBlank()) {
+            return envType;
+        }
+        String setupType = configs.main().getString("setup.database.type", "");
+        if (setupType != null && !setupType.isBlank()) {
+            return setupType;
+        }
+        if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
+            return "CORE_API";
+        }
+        return configs.main().getString("database.type", "SQLITE");
     }
 
     private String configuredDatabaseBackendName() {
@@ -2385,6 +2398,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String setupType = configs.main().getString("setup.database.type", "");
         if (setupType != null && !setupType.isBlank()) {
             return "setup.database.type";
+        }
+        if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
+            return "setup.database.core-api.enabled";
         }
         if (backend != DatabaseService.StorageBackend.SQLITE) {
             return "database.type";

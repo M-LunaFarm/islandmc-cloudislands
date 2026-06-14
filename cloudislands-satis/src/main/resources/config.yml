@@ -34,6 +34,9 @@ setup:
     path: ""
     shared-directory: ""
     sqlite-file: ""
+    core-api:
+      # Optional selection marker for CORE_API setup. Empty type still inherits database.type.
+      enabled: false
     fallback:
       # Empty order inherits database.fallback.order below.
       # Recommended shared fallback order: POSTGRESQL, MYSQL, MARIADB, CORE_API, SQLITE.
