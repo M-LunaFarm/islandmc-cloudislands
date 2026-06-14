@@ -18,6 +18,7 @@ import org.sqlite.SQLiteConfig;
 
 import java.io.File;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -365,18 +366,17 @@ public final class DatabaseService {
     }
 
     public LegacyImportResult importLegacyDatabase(File sourceDatabase) {
-        requireSqliteLegacyMigration();
         File source = legacySourceDatabase(sourceDatabase);
         List<String> copiedTables = new ArrayList<>();
         List<String> skippedTables = new ArrayList<>();
         long copiedRows = 0L;
-        try (Connection connection = connection()) {
-            attachLegacyDatabase(connection, source);
-            boolean autoCommit = connection.getAutoCommit();
-            connection.setAutoCommit(false);
+        try (Connection target = connection();
+             Connection sourceConnection = legacyConnection(source)) {
+            boolean autoCommit = target.getAutoCommit();
+            target.setAutoCommit(false);
             try {
                 for (String table : legacyImportTables()) {
-                    long copied = copyLegacyTable(connection, table);
+                    long copied = copyLegacyTable(target, sourceConnection, table);
                     if (copied < 0L) {
                         skippedTables.add(table);
                         continue;
@@ -384,13 +384,12 @@ public final class DatabaseService {
                     copiedRows += copied;
                     copiedTables.add(table);
                 }
-                connection.commit();
+                target.commit();
             } catch (SQLException exception) {
-                connection.rollback();
+                target.rollback();
                 throw exception;
             } finally {
-                connection.setAutoCommit(autoCommit);
-                detachLegacyDatabase(connection);
+                target.setAutoCommit(autoCommit);
             }
             return new LegacyImportResult(source.getAbsolutePath(), copiedRows, copiedTables, skippedTables);
         } catch (SQLException exception) {
@@ -399,41 +398,36 @@ public final class DatabaseService {
     }
 
     public LegacyImportPlan scanLegacyDatabase(File sourceDatabase) {
-        requireSqliteLegacyMigration();
         File source = legacySourceDatabase(sourceDatabase);
         List<LegacyImportTablePlan> tables = new ArrayList<>();
         long importableRows = 0L;
         int importableTables = 0;
         int skippedTables = 0;
-        try (Connection connection = connection()) {
-            attachLegacyDatabase(connection, source);
-            try {
-                for (String table : legacyImportTables()) {
-                    Set<String> targetColumns = tableColumns(connection, "main", table);
-                    Set<String> sourceColumns = tableColumns(connection, "legacy_satis", table);
-                    Set<String> requiredColumns = legacyRequiredColumns(table);
-                    if (targetColumns.isEmpty()) {
-                        tables.add(new LegacyImportTablePlan(table, false, 0L, "target-table-missing"));
-                        skippedTables++;
-                        continue;
-                    }
-                    if (sourceColumns.isEmpty()) {
-                        tables.add(new LegacyImportTablePlan(table, false, 0L, "source-table-missing"));
-                        skippedTables++;
-                        continue;
-                    }
-                    if (!sourceColumns.containsAll(requiredColumns)) {
-                        tables.add(new LegacyImportTablePlan(table, false, 0L, "missing-required-columns"));
-                        skippedTables++;
-                        continue;
-                    }
-                    long rows = tableCount(connection, "legacy_satis", table);
-                    tables.add(new LegacyImportTablePlan(table, true, rows, "ready"));
-                    importableRows += rows;
-                    importableTables++;
+        try (Connection target = connection();
+             Connection sourceConnection = legacyConnection(source)) {
+            for (String table : legacyImportTables()) {
+                Set<String> targetColumns = tableColumns(target, table);
+                Set<String> sourceColumns = sqliteTableColumns(sourceConnection, table);
+                Set<String> requiredColumns = legacyRequiredColumns(table);
+                if (targetColumns.isEmpty()) {
+                    tables.add(new LegacyImportTablePlan(table, false, 0L, "target-table-missing"));
+                    skippedTables++;
+                    continue;
                 }
-            } finally {
-                detachLegacyDatabase(connection);
+                if (sourceColumns.isEmpty()) {
+                    tables.add(new LegacyImportTablePlan(table, false, 0L, "source-table-missing"));
+                    skippedTables++;
+                    continue;
+                }
+                if (!sourceColumns.containsAll(requiredColumns)) {
+                    tables.add(new LegacyImportTablePlan(table, false, 0L, "missing-required-columns"));
+                    skippedTables++;
+                    continue;
+                }
+                long rows = tableCount(sourceConnection, table);
+                tables.add(new LegacyImportTablePlan(table, true, rows, "ready"));
+                importableRows += rows;
+                importableTables++;
             }
             return new LegacyImportPlan(source.getAbsolutePath(), importableRows, importableTables, skippedTables, tables);
         } catch (SQLException exception) {
@@ -457,6 +451,10 @@ public final class DatabaseService {
             throw new IllegalArgumentException("failed to compare database paths: " + exception.getMessage(), exception);
         }
         return source;
+    }
+
+    private Connection legacyConnection(File source) throws SQLException {
+        return DriverManager.getConnection("jdbc:sqlite:" + source.getAbsolutePath());
     }
 
     private void attachLegacyDatabase(Connection connection, File source) throws SQLException {
@@ -498,9 +496,9 @@ public final class DatabaseService {
         );
     }
 
-    private long copyLegacyTable(Connection connection, String table) throws SQLException {
-        Set<String> targetColumns = tableColumns(connection, "main", table);
-        Set<String> sourceColumns = tableColumns(connection, "legacy_satis", table);
+    private long copyLegacyTable(Connection target, Connection source, String table) throws SQLException {
+        Set<String> targetColumns = tableColumns(target, table);
+        Set<String> sourceColumns = sqliteTableColumns(source, table);
         if (targetColumns.isEmpty() || sourceColumns.isEmpty() || !sourceColumns.containsAll(legacyRequiredColumns(table))) {
             return -1L;
         }
@@ -521,13 +519,35 @@ public final class DatabaseService {
         if (insertColumns.isEmpty()) {
             return -1L;
         }
-        long before = tableCount(connection, table);
+        long before = tableCount(target, table);
         String columns = String.join(", ", insertColumns);
         String expressions = String.join(", ", selectExpressions);
-        try (Statement statement = connection.createStatement()) {
-            statement.executeUpdate("INSERT OR IGNORE INTO " + table + "(" + columns + ") SELECT " + expressions + " FROM legacy_satis." + table);
+        String placeholders = insertColumns.stream().map(_column -> "?").collect(java.util.stream.Collectors.joining(", "));
+        try (Statement select = source.createStatement();
+             ResultSet rs = select.executeQuery("SELECT " + expressions + " FROM " + table);
+             PreparedStatement insert = target.prepareStatement(insertIgnoreSql(table, columns, placeholders))) {
+            int columnIndex;
+            while (rs.next()) {
+                columnIndex = 1;
+                for (int index = 0; index < insertColumns.size(); index++) {
+                    insert.setObject(columnIndex, rs.getObject(index + 1));
+                    columnIndex++;
+                }
+                insert.addBatch();
+            }
+            insert.executeBatch();
         }
-        return Math.max(0L, tableCount(connection, table) - before);
+        return Math.max(0L, tableCount(target, table) - before);
+    }
+
+    private String insertIgnoreSql(String table, String columns, String placeholders) {
+        if (sqlDialect == SqlDialect.MYSQL) {
+            return "INSERT IGNORE INTO " + table + "(" + columns + ") VALUES(" + placeholders + ")";
+        }
+        if (sqlDialect == SqlDialect.POSTGRESQL) {
+            return "INSERT INTO " + table + "(" + columns + ") VALUES(" + placeholders + ") ON CONFLICT DO NOTHING";
+        }
+        return "INSERT OR IGNORE INTO " + table + "(" + columns + ") VALUES(" + placeholders + ")";
     }
 
     private Set<String> legacyRequiredColumns(String table) {
@@ -608,9 +628,40 @@ public final class DatabaseService {
     }
 
     private Set<String> tableColumns(Connection connection, String schema, String table) throws SQLException {
+        if (sqlDialect != SqlDialect.SQLITE) {
+            Set<String> columns = new LinkedHashSet<>();
+            try (ResultSet rs = connection.getMetaData().getColumns(null, null, table, null)) {
+                while (rs.next()) {
+                    columns.add(rs.getString("COLUMN_NAME").toLowerCase(Locale.ROOT));
+                }
+            }
+            if (columns.isEmpty()) {
+                try (ResultSet rs = connection.getMetaData().getColumns(null, null, table.toUpperCase(Locale.ROOT), null)) {
+                    while (rs.next()) {
+                        columns.add(rs.getString("COLUMN_NAME").toLowerCase(Locale.ROOT));
+                    }
+                }
+            }
+            return columns;
+        }
+        return sqliteTableColumns(connection, schema, table);
+    }
+
+    private Set<String> tableColumns(Connection connection, String table) throws SQLException {
+        return tableColumns(connection, "main", table);
+    }
+
+    private Set<String> sqliteTableColumns(Connection connection, String table) throws SQLException {
+        return sqliteTableColumns(connection, "", table);
+    }
+
+    private Set<String> sqliteTableColumns(Connection connection, String schema, String table) throws SQLException {
         Set<String> columns = new LinkedHashSet<>();
+        String pragma = schema == null || schema.isBlank()
+                ? "PRAGMA table_info(" + table + ")"
+                : "PRAGMA " + schema + ".table_info(" + table + ")";
         try (Statement statement = connection.createStatement();
-             ResultSet rs = statement.executeQuery("PRAGMA " + schema + ".table_info(" + table + ")")) {
+             ResultSet rs = statement.executeQuery(pragma)) {
             while (rs.next()) {
                 columns.add(rs.getString("name"));
             }
@@ -623,8 +674,9 @@ public final class DatabaseService {
     }
 
     private long tableCount(Connection connection, String schema, String table) throws SQLException {
+        String source = sqlDialect == SqlDialect.SQLITE ? schema + "." + table : table;
         try (Statement statement = connection.createStatement();
-             ResultSet rs = statement.executeQuery("SELECT COUNT(*) AS count FROM " + schema + "." + table)) {
+             ResultSet rs = statement.executeQuery("SELECT COUNT(*) AS count FROM " + source)) {
             return rs.next() ? rs.getLong("count") : 0L;
         }
     }

@@ -600,7 +600,7 @@ public final class AdminFactoryCommand {
         state.put("superior-runtime-dependency", "false");
         state.put("superior-import-path", "/ciadmin migrate-superiorskyblock2 scan|dryrun|import|verify|rollback");
         state.put("satismc-import-path", "/factory admin migration scan|dryrun|import <sqlitePath>");
-        state.put("satismc-import-mode", "sqlite-attach-insert-ignore");
+        state.put("satismc-import-mode", "cross-backend-sqlite-copy");
         state.put("feature-gate", "migration=" + enabled("migration"));
         state.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
@@ -675,7 +675,7 @@ public final class AdminFactoryCommand {
             state.put("copied-rows", String.valueOf(result.copiedRows()));
             state.put("copied-tables", String.join(",", result.copiedTables()));
             state.put("skipped-tables", result.skippedTables().isEmpty() ? "none" : String.join(",", result.skippedTables()));
-            state.put("mode", "sqlite-attach-insert-ignore");
+            state.put("mode", "cross-backend-sqlite-copy");
             state.entrySet().stream()
                     .sorted(Map.Entry.comparingByKey())
                     .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
