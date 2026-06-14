@@ -699,6 +699,28 @@ public final class AdminFactoryCommand {
             state = Map.of("status", "unavailable", "error", exception.getMessage() == null ? "unknown" : exception.getMessage());
         }
         Map<String, String> visible = new LinkedHashMap<>(state);
+        if (integrationMetadata != null) {
+            try {
+                Map<String, String> metadata = integrationMetadata.get();
+                List.of(
+                        "database-configured-backend",
+                        "database-active-backend",
+                        "database-fallback-reason",
+                        "database-fallback-enabled",
+                        "database-fallback-order",
+                        "database-config-source",
+                        "database-scope",
+                        "database-shared"
+                ).forEach(key -> {
+                    String value = metadata.get(key);
+                    if (value != null && !value.isBlank()) {
+                        visible.put("local." + key, value);
+                    }
+                });
+            } catch (RuntimeException exception) {
+                visible.put("local.database-metadata-error", exception.getMessage() == null ? "unknown" : exception.getMessage());
+            }
+        }
         if (database != null) {
             visible.put("local.database-active-backend", database.activeBackend().name());
             visible.put("local.database-description", database.databaseDescription());
