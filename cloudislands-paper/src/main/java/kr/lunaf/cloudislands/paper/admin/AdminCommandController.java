@@ -1809,6 +1809,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-core-config-setup-db-typed-shapes-prefix", " setupDbTypedShapes=") + textValue(body, "coreSetupDatabaseTypedShapes")
             + adminText("admin-command-core-config-setup-db-typed-host-mode-prefix", " setupDbTypedHostMode=") + textValue(body, "coreSetupDatabaseTypedHostMode")
             + adminText("admin-command-core-config-setup-db-typed-probe-order-prefix", " setupDbTypedProbeOrder=") + textValue(body, "coreSetupDatabaseTypedProbeOrder")
+            + adminText("admin-command-core-config-setup-db-core-api-mode-prefix", " setupDbCoreApiMode=") + textValue(body, "coreSetupDatabaseCoreApiMode")
             + adminText("admin-command-core-config-setup-db-env-prefix", " setupDbEnv=") + textValue(body, "coreSetupDatabaseEnv")
             + adminText("admin-command-core-config-setup-db-precedence-prefix", " setupDbPrecedence=") + textValue(body, "coreSetupDatabasePrecedence")
             + adminText("admin-command-core-config-setup-db-name-aliases-prefix", " setupDbNameAliases=") + textValue(body, "coreSetupDatabaseNameAliases")

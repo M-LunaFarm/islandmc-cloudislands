@@ -49,6 +49,9 @@ setup:
       name: ""
       database: ""
       options: ""
+    core-api:
+      # Selection marker for setup.database.type=CORE_API. Core JDBC stays disabled.
+      enabled: false
   # Empty jdbc-url inherits database.jdbc-url only for POSTGRESQL.
   # MYSQL/MARIADB need database-type + host/name or CI_JDBC_URL.
   # CORE_API leaves Core JDBC disabled and reports dbBackend=NONE.
