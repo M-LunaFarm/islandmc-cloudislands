@@ -39,6 +39,24 @@ setup:
       password: ""
       max-pool-size: 0
       connection-timeout-ms: 0
+    postgresql:
+      url: ""
+      host: ""
+      port: 0
+      database: ""
+      options: ""
+    mysql:
+      url: ""
+      host: ""
+      port: 0
+      database: ""
+      options: ""
+    mariadb:
+      url: ""
+      host: ""
+      port: 0
+      database: ""
+      options: ""
 settings:
   language: ko_kr
   debug: false

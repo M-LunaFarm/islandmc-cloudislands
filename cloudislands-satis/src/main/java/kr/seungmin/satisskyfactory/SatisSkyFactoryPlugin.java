@@ -1746,17 +1746,18 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String jdbcUrl(String section, String prefix, int defaultPort) {
-        String configured = configs.main().getString("database." + section + ".url", "");
+        String configured = firstNonBlank(configs.main().getString("setup.database." + section + ".url", ""), configs.main().getString("database." + section + ".url", ""));
         if (configured != null && !configured.isBlank()) {
             return configured.trim();
         }
-        String host = configs.main().getString("database." + section + ".host", "127.0.0.1");
-        String databaseName = configs.main().getString("database." + section + ".database", "");
+        String host = firstNonBlank(configs.main().getString("setup.database." + section + ".host", ""), configs.main().getString("database." + section + ".host", "127.0.0.1"));
+        String databaseName = firstNonBlank(configs.main().getString("setup.database." + section + ".database", ""), configs.main().getString("database." + section + ".database", ""));
         if (host == null || host.isBlank() || databaseName == null || databaseName.isBlank()) {
             return "";
         }
-        int port = Math.max(1, configs.main().getInt("database." + section + ".port", defaultPort));
-        String options = configs.main().getString("database." + section + ".options", "");
+        int setupPort = configs.main().getInt("setup.database." + section + ".port", 0);
+        int port = Math.max(1, setupPort > 0 ? setupPort : configs.main().getInt("database." + section + ".port", defaultPort));
+        String options = firstNonBlank(configs.main().getString("setup.database." + section + ".options", ""), configs.main().getString("database." + section + ".options", ""));
         String url = prefix + "://" + host.trim() + ":" + port + "/" + databaseName.trim();
         if (options != null && !options.isBlank()) {
             url += "?" + options.trim();
