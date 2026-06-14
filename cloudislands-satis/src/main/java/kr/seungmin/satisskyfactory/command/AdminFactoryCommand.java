@@ -147,6 +147,11 @@ public final class AdminFactoryCommand {
             messages.send(sender, "no-permission");
             return true;
         }
+        String disabledFeature = disabledFeatureFor(subcommand);
+        if (disabledFeature != null) {
+            messages.send(sender, "feature-disabled", Map.of("feature", disabledFeature));
+            return true;
+        }
         switch (subcommand) {
             case "help", "commands", "command", "command-list", "명령어", "명령어목록" -> help(sender, helpPage(args));
             case "reload" -> {
@@ -220,6 +225,18 @@ public final class AdminFactoryCommand {
             default -> messages.send(sender, "unknown-admin-command");
         }
         return true;
+    }
+
+    private String disabledFeatureFor(String subcommand) {
+        return switch (subcommand) {
+            case "migration" -> enabled("migration") ? null : "migration";
+            case "state" -> enabled("addon-state") ? null : "addon-state";
+            case "give", "giveitem", "removehere" -> enabled("machines") ? null : "machines";
+            case "addresearch" -> enabled("research") ? null : "research";
+            case "setdebt", "charge", "repairhere" -> enabled("maintenance") ? null : "maintenance";
+            case "gennodes" -> enabled("resource-nodes") ? null : "resource-nodes";
+            default -> null;
+        };
     }
 
     public List<String> complete(CommandSender sender, String[] args) {
