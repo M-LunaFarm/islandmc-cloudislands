@@ -173,6 +173,10 @@ public final class JobCompletionService {
             preserveRuntimeOnDeactivationFailure(job, errorMessage);
             return;
         }
+        if (job.type() == IslandJobType.MIGRATE_ISLAND) {
+            markMigrationTargetRecoveryRequired(job, errorMessage);
+            return;
+        }
         IslandState state = switch (job.type()) {
             case CREATE_ISLAND -> IslandState.ERROR_CREATING;
             case ACTIVATE_ISLAND, MIGRATE_ISLAND, RESTORE_ISLAND, RESET_ISLAND -> IslandState.ERROR_ACTIVATING;
@@ -241,6 +245,23 @@ public final class JobCompletionService {
         if (migrationSource) {
             releaseMigrationLock(job);
         }
+    }
+
+    private void markMigrationTargetRecoveryRequired(IslandJob job, String errorMessage) {
+        runtimes.setState(job.islandId(), IslandState.RECOVERY_REQUIRED);
+        setIslandState(job.islandId(), IslandState.RECOVERY_REQUIRED);
+        failPreparingRouteTickets(job, errorMessage == null || errorMessage.isBlank() ? "MIGRATION_TARGET_FAILED" : errorMessage);
+        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
+            "islandId", job.islandId().toString(),
+            "state", IslandState.RECOVERY_REQUIRED.name(),
+            "jobType", job.type().name(),
+            "error", errorMessage == null ? "" : errorMessage,
+            "phase", "MIGRATION_TARGET_ACTIVATION_FAILED",
+            "sourceNode", job.payload().getOrDefault("sourceNode", ""),
+            "targetNode", job.targetNode() == null ? "" : job.targetNode(),
+            "fencingToken", job.payload().getOrDefault("fencingToken", "0")
+        ));
+        releaseMigrationLock(job);
     }
 
     private boolean isStaleFencingFailure(IslandJob job, String errorMessage) {
