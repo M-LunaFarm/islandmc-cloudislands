@@ -206,25 +206,40 @@ public final class JobCompletionService {
     private void preserveRuntimeOnDeactivationFailure(IslandJob job, String errorMessage) {
         kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot current = runtimes.find(job.islandId()).orElse(null);
         boolean migrationSource = job.payload().containsKey("migrateTargetNode");
-        IslandState keptState = migrationSource ? IslandState.DEACTIVATING : IslandState.ACTIVE;
-        if (current == null || current.activeNode() == null || current.activeNode().isBlank()) {
+        IslandState keptState = IslandState.ACTIVE;
+        String sourceNode = migrationSource ? job.targetNode() : current == null ? "" : current.activeNode();
+        if (current == null || sourceNode == null || sourceNode.isBlank()) {
             runtimes.setState(job.islandId(), IslandState.ERROR_SAVING);
             setIslandState(job.islandId(), IslandState.ERROR_SAVING);
             keptState = IslandState.ERROR_SAVING;
+        } else if (migrationSource) {
+            String worldName = current.activeWorld() == null || current.activeWorld().isBlank()
+                ? job.payload().getOrDefault("worldName", "ci_shard_001")
+                : current.activeWorld();
+            int cellX = current.cellX() == null ? integer(job.payload().get("cellX")) : current.cellX();
+            int cellZ = current.cellZ() == null ? integer(job.payload().get("cellZ")) : current.cellZ();
+            runtimes.markActive(job.islandId(), sourceNode, worldName, cellX, cellZ, longValue(job.payload().get("fencingToken")));
+            setIslandState(job.islandId(), IslandState.ACTIVE);
         } else {
             runtimes.setState(job.islandId(), keptState);
             setIslandState(job.islandId(), keptState);
         }
+        int failedTickets = migrationSource
+            ? tickets.markFailedForIsland(job.islandId(), job.payload().getOrDefault("migrateTargetNode", ""), errorMessage == null ? "MIGRATION_SOURCE_SAVE_FAILED" : errorMessage).size()
+            : 0;
         events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
             "islandId", job.islandId().toString(),
             "state", keptState.name(),
             "jobType", job.type().name(),
             "error", errorMessage == null ? "" : errorMessage,
             "runtimePreserved", Boolean.toString(keptState != IslandState.ERROR_SAVING),
-            "phase", migrationSource ? "MIGRATION_SOURCE_SAVE_FAILED" : "DEACTIVATION_SAVE_FAILED"
+            "phase", migrationSource ? "MIGRATION_SOURCE_SAVE_FAILED" : "DEACTIVATION_SAVE_FAILED",
+            "sourceNode", sourceNode == null ? "" : sourceNode,
+            "targetNode", migrationSource ? job.payload().getOrDefault("migrateTargetNode", "") : "",
+            "failedTickets", Integer.toString(failedTickets)
         ));
         if (migrationSource) {
-            failPreparingRouteTickets(job, errorMessage);
+            releaseMigrationLock(job);
         }
     }
 
