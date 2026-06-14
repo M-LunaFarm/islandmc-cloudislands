@@ -849,7 +849,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId)) {
             return invalidAddonState("Addon id is required");
         }
-        return postWithResultBody("/v1/addons/state/table-key-value/bulk-save", "{\"addonId\":\"" + escape(addonId) + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+        return postWithResultBody("/v1/addons/state/table/key-value/bulk-save", "{\"addonId\":\"" + escape(addonId) + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
     }
 
     @Override
@@ -947,7 +947,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId)) {
             return invalidAddonState("Addon id and island id are required");
         }
-        return postWithResultBody("/v1/addons/islands/state/table-key-value/bulk-save", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+        return postWithResultBody("/v1/addons/islands/state/table/key-value/bulk-save", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
     }
 
     @Override
