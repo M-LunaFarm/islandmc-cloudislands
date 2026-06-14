@@ -1696,6 +1696,7 @@ public final class DatabaseService {
     }
 
     public void updateContractStatus(UUID contractId, String status, String progressJson) {
+        StoredContract updated;
         try (Connection connection = connection();
              PreparedStatement statement = connection.prepareStatement("""
                      UPDATE contracts SET status = ?, progress_json = ?, updated_at = ? WHERE contract_id = ?
@@ -1705,8 +1706,35 @@ public final class DatabaseService {
             statement.setLong(3, Instant.now().toEpochMilli());
             statement.setString(4, contractId.toString());
             statement.executeUpdate();
+            updated = findContract(connection, contractId).orElse(null);
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to update contract", exception);
+        }
+        if (updated != null) {
+            publishCoreRow(updated.islandUuid(), "table/contracts/" + updated.contractId(), contractJson(updated));
+        }
+    }
+
+    private Optional<StoredContract> findContract(Connection connection, UUID contractId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM contracts WHERE contract_id = ?")) {
+            statement.setString(1, contractId.toString());
+            try (ResultSet rs = statement.executeQuery()) {
+                if (!rs.next()) {
+                    return Optional.empty();
+                }
+                return Optional.of(new StoredContract(
+                        contractId,
+                        UUID.fromString(rs.getString("island_uuid")),
+                        rs.getString("template_id"),
+                        rs.getString("contract_type"),
+                        rs.getInt("tier"),
+                        rs.getString("required_json"),
+                        rs.getString("progress_json"),
+                        rs.getString("rewards_json"),
+                        rs.getString("status"),
+                        rs.getLong("expires_at")
+                ));
+            }
         }
     }
 
