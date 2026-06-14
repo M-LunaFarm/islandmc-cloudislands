@@ -871,6 +871,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("satis-enabled-configured", Boolean.toString(enabledByDefault()));
         metadata.put("addon-runtime-enabled", Boolean.toString(addonRuntimeEnabled));
         metadata.put("database-scope", scope);
+        metadata.put("database-supported-backends", "SQLITE,POSTGRESQL,MYSQL,MARIADB,CORE_API");
         metadata.put("database-configured-backend", configuredDatabaseBackendName());
         metadata.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
         metadata.put("database-fallback-reason", databaseFallbackReason);
@@ -1044,6 +1045,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-enabled", Boolean.toString(snapshot.enabled()));
         state.put("database-shared", Boolean.toString(databaseShared()));
         state.put("database-scope", databaseScope());
+        state.put("database-supported-backends", "SQLITE,POSTGRESQL,MYSQL,MARIADB,CORE_API");
         state.put("database-configured-backend", configuredDatabaseBackendName());
         state.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
         state.put("database-fallback-reason", databaseFallbackReason);
@@ -1086,6 +1088,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-enabled", "false");
         state.put("database-shared", Boolean.toString(databaseShared()));
         state.put("database-scope", databaseScope());
+        state.put("database-supported-backends", "SQLITE,POSTGRESQL,MYSQL,MARIADB,CORE_API");
         state.put("database-configured-backend", configuredDatabaseBackendName());
         state.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
         state.put("database-fallback-reason", databaseFallbackReason);

@@ -727,6 +727,7 @@ public final class AdminFactoryCommand {
                 List.of(
                         "database-configured-backend",
                         "database-active-backend",
+                        "database-supported-backends",
                         "database-fallback-reason",
                         "database-fallback-enabled",
                         "database-fallback-order",
