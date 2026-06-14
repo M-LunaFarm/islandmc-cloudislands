@@ -1113,6 +1113,11 @@ public final class VelocityRoutingController {
                 .append(" expected=")
                 .append(longValue(body, "expected"));
         }
+        if (body.contains("\"activationTested\"")) {
+            builder.append(" activationTested=").append(longValue(body, "activationTested"))
+                .append(" activationPassed=")
+                .append(longValue(body, "activationTestPassed"));
+        }
         if (body.contains("\"rolledBack\"")) {
             builder.append(" rolledBack=").append(boolValue(body, "rolledBack"))
                 .append(" removed=")

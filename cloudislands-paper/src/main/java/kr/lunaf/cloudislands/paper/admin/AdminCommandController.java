@@ -878,6 +878,11 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 .append(adminText("admin-command-migration-expected-prefix", " expected="))
                 .append(longValue(body, "expected"));
         }
+        if (body.contains("\"activationTested\"")) {
+            builder.append(adminText("admin-command-migration-activation-tested-prefix", " activationTested=")).append(longValue(body, "activationTested"))
+                .append(adminText("admin-command-migration-activation-passed-prefix", " activationPassed="))
+                .append(longValue(body, "activationTestPassed"));
+        }
         if (body.contains("\"rolledBack\"")) {
             builder.append(adminText("admin-command-migration-rolled-back-prefix", " rolledBack=")).append(boolValue(body, "rolledBack"))
                 .append(adminText("admin-command-migration-removed-prefix", " removed="))
