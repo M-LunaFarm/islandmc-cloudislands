@@ -343,6 +343,9 @@ public record CoreServiceConfig(
         if (!setupType.isBlank()) {
             return normalizeDatabaseType(setupType);
         }
+        if (configBoolean(config, "setup.database.core-api.enabled", false)) {
+            return "CORE_API";
+        }
         String setupJdbcUrl = setupDatabaseSetting(config, "jdbc-url", setting(config, "setup.jdbc-url", ""));
         if (setupJdbcUrl.isBlank()) {
             setupJdbcUrl = typedSetupJdbcUrl(config);

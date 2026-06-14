@@ -59,7 +59,7 @@ setup:
       password: ""
       pool-size: 0
     core-api:
-      # Selection marker for setup.database.type=CORE_API. Core JDBC stays disabled.
+      # Optional selection marker for CORE_API setup. Core JDBC stays disabled.
       enabled: false
   # Empty jdbc-url inherits database.jdbc-url only for POSTGRESQL.
   # MYSQL/MARIADB need database-type + host/name or CI_JDBC_URL.
