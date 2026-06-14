@@ -2067,7 +2067,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             configured = configs.main().getStringList("database.fallback.order");
         }
         if (configured == null || configured.isEmpty()) {
-            configured = List.of("POSTGRESQL", "MYSQL", "MARIADB", "SQLITE");
+            configured = List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API", "SQLITE");
         }
         List<DatabaseService.StorageBackend> backends = new ArrayList<>();
         List<String> invalid = new ArrayList<>();
@@ -2084,12 +2084,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (backends.isEmpty()) {
             if (recordReason) {
-                appendPendingDatabaseConfigFallbackReason("empty-database-fallback-order->POSTGRESQL,MYSQL,MARIADB,SQLITE");
+                appendPendingDatabaseConfigFallbackReason("empty-database-fallback-order->POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE");
             }
             return List.of(
                     DatabaseService.StorageBackend.POSTGRESQL,
                     DatabaseService.StorageBackend.MYSQL,
                     DatabaseService.StorageBackend.MARIADB,
+                    DatabaseService.StorageBackend.CORE_API,
                     DatabaseService.StorageBackend.SQLITE
             );
         }
@@ -2111,7 +2112,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         DatabaseService.StorageBackend fallbackBackend = null;
         List<DatabaseService.StorageBackend> fallbackOrder = settings.fallbackOrder() == null ? List.of() : settings.fallbackOrder();
         for (DatabaseService.StorageBackend backend : fallbackOrder) {
-            if (backend != null && backend != DatabaseService.StorageBackend.CORE_API) {
+            if (backend != null && backend != DatabaseService.StorageBackend.CORE_API && backend != settings.backend()) {
                 fallbackBackend = backend;
                 break;
             }

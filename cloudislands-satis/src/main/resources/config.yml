@@ -36,7 +36,7 @@ setup:
     sqlite-file: ""
     fallback:
       # Empty order inherits database.fallback.order below.
-      # Recommended shared fallback order: POSTGRESQL, MYSQL, MARIADB, SQLITE.
+      # Recommended shared fallback order: POSTGRESQL, MYSQL, MARIADB, CORE_API, SQLITE.
       # Env overrides: CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED, CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER.
       enabled: true
       order: []
@@ -119,6 +119,7 @@ database:
       - POSTGRESQL
       - MYSQL
       - MARIADB
+      - CORE_API
       - SQLITE
   jdbc:
     # Optional shortcut. If set, it wins over host/database fields.
