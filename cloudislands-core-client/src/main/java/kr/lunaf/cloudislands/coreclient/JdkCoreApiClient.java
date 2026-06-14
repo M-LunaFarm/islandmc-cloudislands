@@ -827,11 +827,29 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> saveAddonState(String addonId, Map<String, String> values) {
+        return saveAddonState(addonId, values, Map.of());
+    }
+
+    @Override
+    public CompletableFuture<String> saveAddonState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        if (blank(addonId)) {
+            return invalidAddonState("Addon id is required");
+        }
+        return postWithResultBody("/v1/addons/state/save", "{\"addonId\":\"" + escape(addonId) + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+    }
+
+    @Override
     public CompletableFuture<String> putAddonTableState(String addonId, String table, Map<String, String> values) {
         if (blank(addonId) || blank(table)) {
             return invalidAddonState("Addon id and table are required");
         }
         return postWithResultBody("/v1/addons/state/table/bulk", "{\"addonId\":\"" + escape(addonId) + "\",\"table\":\"" + escape(table) + "\",\"values\":" + stringMapJson(values) + "}");
+    }
+
+    @Override
+    public CompletableFuture<String> saveAddonTableState(String addonId, String table, Map<String, String> values) {
+        return putAddonTableState(addonId, table, values);
     }
 
     @Override
@@ -899,11 +917,29 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> saveAddonIslandState(String addonId, UUID islandId, Map<String, String> values) {
+        return saveAddonIslandState(addonId, islandId, values, Map.of());
+    }
+
+    @Override
+    public CompletableFuture<String> saveAddonIslandState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        if (blank(addonId) || missingIslandId(islandId)) {
+            return invalidAddonState("Addon id and island id are required");
+        }
+        return postWithResultBody("/v1/addons/islands/state/save", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+    }
+
+    @Override
     public CompletableFuture<String> putAddonIslandTableState(String addonId, UUID islandId, String table, Map<String, String> values) {
         if (blank(addonId) || missingIslandId(islandId) || blank(table)) {
             return invalidAddonState("Addon id, island id, and table are required");
         }
         return postWithResultBody("/v1/addons/islands/state/table/bulk", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"table\":\"" + escape(table) + "\",\"values\":" + stringMapJson(values) + "}");
+    }
+
+    @Override
+    public CompletableFuture<String> saveAddonIslandTableState(String addonId, UUID islandId, String table, Map<String, String> values) {
+        return putAddonIslandTableState(addonId, islandId, table, values);
     }
 
     @Override

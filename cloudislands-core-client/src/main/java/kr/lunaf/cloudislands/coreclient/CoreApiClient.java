@@ -173,7 +173,16 @@ public interface CoreApiClient {
     CompletableFuture<String> putAddonState(String addonId, String key, String value);
     CompletableFuture<String> putAddonState(String addonId, Map<String, String> values);
     CompletableFuture<String> putAddonState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables);
+    default CompletableFuture<String> saveAddonState(String addonId, Map<String, String> values) {
+        return putAddonState(addonId, values);
+    }
+    default CompletableFuture<String> saveAddonState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return putAddonState(addonId, values, tables);
+    }
     CompletableFuture<String> putAddonTableState(String addonId, String table, Map<String, String> values);
+    default CompletableFuture<String> saveAddonTableState(String addonId, String table, Map<String, String> values) {
+        return putAddonTableState(addonId, table, values);
+    }
     CompletableFuture<String> replaceAddonTableState(String addonId, String table, Map<String, String> values);
     CompletableFuture<String> clearAddonTableState(String addonId, String table);
     CompletableFuture<String> removeAddonState(String addonId, String key);
@@ -182,7 +191,16 @@ public interface CoreApiClient {
     CompletableFuture<String> putAddonIslandState(String addonId, UUID islandId, String key, String value);
     CompletableFuture<String> putAddonIslandState(String addonId, UUID islandId, Map<String, String> values);
     CompletableFuture<String> putAddonIslandState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables);
+    default CompletableFuture<String> saveAddonIslandState(String addonId, UUID islandId, Map<String, String> values) {
+        return putAddonIslandState(addonId, islandId, values);
+    }
+    default CompletableFuture<String> saveAddonIslandState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return putAddonIslandState(addonId, islandId, values, tables);
+    }
     CompletableFuture<String> putAddonIslandTableState(String addonId, UUID islandId, String table, Map<String, String> values);
+    default CompletableFuture<String> saveAddonIslandTableState(String addonId, UUID islandId, String table, Map<String, String> values) {
+        return putAddonIslandTableState(addonId, islandId, table, values);
+    }
     CompletableFuture<String> replaceAddonIslandTableState(String addonId, UUID islandId, String table, Map<String, String> values);
     CompletableFuture<String> clearAddonIslandTableState(String addonId, UUID islandId, String table);
     CompletableFuture<String> removeAddonIslandState(String addonId, UUID islandId, String key);

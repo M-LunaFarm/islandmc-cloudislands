@@ -194,8 +194,20 @@ public interface IslandAddonService {
         return putState(id, Map.copyOf(merged));
     }
 
+    default CompletableFuture<Map<String, String>> saveState(String id, Map<String, String> values) {
+        return putState(id, values);
+    }
+
+    default CompletableFuture<Map<String, String>> saveState(String id, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return putState(id, values, tables);
+    }
+
     default CompletableFuture<Map<String, String>> putTableState(String id, String table, Map<String, String> values) {
         return putState(id, tableStateValues(table, values));
+    }
+
+    default CompletableFuture<Map<String, String>> saveTableState(String id, String table, Map<String, String> values) {
+        return putTableState(id, table, values);
     }
 
     default CompletableFuture<Map<String, String>> replaceTableState(String id, String table, Map<String, String> values) {
@@ -261,8 +273,20 @@ public interface IslandAddonService {
         return putIslandState(id, islandId, Map.copyOf(merged));
     }
 
+    default CompletableFuture<Map<String, String>> saveIslandState(String id, UUID islandId, Map<String, String> values) {
+        return putIslandState(id, islandId, values);
+    }
+
+    default CompletableFuture<Map<String, String>> saveIslandState(String id, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return putIslandState(id, islandId, values, tables);
+    }
+
     default CompletableFuture<Map<String, String>> putIslandTableState(String id, UUID islandId, String table, Map<String, String> values) {
         return putIslandState(id, islandId, tableStateValues(table, values));
+    }
+
+    default CompletableFuture<Map<String, String>> saveIslandTableState(String id, UUID islandId, String table, Map<String, String> values) {
+        return putIslandTableState(id, islandId, table, values);
     }
 
     default CompletableFuture<Map<String, String>> replaceIslandTableState(String id, UUID islandId, String table, Map<String, String> values) {
