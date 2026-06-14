@@ -408,7 +408,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args[1].equalsIgnoreCase("enable") || args[1].equalsIgnoreCase("disable")) {
             if (args.length < 3) {
-                sender.sendMessage(adminText("admin-command-addons-toggle-usage", "사용법: /ciadmin addons enable|disable <addonId>"));
+                sendCommandUsage(sender, List.of(
+                    "/ciadmin addons enable <addonId>",
+                    "/ciadmin addons disable <addonId>"
+                ));
                 return true;
             }
             boolean enabled = args[1].equalsIgnoreCase("enable");
@@ -781,7 +784,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (args[1].equalsIgnoreCase("upsert")) {
             if (args.length < 4) {
-                sender.sendMessage(adminText("admin-command-template-upsert-usage", "사용법: /ciadmin template|templates upsert <id> <name> [enabled|disabled] [minNodeVersion]"));
+                sendCommandUsage(sender, List.of(
+                    "/ciadmin templates upsert <id> <name> [enabled|disabled] [minNodeVersion]"
+                ));
                 return true;
             }
             boolean enabled = args.length < 5 || booleanArgument(args[4], false);
