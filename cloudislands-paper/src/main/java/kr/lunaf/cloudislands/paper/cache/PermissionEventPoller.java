@@ -360,9 +360,14 @@ public final class PermissionEventPoller {
             return;
         }
         if (type.equals(CloudIslandEventType.ISLAND_MIGRATED.name())
-            || type.equals(CloudIslandEventType.ISLAND_DEACTIVATED.name())
             || type.equals(CloudIslandEventType.ISLAND_DELETED.name())) {
             protection.clearMigrating(islandId);
+            return;
+        }
+        if (type.equals(CloudIslandEventType.ISLAND_DEACTIVATED.name())) {
+            if (!fields.getOrDefault("phase", "").equals("MIGRATION_SOURCE_SAVED")) {
+                protection.clearMigrating(islandId);
+            }
             return;
         }
         if (type.equals(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name())) {
