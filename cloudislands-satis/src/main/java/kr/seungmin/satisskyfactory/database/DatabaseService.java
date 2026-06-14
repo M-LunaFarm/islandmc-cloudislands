@@ -391,6 +391,7 @@ public final class DatabaseService {
             } finally {
                 target.setAutoCommit(autoCommit);
             }
+            publishAllCoreState();
             return new LegacyImportResult(source.getAbsolutePath(), copiedRows, copiedTables, skippedTables);
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to import legacy Satis database", exception);
@@ -678,6 +679,148 @@ public final class DatabaseService {
         try (Statement statement = connection.createStatement();
              ResultSet rs = statement.executeQuery("SELECT COUNT(*) AS count FROM " + source)) {
             return rs.next() ? rs.getLong("count") : 0L;
+        }
+    }
+
+    public void publishAllCoreState() {
+        if (coreStatePublishingSuspended || (coreStateWriter == null && coreTableWriter == null && coreGlobalStateWriter == null)) {
+            return;
+        }
+        for (FactoryIsland island : loadIslands()) {
+            UUID islandUuid = island.islandUuid();
+            java.util.LinkedHashMap<String, String> rows = new java.util.LinkedHashMap<>();
+            rows.put(islandUuid.toString(), factoryIslandJson(island));
+            publishCoreTable(islandUuid, "factory_islands", rows);
+            publishCoreTable(islandUuid, "machines", machineRows(islandUuid));
+            publishCoreTable(islandUuid, "virtual_inventories", inventoryRows(islandUuid));
+            publishCoreTable(islandUuid, "resource_nodes", nodeRows(islandUuid));
+            publishItemNetworks(islandUuid, loadItemNetworks(islandUuid));
+            publishPowerNetworks(islandUuid, loadPowerNetworks(islandUuid));
+            publishCoreTable(islandUuid, "contracts", contractRows(islandUuid));
+            publishCoreTable(islandUuid, "island_unlocks", unlockRows(islandUuid));
+            publishCoreTable(islandUuid, "market_personal_daily", marketPersonalRows(islandUuid));
+            publishCoreTable(islandUuid, "ledger", ledgerRows(islandUuid));
+        }
+        marketDailyRows().forEach((key, value) -> publishCoreGlobalRow("table/market_daily/" + key, value));
+    }
+
+    private java.util.Map<String, String> machineRows(UUID islandUuid) {
+        java.util.LinkedHashMap<String, String> rows = new java.util.LinkedHashMap<>();
+        for (MachineInstance machine : loadMachines()) {
+            if (machine.islandUuid().equals(islandUuid)) {
+                rows.put(machine.machineId().toString(), machineJson(machine));
+            }
+        }
+        return rows;
+    }
+
+    private java.util.Map<String, String> inventoryRows(UUID islandUuid) {
+        java.util.LinkedHashMap<String, String> rows = new java.util.LinkedHashMap<>();
+        try (Connection connection = connection();
+             PreparedStatement statement = connection.prepareStatement("SELECT inventory_id FROM virtual_inventories WHERE island_uuid = ?")) {
+            statement.setString(1, islandUuid.toString());
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    UUID inventoryId = UUID.fromString(rs.getString("inventory_id"));
+                    loadInventory(inventoryId).ifPresent(inventory -> rows.put(inventoryId.toString(), inventoryJson(inventory)));
+                }
+            }
+            return rows;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to publish inventory core state", exception);
+        }
+    }
+
+    private java.util.Map<String, String> nodeRows(UUID islandUuid) {
+        java.util.LinkedHashMap<String, String> rows = new java.util.LinkedHashMap<>();
+        for (ResourceNode node : loadNodes(islandUuid)) {
+            rows.put(node.nodeId().toString(), nodeJson(node));
+        }
+        return rows;
+    }
+
+    private java.util.Map<String, String> contractRows(UUID islandUuid) {
+        java.util.LinkedHashMap<String, String> rows = new java.util.LinkedHashMap<>();
+        try (Connection connection = connection();
+             PreparedStatement statement = connection.prepareStatement("SELECT * FROM contracts WHERE island_uuid = ?")) {
+            statement.setString(1, islandUuid.toString());
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    StoredContract contract = storedContract(rs);
+                    rows.put(contract.contractId().toString(), contractJson(contract));
+                }
+            }
+            return rows;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to publish contract core state", exception);
+        }
+    }
+
+    private java.util.Map<String, String> unlockRows(UUID islandUuid) {
+        java.util.LinkedHashMap<String, String> rows = new java.util.LinkedHashMap<>();
+        try (Connection connection = connection();
+             PreparedStatement statement = connection.prepareStatement("SELECT unlock_id, unlocked_at FROM island_unlocks WHERE island_uuid = ?")) {
+            statement.setString(1, islandUuid.toString());
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    String unlockId = rs.getString("unlock_id");
+                    rows.put(unlockId, unlockJson(islandUuid, unlockId, rs.getLong("unlocked_at")));
+                }
+            }
+            return rows;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to publish unlock core state", exception);
+        }
+    }
+
+    private java.util.Map<String, String> marketPersonalRows(UUID islandUuid) {
+        java.util.LinkedHashMap<String, String> rows = new java.util.LinkedHashMap<>();
+        try (Connection connection = connection();
+             PreparedStatement statement = connection.prepareStatement("SELECT item_id, date_key, sold_amount FROM market_personal_daily WHERE island_uuid = ?")) {
+            statement.setString(1, islandUuid.toString());
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    String itemId = rs.getString("item_id");
+                    String dateKey = rs.getString("date_key");
+                    rows.put(itemId + "/" + dateKey, marketPersonalJson(islandUuid, itemId, dateKey, rs.getLong("sold_amount")));
+                }
+            }
+            return rows;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to publish personal market core state", exception);
+        }
+    }
+
+    private java.util.Map<String, String> ledgerRows(UUID islandUuid) {
+        java.util.LinkedHashMap<String, String> rows = new java.util.LinkedHashMap<>();
+        try (Connection connection = connection();
+             PreparedStatement statement = connection.prepareStatement("SELECT ledger_id, type, amount, reason, created_at FROM ledger WHERE island_uuid = ?")) {
+            statement.setString(1, islandUuid.toString());
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    UUID ledgerId = UUID.fromString(rs.getString("ledger_id"));
+                    rows.put(ledgerId.toString(), ledgerJson(ledgerId, islandUuid, rs.getString("type"), rs.getLong("amount"), rs.getString("reason"), rs.getLong("created_at")));
+                }
+            }
+            return rows;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to publish ledger core state", exception);
+        }
+    }
+
+    private java.util.Map<String, String> marketDailyRows() {
+        java.util.LinkedHashMap<String, String> rows = new java.util.LinkedHashMap<>();
+        try (Connection connection = connection();
+             PreparedStatement statement = connection.prepareStatement("SELECT item_id, date_key, sold_amount, demand_factor FROM market_daily");
+             ResultSet rs = statement.executeQuery()) {
+            while (rs.next()) {
+                String itemId = rs.getString("item_id");
+                String dateKey = rs.getString("date_key");
+                rows.put(itemId + "/" + dateKey, marketDailyJson(itemId, dateKey, rs.getLong("sold_amount"), rs.getDouble("demand_factor")));
+            }
+            return rows;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to publish daily market core state", exception);
         }
     }
 
@@ -1992,6 +2135,89 @@ public final class DatabaseService {
                 + "}";
     }
 
+    private StoredContract storedContract(ResultSet rs) throws SQLException {
+        return new StoredContract(
+                UUID.fromString(rs.getString("contract_id")),
+                UUID.fromString(rs.getString("island_uuid")),
+                rs.getString("template_id"),
+                rs.getString("contract_type"),
+                rs.getInt("tier"),
+                rs.getString("required_json"),
+                rs.getString("progress_json"),
+                rs.getString("rewards_json"),
+                rs.getString("status"),
+                rs.getLong("expires_at")
+        );
+    }
+
+    private String machineJson(MachineInstance machine) {
+        return "{"
+                + field("machineId", machine.machineId().toString()) + ","
+                + field("islandUuid", machine.islandUuid().toString()) + ","
+                + field("ownerUuid", machine.ownerUuid().toString()) + ","
+                + field("typeId", machine.typeId()) + ","
+                + number("tier", machine.tier()) + ","
+                + field("world", machine.world()) + ","
+                + number("x", machine.x()) + ","
+                + number("y", machine.y()) + ","
+                + number("z", machine.z()) + ","
+                + field("direction", machine.direction().name()) + ","
+                + field("status", machine.status().name()) + ","
+                + field("inputInventoryId", stringOrEmpty(machine.inputInventoryId())) + ","
+                + field("outputInventoryId", stringOrEmpty(machine.outputInventoryId())) + ","
+                + field("powerNetworkId", stringOrEmpty(machine.powerNetworkId())) + ","
+                + field("itemNetworkId", stringOrEmpty(machine.itemNetworkId())) + ","
+                + field("linkedResourceNodeId", stringOrEmpty(machine.linkedResourceNodeId())) + ","
+                + field("selectedRecipeId", machine.selectedRecipeId()) + ","
+                + field("configJson", machineConfigJson(machine)) + ","
+                + number("lastProcessAt", machine.lastProcessAt()) + ","
+                + number("wear", machine.wear()) + ","
+                + number("createdAt", machine.createdAt()) + ","
+                + number("updatedAt", machine.updatedAt())
+                + "}";
+    }
+
+    private String inventoryJson(VirtualInventory inventory) {
+        StringBuilder items = new StringBuilder("{");
+        boolean first = true;
+        for (var entry : inventory.items().entrySet()) {
+            if (!first) {
+                items.append(',');
+            }
+            first = false;
+            items.append('"').append(escape(entry.getKey())).append("\":").append(entry.getValue());
+        }
+        items.append('}');
+        return "{"
+                + field("inventoryId", inventory.inventoryId().toString()) + ","
+                + field("islandUuid", inventory.islandUuid().toString()) + ","
+                + field("holderType", inventory.holderType()) + ","
+                + field("holderId", inventory.holderId()) + ","
+                + number("capacity", inventory.capacity()) + ","
+                + "\"items\":" + items
+                + "}";
+    }
+
+    private String nodeJson(ResourceNode node) {
+        return "{"
+                + field("nodeId", node.nodeId().toString()) + ","
+                + field("islandUuid", node.islandUuid().toString()) + ","
+                + field("nodeType", node.nodeType()) + ","
+                + field("resourceId", node.resourceId()) + ","
+                + number("purity", node.purity()) + ","
+                + number("remaining", node.remaining()) + ","
+                + number("maxRemaining", node.maxRemaining()) + ","
+                + number("regenPerHour", node.regenPerHour()) + ","
+                + number("requiredMachineTier", node.requiredMachineTier()) + ","
+                + field("world", node.world()) + ","
+                + number("x", node.x()) + ","
+                + number("y", node.y()) + ","
+                + number("z", node.z()) + ","
+                + number("createdAt", node.createdAt()) + ","
+                + number("updatedAt", node.updatedAt())
+                + "}";
+    }
+
     private String factoryIslandJson(FactoryIsland island) {
         return "{"
                 + field("islandUuid", island.islandUuid().toString()) + ","
@@ -2015,11 +2241,19 @@ public final class DatabaseService {
     }
 
     private String unlockJson(UUID islandUuid, String unlockId) {
+        return unlockJson(islandUuid, unlockId, Instant.now().toEpochMilli());
+    }
+
+    private String unlockJson(UUID islandUuid, String unlockId, long unlockedAt) {
         return "{"
                 + field("islandUuid", islandUuid.toString()) + ","
                 + field("unlockId", unlockId) + ","
-                + number("unlockedAt", Instant.now().toEpochMilli())
+                + number("unlockedAt", unlockedAt)
                 + "}";
+    }
+
+    private String stringOrEmpty(UUID value) {
+        return value == null ? "" : value.toString();
     }
 
     private String field(String key, String value) {
