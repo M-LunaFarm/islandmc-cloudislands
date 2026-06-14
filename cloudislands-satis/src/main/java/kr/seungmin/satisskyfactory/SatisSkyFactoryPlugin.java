@@ -874,6 +874,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
         metadata.put("database-fallback-order", databaseFallbackOrderMetadata());
         metadata.put("database-config-source", databaseConfigSource());
+        metadata.put("database-credentials-source", databaseCredentialsSource());
+        metadata.put("database-pool-source", databasePoolSource());
+        metadata.put("database-fallback-source", databaseFallbackSource());
         metadata.put("database-file", configuredDatabaseFileName());
         metadata.put("database-path", resolveDatabaseFileName());
         metadata.put("database-shared", Boolean.toString(databaseShared()));
@@ -2067,6 +2070,47 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return "database.shared-directory";
         }
         return "database.sqlite-file";
+    }
+
+    private String databaseCredentialsSource() {
+        String envUsername = System.getenv("CLOUDISLANDS_SATIS_DB_USERNAME");
+        String envPassword = System.getenv("CLOUDISLANDS_SATIS_DB_PASSWORD");
+        if ((envUsername != null && !envUsername.isBlank()) || (envPassword != null && !envPassword.isBlank())) {
+            return "CLOUDISLANDS_SATIS_DB_USERNAME/PASSWORD";
+        }
+        String setupUsername = configs.main().getString("setup.database.jdbc.username", "");
+        String setupPassword = configs.main().getString("setup.database.jdbc.password", "");
+        if ((setupUsername != null && !setupUsername.isBlank()) || (setupPassword != null && !setupPassword.isBlank())) {
+            return "setup.database.jdbc.username/password";
+        }
+        return "database.jdbc.username/password";
+    }
+
+    private String databasePoolSource() {
+        if (envPresent("CLOUDISLANDS_SATIS_DB_MAX_POOL_SIZE") || envPresent("CLOUDISLANDS_SATIS_DB_CONNECTION_TIMEOUT_MS")) {
+            return "CLOUDISLANDS_SATIS_DB_MAX_POOL_SIZE/CONNECTION_TIMEOUT_MS";
+        }
+        if (configs.main().getInt("setup.database.jdbc.max-pool-size", 0) > 0
+                || configs.main().getLong("setup.database.jdbc.connection-timeout-ms", 0L) > 0L) {
+            return "setup.database.jdbc.pool";
+        }
+        return "database.jdbc.pool";
+    }
+
+    private String databaseFallbackSource() {
+        if (envPresent("CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED") || envPresent("CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER")) {
+            return "CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED/ORDER";
+        }
+        if (configs.main().contains("setup.database.fallback.enabled")
+                || !configs.main().getStringList("setup.database.fallback.order").isEmpty()) {
+            return "setup.database.fallback";
+        }
+        return "database.fallback";
+    }
+
+    private boolean envPresent(String key) {
+        String value = System.getenv(key);
+        return value != null && !value.isBlank();
     }
 
     private void warnIfUnsharedDatabaseInCloudIslandsMode() {

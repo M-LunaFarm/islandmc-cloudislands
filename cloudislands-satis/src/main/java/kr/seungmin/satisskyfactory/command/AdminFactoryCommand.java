@@ -709,6 +709,9 @@ public final class AdminFactoryCommand {
                         "database-fallback-enabled",
                         "database-fallback-order",
                         "database-config-source",
+                        "database-credentials-source",
+                        "database-pool-source",
+                        "database-fallback-source",
                         "database-scope",
                         "database-shared"
                 ).forEach(key -> {
