@@ -63,7 +63,7 @@ public record CoreServiceConfig(
         return new CoreServiceConfig(
             env("CI_BIND", setting(config, "server.bind", "0.0.0.0")),
             integer("CI_PORT", configInteger(config, "server.port", 8443)),
-            env("CI_REPOSITORY_MODE", setupSetting(config, "repository-mode", "JDBC")),
+            env("CI_REPOSITORY_MODE", setupRepositoryMode(config)),
             env("CI_JOB_QUEUE_MODE", setupSetting(config, "job-queue-mode", "REDIS")),
             env("CI_EVENT_BUS_MODE", setupSetting(config, "event-bus-mode", "REDIS")),
             env("CI_JDBC_URL", setupJdbcUrl(config, setting(config, "database.jdbc-url", "jdbc:postgresql://postgres.internal:5432/cloudislands"))),
@@ -105,7 +105,7 @@ public record CoreServiceConfig(
     }
 
     public boolean jdbcRepositories() {
-        return "JDBC".equalsIgnoreCase(repositoryMode);
+        return "JDBC".equalsIgnoreCase(repositoryMode) && coreJdbcSupported(jdbcUrl);
     }
 
     public boolean redisJobs() {
@@ -113,7 +113,7 @@ public record CoreServiceConfig(
     }
 
     public boolean jdbcJobs() {
-        return "JDBC".equalsIgnoreCase(jobQueueMode);
+        return "JDBC".equalsIgnoreCase(jobQueueMode) && coreJdbcSupported(jdbcUrl);
     }
 
     public boolean redisEvents() {
@@ -211,12 +211,40 @@ public record CoreServiceConfig(
     private static String jdbcPrefix(String type) {
         return switch (type.trim().replace('-', '_').toUpperCase(Locale.ROOT)) {
             case "POSTGRES", "POSTGRESQL" -> "jdbc:postgresql";
+            case "MYSQL" -> "jdbc:mysql";
+            case "MARIA", "MARIADB" -> "jdbc:mariadb";
             default -> "";
         };
     }
 
     private static int defaultDatabasePort(String type) {
-        return 5432;
+        return switch (type.trim().replace('-', '_').toUpperCase(Locale.ROOT)) {
+            case "MYSQL", "MARIA", "MARIADB" -> 3306;
+            default -> 5432;
+        };
+    }
+
+    private static String setupRepositoryMode(Map<String, String> config) {
+        String explicit = setupSetting(config, "repository-mode", "");
+        if (!explicit.isBlank()) {
+            return explicit;
+        }
+        String databaseType = setting(config, "setup.database-type", "");
+        if (databaseType.isBlank()) {
+            return "JDBC";
+        }
+        return coreJdbcTypeSupported(databaseType) ? "JDBC" : "IN_MEMORY";
+    }
+
+    private static boolean coreJdbcSupported(String jdbcUrl) {
+        return jdbcUrl != null && jdbcUrl.toLowerCase(Locale.ROOT).startsWith("jdbc:postgresql:");
+    }
+
+    private static boolean coreJdbcTypeSupported(String type) {
+        return switch (type.trim().replace('-', '_').toUpperCase(Locale.ROOT)) {
+            case "POSTGRES", "POSTGRESQL" -> true;
+            default -> false;
+        };
     }
 
     private static kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotRetentionPolicy(Map<String, String> config) {
