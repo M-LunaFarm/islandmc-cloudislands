@@ -108,6 +108,42 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
     }
 
     @Override
+    public Map<String, String> replacePrefix(String addonId, String keyPrefix, Map<String, String> values) {
+        String safeAddonId = AddonStateRepository.safeAddonId(addonId);
+        Map<String, String> safeValues = safeValues(values);
+        if (keyPrefix == null || keyPrefix.isBlank()) {
+            return list(safeAddonId);
+        }
+        try (Connection connection = dataSource.getConnection()) {
+            boolean autoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try (PreparedStatement delete = connection.prepareStatement("DELETE FROM addon_state WHERE addon_id = ? AND state_key LIKE ? ESCAPE '\\'");
+                 PreparedStatement insert = connection.prepareStatement("INSERT INTO addon_state(addon_id, state_key, state_value) VALUES (?, ?, ?) ON CONFLICT (addon_id, state_key) DO UPDATE SET state_value = EXCLUDED.state_value, updated_at = now()")) {
+                delete.setString(1, safeAddonId);
+                delete.setString(2, likePrefix(keyPrefix.trim()));
+                delete.executeUpdate();
+                ensureKeyCapacity(connection, safeAddonId, safeValues.keySet());
+                for (Map.Entry<String, String> entry : safeValues.entrySet()) {
+                    insert.setString(1, safeAddonId);
+                    insert.setString(2, entry.getKey());
+                    insert.setString(3, entry.getValue());
+                    insert.addBatch();
+                }
+                insert.executeBatch();
+                connection.commit();
+            } catch (SQLException | RuntimeException exception) {
+                connection.rollback();
+                throw exception;
+            } finally {
+                connection.setAutoCommit(autoCommit);
+            }
+            return list(safeAddonId);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to replace addon state prefix", exception);
+        }
+    }
+
+    @Override
     public void clear(String addonId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("DELETE FROM addon_state WHERE addon_id = ?")) {
@@ -213,6 +249,45 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
             return listIsland(safeAddonId, safeIslandId);
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to remove addon island state prefix", exception);
+        }
+    }
+
+    @Override
+    public Map<String, String> replaceIslandPrefix(String addonId, UUID islandId, String keyPrefix, Map<String, String> values) {
+        String safeAddonId = AddonStateRepository.safeAddonId(addonId);
+        UUID safeIslandId = AddonStateRepository.safeIslandId(islandId);
+        Map<String, String> safeValues = safeValues(values);
+        if (keyPrefix == null || keyPrefix.isBlank()) {
+            return listIsland(safeAddonId, safeIslandId);
+        }
+        try (Connection connection = dataSource.getConnection()) {
+            boolean autoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try (PreparedStatement delete = connection.prepareStatement("DELETE FROM addon_island_state WHERE addon_id = ? AND island_id = ? AND state_key LIKE ? ESCAPE '\\'");
+                 PreparedStatement insert = connection.prepareStatement("INSERT INTO addon_island_state(addon_id, island_id, state_key, state_value) VALUES (?, ?, ?, ?) ON CONFLICT (addon_id, island_id, state_key) DO UPDATE SET state_value = EXCLUDED.state_value, updated_at = now()")) {
+                delete.setString(1, safeAddonId);
+                delete.setObject(2, safeIslandId);
+                delete.setString(3, likePrefix(keyPrefix.trim()));
+                delete.executeUpdate();
+                ensureIslandKeyCapacity(connection, safeAddonId, safeIslandId, safeValues.keySet());
+                for (Map.Entry<String, String> entry : safeValues.entrySet()) {
+                    insert.setString(1, safeAddonId);
+                    insert.setObject(2, safeIslandId);
+                    insert.setString(3, entry.getKey());
+                    insert.setString(4, entry.getValue());
+                    insert.addBatch();
+                }
+                insert.executeBatch();
+                connection.commit();
+            } catch (SQLException | RuntimeException exception) {
+                connection.rollback();
+                throw exception;
+            } finally {
+                connection.setAutoCommit(autoCommit);
+            }
+            return listIsland(safeAddonId, safeIslandId);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to replace addon island state prefix", exception);
         }
     }
 

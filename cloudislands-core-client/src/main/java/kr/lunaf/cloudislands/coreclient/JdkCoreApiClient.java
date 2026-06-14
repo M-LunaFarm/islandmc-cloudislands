@@ -827,6 +827,14 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> replaceAddonTableState(String addonId, String table, Map<String, String> values) {
+        if (blank(addonId) || blank(table)) {
+            return invalidAddonState("Addon id and table are required");
+        }
+        return postWithResultBody("/v1/addons/state/table/replace", "{\"addonId\":\"" + escape(addonId) + "\",\"table\":\"" + escape(table) + "\",\"values\":" + stringMapJson(values) + "}");
+    }
+
+    @Override
     public CompletableFuture<String> clearAddonTableState(String addonId, String table) {
         if (blank(addonId) || blank(table)) {
             return invalidAddonState("Addon id and table are required");
@@ -880,6 +888,14 @@ public final class JdkCoreApiClient implements CoreApiClient {
             return invalidAddonState("Addon id, island id, and table are required");
         }
         return postWithResultBody("/v1/addons/islands/state/table/bulk", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"table\":\"" + escape(table) + "\",\"values\":" + stringMapJson(values) + "}");
+    }
+
+    @Override
+    public CompletableFuture<String> replaceAddonIslandTableState(String addonId, UUID islandId, String table, Map<String, String> values) {
+        if (blank(addonId) || missingIslandId(islandId) || blank(table)) {
+            return invalidAddonState("Addon id, island id, and table are required");
+        }
+        return postWithResultBody("/v1/addons/islands/state/table/replace", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"table\":\"" + escape(table) + "\",\"values\":" + stringMapJson(values) + "}");
     }
 
     @Override

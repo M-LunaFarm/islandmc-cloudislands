@@ -14,12 +14,14 @@ public interface AddonStateRepository {
     Map<String, String> put(String addonId, Map<String, String> values);
     Map<String, String> remove(String addonId, String key);
     Map<String, String> removePrefix(String addonId, String keyPrefix);
+    Map<String, String> replacePrefix(String addonId, String keyPrefix, Map<String, String> values);
     void clear(String addonId);
     Map<String, String> listIsland(String addonId, UUID islandId);
     Map<String, String> putIsland(String addonId, UUID islandId, String key, String value);
     Map<String, String> putIsland(String addonId, UUID islandId, Map<String, String> values);
     Map<String, String> removeIsland(String addonId, UUID islandId, String key);
     Map<String, String> removeIslandPrefix(String addonId, UUID islandId, String keyPrefix);
+    Map<String, String> replaceIslandPrefix(String addonId, UUID islandId, String keyPrefix, Map<String, String> values);
     void clearIsland(String addonId, UUID islandId);
 
     static String safeAddonId(String addonId) {

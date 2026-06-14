@@ -55,6 +55,22 @@ public final class InMemoryAddonStateRepository implements AddonStateRepository 
     }
 
     @Override
+    public Map<String, String> replacePrefix(String addonId, String keyPrefix, Map<String, String> values) {
+        String safeAddonId = AddonStateRepository.safeAddonId(addonId);
+        Map<String, String> state = states.computeIfAbsent(safeAddonId, _ignored -> new ConcurrentHashMap<>());
+        if (keyPrefix == null || keyPrefix.isBlank()) {
+            return Map.copyOf(state);
+        }
+        String safePrefix = keyPrefix.trim();
+        state.keySet().removeIf(key -> key.startsWith(safePrefix));
+        safeValues(values).forEach((key, value) -> {
+            AddonStateRepository.requireKeyCapacity(state, key);
+            state.put(key, value);
+        });
+        return Map.copyOf(state);
+    }
+
+    @Override
     public void clear(String addonId) {
         states.remove(AddonStateRepository.safeAddonId(addonId));
     }
@@ -102,6 +118,22 @@ public final class InMemoryAddonStateRepository implements AddonStateRepository 
         }
         String safePrefix = keyPrefix.trim();
         state.keySet().removeIf(key -> key.startsWith(safePrefix));
+        return Map.copyOf(state);
+    }
+
+    @Override
+    public Map<String, String> replaceIslandPrefix(String addonId, UUID islandId, String keyPrefix, Map<String, String> values) {
+        String stateId = islandStateId(addonId, islandId);
+        Map<String, String> state = islandStates.computeIfAbsent(stateId, _ignored -> new ConcurrentHashMap<>());
+        if (keyPrefix == null || keyPrefix.isBlank()) {
+            return Map.copyOf(state);
+        }
+        String safePrefix = keyPrefix.trim();
+        state.keySet().removeIf(key -> key.startsWith(safePrefix));
+        safeValues(values).forEach((key, value) -> {
+            AddonStateRepository.requireKeyCapacity(state, key);
+            state.put(key, value);
+        });
         return Map.copyOf(state);
     }
 
