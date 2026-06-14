@@ -88,6 +88,7 @@ public final class DatabaseService {
     private Consumer<CoreRowWrite> coreStateWriter;
     private Consumer<CoreTableWrite> coreTableWriter;
     private Consumer<CoreGlobalRowWrite> coreGlobalStateWriter;
+    private Consumer<CoreGlobalTableWrite> coreGlobalTableWriter;
     private boolean coreStatePublishingSuspended;
 
     public record CoreRowWrite(UUID islandUuid, String key, String value) {
@@ -97,6 +98,9 @@ public final class DatabaseService {
     }
 
     public record CoreGlobalRowWrite(String key, String value) {
+    }
+
+    public record CoreGlobalTableWrite(String table, java.util.Map<String, String> values) {
     }
 
     public DatabaseService(JavaPlugin plugin) {
@@ -312,6 +316,10 @@ public final class DatabaseService {
 
     public void coreGlobalStateWriter(Consumer<CoreGlobalRowWrite> coreGlobalStateWriter) {
         this.coreGlobalStateWriter = coreGlobalStateWriter;
+    }
+
+    public void coreGlobalTableWriter(Consumer<CoreGlobalTableWrite> coreGlobalTableWriter) {
+        this.coreGlobalTableWriter = coreGlobalTableWriter;
     }
 
     public void withCoreStatePublishingSuspended(Runnable action) {
@@ -662,7 +670,7 @@ public final class DatabaseService {
     }
 
     public void publishAllCoreState() {
-        if (coreStatePublishingSuspended || (coreStateWriter == null && coreTableWriter == null && coreGlobalStateWriter == null)) {
+        if (coreStatePublishingSuspended || (coreStateWriter == null && coreTableWriter == null && coreGlobalStateWriter == null && coreGlobalTableWriter == null)) {
             return;
         }
         for (FactoryIsland island : loadIslands()) {
@@ -680,7 +688,7 @@ public final class DatabaseService {
             publishCoreTable(islandUuid, "market_personal_daily", marketPersonalRows(islandUuid));
             publishCoreTable(islandUuid, "ledger", ledgerRows(islandUuid));
         }
-        marketDailyRows().forEach((key, value) -> publishCoreGlobalRow("table/market_daily/" + key, value));
+        publishCoreGlobalTable("market_daily", marketDailyRows());
     }
 
     private java.util.Map<String, String> machineRows(UUID islandUuid) {
@@ -2071,6 +2079,20 @@ public final class DatabaseService {
             return;
         }
         coreGlobalStateWriter.accept(new CoreGlobalRowWrite(key, value));
+    }
+
+    private void publishCoreGlobalTable(String table, java.util.Map<String, String> values) {
+        if (coreStatePublishingSuspended || table == null || table.isBlank() || values == null) {
+            return;
+        }
+        if (coreGlobalTableWriter != null) {
+            coreGlobalTableWriter.accept(new CoreGlobalTableWrite(table, java.util.Map.copyOf(values)));
+            return;
+        }
+        if (values.isEmpty()) {
+            return;
+        }
+        values.forEach((key, value) -> publishCoreGlobalRow("table/" + table + "/" + key, value));
     }
 
     private String marketDailyJson(String itemId, String dateKey, long soldAmount, double demandFactor) {

@@ -714,6 +714,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             database.coreStateWriter(null);
             database.coreTableWriter(null);
             database.coreGlobalStateWriter(null);
+            database.coreGlobalTableWriter(null);
             database.close();
         }
         databaseSettingsFingerprint = nextFingerprint;
@@ -759,6 +760,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         database.coreStateWriter(null);
         database.coreTableWriter(null);
         database.coreGlobalStateWriter(null);
+        database.coreGlobalTableWriter(null);
         dirtySaves.coreStatePublisher(null);
         dirtySaves.coreStateDeletePublisher(null);
         coreApiState = null;
@@ -769,6 +771,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         database.coreStateWriter(coreApiState::publishRow);
         database.coreTableWriter(coreApiState::publishTable);
         database.coreGlobalStateWriter(coreApiState::publishGlobalRow);
+        database.coreGlobalTableWriter(coreApiState::publishGlobalTable);
         coreApiState.hydrateGlobal(database);
         dirtySaves.coreStatePublisher(coreApiState::publishDirtyBatch);
         dirtySaves.coreStateDeletePublisher(delete -> coreApiState.removeRow(delete.islandUuid(), delete.key()));
@@ -1480,6 +1483,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             database.coreStateWriter(null);
             database.coreTableWriter(null);
             database.coreGlobalStateWriter(null);
+            database.coreGlobalTableWriter(null);
         }
         coreApiState = null;
         coreHydratedIslands.clear();

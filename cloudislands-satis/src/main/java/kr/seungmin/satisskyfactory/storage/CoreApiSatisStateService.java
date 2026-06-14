@@ -161,6 +161,23 @@ public final class CoreApiSatisStateService {
         });
     }
 
+    public void publishGlobalTable(DatabaseService.CoreGlobalTableWrite table) {
+        if (cloudIslandsApi == null || table == null || table.table() == null || table.table().isBlank() || table.values() == null) {
+            return;
+        }
+        if (table.values().isEmpty()) {
+            cloudIslandsApi.addons().clearTableState(addonId, table.table()).exceptionally(error -> {
+                logger.warning("Failed to clear Satis core-api global table " + table.table() + ": " + error.getMessage());
+                return Map.of();
+            });
+            return;
+        }
+        cloudIslandsApi.addons().replaceTableState(addonId, table.table(), table.values()).exceptionally(error -> {
+            logger.warning("Failed to replace Satis core-api global table " + table.table() + ": " + error.getMessage());
+            return Map.of();
+        });
+    }
+
     public boolean hydrateGlobal(DatabaseService database) {
         if (cloudIslandsApi == null || database == null) {
             return false;
