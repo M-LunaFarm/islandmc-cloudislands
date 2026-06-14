@@ -735,6 +735,7 @@ public final class AdminFactoryCommand {
                         "database-credentials-source",
                         "database-pool-source",
                         "database-fallback-source",
+                        "database-fallback-env",
                         "database-scope",
                         "database-shared",
                         "addon-state-bulk-save-api",
