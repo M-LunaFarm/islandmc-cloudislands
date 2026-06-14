@@ -6,7 +6,14 @@ setup:
   repository-mode: ""
   job-queue-mode: ""
   event-bus-mode: ""
+  # Empty jdbc-url inherits database.jdbc-url. Otherwise use database-type + host/name below.
   jdbc-url: ""
+  # database-type: POSTGRESQL, MYSQL, MARIADB
+  database-type: ""
+  database-host: ""
+  database-port: 0
+  database-name: ""
+  database-options: ""
   database-username: ""
   database-password: ""
   database-pool-size: 0

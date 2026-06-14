@@ -64,7 +64,7 @@ public record CoreServiceConfig(
             env("CI_REPOSITORY_MODE", setupSetting(config, "repository-mode", "JDBC")),
             env("CI_JOB_QUEUE_MODE", setupSetting(config, "job-queue-mode", "REDIS")),
             env("CI_EVENT_BUS_MODE", setupSetting(config, "event-bus-mode", "REDIS")),
-            env("CI_JDBC_URL", setupSetting(config, "jdbc-url", setting(config, "database.jdbc-url", "jdbc:postgresql://postgres.internal:5432/cloudislands"))),
+            env("CI_JDBC_URL", setupJdbcUrl(config, setting(config, "database.jdbc-url", "jdbc:postgresql://postgres.internal:5432/cloudislands"))),
             env("CI_DB_USERNAME", setupSetting(config, "database-username", setting(config, "database.username", "cloudislands"))),
             env("CI_DB_PASSWORD", setupSetting(config, "database-password", setting(config, "database.password", env("DB_PASSWORD", "")))),
             integer("CI_DB_POOL_SIZE", setupInteger(config, "database-pool-size", configInteger(config, "database.pool-size", 20))),
@@ -178,6 +178,46 @@ public record CoreServiceConfig(
         } catch (NumberFormatException exception) {
             return fallback;
         }
+    }
+
+    private static String setupJdbcUrl(Map<String, String> config, String fallback) {
+        String explicit = setting(config, "setup.jdbc-url", "");
+        if (!explicit.isBlank()) {
+            return explicit;
+        }
+        String type = setting(config, "setup.database-type", "");
+        String host = setting(config, "setup.database-host", "");
+        String database = setting(config, "setup.database-name", "");
+        if (type.isBlank() || host.isBlank() || database.isBlank()) {
+            return fallback;
+        }
+        String prefix = jdbcPrefix(type);
+        if (prefix.isBlank()) {
+            return fallback;
+        }
+        int port = setupInteger(config, "database-port", defaultDatabasePort(type));
+        String url = prefix + "://" + host.trim() + ":" + port + "/" + database.trim();
+        String options = setting(config, "setup.database-options", "");
+        if (!options.isBlank()) {
+            url += "?" + options.trim();
+        }
+        return url;
+    }
+
+    private static String jdbcPrefix(String type) {
+        return switch (type.trim().replace('-', '_').toUpperCase(Locale.ROOT)) {
+            case "POSTGRES", "POSTGRESQL" -> "jdbc:postgresql";
+            case "MYSQL" -> "jdbc:mysql";
+            case "MARIADB" -> "jdbc:mariadb";
+            default -> "";
+        };
+    }
+
+    private static int defaultDatabasePort(String type) {
+        return switch (type.trim().replace('-', '_').toUpperCase(Locale.ROOT)) {
+            case "MYSQL", "MARIADB" -> 3306;
+            default -> 5432;
+        };
     }
 
     private static kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotRetentionPolicy(Map<String, String> config) {
