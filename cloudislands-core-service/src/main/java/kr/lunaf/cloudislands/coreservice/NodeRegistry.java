@@ -50,14 +50,24 @@ public interface NodeRegistry {
     }
 
     default String toJson(Duration heartbeatTimeout) {
-        StringBuilder builder = new StringBuilder("{\"nodes\":[");
+        Duration timeout = heartbeatTimeout == null ? Duration.ofSeconds(5) : heartbeatTimeout;
+        List<NodeLoad> snapshot = snapshot();
+        long now = System.currentTimeMillis();
+        long ready = snapshot.stream().filter(node -> node.allocationBlockReason(java.time.Instant.ofEpochMilli(now), timeout).isBlank()).count();
+        long stale = snapshot.stream().filter(node -> node.lastHeartbeat() == null || node.lastHeartbeat().isBefore(java.time.Instant.ofEpochMilli(now).minus(timeout))).count();
+        StringBuilder builder = new StringBuilder("{")
+            .append("\"nodeCount\":").append(snapshot.size()).append(',')
+            .append("\"routeCandidateCount\":").append(ready).append(',')
+            .append("\"staleNodeCount\":").append(stale).append(',')
+            .append("\"heartbeatTimeoutSeconds\":").append(timeout.toSeconds()).append(',')
+            .append("\"nodes\":[");
         boolean first = true;
-        for (NodeLoad node : snapshot()) {
+        for (NodeLoad node : snapshot) {
             if (!first) {
                 builder.append(',');
             }
             first = false;
-            builder.append(toJson(node, heartbeatTimeout));
+            builder.append(toJson(node, timeout));
         }
         return builder.append("]}").toString();
     }
@@ -68,13 +78,23 @@ public interface NodeRegistry {
 
     static String toJson(NodeLoad node, Duration heartbeatTimeout) {
         java.util.Map<String, String> metadata = node.heartbeatMetadata();
-        String allocationBlockReason = node.allocationBlockReason(java.time.Instant.now(), heartbeatTimeout == null ? Duration.ofSeconds(5) : heartbeatTimeout);
+        Duration timeout = heartbeatTimeout == null ? Duration.ofSeconds(5) : heartbeatTimeout;
+        java.time.Instant now = java.time.Instant.now();
+        String allocationBlockReason = node.allocationBlockReason(now, timeout);
+        long secondsSinceHeartbeat = node.lastHeartbeat() == null ? -1L : Math.max(0L, Duration.between(node.lastHeartbeat(), now).toSeconds());
+        boolean stale = node.lastHeartbeat() == null || node.lastHeartbeat().isBefore(now.minus(timeout));
+        boolean routeCandidate = allocationBlockReason.isBlank();
+        boolean healthy = routeCandidate && !stale;
         return new StringBuilder("{")
             .append("\"id\":\"").append(node.nodeId()).append("\",")
             .append("\"pool\":\"").append(node.pool() == null ? "island" : node.pool()).append("\",")
             .append("\"server\":\"").append(node.velocityServerName()).append("\",")
             .append("\"nodeVersion\":\"").append(node.nodeVersion() == null ? "" : node.nodeVersion().replace("\"", "'")).append("\",")
             .append("\"state\":\"").append(node.state()).append("\",")
+            .append("\"healthy\":").append(healthy).append(',')
+            .append("\"routeCandidate\":").append(routeCandidate).append(',')
+            .append("\"stale\":").append(stale).append(',')
+            .append("\"secondsSinceHeartbeat\":").append(secondsSinceHeartbeat).append(',')
             .append("\"players\":").append(node.players()).append(',')
             .append("\"softPlayerCap\":").append(node.softPlayerCap()).append(',')
             .append("\"hardPlayerCap\":").append(node.hardPlayerCap()).append(',')
