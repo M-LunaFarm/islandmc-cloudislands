@@ -2007,7 +2007,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         pendingDatabaseConfigFallbackReason = "none";
         if (backend == null) {
             backend = DatabaseService.StorageBackend.SQLITE;
-            pendingDatabaseConfigFallbackReason = "invalid-database-backend:" + safeReasonToken(configuredType) + "->SQLITE";
+            appendPendingDatabaseConfigFallbackReason("invalid-database-backend:" + safeReasonToken(configuredType) + "->SQLITE");
         }
         return new DatabaseService.Settings(
                 backend,
@@ -2066,11 +2066,26 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             configured = List.of("POSTGRESQL", "MYSQL", "MARIADB", "SQLITE");
         }
         List<DatabaseService.StorageBackend> backends = new ArrayList<>();
+        List<String> invalid = new ArrayList<>();
         for (String entry : configured) {
             DatabaseService.StorageBackend backend = DatabaseService.StorageBackend.parse(entry, null);
             if (backend != null && !backends.contains(backend)) {
                 backends.add(backend);
+            } else if (backend == null && entry != null && !entry.isBlank()) {
+                invalid.add(safeReasonToken(entry));
             }
+        }
+        if (!invalid.isEmpty()) {
+            appendPendingDatabaseConfigFallbackReason("invalid-database-fallback-order:" + String.join("+", invalid));
+        }
+        if (backends.isEmpty()) {
+            appendPendingDatabaseConfigFallbackReason("empty-database-fallback-order->POSTGRESQL,MYSQL,MARIADB,SQLITE");
+            return List.of(
+                    DatabaseService.StorageBackend.POSTGRESQL,
+                    DatabaseService.StorageBackend.MYSQL,
+                    DatabaseService.StorageBackend.MARIADB,
+                    DatabaseService.StorageBackend.SQLITE
+            );
         }
         return backends;
     }
@@ -2145,6 +2160,21 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (!databaseFallbackReason.contains(reason)) {
             databaseFallbackReason = databaseFallbackReason + ";" + reason;
+        }
+    }
+
+    private void appendPendingDatabaseConfigFallbackReason(String reason) {
+        if (reason == null || reason.isBlank() || "none".equalsIgnoreCase(reason)) {
+            return;
+        }
+        if (pendingDatabaseConfigFallbackReason == null
+                || pendingDatabaseConfigFallbackReason.isBlank()
+                || "none".equalsIgnoreCase(pendingDatabaseConfigFallbackReason)) {
+            pendingDatabaseConfigFallbackReason = reason;
+            return;
+        }
+        if (!pendingDatabaseConfigFallbackReason.contains(reason)) {
+            pendingDatabaseConfigFallbackReason = pendingDatabaseConfigFallbackReason + ";" + reason;
         }
     }
 
