@@ -16,9 +16,38 @@ public final class InMemoryNodeRegistry implements NodeRegistry {
     private final Map<String, NodeLoad> nodes = new ConcurrentHashMap<>();
 
     public InMemoryNodeRegistry() {
+        this(6);
+    }
+
+    public InMemoryNodeRegistry(int defaultNodeCount) {
         Instant now = Instant.now();
-        upsert(new NodeLoad("island-1", "island", "Island-1", "", NodeState.SOFT_FULL, 92, 90, 110, 20, 480, 600, 42.0D, 8, 20, 0.40D, 6144, 8192, 0, now, true, "*"));
-        upsert(new NodeLoad("island-2", "island", "Island-2", "", NodeState.READY, 31, 90, 110, 20, 170, 600, 24.0D, 1, 20, 0.12D, 4096, 8192, 0, now, true, "*"));
+        int count = Math.max(0, defaultNodeCount);
+        for (int index = 1; index <= count; index++) {
+            boolean warmNode = index == 1;
+            upsert(new NodeLoad(
+                "island-" + index,
+                "island",
+                "Island-" + index,
+                "",
+                warmNode ? NodeState.SOFT_FULL : NodeState.READY,
+                warmNode ? 92 : 20 + (index * 7),
+                90,
+                110,
+                20,
+                warmNode ? 480 : 120 + (index * 35),
+                600,
+                warmNode ? 42.0D : 18.0D + (index * 2.5D),
+                warmNode ? 8 : index % 3,
+                20,
+                warmNode ? 0.40D : Math.min(0.08D * index, 0.60D),
+                3072L + (index * 512L),
+                8192,
+                0,
+                now,
+                true,
+                "*"
+            ));
+        }
     }
 
     @Override

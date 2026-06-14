@@ -84,7 +84,7 @@ public record CoreServiceConfig(
             env("CI_IP_ALLOWLIST", setting(config, "security.ip-allowlist", "")),
             env("CI_UPGRADES_FILE", setting(config, "upgrades.file", "")),
             env("CI_BLOCK_VALUES_FILE", setting(config, "block-values.file", "")),
-            env("CI_ISLAND_POOL", "island"),
+            env("CI_ISLAND_POOL", setting(config, "routing.island-pool", "island")),
             env("CI_SOFT_FULL_POLICY", setting(config, "routing.soft-full-policy", "AVOID_NEW_ACTIVATIONS")),
             env("CI_HARD_FULL_POLICY", setting(config, "routing.hard-full-policy", "DENY_OR_QUEUE")),
             env("CI_MIGRATION_POLICY", setting(config, "routing.migration-policy", "INACTIVE_ONLY_AUTOMATIC")),

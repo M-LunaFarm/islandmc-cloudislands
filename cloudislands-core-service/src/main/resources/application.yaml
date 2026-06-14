@@ -37,6 +37,7 @@ storage:
   bucket: "cloudislands"
 
 routing:
+  island-pool: "island"
   heartbeat-timeout-seconds: 5
   lease-duration-seconds: 30
   route-ticket-ttl-seconds: 30
