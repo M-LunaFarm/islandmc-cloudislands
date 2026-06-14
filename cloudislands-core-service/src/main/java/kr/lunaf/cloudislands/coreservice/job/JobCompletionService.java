@@ -262,6 +262,13 @@ public final class JobCompletionService {
 
     private boolean markActiveFromJob(IslandJob job, String worldName) {
         long fencingToken = longValue(job.payload().get("fencingToken"));
+        kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot current = runtimes.find(job.islandId()).orElse(null);
+        String staleReason = staleCompletionReason(job, current, fencingToken);
+        if (!staleReason.isBlank()) {
+            failPreparingRouteTickets(job, staleReason);
+            publishIgnoredCompletion(job, current, fencingToken, staleReason);
+            return false;
+        }
         kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime = runtimes.markActive(job.islandId(), job.targetNode(), worldName, integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), fencingToken);
         if (runtime.fencingToken() == fencingToken) {
             return true;
@@ -279,6 +286,13 @@ public final class JobCompletionService {
 
     private boolean markInactiveFromJob(IslandJob job) {
         long fencingToken = longValue(job.payload().get("fencingToken"));
+        kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot current = runtimes.find(job.islandId()).orElse(null);
+        String staleReason = staleCompletionReason(job, current, fencingToken);
+        if (!staleReason.isBlank()) {
+            failPreparingRouteTickets(job, staleReason);
+            publishIgnoredCompletion(job, current, fencingToken, staleReason);
+            return false;
+        }
         kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime = runtimes.markInactive(job.islandId(), fencingToken);
         if (runtime.fencingToken() == fencingToken && runtime.state() == IslandState.INACTIVE_READY) {
             return true;
@@ -292,6 +306,44 @@ public final class JobCompletionService {
             "currentFencingToken", Long.toString(runtime.fencingToken())
         ));
         return false;
+    }
+
+    private String staleCompletionReason(IslandJob job, kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot current, long fencingToken) {
+        if (current == null || fencingToken <= 0L) {
+            return "";
+        }
+        if (current.fencingToken() > fencingToken) {
+            return "STALE_FENCING_TOKEN";
+        }
+        if (current.state() == IslandState.RECOVERY_REQUIRED || current.state() == IslandState.QUARANTINED || current.state() == IslandState.DELETED) {
+            return "RUNTIME_NOT_ACCEPTING_COMPLETION";
+        }
+        if (current.fencingToken() == fencingToken && !sameNode(job.targetNode(), current.leaseOwner(), current.activeNode())) {
+            return "STALE_NODE_COMPLETION";
+        }
+        return "";
+    }
+
+    private boolean sameNode(String jobNode, String leaseOwner, String activeNode) {
+        if (jobNode == null || jobNode.isBlank()) {
+            return true;
+        }
+        String owner = leaseOwner == null || leaseOwner.isBlank() ? activeNode : leaseOwner;
+        return owner == null || owner.isBlank() || owner.equals(jobNode);
+    }
+
+    private void publishIgnoredCompletion(IslandJob job, kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot current, long fencingToken, String reason) {
+        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
+            "islandId", job.islandId().toString(),
+            "state", current == null ? "" : current.state().name(),
+            "ignoredJob", job.jobId().toString(),
+            "targetNode", job.targetNode() == null ? "" : job.targetNode(),
+            "leaseOwner", current == null || current.leaseOwner() == null ? "" : current.leaseOwner(),
+            "activeNode", current == null || current.activeNode() == null ? "" : current.activeNode(),
+            "jobFencingToken", Long.toString(fencingToken),
+            "currentFencingToken", current == null ? "0" : Long.toString(current.fencingToken()),
+            "reason", reason
+        ));
     }
 
     private void failPreparingRouteTickets(IslandJob job, String errorMessage) {
