@@ -30,6 +30,8 @@ setup:
     # Empty values inherit from database.* below. Use this block for first-install setup.
     # type: SQLITE, POSTGRESQL, MYSQL, MARIADB, CORE_API
     type: ""
+    path: ""
+    shared-directory: ""
     sqlite-file: ""
     fallback:
       order: []

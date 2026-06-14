@@ -1653,12 +1653,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (envPath != null && !envPath.isBlank()) {
             return envPath.trim();
         }
-        String configuredPath = configs.main().getString("database.path", "");
+        String configuredPath = firstNonBlank(configs.main().getString("setup.database.path", ""), configs.main().getString("database.path", ""));
         if (configuredPath != null && !configuredPath.isBlank()) {
             return configuredPath.trim();
         }
         String sqliteFile = configuredDatabaseFileName();
-        String sharedDirectory = configs.main().getString("database.shared-directory", "");
+        String sharedDirectory = firstNonBlank(configs.main().getString("setup.database.shared-directory", ""), configs.main().getString("database.shared-directory", ""));
         if (sharedDirectory != null && !sharedDirectory.isBlank()) {
             return new File(sharedDirectory.trim(), sqliteFile).getPath();
         }
@@ -1819,11 +1819,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (envPath != null && !envPath.isBlank()) {
             return "ENV_SHARED";
         }
-        String configuredPath = configs.main().getString("database.path", "");
+        String configuredPath = firstNonBlank(configs.main().getString("setup.database.path", ""), configs.main().getString("database.path", ""));
         if (configuredPath != null && !configuredPath.isBlank()) {
             return new File(configuredPath).isAbsolute() ? "ABSOLUTE_PATH" : "PLUGIN_RELATIVE_PATH";
         }
-        String sharedDirectory = configs.main().getString("database.shared-directory", "");
+        String sharedDirectory = firstNonBlank(configs.main().getString("setup.database.shared-directory", ""), configs.main().getString("database.shared-directory", ""));
         if (sharedDirectory != null && !sharedDirectory.isBlank()) {
             return "SHARED_DIRECTORY";
         }
@@ -1840,7 +1840,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private String databaseConfigSource() {
         DatabaseService.StorageBackend backend = DatabaseService.StorageBackend.parse(
-                configs.main().getString("database.type", "SQLITE"), DatabaseService.StorageBackend.SQLITE);
+                configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE);
+        String envBackend = System.getenv("CLOUDISLANDS_SATIS_DATABASE_TYPE");
+        if (envBackend != null && !envBackend.isBlank()) {
+            return "CLOUDISLANDS_SATIS_DATABASE_TYPE";
+        }
+        String setupType = configs.main().getString("setup.database.type", "");
+        if (setupType != null && !setupType.isBlank()) {
+            return "setup.database.type";
+        }
         if (backend != DatabaseService.StorageBackend.SQLITE) {
             return "database.type";
         }
@@ -1848,9 +1856,17 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (envPath != null && !envPath.isBlank()) {
             return "CLOUDISLANDS_SATIS_DB";
         }
+        String setupPath = configs.main().getString("setup.database.path", "");
+        if (setupPath != null && !setupPath.isBlank()) {
+            return "setup.database.path";
+        }
         String configuredPath = configs.main().getString("database.path", "");
         if (configuredPath != null && !configuredPath.isBlank()) {
             return "database.path";
+        }
+        String setupSharedDirectory = configs.main().getString("setup.database.shared-directory", "");
+        if (setupSharedDirectory != null && !setupSharedDirectory.isBlank()) {
+            return "setup.database.shared-directory";
         }
         String sharedDirectory = configs.main().getString("database.shared-directory", "");
         if (sharedDirectory != null && !sharedDirectory.isBlank()) {
