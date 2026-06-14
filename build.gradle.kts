@@ -45,14 +45,29 @@ tasks.register<Copy>("distPlugins") {
     into(layout.buildDirectory.dir("dist/plugins"))
 }
 
+tasks.register<Copy>("distServices") {
+    group = "distribution"
+    description = "Collects CloudIslands service runtime images."
+
+    val coreService = project(":cloudislands-core-service")
+    val installTask = coreService.tasks.named("installDist")
+    dependsOn(installTask)
+    from(coreService.layout.buildDirectory.dir("install/cloudislands-core-service"))
+    into(layout.buildDirectory.dir("dist/services/core"))
+}
+
 tasks.register<Zip>("distBundle") {
     group = "distribution"
-    description = "Packages CloudIslands plugin jars, including the Satis addon."
+    description = "Packages CloudIslands plugin jars and Core API service runtime."
     dependsOn(tasks.named("distPlugins"))
+    dependsOn(tasks.named("distServices"))
     archiveBaseName.set("cloudislands-plugins")
     archiveVersion.set(project.version.toString())
     from(layout.buildDirectory.dir("dist/plugins")) {
         into("plugins")
+    }
+    from(layout.buildDirectory.dir("dist/services")) {
+        into("services")
     }
     destinationDirectory.set(layout.buildDirectory.dir("dist"))
 }
