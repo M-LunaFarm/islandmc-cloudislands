@@ -20,6 +20,7 @@ import kr.lunaf.cloudislands.api.event.IslandRuntimeChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotCreateEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandUpgradeEvent;
+import kr.lunaf.cloudislands.api.event.IslandVisitEvent;
 import kr.lunaf.cloudislands.api.event.IslandWorthChangeEvent;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.seungmin.satisskyfactory.command.FactoryCommand;
@@ -1401,6 +1402,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (state.equalsIgnoreCase("ACTIVE")) {
             runSatisLifecycle(event.islandId(), "runtime:ACTIVE", () -> synchronizeSatisIsland(event.islandId(), "runtime:ACTIVE"));
         }
+    }
+
+    @Override
+    public void onIslandVisited(IslandVisitEvent event) {
+        String operation = "visited:" + lifecycleNode(event.nodeId());
+        runSatisLifecycle(event.islandId(), operation, () -> publishIslandLifecycleState(event.islandId(), operation, islands.get(event.islandId()).orElse(null), "ok", ""));
     }
 
     @Override
