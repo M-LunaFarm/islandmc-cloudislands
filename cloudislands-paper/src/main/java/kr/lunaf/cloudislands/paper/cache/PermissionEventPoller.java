@@ -549,6 +549,7 @@ public final class PermissionEventPoller {
             }
             player.sendMessage(reason);
             if (!canUseBungeeConnect()) {
+                player.kickPlayer(reason);
                 continue;
             }
             try {
@@ -559,6 +560,7 @@ public final class PermissionEventPoller {
                 player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
             } catch (IOException | RuntimeException exception) {
                 plugin.getLogger().warning("Failed to move island player to fallback: " + exception.getMessage());
+                player.kickPlayer(reason);
             }
         }
     }
