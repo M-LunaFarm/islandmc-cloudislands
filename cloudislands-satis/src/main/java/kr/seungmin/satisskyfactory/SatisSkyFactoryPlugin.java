@@ -120,6 +120,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private FactoryLifecycleListener lifecycleListener;
     private Map<String, Boolean> effectiveFeatures = Map.of();
     private final Set<UUID> coreHydratedIslands = ConcurrentHashMap.newKeySet();
+    private String databaseFallbackReason = "none";
 
     @Override
     public void onEnable() {
@@ -151,6 +152,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         configureSkyblockHook();
 
         DatabaseService.Settings settings = databaseSettings();
+        databaseFallbackReason = "none";
         database = new DatabaseService(this, settings);
         database.open();
         applyCoreApiDatabaseFallback(settings);
@@ -778,6 +780,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-scope", scope);
         metadata.put("database-configured-backend", configuredDatabaseBackendName());
         metadata.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
+        metadata.put("database-fallback-reason", databaseFallbackReason);
         metadata.put("database-config-source", databaseConfigSource());
         metadata.put("database-file", configuredDatabaseFileName());
         metadata.put("database-path", resolveDatabaseFileName());
@@ -936,6 +939,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-scope", databaseScope());
         state.put("database-configured-backend", configuredDatabaseBackendName());
         state.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
+        state.put("database-fallback-reason", databaseFallbackReason);
         state.put("database-config-source", databaseConfigSource());
         state.put("database-path", resolveDatabaseFileName());
         state.put("database-open", Boolean.toString(database != null));
@@ -964,6 +968,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-scope", databaseScope());
         state.put("database-configured-backend", configuredDatabaseBackendName());
         state.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
+        state.put("database-fallback-reason", databaseFallbackReason);
         state.put("database-config-source", databaseConfigSource());
         state.put("database-path", resolveDatabaseFileName());
         state.put("database-open", Boolean.toString(database != null));
@@ -1717,6 +1722,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return;
         }
         if (!settings.fallbackEnabled()) {
+            databaseFallbackReason = cloudIslandsApi == null ? "core-api-cloudislands-api-missing" : "core-api-addon-state-disabled";
             getLogger().warning("Satis CORE_API database backend is active, but CloudIslands addon-state is unavailable and database fallback is disabled.");
             return;
         }
@@ -1729,9 +1735,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             }
         }
         if (fallbackBackend == null) {
+            databaseFallbackReason = cloudIslandsApi == null ? "core-api-cloudislands-api-missing" : "core-api-addon-state-disabled";
             getLogger().warning("Satis CORE_API database backend is active, but no non-CORE_API fallback backend is configured.");
             return;
         }
+        databaseFallbackReason = (cloudIslandsApi == null ? "core-api-cloudislands-api-missing" : "core-api-addon-state-disabled") + "->" + fallbackBackend.name();
         getLogger().warning("Satis CORE_API database backend is unavailable; falling back to " + fallbackBackend + ".");
         database.close();
         database = new DatabaseService(this, new DatabaseService.Settings(
