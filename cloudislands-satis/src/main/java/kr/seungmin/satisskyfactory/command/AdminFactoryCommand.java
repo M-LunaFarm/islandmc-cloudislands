@@ -743,6 +743,15 @@ public final class AdminFactoryCommand {
                         "database-fallback-env",
                         "database-scope",
                         "database-shared",
+                        "runtime-commands-registered",
+                        "runtime-machine-listener-registered",
+                        "runtime-gui-listener-registered",
+                        "runtime-lifecycle-listener-registered",
+                        "runtime-placeholder-registered",
+                        "runtime-machine-ticker-running",
+                        "runtime-maintenance-ticker-running",
+                        "runtime-dirty-save-running",
+                        "runtime-core-api-state-writer",
                         "addon-state-bulk-save-api",
                         "core-api-table-save-mode"
                 ).forEach(key -> {

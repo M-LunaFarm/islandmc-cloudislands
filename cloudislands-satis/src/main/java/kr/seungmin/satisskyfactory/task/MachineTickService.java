@@ -128,6 +128,10 @@ public final class MachineTickService {
         }
     }
 
+    public boolean running() {
+        return task != null;
+    }
+
     public void tick() {
         if (!active.getAsBoolean()) {
             activeMachineQueue.clear();

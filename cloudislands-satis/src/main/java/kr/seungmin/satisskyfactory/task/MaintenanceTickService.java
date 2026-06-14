@@ -42,6 +42,10 @@ public final class MaintenanceTickService {
         }
     }
 
+    public boolean running() {
+        return task != null;
+    }
+
     private void tick() {
         if (!active.getAsBoolean()) {
             return;

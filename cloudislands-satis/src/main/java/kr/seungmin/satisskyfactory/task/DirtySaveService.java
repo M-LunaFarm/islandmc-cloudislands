@@ -59,6 +59,10 @@ public final class DirtySaveService {
         flushSafely();
     }
 
+    public boolean running() {
+        return task != null;
+    }
+
     public void discard() {
         if (task != null) {
             task.cancel();

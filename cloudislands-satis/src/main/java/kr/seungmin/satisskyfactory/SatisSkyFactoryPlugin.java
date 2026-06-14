@@ -310,6 +310,18 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 || featureEnabled("maintenance");
     }
 
+    private void putRuntimeActivityState(Map<String, String> state) {
+        state.put("runtime-commands-registered", Boolean.toString(commandsRegistered));
+        state.put("runtime-machine-listener-registered", Boolean.toString(machineListenerRegistered));
+        state.put("runtime-gui-listener-registered", Boolean.toString(guiListenerRegistered));
+        state.put("runtime-lifecycle-listener-registered", Boolean.toString(lifecycleListenerRegistered));
+        state.put("runtime-placeholder-registered", Boolean.toString(placeholderHook != null));
+        state.put("runtime-machine-ticker-running", Boolean.toString(ticker != null && ticker.running()));
+        state.put("runtime-maintenance-ticker-running", Boolean.toString(maintenanceTicker != null && maintenanceTicker.running()));
+        state.put("runtime-dirty-save-running", Boolean.toString(dirtySaves != null && dirtySaves.running()));
+        state.put("runtime-core-api-state-writer", Boolean.toString(coreApiState != null));
+    }
+
     private boolean lifecycleStateEnabled() {
         return featureEnabled("machines")
                 || featureEnabled("storage")
@@ -874,6 +886,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("missing-cloudislands-behavior", "disable-plugin");
         metadata.put("satis-enabled-configured", Boolean.toString(enabledByDefault()));
         metadata.put("addon-runtime-enabled", Boolean.toString(addonRuntimeEnabled));
+        putRuntimeActivityState(metadata);
         metadata.put("database-scope", scope);
         metadata.put("database-supported-backends", "SQLITE,POSTGRESQL,MYSQL,MARIADB,CORE_API");
         metadata.put("database-configured-backend", configuredDatabaseBackendName());
@@ -1067,6 +1080,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-env", "CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED,CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER");
         state.put("database-path", resolveDatabaseFileName());
         state.put("database-open", Boolean.toString(database != null));
+        putRuntimeActivityState(state);
         state.put("satis-state-schema", "3");
         state.put("island-position-remap", "center-delta");
         state.put("addon-state-bulk-save-api", "true");
@@ -1110,6 +1124,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-env", "CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED,CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER");
         state.put("database-path", resolveDatabaseFileName());
         state.put("database-open", Boolean.toString(database != null));
+        putRuntimeActivityState(state);
         state.put("satis-state-schema", "3");
         state.put("last-sync-reason", "unregistered");
         state.put("last-sync-at", Instant.now().toString());
