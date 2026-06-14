@@ -91,6 +91,23 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
     }
 
     @Override
+    public Map<String, String> removePrefix(String addonId, String keyPrefix) {
+        if (keyPrefix == null || keyPrefix.isBlank()) {
+            return list(addonId);
+        }
+        String safeAddonId = AddonStateRepository.safeAddonId(addonId);
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("DELETE FROM addon_state WHERE addon_id = ? AND state_key LIKE ? ESCAPE '\\'")) {
+            statement.setString(1, safeAddonId);
+            statement.setString(2, likePrefix(keyPrefix.trim()));
+            statement.executeUpdate();
+            return list(safeAddonId);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to remove addon state prefix", exception);
+        }
+    }
+
+    @Override
     public void clear(String addonId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("DELETE FROM addon_state WHERE addon_id = ?")) {
@@ -181,6 +198,25 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
     }
 
     @Override
+    public Map<String, String> removeIslandPrefix(String addonId, UUID islandId, String keyPrefix) {
+        if (keyPrefix == null || keyPrefix.isBlank()) {
+            return listIsland(addonId, islandId);
+        }
+        String safeAddonId = AddonStateRepository.safeAddonId(addonId);
+        UUID safeIslandId = AddonStateRepository.safeIslandId(islandId);
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("DELETE FROM addon_island_state WHERE addon_id = ? AND island_id = ? AND state_key LIKE ? ESCAPE '\\'")) {
+            statement.setString(1, safeAddonId);
+            statement.setObject(2, safeIslandId);
+            statement.setString(3, likePrefix(keyPrefix.trim()));
+            statement.executeUpdate();
+            return listIsland(safeAddonId, safeIslandId);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to remove addon island state prefix", exception);
+        }
+    }
+
+    @Override
     public void clearIsland(String addonId, UUID islandId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("DELETE FROM addon_island_state WHERE addon_id = ? AND island_id = ?")) {
@@ -203,6 +239,13 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
             }
         });
         return Map.copyOf(safe);
+    }
+
+    private String likePrefix(String value) {
+        return value
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_") + "%";
     }
 
     private void ensureKeyCapacity(Connection connection, String addonId, Iterable<String> keys) throws SQLException {

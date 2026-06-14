@@ -435,12 +435,7 @@ public final class CloudIslandsCoreApplication {
             try {
                 String safeTable = safeTableName(table);
                 String prefix = tableStatePrefix(safeTable);
-                Map<String, String> state = addonStates.list(addonId);
-                state.keySet().stream()
-                        .filter(key -> key.startsWith(prefix))
-                        .toList()
-                        .forEach(key -> addonStates.remove(addonId, key));
-                Map<String, String> updated = addonStates.list(addonId);
+                Map<String, String> updated = addonStates.removePrefix(addonId, prefix);
                 audit.log(new UUID(0L, 0L), "API", "ADDON_TABLE_STATE_CLEAR", "ADDON", addonId, Map.of("table", safeTable));
                 events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "operation", "TABLE_CLEAR", "table", safeTable));
                 write(exchange, 202, addonStateJson(updated));
@@ -565,12 +560,7 @@ public final class CloudIslandsCoreApplication {
             try {
                 String safeTable = safeTableName(table);
                 String prefix = tableStatePrefix(safeTable);
-                Map<String, String> state = addonStates.listIsland(addonId, islandId);
-                state.keySet().stream()
-                        .filter(key -> key.startsWith(prefix))
-                        .toList()
-                        .forEach(key -> addonStates.removeIsland(addonId, islandId, key));
-                Map<String, String> updated = addonStates.listIsland(addonId, islandId);
+                Map<String, String> updated = addonStates.removeIslandPrefix(addonId, islandId, prefix);
                 audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_TABLE_STATE_CLEAR", "ADDON", addonId, Map.of("islandId", islandId.toString(), "table", safeTable));
                 events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", "TABLE_CLEAR", "table", safeTable));
                 write(exchange, 202, addonStateJson(updated));

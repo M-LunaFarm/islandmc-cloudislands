@@ -43,6 +43,18 @@ public final class InMemoryAddonStateRepository implements AddonStateRepository 
     }
 
     @Override
+    public Map<String, String> removePrefix(String addonId, String keyPrefix) {
+        String safeAddonId = AddonStateRepository.safeAddonId(addonId);
+        Map<String, String> state = states.get(safeAddonId);
+        if (state == null || keyPrefix == null || keyPrefix.isBlank()) {
+            return list(addonId);
+        }
+        String safePrefix = keyPrefix.trim();
+        state.keySet().removeIf(key -> key.startsWith(safePrefix));
+        return Map.copyOf(state);
+    }
+
+    @Override
     public void clear(String addonId) {
         states.remove(AddonStateRepository.safeAddonId(addonId));
     }
@@ -78,6 +90,18 @@ public final class InMemoryAddonStateRepository implements AddonStateRepository 
             return listIsland(addonId, islandId);
         }
         state.remove(AddonStateRepository.safeKey(key));
+        return Map.copyOf(state);
+    }
+
+    @Override
+    public Map<String, String> removeIslandPrefix(String addonId, UUID islandId, String keyPrefix) {
+        String stateId = islandStateId(addonId, islandId);
+        Map<String, String> state = islandStates.get(stateId);
+        if (state == null || keyPrefix == null || keyPrefix.isBlank()) {
+            return listIsland(addonId, islandId);
+        }
+        String safePrefix = keyPrefix.trim();
+        state.keySet().removeIf(key -> key.startsWith(safePrefix));
         return Map.copyOf(state);
     }
 
