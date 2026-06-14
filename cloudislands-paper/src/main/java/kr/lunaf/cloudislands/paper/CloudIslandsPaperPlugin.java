@@ -212,7 +212,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             island.setTabCompleter(islandController);
             getServer().getPluginManager().registerEvents(islandController, this);
         }
-        MeteredIslandStorage storage = role == AgentRole.ISLAND_NODE ? new MeteredIslandStorage(PaperStorageFactory.create(this, getConfig())) : null;
+        MeteredIslandStorage storage = role == AgentRole.ISLAND_NODE ? new MeteredIslandStorage(PaperStorageFactory.create(this, getConfig()), PaperStorageFactory.backendName(getConfig())) : null;
         String supportedTemplates = String.join(",", getConfig().getStringList("node.supported-templates"));
         if (supportedTemplates.isBlank()) {
             supportedTemplates = getConfig().getString("node.supported-template", "*");
@@ -391,6 +391,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         double storageUploadSeconds = storage == null ? 0.0D : storage.lastUploadSeconds();
         double storageDownloadSeconds = storage == null ? 0.0D : storage.lastDownloadSeconds();
         long storageFailures = storage == null ? 0L : storage.operationFailures();
+        String storageBackend = storage == null ? "NONE" : storage.backend();
         boolean forwardingRequired = configBoolean("security.require-velocity-forwarding", true);
         boolean forwardingSecretConfigured = !resolveEnv(getConfig().getString("security.forwarding-secret", "")).isBlank();
         boolean routeSessionEnforced = configBoolean("security.enforce-route-session", true) || configBoolean("routing.require-route-session", true);
@@ -409,6 +410,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_storage_upload_seconds{node=\"" + nodeId + "\"} " + storageUploadSeconds + "\n"
             + "cloudislands_storage_download_seconds{node=\"" + nodeId + "\"} " + storageDownloadSeconds + "\n"
             + "cloudislands_storage_operation_failures_total{node=\"" + nodeId + "\"} " + storageFailures + "\n"
+            + "cloudislands_storage_backend{node=\"" + nodeId + "\",backend=\"" + storageBackend + "\"} " + (storage == null ? 0 : 1) + "\n"
             + "cloudislands_island_save_seconds{node=\"" + nodeId + "\"} " + storageUploadSeconds + "\n"
             + "cloudislands_island_activation_seconds{node=\"" + nodeId + "\"} " + storageDownloadSeconds + "\n"
             + "cloudislands_island_snapshot_seconds{node=\"" + nodeId + "\"} " + storageUploadSeconds + "\n"
@@ -461,6 +463,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";localCacheInvalidations=" + (localCaches == null ? 0L : localCaches.invalidationsTotal())
             + ";permissionCacheHitRatio=" + agent.permissionCache().hitRatio()
             + ";permissionChecks=" + agent.permissionCache().lookupCount()
+            + ";storageBackend=" + (storage == null ? "NONE" : storage.backend())
             + ";storageUploadSeconds=" + (storage == null ? 0.0D : storage.lastUploadSeconds())
             + ";storageDownloadSeconds=" + (storage == null ? 0.0D : storage.lastDownloadSeconds())
             + ";storageHealthCheckFailures=" + (storage == null ? 0L : storage.healthCheckFailures())

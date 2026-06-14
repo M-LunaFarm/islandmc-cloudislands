@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 
 public final class MeteredIslandStorage implements IslandStorage {
     private final IslandStorage delegate;
+    private final String backend;
     private volatile double lastUploadSeconds;
     private volatile double lastDownloadSeconds;
     private final AtomicLong healthCheckFailures = new AtomicLong();
@@ -18,7 +19,16 @@ public final class MeteredIslandStorage implements IslandStorage {
     private final AtomicLong operationFailures = new AtomicLong();
 
     public MeteredIslandStorage(IslandStorage delegate) {
+        this(delegate, delegate == null ? "UNKNOWN" : delegate.getClass().getSimpleName());
+    }
+
+    public MeteredIslandStorage(IslandStorage delegate, String backend) {
         this.delegate = delegate;
+        this.backend = backend == null || backend.isBlank() ? "UNKNOWN" : backend.trim().toUpperCase(java.util.Locale.ROOT);
+    }
+
+    public String backend() {
+        return backend;
     }
 
     public double lastUploadSeconds() {

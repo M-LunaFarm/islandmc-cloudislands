@@ -11,8 +11,8 @@ public final class PaperStorageFactory {
     private PaperStorageFactory() {}
 
     public static IslandStorage create(Plugin plugin, FileConfiguration config) {
-        String type = config.getString("storage.type", "LOCAL");
-        if ("S3".equalsIgnoreCase(type)) {
+        String backend = backendName(config);
+        if ("S3".equals(backend)) {
             return new S3IslandStorage(
                 URI.create(config.getString("storage.endpoint", "http://minio.internal:9000")),
                 config.getString("storage.bucket", "cloudislands"),
@@ -23,6 +23,11 @@ public final class PaperStorageFactory {
             );
         }
         return new LocalIslandStorage(plugin.getDataFolder().toPath().resolve(config.getString("storage.local-path", "islands-storage")));
+    }
+
+    public static String backendName(FileConfiguration config) {
+        String type = config.getString("storage.type", "LOCAL");
+        return "S3".equalsIgnoreCase(type) ? "S3" : "LOCAL";
     }
 
     private static String envOrConfig(String envName, String configured) {
