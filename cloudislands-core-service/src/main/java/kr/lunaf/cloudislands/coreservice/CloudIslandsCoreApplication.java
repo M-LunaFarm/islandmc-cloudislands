@@ -2343,6 +2343,9 @@ public final class CloudIslandsCoreApplication {
             + "\"effectiveEventBusMode\":\"" + (config.redisEvents() ? "REDIS" : "IN_MEMORY") + "\","
             + "\"coreJdbcRepositoriesEnabled\":" + config.jdbcRepositories() + ","
             + "\"coreJdbcJobsEnabled\":" + config.jdbcJobs() + ","
+            + "\"databaseBackend\":\"" + escape(jdbcBackend(config.jdbcUrl())) + "\","
+            + "\"coreJdbcSupported\":" + coreJdbcSupported(config.jdbcUrl()) + ","
+            + "\"coreJdbcFallbackReason\":\"" + escape(coreJdbcFallbackReason(config)) + "\","
             + "\"databasePoolSize\":" + config.databasePoolSize() + ","
             + "\"storageType\":\"" + escape(config.storageType()) + "\","
             + "\"islandPool\":\"" + escape(config.islandPool()) + "\","
@@ -2365,6 +2368,37 @@ public final class CloudIslandsCoreApplication {
 
     private static String migrationDisabledJson() {
         return "{\"code\":\"MIGRATION_DISABLED\",\"state\":\"DISABLED\",\"message\":\"SuperiorSkyblock2 migration is disabled by config\"}";
+    }
+
+    private static String jdbcBackend(String jdbcUrl) {
+        if (jdbcUrl == null || jdbcUrl.isBlank()) {
+            return "NONE";
+        }
+        String value = jdbcUrl.toLowerCase(Locale.ROOT);
+        if (value.startsWith("jdbc:postgresql:")) {
+            return "POSTGRESQL";
+        }
+        if (value.startsWith("jdbc:mysql:")) {
+            return "MYSQL";
+        }
+        if (value.startsWith("jdbc:mariadb:")) {
+            return "MARIADB";
+        }
+        return "UNKNOWN";
+    }
+
+    private static boolean coreJdbcSupported(String jdbcUrl) {
+        return jdbcUrl != null && jdbcUrl.toLowerCase(Locale.ROOT).startsWith("jdbc:postgresql:");
+    }
+
+    private static String coreJdbcFallbackReason(CoreServiceConfig config) {
+        if (coreJdbcSupported(config.jdbcUrl())) {
+            return "";
+        }
+        if ("JDBC".equalsIgnoreCase(config.repositoryMode()) || "JDBC".equalsIgnoreCase(config.jobQueueMode())) {
+            return "CORE_JDBC_POSTGRESQL_ONLY";
+        }
+        return "CORE_JDBC_DISABLED_FOR_" + jdbcBackend(config.jdbcUrl());
     }
 
     private static void logSecurityPosture(CoreServiceConfig config) {
