@@ -890,6 +890,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("legacy-satismc-import-mode", "cross-backend-sqlite-copy");
         metadata.put("island-position-remap", "center-delta");
         metadata.put("addon-state-sync", Boolean.toString(configuredFeatureEnabled("addon-state")));
+        metadata.put("addon-state-bulk-save-api", "true");
+        metadata.put("core-api-table-save-mode", "bulk-save-with-table-prefix");
         metadata.put("feature-aliases", featureAliasesMetadata());
         metadata.put("feature-dependencies", featureDependenciesMetadata());
         metadata.put("configured-features", featureState(featureSnapshot()));
@@ -1050,6 +1052,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-open", Boolean.toString(database != null));
         state.put("satis-state-schema", "3");
         state.put("island-position-remap", "center-delta");
+        state.put("addon-state-bulk-save-api", "true");
+        state.put("core-api-table-save-mode", "bulk-save-with-table-prefix");
         state.put("configured-features", featureState(snapshot.configuredFeatures()));
         state.put("effective-features", featureState(snapshot.features()));
         state.put("operational-features", operationalFeatureState(snapshot.features()));

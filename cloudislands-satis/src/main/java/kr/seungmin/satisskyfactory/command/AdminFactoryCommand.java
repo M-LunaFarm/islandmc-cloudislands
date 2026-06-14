@@ -714,7 +714,9 @@ public final class AdminFactoryCommand {
                         "database-pool-source",
                         "database-fallback-source",
                         "database-scope",
-                        "database-shared"
+                        "database-shared",
+                        "addon-state-bulk-save-api",
+                        "core-api-table-save-mode"
                 ).forEach(key -> {
                     String value = metadata.get(key);
                     if (value != null && !value.isBlank()) {
