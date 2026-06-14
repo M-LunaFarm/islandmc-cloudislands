@@ -946,6 +946,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("addon-state-bulk-save-methods", "bulkSaveState,bulkSaveIslandState");
         metadata.put("core-api-table-save-mode", "bulk-save-with-table-prefix");
         metadata.put("feature-aliases", featureAliasesMetadata());
+        metadata.put("feature-alias-disabled", disabledFeatureAliases());
         metadata.put("feature-dependencies", featureDependenciesMetadata());
         metadata.put("configured-features", featureState(featureSnapshot()));
         metadata.put("effective-features", operationalFeatureState(featureSnapshot()));
@@ -1017,6 +1018,18 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private String featureDependenciesMetadata() {
         return "resource-nodes:machines,generators:factories,market:storage,contracts:storage,missions:storage";
+    }
+
+    private String disabledFeatureAliases() {
+        List<String> disabled = new ArrayList<>();
+        FEATURE_ALIASES.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> {
+                    if (configFeatureDefined(entry.getKey()) && !configFeature(entry.getKey())) {
+                        disabled.add(entry.getKey() + "->" + entry.getValue());
+                    }
+                });
+        return disabled.isEmpty() ? "none" : String.join(",", disabled);
     }
 
     @Override
@@ -1125,6 +1138,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("configured-features", featureState(snapshot.configuredFeatures()));
         state.put("effective-features", featureState(snapshot.features()));
         state.put("operational-features", operationalFeatureState(snapshot.features()));
+        state.put("feature-alias-disabled", disabledFeatureAliases());
         state.put("dependency-disabled-features", dependencyDisabledFeatures(snapshot));
         state.put("feature-warnings", featureWarnings(snapshot));
         state.put("last-sync-reason", reason == null || reason.isBlank() ? "unknown" : reason);
