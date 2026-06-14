@@ -59,6 +59,10 @@ setup:
       port: 0
       database: ""
       options: ""
+      username: ""
+      password: ""
+      max-pool-size: 0
+      connection-timeout-ms: 0
     mysql:
       # url wins over host/port/database/options when set.
       url: ""
@@ -66,6 +70,10 @@ setup:
       port: 0
       database: ""
       options: ""
+      username: ""
+      password: ""
+      max-pool-size: 0
+      connection-timeout-ms: 0
     mariadb:
       # url wins over host/port/database/options when set.
       url: ""
@@ -73,6 +81,10 @@ setup:
       port: 0
       database: ""
       options: ""
+      username: ""
+      password: ""
+      max-pool-size: 0
+      connection-timeout-ms: 0
 settings:
   language: ko_kr
   debug: false

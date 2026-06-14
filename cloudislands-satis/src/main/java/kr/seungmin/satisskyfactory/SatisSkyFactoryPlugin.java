@@ -2046,12 +2046,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 jdbcUrl("postgresql", "jdbc:postgresql", 5432),
                 jdbcUrl("mysql", "jdbc:mysql", 3306),
                 jdbcUrl("mariadb", "jdbc:mariadb", 3306),
-                firstNonBlank(System.getenv("CLOUDISLANDS_SATIS_DB_USERNAME"),
-                        firstNonBlank(configs.main().getString("setup.database.jdbc.username", ""), configs.main().getString("database.jdbc.username", ""))),
-                firstNonBlank(System.getenv("CLOUDISLANDS_SATIS_DB_PASSWORD"),
-                        firstNonBlank(configs.main().getString("setup.database.jdbc.password", ""), configs.main().getString("database.jdbc.password", ""))),
-                Math.max(1, envInt("CLOUDISLANDS_SATIS_DB_MAX_POOL_SIZE", setupInt("database.jdbc.max-pool-size", 8))),
-                Math.max(1000L, envLong("CLOUDISLANDS_SATIS_DB_CONNECTION_TIMEOUT_MS", setupLong("database.jdbc.connection-timeout-ms", 5000L))),
+                databaseUsername(),
+                databasePassword(),
+                Math.max(1, databaseMaxPoolSize(8)),
+                Math.max(1000L, databaseConnectionTimeoutMillis(5000L)),
                 envBoolean("CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED", setupBoolean("database.fallback.enabled", true)),
                 databaseFallbackOrder(true)
         );
@@ -2241,6 +2239,66 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             url += "?" + options.trim();
         }
         return url;
+    }
+
+    private String databaseUsername() {
+        String env = System.getenv("CLOUDISLANDS_SATIS_DB_USERNAME");
+        if (env != null && !env.isBlank()) {
+            return env.trim();
+        }
+        return firstNonBlank(typedDatabaseSetting("username"),
+                firstNonBlank(configs.main().getString("setup.database.jdbc.username", ""), configs.main().getString("database.jdbc.username", "")));
+    }
+
+    private String databasePassword() {
+        String env = System.getenv("CLOUDISLANDS_SATIS_DB_PASSWORD");
+        if (env != null && !env.isBlank()) {
+            return env.trim();
+        }
+        return firstNonBlank(typedDatabaseSetting("password"),
+                firstNonBlank(configs.main().getString("setup.database.jdbc.password", ""), configs.main().getString("database.jdbc.password", "")));
+    }
+
+    private int databaseMaxPoolSize(int fallback) {
+        int env = envInt("CLOUDISLANDS_SATIS_DB_MAX_POOL_SIZE", -1);
+        if (env > 0) {
+            return env;
+        }
+        int typed = typedDatabaseInt("max-pool-size", 0);
+        return typed > 0 ? typed : setupInt("database.jdbc.max-pool-size", fallback);
+    }
+
+    private long databaseConnectionTimeoutMillis(long fallback) {
+        long env = envLong("CLOUDISLANDS_SATIS_DB_CONNECTION_TIMEOUT_MS", -1L);
+        if (env > 0L) {
+            return env;
+        }
+        long typed = typedDatabaseLong("connection-timeout-ms", 0L);
+        return typed > 0L ? typed : setupLong("database.jdbc.connection-timeout-ms", fallback);
+    }
+
+    private String typedDatabaseSetting(String key) {
+        String section = databaseSetupSection();
+        return section.isBlank() ? "" : configs.main().getString("setup.database." + section + "." + key, "");
+    }
+
+    private int typedDatabaseInt(String key, int fallback) {
+        String section = databaseSetupSection();
+        return section.isBlank() ? fallback : configs.main().getInt("setup.database." + section + "." + key, fallback);
+    }
+
+    private long typedDatabaseLong(String key, long fallback) {
+        String section = databaseSetupSection();
+        return section.isBlank() ? fallback : configs.main().getLong("setup.database." + section + "." + key, fallback);
+    }
+
+    private String databaseSetupSection() {
+        return switch (configuredDatabaseBackendName()) {
+            case "POSTGRESQL" -> "postgresql";
+            case "MYSQL" -> "mysql";
+            case "MARIADB" -> "mariadb";
+            default -> "";
+        };
     }
 
     private String firstNonBlank(String first, String second) {
@@ -2434,6 +2492,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if ((envUsername != null && !envUsername.isBlank()) || (envPassword != null && !envPassword.isBlank())) {
             return "CLOUDISLANDS_SATIS_DB_USERNAME/PASSWORD";
         }
+        String typedSection = databaseSetupSection();
+        if (!typedSection.isBlank()
+                && (!configs.main().getString("setup.database." + typedSection + ".username", "").isBlank()
+                || !configs.main().getString("setup.database." + typedSection + ".password", "").isBlank())) {
+            return "setup.database." + typedSection + ".username/password";
+        }
+
         String setupUsername = configs.main().getString("setup.database.jdbc.username", "");
         String setupPassword = configs.main().getString("setup.database.jdbc.password", "");
         if ((setupUsername != null && !setupUsername.isBlank()) || (setupPassword != null && !setupPassword.isBlank())) {
@@ -2465,6 +2530,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (envPresent("CLOUDISLANDS_SATIS_DB_MAX_POOL_SIZE") || envPresent("CLOUDISLANDS_SATIS_DB_CONNECTION_TIMEOUT_MS")) {
             return "CLOUDISLANDS_SATIS_DB_MAX_POOL_SIZE/CONNECTION_TIMEOUT_MS";
         }
+        String typedSection = databaseSetupSection();
+        if (!typedSection.isBlank()
+                && (configs.main().getInt("setup.database." + typedSection + ".max-pool-size", 0) > 0
+                || configs.main().getLong("setup.database." + typedSection + ".connection-timeout-ms", 0L) > 0L)) {
+            return "setup.database." + typedSection + ".pool";
+        }
+
         if (configs.main().getInt("setup.database.jdbc.max-pool-size", 0) > 0
                 || configs.main().getLong("setup.database.jdbc.connection-timeout-ms", 0L) > 0L) {
             return "setup.database.jdbc.pool";
