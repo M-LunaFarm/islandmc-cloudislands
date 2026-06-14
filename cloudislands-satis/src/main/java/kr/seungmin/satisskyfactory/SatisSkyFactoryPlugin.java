@@ -1724,7 +1724,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (database == null || settings == null || database.activeBackend() != DatabaseService.StorageBackend.CORE_API) {
             return;
         }
-        if (cloudIslandsApi != null && featureEnabled("addon-state")) {
+        if (cloudIslandsApi != null && configuredFeatureEnabled("addon-state")) {
             return;
         }
         if (!settings.fallbackEnabled()) {
