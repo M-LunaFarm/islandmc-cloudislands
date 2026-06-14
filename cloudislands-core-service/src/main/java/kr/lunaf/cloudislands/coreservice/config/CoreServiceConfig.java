@@ -191,15 +191,18 @@ public record CoreServiceConfig(
         if (!explicit.isBlank()) {
             return explicit;
         }
-        String type = setting(config, "setup.database-type", "");
+        String type = configuredDatabaseType(config);
+        if (!coreJdbcTypeSupported(type) && !type.equals("MYSQL") && !type.equals("MARIADB")) {
+            return "";
+        }
         String host = setting(config, "setup.database-host", "");
         String database = setting(config, "setup.database-name", "");
         if (type.isBlank() || host.isBlank() || database.isBlank()) {
-            return fallback;
+            return coreJdbcTypeSupported(type) ? fallback : "";
         }
         String prefix = jdbcPrefix(type);
         if (prefix.isBlank()) {
-            return fallback;
+            return "";
         }
         int port = setupInteger(config, "database-port", defaultDatabasePort(type));
         String url = prefix + "://" + host.trim() + ":" + port + "/" + database.trim();
