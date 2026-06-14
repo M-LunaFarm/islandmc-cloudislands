@@ -178,6 +178,10 @@ public interface IslandAddonService {
         return state(id);
     }
 
+    default CompletableFuture<Map<String, String>> putTableState(String id, String table, Map<String, String> values) {
+        return putState(id, tableStateValues(table, values));
+    }
+
     default CompletableFuture<Optional<String>> putState(String id, String key, String value) {
         if (key == null || value == null) {
             return CompletableFuture.completedFuture(Optional.empty());
@@ -208,6 +212,10 @@ public interface IslandAddonService {
         return islandState(id, islandId);
     }
 
+    default CompletableFuture<Map<String, String>> putIslandTableState(String id, UUID islandId, String table, Map<String, String> values) {
+        return putIslandState(id, islandId, tableStateValues(table, values));
+    }
+
     default CompletableFuture<Optional<String>> putIslandState(String id, UUID islandId, String key, String value) {
         if (key == null || value == null) {
             return CompletableFuture.completedFuture(Optional.empty());
@@ -227,5 +235,36 @@ public interface IslandAddonService {
         return get(id).thenApply(addon -> addon
             .map(snapshot -> snapshot.enabled() && snapshot.featureEnabled(feature))
             .orElse(false));
+    }
+
+    private static Map<String, String> tableStateValues(String table, Map<String, String> values) {
+        if (values == null || values.isEmpty()) {
+            return Map.of();
+        }
+        String safeTable = safeTableName(table);
+        Map<String, String> state = new HashMap<>();
+        values.forEach((key, value) -> {
+            if (key != null && !key.isBlank() && value != null) {
+                state.put("table/" + safeTable + "/" + key.trim(), value);
+            }
+        });
+        return Map.copyOf(state);
+    }
+
+    private static String safeTableName(String table) {
+        String value = table == null ? "" : table.trim();
+        if (value.startsWith("table/")) {
+            value = value.substring("table/".length());
+        }
+        while (value.startsWith("/")) {
+            value = value.substring(1);
+        }
+        while (value.endsWith("/")) {
+            value = value.substring(0, value.length() - 1);
+        }
+        if (value.isBlank()) {
+            throw new IllegalArgumentException("Addon state table is required");
+        }
+        return value;
     }
 }
