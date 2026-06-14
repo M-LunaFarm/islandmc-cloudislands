@@ -770,8 +770,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 && settings.backend() == DatabaseService.StorageBackend.CORE_API
                 && database != null
                 && database.activeBackend() != DatabaseService.StorageBackend.CORE_API
-                && cloudIslandsApi != null
-                && configuredFeatureEnabled("addon-state");
+                && coreApiAddonStateAvailable();
     }
 
     private void configureCoreApiStateWriters() {
@@ -1807,6 +1806,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return snapshot.configuredFeatures().getOrDefault("addon-state", configuredFeatureEnabled("addon-state"));
     }
 
+    private boolean coreApiAddonStateAvailable() {
+        return cloudIslandsApi != null && featureEnabled("addon-state");
+    }
+
     private String featureWarnings(CloudIslandsAddonSnapshot snapshot) {
         List<String> warnings = new ArrayList<>();
         String effectiveWarnings = featureWarnings(snapshot.features());
@@ -2101,7 +2104,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (database == null || settings == null || database.activeBackend() != DatabaseService.StorageBackend.CORE_API) {
             return;
         }
-        if (cloudIslandsApi != null && configuredFeatureEnabled("addon-state")) {
+        if (coreApiAddonStateAvailable()) {
             return;
         }
         if (!settings.fallbackEnabled()) {
