@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.api.addon;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
+import kr.lunaf.cloudislands.api.event.AddonStateChangeEvent;
 import kr.lunaf.cloudislands.api.event.CloudEvent;
 import kr.lunaf.cloudislands.api.event.CoreCacheClearEvent;
 import kr.lunaf.cloudislands.api.event.CoreReloadEvent;
@@ -140,6 +141,8 @@ public interface CloudIslandsAddon {
             onRouteTicketCleared(routeTicketCleared);
         } else if (event instanceof IslandTemplateChangeEvent templateChanged) {
             onIslandTemplateChanged(templateChanged);
+        } else if (event instanceof AddonStateChangeEvent addonStateChanged) {
+            onAddonStateChanged(addonStateChanged);
         } else if (event instanceof CoreCacheClearEvent cacheCleared) {
             onCoreCacheCleared(cacheCleared);
         } else if (event instanceof CoreReloadEvent coreReloaded) {
@@ -244,6 +247,9 @@ public interface CloudIslandsAddon {
     }
 
     default void onIslandTemplateChanged(IslandTemplateChangeEvent event) {
+    }
+
+    default void onAddonStateChanged(AddonStateChangeEvent event) {
     }
 
     default void onCoreCacheCleared(CoreCacheClearEvent event) {

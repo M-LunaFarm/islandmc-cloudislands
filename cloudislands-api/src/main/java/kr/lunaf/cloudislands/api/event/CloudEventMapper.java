@@ -55,6 +55,7 @@ public final class CloudEventMapper {
             case "ROUTE_TICKET_FAILED" -> Optional.of(new RouteTicketFailedEvent(uuid(fields, "ticketId"), uuid(fields, "islandId"), uuid(fields, "playerUuid"), text(fields, "action"), text(fields, "targetNode"), text(fields, "reason"), occurredAt));
             case "ROUTE_TICKET_CLEARED" -> Optional.of(new RouteTicketClearedEvent(uuid(fields, "ticketId"), uuid(fields, "playerUuid"), text(fields, "reason"), bool(fields, "clearedSession"), bool(fields, "clearedTicket"), occurredAt));
             case "ISLAND_TEMPLATE_CHANGED" -> Optional.of(new IslandTemplateChangeEvent(text(fields, "templateId"), nullableBool(fields, "enabled"), text(fields, "operation"), text(fields, "minNodeVersion"), occurredAt));
+            case "ADDON_STATE_CHANGED" -> Optional.of(new AddonStateChangeEvent(text(fields, "addonId"), uuid(fields, "islandId"), text(fields, "operation"), text(fields, "key"), text(fields, "table"), intValue(fields, "keys"), intValue(fields, "tables"), occurredAt));
             case "CORE_CACHE_CLEARED" -> Optional.of(new CoreCacheClearEvent(text(fields, "scope"), intValue(fields, "sessions"), intValue(fields, "tickets"), intValue(fields, "redisKeys"), occurredAt));
             case "CORE_RELOADED" -> Optional.of(new CoreReloadEvent(intValue(fields, "clearedSessions"), intValue(fields, "clearedTickets"), intValue(fields, "clearedRedisKeys"), occurredAt));
             default -> Optional.empty();
