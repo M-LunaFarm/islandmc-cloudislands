@@ -1238,6 +1238,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("core-api-table-save-mode", "bulk-save-with-table-prefix-and-configurable-flattened-fallback");
         metadata.put("core-api-bulk-status-keys", "last-core-bulk-publish-status,last-core-bulk-publish-mode,last-core-bulk-publish-error,last-core-global-bulk-publish-status,last-core-global-bulk-publish-mode,last-core-global-bulk-publish-error");
         metadata.put("core-api-bulk-fallback-visibility", "addon-state-records-success-fallback-and-failed-bulk-publish-status");
+        metadata.put("lifecycle-event-source", "CloudIslandsAddon.onCloudEvent");
+        metadata.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,restore,reset,recovery,repair,runtime,pre-visit,visit,member-join,member-left,member-role,member,role,ownership,flag,permission-check,permission,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot");
+        metadata.put("lifecycle-event-actions", "pre-create=diagnostic,activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete-and-reset=purge,recovery=suspend,member-role-ownership-permission-bank-biome-home-warp-level-worth=synchronize,permission-check-and-pre-visit=diagnostic");
+        metadata.put("lifecycle-event-storage-policy", "cloudislands-island-uuid-stable-state-remap-active-world");
         metadata.put("route-event-source", "CloudIslandsAddon.route-ticket-events");
         metadata.put("route-event-policy", "diagnostic-state-only-no-routing-authority");
         metadata.put("route-event-feature-gate", "features.route-events&&features.addon-state&&CloudIslandsApi");
@@ -1529,6 +1533,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("addon-state-table-key-value-bulk-island-endpoint", "/v1/addons/islands/state/table/key-value/bulk");
         state.put("addon-state-bulk-save-methods", "bulkSaveState,tableKeyValueBulkSaveState,tableKeyValueBulkSaveState(table),bulkSaveTableKeyValueState,bulkSaveTableKeyValueState(table),tableKeyValueBulkSaveAliasState,tableKeyValueBulkState,bulkTableKeyValueState,bulkSaveIslandState,tableKeyValueBulkSaveIslandState,tableKeyValueBulkSaveIslandState(table),bulkSaveIslandTableKeyValueState,bulkSaveIslandTableKeyValueState(table),tableKeyValueBulkSaveAliasIslandState,tableKeyValueBulkIslandState,bulkIslandTableKeyValueState");
         state.put("core-api-table-save-mode", "bulk-save-with-table-prefix-and-configurable-flattened-fallback");
+        state.put("lifecycle-event-source", "CloudIslandsAddon.onCloudEvent");
+        state.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,restore,reset,recovery,repair,runtime,pre-visit,visit,member-join,member-left,member-role,member,role,ownership,flag,permission-check,permission,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot");
+        state.put("lifecycle-event-actions", "pre-create=diagnostic,activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete-and-reset=purge,recovery=suspend,member-role-ownership-permission-bank-biome-home-warp-level-worth=synchronize,permission-check-and-pre-visit=diagnostic");
+        state.put("lifecycle-event-storage-policy", "cloudislands-island-uuid-stable-state-remap-active-world");
         state.put("route-event-source", "CloudIslandsAddon.route-ticket-events");
         state.put("route-event-policy", "diagnostic-state-only-no-routing-authority");
         state.put("route-event-feature-gate", "features.route-events&&features.addon-state&&CloudIslandsApi");
