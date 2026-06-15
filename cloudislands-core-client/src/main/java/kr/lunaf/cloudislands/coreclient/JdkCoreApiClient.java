@@ -84,6 +84,46 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> getIsland(UUID islandId) {
+        return get("/v1/islands/" + islandId);
+    }
+
+    @Override
+    public CompletableFuture<String> getIslandByOwner(UUID ownerUuid) {
+        return get("/v1/islands/by-owner/" + ownerUuid);
+    }
+
+    @Override
+    public CompletableFuture<String> getIslandMembers(UUID islandId) {
+        return get("/v1/islands/" + islandId + "/members");
+    }
+
+    @Override
+    public CompletableFuture<String> getIslandRuntime(UUID islandId) {
+        return get("/v1/islands/" + islandId + "/runtime");
+    }
+
+    @Override
+    public CompletableFuture<String> getIslandFlags(UUID islandId) {
+        return get("/v1/islands/" + islandId + "/flags");
+    }
+
+    @Override
+    public CompletableFuture<String> getPlayerProfile(UUID playerUuid) {
+        return get("/v1/players/" + playerUuid + "/profile");
+    }
+
+    @Override
+    public CompletableFuture<String> getPlayerIsland(UUID playerUuid) {
+        return get("/v1/players/" + playerUuid + "/island");
+    }
+
+    @Override
+    public CompletableFuture<String> getJoinedIslands(UUID playerUuid) {
+        return get("/v1/players/" + playerUuid + "/islands");
+    }
+
+    @Override
     public CompletableFuture<Void> setIslandName(UUID islandId, UUID actorUuid, String name) {
         return setIslandNameResult(islandId, actorUuid, name).thenApply(_body -> null);
     }
@@ -1200,6 +1240,17 @@ public final class JdkCoreApiClient implements CoreApiClient {
             .header("Authorization", "Bearer " + authToken)
             .header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(body));
+        addAdminHeaders(builder, path);
+        HttpRequest request = builder.build();
+        return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+            .thenApply(response -> response.statusCode() >= 200 && response.statusCode() < 300 ? response.body() : "");
+    }
+
+    private CompletableFuture<String> get(String path) {
+        HttpRequest.Builder builder = HttpRequest.newBuilder(baseUri.resolve(path))
+            .timeout(timeout)
+            .header("Authorization", "Bearer " + authToken)
+            .GET();
         addAdminHeaders(builder, path);
         HttpRequest request = builder.build();
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
