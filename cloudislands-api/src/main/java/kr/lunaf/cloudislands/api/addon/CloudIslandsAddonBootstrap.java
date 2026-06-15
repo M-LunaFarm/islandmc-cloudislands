@@ -10,30 +10,7 @@ public final class CloudIslandsAddonBootstrap {
     private CloudIslandsAddonBootstrap() {}
 
     public static Optional<CloudIslandsApi> findApi() {
-        Optional<CloudIslandsApi> provided = CloudIslandsProvider.get();
-        return provided.isPresent() ? provided : findBukkitServiceApi();
-    }
-
-    private static Optional<CloudIslandsApi> findBukkitServiceApi() {
-        try {
-            Class<?> bukkit = Class.forName("org.bukkit.Bukkit");
-            Object server = bukkit.getMethod("getServer").invoke(null);
-            if (server == null) {
-                return Optional.empty();
-            }
-            Object services = server.getClass().getMethod("getServicesManager").invoke(server);
-            if (services == null) {
-                return Optional.empty();
-            }
-            Object registration = services.getClass().getMethod("getRegistration", Class.class).invoke(services, CloudIslandsApi.class);
-            if (registration == null) {
-                return Optional.empty();
-            }
-            Object provider = registration.getClass().getMethod("getProvider").invoke(registration);
-            return provider instanceof CloudIslandsApi api ? Optional.of(api) : Optional.empty();
-        } catch (ReflectiveOperationException | LinkageError | SecurityException ignored) {
-            return Optional.empty();
-        }
+        return CloudIslandsProvider.get();
     }
 
     public static CompletableFuture<Optional<CloudIslandsAddonSnapshot>> registerIfAvailable(CloudIslandsAddon addon) {
