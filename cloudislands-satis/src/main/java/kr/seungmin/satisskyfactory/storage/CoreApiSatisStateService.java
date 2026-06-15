@@ -57,6 +57,9 @@ public final class CoreApiSatisStateService {
             values.put("core-api-sync-authority", "cloudislands-addon-state");
             values.put("core-api-sync-node-bound", "false");
             values.put("core-api-sync-portability", "portable-across-island-nodes");
+            values.put("core-api-sync-runtime-source", "CloudIslands IslandRuntime");
+            values.put("core-api-sync-remap-policy", "island-uuid-stable-active-world-and-center-volatile");
+            values.put("core-api-sync-remap-key", "islandUuid+activeWorld+activeCenter");
             values.put("core-api-sync-write-policy", "last-confirmed-state-wins");
             values.put("core-api-sync-updated-at", Instant.now().toString());
             values.put("core-api-sync-keys", Integer.toString(values.size() + tableKeys));

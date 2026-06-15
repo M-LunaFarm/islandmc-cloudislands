@@ -359,13 +359,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("island-state-migration-policy", "remap-location-only-preserve-island-uuid");
         state.put("island-state-authority", "cloudislands-core-api");
         state.put("island-state-active-world-source", "cloudislands-runtime");
+        state.put("island-state-active-runtime-source", "CloudIslands IslandRuntime");
         state.put("island-state-location-remap", "active-world-center-delta");
+        state.put("island-state-remap-key", "islandUuid+activeWorld+activeCenter");
         state.put("island-state-failover-policy", "last-confirmed-addon-state-only");
         state.put("island-state-ab-node-scenario", "A-server-to-B-server-preserve-addon-state");
         state.put("island-state-storage-authority", coreApiAddonStateAvailable() ? "cloudislands-addon-state" : databaseScope());
         state.put("island-state-write-fence", "cloudislands-runtime-active-island-only");
         state.put("island-state-duplicate-tick-policy", "single-active-runtime-owner");
         state.put("island-state-reconnect-policy", "reload-by-island-uuid-and-remap-active-world");
+        state.put("island-state-node-handoff-policy", "A-node-save-B-node-restore-by-island-uuid");
     }
 
     private String disabledRuntimeFeatures() {
@@ -1388,6 +1391,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-open", Boolean.toString(database != null));
         state.put("shared-database", Boolean.toString(databaseShared()));
         state.put("schema", "3");
+        state.put("node-bound", "false");
+        state.put("runtime-source", "CloudIslands IslandRuntime");
+        state.put("remap-policy", "island-uuid-stable-active-world-and-center-volatile");
+        state.put("remap-key", "islandUuid+activeWorld+activeCenter");
         state.put("operational-features", operationalFeatureState(effectiveFeatures));
         state.put("updated-at", Instant.now().toString());
         if (!eventNode.isBlank()) {
@@ -2053,6 +2060,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("addon-state-sync-effective", Boolean.toString(featureEnabled("addon-state")));
         state.put("addon-state-sync-available", Boolean.toString(coreApiAddonStateAvailable()));
         state.put("addon-state-sync-policy", "configured-and-effective-feature-plus-cloudislands-api");
+        state.put("addon-state-sync-runtime-source", "CloudIslands IslandRuntime");
+        state.put("addon-state-sync-remap-policy", "island-uuid-stable-active-world-and-center-volatile");
+        state.put("addon-state-sync-node-bound", "false");
     }
 
     private boolean coreApiAddonStateAvailable() {
