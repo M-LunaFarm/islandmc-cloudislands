@@ -2678,30 +2678,29 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private List<String> addonIds() {
         CloudIslandsApi api = CloudIslandsProvider.get().orElse(null);
         if (api == null) {
-            return List.of("cloudislands-satis");
+            return List.of();
         }
         try {
-            List<String> ids = api.addons().list().join().stream()
+            return api.addons().list().join().stream()
                 .map(CloudIslandsAddonSnapshot::id)
                 .toList();
-            return ids.isEmpty() ? List.of("cloudislands-satis") : ids;
         } catch (RuntimeException exception) {
-            return List.of("cloudislands-satis");
+            return List.of();
         }
     }
 
     private List<String> addonFeatureKeys(String addonId) {
         CloudIslandsApi api = CloudIslandsProvider.get().orElse(null);
         if (api == null) {
-            return ADDON_FEATURES;
+            return List.of();
         }
         try {
             return api.addons().get(addonId).join()
                 .map(this::addonFeatureKeys)
                 .filter(features -> !features.isEmpty())
-                .orElse(ADDON_FEATURES);
+                .orElse(List.of());
         } catch (RuntimeException exception) {
-            return ADDON_FEATURES;
+            return List.of();
         }
     }
 

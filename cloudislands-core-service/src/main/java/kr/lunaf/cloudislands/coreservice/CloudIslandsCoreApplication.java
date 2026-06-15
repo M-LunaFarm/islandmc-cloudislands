@@ -2604,7 +2604,7 @@ public final class CloudIslandsCoreApplication {
             + "\"islandNodeRole\":\"runtime-execution-node-only\","
             + "\"islandRoutingModel\":\"route-ticket-to-active-or-best-node\","
             + "\"moduleLayout\":\"api,common,protocol,core-client,core-service,velocity,paper,satis,storage,migration,testkit,bom\","
-            + "\"distributionLayout\":\"plugins=paper+velocity+satis,services=core-api,tools=migration\","
+            + "\"distributionLayout\":\"plugins=paper+velocity,addons=satis,services=core-api,tools=migration\","
             + "\"satisPackaging\":\"official-external-addon\","
             + "\"satisCoreCoupling\":\"optional-addon-no-core-runtime-dependency\","
             + "\"satisAddonRemovalPolicy\":\"core-boots-and-islands-load-without-satis-jar\","
