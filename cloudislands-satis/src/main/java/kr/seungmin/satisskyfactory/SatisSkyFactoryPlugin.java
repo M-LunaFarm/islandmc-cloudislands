@@ -841,6 +841,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         } catch (RuntimeException exception) {
             getLogger().warning("Failed to register CloudIslands Satis addon: " + exception.getMessage());
             addonRuntimeEnabled = false;
+            effectiveFeatures = Map.of();
             return false;
         }
         return true;
