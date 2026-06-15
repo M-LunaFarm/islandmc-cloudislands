@@ -1975,12 +1975,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onRouteSessionPublished(RouteSessionPublishedEvent event) {
-        publishRouteEventState("session-published", event.ticketId(), event.islandId(), event.playerUuid(), event.action(), event.targetNode(), "", "", "", "", event.occurredAt());
+        publishRouteEventState("session-published", event.ticketId(), event.islandId(), event.playerUuid(), event.action(), event.targetNode(), event.targetServerName(), "", "", "", event.occurredAt());
     }
 
     @Override
     public void onRouteTicketConsumed(RouteTicketConsumedGlobalEvent event) {
-        publishRouteEventState("consumed", event.ticketId(), event.islandId(), event.playerUuid(), event.action(), event.targetNode(), "", "", "", "", event.occurredAt());
+        publishRouteEventState("consumed", event.ticketId(), event.islandId(), event.playerUuid(), event.action(), event.targetNode(), event.targetServerName(), "", "", "", event.occurredAt());
     }
 
     @Override

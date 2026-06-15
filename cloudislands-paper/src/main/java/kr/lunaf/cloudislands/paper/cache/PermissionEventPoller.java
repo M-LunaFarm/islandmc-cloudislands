@@ -658,6 +658,7 @@ public final class PermissionEventPoller {
                 uuidField(fields, "playerUuid"),
                 fields.getOrDefault("action", ""),
                 fields.getOrDefault("targetNode", ""),
+                fields.getOrDefault("targetServerName", fields.getOrDefault("targetNode", "")),
                 fields));
             return;
         }
@@ -668,6 +669,7 @@ public final class PermissionEventPoller {
                 uuidField(fields, "playerUuid"),
                 fields.getOrDefault("action", ""),
                 fields.getOrDefault("targetNode", ""),
+                fields.getOrDefault("targetServerName", fields.getOrDefault("targetNode", "")),
                 fields));
             return;
         }

@@ -1372,7 +1372,8 @@ public final class CloudIslandsCoreApplication {
                 "playerUuid", ticket.playerUuid().toString(),
                 "islandId", ticket.islandId().toString(),
                 "action", ticket.action().name(),
-                "targetNode", ticket.targetNode()
+                "targetNode", ticket.targetNode(),
+                "targetServerName", ticket.payload().getOrDefault("targetServerName", ticket.targetNode())
             ));
             write(exchange, 202, ApiResponses.ok(true));
         });

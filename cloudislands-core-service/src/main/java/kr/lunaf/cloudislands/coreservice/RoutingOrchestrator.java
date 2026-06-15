@@ -184,7 +184,8 @@ public final class RoutingOrchestrator {
             "playerUuid", ticket.playerUuid().toString(),
             "islandId", ticket.islandId().toString(),
             "action", ticket.action().name(),
-            "targetNode", ticket.targetNode()
+            "targetNode", ticket.targetNode(),
+            "targetServerName", ticket.payload().getOrDefault("targetServerName", ticket.targetNode())
         )));
         consumed.filter(ticket -> ticket.action() == RouteAction.VISIT).ifPresent(ticket -> events.publish(CloudIslandEventType.ISLAND_VISITED.name(), Map.of(
             "ticketId", ticket.ticketId().toString(),

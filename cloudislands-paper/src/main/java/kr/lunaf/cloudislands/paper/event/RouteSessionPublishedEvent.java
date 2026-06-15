@@ -13,15 +13,21 @@ public final class RouteSessionPublishedEvent extends Event {
     private final UUID playerUuid;
     private final String action;
     private final String targetNode;
+    private final String targetServerName;
     private final Map<String, String> fields;
 
     public RouteSessionPublishedEvent(UUID ticketId, UUID islandId, UUID playerUuid, String action, String targetNode, Map<String, String> fields) {
+        this(ticketId, islandId, playerUuid, action, targetNode, "", fields);
+    }
+
+    public RouteSessionPublishedEvent(UUID ticketId, UUID islandId, UUID playerUuid, String action, String targetNode, String targetServerName, Map<String, String> fields) {
         super(true);
         this.ticketId = ticketId;
         this.islandId = islandId;
         this.playerUuid = playerUuid;
         this.action = action == null ? "" : action;
         this.targetNode = targetNode == null ? "" : targetNode;
+        this.targetServerName = targetServerName == null ? "" : targetServerName;
         this.fields = Map.copyOf(fields);
     }
 
@@ -43,6 +49,10 @@ public final class RouteSessionPublishedEvent extends Event {
 
     public String targetNode() {
         return targetNode;
+    }
+
+    public String targetServerName() {
+        return targetServerName;
     }
 
     public Map<String, String> fields() {
