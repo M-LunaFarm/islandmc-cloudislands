@@ -336,7 +336,21 @@ public record CoreServiceConfig(
 
     private static String setupJdbcUrl(Map<String, String> config, String fallback) {
         String type = configuredDatabaseType(config);
-        String explicit = typedSetupDatabaseSetting(config, type, "jdbc-url", setupDatabaseSetting(config, "jdbc-url", setting(config, "setup.jdbc-url", "")));
+        String direct = setupJdbcUrlForType(config, type, fallback);
+        if (coreJdbcSupported(direct) || coreJdbcTypeSupported(type)) {
+            return direct;
+        }
+        String postgresqlFallback = setupPostgresqlFallbackJdbcUrl(config);
+        return postgresqlFallback.isBlank() ? direct : postgresqlFallback;
+    }
+
+    private static String setupJdbcUrlForType(Map<String, String> config, String type, String fallback) {
+        return setupJdbcUrlForType(config, type, fallback, true);
+    }
+
+    private static String setupJdbcUrlForType(Map<String, String> config, String type, String fallback, boolean allowGenericSetup) {
+        String generic = allowGenericSetup ? setupDatabaseSetting(config, "jdbc-url", setting(config, "setup.jdbc-url", "")) : "";
+        String explicit = typedSetupDatabaseSetting(config, type, "jdbc-url", generic);
         if (explicit.isBlank()) {
             explicit = typedSetupDatabaseSetting(config, type, "url", "");
         }
@@ -346,10 +360,10 @@ public record CoreServiceConfig(
         if (!coreJdbcTypeSupported(type) && !type.equals("MYSQL") && !type.equals("MARIADB")) {
             return "";
         }
-        String host = typedSetupDatabaseSetting(config, type, "host", setupDatabaseSetting(config, "host", ""));
-        String database = typedSetupDatabaseSetting(config, type, "name", setupDatabaseSetting(config, "name", ""));
+        String host = typedSetupDatabaseSetting(config, type, "host", allowGenericSetup ? setupDatabaseSetting(config, "host", "") : "");
+        String database = typedSetupDatabaseSetting(config, type, "name", allowGenericSetup ? setupDatabaseSetting(config, "name", "") : "");
         if (database.isBlank()) {
-            database = typedSetupDatabaseSetting(config, type, "database", setupDatabaseSetting(config, "database", ""));
+            database = typedSetupDatabaseSetting(config, type, "database", allowGenericSetup ? setupDatabaseSetting(config, "database", "") : "");
         }
         if (type.isBlank() || host.isBlank() || database.isBlank()) {
             return coreJdbcTypeSupported(type) ? fallback : "";
@@ -358,13 +372,41 @@ public record CoreServiceConfig(
         if (prefix.isBlank()) {
             return "";
         }
-        int port = typedSetupDatabaseInteger(config, type, "port", setupDatabaseInteger(config, "port", defaultDatabasePort(type)));
+        int port = typedSetupDatabaseInteger(config, type, "port", allowGenericSetup ? setupDatabaseInteger(config, "port", defaultDatabasePort(type)) : defaultDatabasePort(type));
         String url = prefix + "://" + host.trim() + ":" + port + "/" + database.trim();
-        String options = typedSetupDatabaseSetting(config, type, "options", setupDatabaseSetting(config, "options", ""));
+        String options = typedSetupDatabaseSetting(config, type, "options", allowGenericSetup ? setupDatabaseSetting(config, "options", "") : "");
         if (!options.isBlank()) {
             url += "?" + options.trim();
         }
         return url;
+    }
+
+    private static String setupPostgresqlFallbackJdbcUrl(Map<String, String> config) {
+        if (!configBoolean(config, "setup.database.fallback.enabled", configBoolean(config, "setup.database-fallback-enabled", true))) {
+            return "";
+        }
+        if (!fallbackOrderContainsPostgresql(config) || !postgresqlFallbackConfigured(config)) {
+            return "";
+        }
+        String jdbcUrl = setupJdbcUrlForType(config, "POSTGRESQL", "", false);
+        return coreJdbcSupported(jdbcUrl) ? jdbcUrl : "";
+    }
+
+    private static boolean fallbackOrderContainsPostgresql(Map<String, String> config) {
+        for (String entry : setupDatabaseFallbackOrder(config).split(",")) {
+            String normalized = normalizeDatabaseType(entry);
+            if ("POSTGRESQL".equals(normalized)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean postgresqlFallbackConfigured(Map<String, String> config) {
+        return presentConfig(config, "setup.database.postgresql.jdbc-url")
+            || presentConfig(config, "setup.database.postgresql.url")
+            || (presentConfig(config, "setup.database.postgresql.host")
+            && (presentConfig(config, "setup.database.postgresql.name") || presentConfig(config, "setup.database.postgresql.database")));
     }
 
     private static String typedSetupDatabaseSetting(Map<String, String> config, String type, String key, String fallback) {
@@ -427,7 +469,10 @@ public record CoreServiceConfig(
         if (databaseType.isBlank()) {
             return "JDBC";
         }
-        return coreJdbcTypeSupported(databaseType) ? "JDBC" : "IN_MEMORY";
+        if (coreJdbcTypeSupported(databaseType)) {
+            return "JDBC";
+        }
+        return setupPostgresqlFallbackJdbcUrl(config).isBlank() ? "IN_MEMORY" : "JDBC";
     }
 
     private static String configuredDatabaseType(Map<String, String> config) {

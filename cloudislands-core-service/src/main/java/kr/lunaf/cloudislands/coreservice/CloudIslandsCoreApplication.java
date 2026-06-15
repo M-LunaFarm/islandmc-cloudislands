@@ -2613,7 +2613,7 @@ public final class CloudIslandsCoreApplication {
             + "\"coreSetupFallbackPolicy\":\"" + escape(coreSetupFallbackPolicy(config)) + "\","
             + "\"coreSetupFallbackOrder\":\"" + escape(config.setupDatabaseFallbackOrder()) + "\","
             + "\"coreSetupFallbackMode\":\"" + escape(coreSetupFallbackMode(config)) + "\","
-            + "\"coreSetupDatabaseOperationalModes\":\"POSTGRESQL=CORE_JDBC,MYSQL=CONFIGURED_SAFE_FALLBACK,MARIADB=CONFIGURED_SAFE_FALLBACK,CORE_API=CLIENT_MODE_NO_CORE_JDBC\","
+            + "\"coreSetupDatabaseOperationalModes\":\"POSTGRESQL=CORE_JDBC,MYSQL=POSTGRESQL_FALLBACK_OR_SAFE_FALLBACK,MARIADB=POSTGRESQL_FALLBACK_OR_SAFE_FALLBACK,CORE_API=POSTGRESQL_FALLBACK_OR_CLIENT_MODE_NO_CORE_JDBC\","
             + "\"coreSetupDatabaseConfigLoader\":\"yaml-nested-dotted-path\","
             + "\"coreSetupDatabaseResolvedPathExamples\":\"setup.database.type,setup.database.postgresql.jdbc-url,setup.database.postgresql.username,setup.database.mysql.host,setup.database.mysql.password,setup.database.mariadb.pool-size,setup.database.core-api.enabled\","
             + "\"coreSetupDatabaseConfigShapes\":\"setup.database.*,setup.database-*\","
@@ -2746,6 +2746,9 @@ public final class CloudIslandsCoreApplication {
     private static String coreJdbcFallbackReason(CoreServiceConfig config) {
         String configuredType = config.configuredDatabaseType() == null ? "" : config.configuredDatabaseType();
         if (!configuredType.isBlank() && !configuredType.equals("POSTGRESQL") && !configuredType.equals("UNKNOWN")) {
+            if (coreJdbcSupported(config.jdbcUrl())) {
+                return "CORE_JDBC_POSTGRESQL_FALLBACK_FOR_" + configuredType;
+            }
             return "CORE_JDBC_DISABLED_FOR_" + configuredType;
         }
         if (coreJdbcSupported(config.jdbcUrl())) {
@@ -2773,6 +2776,9 @@ public final class CloudIslandsCoreApplication {
         if (coreSetupFallbackSafetyForced(config)) {
             return "configured-disabled-but-forced-for-startup-safety";
         }
+        if (coreJdbcFallbackReason(config).startsWith("CORE_JDBC_POSTGRESQL_FALLBACK_FOR_")) {
+            return "configured-postgresql-jdbc-fallback";
+        }
         return "configured-safe-fallback";
     }
 
@@ -2782,6 +2788,9 @@ public final class CloudIslandsCoreApplication {
         }
         if (coreSetupFallbackSafetyForced(config)) {
             return "SAFETY_FORCED_IN_MEMORY_REPOSITORIES_AND_JOBS";
+        }
+        if (coreJdbcFallbackReason(config).startsWith("CORE_JDBC_POSTGRESQL_FALLBACK_FOR_")) {
+            return "POSTGRESQL_JDBC_FALLBACK";
         }
         return "IN_MEMORY_REPOSITORIES_AND_JOBS";
     }
