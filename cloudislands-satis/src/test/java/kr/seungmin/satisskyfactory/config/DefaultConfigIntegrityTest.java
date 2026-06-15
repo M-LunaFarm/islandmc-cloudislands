@@ -19,10 +19,18 @@ class DefaultConfigIntegrityTest {
     void pluginMetadataUsesSeungminPackageAndExpectedCommands() {
         YamlConfiguration plugin = load("plugin.yml");
         YamlConfiguration config = load("config.yml");
+        YamlConfiguration addon = load("cloudislands-addon.yml");
         YamlConfiguration messages = load("messages.yml");
         YamlConfiguration maintenance = load("maintenance.yml");
 
         assertEquals("CloudIslandsSatis", plugin.getString("name"));
+        assertEquals("cloudislands-satis", addon.getString("id"));
+        assertEquals("external-plugin", addon.getString("packaging"));
+        assertTrue(addon.getBoolean("removal.safe"));
+        assertFalse(addon.getBoolean("runtime.owns-islands"));
+        assertEquals("CORE_API", addon.getString("runtime.default-database-mode"));
+        assertTrue(addon.getBoolean("superiorskyblock2.migration-input-only"));
+        assertFalse(addon.getBoolean("superiorskyblock2.runtime-dependency"));
         assertEquals("kr.seungmin.satisskyfactory.SatisSkyFactoryPlugin", plugin.getString("main"));
         assertEquals(List.of("CloudIslands"), plugin.getStringList("depend"));
         assertEquals(List.of("Vault", "PlaceholderAPI"), plugin.getStringList("softdepend"));

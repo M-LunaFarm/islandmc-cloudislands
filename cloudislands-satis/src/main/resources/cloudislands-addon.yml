@@ -1,0 +1,39 @@
+id: cloudislands-satis
+display-name: "CloudIslands Satis"
+packaging: external-plugin
+requires:
+  cloudislands-api: true
+  runtime-plugin: CloudIslands
+removal:
+  safe: true
+  data-retention: preserve-addon-state-by-island-uuid
+runtime:
+  owns-islands: false
+  storage-key: cloudislands-island-uuid
+  default-database-mode: CORE_API
+superiorskyblock2:
+  migration-input-only: true
+  runtime-dependency: false
+features:
+  configurable: true
+  root-switch: satis.enabled
+  detailed-switches:
+    - commands
+    - machines
+    - storage
+    - factories
+    - generators
+    - upgrades
+    - missions
+    - menus
+    - gui
+    - lifecycle
+    - resource-nodes
+    - market
+    - contracts
+    - research
+    - maintenance
+    - placeholders
+    - migration
+    - addon-state
+    - route-events
