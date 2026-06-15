@@ -434,9 +434,10 @@ public final class MigrationAdminService {
 
     public synchronized String rollbackLastImport() {
         if (lastRollbackPlan == null) {
-            return "{\"state\":\"" + MigrationRunState.ROLLED_BACK + "\"" + migrationBoundaryFields() + ",\"rolledBack\":false,\"removedIslands\":0,\"issues\":" + issuesJson(List.of(new MigrationIssue("ROLLBACK_PLAN_NOT_FOUND", "no import rollback plan is available", true))) + "}";
+            return "{\"state\":\"" + MigrationRunState.ROLLED_BACK + "\"" + migrationBoundaryFields() + rollbackSafetyFields(false) + ",\"rollbackPlanAvailable\":false,\"rolledBack\":false,\"removedIslands\":0,\"issues\":" + issuesJson(List.of(new MigrationIssue("ROLLBACK_PLAN_NOT_FOUND", "no import rollback plan is available", true))) + "}";
         }
-        MigrationRollbackService.RollbackResult result = rollback.rollback(lastRollbackPlan, islandId -> {
+        MigrationRollbackPlan plan = lastRollbackPlan;
+        MigrationRollbackService.RollbackResult result = rollback.rollback(plan, islandId -> {
             IslandSnapshot island = islands.findById(islandId).orElseThrow(() -> new IllegalStateException("island not found"));
             if (hardRollbackTarget != null) {
                 hardRollbackTarget.removeImportedIsland(islandId);
@@ -448,7 +449,21 @@ public final class MigrationAdminService {
                 .ifPresent(_current -> playerProfiles.clearPrimaryIsland(island.ownerUuid()));
             removeMigrationExtraction(islandId);
         });
-        return "{\"state\":\"" + MigrationRunState.ROLLED_BACK + "\"" + migrationBoundaryFields() + ",\"rolledBack\":" + result.rolledBack() + ",\"removedIslands\":" + result.removedIslands() + ",\"issues\":" + issuesJson(result.issues()) + "}";
+        if (result.rolledBack()) {
+            lastRollbackPlan = null;
+            lastApprovalToken = "";
+        }
+        return "{\"state\":\"" + MigrationRunState.ROLLED_BACK + "\"" + migrationBoundaryFields() + rollbackSafetyFields(true) + ",\"rollbackPlanAvailable\":true,\"rollbackPlan\":" + rollbackPlanJson(plan) + ",\"rolledBack\":" + result.rolledBack() + ",\"removedIslands\":" + result.removedIslands() + ",\"rollbackPlanConsumed\":" + result.rolledBack() + ",\"issues\":" + issuesJson(result.issues()) + "}";
+    }
+
+    private String rollbackSafetyFields(boolean planAvailable) {
+        return ",\"rollbackScope\":\"last-successful-import-only\""
+            + ",\"rollbackPlanRequired\":" + !planAvailable
+            + ",\"rollbackTarget\":\"" + (hardRollbackTarget == null ? "mark-deleted-core-records" : "hard-rollback-target") + "\""
+            + ",\"rollbackStorageCleanup\":" + (hardRollbackTarget != null)
+            + ",\"rollbackWorldBundleCleanup\":true"
+            + ",\"rollbackRuntimeDependency\":\"none-superiorskyblock2-input-only\""
+            + ",\"rollbackReentryPolicy\":\"consume-plan-after-success\"";
     }
 
     private void removeMigrationExtraction(java.util.UUID islandId) {
