@@ -966,6 +966,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-fallback-status", databaseFallbackStatus());
         metadata.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
         metadata.put("database-fallback-order", databaseFallbackOrderMetadata());
+        metadata.put("database-fallback-shared-backends", databaseFallbackSharedBackendsMetadata());
+        metadata.put("database-fallback-shared-safe", Boolean.toString(databaseFallbackSharedSafe()));
+        metadata.put("database-fallback-risk", databaseFallbackRisk());
         metadata.put("database-fallback-source", databaseFallbackSource());
         metadata.put("database-fallback-env", "CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED,CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER");
         metadata.put("database-config-source", databaseConfigSource());
@@ -1184,6 +1187,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-status", databaseFallbackStatus());
         state.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
         state.put("database-fallback-order", databaseFallbackOrderMetadata());
+        state.put("database-fallback-shared-backends", databaseFallbackSharedBackendsMetadata());
+        state.put("database-fallback-shared-safe", Boolean.toString(databaseFallbackSharedSafe()));
+        state.put("database-fallback-risk", databaseFallbackRisk());
         state.put("database-config-source", databaseConfigSource());
         state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         state.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
@@ -1245,6 +1251,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-status", databaseFallbackStatus());
         state.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
         state.put("database-fallback-order", databaseFallbackOrderMetadata());
+        state.put("database-fallback-shared-backends", databaseFallbackSharedBackendsMetadata());
+        state.put("database-fallback-shared-safe", Boolean.toString(databaseFallbackSharedSafe()));
+        state.put("database-fallback-risk", databaseFallbackRisk());
         state.put("database-config-source", databaseConfigSource());
         state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         state.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
@@ -2599,6 +2608,54 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 .map(DatabaseService.StorageBackend::name)
                 .reduce((left, right) -> left + "," + right)
                 .orElse("none");
+    }
+
+    private String databaseFallbackSharedBackendsMetadata() {
+        return databaseFallbackOrder(false).stream()
+                .filter(this::isSharedStorageBackend)
+                .map(DatabaseService.StorageBackend::name)
+                .reduce((left, right) -> left + "," + right)
+                .orElse("none");
+    }
+
+    private boolean databaseFallbackSharedSafe() {
+        return databaseSettings().fallbackEnabled()
+                && databaseFallbackOrder(false).stream().anyMatch(this::isSharedStorageBackend);
+    }
+
+    private String databaseFallbackRisk() {
+        if (!databaseSettings().fallbackEnabled()) {
+            return "fallback-disabled";
+        }
+        List<DatabaseService.StorageBackend> order = databaseFallbackOrder(false);
+        int sqliteIndex = order.indexOf(DatabaseService.StorageBackend.SQLITE);
+        int firstSharedIndex = firstSharedFallbackIndex(order);
+        if (firstSharedIndex >= 0 && (sqliteIndex < 0 || firstSharedIndex < sqliteIndex)) {
+            return sqliteIndex >= 0 ? "shared-before-local-sqlite" : "shared-only";
+        }
+        if (firstSharedIndex >= 0) {
+            return "local-sqlite-before-shared";
+        }
+        if (sqliteIndex >= 0) {
+            return "local-sqlite-only";
+        }
+        return "no-shared-fallback";
+    }
+
+    private int firstSharedFallbackIndex(List<DatabaseService.StorageBackend> order) {
+        for (int index = 0; index < order.size(); index++) {
+            if (isSharedStorageBackend(order.get(index))) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    private boolean isSharedStorageBackend(DatabaseService.StorageBackend backend) {
+        return backend == DatabaseService.StorageBackend.POSTGRESQL
+                || backend == DatabaseService.StorageBackend.MYSQL
+                || backend == DatabaseService.StorageBackend.MARIADB
+                || backend == DatabaseService.StorageBackend.CORE_API;
     }
 
     private String databaseAttemptedBackendsMetadata() {
