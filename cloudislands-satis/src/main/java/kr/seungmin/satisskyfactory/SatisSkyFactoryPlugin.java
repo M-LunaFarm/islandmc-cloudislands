@@ -29,6 +29,11 @@ import kr.lunaf.cloudislands.api.event.IslandUpgradeEvent;
 import kr.lunaf.cloudislands.api.event.IslandVisitEvent;
 import kr.lunaf.cloudislands.api.event.IslandWarpChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandWorthChangeEvent;
+import kr.lunaf.cloudislands.api.event.RouteSessionPublishedEvent;
+import kr.lunaf.cloudislands.api.event.RouteTicketClearedEvent;
+import kr.lunaf.cloudislands.api.event.RouteTicketConsumedGlobalEvent;
+import kr.lunaf.cloudislands.api.event.RouteTicketCreatedEvent;
+import kr.lunaf.cloudislands.api.event.RouteTicketFailedEvent;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.seungmin.satisskyfactory.command.FactoryCommand;
 import kr.seungmin.satisskyfactory.config.ConfigService;
@@ -1185,6 +1190,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("addon-state-table-key-value-bulk-island-endpoint", "/v1/addons/islands/state/table/key-value/bulk");
         metadata.put("addon-state-bulk-save-methods", "bulkSaveState,tableKeyValueBulkSaveState,bulkSaveTableKeyValueState,tableKeyValueBulkSaveAliasState,tableKeyValueBulkState,bulkTableKeyValueState,bulkSaveIslandState,tableKeyValueBulkSaveIslandState,bulkSaveIslandTableKeyValueState,tableKeyValueBulkSaveAliasIslandState,tableKeyValueBulkIslandState,bulkIslandTableKeyValueState");
         metadata.put("core-api-table-save-mode", "bulk-save-with-table-prefix-and-configurable-flattened-fallback");
+        metadata.put("route-event-source", "CloudIslandsAddon.route-ticket-events");
+        metadata.put("route-event-policy", "diagnostic-state-only-no-routing-authority");
         metadata.put("feature-aliases", featureAliasesMetadata());
         metadata.put("feature-alias-disabled", disabledFeatureAliases());
         metadata.put("feature-dependencies", featureDependenciesMetadata());
@@ -1460,6 +1467,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("addon-state-table-key-value-bulk-island-endpoint", "/v1/addons/islands/state/table/key-value/bulk");
         state.put("addon-state-bulk-save-methods", "bulkSaveState,tableKeyValueBulkSaveState,bulkSaveTableKeyValueState,tableKeyValueBulkSaveAliasState,tableKeyValueBulkState,bulkTableKeyValueState,bulkSaveIslandState,tableKeyValueBulkSaveIslandState,bulkSaveIslandTableKeyValueState,tableKeyValueBulkSaveAliasIslandState,tableKeyValueBulkIslandState,bulkIslandTableKeyValueState");
         state.put("core-api-table-save-mode", "bulk-save-with-table-prefix-and-configurable-flattened-fallback");
+        state.put("route-event-source", "CloudIslandsAddon.route-ticket-events");
+        state.put("route-event-policy", "diagnostic-state-only-no-routing-authority");
         state.put("configured-features", featureState(snapshot.configuredFeatures()));
         state.put("effective-features", featureState(snapshot.features()));
         state.put("operational-features", operationalFeatureState(snapshot.features()));
@@ -1947,6 +1956,65 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     @Override
     public void onIslandSnapshotCreated(IslandSnapshotCreateEvent event) {
         runSatisLifecycle(event.islandId(), "flush", () -> flushSatisIsland(event.islandId()));
+    }
+
+    @Override
+    public void onRouteTicketCreated(RouteTicketCreatedEvent event) {
+        publishRouteEventState("created", event.ticketId(), event.islandId(), event.playerUuid(), event.action(), event.targetNode(), "", "", "state=" + safeRouteValue(event.state()), event.occurredAt());
+    }
+
+    @Override
+    public void onRouteSessionPublished(RouteSessionPublishedEvent event) {
+        publishRouteEventState("session-published", event.ticketId(), event.islandId(), event.playerUuid(), event.action(), event.targetNode(), "", "", "", event.occurredAt());
+    }
+
+    @Override
+    public void onRouteTicketConsumed(RouteTicketConsumedGlobalEvent event) {
+        publishRouteEventState("consumed", event.ticketId(), event.islandId(), event.playerUuid(), event.action(), event.targetNode(), "", "", "", event.occurredAt());
+    }
+
+    @Override
+    public void onRouteTicketFailed(RouteTicketFailedEvent event) {
+        publishRouteEventState("failed", event.ticketId(), event.islandId(), event.playerUuid(), event.action(), event.targetNode(), event.requestedNode(), event.reason(), "", event.occurredAt());
+    }
+
+    @Override
+    public void onRouteTicketCleared(RouteTicketClearedEvent event) {
+        publishRouteEventState("cleared", event.ticketId(), null, event.playerUuid(), "", "", "", event.reason(), "session=" + event.clearedSession() + ",ticket=" + event.clearedTicket(), event.occurredAt());
+    }
+
+    private void publishRouteEventState(String eventName, UUID ticketId, UUID islandId, UUID playerUuid, String action, String targetNode, String requestedNode, String reason, String detail, Instant occurredAt) {
+        if (cloudIslandsApi == null || !featureEnabled("addon-state")) {
+            return;
+        }
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("last-route-event", safeRouteValue(eventName));
+        state.put("last-route-ticket", ticketId == null ? "" : ticketId.toString());
+        state.put("last-route-player", playerUuid == null ? "" : playerUuid.toString());
+        state.put("last-route-action", safeRouteValue(action));
+        state.put("last-route-target-node", safeRouteValue(targetNode));
+        if (islandId != null) {
+            state.put("last-route-island", islandId.toString());
+        }
+        if (requestedNode != null && !requestedNode.isBlank()) {
+            state.put("last-route-requested-node", requestedNode);
+        }
+        if (reason != null && !reason.isBlank()) {
+            state.put("last-route-reason", reason);
+        }
+        if (detail != null && !detail.isBlank()) {
+            state.put("last-route-detail", detail);
+        }
+        state.put("last-route-at", occurredAt == null ? Instant.now().toString() : occurredAt.toString());
+        state.put("last-route-policy", "diagnostic-state-only-no-routing-authority");
+        cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
+            getLogger().warning("Failed to publish CloudIslands Satis route event state: " + error.getMessage());
+            return Map.of();
+        });
+    }
+
+    private String safeRouteValue(String value) {
+        return value == null ? "" : value;
     }
 
     private void runSatisLifecycle(UUID islandId, String operation, Runnable action) {
