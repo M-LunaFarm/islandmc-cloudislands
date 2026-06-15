@@ -161,6 +161,9 @@ public final class NodeAllocator {
         if (!node.storageAvailable()) {
             return "STORAGE_UNAVAILABLE";
         }
+        if (node.storagePrimaryDegraded()) {
+            return "STORAGE_PRIMARY_DEGRADED";
+        }
         if (node.lastHeartbeat() == null) {
             return "HEARTBEAT_MISSING";
         }
@@ -198,6 +201,9 @@ public final class NodeAllocator {
         }
         if (reason.equals("STORAGE_UNAVAILABLE")) {
             return 20;
+        }
+        if (reason.equals("STORAGE_PRIMARY_DEGRADED")) {
+            return 21;
         }
         if (reason.equals("DUPLICATE_VELOCITY_SERVER_NAME")) {
             return 25;

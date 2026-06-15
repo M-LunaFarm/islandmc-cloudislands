@@ -58,6 +58,9 @@ public record NodeLoad(
         if (!storageAvailable) {
             return "STORAGE_UNAVAILABLE";
         }
+        if (storagePrimaryDegraded()) {
+            return "STORAGE_PRIMARY_DEGRADED";
+        }
         if (lastHeartbeat == null) {
             return "HEARTBEAT_MISSING";
         }
@@ -141,6 +144,10 @@ public record NodeLoad(
             result.put(parts[i].substring(0, separator), parts[i].substring(separator + 1));
         }
         return result;
+    }
+
+    public boolean storagePrimaryDegraded() {
+        return "true".equalsIgnoreCase(heartbeatMetadata().getOrDefault("storagePrimaryDegraded", "false"));
     }
 
     public boolean defaultNodeIdentityRisk() {
