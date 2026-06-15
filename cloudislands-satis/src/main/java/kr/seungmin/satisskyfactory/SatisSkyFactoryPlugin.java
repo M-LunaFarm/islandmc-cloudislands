@@ -6,22 +6,28 @@ import kr.lunaf.cloudislands.api.addon.CloudIslandsAddonBootstrap;
 import kr.lunaf.cloudislands.api.event.CoreCacheClearEvent;
 import kr.lunaf.cloudislands.api.event.CoreReloadEvent;
 import kr.lunaf.cloudislands.api.event.IslandActivatedEvent;
+import kr.lunaf.cloudislands.api.event.IslandBankChangeEvent;
+import kr.lunaf.cloudislands.api.event.IslandBiomeChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandCreatedEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeactivationRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeactivatedEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeletedEvent;
 import kr.lunaf.cloudislands.api.event.IslandFlagChangeEvent;
+import kr.lunaf.cloudislands.api.event.IslandHomeChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandLevelRecalculateEvent;
 import kr.lunaf.cloudislands.api.event.IslandLimitChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandMemberChangedEvent;
 import kr.lunaf.cloudislands.api.event.IslandMigratedEvent;
 import kr.lunaf.cloudislands.api.event.IslandMigrationEvent;
+import kr.lunaf.cloudislands.api.event.IslandOwnershipChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandPermissionChangeEvent;
+import kr.lunaf.cloudislands.api.event.IslandRoleCatalogChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandRuntimeChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotCreateEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandUpgradeEvent;
 import kr.lunaf.cloudislands.api.event.IslandVisitEvent;
+import kr.lunaf.cloudislands.api.event.IslandWarpChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandWorthChangeEvent;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.seungmin.satisskyfactory.command.FactoryCommand;
@@ -359,8 +365,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private void putLifecycleCoverageState(Map<String, String> state) {
         state.put("lifecycle-event-source", "CloudIslandsAddon.onCloudEvent");
-        state.put("lifecycle-event-coverage", "create,activate,deactivation-request,deactivated,migration-request,migrated,delete,restore,reset,recovery,repair,runtime,visit,member,flag,permission,level,worth,upgrade,limit,snapshot");
-        state.put("lifecycle-event-actions", "activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete-and-reset=purge,recovery=suspend,member-permission-level-worth=synchronize");
+        state.put("lifecycle-event-coverage", "create,activate,deactivation-request,deactivated,migration-request,migrated,delete,restore,reset,recovery,repair,runtime,visit,member,role,ownership,flag,permission,bank,biome,home,warp,level,worth,upgrade,limit,snapshot");
+        state.put("lifecycle-event-actions", "activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete-and-reset=purge,recovery=suspend,member-role-ownership-permission-bank-biome-home-warp-level-worth=synchronize");
         state.put("lifecycle-event-storage-policy", "cloudislands-island-uuid-stable-state-remap-active-world");
     }
 
@@ -1705,6 +1711,17 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     @Override
+    public void onIslandRoleCatalogChanged(IslandRoleCatalogChangeEvent event) {
+        String operation = "role-change:" + (event.operation() == null || event.operation().isBlank() ? "unknown" : event.operation());
+        runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
+    }
+
+    @Override
+    public void onIslandOwnershipChanged(IslandOwnershipChangeEvent event) {
+        runSatisLifecycle(event.islandId(), "ownership-change", () -> synchronizeSatisIsland(event.islandId(), "ownership-change"));
+    }
+
+    @Override
     public void onIslandFlagChanged(IslandFlagChangeEvent event) {
         runSatisLifecycle(event.islandId(), "flag-change", () -> synchronizeSatisIsland(event.islandId(), "flag-change"));
     }
@@ -1712,6 +1729,30 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     @Override
     public void onIslandPermissionChanged(IslandPermissionChangeEvent event) {
         runSatisLifecycle(event.islandId(), "permission-change", () -> synchronizeSatisIsland(event.islandId(), "permission-change"));
+    }
+
+    @Override
+    public void onIslandBankChanged(IslandBankChangeEvent event) {
+        String operation = "bank-change:" + (event.operation() == null || event.operation().isBlank() ? "unknown" : event.operation());
+        runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
+    }
+
+    @Override
+    public void onIslandBiomeChanged(IslandBiomeChangeEvent event) {
+        String operation = "biome-change:" + (event.biomeKey() == null || event.biomeKey().isBlank() ? "unknown" : event.biomeKey());
+        runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
+    }
+
+    @Override
+    public void onIslandHomeChanged(IslandHomeChangeEvent event) {
+        String operation = "home-change:" + (event.name() == null || event.name().isBlank() ? "default" : event.name());
+        runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
+    }
+
+    @Override
+    public void onIslandWarpChanged(IslandWarpChangeEvent event) {
+        String operation = "warp-change:" + (event.operation() == null || event.operation().isBlank() ? "unknown" : event.operation());
+        runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
     }
 
     @Override
