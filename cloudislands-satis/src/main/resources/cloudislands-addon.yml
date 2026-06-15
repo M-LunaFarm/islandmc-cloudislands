@@ -14,6 +14,49 @@ runtime:
   owns-islands: false
   storage-key: cloudislands-island-uuid
   default-database-mode: CORE_API
+database:
+  setup-path: setup.database
+  default-mode: CORE_API
+  supported:
+    - CORE_API
+    - POSTGRESQL
+    - MYSQL
+    - MARIADB
+    - SQLITE
+  shared-state-safe:
+    - CORE_API
+    - POSTGRESQL
+    - MYSQL
+    - MARIADB
+  local-fallback: SQLITE
+  fallback:
+    enabled-path: setup.database.fallback.enabled
+    order-path: setup.database.fallback.order
+    recommended-order:
+      - POSTGRESQL
+      - MYSQL
+      - MARIADB
+      - CORE_API
+      - SQLITE
+    split-brain-warning: keep-a-shared-backend-before-sqlite-for-multi-island-node-pools
+  core-api:
+    setup-path: setup.database.core-api.enabled
+    requires:
+      - cloudislands-api
+      - addon-state
+    bulk-endpoints:
+      - /v1/addons/state/table-key-value/bulk-save
+      - /v1/addons/state/table/key-value/bulk-save
+      - /v1/addons/islands/state/table-key-value/bulk-save
+      - /v1/addons/islands/state/table/key-value/bulk-save
+    flattened-fallback-path: setup.database.core-api.flattened-fallback.enabled
+  env:
+    type: CLOUDISLANDS_SATIS_DATABASE_TYPE
+    jdbc-url: CLOUDISLANDS_SATIS_JDBC_URL
+    username: CLOUDISLANDS_SATIS_DB_USERNAME
+    password: CLOUDISLANDS_SATIS_DB_PASSWORD
+    fallback-enabled: CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED
+    fallback-order: CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER
 state:
   authority: core-api-table-key-value-or-shared-database
   move-policy: remap-state-to-current-active-world-and-cell

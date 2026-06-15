@@ -1176,6 +1176,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-fallback-read-write-policy", databaseFallbackReadWritePolicyMetadata());
         metadata.put("database-fallback-source", databaseFallbackSource());
         metadata.put("database-fallback-env", "CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED,CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER");
+        metadata.put("database-setup-path", "setup.database");
+        metadata.put("database-supported-backends", "CORE_API,POSTGRESQL,MYSQL,MARIADB,SQLITE");
+        metadata.put("database-shared-state-safe-backends", "CORE_API,POSTGRESQL,MYSQL,MARIADB");
+        metadata.put("database-local-fallback-backend", "SQLITE");
+        metadata.put("database-recommended-fallback-order", "POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE");
+        metadata.put("database-multi-node-warning", "keep-shared-backend-before-sqlite-for-a-b-island-node-pools");
         metadata.put("database-config-source", databaseConfigSource());
         metadata.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         metadata.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
@@ -1492,6 +1498,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-split-brain-risk", databaseFallbackSplitBrainRiskMetadata());
         state.put("database-fallback-read-write-policy", databaseFallbackReadWritePolicyMetadata());
         state.put("database-config-source", databaseConfigSource());
+        state.put("database-setup-path", "setup.database");
+        state.put("database-supported-backends", "CORE_API,POSTGRESQL,MYSQL,MARIADB,SQLITE");
+        state.put("database-shared-state-safe-backends", "CORE_API,POSTGRESQL,MYSQL,MARIADB");
+        state.put("database-local-fallback-backend", "SQLITE");
+        state.put("database-recommended-fallback-order", "POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE");
+        state.put("database-multi-node-warning", "keep-shared-backend-before-sqlite-for-a-b-island-node-pools");
         state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         state.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
         state.put("database-core-api-requires", "cloudislands-api,addon-state");
@@ -1603,6 +1615,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-split-brain-risk", databaseFallbackSplitBrainRiskMetadata());
         state.put("database-fallback-read-write-policy", databaseFallbackReadWritePolicyMetadata());
         state.put("database-config-source", databaseConfigSource());
+        state.put("database-setup-path", "setup.database");
+        state.put("database-supported-backends", "CORE_API,POSTGRESQL,MYSQL,MARIADB,SQLITE");
+        state.put("database-shared-state-safe-backends", "CORE_API,POSTGRESQL,MYSQL,MARIADB");
+        state.put("database-local-fallback-backend", "SQLITE");
+        state.put("database-recommended-fallback-order", "POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE");
+        state.put("database-multi-node-warning", "keep-shared-backend-before-sqlite-for-a-b-island-node-pools");
         state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         state.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
         state.put("database-core-api-requires", "cloudislands-api,addon-state");
