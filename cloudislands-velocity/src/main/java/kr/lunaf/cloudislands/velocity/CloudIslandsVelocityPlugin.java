@@ -96,7 +96,7 @@ public final class CloudIslandsVelocityPlugin {
                 }
             }
             if (Files.exists(configPath)) {
-                String section = "";
+                Map<Integer, String> sections = new HashMap<>();
                 boolean readingAliases = false;
                 for (String rawLine : Files.readAllLines(configPath)) {
                     String line = rawLine.strip();
@@ -111,21 +111,25 @@ public final class CloudIslandsVelocityPlugin {
                         continue;
                     }
                     readingAliases = false;
-                    if (!rawLine.startsWith(" ") && line.endsWith(":")) {
-                        section = line.substring(0, line.length() - 1).strip();
-                        continue;
-                    }
                     int colon = line.indexOf(':');
                     if (colon <= 0) {
                         continue;
                     }
+                    int indent = leadingSpaces(rawLine);
+                    String parent = parentSection(sections, indent);
                     String key = line.substring(0, colon).strip();
                     String value = unquote(line.substring(colon + 1).strip());
-                    if (section.equals("commands") && key.equals("aliases") && value.isBlank()) {
+                    String fullKey = parent.isBlank() ? key : parent + "." + key;
+                    if (fullKey.equals("commands.aliases") && value.isBlank()) {
                         readingAliases = true;
                         continue;
                     }
-                    values.put(section.isBlank() ? key : section + "." + key, resolveEnv(value));
+                    if (value.isBlank()) {
+                        sections.entrySet().removeIf(entry -> entry.getKey() >= indent);
+                        sections.put(indent, fullKey);
+                        continue;
+                    }
+                    values.put(fullKey, resolveEnv(value));
                 }
             }
         } catch (IOException exception) {
@@ -134,10 +138,10 @@ public final class CloudIslandsVelocityPlugin {
         return new VelocityConfig(
             values.getOrDefault("plugin.language", "ko_kr"),
             bool(values.get("plugin.debug"), false),
-            value(values, "setup-core-api.base-url", value(values, "core-api.base-url", "https://core-api.internal:8443")),
-            value(values, "setup-core-api.auth-token", value(values, "core-api.auth-token", "")),
-            value(values, "setup-core-api.admin-token", value(values, "core-api.admin-token", "")),
-            positiveInteger(values.get("setup-core-api.timeout-ms"), integer(values.get("core-api.timeout-ms"), 3000)),
+            value(values, "setup.core-api.base-url", value(values, "setup-core-api.base-url", value(values, "core-api.base-url", "https://core-api.internal:8443"))),
+            value(values, "setup.core-api.auth-token", value(values, "setup-core-api.auth-token", value(values, "core-api.auth-token", ""))),
+            value(values, "setup.core-api.admin-token", value(values, "setup-core-api.admin-token", value(values, "core-api.admin-token", ""))),
+            positiveInteger(values.get("setup.core-api.timeout-ms"), positiveInteger(values.get("setup-core-api.timeout-ms"), integer(values.get("core-api.timeout-ms"), 3000))),
             values.getOrDefault("routing.fallback-on-failure", values.getOrDefault("routing.default-lobby", "Lobby")),
             integer(values.get("routing.wait-for-activation-timeout-seconds"), 20),
             values.getOrDefault("routing.island-pool", "island"),
@@ -155,6 +159,26 @@ public final class CloudIslandsVelocityPlugin {
             messageValues(values),
             aliases.isEmpty() ? ALIASES : List.copyOf(aliases)
         );
+    }
+
+    private static int leadingSpaces(String line) {
+        int spaces = 0;
+        while (spaces < line.length() && line.charAt(spaces) == ' ') {
+            spaces++;
+        }
+        return spaces;
+    }
+
+    private static String parentSection(Map<Integer, String> sections, int indent) {
+        String parent = "";
+        int parentIndent = -1;
+        for (Map.Entry<Integer, String> entry : sections.entrySet()) {
+            if (entry.getKey() < indent && entry.getKey() > parentIndent) {
+                parent = entry.getValue();
+                parentIndent = entry.getKey();
+            }
+        }
+        return parent;
     }
 
     private static Map<String, String> messageValues(Map<String, String> values) {
