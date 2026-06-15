@@ -147,6 +147,10 @@ public final class MigrationAdminService {
             + ",\"migrationInputOnly\":true"
             + ",\"runtimeDependency\":false"
             + ",\"operations\":\"scan,dryrun,extract,import,verify,rollback,status\""
+            + ",\"migrationPipeline\":\"read-only-scan,manifest,dry-run,conflict-report,approval,db-import,world-cell-extract,bundle-checksum,cloudislands-activate-test,rollback-plan\""
+            + ",\"migrationChecksumPolicy\":\"sha256-every-extracted-world-bundle-and-verify-against-imported-snapshot\""
+            + ",\"migrationActivationTestPolicy\":\"verify-can-run-cloudislands-activation-test-without-superiorskyblock2-runtime-dependency\""
+            + ",\"migrationImportPolicy\":\"approval-token-required-after-successful-dryrun\""
             + ",\"scanManifests\":" + lastScan.manifests().size()
             + ",\"planManifests\":" + lastPlan.manifests().size()
             + ",\"canImport\":" + lastPlan.canImport()

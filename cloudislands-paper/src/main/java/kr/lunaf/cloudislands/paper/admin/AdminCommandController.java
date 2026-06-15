@@ -968,6 +968,18 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (body.contains("\"runtimeDependency\"")) {
             builder.append(adminText("admin-command-migration-runtime-dependency-prefix", " runtimeDependency=")).append(boolValue(body, "runtimeDependency"));
         }
+        String migrationPipeline = textValue(body, "migrationPipeline");
+        if (!migrationPipeline.isBlank()) {
+            builder.append(adminText("admin-command-migration-pipeline-prefix", " pipeline=")).append(migrationPipeline);
+        }
+        String checksumPolicy = textValue(body, "migrationChecksumPolicy");
+        if (!checksumPolicy.isBlank()) {
+            builder.append(adminText("admin-command-migration-checksum-policy-prefix", " checksumPolicy=")).append(checksumPolicy);
+        }
+        String activationTestPolicy = textValue(body, "migrationActivationTestPolicy");
+        if (!activationTestPolicy.isBlank()) {
+            builder.append(adminText("admin-command-migration-activation-policy-prefix", " activationPolicy=")).append(activationTestPolicy);
+        }
         String targetRuntime = textValue(body, "targetRuntime");
         if (!targetRuntime.isBlank()) {
             builder.append(adminText("admin-command-migration-target-runtime-prefix", " targetRuntime=")).append(targetRuntime);
