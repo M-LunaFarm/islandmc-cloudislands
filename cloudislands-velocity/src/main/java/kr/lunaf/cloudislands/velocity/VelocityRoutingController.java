@@ -1517,6 +1517,9 @@ public final class VelocityRoutingController {
             + " registeredRequired=" + boolValue(body, "registeredAddonRequired")
             + " orphanPolicy=" + jsonValue(body, "orphanStatePolicy")
             + " missingPolicy=" + jsonValue(body, "missingAddonStatePolicy")
+            + " tableKeyPrefix=" + jsonValue(body, "tableKeyPrefix")
+            + " maxKeysPerAddon=" + longValue(body, "maxKeysPerAddon")
+            + " maxValueLength=" + longValue(body, "maxValueLength")
             + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
