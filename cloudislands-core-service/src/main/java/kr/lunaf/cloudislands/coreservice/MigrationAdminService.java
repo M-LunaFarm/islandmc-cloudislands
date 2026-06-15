@@ -209,7 +209,7 @@ public final class MigrationAdminService {
             List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_SCAN_REQUIRED", "run scan before extracting SuperiorSkyblock2 worlds", true));
             return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\"" + migrationBoundaryFields() + ",\"path\":\"\",\"manifests\":0,\"extractedBundles\":0,\"extractedFiles\":0,\"extractedBytes\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
         }
-        Path targetRoot = outputPath == null || outputPath.isBlank() ? migrationBundleRoot : Path.of(outputPath);
+        Path targetRoot = resolveMigrationBundleRoot(outputPath);
         lastExtractionRoot = targetRoot;
         List<MigrationIssue> issues = new ArrayList<>();
         int extractedBundles = 0;
@@ -348,7 +348,7 @@ public final class MigrationAdminService {
         List<MigrationIssue> issues = new ArrayList<>();
         Path verifyBundleRoot = bundleRootPath == null || bundleRootPath.isBlank()
             ? (lastExtractionRoot == null ? migrationBundleRoot : lastExtractionRoot)
-            : Path.of(bundleRootPath);
+            : resolveMigrationBundleRoot(bundleRootPath);
         int extractedBundles = 0;
         long extractedFiles = 0L;
         long extractedBytes = 0L;
@@ -600,6 +600,14 @@ public final class MigrationAdminService {
 
     private Path migrationReportPath(String stage) {
         return migrationBundleRoot.resolve("reports").resolve("superiorskyblock2-" + stage + "-report.json");
+    }
+
+    private Path resolveMigrationBundleRoot(String path) {
+        if (path == null || path.isBlank()) {
+            return migrationBundleRoot;
+        }
+        Path requested = Path.of(path);
+        return requested.isAbsolute() ? requested : migrationBundleRoot.resolve(requested).normalize();
     }
 
     private void writeMigrationManifestFile(String sourcePath, Path manifestPath, List<MigrationManifest> manifests) throws java.io.IOException {
