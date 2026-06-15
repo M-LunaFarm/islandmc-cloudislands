@@ -122,18 +122,14 @@ public final class CoreApiSatisStateService {
                     });
             return;
         }
-        cloudIslandsApi.addons().replaceIslandTableState(addonId, table.islandUuid(), table.table(), table.values())
+        cloudIslandsApi.addons().clearIslandTableState(addonId, table.islandUuid(), table.table())
+                .thenCompose(_cleared -> cloudIslandsApi.addons().tableKeyValueBulkSaveIslandState(addonId, table.islandUuid(), Map.of(), Map.of(table.table(), table.values())))
                 .handle((state, error) -> {
                     if (error == null) {
                         return java.util.concurrent.CompletableFuture.completedFuture(state);
                     }
-                    logger.warning("Failed to replace Satis core-api table " + table.table() + " for island " + table.islandUuid() + ", retrying with clear and bulk save: " + error.getMessage());
-                    return cloudIslandsApi.addons().clearIslandTableState(addonId, table.islandUuid(), table.table())
-                            .exceptionally(clearError -> {
-                                logger.warning("Failed to clear Satis core-api table " + table.table() + " for island " + table.islandUuid() + " before retry: " + clearError.getMessage());
-                                return Map.of();
-                            })
-                            .thenCompose(_cleared -> cloudIslandsApi.addons().tableKeyValueBulkSaveIslandState(addonId, table.islandUuid(), Map.of(), Map.of(table.table(), table.values())));
+                    logger.warning("Failed to bulk save Satis core-api table " + table.table() + " for island " + table.islandUuid() + ", retrying with replace: " + error.getMessage());
+                    return cloudIslandsApi.addons().replaceIslandTableState(addonId, table.islandUuid(), table.table(), table.values());
                 })
                 .thenCompose(result -> result)
                 .thenApply(state -> {
@@ -225,18 +221,14 @@ public final class CoreApiSatisStateService {
                     });
             return;
         }
-        cloudIslandsApi.addons().replaceTableState(addonId, table.table(), table.values())
+        cloudIslandsApi.addons().clearTableState(addonId, table.table())
+                .thenCompose(_cleared -> cloudIslandsApi.addons().tableKeyValueBulkSaveState(addonId, Map.of(), Map.of(table.table(), table.values())))
                 .handle((state, error) -> {
                     if (error == null) {
                         return java.util.concurrent.CompletableFuture.completedFuture(state);
                     }
-                    logger.warning("Failed to replace Satis core-api global table " + table.table() + ", retrying with clear and bulk save: " + error.getMessage());
-                    return cloudIslandsApi.addons().clearTableState(addonId, table.table())
-                            .exceptionally(clearError -> {
-                                logger.warning("Failed to clear Satis core-api global table " + table.table() + " before retry: " + clearError.getMessage());
-                                return Map.of();
-                            })
-                            .thenCompose(_cleared -> cloudIslandsApi.addons().tableKeyValueBulkSaveState(addonId, Map.of(), Map.of(table.table(), table.values())));
+                    logger.warning("Failed to bulk save Satis core-api global table " + table.table() + ", retrying with replace: " + error.getMessage());
+                    return cloudIslandsApi.addons().replaceTableState(addonId, table.table(), table.values());
                 })
                 .thenCompose(result -> result)
                 .thenApply(state -> {
