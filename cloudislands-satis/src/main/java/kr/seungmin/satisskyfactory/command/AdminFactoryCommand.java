@@ -743,6 +743,8 @@ public final class AdminFactoryCommand {
             state.put("writes", "true");
             state.put("approval", MIGRATION_IMPORT_APPROVAL);
             state.put("conflict-policy", "insert-ignore-existing-rows");
+            state.put("core-api-import-guard", database.activeBackend() == DatabaseService.StorageBackend.CORE_API ? "passed-addon-state-writer-required" : "not-required-for-" + database.activeBackend().name());
+            state.put("core-api-writer-required", Boolean.toString(database.activeBackend() == DatabaseService.StorageBackend.CORE_API));
             state.put("rollback-backup", result.rollbackBackupPath());
             state.put("rollback-command", "/factory admin migration rollback");
             state.entrySet().stream()
@@ -755,6 +757,10 @@ public final class AdminFactoryCommand {
             sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
                     "key", "error",
                     "value", exception.getMessage() == null ? "unknown" : exception.getMessage()
+            )));
+            sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                    "key", "core-api-import-guard",
+                    "value", database.activeBackend() == DatabaseService.StorageBackend.CORE_API ? "failed-or-unavailable-addon-state-writer" : "not-required-for-" + database.activeBackend().name()
             )));
         }
     }
