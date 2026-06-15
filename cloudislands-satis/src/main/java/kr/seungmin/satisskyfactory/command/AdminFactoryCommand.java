@@ -773,13 +773,13 @@ public final class AdminFactoryCommand {
             if (result.restored()) {
                 reload.run();
             }
-            state.put("mode", result.restored() ? "sqlite-snapshot-restore" : "manual-restore-required");
+            state.put("mode", rollbackMode(result));
             state.put("restored", Boolean.toString(result.restored()));
             state.put("status", result.status());
             state.put("backup", result.backupPath());
             state.put("next-step", result.nextStep());
             state.put("automatic-delete", "false");
-            state.put("reason", result.restored() ? "restored last SQLite pre-import snapshot" : "rollback must not delete mixed live CloudIslands/Satis data automatically");
+            state.put("reason", rollbackReason(result));
         } catch (RuntimeException exception) {
             state.put("mode", "rollback-failed");
             state.put("restored", "false");
@@ -792,6 +792,26 @@ public final class AdminFactoryCommand {
                         "key", entry.getKey(),
                         "value", entry.getValue()
                 ))));
+    }
+
+    private String rollbackMode(DatabaseService.LegacyRollbackResult result) {
+        if (result == null || !result.restored()) {
+            return "manual-restore-required";
+        }
+        if ("restored-shared-backend".equals(result.status())) {
+            return "shared-backend-snapshot-restore";
+        }
+        return "sqlite-snapshot-restore";
+    }
+
+    private String rollbackReason(DatabaseService.LegacyRollbackResult result) {
+        if (result == null || !result.restored()) {
+            return "rollback must not delete mixed live CloudIslands/Satis data automatically";
+        }
+        if ("restored-shared-backend".equals(result.status())) {
+            return "restored last pre-import snapshot into active shared backend";
+        }
+        return "restored last SQLite pre-import snapshot";
     }
 
     private int approvalIndex(String[] args) {
