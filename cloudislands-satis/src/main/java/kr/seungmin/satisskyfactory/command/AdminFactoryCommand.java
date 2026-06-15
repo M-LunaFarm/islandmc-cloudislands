@@ -654,6 +654,9 @@ public final class AdminFactoryCommand {
             Map<String, String> state = new LinkedHashMap<>();
             state.put("source", plan.sourcePath());
             state.put("mode", action.equals("scan") ? "scan-only" : (action.equals("verify") ? "verify-no-write" : "dryrun-no-write"));
+            state.put("target-backend", database.activeBackend().name());
+            state.put("writes", "false");
+            state.put("conflict-policy", "none-scan-only");
             state.put("importable-rows", String.valueOf(plan.importableRows()));
             state.put("importable-tables", String.valueOf(plan.importableTables()));
             state.put("skipped-tables", String.valueOf(plan.skippedTables()));
@@ -687,10 +690,13 @@ public final class AdminFactoryCommand {
             sender.sendMessage(messages.raw("admin-migration-title"));
             Map<String, String> state = new LinkedHashMap<>();
             state.put("source", result.sourcePath());
+            state.put("target-backend", database.activeBackend().name());
             state.put("copied-rows", String.valueOf(result.copiedRows()));
             state.put("copied-tables", String.join(",", result.copiedTables()));
             state.put("skipped-tables", result.skippedTables().isEmpty() ? "none" : String.join(",", result.skippedTables()));
             state.put("mode", "cross-backend-sqlite-copy");
+            state.put("writes", "true");
+            state.put("conflict-policy", "insert-ignore-existing-rows");
             state.entrySet().stream()
                     .sorted(Map.Entry.comparingByKey())
                     .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
