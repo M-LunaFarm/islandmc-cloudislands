@@ -1230,41 +1230,53 @@ public final class CloudIslandsCoreApplication {
         });
         route("/v1/jobs/recover", exchange -> {
             String body = readBody(exchange);
+            String nodeId = JsonFields.text(body, "nodeId", "recovery");
+            long minIdleMillis = JsonFields.longValue(body, "minIdleMillis", 60000L);
+            int maxJobs = JsonFields.integer(body, "maxJobs", 16);
             if (jobs instanceof kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue redisJobs) {
                 String recovered = redisJobs.recoverPending(
-                    JsonFields.text(body, "nodeId", "recovery"),
-                    JsonFields.longValue(body, "minIdleMillis", 60000L),
-                    JsonFields.integer(body, "maxJobs", 16)
+                    nodeId,
+                    minIdleMillis,
+                    maxJobs
                 );
+                audit.log(new UUID(0L, 0L), "ADMIN", "JOB_RECOVER", "JOB", nodeId, Map.of("backend", "REDIS", "minIdleMillis", Long.toString(minIdleMillis), "maxJobs", Integer.toString(maxJobs), "result", recovered));
                 write(exchange, 202, "{\"recovered\":\"" + recovered.replace("\"", "'") + "\"}");
             } else if (jobs instanceof JdbcIslandJobQueue jdbcJobs) {
                 String recovered = jdbcJobs.recoverPending(
-                    JsonFields.text(body, "nodeId", "recovery"),
-                    JsonFields.longValue(body, "minIdleMillis", 60000L),
-                    JsonFields.integer(body, "maxJobs", 16)
+                    nodeId,
+                    minIdleMillis,
+                    maxJobs
                 );
+                audit.log(new UUID(0L, 0L), "ADMIN", "JOB_RECOVER", "JOB", nodeId, Map.of("backend", "JDBC", "minIdleMillis", Long.toString(minIdleMillis), "maxJobs", Integer.toString(maxJobs), "result", recovered));
                 write(exchange, 202, "{\"recovered\":" + recovered + "}");
             } else {
+                audit.log(new UUID(0L, 0L), "ADMIN", "JOB_RECOVER", "JOB", nodeId, Map.of("backend", "UNAVAILABLE", "minIdleMillis", Long.toString(minIdleMillis), "maxJobs", Integer.toString(maxJobs)));
                 write(exchange, 409, ApiResponses.error("RECOVERY_UNAVAILABLE", "Job recovery is only available when CI_JOB_QUEUE_MODE=REDIS or JDBC"));
             }
         });
         route("/v1/admin/jobs/recover", exchange -> {
             String body = readBody(exchange);
+            String nodeId = JsonFields.text(body, "nodeId", "recovery");
+            long minIdleMillis = JsonFields.longValue(body, "minIdleMillis", 60000L);
+            int maxJobs = JsonFields.integer(body, "maxJobs", 16);
             if (jobs instanceof kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue redisJobs) {
                 String recovered = redisJobs.recoverPending(
-                    JsonFields.text(body, "nodeId", "recovery"),
-                    JsonFields.longValue(body, "minIdleMillis", 60000L),
-                    JsonFields.integer(body, "maxJobs", 16)
+                    nodeId,
+                    minIdleMillis,
+                    maxJobs
                 );
+                audit.log(new UUID(0L, 0L), "ADMIN", "JOB_RECOVER", "JOB", nodeId, Map.of("backend", "REDIS", "minIdleMillis", Long.toString(minIdleMillis), "maxJobs", Integer.toString(maxJobs), "result", recovered));
                 write(exchange, 202, "{\"recovered\":\"" + recovered.replace("\"", "'") + "\"}");
             } else if (jobs instanceof JdbcIslandJobQueue jdbcJobs) {
                 String recovered = jdbcJobs.recoverPending(
-                    JsonFields.text(body, "nodeId", "recovery"),
-                    JsonFields.longValue(body, "minIdleMillis", 60000L),
-                    JsonFields.integer(body, "maxJobs", 16)
+                    nodeId,
+                    minIdleMillis,
+                    maxJobs
                 );
+                audit.log(new UUID(0L, 0L), "ADMIN", "JOB_RECOVER", "JOB", nodeId, Map.of("backend", "JDBC", "minIdleMillis", Long.toString(minIdleMillis), "maxJobs", Integer.toString(maxJobs), "result", recovered));
                 write(exchange, 202, "{\"recovered\":" + recovered + "}");
             } else {
+                audit.log(new UUID(0L, 0L), "ADMIN", "JOB_RECOVER", "JOB", nodeId, Map.of("backend", "UNAVAILABLE", "minIdleMillis", Long.toString(minIdleMillis), "maxJobs", Integer.toString(maxJobs)));
                 write(exchange, 409, ApiResponses.error("RECOVERY_UNAVAILABLE", "Job recovery is only available when CI_JOB_QUEUE_MODE=REDIS or JDBC"));
             }
         });
@@ -1874,7 +1886,10 @@ public final class CloudIslandsCoreApplication {
             if (tail.endsWith("/quarantine")) {
                 String body = readBody(exchange);
                 UUID islandId = uuidPath(tail.substring(0, tail.length() - "/quarantine".length()));
-                lifecycle(exchange, lifecycle.quarantine(islandId, JsonFields.text(body, "reason", "admin")));
+                String reason = JsonFields.text(body, "reason", "admin");
+                IslandLifecycleWorkflow.Result result = lifecycle.quarantine(islandId, reason);
+                audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_QUARANTINE", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code(), "reason", reason));
+                lifecycle(exchange, result);
                 return;
             }
             if (tail.endsWith("/delete")) {
