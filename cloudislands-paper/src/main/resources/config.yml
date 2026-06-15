@@ -1007,6 +1007,7 @@ setup:
     password: ""
     pool-size: 0
     postgresql:
+      url: ""
       jdbc-url: ""
       host: ""
       port: 0
@@ -1017,6 +1018,7 @@ setup:
       password: ""
       pool-size: 0
     mysql:
+      url: ""
       jdbc-url: ""
       host: ""
       port: 0
@@ -1027,6 +1029,7 @@ setup:
       password: ""
       pool-size: 0
     mariadb:
+      url: ""
       jdbc-url: ""
       host: ""
       port: 0
@@ -1040,7 +1043,7 @@ setup:
       enabled: false
     fallback:
       enabled: true
-      order: "MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC"
+      order: "POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC"
   storage:
     # Optional first-install island bundle storage block. Empty values fall back to storage below.
     type: ""
