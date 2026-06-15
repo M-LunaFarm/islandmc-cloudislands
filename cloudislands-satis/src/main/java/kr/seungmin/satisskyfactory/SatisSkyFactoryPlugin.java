@@ -221,7 +221,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         refreshIslandCache();
         refreshMachineCache();
         logFeatureWarnings();
-        if (featureEnabled("machines")) {
+        if (operationalFeatureEnabled("machines")) {
             rebuildNetworks();
         }
 
@@ -324,8 +324,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             );
             ticker.start(configLong("settings.tick-period-ticks", "settings.tick-interval", 20));
         }
-        if (featureEnabled("maintenance")) {
-            maintenanceTicker = new MaintenanceTickService(this, islands, skyblock, maintenance, () -> featureEnabled("maintenance"));
+        if (operationalFeatureEnabled("maintenance")) {
+            maintenanceTicker = new MaintenanceTickService(this, islands, skyblock, maintenance, () -> operationalFeatureEnabled("maintenance"));
             maintenanceTicker.start(configLong("settings.maintenance-check-period-ticks", "settings.maintenance-check-interval", 1200));
         }
         if (dataWritesEnabled()) {
@@ -334,13 +334,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean dataWritesEnabled() {
-        return featureEnabled("machines")
-                || featureEnabled("storage")
+        return operationalFeatureEnabled("machines")
+                || operationalFeatureEnabled("storage")
                 || operationalFeatureEnabled("resource-nodes")
                 || operationalFeatureEnabled("market")
                 || operationalFeatureEnabled("contracts")
-                || featureEnabled("research")
-                || featureEnabled("maintenance");
+                || operationalFeatureEnabled("research")
+                || operationalFeatureEnabled("maintenance");
     }
 
     private void putRuntimeActivityState(Map<String, String> state) {
@@ -503,7 +503,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (!addonRuntimeEnabled) {
             return "addon-disabled";
         }
-        if (!featureEnabled("commands")) {
+        if (!operationalFeatureEnabled("commands")) {
             return "commands-feature-disabled";
         }
         return "command-not-registered";
@@ -572,10 +572,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private String skippedRuntimeComponentsMetadata() {
         java.util.List<String> skipped = new java.util.ArrayList<>();
-        if (!featureEnabled("commands")) {
+        if (!operationalFeatureEnabled("commands")) {
             skipped.add("commands");
         }
-        if (!featureEnabled("machines")) {
+        if (!operationalFeatureEnabled("machines")) {
             skipped.add("machine-listener");
             skipped.add("machine-ticker");
         }
@@ -603,7 +603,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String placeholderBlockReason() {
-        if (!featureEnabled("placeholders")) {
+        if (!operationalFeatureEnabled("placeholders")) {
             return "placeholders-feature-disabled";
         }
         if (!getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
@@ -613,17 +613,17 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean lifecycleStateEnabled() {
-        return featureEnabled("machines")
-                || featureEnabled("storage")
+        return operationalFeatureEnabled("machines")
+                || operationalFeatureEnabled("storage")
                 || operationalFeatureEnabled("resource-nodes")
                 || operationalFeatureEnabled("market")
                 || operationalFeatureEnabled("contracts")
-                || featureEnabled("research")
-                || featureEnabled("maintenance");
+                || operationalFeatureEnabled("research")
+                || operationalFeatureEnabled("maintenance");
     }
 
     private boolean lifecycleListenerNeeded() {
-        return featureEnabled("lifecycle") && lifecycleStateEnabled();
+        return operationalFeatureEnabled("lifecycle") && lifecycleStateEnabled();
     }
 
     private boolean storageDataEnabled() {
@@ -791,7 +791,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void registerCommands() {
-        if (!featureEnabled("commands")) {
+        if (!operationalFeatureEnabled("commands")) {
             installDisabledCommandHandler("commands");
             commandsRegistered = false;
             return;
@@ -862,10 +862,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             machineListener = null;
         } else if (!machineListenerRegistered) {
             machineListener = new MachineListener(
-                    () -> featureEnabled("machines"),
+                    () -> operationalFeatureEnabled("machines"),
                     () -> operationalFeatureEnabled("resource-nodes"),
-                    () -> featureEnabled("maintenance"),
-                    () -> featureEnabled("research"),
+                    () -> operationalFeatureEnabled("maintenance"),
+                    () -> operationalFeatureEnabled("research"),
                     () -> operationalFeatureEnabled("gui"),
                     this,
                     itemFactory,
@@ -886,7 +886,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             getServer().getPluginManager().registerEvents(machineListener, this);
             machineListenerRegistered = true;
         }
-        if (!featureEnabled("gui")) {
+        if (!operationalFeatureEnabled("gui")) {
             closeOpenFactoryGuis();
             guiListenerRegistered = unregisterListener(guiListener, guiListenerRegistered);
             guiListener = null;
@@ -922,8 +922,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             lifecycleListener = new FactoryLifecycleListener(
                     this::lifecycleListenerNeeded,
                     () -> operationalFeatureEnabled("resource-nodes"),
-                    () -> featureEnabled("machines"),
-                    () -> featureEnabled("maintenance"),
+                    () -> operationalFeatureEnabled("machines"),
+                    () -> operationalFeatureEnabled("maintenance"),
                     islands,
                     skyblock,
                     nodes,
@@ -963,7 +963,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void registerPlaceholders() {
-        if (!featureEnabled("placeholders")) {
+        if (!operationalFeatureEnabled("placeholders")) {
             return;
         }
         if (!getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
@@ -978,7 +978,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void refreshPlaceholders() {
-        if (!featureEnabled("placeholders") || !getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+        if (!operationalFeatureEnabled("placeholders") || !getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             if (placeholderHook != null) {
                 placeholderHook.unregister();
                 placeholderHook = null;
@@ -2943,6 +2943,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean operationalFeatureEnabled(String key) {
+        if (!addonRuntimeEnabled) {
+            return false;
+        }
         String raw = key == null ? "" : key;
         if (raw.equals("generators") && !featureEnabled("factories")) {
             return false;
