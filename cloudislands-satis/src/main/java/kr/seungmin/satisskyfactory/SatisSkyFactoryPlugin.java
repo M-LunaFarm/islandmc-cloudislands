@@ -1635,9 +1635,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         Map<String, Boolean> operational = new LinkedHashMap<>(features == null ? Map.of() : features);
         boolean machinesEnabled = Boolean.TRUE.equals(operational.get("machines"));
         boolean storageEnabled = Boolean.TRUE.equals(operational.get("storage"));
+        boolean factoriesEnabled = Boolean.TRUE.equals(operational.get("factories"));
         operational.computeIfPresent("resource-nodes", (_key, enabled) -> enabled && machinesEnabled);
         operational.computeIfPresent("market", (_key, enabled) -> enabled && storageEnabled);
         operational.computeIfPresent("contracts", (_key, enabled) -> enabled && storageEnabled);
+        operational.computeIfPresent("generators", (_key, enabled) -> enabled && factoriesEnabled);
+        operational.computeIfPresent("missions", (_key, enabled) -> enabled && storageEnabled);
         FEATURE_ALIASES.forEach((alias, canonical) -> {
             if (operational.containsKey(alias) || operational.containsKey(canonical)) {
                 boolean enabled = operational.getOrDefault(alias, true) && operational.getOrDefault(canonical, true);
@@ -2479,6 +2482,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean operationalFeatureEnabled(String key) {
+        String raw = key == null ? "" : key;
+        if (raw.equals("generators") && !featureEnabled("factories")) {
+            return false;
+        }
+        if (raw.equals("missions") && !featureEnabled("storage")) {
+            return false;
+        }
         String canonical = canonicalFeature(key);
         if (!featureEnabled(canonical)) {
             return false;
@@ -2486,8 +2496,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return switch (canonical) {
             case "resource-nodes" -> featureEnabled("machines");
             case "market", "contracts" -> featureEnabled("storage");
-            case "generators" -> featureEnabled("factories");
-            case "missions" -> featureEnabled("storage");
             default -> true;
         };
     }
