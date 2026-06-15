@@ -96,8 +96,17 @@ public final class AdminEndpointGuard {
             if (path.endsWith("/save") || path.endsWith("/snapshot")) {
                 return AdminPermission.ISLAND_SNAPSHOT;
             }
-            if (path.endsWith("/rollback")) {
+            if (path.endsWith("/restore") || path.endsWith("/rollback")) {
                 return AdminPermission.ISLAND_RESTORE;
+            }
+            if (path.endsWith("/quarantine")) {
+                return AdminPermission.ISLAND_QUARANTINE;
+            }
+            if (path.endsWith("/delete")) {
+                return AdminPermission.ISLAND_DELETE;
+            }
+            if (path.endsWith("/repair")) {
+                return AdminPermission.ISLAND_REPAIR;
             }
         }
         if (path.startsWith("/v1/admin/nodes/")) {

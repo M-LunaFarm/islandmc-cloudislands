@@ -1750,6 +1750,36 @@ public final class CloudIslandsCoreApplication {
                 rollbackIslandSnapshot(exchange, audit, lifecycle, snapshotRepository, islandId, snapshotNo);
                 return;
             }
+            if (tail.endsWith("/quarantine")) {
+                String body = readBody(exchange);
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/quarantine".length()));
+                lifecycle(exchange, lifecycle.quarantine(islandId, JsonFields.text(body, "reason", "admin")));
+                return;
+            }
+            if (tail.endsWith("/delete")) {
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/delete".length()));
+                java.util.Optional<IslandSnapshot> island = islandRepository.findById(islandId);
+                boolean deleted = island.isPresent() && requestIslandDelete(islandId, island.get().ownerUuid(), island.get().ownerUuid(), "admin-delete");
+                audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of("deleted", Boolean.toString(deleted)));
+                write(exchange, deleted ? 202 : 404, deleted ? ApiResponses.ok(true) : ApiResponses.error("ISLAND_NOT_DELETED", "Island was not found or could not be deleted"));
+                return;
+            }
+            if (tail.endsWith("/repair")) {
+                String body = readBody(exchange);
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/repair".length()));
+                String reason = JsonFields.text(body, "reason", "admin");
+                if (islandRepository.findById(islandId).isEmpty()) {
+                    write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+                    return;
+                }
+                var runtime = runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.INACTIVE_READY);
+                islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.INACTIVE_READY);
+                audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_REPAIR", "ISLAND", islandId.toString(), Map.of("reason", reason));
+                events.publish(CloudIslandEventType.ISLAND_REPAIRED.name(), Map.of("islandId", islandId.toString(), "reason", reason, "state", runtime.state().name()));
+                events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", runtime.state().name(), "reason", "REPAIRED"));
+                write(exchange, 202, runtimeJson(runtime));
+                return;
+            }
             write(exchange, 404, ApiResponses.error("ROUTE_NOT_FOUND", "Route was not found"));
         });
         route("/v1/admin/islands/save", exchange -> {
