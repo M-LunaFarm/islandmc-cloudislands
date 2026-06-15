@@ -2268,7 +2268,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void publishPreCreateLifecycleState(IslandPreCreateEvent event) {
-        if (cloudIslandsApi == null || !operationalFeatureEnabled("addon-state")) {
+        if (cloudIslandsApi == null || !operationalFeatureEnabled("addon-state")
+                || !operationalFeatureEnabled("lifecycle") || !lifecycleStateEnabled()) {
             return;
         }
         String templateId = event.templateId() == null || event.templateId().isBlank() ? "default" : event.templateId();
