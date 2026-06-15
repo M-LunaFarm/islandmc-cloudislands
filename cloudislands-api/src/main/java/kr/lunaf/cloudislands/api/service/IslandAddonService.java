@@ -17,6 +17,26 @@ public interface IslandAddonService {
     int MAX_STATE_VALUE_LENGTH = 65535;
     int MAX_STATE_KEYS_PER_ADDON = 4096;
 
+    static String normalizeTableStateName(String table) {
+        return safeTableName(table);
+    }
+
+    static String tableStateKeyPrefix(String table) {
+        return TABLE_STATE_KEY_PREFIX + safeTableName(table) + "/";
+    }
+
+    static String tableStateKey(String table, String key) {
+        String value = key == null ? "" : key.trim();
+        if (value.isBlank()) {
+            throw new IllegalArgumentException("Addon state table key is required");
+        }
+        return tableStateKeyPrefix(table) + value;
+    }
+
+    static boolean isTableStateKey(String key) {
+        return key != null && key.startsWith(TABLE_STATE_KEY_PREFIX);
+    }
+
     default CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled) {
         return register(id, displayName, version, enabled, Map.of());
     }
@@ -430,7 +450,7 @@ public interface IslandAddonService {
         Map<String, String> state = new HashMap<>();
         values.forEach((key, value) -> {
             if (key != null && !key.isBlank() && value != null) {
-                state.put(tableStatePrefix(safeTable) + key.trim(), value);
+                state.put(tableStateKey(safeTable, key), value);
             }
         });
         return Map.copyOf(state);
@@ -446,7 +466,7 @@ public interface IslandAddonService {
     }
 
     private static String tableStatePrefix(String table) {
-        return TABLE_STATE_KEY_PREFIX + safeTableName(table) + "/";
+        return tableStateKeyPrefix(table);
     }
 
     private static String safeTableName(String table) {
