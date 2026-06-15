@@ -861,6 +861,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         try {
             CloudIslandsAddonSnapshot addon = register(cloudIslandsApi).join();
+            addonRuntimeEnabled = addon.enabled();
+            effectiveFeatures = addon.features();
+            addonStateReportingWasEnabled = addonStateReportingEnabled(addon);
             getLogger().info("Registered CloudIslands addon: " + addon.id() + " enabled=" + addon.enabled());
             if (!addon.enabled()) {
                 getLogger().info("CloudIslands disabled this addon through the parent config.");
