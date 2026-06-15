@@ -613,6 +613,8 @@ public final class AdminFactoryCommand {
         state.put("satismc-import-mode", "cross-backend-sqlite-copy");
         state.put("satismc-rollback-mode", "manual-restore-from-backup");
         state.put("feature-gate", "migration=" + enabled("migration"));
+        state.put("disabled-behavior", "reject-scan-dryrun-verify-import-rollback");
+        state.put("writes-when-disabled", "false");
         state.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
@@ -622,6 +624,22 @@ public final class AdminFactoryCommand {
     }
 
     private void handleMigration(CommandSender sender, String[] args) {
+        if (!enabled("migration")) {
+            sender.sendMessage(messages.raw("admin-migration-title"));
+            Map<String, String> state = new LinkedHashMap<>();
+            state.put("feature-gate", "migration=false");
+            state.put("mode", "disabled");
+            state.put("writes", "false");
+            state.put("reason", "migration feature is disabled by config");
+            state.put("disabled-behavior", "reject-scan-dryrun-verify-import-rollback");
+            state.entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey())
+                    .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                            "key", entry.getKey(),
+                            "value", entry.getValue()
+                    ))));
+            return;
+        }
         if (args.length >= 3) {
             String action = args[2].toLowerCase(Locale.ROOT);
             if (action.equals("scan") || action.equals("dryrun") || action.equals("dry-run") || action.equals("verify")) {
