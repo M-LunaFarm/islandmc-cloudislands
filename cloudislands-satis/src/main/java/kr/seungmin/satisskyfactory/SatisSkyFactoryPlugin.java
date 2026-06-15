@@ -1988,6 +1988,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         loadDefinitions();
         refreshIslandCache();
         refreshMachineCache();
+        configureCoreApiStateWriters();
         if (featureEnabled("machines")) {
             rebuildNetworks();
         }
