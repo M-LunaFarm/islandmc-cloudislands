@@ -1,5 +1,6 @@
 package kr.seungmin.satisskyfactory.task;
 
+import kr.lunaf.cloudislands.api.service.IslandAddonService;
 import kr.seungmin.satisskyfactory.database.DatabaseService;
 import kr.seungmin.satisskyfactory.model.FactoryIsland;
 import kr.seungmin.satisskyfactory.model.MachineInstance;
@@ -114,7 +115,7 @@ public final class DirtySaveService {
         if (!machineWritesEnabled.getAsBoolean()) {
             return;
         }
-        publishCoreDelete(islandUuid, "table/machines/" + machineId);
+        publishCoreDelete(islandUuid, IslandAddonService.tableStateKey("machines", machineId.toString()));
     }
 
     public void forgetMachines() {
@@ -146,7 +147,7 @@ public final class DirtySaveService {
         if (!inventoryWritesEnabled.getAsBoolean()) {
             return;
         }
-        publishCoreDelete(islandUuid, "table/virtual_inventories/" + inventoryId);
+        publishCoreDelete(islandUuid, IslandAddonService.tableStateKey("virtual_inventories", inventoryId.toString()));
     }
 
     public void forgetInventories() {

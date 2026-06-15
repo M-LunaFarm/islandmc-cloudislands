@@ -1037,7 +1037,7 @@ public final class DatabaseService {
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to save factory island", exception);
         }
-        publishCoreRow(island.islandUuid(), "table/factory_islands/" + island.islandUuid(), factoryIslandJson(island));
+        publishCoreRow(island.islandUuid(), IslandAddonService.tableStateKey("factory_islands", island.islandUuid().toString()), factoryIslandJson(island));
     }
 
     private String saveIslandSql() {
@@ -1724,7 +1724,7 @@ public final class DatabaseService {
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to write ledger", exception);
         }
-        publishCoreRow(islandUuid, "table/ledger/" + ledgerId, ledgerJson(ledgerId, islandUuid, type, amount, reason, now));
+        publishCoreRow(islandUuid, IslandAddonService.tableStateKey("ledger", ledgerId.toString()), ledgerJson(ledgerId, islandUuid, type, amount, reason, now));
     }
 
     public long marketDailySold(String itemId, String dateKey) {
@@ -1782,9 +1782,9 @@ public final class DatabaseService {
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to record market sale", exception);
         }
-        publishCoreGlobalRow("table/market_daily/" + itemId + "/" + dateKey,
+        publishCoreGlobalRow(IslandAddonService.tableStateKey("market_daily", itemId + "/" + dateKey),
                 marketDailyJson(itemId, dateKey, dailySold, demandFactor));
-        publishCoreRow(islandUuid, "table/market_personal_daily/" + itemId + "/" + dateKey,
+        publishCoreRow(islandUuid, IslandAddonService.tableStateKey("market_personal_daily", itemId + "/" + dateKey),
                 marketPersonalJson(islandUuid, itemId, dateKey, personalSold));
     }
 
@@ -2024,7 +2024,7 @@ public final class DatabaseService {
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to save contract", exception);
         }
-        publishCoreRow(contract.islandUuid(), "table/contracts/" + contract.contractId(), contractJson(contract));
+        publishCoreRow(contract.islandUuid(), IslandAddonService.tableStateKey("contracts", contract.contractId().toString()), contractJson(contract));
     }
 
     private String saveContractSql() {
@@ -2062,7 +2062,7 @@ public final class DatabaseService {
             throw new IllegalStateException("Failed to update contract", exception);
         }
         if (updated != null) {
-            publishCoreRow(updated.islandUuid(), "table/contracts/" + updated.contractId(), contractJson(updated));
+            publishCoreRow(updated.islandUuid(), IslandAddonService.tableStateKey("contracts", updated.contractId().toString()), contractJson(updated));
         }
     }
 
@@ -2115,7 +2115,7 @@ public final class DatabaseService {
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to save unlock", exception);
         }
-        publishCoreRow(islandUuid, "table/island_unlocks/" + unlockId, unlockJson(islandUuid, unlockId));
+        publishCoreRow(islandUuid, IslandAddonService.tableStateKey("island_unlocks", unlockId), unlockJson(islandUuid, unlockId));
     }
 
     private void publishCoreRow(UUID islandUuid, String key, String value) {
@@ -2161,7 +2161,7 @@ public final class DatabaseService {
             return;
         }
         String safeTable = table.startsWith(IslandAddonService.TABLE_STATE_KEY_PREFIX) ? table.substring(IslandAddonService.TABLE_STATE_KEY_PREFIX.length()) : table;
-        values.forEach((key, value) -> publishCoreRow(islandUuid, IslandAddonService.TABLE_STATE_KEY_PREFIX + safeTable + "/" + key, value));
+        values.forEach((key, value) -> publishCoreRow(islandUuid, IslandAddonService.tableStateKey(safeTable, key), value));
     }
 
     private String itemNetworkJson(ItemNetwork network) {

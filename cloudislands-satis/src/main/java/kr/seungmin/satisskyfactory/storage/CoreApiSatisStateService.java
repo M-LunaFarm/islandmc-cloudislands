@@ -657,7 +657,7 @@ public final class CoreApiSatisStateService {
             for (Map.Entry<String, String> entry : state.entrySet()) {
                 String key = entry.getKey();
                 String value = entry.getValue();
-                if (key == null || value == null || !key.startsWith("table/market_daily/")) {
+                if (key == null || value == null || !key.startsWith(IslandAddonService.tableStateKeyPrefix("market_daily"))) {
                     continue;
                 }
                 try {
@@ -698,8 +698,10 @@ public final class CoreApiSatisStateService {
         boolean[] restored = {false};
         List<ItemNetwork> itemNetworks = new ArrayList<>();
         List<PowerNetwork> powerNetworks = new ArrayList<>();
-        Set<UUID> itemNetworkIndex = networkIndex(state.get("table/item_networks/index"));
-        Set<UUID> powerNetworkIndex = networkIndex(state.get("table/power_networks/index"));
+        String itemNetworkIndexKey = IslandAddonService.tableStateKey("item_networks", "index");
+        String powerNetworkIndexKey = IslandAddonService.tableStateKey("power_networks", "index");
+        Set<UUID> itemNetworkIndex = networkIndex(state.get(itemNetworkIndexKey));
+        Set<UUID> powerNetworkIndex = networkIndex(state.get(powerNetworkIndexKey));
         database.withCoreStatePublishingSuspended(() -> {
             for (Map.Entry<String, String> entry : state.entrySet()) {
                 String key = entry.getKey();
@@ -708,28 +710,28 @@ public final class CoreApiSatisStateService {
                     continue;
                 }
                 try {
-                    if (key.startsWith("table/factory_islands/")) {
+                    if (key.startsWith(IslandAddonService.tableStateKeyPrefix("factory_islands"))) {
                         database.saveIsland(island(value));
                         restored[0] = true;
-                    } else if (key.startsWith("table/virtual_inventories/")) {
+                    } else if (key.startsWith(IslandAddonService.tableStateKeyPrefix("virtual_inventories"))) {
                         database.saveInventory(inventory(value));
                         restored[0] = true;
-                    } else if (key.startsWith("table/machines/")) {
+                    } else if (key.startsWith(IslandAddonService.tableStateKeyPrefix("machines"))) {
                         database.saveMachine(machine(value));
                         restored[0] = true;
-                    } else if (key.startsWith("table/resource_nodes/")) {
+                    } else if (key.startsWith(IslandAddonService.tableStateKeyPrefix("resource_nodes"))) {
                         database.saveNode(node(value));
                         restored[0] = true;
-                    } else if (key.startsWith("table/contracts/")) {
+                    } else if (key.startsWith(IslandAddonService.tableStateKeyPrefix("contracts"))) {
                         database.saveContract(contract(value));
                         restored[0] = true;
-                    } else if (key.startsWith("table/island_unlocks/")) {
+                    } else if (key.startsWith(IslandAddonService.tableStateKeyPrefix("island_unlocks"))) {
                         String unlockId = text(value, "unlockId", "");
                         if (!unlockId.isBlank()) {
                             database.saveUnlock(islandId, unlockId);
                             restored[0] = true;
                         }
-                    } else if (key.startsWith("table/market_personal_daily/")) {
+                    } else if (key.startsWith(IslandAddonService.tableStateKeyPrefix("market_personal_daily"))) {
                         String itemId = text(value, "itemId", "");
                         String dateKey = text(value, "dateKey", "");
                         if (itemId.isBlank() || dateKey.isBlank()) {
@@ -742,7 +744,7 @@ public final class CoreApiSatisStateService {
                                 longValue(value, "soldAmount", 0L)
                         );
                         restored[0] = true;
-                    } else if (key.startsWith("table/ledger/")) {
+                    } else if (key.startsWith(IslandAddonService.tableStateKeyPrefix("ledger"))) {
                         database.saveLedgerSnapshot(
                                 uuid(text(value, "ledgerId", "")),
                                 uuid(text(value, "islandUuid", islandId.toString())),
@@ -752,12 +754,12 @@ public final class CoreApiSatisStateService {
                                 longValue(value, "createdAt", System.currentTimeMillis())
                         );
                         restored[0] = true;
-                    } else if (key.startsWith("table/item_networks/") && !"table/item_networks/index".equals(key)) {
+                    } else if (key.startsWith(IslandAddonService.tableStateKeyPrefix("item_networks")) && !itemNetworkIndexKey.equals(key)) {
                         ItemNetwork network = itemNetwork(value);
                         if (itemNetworkIndex.isEmpty() || itemNetworkIndex.contains(network.networkId())) {
                             itemNetworks.add(network);
                         }
-                    } else if (key.startsWith("table/power_networks/") && !"table/power_networks/index".equals(key)) {
+                    } else if (key.startsWith(IslandAddonService.tableStateKeyPrefix("power_networks")) && !powerNetworkIndexKey.equals(key)) {
                         PowerNetwork network = powerNetwork(value);
                         if (powerNetworkIndex.isEmpty() || powerNetworkIndex.contains(network.networkId())) {
                             powerNetworks.add(network);
