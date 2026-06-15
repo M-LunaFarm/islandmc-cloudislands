@@ -811,6 +811,13 @@ public final class AdminFactoryCommand {
             try {
                 Map<String, String> metadata = integrationMetadata.get();
                 List.of(
+                        "addon-descriptor-resource",
+                        "addon-descriptor-format",
+                        "addon-packaging",
+                        "addon-removal-safe",
+                        "addon-data-retention",
+                        "addon-runtime-owns-islands",
+                        "addon-default-database-mode",
                         "database-configured-backend",
                         "database-setup-sections",
                         "database-setup-auto-selected",
