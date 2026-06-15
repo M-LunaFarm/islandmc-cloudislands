@@ -343,6 +343,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-storage-gate", "addonRuntimeEnabled&&features.storage");
         state.put("runtime-storage-status", featureEnabled("storage") ? "enabled" : "storage-feature-disabled");
         state.put("runtime-storage-policy", "disabled-feature-blocks-storage-commands-gui-and-writes-preserve-data");
+        state.put("runtime-market-gate", "addonRuntimeEnabled&&features.market&&features.storage");
+        state.put("runtime-market-status", operationalFeatureEnabled("market") ? "enabled" : "market-or-storage-feature-disabled");
+        state.put("runtime-market-policy", "disabled-feature-blocks-market-commands-gui-and-writes-preserve-data");
+        state.put("runtime-contracts-gate", "addonRuntimeEnabled&&features.contracts&&features.storage");
+        state.put("runtime-contracts-status", operationalFeatureEnabled("contracts") ? "enabled" : "contracts-or-storage-feature-disabled");
+        state.put("runtime-contracts-policy", "disabled-feature-blocks-contract-commands-gui-and-writes-preserve-data");
+        state.put("runtime-research-gate", "addonRuntimeEnabled&&features.research");
+        state.put("runtime-research-status", featureEnabled("research") ? "enabled" : "research-feature-disabled");
+        state.put("runtime-research-policy", "disabled-feature-blocks-research-commands-gui-and-writes-preserve-data");
         state.put("runtime-data-writes-enabled", Boolean.toString(dataWritesEnabled()));
         state.put("runtime-lifecycle-state-enabled", Boolean.toString(lifecycleStateEnabled()));
         state.put("runtime-machine-ticker-running", Boolean.toString(ticker != null && ticker.running()));
