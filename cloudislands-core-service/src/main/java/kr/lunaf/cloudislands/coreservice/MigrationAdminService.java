@@ -1,11 +1,16 @@
 package kr.lunaf.cloudislands.coreservice;
 
 import java.math.BigDecimal;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,6 +76,9 @@ public final class MigrationAdminService {
     private MigrationRollbackPlan lastRollbackPlan;
     private Path lastExtractionRoot;
     private String lastApprovalToken = "";
+    private String lastScanSourcePath = "";
+    private String lastScanFingerprint = "";
+    private String lastDryRunFingerprint = "";
 
     public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandLevelRepository levels, IslandSnapshotRepository snapshots, RollbackTarget hardRollbackTarget) {
         this(islands, metadata, playerProfiles, permissionRules, upgrades, bank, limits, missions, levels, snapshots, hardRollbackTarget, Path.of("cloudislands-storage"));
@@ -106,6 +114,9 @@ public final class MigrationAdminService {
         String sourcePath = path == null || path.isBlank() ? "plugins/SuperiorSkyblock2" : path;
         lastScan = scanner.scan(Path.of(sourcePath));
         lastApprovalToken = "";
+        lastScanSourcePath = sourcePath;
+        lastScanFingerprint = sourceFingerprint(Path.of(sourcePath));
+        lastDryRunFingerprint = "";
         List<MigrationIssue> issues = new ArrayList<>(lastScan.issues());
         Path manifestPath = migrationManifestPath();
         try {
@@ -115,7 +126,7 @@ public final class MigrationAdminService {
         }
         lastScan = new SuperiorSkyblock2MigrationScanner.ScanResult(lastScan.manifests(), List.copyOf(issues));
         lastPlan = new MigrationImportPlan(lastScan.manifests(), lastScan.issues());
-        return "{\"state\":\"" + MigrationRunState.SCANNED + "\"" + migrationBoundaryFields() + ",\"path\":\"" + escape(sourcePath) + "\",\"manifestPath\":\"" + escape(manifestPath.toString()) + "\",\"manifests\":" + lastScan.manifests().size() + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastScan.issues()) + "}";
+        return "{\"state\":\"" + MigrationRunState.SCANNED + "\"" + migrationBoundaryFields() + ",\"path\":\"" + escape(sourcePath) + "\",\"sourceFingerprint\":\"" + escape(lastScanFingerprint) + "\",\"manifestPath\":\"" + escape(manifestPath.toString()) + "\",\"manifests\":" + lastScan.manifests().size() + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastScan.issues()) + "}";
     }
 
     public synchronized String dryRun() {
@@ -126,6 +137,7 @@ public final class MigrationAdminService {
         lastPlan = new MigrationImportPlan(lastScan.manifests(), issues);
         MigrationRunState state = lastPlan.canImport() ? MigrationRunState.DRY_RUN_PASSED : MigrationRunState.DRY_RUN_FAILED;
         lastApprovalToken = lastPlan.canImport() ? java.util.UUID.randomUUID().toString() : "";
+        lastDryRunFingerprint = lastPlan.canImport() ? lastScanFingerprint : "";
         Path reportPath = migrationReportPath("dryrun");
         try {
             writeMigrationReportFile(state.name(), reportPath, lastPlan.report());
@@ -134,8 +146,9 @@ public final class MigrationAdminService {
             lastPlan = new MigrationImportPlan(lastScan.manifests(), issues);
             state = MigrationRunState.DRY_RUN_FAILED;
             lastApprovalToken = "";
+            lastDryRunFingerprint = "";
         }
-        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"manifests\":" + lastPlan.manifests().size() + ",\"canImport\":" + lastPlan.canImport() + ",\"approvalRequired\":" + lastPlan.canImport() + (lastApprovalToken.isBlank() ? "" : ",\"approvalToken\":\"" + lastApprovalToken + "\"") + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastPlan.issues()) + "}";
+        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"sourceFingerprint\":\"" + escape(lastDryRunFingerprint) + "\",\"manifests\":" + lastPlan.manifests().size() + ",\"canImport\":" + lastPlan.canImport() + ",\"approvalRequired\":" + lastPlan.canImport() + (lastApprovalToken.isBlank() ? "" : ",\"approvalToken\":\"" + lastApprovalToken + "\"") + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastPlan.issues()) + "}";
     }
 
     public synchronized String status() {
@@ -150,12 +163,15 @@ public final class MigrationAdminService {
             + ",\"migrationPipeline\":\"read-only-scan,manifest,dry-run,conflict-report,approval,db-import,world-cell-extract,bundle-checksum,cloudislands-activate-test,rollback-plan\""
             + ",\"migrationChecksumPolicy\":\"sha256-every-extracted-world-bundle-and-verify-against-imported-snapshot\""
             + ",\"migrationActivationTestPolicy\":\"verify-can-run-cloudislands-activation-test-without-superiorskyblock2-runtime-dependency\""
-            + ",\"migrationImportPolicy\":\"approval-token-required-after-successful-dryrun\""
+            + ",\"migrationImportPolicy\":\"approval-token-and-unchanged-source-fingerprint-required-after-successful-dryrun\""
             + ",\"scanManifests\":" + lastScan.manifests().size()
             + ",\"planManifests\":" + lastPlan.manifests().size()
             + ",\"canImport\":" + lastPlan.canImport()
             + ",\"approvalRequired\":" + (lastPlan.canImport() && !lastApprovalToken.isBlank())
             + ",\"approvalTokenAvailable\":" + !lastApprovalToken.isBlank()
+            + ",\"lastScanSource\":\"" + escape(lastScanSourcePath) + "\""
+            + ",\"lastScanFingerprint\":\"" + escape(lastScanFingerprint) + "\""
+            + ",\"lastDryRunFingerprint\":\"" + escape(lastDryRunFingerprint) + "\""
             + ",\"rollbackPlanAvailable\":" + rollbackPlanAvailable
             + ",\"rollbackPlan\":" + rollbackPlanJson(lastRollbackPlan)
             + ",\"migrationBundleRoot\":\"" + escape(migrationBundleRoot.toString()) + "\""
@@ -280,6 +296,11 @@ public final class MigrationAdminService {
             List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_APPROVAL_REQUIRED", "run dryrun and pass the returned approval token to import", true));
             return "{\"state\":\"" + MigrationRunState.DRY_RUN_PASSED + "\"" + migrationBoundaryFields() + ",\"imported\":false,\"importedIslands\":0,\"approvalRequired\":true" + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
         }
+        String currentFingerprint = sourceFingerprint(Path.of(lastScanSourcePath));
+        if (lastDryRunFingerprint.isBlank() || !lastDryRunFingerprint.equals(currentFingerprint)) {
+            List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_SOURCE_CHANGED_AFTER_DRYRUN", "rerun scan and dryrun before import", true));
+            return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\"" + migrationBoundaryFields() + ",\"imported\":false,\"importedIslands\":0,\"sourceFingerprint\":\"" + escape(currentFingerprint) + "\",\"dryRunFingerprint\":\"" + escape(lastDryRunFingerprint) + "\"" + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+        }
         long[] extractedStats = new long[] {0L, 0L, 0L};
         BundlePreflight preflight = preflightMigrationBundles(lastPlan.manifests());
         if (!preflight.issues().isEmpty()) {
@@ -360,7 +381,51 @@ public final class MigrationAdminService {
         lastApprovalToken = "";
         lastRollbackPlan = result.rollbackPlan();
         MigrationRunState state = result.imported() ? MigrationRunState.IMPORTED : MigrationRunState.DRY_RUN_FAILED;
-        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"imported\":" + result.imported() + ",\"importedIslands\":" + result.importedIslands() + ",\"extractedBundles\":" + extractedStats[0] + ",\"extractedFiles\":" + extractedStats[1] + ",\"extractedBytes\":" + extractedStats[2] + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), result.issues())) + ",\"issues\":" + issuesJson(result.issues()) + ",\"rollbackPlan\":" + rollbackPlanJson(result.rollbackPlan()) + "}";
+        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"imported\":" + result.imported() + ",\"importedIslands\":" + result.importedIslands() + ",\"sourceFingerprint\":\"" + escape(currentFingerprint) + "\",\"extractedBundles\":" + extractedStats[0] + ",\"extractedFiles\":" + extractedStats[1] + ",\"extractedBytes\":" + extractedStats[2] + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), result.issues())) + ",\"issues\":" + issuesJson(result.issues()) + ",\"rollbackPlan\":" + rollbackPlanJson(result.rollbackPlan()) + "}";
+    }
+
+    private String sourceFingerprint(Path source) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            if (!Files.exists(source)) {
+                digest.update(("missing:" + source).getBytes(StandardCharsets.UTF_8));
+                return hex(digest.digest());
+            }
+            if (Files.isRegularFile(source)) {
+                updateFingerprint(digest, source, source.getFileName().toString());
+                return hex(digest.digest());
+            }
+            try (java.util.stream.Stream<Path> paths = Files.walk(source)) {
+                for (Path path : paths.filter(Files::isRegularFile).sorted(Comparator.comparing(Path::toString)).toList()) {
+                    updateFingerprint(digest, path, source.relativize(path).toString().replace('\\', '/'));
+                }
+            }
+            return hex(digest.digest());
+        } catch (IOException | NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("failed to fingerprint migration source", exception);
+        }
+    }
+
+    private void updateFingerprint(MessageDigest digest, Path path, String relativePath) throws IOException {
+        digest.update(relativePath.getBytes(StandardCharsets.UTF_8));
+        digest.update(Long.toString(Files.size(path)).getBytes(StandardCharsets.UTF_8));
+        try (InputStream input = Files.newInputStream(path)) {
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = input.read(buffer)) >= 0) {
+                if (read > 0) {
+                    digest.update(buffer, 0, read);
+                }
+            }
+        }
+    }
+
+    private String hex(byte[] bytes) {
+        StringBuilder value = new StringBuilder(bytes.length * 2);
+        for (byte element : bytes) {
+            value.append(String.format("%02x", element));
+        }
+        return value.toString();
     }
 
     private record BundlePreflight(Map<java.util.UUID, MigrationWorldBundle> bundles, List<MigrationIssue> issues) {}
