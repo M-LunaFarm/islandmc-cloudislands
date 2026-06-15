@@ -71,7 +71,7 @@ setup:
       # If disabled, Core still refuses unsafe unsupported JDBC startup and reports setupFallbackSafetyForced=true.
       # Env overrides: CI_DB_FALLBACK_ENABLED, CI_DB_FALLBACK_ORDER.
       enabled: true
-      order: "MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC"
+      order: "POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC"
   # Empty jdbc-url inherits database.jdbc-url only for POSTGRESQL.
   # MYSQL/MARIADB need database-type + host/name or CI_JDBC_URL.
   # CORE_API leaves Core JDBC disabled and reports dbBackend=NONE.

@@ -331,7 +331,7 @@ public record CoreServiceConfig(
         if (!legacy.isBlank()) {
             return legacy;
         }
-        return "MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC";
+        return "POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC";
     }
 
     private static String setupJdbcUrl(Map<String, String> config, String fallback) {

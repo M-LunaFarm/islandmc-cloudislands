@@ -2606,7 +2606,7 @@ public final class CloudIslandsCoreApplication {
             + "\"jdbcUrlSource\":\"" + escape(CoreServiceConfig.configuredJdbcUrlSource()) + "\","
             + "\"coreJdbcSupported\":" + coreJdbcSupported(config.jdbcUrl()) + ","
             + "\"coreJdbcSupportedBackends\":\"POSTGRESQL\","
-            + "\"coreSetupFallbackBackends\":\"MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC\","
+            + "\"coreSetupFallbackBackends\":\"POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC\","
             + "\"coreSetupFallbackEnabled\":" + config.setupDatabaseFallbackEnabled() + ","
             + "\"coreSetupFallbackEffective\":" + coreJdbcFallbackActive(config) + ","
             + "\"coreSetupFallbackSafetyForced\":" + coreSetupFallbackSafetyForced(config) + ","
