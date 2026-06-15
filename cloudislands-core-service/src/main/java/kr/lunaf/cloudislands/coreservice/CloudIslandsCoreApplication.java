@@ -2726,7 +2726,7 @@ public final class CloudIslandsCoreApplication {
     }
 
     private static String migrationDisabledJson() {
-        return "{\"code\":\"MIGRATION_DISABLED\",\"state\":\"DISABLED\",\"message\":\"SuperiorSkyblock2 migration is disabled by config\"}";
+        return "{\"code\":\"MIGRATION_DISABLED\",\"state\":\"DISABLED\",\"sourcePlugin\":\"SuperiorSkyblock2\",\"migrationInputOnly\":true,\"runtimeDependency\":false,\"targetRuntime\":\"CloudIslands\",\"message\":\"SuperiorSkyblock2 migration is disabled by config\"}";
     }
 
     private static String jdbcBackend(String jdbcUrl) {
