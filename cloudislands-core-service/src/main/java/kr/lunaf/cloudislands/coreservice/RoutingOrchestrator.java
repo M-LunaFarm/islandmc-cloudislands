@@ -449,6 +449,9 @@ public final class RoutingOrchestrator {
             if (visitorRoute && activeNode.state() == NodeState.SOFT_FULL) {
                 throw new IllegalStateException("VISITOR_SOFT_FULL");
             }
+            if (!visitorRoute && activeNode.state() == NodeState.SOFT_FULL && memberReservedSlotsExhausted(activeNode)) {
+                throw new IllegalStateException("ACTIVE_NODE_MEMBER_RESERVED_SLOTS_FULL");
+            }
             String worldName = runtime.activeWorld() == null || runtime.activeWorld().isBlank() ? "ci_shard_001" : runtime.activeWorld();
             return new RouteTarget(activeNode, worldName, RouteTicketState.READY);
         }
@@ -487,6 +490,17 @@ public final class RoutingOrchestrator {
         }
         events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", runtime.islandId().toString(), "state", activating.state().name(), "targetNode", selected.nodeId()));
         return new RouteTarget(selected, activating.activeWorld() == null ? "ci_shard_001" : activating.activeWorld(), RouteTicketState.PREPARING);
+    }
+
+    private boolean memberReservedSlotsExhausted(NodeLoad node) {
+        if (node == null || node.reservedSlots() <= 0 || node.softPlayerCap() <= 0) {
+            return false;
+        }
+        int reservedLimit = node.softPlayerCap() + node.reservedSlots();
+        if (node.hardPlayerCap() > 0) {
+            reservedLimit = Math.min(reservedLimit, node.hardPlayerCap());
+        }
+        return node.players() >= reservedLimit;
     }
 
     private boolean activeRouteRecoveryReason(String blockReason) {
