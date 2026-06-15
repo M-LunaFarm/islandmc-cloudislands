@@ -421,6 +421,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"hideNodeNames\":" + hideNodeNames + ","
             + "\"playerTopologyPolicy\":\"logical-island-only\","
             + "\"playerNodeNamePolicy\":\"" + (hideNodeNames ? "hidden-from-player-routing-messages" : "visible-risk-admin-debug-only") + "\","
+            + "\"playerRouteMessagePolicy\":\"no-physical-server-node-world-or-cell-names\","
+            + "\"adminTopologyDiagnosticsPolicy\":\"admin-status-and-events-only-not-player-chat\","
             + "\"topologyExposureRisk\":" + topologyExposureRisk + ","
             + "\"defaultNodeIdentityRisk\":" + defaultNodeIdentityRisk + ","
             + "\"proxySourceAllowlistRequired\":" + proxySourceAllowlistRequired + ","
