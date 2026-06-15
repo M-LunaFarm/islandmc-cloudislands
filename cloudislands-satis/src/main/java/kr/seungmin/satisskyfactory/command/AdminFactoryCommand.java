@@ -103,6 +103,8 @@ public final class AdminFactoryCommand {
     private final Supplier<Map<String, String>> addonState;
     private final Function<UUID, Map<String, String>> addonIslandState;
     private final Runnable reload;
+    private String lastLegacyDryRunSource;
+    private long lastLegacyDryRunRows;
 
     public AdminFactoryCommand(FactoryIslandService islands, MachineService machines, MachineDefinitionService definitions,
                                StorageService storage, ResourceNodeService nodes, SkyblockProvider skyblock,
@@ -620,6 +622,7 @@ public final class AdminFactoryCommand {
         state.put("satismc-import-import", "/factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL);
         state.put("satismc-import-approval", MIGRATION_IMPORT_APPROVAL);
         state.put("satismc-import-mode", "cross-backend-sqlite-copy");
+        state.put("satismc-import-prerequisite", "same-source-dryrun-or-verify-before-import");
         state.put("satismc-core-api-import-guard", "reject-core-api-import-when-addon-state-writer-unavailable");
         state.put("satismc-rollback-mode", "sqlite-snapshot-restore-or-manual-shared-backend-restore");
         state.put("feature-gate", "migration=" + enabled("migration"));
@@ -682,6 +685,10 @@ public final class AdminFactoryCommand {
         }
         try {
             DatabaseService.LegacyImportPlan plan = database.scanLegacyDatabase(new File(joined(args, 3)));
+            if (action.equals("dryrun") || action.equals("dry-run") || action.equals("verify")) {
+                lastLegacyDryRunSource = plan.sourcePath();
+                lastLegacyDryRunRows = plan.importableRows();
+            }
             sender.sendMessage(messages.raw("admin-migration-title"));
             Map<String, String> state = new LinkedHashMap<>();
             state.put("source", plan.sourcePath());
@@ -689,6 +696,7 @@ public final class AdminFactoryCommand {
             state.put("target-backend", database.activeBackend().name());
             state.put("writes", "false");
             state.put("conflict-policy", "none-scan-only");
+            state.put("import-prerequisite-recorded", Boolean.toString(action.equals("dryrun") || action.equals("dry-run") || action.equals("verify")));
             state.put("importable-rows", String.valueOf(plan.importableRows()));
             state.put("importable-tables", String.valueOf(plan.importableTables()));
             state.put("skipped-tables", String.valueOf(plan.skippedTables()));
@@ -734,12 +742,32 @@ public final class AdminFactoryCommand {
             return;
         }
         try {
-            DatabaseService.LegacyImportResult result = database.importLegacyDatabase(new File(joined(args, 3, approvalIndex)));
+            String sourcePath = joined(args, 3, approvalIndex);
+            DatabaseService.LegacyImportPlan plan = database.scanLegacyDatabase(new File(sourcePath));
+            if (lastLegacyDryRunSource == null || !lastLegacyDryRunSource.equals(plan.sourcePath())) {
+                sender.sendMessage(messages.raw("admin-migration-title"));
+                Map<String, String> state = new LinkedHashMap<>();
+                state.put("mode", "dryrun-required");
+                state.put("writes", "false");
+                state.put("source", plan.sourcePath());
+                state.put("required", "/factory admin migration dryrun <sqlitePath>");
+                state.put("reason", "import requires a prior dryrun or verify for the same source path");
+                state.entrySet().stream()
+                        .sorted(Map.Entry.comparingByKey())
+                        .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                                "key", entry.getKey(),
+                                "value", entry.getValue()
+                        ))));
+                return;
+            }
+            DatabaseService.LegacyImportResult result = database.importLegacyDatabase(new File(sourcePath));
             reload.run();
             sender.sendMessage(messages.raw("admin-migration-title"));
             Map<String, String> state = new LinkedHashMap<>();
             state.put("source", result.sourcePath());
             state.put("target-backend", database.activeBackend().name());
+            state.put("dryrun-source", lastLegacyDryRunSource);
+            state.put("dryrun-rows", String.valueOf(lastLegacyDryRunRows));
             state.put("copied-rows", String.valueOf(result.copiedRows()));
             state.put("copied-tables", String.join(",", result.copiedTables()));
             state.put("skipped-tables", result.skippedTables().isEmpty() ? "none" : String.join(",", result.skippedTables()));
