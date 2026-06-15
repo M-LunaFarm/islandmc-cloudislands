@@ -1273,7 +1273,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String featureDependenciesMetadata() {
-        return "resource-nodes:machines,generators:factories,market:storage,contracts:storage,missions:storage";
+        return "resource-nodes:machines,generators:factories,market:storage,contracts:storage,missions:storage,route-events:addon-state";
     }
 
     private String disabledFeatureAliases() {
@@ -2597,6 +2597,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 || Boolean.TRUE.equals(features.get("maintenance")))) {
             warnings.add("database-unshared-for-satis-state");
         }
+        if (Boolean.TRUE.equals(features.get("route-events")) && !Boolean.TRUE.equals(features.get("addon-state"))) {
+            warnings.add("route-events-without-addon-state");
+        }
         FEATURE_ALIASES.forEach((alias, canonical) -> {
             if (configFeature(canonical) && configFeatureDefined(alias) && !configFeature(alias)) {
                 warnings.add("alias-disabled:" + alias + "->" + canonical);
@@ -2676,6 +2679,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return switch (canonical) {
             case "resource-nodes" -> featureEnabled("machines");
             case "market", "contracts" -> featureEnabled("storage");
+            case "route-events" -> featureEnabled("addon-state");
             default -> true;
         };
     }
