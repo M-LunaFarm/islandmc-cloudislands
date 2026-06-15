@@ -43,7 +43,7 @@ class DefaultConfigIntegrityTest {
         assertEquals("VAULT_PLAYER", config.getString("economy.mode"));
         assertTrue(config.getBoolean("economy.use-vault"));
         assertEquals("원", config.getString("economy.currency-symbol"));
-        assertEquals("SQLITE", config.getString("database.type"));
+        assertEquals("CORE_API", config.getString("database.type"));
         assertEquals("../CloudIslands/satis-state", config.getString("database.shared-directory"));
         assertEquals("data.db", config.getString("database.sqlite-file"));
         assertEquals(60, config.getInt("database.save-interval-seconds"));

@@ -185,7 +185,7 @@ database:
   # SQLITE, POSTGRESQL, MYSQL, MARIADB, CORE_API.
   # CORE_API stores Satis table rows as island-scoped CloudIslands addon-state keys and keeps
   # a local SQLite cache for fast runtime reads.
-  type: SQLITE
+  type: CORE_API
   core-api:
     flattened-fallback:
       enabled: true
@@ -238,7 +238,7 @@ database:
     password: ""
     max-pool-size: 0
     connection-timeout-ms: 0
-  # Use one of these in multi-node CloudIslands setups so A/B island nodes share Satis state.
+  # If you override database.type to SQLITE, use one of these in multi-node CloudIslands setups so A/B island nodes share Satis state.
   # Environment variable CLOUDISLANDS_SATIS_DB has the highest priority for SQLite file paths.
   # Environment variable CLOUDISLANDS_SATIS_JDBC_URL has the highest priority for JDBC backends.
   # Other env overrides: CLOUDISLANDS_SATIS_DATABASE_TYPE, CLOUDISLANDS_SATIS_DB_USERNAME,
