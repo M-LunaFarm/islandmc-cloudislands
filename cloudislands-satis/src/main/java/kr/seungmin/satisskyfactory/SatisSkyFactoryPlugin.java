@@ -172,6 +172,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         applyCoreApiDatabaseFallback(settings);
         syncDatabaseFallbackReason();
         warnIfUnsharedDatabaseInCloudIslandsMode();
+        warnIfUnsafeDatabaseFallbackChain();
         getLogger().info("Satis database backend: " + database.activeBackend() + " (" + database.databaseDescription() + ")");
 
         economy = EconomyModeFactory.create(this, configs.main());
@@ -882,6 +883,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         applyCoreApiDatabaseFallback(settings);
         syncDatabaseFallbackReason();
         warnIfUnsharedDatabaseInCloudIslandsMode();
+        warnIfUnsafeDatabaseFallbackChain();
         getLogger().info("Reloaded Satis database backend: " + database.activeBackend() + " (" + database.databaseDescription() + ")");
         storage = new StorageService(database, configInt("storage.default-capacity", "limits.default-storage-capacity", 10000));
         islands = new FactoryIslandService(skyblock, database);
@@ -3336,5 +3338,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         getLogger().warning("CloudIslands Satis is using an unshared SQLite database from " + databaseConfigSource()
                 + " (scope=" + scope + ")"
                 + ". Set database.shared-directory, database.path, or CLOUDISLANDS_SATIS_DB so A/B island nodes share factory state.");
+    }
+
+    private void warnIfUnsafeDatabaseFallbackChain() {
+        if (databaseFallbackProductionSafe()) {
+            return;
+        }
+        getLogger().warning("CloudIslands Satis database fallback chain is not production-safe"
+                + " (risk=" + databaseFallbackRisk()
+                + ", attempts=" + databaseBackendAttemptOrderMetadata()
+                + ", fallbackTargets=" + databaseFallbackJdbcTargetsMetadata()
+                + "). Put POSTGRESQL, MYSQL, MARIADB, or CORE_API before SQLITE for A/B island node pools.");
     }
 }
