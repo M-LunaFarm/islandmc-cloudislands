@@ -2616,7 +2616,7 @@ public final class CloudIslandsCoreApplication {
             + "\"coreSetupDatabaseOperationalModes\":\"POSTGRESQL=CORE_JDBC,MYSQL=POSTGRESQL_FALLBACK_OR_SAFE_FALLBACK,MARIADB=POSTGRESQL_FALLBACK_OR_SAFE_FALLBACK,CORE_API=POSTGRESQL_FALLBACK_OR_CLIENT_MODE_NO_CORE_JDBC\","
             + "\"coreSetupDatabaseConfigLoader\":\"yaml-nested-dotted-path\","
             + "\"coreSetupDatabaseResolvedPathExamples\":\"setup.database.type,setup.database.postgresql.jdbc-url,setup.database.postgresql.username,setup.database.mysql.host,setup.database.mysql.password,setup.database.mariadb.pool-size,setup.database.core-api.enabled\","
-            + "\"coreSetupDatabaseConfigShapes\":\"setup.database.*,setup.database-*\","
+            + "\"coreSetupDatabaseConfigShapes\":\"setup.database.*,setup.database-*,setup.database.fallback.order(list-or-comma-string)\","
             + "\"coreSetupDatabaseTypedShapes\":\"setup.database.postgresql.*,setup.database.mysql.*,setup.database.mariadb.*,setup.database.core-api.*\","
             + "\"coreSetupDatabaseTypedCredentialKeys\":\"username,password,pool-size\","
             + "\"coreSetupDatabaseTypedHostMode\":\"requires-type-or-typed-url-inference\","

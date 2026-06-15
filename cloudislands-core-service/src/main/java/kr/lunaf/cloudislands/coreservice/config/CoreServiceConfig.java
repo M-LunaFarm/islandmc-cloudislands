@@ -229,6 +229,17 @@ public record CoreServiceConfig(
                     if (line.isBlank() || line.startsWith("#")) {
                         continue;
                     }
+                    if (line.startsWith("- ")) {
+                        int level = Math.min(path.length - 1, leadingSpaces(rawLine) / 2);
+                        String listPath = joinPath(path, Math.max(0, level - 1));
+                        if (!listPath.isBlank()) {
+                            String value = resolveEnv(unquote(line.substring(2).strip()));
+                            if (!value.isBlank()) {
+                                values.merge(listPath, value, (left, right) -> left + "," + right);
+                            }
+                        }
+                        continue;
+                    }
                     int colon = line.indexOf(':');
                     if (colon <= 0) {
                         continue;
