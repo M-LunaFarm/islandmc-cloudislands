@@ -743,6 +743,16 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
+        public CompletableFuture<Map<String, String>> tableKeyValueBulkSaveState(String id, Map<String, String> values, Map<String, Map<String, String>> tables) {
+            return bulkSaveState(id, values, tables);
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> bulkSaveTableKeyValueState(String id, Map<String, String> values, Map<String, Map<String, String>> tables) {
+            return bulkSaveState(id, values, tables);
+        }
+
+        @Override
         public CompletableFuture<Map<String, String>> clearTableState(String id, String table) {
             String safeId = safeRegistrationId(id);
             if (table == null || table.isBlank()) {
@@ -1008,6 +1018,16 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                     return state;
                 })
                 .exceptionally(_error -> Map.copyOf(localState));
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> tableKeyValueBulkSaveIslandState(String id, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+            return bulkSaveIslandState(id, islandId, values, tables);
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> bulkSaveIslandTableKeyValueState(String id, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+            return bulkSaveIslandState(id, islandId, values, tables);
         }
 
         @Override
