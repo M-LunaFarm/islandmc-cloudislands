@@ -282,6 +282,10 @@ public final class IslandLifecycleWorkflow {
         if (!activeNode.storageAvailable()) {
             return new Result(false, "STORAGE_UNAVAILABLE", current);
         }
+        RedisActivationLock.Lease lease = acquireActivationLock(islandId, "restore");
+        if (activationLock != null && lease == null) {
+            return new Result(false, "ACTIVATION_LOCKED", current);
+        }
         IslandRuntimeSnapshot runtime = runtimes.setState(islandId, IslandState.RESTORING);
         islands.setState(islandId, IslandState.RESTORING);
         try {
@@ -294,6 +298,7 @@ public final class IslandLifecycleWorkflow {
                 "cellZ", current.cellZ() == null ? "0" : Integer.toString(current.cellZ())
             ), Instant.now()));
         } catch (RuntimeException exception) {
+            releaseActivationLock(lease);
             return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
         }
         events.publish(CloudIslandEventType.ISLAND_RESTORE_REQUESTED.name(), Map.of(

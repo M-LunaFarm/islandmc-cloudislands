@@ -144,12 +144,14 @@ public final class JobCompletionService {
         }
         if (job.type() == IslandJobType.RESTORE_ISLAND) {
             if (!markActiveFromJob(job, job.payload().getOrDefault("worldName", "ci_shard_001"))) {
+                releaseRestoreLock(job);
                 return;
             }
             recordPreMutationSnapshot(job);
             restoreDeletedIslandRecord(job);
             setIslandState(job.islandId(), IslandState.ACTIVE);
             events.publish(CloudIslandEventType.ISLAND_RESTORED.name(), Map.of("islandId", job.islandId().toString(), "state", "RESTORED", "snapshotNo", job.payload().getOrDefault("snapshotNo", "")));
+            releaseRestoreLock(job);
             return;
         }
         if (job.type() == IslandJobType.MIGRATE_ISLAND) {
@@ -192,6 +194,9 @@ public final class JobCompletionService {
         if (job.type() == IslandJobType.MIGRATE_ISLAND) {
             markMigrationTargetRecoveryRequired(job, errorMessage);
             return;
+        }
+        if (job.type() == IslandJobType.RESTORE_ISLAND) {
+            releaseRestoreLock(job);
         }
         IslandState state = switch (job.type()) {
             case CREATE_ISLAND -> IslandState.ERROR_CREATING;
@@ -319,6 +324,12 @@ public final class JobCompletionService {
     private void releaseMigrationLock(IslandJob job) {
         if (activationLock != null) {
             activationLock.releaseIfOwner(job.islandId(), "migrate");
+        }
+    }
+
+    private void releaseRestoreLock(IslandJob job) {
+        if (activationLock != null) {
+            activationLock.releaseIfOwner(job.islandId(), "restore");
         }
     }
 
