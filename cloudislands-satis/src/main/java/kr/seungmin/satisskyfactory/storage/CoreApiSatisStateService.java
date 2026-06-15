@@ -25,6 +25,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
 public final class CoreApiSatisStateService {
+    private static final String GLOBAL_TABLE_KEY_VALUE_BULK_ENDPOINT = "/v1/addons/state/table/key-value/bulk-save";
+    private static final String GLOBAL_FLATTENED_FALLBACK_ENDPOINT = "/v1/addons/state/bulk";
+    private static final String ISLAND_TABLE_KEY_VALUE_BULK_ENDPOINT = "/v1/addons/islands/state/table/key-value/bulk-save";
+    private static final String ISLAND_FLATTENED_FALLBACK_ENDPOINT = "/v1/addons/islands/state/bulk";
+    private static final String ISLAND_TABLE_REPLACE_FALLBACK_ENDPOINT = "/v1/addons/islands/state/table/replace";
+
     private final Logger logger;
     private final CloudIslandsApi cloudIslandsApi;
     private final String addonId;
@@ -232,6 +238,9 @@ public final class CoreApiSatisStateService {
         state.put("last-core-table-publish-error", safeError);
         state.put("last-core-table-publish-at", Instant.now().toString());
         state.put("last-core-table-publish-authority", "cloudislands-addon-state");
+        state.put("last-core-table-publish-primary-endpoint", ISLAND_TABLE_KEY_VALUE_BULK_ENDPOINT);
+        state.put("last-core-table-publish-fallback-endpoint", ISLAND_TABLE_REPLACE_FALLBACK_ENDPOINT);
+        state.put("last-core-table-publish-write-path", "clear-table->table-key-value-bulk-save->replace-table-on-failure");
         state.put("last-core-table-publish-node-bound", "false");
         state.put("last-core-table-publish-write-fence", "active-island-runtime-owner-only");
         state.put("last-core-table-publish-duplicate-tick-policy", "single-active-runtime-owner");
@@ -373,6 +382,9 @@ public final class CoreApiSatisStateService {
         state.put("last-core-bulk-publish-error", safeError);
         state.put("last-core-bulk-publish-at", Instant.now().toString());
         state.put("last-core-bulk-publish-authority", "cloudislands-addon-state");
+        state.put("last-core-bulk-publish-primary-endpoint", ISLAND_TABLE_KEY_VALUE_BULK_ENDPOINT);
+        state.put("last-core-bulk-publish-fallback-endpoint", ISLAND_FLATTENED_FALLBACK_ENDPOINT);
+        state.put("last-core-bulk-publish-write-path", bulkWritePath(safeStatus, safeMode, true));
         state.put("last-core-bulk-publish-fallback-policy", flattenedFallbackEnabled ? "flattened-state-retry" : "disabled");
         cloudIslandsApi.addons().putState(addonId, state).exceptionally(publishError -> {
             logger.warning("Failed to publish Satis core-api bulk status: " + publishError.getMessage());
@@ -406,12 +418,36 @@ public final class CoreApiSatisStateService {
         state.put("last-core-global-bulk-publish-error", safeError);
         state.put("last-core-global-bulk-publish-at", Instant.now().toString());
         state.put("last-core-global-bulk-publish-authority", "cloudislands-addon-state");
+        state.put("last-core-global-bulk-publish-primary-endpoint", GLOBAL_TABLE_KEY_VALUE_BULK_ENDPOINT);
+        state.put("last-core-global-bulk-publish-fallback-endpoint", GLOBAL_FLATTENED_FALLBACK_ENDPOINT);
+        state.put("last-core-global-bulk-publish-write-path", bulkWritePath(safeStatus, safeMode, false));
         state.put("last-core-global-bulk-publish-fallback-policy", flattenedFallbackEnabled ? "flattened-state-retry" : "disabled");
         cloudIslandsApi.addons().putState(addonId, state).exceptionally(publishError -> {
             logger.warning("Failed to publish Satis core-api global bulk status: " + publishError.getMessage());
             recordCoreStateFailure("global-bulk-status", publishError);
             return Map.of();
         });
+    }
+
+    private String bulkWritePath(String status, String mode, boolean islandScoped) {
+        String primary = islandScoped ? "island-table-key-value-bulk-save" : "global-table-key-value-bulk-save";
+        String fallback = islandScoped ? "island-flattened-bulk" : "global-flattened-bulk";
+        if ("success".equals(status) && "bulk".equals(mode)) {
+            return primary;
+        }
+        if ("fallback".equals(status) && "flattened".equals(mode)) {
+            return primary + "->" + fallback;
+        }
+        if ("fallback-empty".equals(status) && "flattened".equals(mode)) {
+            return primary + "->" + fallback + "-empty";
+        }
+        if ("failed".equals(status) && "bulk-fallback-disabled".equals(mode)) {
+            return primary + "->fallback-disabled";
+        }
+        if ("failed".equals(status) && "flattened".equals(mode)) {
+            return primary + "->" + fallback + "-failed";
+        }
+        return primary + "->" + mode;
     }
 
     private void recordIslandBulkStatus(String status, String error) {
