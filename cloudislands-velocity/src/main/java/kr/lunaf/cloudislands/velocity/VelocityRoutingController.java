@@ -1941,6 +1941,7 @@ public final class VelocityRoutingController {
             + " redisTtl=" + jsonValue(body, "redisCacheTtlPolicy")
             + " redisKeys=" + jsonValue(body, "redisKeyPolicy")
             + " redisStreams=" + jsonValue(body, "redisStreamPolicy")
+            + " globalEvents=" + jsonValue(body, "globalEventTypes")
             + " lockPolicy=" + jsonValue(body, "distributedLockPolicy")
             + " fencing=" + jsonValue(body, "fencingTokenPolicy")
             + " staleWrite=" + jsonValue(body, "staleWritePolicy")
