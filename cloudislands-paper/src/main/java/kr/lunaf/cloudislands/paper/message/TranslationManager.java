@@ -412,6 +412,8 @@ public final class TranslationManager {
         values.put("admin-command-core-config-addon-bulk-island-prefix", " addonBulkIsland=");
         values.put("admin-command-core-config-addon-table-bulk-global-prefix", " addonTableBulkGlobal=");
         values.put("admin-command-core-config-addon-table-bulk-island-prefix", " addonTableBulkIsland=");
+        values.put("admin-command-core-config-pool-duplicate-server-prefix", " poolDuplicateServers=");
+        values.put("admin-command-core-config-pool-default-identity-prefix", " poolDefaultIdentityRisk=");
         values.put("admin-command-core-config-pool-prefix", " pool=");
         values.put("admin-command-core-config-pool-nodes-prefix", " poolNodes=");
         values.put("admin-command-core-config-pool-route-candidates-prefix", " poolRouteCandidates=");
