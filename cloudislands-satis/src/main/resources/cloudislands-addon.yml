@@ -4,6 +4,9 @@ packaging: external-plugin
 requires:
   cloudislands-api: true
   runtime-plugin: CloudIslands
+api:
+  lookup-policy: CloudIslandsProvider-first-Bukkit-ServicesManager-fallback
+  bootstrap-policy: register-if-cloudislands-api-available-disable-runtime-components-when-missing
 removal:
   safe: true
   data-retention: preserve-addon-state-by-island-uuid
@@ -11,6 +14,42 @@ runtime:
   owns-islands: false
   storage-key: cloudislands-island-uuid
   default-database-mode: CORE_API
+state:
+  authority: core-api-table-key-value-or-shared-database
+  move-policy: remap-state-to-current-active-world-and-cell
+  fallback-policy: local-cache-on-core-api-failure-with-configurable-database-fallback
+events:
+  source: CloudIslandsAddon.onCloudEvent
+  delivery: core-global-events-to-paper-poller-to-cloudislands-addon-and-bukkit-events
+  coverage:
+    - pre-create
+    - create
+    - pre-activate
+    - activate
+    - deactivate
+    - migrate
+    - delete
+    - restore
+    - reset
+    - recovery
+    - runtime
+    - pre-visit
+    - visit
+    - member-join
+    - member-left
+    - member-role
+    - permission-check
+    - permission-change
+    - role-catalog
+    - warp-create
+    - warp-delete
+    - warp-change
+    - level
+    - worth
+    - upgrade
+    - limit
+    - snapshot
+    - route-ticket
 superiorskyblock2:
   migration-input-only: true
   runtime-dependency: false
