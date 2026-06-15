@@ -11,6 +11,9 @@ import org.bukkit.event.player.PlayerMoveEvent;
 public final class IslandBoundaryListener implements Listener {
     private final ProtectionController protection;
     private final MessageRenderer messages;
+    private final java.util.concurrent.atomic.AtomicLong memberReturns = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong visitorReturns = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong adminBypasses = new java.util.concurrent.atomic.AtomicLong();
 
     public IslandBoundaryListener(ProtectionController protection) {
         this(protection, null);
@@ -25,7 +28,11 @@ public final class IslandBoundaryListener implements Listener {
     public void onMove(PlayerMoveEvent event) {
         Location from = event.getFrom();
         Location to = event.getTo();
-        if (to == null || event.getPlayer().hasPermission("cloudislands.admin.bypass") || sameBlock(from, to)) {
+        if (to == null || sameBlock(from, to)) {
+            return;
+        }
+        if (event.getPlayer().hasPermission("cloudislands.admin.bypass")) {
+            adminBypasses.incrementAndGet();
             return;
         }
         java.util.Optional<IslandRegion> fromRegion = protection.regionAt(from.getBlock());
@@ -38,6 +45,11 @@ public final class IslandBoundaryListener implements Listener {
         }
         IslandRegion region = fromRegion.get();
         boolean member = protection.memberOrTrusted(region.islandId(), event.getPlayer().getUniqueId());
+        if (member) {
+            memberReturns.incrementAndGet();
+        } else {
+            visitorReturns.incrementAndGet();
+        }
         Location target = member ? memberSpawn(from, region) : visitorSpawn(from, region);
         event.setCancelled(true);
         event.getPlayer().teleport(target);
@@ -67,5 +79,17 @@ public final class IslandBoundaryListener implements Listener {
             && from.getBlockX() == to.getBlockX()
             && from.getBlockY() == to.getBlockY()
             && from.getBlockZ() == to.getBlockZ();
+    }
+
+    public long memberReturns() {
+        return memberReturns.get();
+    }
+
+    public long visitorReturns() {
+        return visitorReturns.get();
+    }
+
+    public long adminBypasses() {
+        return adminBypasses.get();
     }
 }

@@ -104,6 +104,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private GeneratorLevelCache generatorLevels;
     private IslandGeneratorListener generatorListener;
     private PaperRouteSessionListener routeSessionListener;
+    private IslandBoundaryListener boundaryListener;
     private Object placeholderExpansion;
     private MessageRenderer messages;
     private PaperRedisClient redisClient;
@@ -180,7 +181,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandWarpMenu(messages), this);
         if (role == AgentRole.ISLAND_NODE) {
             getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection(), blockDeltas, denyMessageCooldownMs, denyMessages()), this);
-            getServer().getPluginManager().registerEvents(new IslandBoundaryListener(agent.protection(), messages), this);
+            this.boundaryListener = new IslandBoundaryListener(agent.protection(), messages);
+            getServer().getPluginManager().registerEvents(boundaryListener, this);
             getServer().getPluginManager().registerEvents(new IslandGameplayFlagListener(agent.protection(), messages), this);
             getServer().getPluginManager().registerEvents(new IslandLimitListener(agent.protection(), limitCache, messages), this);
             getServer().getPluginManager().registerEvents(new IslandEntityLimitListener(agent.protection(), limitCache, messages), this);
@@ -376,6 +378,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         PeriodicIslandSaveTask saver = periodicSaveTask;
         EmptyIslandSaveTask emptySaver = emptyIslandSaveTask;
         ProtectionController protection = agent == null ? null : agent.protection();
+        IslandBoundaryListener boundary = boundaryListener;
         return "{"
             + "\"status\":\"UP\","
             + "\"role\":\"" + role.name() + "\","
@@ -392,6 +395,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"protectionIndexedChunks\":" + (protection == null ? 0 : protection.indexedChunkCount()) + ","
             + "\"protectionIndexedIslands\":" + (protection == null ? 0 : protection.indexedIslandCount()) + ","
             + "\"protectionMigratingIslands\":" + (protection == null ? 0 : protection.migratingIslandCount()) + ","
+            + "\"boundaryMemberReturnsTotal\":" + (boundary == null ? 0L : boundary.memberReturns()) + ","
+            + "\"boundaryVisitorReturnsTotal\":" + (boundary == null ? 0L : boundary.visitorReturns()) + ","
+            + "\"boundaryAdminBypassesTotal\":" + (boundary == null ? 0L : boundary.adminBypasses()) + ","
             + "\"activeIslands\":" + (activeIslands == null ? 0 : activeIslands.size()) + ","
             + "\"activationQueue\":" + (jobWorker == null ? 0 : jobWorker.activationQueue()) + ","
             + "\"redisAvailable\":" + redis.available() + ","
@@ -459,6 +465,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         PaperRouteSessionListener routeSessions = routeSessionListener;
         PermissionEventPoller events = permissionEventPoller;
         ProtectionController protection = agent.protection();
+        IslandBoundaryListener boundary = boundaryListener;
         return ""
             + "cloudislands_paper_online_players " + getServer().getOnlinePlayers().size() + "\n"
             + "cloudislands_paper_online_mode " + (getServer().getOnlineMode() ? 1 : 0) + "\n"
@@ -492,6 +499,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_protection_indexed_islands{node=\"" + nodeId + "\"} " + protection.indexedIslandCount() + "\n"
             + "cloudislands_protection_migrating_islands{node=\"" + nodeId + "\"} " + protection.migratingIslandCount() + "\n"
             + "cloudislands_protection_sync_events_remote_calls{node=\"" + nodeId + "\"} 0\n"
+            + "cloudislands_boundary_returns_total{node=\"" + nodeId + "\",kind=\"member\"} " + (boundary == null ? 0L : boundary.memberReturns()) + "\n"
+            + "cloudislands_boundary_returns_total{node=\"" + nodeId + "\",kind=\"visitor\"} " + (boundary == null ? 0L : boundary.visitorReturns()) + "\n"
+            + "cloudislands_boundary_admin_bypasses_total{node=\"" + nodeId + "\"} " + (boundary == null ? 0L : boundary.adminBypasses()) + "\n"
             + "cloudislands_paper_velocity_forwarding_required{node=\"" + nodeId + "\"} " + (forwardingRequired ? 1 : 0) + "\n"
             + "cloudislands_paper_forwarding_secret_configured{node=\"" + nodeId + "\"} " + (forwardingSecretConfigured ? 1 : 0) + "\n"
             + "cloudislands_paper_route_session_enforced{node=\"" + nodeId + "\"} " + (routeSessionEnforced ? 1 : 0) + "\n"
