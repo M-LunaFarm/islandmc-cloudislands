@@ -122,7 +122,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         String nodeId = getConfig().getString("node.id", "island-1");
         String pool = getConfig().getString("node.pool", "island");
         String velocityServerName = getConfig().getString("node.velocity-server-name", nodeId);
-        AgentRole role = AgentRole.valueOf(getConfig().getString("node.role", "ISLAND_NODE"));
+        AgentRole role = parseAgentRole(getConfig().getString("node.role", "ISLAND_NODE"));
         warnIfDefaultNodeIdentity(role, nodeId, velocityServerName);
         CoreApiClient client = new JdkCoreApiClient(
             URI.create(coreApiBaseUrl()),
@@ -533,6 +533,19 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + (localCaches == null ? "" : localCaches.prometheus(nodeId));
     }
 
+    private AgentRole parseAgentRole(String configuredRole) {
+        String normalized = configuredRole == null ? "" : configuredRole.trim().toUpperCase(Locale.ROOT).replace('-', '_');
+        if (normalized.isBlank()) {
+            return AgentRole.ISLAND_NODE;
+        }
+        try {
+            return AgentRole.valueOf(normalized);
+        } catch (IllegalArgumentException exception) {
+            getLogger().warning("Unknown CloudIslands Paper node.role '" + configuredRole + "', using ISLAND_NODE.");
+            return AgentRole.ISLAND_NODE;
+        }
+    }
+
     private void warnIfDefaultNodeIdentity(AgentRole role, String nodeId, String velocityServerName) {
         if (!defaultNodeIdentityRisk(role, nodeId, velocityServerName)) {
             return;
@@ -593,7 +606,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";playerTopologyPolicy=logical-island-only"
             + ";playerNodeNamePolicy=" + (configBoolean("routing.hide-node-names", true) ? "hidden-from-player-routing-messages" : "visible-risk-admin-debug-only")
             + ";topologyExposureRisk=" + !configBoolean("routing.hide-node-names", true)
-            + ";defaultNodeIdentityRisk=" + defaultNodeIdentityRisk(AgentRole.valueOf(getConfig().getString("node.role", "ISLAND_NODE")), getConfig().getString("node.id", "island-1"), getConfig().getString("node.velocity-server-name", getConfig().getString("node.id", "island-1")))
+            + ";defaultNodeIdentityRisk=" + defaultNodeIdentityRisk(parseAgentRole(getConfig().getString("node.role", "ISLAND_NODE")), getConfig().getString("node.id", "island-1"), getConfig().getString("node.velocity-server-name", getConfig().getString("node.id", "island-1")))
             + ";chatBroadcasts=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatBroadcasts())
             + ";chatDeliveries=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatDeliveries())
             + ";chatNoRecipientBroadcasts=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatNoRecipientBroadcasts());
