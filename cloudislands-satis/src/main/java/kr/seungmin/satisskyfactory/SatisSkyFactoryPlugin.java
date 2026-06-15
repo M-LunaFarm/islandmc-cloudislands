@@ -470,6 +470,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("write-gate-maintenance-direct", Boolean.toString(operationalFeatureEnabled("maintenance") && dataWritesEnabled()));
         state.put("write-gate-lifecycle-state", Boolean.toString(lifecycleStateEnabled()));
         state.put("write-gate-lifecycle-listener", Boolean.toString(lifecycleListenerNeeded()));
+        state.put("write-gate-lifecycle-direct", Boolean.toString(lifecycleListenerNeeded() && dataWritesEnabled()));
         state.put("write-gate-addon-state", Boolean.toString(operationalFeatureEnabled("addon-state") && coreApiAddonStateAvailable()));
         state.put("write-gate-route-events", Boolean.toString(routeEventStateEnabled()));
         state.put("write-gate-dirty-save", Boolean.toString(dataWritesEnabled()));
@@ -940,6 +941,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                     () -> operationalFeatureEnabled("resource-nodes"),
                     () -> operationalFeatureEnabled("machines"),
                     () -> operationalFeatureEnabled("maintenance"),
+                    this::dataWritesEnabled,
                     islands,
                     skyblock,
                     nodes,

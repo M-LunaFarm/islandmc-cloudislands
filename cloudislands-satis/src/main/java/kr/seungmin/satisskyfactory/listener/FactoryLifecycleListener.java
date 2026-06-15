@@ -25,6 +25,7 @@ public final class FactoryLifecycleListener implements Listener {
     private final BooleanSupplier resourceNodesEnabled;
     private final BooleanSupplier machinesEnabled;
     private final BooleanSupplier maintenanceEnabled;
+    private final BooleanSupplier dataWritesEnabled;
     private final FactoryIslandService islands;
     private final SkyblockProvider skyblock;
     private final ResourceNodeService nodes;
@@ -35,6 +36,7 @@ public final class FactoryLifecycleListener implements Listener {
 
     public FactoryLifecycleListener(BooleanSupplier active, BooleanSupplier resourceNodesEnabled,
                                     BooleanSupplier machinesEnabled, BooleanSupplier maintenanceEnabled,
+                                    BooleanSupplier dataWritesEnabled,
                                     FactoryIslandService islands, SkyblockProvider skyblock,
                                     ResourceNodeService nodes, MachineService machines, ItemNetworkService itemNetworks,
                                     PowerNetworkService power, MaintenanceService maintenance) {
@@ -42,6 +44,7 @@ public final class FactoryLifecycleListener implements Listener {
         this.resourceNodesEnabled = resourceNodesEnabled;
         this.machinesEnabled = machinesEnabled;
         this.maintenanceEnabled = maintenanceEnabled;
+        this.dataWritesEnabled = dataWritesEnabled == null ? () -> true : dataWritesEnabled;
         this.islands = islands;
         this.skyblock = skyblock;
         this.nodes = nodes;
@@ -111,6 +114,6 @@ public final class FactoryLifecycleListener implements Listener {
     }
 
     private boolean lifecycleDataWritesEnabled() {
-        return active.getAsBoolean();
+        return active.getAsBoolean() && dataWritesEnabled.getAsBoolean();
     }
 }
