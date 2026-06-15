@@ -1196,6 +1196,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("core-api-table-save-mode", "bulk-save-with-table-prefix-and-configurable-flattened-fallback");
         metadata.put("route-event-source", "CloudIslandsAddon.route-ticket-events");
         metadata.put("route-event-policy", "diagnostic-state-only-no-routing-authority");
+        metadata.put("route-event-feature-gate", "features.route-events&&features.addon-state&&CloudIslandsApi");
         metadata.put("feature-aliases", featureAliasesMetadata());
         metadata.put("feature-alias-disabled", disabledFeatureAliases());
         metadata.put("feature-dependencies", featureDependenciesMetadata());
@@ -1473,6 +1474,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("core-api-table-save-mode", "bulk-save-with-table-prefix-and-configurable-flattened-fallback");
         state.put("route-event-source", "CloudIslandsAddon.route-ticket-events");
         state.put("route-event-policy", "diagnostic-state-only-no-routing-authority");
+        state.put("route-event-feature-gate", "features.route-events&&features.addon-state&&CloudIslandsApi");
         state.put("configured-features", featureState(snapshot.configuredFeatures()));
         state.put("effective-features", featureState(snapshot.features()));
         state.put("operational-features", operationalFeatureState(snapshot.features()));
