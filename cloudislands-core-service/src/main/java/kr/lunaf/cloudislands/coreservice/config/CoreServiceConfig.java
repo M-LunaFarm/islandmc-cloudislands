@@ -227,6 +227,36 @@ public record CoreServiceConfig(
         return "database.jdbc-url-default";
     }
 
+    public static String configuredJdbcSettingsType() {
+        return effectiveJdbcSettingsType(applicationConfig());
+    }
+
+    public static String configuredJdbcSettingsSource() {
+        Map<String, String> config = applicationConfig();
+        if (presentEnv("CI_DB_USERNAME") || presentEnv("CI_DB_PASSWORD") || presentEnv("CI_DB_POOL_SIZE")) {
+            return "CI_DB_USERNAME/PASSWORD/POOL_SIZE";
+        }
+        String type = effectiveJdbcSettingsType(config);
+        String scope = databaseSetupScope(type);
+        if (!scope.isBlank()
+            && (presentConfig(config, "setup.database." + scope + ".username")
+            || presentConfig(config, "setup.database." + scope + ".password")
+            || presentConfig(config, "setup.database." + scope + ".pool-size"))) {
+            return "setup.database." + scope;
+        }
+        if (presentConfig(config, "setup.database.username")
+            || presentConfig(config, "setup.database.password")
+            || presentConfig(config, "setup.database.pool-size")) {
+            return "setup.database";
+        }
+        if (presentConfig(config, "setup.database-username")
+            || presentConfig(config, "setup.database-password")
+            || presentConfig(config, "setup.database-pool-size")) {
+            return "setup.database-*";
+        }
+        return "database";
+    }
+
     private static String effectiveJdbcSettingsType(Map<String, String> config) {
         String configuredType = configuredDatabaseType(config);
         String jdbcUrl = env("CI_JDBC_URL", "");

@@ -2726,6 +2726,8 @@ public final class CloudIslandsCoreApplication {
             + "\"configuredDatabaseTypeSource\":\"" + escape(CoreServiceConfig.configuredDatabaseTypeSource()) + "\","
             + "\"databaseBackend\":\"" + escape(jdbcBackend(config.jdbcUrl())) + "\","
             + "\"jdbcUrlSource\":\"" + escape(CoreServiceConfig.configuredJdbcUrlSource()) + "\","
+            + "\"effectiveJdbcSettingsType\":\"" + escape(CoreServiceConfig.configuredJdbcSettingsType()) + "\","
+            + "\"effectiveJdbcSettingsSource\":\"" + escape(CoreServiceConfig.configuredJdbcSettingsSource()) + "\","
             + "\"coreJdbcSupported\":" + coreJdbcSupported(config.jdbcUrl()) + ","
             + "\"coreJdbcSupportedBackends\":\"POSTGRESQL\","
             + "\"coreSetupFallbackBackends\":\"POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC\","
