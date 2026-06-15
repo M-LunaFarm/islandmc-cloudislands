@@ -408,7 +408,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, Boolean> effective = new HashMap<>(configuredFeatures == null ? Map.of() : configuredFeatures);
             applyFeatureAliases(effective, metadata);
             applyFeatureDependencies(effective, metadata);
-            applyFeatureAliases(effective, metadata);
             return effective;
         }
 

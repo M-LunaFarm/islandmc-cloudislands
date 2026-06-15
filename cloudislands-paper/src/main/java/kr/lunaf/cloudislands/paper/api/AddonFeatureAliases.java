@@ -35,7 +35,7 @@ final class AddonFeatureAliases {
             if (parts.length != 2) {
                 continue;
             }
-            String feature = normalize(metadata, parts[0].trim());
+            String feature = parts[0].trim();
             String required = normalize(metadata, parts[1].trim());
             if (!feature.isBlank() && !required.isBlank()) {
                 values.put(feature, required);
