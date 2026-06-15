@@ -323,6 +323,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-gui-listener-registered", Boolean.toString(guiListenerRegistered));
         state.put("runtime-lifecycle-listener-registered", Boolean.toString(lifecycleListenerRegistered));
         state.put("runtime-placeholder-registered", Boolean.toString(placeholderHook != null));
+        state.put("runtime-data-writes-enabled", Boolean.toString(dataWritesEnabled()));
+        state.put("runtime-lifecycle-state-enabled", Boolean.toString(lifecycleStateEnabled()));
         state.put("runtime-machine-ticker-running", Boolean.toString(ticker != null && ticker.running()));
         state.put("runtime-maintenance-ticker-running", Boolean.toString(maintenanceTicker != null && maintenanceTicker.running()));
         state.put("runtime-dirty-save-running", Boolean.toString(dirtySaves != null && dirtySaves.running()));
