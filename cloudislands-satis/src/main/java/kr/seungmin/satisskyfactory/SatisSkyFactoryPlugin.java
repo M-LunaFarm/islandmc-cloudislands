@@ -1864,7 +1864,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return Map.of();
         });
         if (!"purge".equalsIgnoreCase(operation)) {
-            publishIslandLifecycleState(islandId, operation, island, "success", "", remapDelta, machinesRemapped, resourceNodesRemapped);
+            publishIslandLifecycleState(islandId, operation, island, "success", "", remapDelta, machinesRemapped, resourceNodesRemapped, remapSource);
         }
     }
 
@@ -1914,6 +1914,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void publishIslandLifecycleState(UUID islandId, String operation, FactoryIsland island, String status, String error, String remapDelta, boolean machinesRemapped, boolean resourceNodesRemapped) {
+        publishIslandLifecycleState(islandId, operation, island, status, error, remapDelta, machinesRemapped, resourceNodesRemapped, "active-world-center");
+    }
+
+    private void publishIslandLifecycleState(UUID islandId, String operation, FactoryIsland island, String status, String error, String remapDelta, boolean machinesRemapped, boolean resourceNodesRemapped, String remapSource) {
         if (cloudIslandsApi == null || islandId == null || !operationalFeatureEnabled("addon-state")) {
             return;
         }
@@ -1949,6 +1953,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (!eventCell.isBlank()) {
             state.put("active-cell", eventCell);
         }
+        if (!placementSource.isBlank()) {
+            state.put("placement-source", placementSource);
+        }
         if (island != null && island.hasActiveCenter()) {
             state.put("active-world", island.activeWorld());
             state.put("active-center", island.activeCenterX() + "," + island.activeCenterY() + "," + island.activeCenterZ());
@@ -1956,7 +1963,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("remap-delta", remapDelta == null || remapDelta.isBlank() ? "0,0,0" : remapDelta);
         state.put("machines-remapped", Boolean.toString(machinesRemapped));
         state.put("resource-nodes-remapped", Boolean.toString(resourceNodesRemapped));
-        state.put("remap-source", "active-world-center");
+        state.put("remap-source", remapSource == null || remapSource.isBlank() ? "active-world-center" : remapSource);
         cloudIslandsApi.addons().putIslandState(ADDON_ID, islandId, state).exceptionally(publishError -> {
             getLogger().warning("Failed to publish CloudIslands Satis island state: " + publishError.getMessage());
             return Map.of();
