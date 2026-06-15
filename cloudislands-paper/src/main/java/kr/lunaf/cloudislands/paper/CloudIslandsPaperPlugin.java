@@ -364,6 +364,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         ProtectionController protection = agent == null ? null : agent.protection();
         IslandBoundaryListener boundary = boundaryListener;
         MeteredIslandStorage storage = islandStorage;
+        boolean storageFallbackEnabled = configBoolean("storage.fallback.enabled", true);
+        int storageSaveRetryQueueTotal = (saver == null ? 0 : saver.retryQueueSize()) + (emptySaver == null ? 0 : emptySaver.retryQueueSize());
+        String storageLastFallbackReason = storage == null ? "" : storage.lastFallbackReason();
         return "{"
             + "\"status\":\"UP\","
             + "\"role\":\"" + role.name() + "\","
@@ -394,6 +397,13 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"storageFallbackWritesTotal\":" + (storage == null ? 0L : storage.fallbackWrites()) + ","
             + "\"storageFallbackDeletesTotal\":" + (storage == null ? 0L : storage.fallbackDeletes()) + ","
             + "\"storageFallbackOperationsTotal\":" + (storage == null ? 0L : storage.fallbackOperations()) + ","
+            + "\"storageFallbackEnabled\":" + storageFallbackEnabled + ","
+            + "\"storageFallbackType\":\"" + jsonText(getConfig().getString("storage.fallback.type", "LOCAL")) + "\","
+            + "\"storageLastFallbackReason\":\"" + jsonText(storageLastFallbackReason) + "\","
+            + "\"storageSaveRetryQueueTotal\":" + storageSaveRetryQueueTotal + ","
+            + "\"objectStorageOutagePolicy\":\"active-islands-stay-local-new-activation-save-snapshot-restore-degraded-until-storage-recovers\","
+            + "\"objectStorageActiveIslandLocalPlayAllowed\":" + (islandNodeRole && activeIslands != null) + ","
+            + "\"objectStorageSaveRetryPolicy\":\"periodic-and-empty-island-save-failures-remain-queued-for-retry\","
             + "\"storageUploadFailuresTotal\":" + (storage == null ? 0L : storage.uploadFailures()) + ","
             + "\"storageDownloadFailuresTotal\":" + (storage == null ? 0L : storage.downloadFailures()) + ","
             + "\"storageOperationFailuresTotal\":" + (storage == null ? 0L : storage.operationFailures()) + ","
@@ -473,9 +483,11 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean velocityOnlineModeMismatch = role == AgentRole.ISLAND_NODE && forwardingRequired && getServer().getOnlineMode();
         boolean bungeeConnectPluginMessaging = configBoolean("security.allow-bungee-connect-plugin-messaging", false);
         boolean guiMenusEnabled = guiEnabledForRole(role);
+        boolean storageFallbackEnabled = configBoolean("storage.fallback.enabled", true);
         PeriodicIslandLevelScanTask scanner = periodicLevelScanTask;
         PeriodicIslandSaveTask saver = periodicSaveTask;
         EmptyIslandSaveTask emptySaver = emptyIslandSaveTask;
+        int storageSaveRetryQueueTotal = (saver == null ? 0 : saver.retryQueueSize()) + (emptySaver == null ? 0 : emptySaver.retryQueueSize());
         IslandGeneratorListener generator = generatorListener;
         PaperRouteSessionListener routeSessions = routeSessionListener;
         PermissionEventPoller events = permissionEventPoller;
@@ -498,6 +510,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_storage_fallback_writes_total{node=\"" + nodeId + "\"} " + storageFallbackWrites + "\n"
             + "cloudislands_storage_fallback_deletes_total{node=\"" + nodeId + "\"} " + storageFallbackDeletes + "\n"
             + "cloudislands_storage_fallback_operations_total{node=\"" + nodeId + "\"} " + storageFallbackOperations + "\n"
+            + "cloudislands_storage_fallback_enabled{node=\"" + nodeId + "\"} " + (storageFallbackEnabled ? 1 : 0) + "\n"
+            + "cloudislands_storage_save_retry_queue{node=\"" + nodeId + "\"} " + storageSaveRetryQueueTotal + "\n"
+            + "cloudislands_storage_active_island_local_play_allowed_during_outage{node=\"" + nodeId + "\"} " + (role == AgentRole.ISLAND_NODE && activeIslands != null ? 1 : 0) + "\n"
             + "cloudislands_island_save_seconds{node=\"" + nodeId + "\"} " + storageUploadSeconds + "\n"
             + "cloudislands_island_activation_seconds{node=\"" + nodeId + "\"} " + storageDownloadSeconds + "\n"
             + "cloudislands_island_snapshot_seconds{node=\"" + nodeId + "\"} " + storageUploadSeconds + "\n"
@@ -565,6 +580,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             return configBoolean("paper-gui.island-node-enabled", true);
         }
         return configBoolean("paper-gui.lobby-enabled", true);
+    }
+
+    private static String jsonText(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private void registerIslandGuiMenus() {
