@@ -7,6 +7,11 @@ setup:
   job-queue-mode: ""
   event-bus-mode: ""
   # Preferred first-install database setup block. Legacy flat keys below still work.
+  # Supported setup choices:
+  # - POSTGRESQL: full Core JDBC repositories/jobs. Recommended for production.
+  # - MYSQL/MARIADB: accepted for setup compatibility and external integrations, but Core state uses the safe non-JDBC fallback.
+  # - CORE_API: client/API-only selection marker. Core JDBC stays disabled and admin config reports dbBackend=NONE.
+  # Fallback rule: unsupported Core JDBC selections do not crash startup; they keep repositories/jobs on the configured safe fallback mode and expose the reason through /v1/admin/config.
   database:
     # POSTGRESQL enables Core JDBC repositories/jobs. MYSQL, MARIADB, and CORE_API stay in safe non-JDBC fallback for core data.
     # CI_DATABASE_TYPE overrides this value.
@@ -67,6 +72,7 @@ setup:
   jdbc-url: ""
   # database-type accepts POSTGRESQL, MYSQL, MARIADB, or CORE_API.
   # Core service JDBC repositories are PostgreSQL-only; MYSQL/MARIADB/CORE_API fall back to non-JDBC core repositories unless repository-mode is explicitly set.
+  # If repository-mode/job-queue-mode is forced to JDBC with an unsupported JDBC URL, Core keeps the safe fallback active and reports jdbcFallbackActive=true.
   database-type: ""
   database-host: ""
   database-port: 0
