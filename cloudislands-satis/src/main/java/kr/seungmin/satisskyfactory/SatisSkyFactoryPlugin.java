@@ -1194,6 +1194,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("legacy-satismc-import-import", "factory admin migration import <sqlitePath>");
         metadata.put("legacy-satismc-scan-mode", "scan-dryrun-verify-read-only");
         metadata.put("legacy-satismc-import-mode", "cross-backend-sqlite-copy");
+        metadata.put("legacy-satismc-core-api-import-guard", "reject-core-api-import-when-addon-state-writer-unavailable");
         metadata.put("legacy-satismc-rollback-mode", "sqlite-snapshot-restore-or-manual-shared-backend-restore");
         metadata.put("island-position-remap", "center-delta");
         metadata.put("recovery-suspend-mode", "drop-local-dirty-state");

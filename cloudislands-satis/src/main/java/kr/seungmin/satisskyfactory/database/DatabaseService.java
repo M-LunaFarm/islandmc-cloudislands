@@ -444,6 +444,7 @@ public final class DatabaseService {
 
     public LegacyImportResult importLegacyDatabase(File sourceDatabase) {
         File source = legacySourceDatabase(sourceDatabase);
+        requireLegacyImportTargetAvailable();
         List<String> copiedTables = new ArrayList<>();
         List<String> skippedTables = new ArrayList<>();
         long copiedRows = 0L;
@@ -498,6 +499,12 @@ public final class DatabaseService {
 
     public LegacyImportPlan scanLegacyDatabase(File sourceDatabase) {
         File source = legacySourceDatabase(sourceDatabase);
+        if (!legacyImportTargetAvailable()) {
+            List<LegacyImportTablePlan> blockedTables = legacyImportTables().stream()
+                    .map(table -> new LegacyImportTablePlan(table, false, 0L, "core-api-addon-state-unavailable"))
+                    .toList();
+            return new LegacyImportPlan(source.getAbsolutePath(), 0L, 0, blockedTables.size(), blockedTables);
+        }
         List<LegacyImportTablePlan> tables = new ArrayList<>();
         long importableRows = 0L;
         int importableTables = 0;
@@ -532,6 +539,23 @@ public final class DatabaseService {
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to scan legacy Satis database", exception);
         }
+    }
+
+    private void requireLegacyImportTargetAvailable() {
+        if (!legacyImportTargetAvailable()) {
+            throw new IllegalStateException("CORE_API legacy import requires an available CloudIslands addon-state writer");
+        }
+    }
+
+    private boolean legacyImportTargetAvailable() {
+        return activeBackend != StorageBackend.CORE_API || coreStateWritersAvailable();
+    }
+
+    private boolean coreStateWritersAvailable() {
+        return coreStateWriter != null
+                || coreTableWriter != null
+                || coreGlobalStateWriter != null
+                || coreGlobalTableWriter != null;
     }
 
     private File legacySourceDatabase(File sourceDatabase) {

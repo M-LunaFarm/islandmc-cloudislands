@@ -616,6 +616,7 @@ public final class AdminFactoryCommand {
         state.put("satismc-import-import", "/factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL);
         state.put("satismc-import-approval", MIGRATION_IMPORT_APPROVAL);
         state.put("satismc-import-mode", "cross-backend-sqlite-copy");
+        state.put("satismc-core-api-import-guard", "reject-core-api-import-when-addon-state-writer-unavailable");
         state.put("satismc-rollback-mode", "sqlite-snapshot-restore-or-manual-shared-backend-restore");
         state.put("feature-gate", "migration=" + enabled("migration"));
         state.put("disabled-behavior", "reject-status-scan-dryrun-verify-import-rollback");
