@@ -2823,7 +2823,7 @@ public final class CloudIslandsCoreApplication {
             + "\"islandPlacementPolicy\":\"deterministic-uuid-shard-cell\","
             + "\"islandPlacementShardCount\":16,"
             + "\"islandPlacementCellsPerAxis\":1024,"
-            + "\"islandPlacementCollisionPolicy\":\"uuid-derived-cell-with-runtime-occupied-cell-probing-fencing-and-node-lease\","
+            + "\"islandPlacementCollisionPolicy\":\"uuid-derived-cell-with-runtime-occupied-cell-probing-db-unique-guard-fencing-and-node-lease\","
             + "\"islandNodeHardRules\":\"pool-match,ready-or-soft-full,fresh-heartbeat,hard-cap-open,activation-queue-open,object-storage-available,template-supported,min-node-version,not-default-identity\","
             + "\"islandNodeScoreWeights\":\"players=0.25,activeIslands=0.15,mspt=0.25,activationQueue=0.15,chunkLoad=0.10,memory=0.05,recentFailure=0.05\","
             + "\"islandNodeSchemaColumns\":\"id,pool,velocity_server_name,node_version,state,soft_player_cap,hard_player_cap,reserved_slots,max_active_islands,players,active_islands,mspt,heap_used_mb,heap_max_mb,activation_queue,max_activation_queue,chunk_load_pressure,recent_failure_penalty,object_storage_available,supported_templates,last_heartbeat\","
