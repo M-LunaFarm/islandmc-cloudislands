@@ -2752,6 +2752,11 @@ public final class CloudIslandsCoreApplication {
             + "\"addonStateTableKeyValueBulkIslandEndpoint\":\"/v1/addons/islands/state/table/key-value/bulk\","
             + "\"addonStateTableKeyValueBulkSavePayload\":\"addonId,islandId(optional),values,tables\","
             + "\"addonStateTableKeyValueBulkSaveStorageMode\":\"table-prefix-flattened-key-value\","
+            + "\"addonStateTableKeyPrefix\":\"table/{table}/{key}\","
+            + "\"addonStateMaxAddonIdLength\":" + AddonStateRepository.MAX_ADDON_ID_LENGTH + ","
+            + "\"addonStateMaxKeyLength\":" + AddonStateRepository.MAX_KEY_LENGTH + ","
+            + "\"addonStateMaxValueLength\":" + AddonStateRepository.MAX_VALUE_LENGTH + ","
+            + "\"addonStateMaxKeysPerAddon\":" + AddonStateRepository.MAX_KEYS_PER_ADDON + ","
             + "\"addonStateTableKeyValueBulkSaveFallback\":\"local-cache-on-core-api-failure\","
             + "\"databasePoolSize\":" + config.databasePoolSize() + ","
             + "\"storageType\":\"" + escape(config.storageType()) + "\","
@@ -4234,6 +4239,11 @@ public final class CloudIslandsCoreApplication {
             + "\"registeredAddonRequired\":false,"
             + "\"orphanStatePolicy\":\"preserve-for-reinstall-or-admin-clear\","
             + "\"missingAddonStatePolicy\":\"ignored-by-island-lifecycle\","
+            + "\"tableKeyPrefix\":\"table/{table}/{key}\","
+            + "\"maxAddonIdLength\":" + AddonStateRepository.MAX_ADDON_ID_LENGTH + ","
+            + "\"maxKeyLength\":" + AddonStateRepository.MAX_KEY_LENGTH + ","
+            + "\"maxValueLength\":" + AddonStateRepository.MAX_VALUE_LENGTH + ","
+            + "\"maxKeysPerAddon\":" + AddonStateRepository.MAX_KEYS_PER_ADDON + ","
             + "\"addons\":[");
         boolean first = true;
         for (String addonId : addonIds) {
