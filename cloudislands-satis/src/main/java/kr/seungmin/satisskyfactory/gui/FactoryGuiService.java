@@ -335,6 +335,11 @@ public final class FactoryGuiService {
     }
 
     public void openContracts(Player player, FactoryIsland island, ContractService contracts) {
+        if (!enabled("contracts")) {
+            messages.send(player, "feature-disabled", Map.of("feature", "contracts"));
+            player.closeInventory();
+            return;
+        }
         if (!enabled("storage")) {
             messages.send(player, "feature-disabled", Map.of("feature", "storage"));
             player.closeInventory();
@@ -383,6 +388,16 @@ public final class FactoryGuiService {
     }
 
     public void openContractDetail(Player player, FactoryIsland island, ContractService contracts, java.util.UUID contractId) {
+        if (!enabled("contracts")) {
+            messages.send(player, "feature-disabled", Map.of("feature", "contracts"));
+            player.closeInventory();
+            return;
+        }
+        if (!enabled("storage")) {
+            messages.send(player, "feature-disabled", Map.of("feature", "storage"));
+            player.closeInventory();
+            return;
+        }
         ContractService.ActiveContract active = contracts.activeContracts(island).stream()
                 .filter(contract -> contract.contractId().equals(contractId))
                 .findFirst()
@@ -448,6 +463,11 @@ public final class FactoryGuiService {
     }
 
     public void openMarket(Player player, FactoryIsland island, MarketService market, int page) {
+        if (!enabled("market")) {
+            messages.send(player, "feature-disabled", Map.of("feature", "market"));
+            player.closeInventory();
+            return;
+        }
         if (!enabled("storage")) {
             messages.send(player, "feature-disabled", Map.of("feature", "storage"));
             player.closeInventory();
@@ -495,6 +515,11 @@ public final class FactoryGuiService {
     }
 
     public void openResearch(Player player, FactoryIsland island, ResearchService research) {
+        if (!enabled("research")) {
+            messages.send(player, "feature-disabled", Map.of("feature", "research"));
+            player.closeInventory();
+            return;
+        }
         FactoryGuiHolder holder = new FactoryGuiHolder("research", island.islandUuid(), null);
         Inventory inventory = Bukkit.createInventory(holder, 27, title("research-title", "Factory Research"));
         holder.inventory(inventory);
