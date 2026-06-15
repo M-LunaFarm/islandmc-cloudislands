@@ -117,7 +117,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         "ciadmin migrate-superiorskyblock2 extract [outputPath]",
         "ciadmin migrate-superiorskyblock2 import <approvalToken>",
         "ciadmin migrate-superiorskyblock2 verify [path]",
-        "ciadmin migrate-superiorskyblock2 rollback [path]"
+        "ciadmin migrate-superiorskyblock2 rollback"
     );
     private final CloudIslandsPaperAgent agent;
     private final CoreApiClient coreApiClient;
@@ -844,7 +844,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 "/ciadmin migrate-superiorskyblock2 extract [path]",
                 "/ciadmin migrate-superiorskyblock2 import <approvalToken>",
                 "/ciadmin migrate-superiorskyblock2 verify [path]",
-                "/ciadmin migrate-superiorskyblock2 rollback [path]"
+                "/ciadmin migrate-superiorskyblock2 rollback"
             ));
             return true;
         }
