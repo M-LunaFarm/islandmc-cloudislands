@@ -100,7 +100,12 @@ public final class IslandUpgradeMenu implements Listener {
             case "ISLAND_SIZE" -> Material.GRASS_BLOCK;
             case "MAX_MEMBERS" -> Material.NAME_TAG;
             case "MAX_WARPS" -> Material.ENDER_PEARL;
+            case "HOPPER_LIMIT" -> Material.HOPPER;
+            case "SPAWNER_LIMIT" -> Material.SPAWNER;
             case "GENERATOR_LEVEL" -> Material.COBBLESTONE;
+            case "MOB_LIMIT" -> Material.ZOMBIE_HEAD;
+            case "CROP_GROWTH" -> Material.WHEAT;
+            case "FLY_ACCESS" -> Material.FEATHER;
             case "REDSTONE_LIMIT" -> Material.REDSTONE;
             case "BANK_LIMIT" -> Material.GOLD_INGOT;
             default -> Material.BEACON;
