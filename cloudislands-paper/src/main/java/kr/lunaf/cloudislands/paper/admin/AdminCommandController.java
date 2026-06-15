@@ -1917,6 +1917,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-core-config-addon-bulk-island-prefix", " addonBulkIsland=") + textValue(body, "addonStateBulkSaveIslandEndpoint")
             + adminText("admin-command-core-config-addon-table-bulk-global-prefix", " addonTableBulkGlobal=") + textValue(body, "addonStateTableKeyValueBulkSaveGlobalEndpoint")
             + adminText("admin-command-core-config-addon-table-bulk-island-prefix", " addonTableBulkIsland=") + textValue(body, "addonStateTableKeyValueBulkSaveIslandEndpoint")
+            + " addonTableBulkGlobalAlias=" + textValue(body, "addonStateTableKeyValueBulkSaveGlobalAlias")
+            + " addonTableBulkIslandAlias=" + textValue(body, "addonStateTableKeyValueBulkSaveIslandAlias")
             + adminText("admin-command-core-config-pool-prefix", " pool=") + textValue(body, "islandPool")
             + adminText("admin-command-core-config-pool-nodes-prefix", " poolNodes=") + longValue(body, "islandPoolNodeCount")
             + adminText("admin-command-core-config-pool-route-candidates-prefix", " poolRouteCandidates=") + longValue(body, "islandPoolRouteCandidateCount")

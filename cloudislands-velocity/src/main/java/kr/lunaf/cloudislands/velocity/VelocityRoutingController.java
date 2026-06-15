@@ -1933,6 +1933,8 @@ public final class VelocityRoutingController {
             + " island=" + jsonValue(body, "addonStateBulkSaveIslandEndpoint")
             + " tableGlobal=" + jsonValue(body, "addonStateTableKeyValueBulkSaveGlobalEndpoint")
             + " tableIsland=" + jsonValue(body, "addonStateTableKeyValueBulkSaveIslandEndpoint")
+            + " tableGlobalAlias=" + jsonValue(body, "addonStateTableKeyValueBulkSaveGlobalAlias")
+            + " tableIslandAlias=" + jsonValue(body, "addonStateTableKeyValueBulkSaveIslandAlias")
             + " tableBulkGlobal=" + jsonValue(body, "addonStateTableKeyValueBulkGlobalEndpoint")
             + " tableBulkIsland=" + jsonValue(body, "addonStateTableKeyValueBulkIslandEndpoint")
             + " payload=" + jsonValue(body, "addonStateTableKeyValueBulkSavePayload")
