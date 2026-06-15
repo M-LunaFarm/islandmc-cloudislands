@@ -732,7 +732,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> localState = new HashMap<>(readAddonState(safeId));
             localState.putAll(merged);
             writeAddonState(safeId, localState);
-            return coreClient.bulkSaveAddonState(safeId, Map.copyOf(safeValues), Map.copyOf(safeTables))
+            return coreClient.tableKeyValueBulkSaveAddonState(safeId, Map.copyOf(safeValues), Map.copyOf(safeTables))
                 .thenApply(this::stateFromJson)
                 .thenApply(state -> {
                     addonStates.put(safeId, state);
@@ -1011,7 +1011,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> localState = new HashMap<>(readAddonIslandState(safeId, islandId));
             localState.putAll(merged);
             writeAddonIslandState(safeId, islandId, localState);
-            return coreClient.bulkSaveAddonIslandState(safeId, islandId, Map.copyOf(safeValues), Map.copyOf(safeTables))
+            return coreClient.tableKeyValueBulkSaveAddonIslandState(safeId, islandId, Map.copyOf(safeValues), Map.copyOf(safeTables))
                 .thenApply(this::stateFromJson)
                 .thenApply(state -> {
                     writeAddonIslandState(safeId, islandId, state);

@@ -917,7 +917,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> bulkSaveAddonTableKeyValueState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return bulkSaveAddonState(addonId, values, tables);
+        return tableKeyValueBulkSaveAddonState(addonId, values, tables);
     }
 
     @Override
@@ -1028,7 +1028,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> bulkSaveAddonIslandTableKeyValueState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return bulkSaveAddonIslandState(addonId, islandId, values, tables);
+        return tableKeyValueBulkSaveAddonIslandState(addonId, islandId, values, tables);
     }
 
     @Override
