@@ -27,13 +27,19 @@ public final class CoreApiSatisStateService {
     private final Logger logger;
     private final CloudIslandsApi cloudIslandsApi;
     private final String addonId;
+    private final boolean flattenedFallbackEnabled;
     private volatile String lastTableStatusFingerprint = "";
     private volatile String lastGlobalTableStatusFingerprint = "";
 
     public CoreApiSatisStateService(Logger logger, CloudIslandsApi cloudIslandsApi, String addonId) {
+        this(logger, cloudIslandsApi, addonId, true);
+    }
+
+    public CoreApiSatisStateService(Logger logger, CloudIslandsApi cloudIslandsApi, String addonId, boolean flattenedFallbackEnabled) {
         this.logger = logger;
         this.cloudIslandsApi = cloudIslandsApi;
         this.addonId = addonId;
+        this.flattenedFallbackEnabled = flattenedFallbackEnabled;
     }
 
     public void publishDirtyBatch(DirtySaveService.DirtySaveBatch batch) {
@@ -216,6 +222,10 @@ public final class CoreApiSatisStateService {
                     if (error == null) {
                         return java.util.concurrent.CompletableFuture.completedFuture(state);
                     }
+                    if (!flattenedFallbackEnabled) {
+                        logger.warning("Failed to publish " + description + " and flattened addon state fallback is disabled: " + error.getMessage());
+                        return java.util.concurrent.CompletableFuture.completedFuture(Map.<String, String>of());
+                    }
                     Map<String, String> fallback = flattenedState(safeValues, safeTables);
                     logger.warning("Failed to publish " + description + ", retrying with flattened addon state: " + error.getMessage());
                     if (fallback.isEmpty()) {
@@ -240,6 +250,10 @@ public final class CoreApiSatisStateService {
                 .handle((state, error) -> {
                     if (error == null) {
                         return java.util.concurrent.CompletableFuture.completedFuture(state);
+                    }
+                    if (!flattenedFallbackEnabled) {
+                        logger.warning("Failed to publish " + description + " and flattened addon state fallback is disabled: " + error.getMessage());
+                        return java.util.concurrent.CompletableFuture.completedFuture(Map.<String, String>of());
                     }
                     Map<String, String> fallback = flattenedState(safeValues, safeTables);
                     logger.warning("Failed to publish " + description + ", retrying with flattened addon state: " + error.getMessage());

@@ -925,7 +925,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (database.activeBackend() != DatabaseService.StorageBackend.CORE_API || !featureEnabled("addon-state")) {
             return;
         }
-        coreApiState = new CoreApiSatisStateService(getLogger(), cloudIslandsApi, ADDON_ID);
+        coreApiState = new CoreApiSatisStateService(getLogger(), cloudIslandsApi, ADDON_ID, coreApiFlattenedFallbackEnabled());
         database.coreStateWriter(coreApiState::publishRow);
         database.coreTableWriter(coreApiState::publishTable);
         database.coreGlobalStateWriter(coreApiState::publishGlobalRow);
@@ -1065,6 +1065,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-core-api-local-cache", databaseCoreApiLocalCachePolicy());
         metadata.put("database-core-api-fallback-target", databaseCoreApiFallbackTarget());
         metadata.put("database-core-api-fallback-policy", databaseCoreApiFallbackPolicy());
+        metadata.put("database-core-api-flattened-fallback-enabled", Boolean.toString(coreApiFlattenedFallbackEnabled()));
+        metadata.put("database-core-api-write-fallback", databaseCoreApiWriteFallbackPolicy());
         metadata.put("database-config-env", "CLOUDISLANDS_SATIS_DATABASE_TYPE,CLOUDISLANDS_SATIS_DB");
         metadata.put("database-jdbc-source", databaseJdbcSource());
         metadata.put("database-jdbc-env", "CLOUDISLANDS_SATIS_JDBC_URL");
@@ -1107,7 +1109,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("addon-state-table-key-value-bulk-global-endpoint", "/v1/addons/state/table/key-value/bulk");
         metadata.put("addon-state-table-key-value-bulk-island-endpoint", "/v1/addons/islands/state/table/key-value/bulk");
         metadata.put("addon-state-bulk-save-methods", "bulkSaveState,tableKeyValueBulkSaveState,bulkSaveTableKeyValueState,tableKeyValueBulkState,bulkTableKeyValueState,bulkSaveIslandState,tableKeyValueBulkSaveIslandState,bulkSaveIslandTableKeyValueState,tableKeyValueBulkIslandState,bulkIslandTableKeyValueState");
-        metadata.put("core-api-table-save-mode", "bulk-save-with-table-prefix");
+        metadata.put("core-api-table-save-mode", "bulk-save-with-table-prefix-and-configurable-flattened-fallback");
         metadata.put("feature-aliases", featureAliasesMetadata());
         metadata.put("feature-alias-disabled", disabledFeatureAliases());
         metadata.put("feature-dependencies", featureDependenciesMetadata());
@@ -1342,6 +1344,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-core-api-local-cache", databaseCoreApiLocalCachePolicy());
         state.put("database-core-api-fallback-target", databaseCoreApiFallbackTarget());
         state.put("database-core-api-fallback-policy", databaseCoreApiFallbackPolicy());
+        state.put("database-core-api-flattened-fallback-enabled", Boolean.toString(coreApiFlattenedFallbackEnabled()));
+        state.put("database-core-api-write-fallback", databaseCoreApiWriteFallbackPolicy());
         state.put("database-config-env", "CLOUDISLANDS_SATIS_DATABASE_TYPE,CLOUDISLANDS_SATIS_DB");
         state.put("database-jdbc-source", databaseJdbcSource());
         state.put("database-jdbc-env", "CLOUDISLANDS_SATIS_JDBC_URL");
@@ -1370,7 +1374,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("addon-state-table-key-value-bulk-global-endpoint", "/v1/addons/state/table/key-value/bulk");
         state.put("addon-state-table-key-value-bulk-island-endpoint", "/v1/addons/islands/state/table/key-value/bulk");
         state.put("addon-state-bulk-save-methods", "bulkSaveState,tableKeyValueBulkSaveState,bulkSaveTableKeyValueState,tableKeyValueBulkState,bulkTableKeyValueState,bulkSaveIslandState,tableKeyValueBulkSaveIslandState,bulkSaveIslandTableKeyValueState,tableKeyValueBulkIslandState,bulkIslandTableKeyValueState");
-        state.put("core-api-table-save-mode", "bulk-save-with-table-prefix");
+        state.put("core-api-table-save-mode", "bulk-save-with-table-prefix-and-configurable-flattened-fallback");
         state.put("configured-features", featureState(snapshot.configuredFeatures()));
         state.put("effective-features", featureState(snapshot.features()));
         state.put("operational-features", operationalFeatureState(snapshot.features()));
@@ -2286,6 +2290,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("addon-state-sync-endpoint", "table/key-value/bulk-save,table/key-value/bulk");
         state.put("addon-state-sync-core-api-mode", databaseCoreApiMode());
         state.put("addon-state-sync-core-api-fallback-target", databaseCoreApiFallbackTarget());
+        state.put("addon-state-sync-flattened-fallback-enabled", Boolean.toString(coreApiFlattenedFallbackEnabled()));
+        state.put("addon-state-sync-write-fallback", databaseCoreApiWriteFallbackPolicy());
     }
 
     private boolean coreApiAddonStateAvailable() {
@@ -2962,6 +2968,17 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return "disabled-use-local-cache-only-and-warn";
         }
         return "if-cloudislands-api-or-addon-state-unavailable-use-first-non-core-api-backend";
+    }
+
+    private boolean coreApiFlattenedFallbackEnabled() {
+        return setupBoolean("database.core-api.flattened-fallback.enabled", true);
+    }
+
+    private String databaseCoreApiWriteFallbackPolicy() {
+        if (!coreApiFlattenedFallbackEnabled()) {
+            return "disabled";
+        }
+        return "retry-table-key-value-bulk-save-as-flattened-addon-state";
     }
 
     private int setupInt(String path, int fallback) {

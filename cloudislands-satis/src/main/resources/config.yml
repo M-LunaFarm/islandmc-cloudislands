@@ -67,6 +67,10 @@ setup:
       # Optional selection marker for CORE_API setup. Empty type still inherits database.type.
       # Requires the CloudIslands API and the addon-state feature to stay enabled.
       enabled: false
+      flattened-fallback:
+        # If the table/key-value bulk endpoint fails, retry with flattened addon state keys.
+        # This keeps older Core API builds and partial endpoint outages from dropping writes.
+        enabled: true
     fallback:
       # Empty order inherits database.fallback.order below.
       # Recommended shared fallback order: POSTGRESQL, MYSQL, MARIADB, CORE_API, SQLITE.
@@ -165,6 +169,9 @@ database:
   # CORE_API stores Satis table rows as island-scoped CloudIslands addon-state keys and keeps
   # a local SQLite cache for fast runtime reads.
   type: SQLITE
+  core-api:
+    flattened-fallback:
+      enabled: true
   fallback:
     enabled: true
     order:
