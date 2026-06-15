@@ -1868,6 +1868,12 @@ public final class VelocityRoutingController {
             + " prepTtl=" + longValue(body, "routePreparingTicketTtlSeconds") + "s"
             + " heartbeatTimeout=" + longValue(body, "heartbeatTimeoutSeconds") + "s"
             + " leaseDuration=" + longValue(body, "leaseDurationSeconds") + "s"
+            + " redisTtl=" + jsonValue(body, "redisCacheTtlPolicy")
+            + " redisKeys=" + jsonValue(body, "redisKeyPolicy")
+            + " redisStreams=" + jsonValue(body, "redisStreamPolicy")
+            + " lockPolicy=" + jsonValue(body, "distributedLockPolicy")
+            + " fencing=" + jsonValue(body, "fencingTokenPolicy")
+            + " staleWrite=" + jsonValue(body, "staleWritePolicy")
             + " snapshotLatest=" + longValue(body, "snapshotKeepLatest")
             + " snapshotRetention=" + longValue(body, "snapshotKeepHourly") + "/" + longValue(body, "snapshotKeepDaily") + "/" + longValue(body, "snapshotKeepWeekly") + "/" + longValue(body, "snapshotKeepManual")
             + " snapshotCompress=" + boolValue(body, "snapshotCompress")

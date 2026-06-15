@@ -1890,6 +1890,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-core-config-prep-ttl-prefix", " prepTtl=") + longValue(body, "routePreparingTicketTtlSeconds") + "s"
             + adminText("admin-command-core-config-heartbeat-timeout-prefix", " heartbeatTimeout=") + longValue(body, "heartbeatTimeoutSeconds") + "s"
             + adminText("admin-command-core-config-lease-duration-prefix", " leaseDuration=") + longValue(body, "leaseDurationSeconds") + "s"
+            + " redisTtl=" + textValue(body, "redisCacheTtlPolicy")
+            + " redisKeys=" + textValue(body, "redisKeyPolicy")
+            + " redisStreams=" + textValue(body, "redisStreamPolicy")
+            + " lockPolicy=" + textValue(body, "distributedLockPolicy")
+            + " fencing=" + textValue(body, "fencingTokenPolicy")
+            + " staleWrite=" + textValue(body, "staleWritePolicy")
             + adminText("admin-command-core-config-snapshot-latest-prefix", " snapshotLatest=") + longValue(body, "snapshotKeepLatest")
             + adminText("admin-command-core-config-snapshot-retention-prefix", " snapshotRetention=") + longValue(body, "snapshotKeepHourly") + "/" + longValue(body, "snapshotKeepDaily") + "/" + longValue(body, "snapshotKeepWeekly") + "/" + longValue(body, "snapshotKeepManual")
             + adminText("admin-command-core-config-snapshot-compress-prefix", " snapshotCompress=") + boolValue(body, "snapshotCompress")
