@@ -512,11 +512,13 @@ public final class PrometheusMetricsRenderer {
         out.append("cloudislands_route_session_published_total ").append(events.countByType(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_SESSION_PUBLISHED.name())).append('\n');
         appendEventFieldCounters(out, "cloudislands_route_session_published_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_SESSION_PUBLISHED, "action");
         appendEventFieldCounters(out, "cloudislands_route_session_published_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_SESSION_PUBLISHED, "targetNode");
+        appendEventFieldCounters(out, "cloudislands_route_session_published_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_SESSION_PUBLISHED, "targetServerName");
         help(out, "cloudislands_route_ticket_consumed_total", "Route tickets consumed by Paper nodes");
         type(out, "cloudislands_route_ticket_consumed_total", "counter");
         out.append("cloudislands_route_ticket_consumed_total ").append(events.countByType(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CONSUMED.name())).append('\n');
         appendEventFieldCounters(out, "cloudislands_route_ticket_consumed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CONSUMED, "action");
         appendEventFieldCounters(out, "cloudislands_route_ticket_consumed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CONSUMED, "targetNode");
+        appendEventFieldCounters(out, "cloudislands_route_ticket_consumed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_CONSUMED, "targetServerName");
         publishExpiredRouteTickets();
         help(out, "cloudislands_route_ticket_failed_total", "Route ticket failures recorded by Core API");
         type(out, "cloudislands_route_ticket_failed_total", "counter");
