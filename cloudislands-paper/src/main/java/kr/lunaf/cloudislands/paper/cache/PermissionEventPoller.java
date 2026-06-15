@@ -101,6 +101,8 @@ public final class PermissionEventPoller {
     private final Deque<String> seenOrder = new ArrayDeque<>();
     private long lastEventSequence;
     private BukkitTask task;
+    private final AtomicLong cacheEventInvalidations = new AtomicLong();
+    private final AtomicLong cacheGapInvalidations = new AtomicLong();
     private final AtomicLong chatBroadcasts = new AtomicLong();
     private final AtomicLong chatDeliveries = new AtomicLong();
     private final AtomicLong chatNoRecipientBroadcasts = new AtomicLong();
@@ -146,6 +148,14 @@ public final class PermissionEventPoller {
         return chatNoRecipientBroadcasts.get();
     }
 
+    public long cacheEventInvalidations() {
+        return cacheEventInvalidations.get();
+    }
+
+    public long cacheGapInvalidations() {
+        return cacheGapInvalidations.get();
+    }
+
     private void poll() {
         try {
             for (int batch = 0; batch < MAX_BATCHES_PER_POLL; batch++) {
@@ -160,6 +170,7 @@ public final class PermissionEventPoller {
                 }
                 if (lastEventSequence > 0L && oldestSequence > lastEventSequence + 1L) {
                     invalidateLocalCaches();
+                    cacheGapInvalidations.incrementAndGet();
                     clearSeen();
                     lastEventSequence = oldestSequence - 1L;
                     json = client.listEventsSince(lastEventSequence, EVENT_BATCH_SIZE).join();
@@ -200,6 +211,7 @@ public final class PermissionEventPoller {
         }
         if (affectsPermissions(type, fields)) {
             UUID islandId = islandId(fields);
+            cacheEventInvalidations.incrementAndGet();
             if (islandId != null) {
                 if (removesIslandLocalState(type)) {
                     permissionSync.invalidate(islandId);
@@ -212,6 +224,7 @@ public final class PermissionEventPoller {
         }
         if (affectsGenerator(type, fields)) {
             UUID islandId = islandId(fields);
+            cacheEventInvalidations.incrementAndGet();
             if (islandId != null) {
                 generatorLevels.invalidate(islandId);
             } else if (isGlobalCacheEvent(type)) {
@@ -220,6 +233,7 @@ public final class PermissionEventPoller {
         }
         if (affectsCrop(type, fields)) {
             UUID islandId = islandId(fields);
+            cacheEventInvalidations.incrementAndGet();
             if (islandId != null) {
                 cropGrowthLevels.invalidate(islandId);
             } else if (isGlobalCacheEvent(type)) {
@@ -228,6 +242,7 @@ public final class PermissionEventPoller {
         }
         if (affectsLimits(type, fields)) {
             UUID islandId = islandId(fields);
+            cacheEventInvalidations.incrementAndGet();
             if (islandId != null) {
                 limits.invalidate(islandId);
             } else if (isGlobalCacheEvent(type)) {

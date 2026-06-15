@@ -429,6 +429,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"chatBroadcastsTotal\":" + (events == null ? 0L : events.chatBroadcasts()) + ","
             + "\"chatDeliveriesTotal\":" + (events == null ? 0L : events.chatDeliveries()) + ","
             + "\"chatNoRecipientBroadcastsTotal\":" + (events == null ? 0L : events.chatNoRecipientBroadcasts()) + ","
+            + "\"cacheEventInvalidationsTotal\":" + (events == null ? 0L : events.cacheEventInvalidations()) + ","
+            + "\"cacheGapInvalidationsTotal\":" + (events == null ? 0L : events.cacheGapInvalidations()) + ","
             + "\"periodicSaveRetryQueue\":" + (saver == null ? 0 : saver.retryQueueSize()) + ","
             + "\"periodicSaveFailuresTotal\":" + (saver == null ? 0L : saver.failuresTotal()) + ","
             + "\"emptySaveRetryQueue\":" + (emptySaver == null ? 0 : emptySaver.retryQueueSize()) + ","
@@ -520,6 +522,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_paper_chat_broadcasts_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.chatBroadcasts()) + "\n"
             + "cloudislands_paper_chat_deliveries_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.chatDeliveries()) + "\n"
             + "cloudislands_paper_chat_no_recipient_broadcasts_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.chatNoRecipientBroadcasts()) + "\n"
+            + "cloudislands_paper_cache_event_invalidations_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.cacheEventInvalidations()) + "\n"
+            + "cloudislands_paper_cache_gap_invalidations_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.cacheGapInvalidations()) + "\n"
             + "cloudislands_redis_latency_seconds{node=\"" + nodeId + "\"} " + redis.latencySeconds() + "\n"
             + "cloudislands_paper_redis_available{node=\"" + nodeId + "\"} " + (redis.available() ? 1 : 0) + "\n"
             + "cloudislands_paper_redis_latency_seconds{node=\"" + nodeId + "\"} " + redis.latencySeconds() + "\n"
@@ -561,6 +565,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         return levelScanStatus(supportedTemplates)
             + ";localCaches=" + (localCaches == null ? "" : localCaches.namesCsv())
             + ";localCacheInvalidations=" + (localCaches == null ? 0L : localCaches.invalidationsTotal())
+            + ";cacheEventInvalidations=" + (permissionEventPoller == null ? 0L : permissionEventPoller.cacheEventInvalidations())
+            + ";cacheGapInvalidations=" + (permissionEventPoller == null ? 0L : permissionEventPoller.cacheGapInvalidations())
             + ";permissionCacheHitRatio=" + agent.permissionCache().hitRatio()
             + ";permissionChecks=" + agent.permissionCache().lookupCount()
             + ";storageBackend=" + (storage == null ? "NONE" : storage.backend())
