@@ -2592,6 +2592,7 @@ public final class CloudIslandsCoreApplication {
             + "\"islandPoolNodeCount\":" + islandPoolNodeCount(config, nodes) + ","
             + "\"islandPoolRouteCandidateCount\":" + islandPoolRouteCandidateCount(config, nodes) + ","
             + "\"islandPoolScaleStatus\":\"" + escape(islandPoolScaleStatus(config, nodes)) + "\","
+            + "\"islandPoolDegraded\":" + islandPoolDegraded(config, nodes) + ","
             + "\"softFullPolicy\":\"" + escape(config.softFullPolicy()) + "\","
             + "\"hardFullPolicy\":\"" + escape(config.hardFullPolicy()) + "\","
             + "\"migrationPolicy\":\"" + escape(config.migrationPolicy()) + "\","
@@ -2699,6 +2700,10 @@ public final class CloudIslandsCoreApplication {
             return "MULTI_NODE_DEGRADED";
         }
         return "MULTI_NODE_READY";
+    }
+
+    private static boolean islandPoolDegraded(CoreServiceConfig config, NodeRegistry nodes) {
+        return islandPoolNodeCount(config, nodes) > 1L && islandPoolRouteCandidateCount(config, nodes) == 1L;
     }
 
     private static void logSecurityPosture(CoreServiceConfig config) {
