@@ -1113,6 +1113,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-setup-auto-selected", Boolean.toString(databaseSetupAutoSelected()));
         metadata.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
         metadata.put("database-setup-warning", databaseSetupWarningMetadata());
+        metadata.put("database-setup-jdbc-aliases", "setup.database.jdbc.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,database.jdbc.url,database.<backend>.url");
+        metadata.put("database-setup-fallback-precedence", "env,setup.database.fallback,database.fallback");
+        metadata.put("database-setup-core-api-fallback", "cloudislands-addon-state-then-first-non-core-api-backend");
         metadata.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));
         metadata.put("database-jdbc-inferred-backend", databaseJdbcInferredBackendMetadata());
         metadata.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
@@ -1412,6 +1415,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-setup-auto-selected", Boolean.toString(databaseSetupAutoSelected()));
         state.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
         state.put("database-setup-warning", databaseSetupWarningMetadata());
+        state.put("database-setup-jdbc-aliases", "setup.database.jdbc.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,database.jdbc.url,database.<backend>.url");
+        state.put("database-setup-fallback-precedence", "env,setup.database.fallback,database.fallback");
+        state.put("database-setup-core-api-fallback", "cloudislands-addon-state-then-first-non-core-api-backend");
         state.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));
         state.put("database-jdbc-inferred-backend", databaseJdbcInferredBackendMetadata());
         state.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
@@ -1514,6 +1520,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-setup-auto-selected", Boolean.toString(databaseSetupAutoSelected()));
         state.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
         state.put("database-setup-warning", databaseSetupWarningMetadata());
+        state.put("database-setup-jdbc-aliases", "setup.database.jdbc.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,database.jdbc.url,database.<backend>.url");
+        state.put("database-setup-fallback-precedence", "env,setup.database.fallback,database.fallback");
+        state.put("database-setup-core-api-fallback", "cloudislands-addon-state-then-first-non-core-api-backend");
         state.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));
         state.put("database-jdbc-inferred-backend", databaseJdbcInferredBackendMetadata());
         state.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
