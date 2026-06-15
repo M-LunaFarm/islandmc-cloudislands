@@ -862,12 +862,6 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (agent.getConfig().contains("migration.superiorskyblock2-enabled")) {
             enabled = enabled && agent.getConfig().getBoolean("migration.superiorskyblock2-enabled", true);
         }
-        if (agent.getConfig().contains("addons.cloudislands-satis.features.migration")) {
-            enabled = enabled && agent.getConfig().getBoolean("addons.cloudislands-satis.features.migration", true);
-        }
-        if (agent.getConfig().contains("satis.features.migration")) {
-            enabled = enabled && agent.getConfig().getBoolean("satis.features.migration", true);
-        }
         return enabled;
     }
 
