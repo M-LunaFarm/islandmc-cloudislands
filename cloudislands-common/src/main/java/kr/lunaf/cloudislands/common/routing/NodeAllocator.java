@@ -71,6 +71,35 @@ public final class NodeAllocator {
             .min(Comparator.comparingDouble(NodeLoad::score));
     }
 
+    public Optional<NodeLoad> selectTargetNode(List<NodeLoad> nodes, Instant now, String targetNodeId, String templateId, String minNodeVersion, String pool) {
+        if (targetNodeId == null || targetNodeId.isBlank()) {
+            return Optional.empty();
+        }
+        Map<String, Integer> velocityServerCounts = velocityServerCounts(nodes);
+        return nodes.stream()
+            .filter(node -> targetNodeId.equals(node.nodeId()))
+            .filter(node -> !duplicateVelocityServerName(node, velocityServerCounts))
+            .filter(node -> nodeBlockReason(node, now, templateId, minNodeVersion, pool).isBlank())
+            .findFirst();
+    }
+
+    public String targetNodeBlockReason(List<NodeLoad> nodes, Instant now, String targetNodeId, String templateId, String minNodeVersion, String pool) {
+        if (targetNodeId == null || targetNodeId.isBlank()) {
+            return "NODE_NOT_FOUND";
+        }
+        Map<String, Integer> velocityServerCounts = velocityServerCounts(nodes);
+        for (NodeLoad node : nodes) {
+            if (!targetNodeId.equals(node.nodeId())) {
+                continue;
+            }
+            if (duplicateVelocityServerName(node, velocityServerCounts)) {
+                return "DUPLICATE_VELOCITY_SERVER_NAME";
+            }
+            return nodeBlockReason(node, now, templateId, minNodeVersion, pool);
+        }
+        return "NODE_NOT_FOUND";
+    }
+
     public String readyNodeBlockReason(List<NodeLoad> nodes, Instant now, String templateId, String minNodeVersion, String pool) {
         boolean anyPoolNode = false;
         boolean anyTemplateNode = false;

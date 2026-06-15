@@ -141,9 +141,11 @@ public final class IslandLifecycleWorkflow {
             return new Result(false, "ISLAND_BUSY", current);
         }
         String templateId = islands.templateId(islandId).orElse("default");
-        NodeLoad node = nodes.find(targetNode).orElse(null);
-        if (node == null || allocator.selectBestNode(java.util.List.of(node), Instant.now(), templateId, minNodeVersion(templateId), islandPool).isEmpty()) {
-            return new Result(false, targetNodeUnavailableCode(node, templateId), null);
+        List<NodeLoad> nodeSnapshot = nodes.snapshot();
+        Instant now = Instant.now();
+        NodeLoad node = allocator.selectTargetNode(nodeSnapshot, now, targetNode, templateId, minNodeVersion(templateId), islandPool).orElse(null);
+        if (node == null) {
+            return new Result(false, targetNodeUnavailableCode(allocator.targetNodeBlockReason(nodeSnapshot, now, targetNode, templateId, minNodeVersion(templateId), islandPool)), null);
         }
         RedisActivationLock.Lease lease = acquireActivationLock(islandId, "migrate");
         if (activationLock != null && lease == null) {
@@ -362,6 +364,10 @@ public final class IslandLifecycleWorkflow {
 
     private String targetNodeUnavailableCode(NodeLoad node, String templateId) {
         String blockReason = allocator.nodeBlockReason(node, Instant.now(), templateId, minNodeVersion(templateId), islandPool);
+        return targetNodeUnavailableCode(blockReason);
+    }
+
+    private String targetNodeUnavailableCode(String blockReason) {
         if ("NODE_NOT_FOUND".equals(blockReason)) {
             return "TARGET_NODE_NOT_FOUND";
         }
