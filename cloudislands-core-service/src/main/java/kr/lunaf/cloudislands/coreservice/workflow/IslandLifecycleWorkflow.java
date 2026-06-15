@@ -227,7 +227,13 @@ public final class IslandLifecycleWorkflow {
             releaseActivationLock(lease);
             return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
         }
-        events.publish(CloudIslandEventType.ISLAND_RESTORE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "state", "RESTORING", "snapshotNo", Long.toString(snapshotNo)));
+        events.publish(CloudIslandEventType.ISLAND_RESTORE_REQUESTED.name(), Map.of(
+            "islandId", islandId.toString(),
+            "state", "RESTORING",
+            "snapshotNo", Long.toString(snapshotNo),
+            "targetNode", node.nodeId(),
+            "fencingToken", Long.toString(runtime.fencingToken())
+        ));
         return new Result(true, "RESTORE_QUEUED", runtime);
     }
 
@@ -290,7 +296,13 @@ public final class IslandLifecycleWorkflow {
         } catch (RuntimeException exception) {
             return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
         }
-        events.publish(CloudIslandEventType.ISLAND_RESTORE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "state", "RESTORING_ACTIVE", "snapshotNo", Long.toString(snapshotNo), "targetNode", current.activeNode()));
+        events.publish(CloudIslandEventType.ISLAND_RESTORE_REQUESTED.name(), Map.of(
+            "islandId", islandId.toString(),
+            "state", "RESTORING_ACTIVE",
+            "snapshotNo", Long.toString(snapshotNo),
+            "targetNode", current.activeNode(),
+            "fencingToken", Long.toString(current.fencingToken())
+        ));
         return new Result(true, "RESTORE_QUEUED", runtime);
     }
 

@@ -39,6 +39,14 @@ public final class IslandRestoreRequestEvent extends Event {
         return snapshotNo;
     }
 
+    public long fencingToken() {
+        try {
+            return Long.parseLong(fields.getOrDefault("fencingToken", "0"));
+        } catch (NumberFormatException ignored) {
+            return 0L;
+        }
+    }
+
     public Map<String, String> fields() {
         return fields;
     }
