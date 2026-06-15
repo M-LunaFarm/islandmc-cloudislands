@@ -2138,7 +2138,7 @@ public final class VelocityRoutingController {
             String nodeId = jsonValue(object, "nodeId");
             boolean available = boolValue(object, "storageAvailable");
             if (!nodeId.isBlank()) {
-                entries.add(nodeId + "=" + (available ? "OK" : "DOWN") + storageMetricSuffix(object));
+                entries.add(displayNodeName(nodeId, entries.size() + 1) + "=" + (available ? "OK" : "DOWN") + storageMetricSuffix(object));
                 if (!available) {
                     unavailable++;
                 }
@@ -2332,7 +2332,7 @@ public final class VelocityRoutingController {
                 break;
             }
             String nodeId = nodes.substring(valueStart + 1, valueEnd);
-            swept.add(nodeId.isBlank() ? "node-" + (swept.size() + 1) : nodeId);
+            swept.add(displayNodeName(nodeId, swept.size() + 1));
             index = valueEnd + 1;
         }
         return "Node sweep: nodes=" + (swept.isEmpty() ? "none" : String.join(",", swept)) + " recoveryRequired=" + recoveryRequired;
@@ -2697,6 +2697,13 @@ public final class VelocityRoutingController {
             return "";
         }
         return nodeId == null || nodeId.isBlank() ? "" : " " + nodeId;
+    }
+
+    private String displayNodeName(String nodeId, int index) {
+        if (hideNodeNames || nodeId == null || nodeId.isBlank()) {
+            return "node-" + Math.max(1, index);
+        }
+        return nodeId;
     }
 
     private String routeNodeSuffix(String nodeId) {
