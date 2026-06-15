@@ -2547,6 +2547,7 @@ public final class CloudIslandsCoreApplication {
     }
 
     private static String configSummaryJson(CoreServiceConfig config, NodeRegistry nodes) {
+        kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotPolicy = config.snapshotRetentionPolicy().normalized();
         return "{"
             + "\"repositoryMode\":\"" + escape(config.repositoryMode()) + "\","
             + "\"jobQueueMode\":\"" + escape(config.jobQueueMode()) + "\","
@@ -2612,6 +2613,14 @@ public final class CloudIslandsCoreApplication {
             + "\"heartbeatTimeoutSeconds\":" + config.heartbeatTimeout().toSeconds() + ","
             + "\"leaseDurationSeconds\":" + config.leaseDuration().toSeconds() + ","
             + "\"snapshotKeepLatest\":" + config.snapshotKeepLatest() + ","
+            + "\"snapshotKeepHourly\":" + snapshotPolicy.keepHourly() + ","
+            + "\"snapshotKeepDaily\":" + snapshotPolicy.keepDaily() + ","
+            + "\"snapshotKeepWeekly\":" + snapshotPolicy.keepWeekly() + ","
+            + "\"snapshotKeepManual\":" + snapshotPolicy.keepManual() + ","
+            + "\"snapshotCompress\":" + snapshotPolicy.compress() + ","
+            + "\"snapshotChecksumAlgorithm\":\"" + escape(snapshotPolicy.checksumAlgorithm()) + "\","
+            + "\"snapshotRetentionMode\":\"hourly-daily-weekly-manual\","
+            + "\"snapshotRestorePipeline\":\"lock-restoring,evacuate-active-players,pre-restore-snapshot,restore-bundle,clear-runtime,reactivate,unlock\","
             + "\"adminApiEnabled\":" + config.adminApiEnabled() + ","
             + "\"requireMtls\":" + config.requireMtls() + ","
             + "\"ipAllowlistEnabled\":" + (config.ipAllowlist() != null && !config.ipAllowlist().isBlank()) + ","
