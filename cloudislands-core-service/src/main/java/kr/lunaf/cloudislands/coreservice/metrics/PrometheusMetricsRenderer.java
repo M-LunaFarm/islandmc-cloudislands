@@ -263,18 +263,32 @@ public final class PrometheusMetricsRenderer {
         long staleNodes = 0L;
         long routeCandidateNodes = 0L;
         long routingHealthyNodes = 0L;
+        long duplicateVelocityServerNameNodes = 0L;
+        long defaultNodeIdentityRiskNodes = 0L;
         Map<String, long[]> poolCounts = new LinkedHashMap<>();
+        java.util.List<NodeLoad> nodeSnapshot = nodes.snapshot();
+        Map<String, Integer> velocityServerCounts = velocityServerCounts(nodeSnapshot);
         double maxMspt = 0.0D;
-        for (NodeLoad node : nodes.snapshot()) {
+        for (NodeLoad node : nodeSnapshot) {
             String pool = node.pool() == null || node.pool().isBlank() ? "island" : node.pool();
-            long[] poolCounters = poolCounts.computeIfAbsent(pool, _pool -> new long[5]);
+            long[] poolCounters = poolCounts.computeIfAbsent(pool, _pool -> new long[7]);
             long heartbeatAgeSeconds = node.lastHeartbeat() == null ? -1L : Math.max(0L, Duration.between(node.lastHeartbeat(), now).toSeconds());
             boolean fresh = node.lastHeartbeat() != null && Duration.between(node.lastHeartbeat(), now).compareTo(heartbeatTimeout) <= 0;
             boolean stale = !fresh;
             String allocationBlockReason = node.allocationBlockReason(now, heartbeatTimeout);
             boolean routeCandidate = allocationBlockReason.isBlank();
             boolean routingHealthy = fresh && node.state() != NodeState.DOWN && routeCandidate;
+            boolean duplicateVelocityServerName = duplicateVelocityServerNameRisk(node, velocityServerCounts);
+            boolean defaultNodeIdentityRisk = defaultNodeIdentityRisk(node);
             poolCounters[0]++;
+            if (duplicateVelocityServerName) {
+                duplicateVelocityServerNameNodes++;
+                poolCounters[5]++;
+            }
+            if (defaultNodeIdentityRisk) {
+                defaultNodeIdentityRiskNodes++;
+                poolCounters[6]++;
+            }
             if (stale) {
                 staleNodes++;
             }
@@ -303,6 +317,8 @@ public final class PrometheusMetricsRenderer {
             labels(out, "cloudislands_node_stale", node, null).append(stale ? 1 : 0).append('\n');
             labels(out, "cloudislands_node_route_candidate", node, "reason=\"" + escape(routeCandidate ? "OK" : allocationBlockReason) + "\"").append(routeCandidate ? 1 : 0).append('\n');
             labels(out, "cloudislands_node_routing_healthy", node, "reason=\"" + escape(routingHealthy ? "OK" : allocationBlockReason.isBlank() ? stale ? "STALE_HEARTBEAT" : "NODE_DOWN" : allocationBlockReason) + "\"").append(routingHealthy ? 1 : 0).append('\n');
+            labels(out, "cloudislands_node_duplicate_velocity_server_name", node, null).append(duplicateVelocityServerName ? 1 : 0).append('\n');
+            labels(out, "cloudislands_node_default_identity_risk", node, null).append(defaultNodeIdentityRisk ? 1 : 0).append('\n');
             labels(out, "cloudislands_node_players", node, null).append(node.players()).append('\n');
             labels(out, "cloudislands_node_soft_player_cap", node, null).append(node.softPlayerCap()).append('\n');
             labels(out, "cloudislands_node_hard_player_cap", node, null).append(node.hardPlayerCap()).append('\n');
@@ -367,6 +383,8 @@ public final class PrometheusMetricsRenderer {
         out.append("cloudislands_cluster_stale_nodes ").append(staleNodes).append('\n');
         out.append("cloudislands_cluster_route_candidate_nodes ").append(routeCandidateNodes).append('\n');
         out.append("cloudislands_cluster_routing_healthy_nodes ").append(routingHealthyNodes).append('\n');
+        out.append("cloudislands_cluster_duplicate_velocity_server_name_nodes ").append(duplicateVelocityServerNameNodes).append('\n');
+        out.append("cloudislands_cluster_default_node_identity_risk_nodes ").append(defaultNodeIdentityRiskNodes).append('\n');
         out.append("cloudislands_cluster_max_mspt ").append(maxMspt).append('\n');
         help(out, "cloudislands_pool_nodes", "CloudIslands nodes registered per pool");
         type(out, "cloudislands_pool_nodes", "gauge");
@@ -380,6 +398,10 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_pool_storage_available_nodes", "gauge");
         help(out, "cloudislands_pool_degraded", "Whether a pool has multiple registered nodes but only one route candidate");
         type(out, "cloudislands_pool_degraded", "gauge");
+        help(out, "cloudislands_pool_duplicate_velocity_server_name_nodes", "Nodes per pool sharing the same Velocity server name with another node");
+        type(out, "cloudislands_pool_duplicate_velocity_server_name_nodes", "gauge");
+        help(out, "cloudislands_pool_default_node_identity_risk_nodes", "Nodes per pool still using the default island-1 or Island-1 identity");
+        type(out, "cloudislands_pool_default_node_identity_risk_nodes", "gauge");
         for (Map.Entry<String, long[]> entry : poolCounts.entrySet()) {
             String poolLabel = "{pool=\"" + escape(entry.getKey()) + "\"}";
             long[] counts = entry.getValue();
@@ -389,6 +411,8 @@ public final class PrometheusMetricsRenderer {
             out.append("cloudislands_pool_routing_healthy_nodes").append(poolLabel).append(' ').append(counts[3]).append('\n');
             out.append("cloudislands_pool_storage_available_nodes").append(poolLabel).append(' ').append(counts[4]).append('\n');
             out.append("cloudislands_pool_degraded").append(poolLabel).append(' ').append(counts[0] > 1L && counts[2] == 1L ? 1 : 0).append('\n');
+            out.append("cloudislands_pool_duplicate_velocity_server_name_nodes").append(poolLabel).append(' ').append(counts[5]).append('\n');
+            out.append("cloudislands_pool_default_node_identity_risk_nodes").append(poolLabel).append(' ').append(counts[6]).append('\n');
         }
         help(out, "cloudislands_jobs_total", "Island jobs by in-memory state or backend mode");
         type(out, "cloudislands_jobs_total", "gauge");
@@ -631,6 +655,39 @@ public final class PrometheusMetricsRenderer {
 
     private static double memoryPressure(NodeLoad node) {
         return node.heapMaxMb() <= 0 ? 1.0D : Math.min((double) node.heapUsedMb() / node.heapMaxMb(), 1.5D);
+    }
+
+    private static Map<String, Integer> velocityServerCounts(java.util.List<NodeLoad> snapshot) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (NodeLoad node : snapshot) {
+            String key = velocityServerKey(node);
+            if (!key.isBlank()) {
+                counts.merge(key, 1, Integer::sum);
+            }
+        }
+        return counts;
+    }
+
+    private static boolean duplicateVelocityServerNameRisk(NodeLoad node, Map<String, Integer> counts) {
+        String key = velocityServerKey(node);
+        return !key.isBlank() && counts.getOrDefault(key, 0) > 1;
+    }
+
+    private static String velocityServerKey(NodeLoad node) {
+        if (node == null || node.velocityServerName() == null || node.velocityServerName().isBlank()) {
+            return "";
+        }
+        String pool = node.pool() == null || node.pool().isBlank() ? "island" : node.pool().trim().toLowerCase(java.util.Locale.ROOT);
+        return pool + "\n" + node.velocityServerName().trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private static boolean defaultNodeIdentityRisk(NodeLoad node) {
+        if (node == null) {
+            return false;
+        }
+        String nodeId = node.nodeId() == null ? "" : node.nodeId().trim();
+        String serverName = node.velocityServerName() == null ? "" : node.velocityServerName().trim();
+        return nodeId.equalsIgnoreCase("island-1") || serverName.equalsIgnoreCase("Island-1");
     }
 
     private static String escape(String value) {
