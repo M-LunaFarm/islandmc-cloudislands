@@ -10,6 +10,13 @@ import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 
 public interface IslandAddonService {
+    String TABLE_STATE_KEY_PREFIX = "table/";
+    String TABLE_STATE_KEY_SHAPE = "table/{table}/{key}";
+    int MAX_ADDON_ID_LENGTH = 128;
+    int MAX_STATE_KEY_LENGTH = 128;
+    int MAX_STATE_VALUE_LENGTH = 65535;
+    int MAX_STATE_KEYS_PER_ADDON = 4096;
+
     default CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled) {
         return register(id, displayName, version, enabled, Map.of());
     }
@@ -439,13 +446,13 @@ public interface IslandAddonService {
     }
 
     private static String tableStatePrefix(String table) {
-        return "table/" + safeTableName(table) + "/";
+        return TABLE_STATE_KEY_PREFIX + safeTableName(table) + "/";
     }
 
     private static String safeTableName(String table) {
         String value = table == null ? "" : table.trim();
-        if (value.startsWith("table/")) {
-            value = value.substring("table/".length());
+        if (value.startsWith(TABLE_STATE_KEY_PREFIX)) {
+            value = value.substring(TABLE_STATE_KEY_PREFIX.length());
         }
         while (value.startsWith("/")) {
             value = value.substring(1);
