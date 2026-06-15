@@ -16,6 +16,12 @@ public interface AddonStateRepository {
     Map<String, String> list(String addonId);
     Map<String, String> put(String addonId, String key, String value);
     Map<String, String> put(String addonId, Map<String, String> values);
+    default Map<String, String> bulkSave(String addonId, Map<String, String> values) {
+        return put(addonId, values);
+    }
+    default Map<String, String> tableKeyValueBulkSave(String addonId, Map<String, String> values) {
+        return bulkSave(addonId, values);
+    }
     Map<String, String> remove(String addonId, String key);
     Map<String, String> removePrefix(String addonId, String keyPrefix);
     Map<String, String> replacePrefix(String addonId, String keyPrefix, Map<String, String> values);
@@ -23,6 +29,12 @@ public interface AddonStateRepository {
     Map<String, String> listIsland(String addonId, UUID islandId);
     Map<String, String> putIsland(String addonId, UUID islandId, String key, String value);
     Map<String, String> putIsland(String addonId, UUID islandId, Map<String, String> values);
+    default Map<String, String> bulkSaveIsland(String addonId, UUID islandId, Map<String, String> values) {
+        return putIsland(addonId, islandId, values);
+    }
+    default Map<String, String> tableKeyValueBulkSaveIsland(String addonId, UUID islandId, Map<String, String> values) {
+        return bulkSaveIsland(addonId, islandId, values);
+    }
     Map<String, String> removeIsland(String addonId, UUID islandId, String key);
     Map<String, String> removeIslandPrefix(String addonId, UUID islandId, String keyPrefix);
     Map<String, String> replaceIslandPrefix(String addonId, UUID islandId, String keyPrefix, Map<String, String> values);
