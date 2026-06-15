@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.api.model.IslandState;
 public interface IslandRuntimeRepository {
     Optional<IslandRuntimeSnapshot> find(UUID islandId);
     List<IslandRuntimeSnapshot> listByNode(String nodeId, int limit);
+    boolean placementOccupied(String worldName, int cellX, int cellZ, UUID exceptIslandId);
     IslandRuntimeSnapshot markActivating(UUID islandId, String targetNode, String targetWorld, int cellX, int cellZ);
     IslandRuntimeSnapshot markActive(UUID islandId, String nodeId, String worldName, int cellX, int cellZ, long fencingToken);
     IslandRuntimeSnapshot markSaving(UUID islandId);

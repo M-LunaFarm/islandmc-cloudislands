@@ -55,6 +55,22 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
     }
 
     @Override
+    public boolean placementOccupied(String worldName, int cellX, int cellZ, UUID exceptIslandId) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT 1 FROM island_runtime WHERE active_world = ? AND cell_x = ? AND cell_z = ? AND island_id <> ? AND state IN ('ACTIVE', 'ACTIVATING', 'RESTORING', 'SAVING', 'DEACTIVATING') LIMIT 1")) {
+            statement.setString(1, worldName);
+            statement.setInt(2, cellX);
+            statement.setInt(3, cellZ);
+            statement.setObject(4, exceptIslandId);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to check island placement", exception);
+        }
+    }
+
+    @Override
     public IslandRuntimeSnapshot markActivating(UUID islandId, String targetNode, String targetWorld, int cellX, int cellZ) {
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);

@@ -29,6 +29,19 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
     }
 
     @Override
+    public boolean placementOccupied(String worldName, int cellX, int cellZ, UUID exceptIslandId) {
+        return runtimes.values().stream()
+            .filter(this::runningOnNode)
+            .filter(runtime -> exceptIslandId == null || !exceptIslandId.equals(runtime.islandId()))
+            .anyMatch(runtime -> worldName != null
+                && worldName.equals(runtime.activeWorld())
+                && runtime.cellX() != null
+                && runtime.cellZ() != null
+                && runtime.cellX() == cellX
+                && runtime.cellZ() == cellZ);
+    }
+
+    @Override
     public IslandRuntimeSnapshot markActivating(UUID islandId, String targetNode, String targetWorld, int cellX, int cellZ) {
         long nextToken = find(islandId).map(IslandRuntimeSnapshot::fencingToken).orElse(0L) + 1L;
         return put(new IslandRuntimeSnapshot(islandId, IslandState.ACTIVATING, targetNode, targetWorld, cellX, cellZ, targetNode, nextToken, null, Instant.now()));

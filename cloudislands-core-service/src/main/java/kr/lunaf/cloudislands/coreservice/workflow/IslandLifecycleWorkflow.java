@@ -75,7 +75,8 @@ public final class IslandLifecycleWorkflow {
             return new Result(false, "ACTIVATION_LOCKED", current);
         }
         events.publish(CloudIslandEventType.ISLAND_PRE_ACTIVATE.name(), Map.of("islandId", islandId.toString(), "targetNode", node.nodeId()));
-        IslandRuntimeSnapshot runtime = runtimes.markActivating(islandId, node.nodeId(), kr.lunaf.cloudislands.coreservice.IslandPlacement.worldName(islandId), kr.lunaf.cloudislands.coreservice.IslandPlacement.cellX(islandId), kr.lunaf.cloudislands.coreservice.IslandPlacement.cellZ(islandId));
+        kr.lunaf.cloudislands.coreservice.IslandPlacement.Assignment placement = kr.lunaf.cloudislands.coreservice.IslandPlacement.choose(islandId, runtimes);
+        IslandRuntimeSnapshot runtime = runtimes.markActivating(islandId, node.nodeId(), placement.worldName(), placement.cellX(), placement.cellZ());
         islands.setState(islandId, IslandState.ACTIVATING);
         try {
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.ACTIVATE_ISLAND, islandId, node.nodeId(), 0, Map.of("fencingToken", Long.toString(runtime.fencingToken()), "worldName", runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld(), "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()), "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ())), Instant.now()));
@@ -219,7 +220,8 @@ public final class IslandLifecycleWorkflow {
         if (activationLock != null && lease == null) {
             return new Result(false, "ACTIVATION_LOCKED", current);
         }
-        runtimes.markActivating(islandId, node.nodeId(), kr.lunaf.cloudislands.coreservice.IslandPlacement.worldName(islandId), kr.lunaf.cloudislands.coreservice.IslandPlacement.cellX(islandId), kr.lunaf.cloudislands.coreservice.IslandPlacement.cellZ(islandId));
+        kr.lunaf.cloudislands.coreservice.IslandPlacement.Assignment placement = kr.lunaf.cloudislands.coreservice.IslandPlacement.choose(islandId, runtimes);
+        runtimes.markActivating(islandId, node.nodeId(), placement.worldName(), placement.cellX(), placement.cellZ());
         IslandRuntimeSnapshot runtime = runtimes.setState(islandId, IslandState.RESTORING);
         islands.setState(islandId, IslandState.RESTORING);
         try {
@@ -256,7 +258,8 @@ public final class IslandLifecycleWorkflow {
         if (activationLock != null && lease == null) {
             return new Result(false, "ACTIVATION_LOCKED", current);
         }
-        IslandRuntimeSnapshot runtime = runtimes.markActivating(islandId, node.nodeId(), kr.lunaf.cloudislands.coreservice.IslandPlacement.worldName(islandId), kr.lunaf.cloudislands.coreservice.IslandPlacement.cellX(islandId), kr.lunaf.cloudislands.coreservice.IslandPlacement.cellZ(islandId));
+        kr.lunaf.cloudislands.coreservice.IslandPlacement.Assignment placement = kr.lunaf.cloudislands.coreservice.IslandPlacement.choose(islandId, runtimes);
+        IslandRuntimeSnapshot runtime = runtimes.markActivating(islandId, node.nodeId(), placement.worldName(), placement.cellX(), placement.cellZ());
         islands.setState(islandId, IslandState.ACTIVATING);
         try {
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESET_ISLAND, islandId, node.nodeId(), 40, Map.of("templateId", templateId, "reason", reason, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));

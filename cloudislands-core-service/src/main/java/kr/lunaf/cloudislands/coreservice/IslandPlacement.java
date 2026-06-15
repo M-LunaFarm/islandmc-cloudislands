@@ -1,12 +1,31 @@
 package kr.lunaf.cloudislands.coreservice;
 
 import java.util.UUID;
+import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 
 public final class IslandPlacement {
-    private static final int SHARD_COUNT = 16;
-    private static final int CELLS_PER_AXIS = 1024;
+    public static final int SHARD_COUNT = 16;
+    public static final int CELLS_PER_AXIS = 1024;
+    private static final int MAX_PROBES = 4096;
 
     private IslandPlacement() {
+    }
+
+    public record Assignment(String worldName, int cellX, int cellZ) {
+    }
+
+    public static Assignment choose(UUID islandId, IslandRuntimeRepository runtimes) {
+        String worldName = worldName(islandId);
+        int startX = cellX(islandId);
+        int startZ = cellZ(islandId);
+        for (int probe = 0; probe < MAX_PROBES; probe++) {
+            int cellX = Math.floorMod(startX + probe, CELLS_PER_AXIS);
+            int cellZ = Math.floorMod(startZ + (probe / CELLS_PER_AXIS), CELLS_PER_AXIS);
+            if (runtimes == null || !runtimes.placementOccupied(worldName, cellX, cellZ, islandId)) {
+                return new Assignment(worldName, cellX, cellZ);
+            }
+        }
+        return new Assignment(worldName, startX, startZ);
     }
 
     public static String worldName(UUID islandId) {
