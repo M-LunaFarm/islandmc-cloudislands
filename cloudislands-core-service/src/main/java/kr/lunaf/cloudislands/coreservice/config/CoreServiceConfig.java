@@ -178,21 +178,39 @@ public record CoreServiceConfig(
         }
         String typedSource = typedSetupDatabaseSettingSource(config, type, "jdbc-url");
         if (!typedSource.isBlank()) {
+            if (!coreJdbcTypeSupported(type) && !setupPostgresqlFallbackJdbcUrl(config).isBlank()) {
+                return "setup.database.postgresql.fallback";
+            }
             return typedSource;
         }
         if (presentConfig(config, "setup.database.jdbc-url")) {
+            if (!coreJdbcTypeSupported(type) && !setupPostgresqlFallbackJdbcUrl(config).isBlank()) {
+                return "setup.database.postgresql.fallback";
+            }
             return "setup.database.jdbc-url";
         }
         if (presentConfig(config, "setup.jdbc-url")) {
+            if (!coreJdbcTypeSupported(type) && !setupPostgresqlFallbackJdbcUrl(config).isBlank()) {
+                return "setup.database.postgresql.fallback";
+            }
             return "setup.jdbc-url";
         }
         typedSource = typedSetupDatabaseSettingSource(config, type, "url");
         if (!typedSource.isBlank()) {
+            if (!coreJdbcTypeSupported(type) && !setupPostgresqlFallbackJdbcUrl(config).isBlank()) {
+                return "setup.database.postgresql.fallback";
+            }
             return typedSource;
         }
         String hostSource = typedSetupHostDatabaseTypeSource(config);
         if (!hostSource.isBlank()) {
+            if (!coreJdbcTypeSupported(type) && !setupPostgresqlFallbackJdbcUrl(config).isBlank()) {
+                return "setup.database.postgresql.fallback";
+            }
             return hostSource;
+        }
+        if (!coreJdbcTypeSupported(type) && !setupPostgresqlFallbackJdbcUrl(config).isBlank()) {
+            return "setup.database.postgresql.fallback";
         }
         if (presentConfig(config, "database.jdbc-url")) {
             return "database.jdbc-url";
