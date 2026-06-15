@@ -109,7 +109,14 @@ public final class RouteTicketConsumer {
         if (player.teleport(target)) {
             hideLoading(player);
             player.sendActionBar(Component.text(arrivalMessage(ticket.action())));
-            Bukkit.getPluginManager().callEvent(new RouteTicketConsumedEvent(ticket.islandId(), ticket.ticketId(), playerUuid, player, ticket.action(), worldName));
+            Bukkit.getPluginManager().callEvent(new RouteTicketConsumedEvent(
+                    ticket.ticketId(),
+                    ticket.islandId(),
+                    playerUuid,
+                    ticket.action().name(),
+                    ticket.targetNode(),
+                    routeEventFields(ticket, target, payload)
+            ));
             if (ticket.action() == RouteAction.VISIT) {
                 Bukkit.getPluginManager().callEvent(new IslandVisitEvent(ticket.islandId(), playerUuid, player, worldName));
             }
@@ -127,6 +134,24 @@ public final class RouteTicketConsumer {
         double worldX = active == null ? localX : active.originX() + localX;
         double worldZ = active == null ? localZ : active.originZ() + localZ;
         return new Location(world, worldX, localY, worldZ, (float) decimal(payload, "yaw", 180.0D), (float) decimal(payload, "pitch", 0.0D));
+    }
+
+    private java.util.Map<String, String> routeEventFields(RouteTicket ticket, Location target, java.util.Map<String, String> payload) {
+        java.util.Map<String, String> fields = new java.util.LinkedHashMap<>();
+        fields.put("targetWorld", ticket.targetWorld() == null ? "" : ticket.targetWorld());
+        fields.put("targetNode", ticket.targetNode() == null ? "" : ticket.targetNode());
+        fields.put("targetType", payload.getOrDefault("targetType", ticket.action().name()));
+        fields.put("homeName", payload.getOrDefault("homeName", ""));
+        fields.put("warpName", payload.getOrDefault("warpName", ""));
+        fields.put("localX", Double.toString(decimal(payload, "localX", defaultLocalX(ticket.action()))));
+        fields.put("localY", Double.toString(decimal(payload, "localY", defaultLocalY(ticket.action()))));
+        fields.put("localZ", Double.toString(decimal(payload, "localZ", defaultLocalZ(ticket.action()))));
+        fields.put("worldX", Double.toString(target.getX()));
+        fields.put("worldY", Double.toString(target.getY()));
+        fields.put("worldZ", Double.toString(target.getZ()));
+        fields.put("yaw", Float.toString(target.getYaw()));
+        fields.put("pitch", Float.toString(target.getPitch()));
+        return fields;
     }
 
     private double defaultLocalX(RouteAction action) {
