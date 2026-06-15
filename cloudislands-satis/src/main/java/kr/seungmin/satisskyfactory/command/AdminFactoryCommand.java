@@ -609,6 +609,7 @@ public final class AdminFactoryCommand {
         state.put("superior-import-import", "/ciadmin migrate-superiorskyblock2 import <approvalToken>");
         state.put("superior-import-verify", "/ciadmin migrate-superiorskyblock2 verify [path]");
         state.put("superior-import-rollback", "/ciadmin migrate-superiorskyblock2 rollback");
+        state.put("satismc-import-status", "/factory admin migration status");
         state.put("satismc-import-scan", "/factory admin migration scan <sqlitePath>");
         state.put("satismc-import-dryrun", "/factory admin migration dryrun <sqlitePath>");
         state.put("satismc-import-verify", "/factory admin migration verify <sqlitePath>");
@@ -617,7 +618,7 @@ public final class AdminFactoryCommand {
         state.put("satismc-import-mode", "cross-backend-sqlite-copy");
         state.put("satismc-rollback-mode", "sqlite-snapshot-restore-or-manual-shared-backend-restore");
         state.put("feature-gate", "migration=" + enabled("migration"));
-        state.put("disabled-behavior", "reject-scan-dryrun-verify-import-rollback");
+        state.put("disabled-behavior", "reject-status-scan-dryrun-verify-import-rollback");
         state.put("writes-when-disabled", "false");
         state.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
@@ -635,7 +636,7 @@ public final class AdminFactoryCommand {
             state.put("mode", "disabled");
             state.put("writes", "false");
             state.put("reason", "migration feature is disabled by config");
-            state.put("disabled-behavior", "reject-scan-dryrun-verify-import-rollback");
+            state.put("disabled-behavior", "reject-status-scan-dryrun-verify-import-rollback");
             state.entrySet().stream()
                     .sorted(Map.Entry.comparingByKey())
                     .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
@@ -932,6 +933,13 @@ public final class AdminFactoryCommand {
                         "runtime-command-block-reason",
                         "runtime-blocked-components",
                         "runtime-disabled-component-policy",
+                        "legacy-satismc-import-status",
+                        "legacy-satismc-import-scan",
+                        "legacy-satismc-import-dryrun",
+                        "legacy-satismc-import-verify",
+                        "legacy-satismc-import-import",
+                        "legacy-satismc-import-mode",
+                        "legacy-satismc-rollback-mode",
                         "command-list-format",
                         "command-list-paging",
                         "command-list-page-size",

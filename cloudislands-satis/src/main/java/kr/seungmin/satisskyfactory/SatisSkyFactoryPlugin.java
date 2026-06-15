@@ -1167,13 +1167,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("legacy-skyblock-provider-ignored", Boolean.toString(!"CLOUDISLANDS".equalsIgnoreCase(configuredSkyblockProvider()) && !"CLOUD_ISLANDS".equalsIgnoreCase(configuredSkyblockProvider())));
         putIslandMobilityState(metadata);
         metadata.put("satis-state-schema", "3");
+        metadata.put("legacy-satismc-import-status", "factory admin migration status");
         metadata.put("legacy-satismc-import-scan", "factory admin migration scan <sqlitePath>");
         metadata.put("legacy-satismc-import-dryrun", "factory admin migration dryrun <sqlitePath>");
         metadata.put("legacy-satismc-import-verify", "factory admin migration verify <sqlitePath>");
         metadata.put("legacy-satismc-import-import", "factory admin migration import <sqlitePath>");
         metadata.put("legacy-satismc-scan-mode", "scan-dryrun-verify-read-only");
         metadata.put("legacy-satismc-import-mode", "cross-backend-sqlite-copy");
-        metadata.put("legacy-satismc-rollback-mode", "manual-restore-from-backup");
+        metadata.put("legacy-satismc-rollback-mode", "sqlite-snapshot-restore-or-manual-shared-backend-restore");
         metadata.put("island-position-remap", "center-delta");
         metadata.put("recovery-suspend-mode", "drop-local-dirty-state");
         metadata.put("recovery-resume-source", "core-api-confirmed-state");
