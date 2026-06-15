@@ -135,7 +135,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> listIslandMembers(UUID islandId) {
-        return post("/v1/islands/members", "{\"islandId\":\"" + islandId + "\"}");
+        return get("/v1/islands/" + islandId + "/members");
     }
 
     @Override
@@ -215,7 +215,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> listIslandBans(UUID islandId) {
-        return post("/v1/islands/bans", "{\"islandId\":\"" + islandId + "\"}");
+        return get("/v1/islands/" + islandId + "/bans");
     }
 
     @Override
@@ -240,7 +240,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> listIslandFlags(UUID islandId) {
-        return post("/v1/islands/flags", "{\"islandId\":\"" + islandId + "\"}");
+        return get("/v1/islands/" + islandId + "/flags");
     }
 
     @Override
@@ -255,7 +255,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> islandBiome(UUID islandId) {
-        return post("/v1/islands/biome", "{\"islandId\":\"" + islandId + "\"}");
+        return get("/v1/islands/" + islandId + "/biome");
     }
 
     @Override
@@ -270,7 +270,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> listIslandHomes(UUID islandId) {
-        return post("/v1/islands/homes", "{\"islandId\":\"" + islandId + "\"}");
+        return get("/v1/islands/" + islandId + "/homes");
     }
 
     @Override
@@ -285,7 +285,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> listIslandPermissions(UUID islandId) {
-        return post("/v1/islands/permissions", "{\"islandId\":\"" + islandId + "\"}");
+        return get("/v1/islands/" + islandId + "/permissions");
     }
 
     @Override
@@ -300,7 +300,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> listIslandRoles(UUID islandId) {
-        return post("/v1/islands/roles", "{\"islandId\":\"" + islandId + "\"}");
+        return get("/v1/islands/" + islandId + "/roles");
     }
 
     @Override
@@ -315,7 +315,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> listIslandWarps(UUID islandId) {
-        return post("/v1/islands/warps", "{\"islandId\":\"" + islandId + "\"}");
+        return get("/v1/islands/" + islandId + "/warps");
     }
 
     @Override
