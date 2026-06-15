@@ -88,6 +88,7 @@ public final class JobCompletionService {
                 "worldName", worldName,
                 "cellX", job.payload().getOrDefault("cellX", "0"),
                 "cellZ", job.payload().getOrDefault("cellZ", "0"),
+                "placementSource", job.payload().getOrDefault("placementSource", ""),
                 "readyTickets", Integer.toString(readyTickets)
             ));
             return;
@@ -150,7 +151,7 @@ public final class JobCompletionService {
             recordPreMutationSnapshot(job);
             restoreDeletedIslandRecord(job);
             setIslandState(job.islandId(), IslandState.ACTIVE);
-            events.publish(CloudIslandEventType.ISLAND_RESTORED.name(), Map.of("islandId", job.islandId().toString(), "state", "RESTORED", "snapshotNo", job.payload().getOrDefault("snapshotNo", "")));
+            events.publish(CloudIslandEventType.ISLAND_RESTORED.name(), Map.of("islandId", job.islandId().toString(), "state", "RESTORED", "snapshotNo", job.payload().getOrDefault("snapshotNo", ""), "placementSource", job.payload().getOrDefault("placementSource", "")));
             releaseRestoreLock(job);
             return;
         }
@@ -172,6 +173,7 @@ public final class JobCompletionService {
                 "worldName", worldName,
                 "cellX", job.payload().getOrDefault("cellX", "0"),
                 "cellZ", job.payload().getOrDefault("cellZ", "0"),
+                "placementSource", job.payload().getOrDefault("placementSource", ""),
                 "fencingToken", job.payload().getOrDefault("fencingToken", "0"),
                 "readyTickets", Integer.toString(readyTickets)
             ));
