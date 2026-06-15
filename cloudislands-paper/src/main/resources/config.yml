@@ -8,6 +8,9 @@ addons:
     features:
       # Dependencies are enforced even when a child feature is set to true:
       # resource-nodes requires machines, market requires storage, contracts requires storage.
+      # route-events requires addon-state because it only writes CloudIslands route diagnostics.
+      # Legacy satismc names are aliases:
+      # factories -> machines, generators -> resource-nodes, upgrades -> research, missions -> contracts, menus -> gui.
       commands: true
       machines: true
       storage: true
@@ -26,12 +29,16 @@ addons:
       placeholders: true
       migration: true
       addon-state: true
+      route-events: true
 
 satis:
   enabled: true
   features:
     # Dependencies are enforced even when a child feature is set to true:
     # resource-nodes requires machines, market requires storage, contracts requires storage.
+    # route-events requires addon-state because it only writes CloudIslands route diagnostics.
+    # Legacy satismc names are aliases:
+    # factories -> machines, generators -> resource-nodes, upgrades -> research, missions -> contracts, menus -> gui.
     commands: true
     machines: true
     storage: true
@@ -50,6 +57,7 @@ satis:
     placeholders: true
     migration: true
     addon-state: true
+    route-events: true
 
 migration:
   superiorskyblock2-enabled: true
