@@ -330,6 +330,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private void putRuntimeActivityState(Map<String, String> state) {
         state.put("runtime-commands-registered", Boolean.toString(commandsRegistered));
+        state.put("runtime-commands-gate", "addonRuntimeEnabled&&features.commands");
+        state.put("runtime-commands-status", featureEnabled("commands") ? (commandsRegistered ? "registered" : "enabled-not-registered") : "commands-feature-disabled");
+        state.put("runtime-commands-policy", "disabled-feature-registers-disabled-command-stub-and-empty-tab-complete");
         state.put("runtime-machine-listener-registered", Boolean.toString(machineListenerRegistered));
         state.put("runtime-gui-listener-registered", Boolean.toString(guiListenerRegistered));
         state.put("runtime-lifecycle-listener-registered", Boolean.toString(lifecycleListenerRegistered));
