@@ -68,6 +68,7 @@ setup:
       enabled: false
     fallback:
       # Core JDBC is PostgreSQL-only. Unsupported setup choices stay online through the safe fallback path.
+      # If disabled, Core still refuses unsafe unsupported JDBC startup and reports setupFallbackSafetyForced=true.
       # Env overrides: CI_DB_FALLBACK_ENABLED, CI_DB_FALLBACK_ORDER.
       enabled: true
       order: "MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC"

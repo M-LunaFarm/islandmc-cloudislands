@@ -408,6 +408,9 @@ public final class TranslationManager {
         values.put("admin-command-core-config-setup-db-type-inference-prefix", " setupDbTypeInference=");
         values.put("admin-command-core-config-jdbc-fallback-prefix", " jdbcFallback=");
         values.put("admin-command-core-config-jdbc-fallback-active-prefix", " jdbcFallbackActive=");
+        values.put("admin-command-core-config-setup-fallback-effective-prefix", " setupFallbackEffective=");
+        values.put("admin-command-core-config-setup-fallback-safety-forced-prefix", " setupFallbackSafetyForced=");
+        values.put("admin-command-core-config-setup-fallback-policy-prefix", " setupFallbackPolicy=");
         values.put("admin-command-core-config-jdbc-fallback-status-prefix", " jdbcFallbackStatus=");
         values.put("admin-command-core-config-addon-bulk-prefix", " addonBulkSave=");
         values.put("admin-command-core-config-addon-bulk-global-prefix", " addonBulkGlobal=");

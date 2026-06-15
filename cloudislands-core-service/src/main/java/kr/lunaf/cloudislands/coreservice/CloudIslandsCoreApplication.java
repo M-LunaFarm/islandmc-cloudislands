@@ -2564,8 +2564,11 @@ public final class CloudIslandsCoreApplication {
             + "\"coreJdbcSupportedBackends\":\"POSTGRESQL\","
             + "\"coreSetupFallbackBackends\":\"MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC\","
             + "\"coreSetupFallbackEnabled\":" + config.setupDatabaseFallbackEnabled() + ","
+            + "\"coreSetupFallbackEffective\":" + coreJdbcFallbackActive(config) + ","
+            + "\"coreSetupFallbackSafetyForced\":" + coreSetupFallbackSafetyForced(config) + ","
+            + "\"coreSetupFallbackPolicy\":\"" + escape(coreSetupFallbackPolicy(config)) + "\","
             + "\"coreSetupFallbackOrder\":\"" + escape(config.setupDatabaseFallbackOrder()) + "\","
-            + "\"coreSetupFallbackMode\":\"IN_MEMORY_REPOSITORIES_AND_JOBS\","
+            + "\"coreSetupFallbackMode\":\"" + escape(coreSetupFallbackMode(config)) + "\","
             + "\"coreSetupDatabaseOperationalModes\":\"POSTGRESQL=CORE_JDBC,MYSQL=CONFIGURED_SAFE_FALLBACK,MARIADB=CONFIGURED_SAFE_FALLBACK,CORE_API=CLIENT_MODE_NO_CORE_JDBC\","
             + "\"coreSetupDatabaseConfigLoader\":\"yaml-nested-dotted-path\","
             + "\"coreSetupDatabaseResolvedPathExamples\":\"setup.database.type,setup.database.postgresql.jdbc-url,setup.database.postgresql.username,setup.database.mysql.host,setup.database.mysql.password,setup.database.mariadb.pool-size,setup.database.core-api.enabled\","
@@ -2658,12 +2661,38 @@ public final class CloudIslandsCoreApplication {
         return reason != null && !reason.isBlank();
     }
 
+    private static boolean coreSetupFallbackSafetyForced(CoreServiceConfig config) {
+        return coreJdbcFallbackActive(config) && !config.setupDatabaseFallbackEnabled();
+    }
+
+    private static String coreSetupFallbackPolicy(CoreServiceConfig config) {
+        if (!coreJdbcFallbackActive(config)) {
+            return "native-postgresql-jdbc";
+        }
+        if (coreSetupFallbackSafetyForced(config)) {
+            return "configured-disabled-but-forced-for-startup-safety";
+        }
+        return "configured-safe-fallback";
+    }
+
+    private static String coreSetupFallbackMode(CoreServiceConfig config) {
+        if (!coreJdbcFallbackActive(config)) {
+            return "NONE";
+        }
+        if (coreSetupFallbackSafetyForced(config)) {
+            return "SAFETY_FORCED_IN_MEMORY_REPOSITORIES_AND_JOBS";
+        }
+        return "IN_MEMORY_REPOSITORIES_AND_JOBS";
+    }
+
     private static String coreJdbcFallbackStatus(CoreServiceConfig config) {
         if (!coreJdbcFallbackActive(config)) {
             return "native-postgresql-jdbc";
         }
-        return "active:repo=" + (config.jdbcRepositories() ? "JDBC" : "IN_MEMORY")
-            + ",jobs=" + (config.jdbcJobs() ? "JDBC" : config.redisJobs() ? "REDIS" : "IN_MEMORY");
+        return coreSetupFallbackPolicy(config)
+            + ":repo=" + (config.jdbcRepositories() ? "JDBC" : "IN_MEMORY")
+            + ",jobs=" + (config.jdbcJobs() ? "JDBC" : config.redisJobs() ? "REDIS" : "IN_MEMORY")
+            + ",order=" + config.setupDatabaseFallbackOrder();
     }
 
     private static long islandPoolNodeCount(CoreServiceConfig config, NodeRegistry nodes) {
