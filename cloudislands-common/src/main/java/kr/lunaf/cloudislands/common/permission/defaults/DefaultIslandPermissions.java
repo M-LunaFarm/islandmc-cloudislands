@@ -32,12 +32,17 @@ public final class DefaultIslandPermissions {
             IslandPermission.OPEN_CONTAINER,
             IslandPermission.USE_DOOR,
             IslandPermission.USE_BUTTON,
+            IslandPermission.USE_PRESSURE_PLATE,
             IslandPermission.USE_REDSTONE,
             IslandPermission.PLACE_LIQUID,
             IslandPermission.BREAK_LIQUID,
             IslandPermission.ATTACK_MOB,
             IslandPermission.PICKUP_ITEM,
             IslandPermission.DROP_ITEM,
+            IslandPermission.USE_SPAWNER,
+            IslandPermission.USE_ANVIL,
+            IslandPermission.USE_ENCHANT_TABLE,
+            IslandPermission.USE_BREWING_STAND,
             IslandPermission.SET_HOME,
             IslandPermission.DEPOSIT_BANK
         }) {
@@ -52,6 +57,7 @@ public final class DefaultIslandPermissions {
             IslandPermission.INTERACT,
             IslandPermission.USE_DOOR,
             IslandPermission.USE_BUTTON,
+            IslandPermission.USE_PRESSURE_PLATE,
             IslandPermission.PICKUP_ITEM,
             IslandPermission.DROP_ITEM
         }) {
@@ -62,6 +68,7 @@ public final class DefaultIslandPermissions {
     private static void allowVisitor(CachedPermissionSet set) {
         set.put(IslandRole.VISITOR, IslandPermission.USE_DOOR, true);
         set.put(IslandRole.VISITOR, IslandPermission.USE_BUTTON, true);
+        set.put(IslandRole.VISITOR, IslandPermission.USE_PRESSURE_PLATE, true);
     }
 
     private static void allowManagement(CachedPermissionSet set, IslandRole role) {
