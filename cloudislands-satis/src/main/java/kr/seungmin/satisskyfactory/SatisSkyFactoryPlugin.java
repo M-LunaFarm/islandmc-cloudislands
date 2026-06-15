@@ -1221,6 +1221,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));
         metadata.put("database-jdbc-inferred-backend", databaseJdbcInferredBackendMetadata());
         metadata.put("database-active-backend", databaseActiveBackendName());
+        metadata.put("database-active-shared", Boolean.toString(databaseActiveBackendShared()));
+        metadata.put("database-active-authority", databaseActiveAuthorityMetadata());
         metadata.put("database-configured-backend-active", Boolean.toString(databaseConfiguredBackendActive()));
         metadata.put("database-effective-backend-status", databaseEffectiveBackendStatus());
         metadata.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
@@ -1554,6 +1556,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));
         state.put("database-jdbc-inferred-backend", databaseJdbcInferredBackendMetadata());
         state.put("database-active-backend", databaseActiveBackendName());
+        state.put("database-active-shared", Boolean.toString(databaseActiveBackendShared()));
+        state.put("database-active-authority", databaseActiveAuthorityMetadata());
         state.put("database-configured-backend-active", Boolean.toString(databaseConfiguredBackendActive()));
         state.put("database-effective-backend-status", databaseEffectiveBackendStatus());
         state.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
@@ -3678,6 +3682,24 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         DatabaseService.StorageBackend active = database == null
                 ? DatabaseService.StorageBackend.parse(configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE)
                 : database.activeBackend();
+        return databaseAuthorityMetadata(active);
+    }
+
+    private boolean databaseActiveBackendShared() {
+        DatabaseService.StorageBackend active = database == null
+                ? DatabaseService.StorageBackend.parse(configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE)
+                : database.activeBackend();
+        return active == DatabaseService.StorageBackend.CORE_API || isSharedStorageBackend(active);
+    }
+
+    private String databaseActiveAuthorityMetadata() {
+        DatabaseService.StorageBackend active = database == null
+                ? DatabaseService.StorageBackend.parse(configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE)
+                : database.activeBackend();
+        return databaseAuthorityMetadata(active);
+    }
+
+    private String databaseAuthorityMetadata(DatabaseService.StorageBackend active) {
         if (active == DatabaseService.StorageBackend.CORE_API) {
             return coreApiAddonStateAvailable() ? "cloudislands-core-api-addon-state" : "local-cache-only-core-api-unavailable";
         }
