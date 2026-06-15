@@ -97,7 +97,7 @@ public record CloudIslandsAddonSnapshot(
             }
         }
         for (Map.Entry<String, String> dependency : featureDependencies().entrySet()) {
-            if (dependency.getKey().equals(canonical)) {
+            if (dependency.getKey().equals(canonical) || dependency.getKey().equals(requested)) {
                 enabled = enabled && linkedFeatureEnabledIn(source, dependency.getValue(), fallback);
             }
         }
@@ -122,7 +122,7 @@ public record CloudIslandsAddonSnapshot(
         Map<String, String> aliases = featureAliases();
         Map<String, String> dependencies = new HashMap<>();
         metadataPairs("feature-dependencies").forEach((feature, required) ->
-            dependencies.put(canonicalFeature(feature, aliases), canonicalFeature(required, aliases)));
+            dependencies.put(feature.trim(), canonicalFeature(required, aliases)));
         return Map.copyOf(dependencies);
     }
 
