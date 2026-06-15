@@ -3,8 +3,11 @@ package kr.lunaf.cloudislands.common.routing;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Locale;
 import kr.lunaf.cloudislands.api.model.NodeState;
 
 public final class NodeAllocator {
@@ -58,8 +61,10 @@ public final class NodeAllocator {
     }
 
     public Optional<NodeLoad> selectReadyNode(List<NodeLoad> nodes, Instant now, String templateId, String minNodeVersion, String pool) {
+        Map<String, Integer> velocityServerCounts = velocityServerCounts(nodes);
         return nodes.stream()
             .filter(node -> node.inPool(pool))
+            .filter(node -> !duplicateVelocityServerName(node, velocityServerCounts))
             .filter(node -> newActivationBlockReason(node, now).isBlank())
             .filter(node -> node.supportsTemplate(templateId))
             .filter(node -> node.satisfiesMinVersion(minNodeVersion))
@@ -71,6 +76,7 @@ public final class NodeAllocator {
         boolean anyTemplateNode = false;
         boolean anyVersionNode = false;
         String allocationFallback = "NO_READY_NODE";
+        Map<String, Integer> velocityServerCounts = velocityServerCounts(nodes);
         for (NodeLoad node : nodes) {
             if (!node.inPool(pool)) {
                 continue;
@@ -84,6 +90,10 @@ public final class NodeAllocator {
                 continue;
             }
             anyVersionNode = true;
+            if (duplicateVelocityServerName(node, velocityServerCounts)) {
+                allocationFallback = preferredBlockReason(allocationFallback, "DUPLICATE_VELOCITY_SERVER_NAME");
+                continue;
+            }
             String blockReason = newActivationBlockReason(node, now);
             if (blockReason.isBlank()) {
                 return "";
@@ -157,6 +167,9 @@ public final class NodeAllocator {
         if (reason.equals("STORAGE_UNAVAILABLE")) {
             return 20;
         }
+        if (reason.equals("DUPLICATE_VELOCITY_SERVER_NAME")) {
+            return 25;
+        }
         if (reason.equals("MAX_ACTIVATION_QUEUE")) {
             return 30;
         }
@@ -207,5 +220,29 @@ public final class NodeAllocator {
             return "POOL_MISMATCH";
         }
         return node.existingRouteBlockReason(now, heartbeatTimeout, templateId, minNodeVersion);
+    }
+
+    private Map<String, Integer> velocityServerCounts(List<NodeLoad> nodes) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (NodeLoad node : nodes) {
+            String key = velocityServerKey(node);
+            if (!key.isBlank()) {
+                counts.merge(key, 1, Integer::sum);
+            }
+        }
+        return counts;
+    }
+
+    private boolean duplicateVelocityServerName(NodeLoad node, Map<String, Integer> counts) {
+        String key = velocityServerKey(node);
+        return !key.isBlank() && counts.getOrDefault(key, 0) > 1;
+    }
+
+    private String velocityServerKey(NodeLoad node) {
+        if (node == null || node.velocityServerName() == null || node.velocityServerName().isBlank()) {
+            return "";
+        }
+        String pool = node.pool() == null || node.pool().isBlank() ? "island" : node.pool().trim().toLowerCase(Locale.ROOT);
+        return pool + "\n" + node.velocityServerName().trim().toLowerCase(Locale.ROOT);
     }
 }
