@@ -586,6 +586,8 @@ public final class JobCompletionService {
             "targetNode", targetNode,
             "phase", "ACTIVATE_TARGET",
             "worldName", payload.get("worldName"),
+            "cellX", payload.get("cellX"),
+            "cellZ", payload.get("cellZ"),
             "fencingToken", fencingToken
         ));
     }
