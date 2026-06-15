@@ -989,6 +989,8 @@ public final class AdminFactoryCommand {
                         "lifecycle-event-coverage",
                         "lifecycle-event-actions",
                         "lifecycle-event-storage-policy",
+                        "lifecycle-placement-source-policy",
+                        "lifecycle-placement-source-state-key",
                         "last-lifecycle-remap-delta",
                         "last-lifecycle-machines-remapped",
                         "last-lifecycle-resource-nodes-remapped",

@@ -1255,6 +1255,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,restore,reset,recovery,repair,runtime,pre-visit,visit,member-join,member-left,member-role,member,role,ownership,flag,permission-check,permission,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot");
         metadata.put("lifecycle-event-actions", "pre-create=diagnostic,activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete-and-reset=purge,recovery=suspend,member-role-ownership-permission-bank-biome-home-warp-level-worth=synchronize,permission-check-and-pre-visit=diagnostic");
         metadata.put("lifecycle-event-storage-policy", "cloudislands-island-uuid-stable-state-remap-active-world");
+        metadata.put("lifecycle-placement-source-policy", "record-core-payload-or-paper-allocator-on-activate-and-migrate");
+        metadata.put("lifecycle-placement-source-state-key", "last-lifecycle-operation");
         metadata.put("route-event-source", "CloudIslandsAddon.route-ticket-events");
         metadata.put("route-event-policy", "diagnostic-state-only-no-routing-authority");
         metadata.put("route-event-feature-gate", "features.route-events&&features.addon-state&&CloudIslandsApi");
@@ -1556,6 +1558,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,restore,reset,recovery,repair,runtime,pre-visit,visit,member-join,member-left,member-role,member,role,ownership,flag,permission-check,permission,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot");
         state.put("lifecycle-event-actions", "pre-create=diagnostic,activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete-and-reset=purge,recovery=suspend,member-role-ownership-permission-bank-biome-home-warp-level-worth=synchronize,permission-check-and-pre-visit=diagnostic");
         state.put("lifecycle-event-storage-policy", "cloudislands-island-uuid-stable-state-remap-active-world");
+        state.put("lifecycle-placement-source-policy", "record-core-payload-or-paper-allocator-on-activate-and-migrate");
+        state.put("lifecycle-placement-source-state-key", "last-lifecycle-operation");
         state.put("route-event-source", "CloudIslandsAddon.route-ticket-events");
         state.put("route-event-policy", "diagnostic-state-only-no-routing-authority");
         state.put("route-event-feature-gate", "features.route-events&&features.addon-state&&CloudIslandsApi");
