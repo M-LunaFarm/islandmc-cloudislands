@@ -350,9 +350,11 @@ public final class CloudIslandsVelocityPlugin {
             + "\"setupDatabasePolicy\":\"velocity-delegates-all-persistent-writes-to-core-api\","
             + "\"setupDatabaseFallbackPolicy\":\"configure-postgresql-mysql-mariadb-fallback-on-core-or-addon-node\","
             + "\"pluginMessagingControlPolicy\":\"block-cloudislands-control-messages-at-proxy\","
+            + "\"pluginMessagingForwardResultPolicy\":\"cloudislands-messages-always-handled-never-forwarded\","
             + "\"pluginMessagingAllowedUse\":\"emergency-proxy-assist-only\","
             + "\"pluginMessagingForbiddenUse\":\"island-create-delete-save-migrate-routing-authority\","
             + "\"cloudIslandsPluginMessagesBlocked\":" + config.blockCloudIslandsPluginMessages() + ","
+            + "\"cloudIslandsPluginMessagesEnforcedBlocked\":true,"
             + "\"hideNodeNames\":" + config.hideNodeNames() + ","
             + "\"playerTopologyPolicy\":\"logical-island-only\","
             + "\"playerNodeNamePolicy\":\"" + (config.hideNodeNames() ? "hidden-from-player-routing-messages" : "visible-risk-admin-debug-only") + "\","
@@ -373,6 +375,7 @@ public final class CloudIslandsVelocityPlugin {
             + "cloudislands_velocity_debug_enabled " + (config.debug() ? 1 : 0) + "\n"
             + "cloudislands_velocity_plugin_message_blocking " + (blockCloudIslandsPluginMessages ? 1 : 0) + "\n"
             + "cloudislands_velocity_plugin_message_control_channel_allowed 0\n"
+            + "cloudislands_velocity_plugin_message_control_channel_enforced_blocked 1\n"
             + "cloudislands_velocity_plugin_messages_blocked_total " + pluginMessagesBlocked.get() + "\n"
             + "cloudislands_velocity_modern_forwarding_required " + (config.requireModernForwarding() ? 1 : 0) + "\n"
             + "cloudislands_velocity_forwarding_secret_configured " + (config.forwardingSecret().isBlank() ? 0 : 1) + "\n"
@@ -405,9 +408,6 @@ public final class CloudIslandsVelocityPlugin {
 
     @Subscribe
     public void onPluginMessage(PluginMessageEvent event) {
-        if (!blockCloudIslandsPluginMessages) {
-            return;
-        }
         String channel = event.getIdentifier().getId();
         String identifier = event.getIdentifier().toString();
         if (isCloudIslandsPluginMessage(channel) || isCloudIslandsPluginMessage(identifier)) {
