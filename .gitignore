@@ -1,5 +1,9 @@
 *.md
 *.MD
+*.mdx
+*.MDX
+*.mkd
+*.MKD
 *.markdown
 *.MARKDOWN
 .gradle/
