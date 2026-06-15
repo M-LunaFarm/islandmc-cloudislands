@@ -2962,7 +2962,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 || nonBlankConfig(base + "host")
                 || nonBlankConfig(base + "name")
                 || nonBlankConfig(base + "database")
-                || configs.main().getInt(base + "port", 0) > 0;
+                || nonBlankConfig(base + "username")
+                || nonBlankConfig(base + "password")
+                || configs.main().getInt(base + "port", 0) > 0
+                || configs.main().getInt(base + "max-pool-size", 0) > 0
+                || configs.main().getLong(base + "connection-timeout-ms", 0L) > 0L;
     }
 
     private String configuredDatabaseBackendName() {
