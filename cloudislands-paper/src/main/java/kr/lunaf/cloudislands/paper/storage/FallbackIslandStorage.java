@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
@@ -13,6 +14,14 @@ public final class FallbackIslandStorage implements IslandStorage {
     private final IslandStorage primary;
     private final IslandStorage fallback;
     private final Logger logger;
+    private final AtomicLong primaryFailures = new AtomicLong();
+    private final AtomicLong fallbackReads = new AtomicLong();
+    private final AtomicLong fallbackWrites = new AtomicLong();
+    private final AtomicLong fallbackDeletes = new AtomicLong();
+    private final AtomicLong fallbackOperations = new AtomicLong();
+    private volatile long lastPrimaryFailureMillis;
+    private volatile long lastPrimarySuccessMillis;
+    private volatile String lastFallbackReason = "";
 
     public FallbackIslandStorage(IslandStorage primary, IslandStorage fallback, Logger logger) {
         this.primary = primary;
@@ -25,10 +34,13 @@ public final class FallbackIslandStorage implements IslandStorage {
         IOException primaryFailure = null;
         try {
             if (primary.available()) {
+                markPrimarySuccess();
                 return true;
             }
+            markFallback("Primary island storage health check returned unavailable", FallbackUse.OPERATION);
         } catch (IOException exception) {
             primaryFailure = exception;
+            markFallback("Primary island storage health check failed", FallbackUse.OPERATION);
             warn("Primary island storage health check failed, checking fallback", exception);
         }
         try {
@@ -44,8 +56,11 @@ public final class FallbackIslandStorage implements IslandStorage {
     @Override
     public IslandBundleManifest readManifest(UUID islandId) throws IOException {
         try {
-            return primary.readManifest(islandId);
+            IslandBundleManifest manifest = primary.readManifest(islandId);
+            markPrimarySuccess();
+            return manifest;
         } catch (IOException exception) {
+            markFallback("Primary island manifest read failed for " + islandId, FallbackUse.READ);
             warn("Primary island manifest read failed, using fallback for " + islandId, exception);
             return fallback.readManifest(islandId);
         }
@@ -54,8 +69,11 @@ public final class FallbackIslandStorage implements IslandStorage {
     @Override
     public InputStream openLatestBundle(UUID islandId) throws IOException {
         try {
-            return primary.openLatestBundle(islandId);
+            InputStream input = primary.openLatestBundle(islandId);
+            markPrimarySuccess();
+            return input;
         } catch (IOException exception) {
+            markFallback("Primary latest island bundle read failed for " + islandId, FallbackUse.READ);
             warn("Primary latest island bundle read failed, using fallback for " + islandId, exception);
             return fallback.openLatestBundle(islandId);
         }
@@ -64,8 +82,11 @@ public final class FallbackIslandStorage implements IslandStorage {
     @Override
     public InputStream openSnapshotBundle(UUID islandId, long snapshotNo) throws IOException {
         try {
-            return primary.openSnapshotBundle(islandId, snapshotNo);
+            InputStream input = primary.openSnapshotBundle(islandId, snapshotNo);
+            markPrimarySuccess();
+            return input;
         } catch (IOException exception) {
+            markFallback("Primary island snapshot read failed for " + islandId + " #" + snapshotNo, FallbackUse.READ);
             warn("Primary island snapshot read failed, using fallback for " + islandId + " #" + snapshotNo, exception);
             return fallback.openSnapshotBundle(islandId, snapshotNo);
         }
@@ -74,8 +95,11 @@ public final class FallbackIslandStorage implements IslandStorage {
     @Override
     public InputStream openBundle(String storagePath) throws IOException {
         try {
-            return primary.openBundle(storagePath);
+            InputStream input = primary.openBundle(storagePath);
+            markPrimarySuccess();
+            return input;
         } catch (IOException exception) {
+            markFallback("Primary island bundle path read failed for " + storagePath, FallbackUse.READ);
             warn("Primary island bundle path read failed, using fallback for " + storagePath, exception);
             return fallback.openBundle(storagePath);
         }
@@ -86,9 +110,11 @@ public final class FallbackIslandStorage implements IslandStorage {
         byte[] bytes = bundle.readAllBytes();
         try {
             StoredBundle stored = primary.writeSnapshot(islandId, snapshotNo, new ByteArrayInputStream(bytes), manifest);
+            markPrimarySuccess();
             mirrorSnapshot(islandId, snapshotNo, bytes, manifest);
             return stored;
         } catch (IOException exception) {
+            markFallback("Primary island snapshot write failed for " + islandId + " #" + snapshotNo, FallbackUse.WRITE);
             warn("Primary island snapshot write failed, using fallback for " + islandId + " #" + snapshotNo, exception);
             return fallback.writeSnapshot(islandId, snapshotNo, new ByteArrayInputStream(bytes), manifest);
         }
@@ -99,9 +125,11 @@ public final class FallbackIslandStorage implements IslandStorage {
         byte[] bytes = bundle.readAllBytes();
         try {
             StoredBundle stored = primary.writeDeleteBackup(islandId, snapshotNo, new ByteArrayInputStream(bytes), manifest);
+            markPrimarySuccess();
             mirrorDeleteBackup(islandId, snapshotNo, bytes, manifest);
             return stored;
         } catch (IOException exception) {
+            markFallback("Primary island delete backup write failed for " + islandId + " #" + snapshotNo, FallbackUse.WRITE);
             warn("Primary island delete backup write failed, using fallback for " + islandId + " #" + snapshotNo, exception);
             return fallback.writeDeleteBackup(islandId, snapshotNo, new ByteArrayInputStream(bytes), manifest);
         }
@@ -124,8 +152,10 @@ public final class FallbackIslandStorage implements IslandStorage {
     public void promoteSnapshot(UUID islandId, long snapshotNo) throws IOException {
         try {
             primary.promoteSnapshot(islandId, snapshotNo);
+            markPrimarySuccess();
             mirrorPromoteSnapshot(islandId, snapshotNo);
         } catch (IOException exception) {
+            markFallback("Primary island snapshot promote failed for " + islandId + " #" + snapshotNo, FallbackUse.OPERATION);
             warn("Primary island snapshot promote failed, using fallback for " + islandId + " #" + snapshotNo, exception);
             fallback.promoteSnapshot(islandId, snapshotNo);
         }
@@ -135,8 +165,10 @@ public final class FallbackIslandStorage implements IslandStorage {
     public void promoteBundle(UUID islandId, long snapshotNo, String storagePath) throws IOException {
         try {
             primary.promoteBundle(islandId, snapshotNo, storagePath);
+            markPrimarySuccess();
             mirrorPromoteBundle(islandId, snapshotNo, storagePath);
         } catch (IOException exception) {
+            markFallback("Primary island bundle promote failed for " + islandId + " #" + snapshotNo, FallbackUse.WRITE);
             warn("Primary island bundle promote failed, using fallback for " + islandId + " #" + snapshotNo, exception);
             fallback.promoteBundle(islandId, snapshotNo, storagePath);
         }
@@ -146,9 +178,11 @@ public final class FallbackIslandStorage implements IslandStorage {
     public int pruneSnapshots(UUID islandId, int keepLatest) throws IOException {
         try {
             int pruned = primary.pruneSnapshots(islandId, keepLatest);
+            markPrimarySuccess();
             mirrorPruneSnapshots(islandId, keepLatest);
             return pruned;
         } catch (IOException exception) {
+            markFallback("Primary island snapshot prune failed for " + islandId, FallbackUse.OPERATION);
             warn("Primary island snapshot prune failed, using fallback for " + islandId, exception);
             return fallback.pruneSnapshots(islandId, keepLatest);
         }
@@ -158,9 +192,11 @@ public final class FallbackIslandStorage implements IslandStorage {
     public int pruneSnapshots(UUID islandId, SnapshotRetentionPolicy policy) throws IOException {
         try {
             int pruned = primary.pruneSnapshots(islandId, policy);
+            markPrimarySuccess();
             mirrorPruneSnapshots(islandId, policy);
             return pruned;
         } catch (IOException exception) {
+            markFallback("Primary island retention prune failed for " + islandId, FallbackUse.OPERATION);
             warn("Primary island retention prune failed, using fallback for " + islandId, exception);
             return fallback.pruneSnapshots(islandId, policy);
         }
@@ -170,8 +206,10 @@ public final class FallbackIslandStorage implements IslandStorage {
     public void deleteLiveState(UUID islandId) throws IOException {
         try {
             primary.deleteLiveState(islandId);
+            markPrimarySuccess();
             mirrorDeleteLiveState(islandId);
         } catch (IOException exception) {
+            markFallback("Primary island live state delete failed for " + islandId, FallbackUse.DELETE);
             warn("Primary island live state delete failed, using fallback for " + islandId, exception);
             fallback.deleteLiveState(islandId);
         }
@@ -181,11 +219,41 @@ public final class FallbackIslandStorage implements IslandStorage {
     public void deleteIsland(UUID islandId) throws IOException {
         try {
             primary.deleteIsland(islandId);
+            markPrimarySuccess();
             mirrorDeleteIsland(islandId);
         } catch (IOException exception) {
+            markFallback("Primary island delete failed for " + islandId, FallbackUse.DELETE);
             warn("Primary island delete failed, using fallback for " + islandId, exception);
             fallback.deleteIsland(islandId);
         }
+    }
+
+    public boolean primaryDegraded() {
+        return lastPrimaryFailureMillis > lastPrimarySuccessMillis;
+    }
+
+    public long primaryFailures() {
+        return primaryFailures.get();
+    }
+
+    public long fallbackReads() {
+        return fallbackReads.get();
+    }
+
+    public long fallbackWrites() {
+        return fallbackWrites.get();
+    }
+
+    public long fallbackDeletes() {
+        return fallbackDeletes.get();
+    }
+
+    public long fallbackOperations() {
+        return fallbackOperations.get();
+    }
+
+    public String lastFallbackReason() {
+        return lastFallbackReason;
     }
 
     private void mirrorSnapshot(UUID islandId, long snapshotNo, byte[] bytes, IslandBundleManifest manifest) {
@@ -256,5 +324,28 @@ public final class FallbackIslandStorage implements IslandStorage {
         if (logger != null) {
             logger.warning(message + ": " + exception.getMessage());
         }
+    }
+
+    private void markPrimarySuccess() {
+        lastPrimarySuccessMillis = System.currentTimeMillis();
+    }
+
+    private void markFallback(String reason, FallbackUse use) {
+        primaryFailures.incrementAndGet();
+        lastPrimaryFailureMillis = System.currentTimeMillis();
+        lastFallbackReason = reason == null ? "" : reason;
+        switch (use) {
+            case READ -> fallbackReads.incrementAndGet();
+            case WRITE -> fallbackWrites.incrementAndGet();
+            case DELETE -> fallbackDeletes.incrementAndGet();
+            case OPERATION -> fallbackOperations.incrementAndGet();
+        }
+    }
+
+    private enum FallbackUse {
+        READ,
+        WRITE,
+        DELETE,
+        OPERATION
     }
 }

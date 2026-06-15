@@ -55,6 +55,34 @@ public final class MeteredIslandStorage implements IslandStorage {
         return operationFailures.get();
     }
 
+    public boolean primaryStorageDegraded() {
+        return delegate instanceof FallbackIslandStorage fallback && fallback.primaryDegraded();
+    }
+
+    public long primaryStorageFailures() {
+        return delegate instanceof FallbackIslandStorage fallback ? fallback.primaryFailures() : 0L;
+    }
+
+    public long fallbackReads() {
+        return delegate instanceof FallbackIslandStorage fallback ? fallback.fallbackReads() : 0L;
+    }
+
+    public long fallbackWrites() {
+        return delegate instanceof FallbackIslandStorage fallback ? fallback.fallbackWrites() : 0L;
+    }
+
+    public long fallbackDeletes() {
+        return delegate instanceof FallbackIslandStorage fallback ? fallback.fallbackDeletes() : 0L;
+    }
+
+    public long fallbackOperations() {
+        return delegate instanceof FallbackIslandStorage fallback ? fallback.fallbackOperations() : 0L;
+    }
+
+    public String lastFallbackReason() {
+        return delegate instanceof FallbackIslandStorage fallback ? fallback.lastFallbackReason() : "";
+    }
+
     @Override
     public boolean available() throws IOException {
         try {

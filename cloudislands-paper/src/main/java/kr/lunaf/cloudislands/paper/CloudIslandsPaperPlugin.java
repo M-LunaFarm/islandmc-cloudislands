@@ -451,6 +451,12 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         double storageDownloadSeconds = storage == null ? 0.0D : storage.lastDownloadSeconds();
         long storageFailures = storage == null ? 0L : storage.operationFailures();
         String storageBackend = storage == null ? "NONE" : storage.backend();
+        boolean primaryStorageDegraded = storage != null && storage.primaryStorageDegraded();
+        long primaryStorageFailures = storage == null ? 0L : storage.primaryStorageFailures();
+        long storageFallbackReads = storage == null ? 0L : storage.fallbackReads();
+        long storageFallbackWrites = storage == null ? 0L : storage.fallbackWrites();
+        long storageFallbackDeletes = storage == null ? 0L : storage.fallbackDeletes();
+        long storageFallbackOperations = storage == null ? 0L : storage.fallbackOperations();
         boolean forwardingRequired = configBoolean("security.require-velocity-forwarding", true);
         boolean forwardingSecretConfigured = !resolveEnv(getConfig().getString("security.forwarding-secret", "")).isBlank();
         boolean routeSessionEnforced = configBoolean("security.enforce-route-session", true) || configBoolean("routing.require-route-session", true);
@@ -480,6 +486,12 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_storage_download_seconds{node=\"" + nodeId + "\"} " + storageDownloadSeconds + "\n"
             + "cloudislands_storage_operation_failures_total{node=\"" + nodeId + "\"} " + storageFailures + "\n"
             + "cloudislands_storage_backend{node=\"" + nodeId + "\",backend=\"" + storageBackend + "\"} " + (storage == null ? 0 : 1) + "\n"
+            + "cloudislands_storage_primary_degraded{node=\"" + nodeId + "\"} " + (primaryStorageDegraded ? 1 : 0) + "\n"
+            + "cloudislands_storage_primary_failures_total{node=\"" + nodeId + "\"} " + primaryStorageFailures + "\n"
+            + "cloudislands_storage_fallback_reads_total{node=\"" + nodeId + "\"} " + storageFallbackReads + "\n"
+            + "cloudislands_storage_fallback_writes_total{node=\"" + nodeId + "\"} " + storageFallbackWrites + "\n"
+            + "cloudislands_storage_fallback_deletes_total{node=\"" + nodeId + "\"} " + storageFallbackDeletes + "\n"
+            + "cloudislands_storage_fallback_operations_total{node=\"" + nodeId + "\"} " + storageFallbackOperations + "\n"
             + "cloudislands_island_save_seconds{node=\"" + nodeId + "\"} " + storageUploadSeconds + "\n"
             + "cloudislands_island_activation_seconds{node=\"" + nodeId + "\"} " + storageDownloadSeconds + "\n"
             + "cloudislands_island_snapshot_seconds{node=\"" + nodeId + "\"} " + storageUploadSeconds + "\n"
@@ -591,6 +603,12 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";storageUploadFailures=" + (storage == null ? 0L : storage.uploadFailures())
             + ";storageDownloadFailures=" + (storage == null ? 0L : storage.downloadFailures())
             + ";storageOperationFailures=" + (storage == null ? 0L : storage.operationFailures())
+            + ";storagePrimaryDegraded=" + (storage != null && storage.primaryStorageDegraded())
+            + ";storagePrimaryFailures=" + (storage == null ? 0L : storage.primaryStorageFailures())
+            + ";storageFallbackReads=" + (storage == null ? 0L : storage.fallbackReads())
+            + ";storageFallbackWrites=" + (storage == null ? 0L : storage.fallbackWrites())
+            + ";storageFallbackDeletes=" + (storage == null ? 0L : storage.fallbackDeletes())
+            + ";storageFallbackOperations=" + (storage == null ? 0L : storage.fallbackOperations())
             + ";periodicSaveRetryQueue=" + (periodicSaveTask == null ? 0 : periodicSaveTask.retryQueueSize())
             + ";periodicSaveFailures=" + (periodicSaveTask == null ? 0L : periodicSaveTask.failuresTotal())
             + ";emptySaveRetryQueue=" + (emptyIslandSaveTask == null ? 0 : emptyIslandSaveTask.retryQueueSize())
