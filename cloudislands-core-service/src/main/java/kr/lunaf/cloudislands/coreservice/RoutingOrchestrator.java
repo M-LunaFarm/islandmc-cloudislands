@@ -142,9 +142,14 @@ public final class RoutingOrchestrator {
         if (targetNode == null || targetNode.isBlank()) {
             return rejectRoute(409, "TARGET_NODE_UNAVAILABLE", "Migration target node is unavailable", playerUuid, islandId, RouteAction.RETURN_AFTER_MIGRATION, "");
         }
-        NodeLoad node = nodes.find(targetNode).orElse(null);
+        String templateId = islands.templateId(islandId).orElse("default");
+        String minNodeVersion = templates.find(templateId).map(kr.lunaf.cloudislands.coreservice.template.IslandTemplateSnapshot::minNodeVersion).orElse("");
+        List<NodeLoad> nodeSnapshot = nodes.snapshot();
+        Instant now = Instant.now();
+        NodeLoad node = allocator.selectTargetNode(nodeSnapshot, now, targetNode, templateId, minNodeVersion, islandPool).orElse(null);
         if (node == null) {
-            return rejectRoute(409, "TARGET_NODE_UNAVAILABLE", "Migration target node is unavailable", playerUuid, islandId, RouteAction.RETURN_AFTER_MIGRATION, targetNode);
+            String reason = allocator.targetNodeBlockReason(nodeSnapshot, now, targetNode, templateId, minNodeVersion, islandPool);
+            return rejectRoute(409, targetNodeUnavailableCode(reason), "Migration target node is unavailable", playerUuid, islandId, RouteAction.RETURN_AFTER_MIGRATION, targetNode);
         }
         java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
         payload.put("targetType", "MIGRATION_RETURN");
@@ -461,6 +466,16 @@ public final class RoutingOrchestrator {
             .map(NodeLoad::velocityServerName)
             .filter(value -> value != null && !value.isBlank())
             .orElse(targetNode);
+    }
+
+    private String targetNodeUnavailableCode(String reason) {
+        if (reason == null || reason.isBlank()) {
+            return "TARGET_NODE_UNAVAILABLE";
+        }
+        if ("NODE_NOT_FOUND".equals(reason)) {
+            return "TARGET_NODE_UNAVAILABLE";
+        }
+        return "TARGET_NODE_" + reason;
     }
 
     private RouteTarget routeTarget(IslandRuntimeSnapshot runtime, String templateId, String minNodeVersion, boolean visitorRoute) {
