@@ -2827,6 +2827,10 @@ public final class CloudIslandsCoreApplication {
             + "\"snapshotRetentionMode\":\"hourly-daily-weekly-manual\","
             + "\"snapshotRestorePipeline\":\"lock-restoring,evacuate-active-players,pre-restore-snapshot,restore-bundle,clear-runtime,reactivate,unlock\","
             + "\"coreApiAuthPolicy\":\"token-or-mtls-required\","
+            + "\"coreApiTokenConfigured\":" + (config.coreToken() != null && !config.coreToken().isBlank()) + ","
+            + "\"coreApiMtlsRequired\":" + config.requireMtls() + ","
+            + "\"coreApiAuthConfigured\":" + coreApiAuthConfigured(config) + ","
+            + "\"coreApiAuthLockoutRisk\":" + !coreApiAuthConfigured(config) + ","
             + "\"adminPermissionPolicy\":\"separate-admin-permission-per-endpoint\","
             + "\"auditLogPolicy\":\"record-admin-player-and-system-actions\","
             + "\"controlChannelPolicy\":\"http-or-grpc-plus-redis-streams\","
@@ -3056,6 +3060,10 @@ public final class CloudIslandsCoreApplication {
                 LOGGER.warning("CloudIslands security: Object storage endpoint uses plain HTTP on a non-internal host");
             }
         }
+    }
+
+    private static boolean coreApiAuthConfigured(CoreServiceConfig config) {
+        return (config.coreToken() != null && !config.coreToken().isBlank()) || config.requireMtls();
     }
 
     private static boolean publicBind(String bind) {

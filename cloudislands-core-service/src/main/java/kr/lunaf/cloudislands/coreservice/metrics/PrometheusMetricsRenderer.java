@@ -213,6 +213,12 @@ public final class PrometheusMetricsRenderer {
         help(out, "cloudislands_core_mtls_required", "Whether Core API mTLS verification is required");
         type(out, "cloudislands_core_mtls_required", "gauge");
         out.append("cloudislands_core_mtls_required ").append(mtlsRequired.getAsBoolean() ? 1 : 0).append('\n');
+        help(out, "cloudislands_core_auth_configured", "Whether Core API has at least one usable authentication method configured");
+        type(out, "cloudislands_core_auth_configured", "gauge");
+        out.append("cloudislands_core_auth_configured ").append(coreAuthConfigured() ? 1 : 0).append('\n');
+        help(out, "cloudislands_core_auth_lockout_risk", "Whether Core API non-health requests will be rejected because no token or required mTLS auth path is configured");
+        type(out, "cloudislands_core_auth_lockout_risk", "gauge");
+        out.append("cloudislands_core_auth_lockout_risk ").append(coreAuthConfigured() ? 0 : 1).append('\n');
         help(out, "cloudislands_core_ip_allowlist_enabled", "Whether Core API IP allowlist is configured");
         type(out, "cloudislands_core_ip_allowlist_enabled", "gauge");
         out.append("cloudislands_core_ip_allowlist_enabled ").append(ipAllowlistEnabled.getAsBoolean() ? 1 : 0).append('\n');
@@ -666,6 +672,10 @@ public final class PrometheusMetricsRenderer {
 
     private static double memoryPressure(NodeLoad node) {
         return node.heapMaxMb() <= 0 ? 1.0D : Math.min((double) node.heapUsedMb() / node.heapMaxMb(), 1.5D);
+    }
+
+    private boolean coreAuthConfigured() {
+        return coreTokenConfigured.getAsBoolean() || mtlsRequired.getAsBoolean();
     }
 
     private static Map<String, Integer> velocityServerCounts(java.util.List<NodeLoad> snapshot) {
