@@ -353,7 +353,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-commands-registered", Boolean.toString(commandsRegistered));
         state.put("runtime-commands-gate", "addonRuntimeEnabled&&features.commands");
         state.put("runtime-commands-status", featureEnabled("commands") ? (commandsRegistered ? "registered" : "enabled-not-registered") : "commands-feature-disabled");
-        state.put("runtime-commands-policy", "disabled-feature-registers-disabled-command-stub-and-empty-tab-complete");
+        state.put("runtime-commands-policy", "disabled-feature-keeps-plugin-yml-command-as-disabled-stub-with-empty-tab-complete-and-registers-no-active-satis-command");
         state.put("runtime-machine-listener-registered", Boolean.toString(machineListenerRegistered));
         state.put("runtime-gui-listener-registered", Boolean.toString(guiListenerRegistered));
         state.put("runtime-lifecycle-listener-registered", Boolean.toString(lifecycleListenerRegistered));
@@ -415,7 +415,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-core-api-state-failures", coreApiState == null ? "0" : Long.toString(coreApiState.coreStateFailures()));
         state.put("runtime-core-api-state-last-failure", coreApiState == null ? "" : coreApiState.lastFailure());
         state.put("runtime-core-api-state-last-failure-at", coreApiState == null ? "" : coreApiState.lastFailureAt());
-        state.put("runtime-registration-policy", "disabled-features-skip-commands-gui-listeners-tasks-and-writes");
+        state.put("runtime-registration-policy", "disabled-features-skip-active-commands-gui-listeners-tasks-and-writes");
         state.put("runtime-disabled-features", disabledRuntimeFeatures());
         state.put("runtime-command-handler-mode", commandsRegistered ? "active" : "disabled-stub");
         state.put("runtime-command-block-reason", runtimeCommandBlockReason());
@@ -425,7 +425,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("command-list-format", "one-line-per-command");
         state.put("command-list-paging", "factory command list [page],factory admin command list [page]");
         state.put("command-list-page-size", "12");
-        state.put("command-list-disabled-policy", "empty-tab-complete-disabled-command-stub");
+        state.put("command-list-disabled-policy", "empty-tab-complete-disabled-command-stub-no-active-satis-command-list");
         putDataWriteGateState(state);
         putLifecycleCoverageState(state);
         putIslandMobilityState(state);
@@ -1212,7 +1212,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("recovery-resume-source", "core-api-confirmed-state");
         metadata.put("recovery-state-authority", "last-core-confirmed-state-only");
         metadata.put("recovery-stale-write-policy", "discard-local-dirty-state");
-        metadata.put("runtime-registration-policy", "disabled-features-skip-commands-gui-listeners-tasks-and-writes");
+        metadata.put("runtime-registration-policy", "disabled-features-skip-active-commands-gui-listeners-tasks-and-writes");
         metadata.put("runtime-disabled-features", disabledRuntimeFeatures());
         putDataWriteGateState(metadata);
         putAddonStateSyncState(metadata);
@@ -1240,7 +1240,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("feature-gate-policy", "host-addon-config-and-satis-config-must-all-allow");
         metadata.put("feature-gate-sources", "addons.cloudislands-satis.enabled,satis.enabled,addons.cloudislands-satis.features,satis.features,features(legacy)");
         metadata.put("feature-gate-disabled-by", featureGateDisabledBy());
-        metadata.put("feature-gate-runtime-policy", "disabled-features-skip-commands-gui-listeners-tasks-and-writes-preserve-data");
+        metadata.put("feature-gate-runtime-policy", "disabled-features-skip-active-commands-gui-listeners-tasks-and-writes-preserve-data");
         metadata.put("configured-features", featureState(featureSnapshot()));
         metadata.put("effective-features", operationalFeatureState(featureSnapshot()));
         metadata.put("feature-warnings", featureWarnings());
@@ -1532,7 +1532,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("feature-gate-policy", "host-addon-config-and-satis-config-must-all-allow");
         state.put("feature-gate-sources", "addons.cloudislands-satis.enabled,satis.enabled,addons.cloudislands-satis.features,satis.features,features(legacy)");
         state.put("feature-gate-disabled-by", featureGateDisabledBy());
-        state.put("feature-gate-runtime-policy", "disabled-features-skip-commands-gui-listeners-tasks-and-writes-preserve-data");
+        state.put("feature-gate-runtime-policy", "disabled-features-skip-active-commands-gui-listeners-tasks-and-writes-preserve-data");
         state.put("dependency-disabled-features", dependencyDisabledFeatures(snapshot));
         state.put("feature-warnings", featureWarnings(snapshot));
         state.put("last-sync-reason", reason == null || reason.isBlank() ? "unknown" : reason);
