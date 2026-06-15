@@ -1841,6 +1841,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-core-config-superior-migration-prefix", " superiorMigration=") + boolValue(body, "superiorSkyblock2MigrationEnabled")
             + adminText("admin-command-core-config-ticket-ttl-prefix", " ticketTtl=") + longValue(body, "routeTicketTtlSeconds") + "s"
             + adminText("admin-command-core-config-prep-ttl-prefix", " prepTtl=") + longValue(body, "routePreparingTicketTtlSeconds") + "s"
+            + adminText("admin-command-core-config-heartbeat-timeout-prefix", " heartbeatTimeout=") + longValue(body, "heartbeatTimeoutSeconds") + "s"
+            + adminText("admin-command-core-config-lease-duration-prefix", " leaseDuration=") + longValue(body, "leaseDurationSeconds") + "s"
             + adminText("admin-command-core-config-mtls-prefix", " mtls=") + boolValue(body, "requireMtls")
             + adminText("admin-command-core-config-ip-allowlist-prefix", " ipAllowlist=") + boolValue(body, "ipAllowlistEnabled");
     }

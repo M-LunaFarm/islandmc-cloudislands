@@ -423,6 +423,8 @@ public final class TranslationManager {
         values.put("admin-command-core-config-superior-migration-prefix", " superiorMigration=");
         values.put("admin-command-core-config-ticket-ttl-prefix", " ticketTtl=");
         values.put("admin-command-core-config-prep-ttl-prefix", " prepTtl=");
+        values.put("admin-command-core-config-heartbeat-timeout-prefix", " heartbeatTimeout=");
+        values.put("admin-command-core-config-lease-duration-prefix", " leaseDuration=");
         values.put("admin-command-core-config-mtls-prefix", " mtls=");
         values.put("admin-command-core-config-ip-allowlist-prefix", " ipAllowlist=");
         values.put("admin-command-events-empty", "Events: empty");

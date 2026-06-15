@@ -1830,6 +1830,8 @@ public final class VelocityRoutingController {
             + " superiorMigration=" + boolValue(body, "superiorSkyblock2MigrationEnabled")
             + " ticketTtl=" + longValue(body, "routeTicketTtlSeconds") + "s"
             + " prepTtl=" + longValue(body, "routePreparingTicketTtlSeconds") + "s"
+            + " heartbeatTimeout=" + longValue(body, "heartbeatTimeoutSeconds") + "s"
+            + " leaseDuration=" + longValue(body, "leaseDurationSeconds") + "s"
             + " mtls=" + boolValue(body, "requireMtls")
             + " ipAllowlist=" + boolValue(body, "ipAllowlistEnabled");
     }
