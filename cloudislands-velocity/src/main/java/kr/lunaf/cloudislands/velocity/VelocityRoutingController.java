@@ -1860,6 +1860,11 @@ public final class VelocityRoutingController {
             + " prepTtl=" + longValue(body, "routePreparingTicketTtlSeconds") + "s"
             + " heartbeatTimeout=" + longValue(body, "heartbeatTimeoutSeconds") + "s"
             + " leaseDuration=" + longValue(body, "leaseDurationSeconds") + "s"
+            + " snapshotLatest=" + longValue(body, "snapshotKeepLatest")
+            + " snapshotRetention=" + longValue(body, "snapshotKeepHourly") + "/" + longValue(body, "snapshotKeepDaily") + "/" + longValue(body, "snapshotKeepWeekly") + "/" + longValue(body, "snapshotKeepManual")
+            + " snapshotCompress=" + boolValue(body, "snapshotCompress")
+            + " snapshotChecksum=" + jsonValue(body, "snapshotChecksumAlgorithm")
+            + " snapshotRestore=" + jsonValue(body, "snapshotRestorePipeline")
             + " mtls=" + boolValue(body, "requireMtls")
             + " ipAllowlist=" + boolValue(body, "ipAllowlistEnabled");
     }
