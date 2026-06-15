@@ -211,10 +211,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         nodes.dirtySaves(dirtySaves);
         itemNetworks = new ItemNetworkService(database, machines, machineDefinitions);
         power = new PowerNetworkService(database, machines, machineDefinitions, recipes, storage);
-        market = new MarketService(storage, economy, database, itemRegistry, () -> featureEnabled("maintenance"));
-        contracts = new ContractService(storage, economy, database, boosts, () -> featureEnabled("maintenance"));
+        market = new MarketService(storage, economy, database, itemRegistry, () -> operationalFeatureEnabled("maintenance"));
+        contracts = new ContractService(storage, economy, database, boosts, () -> operationalFeatureEnabled("maintenance"));
         maintenance = new MaintenanceService(machines, economy, database);
-        research = new ResearchService(database, economy, () -> featureEnabled("maintenance"));
+        research = new ResearchService(database, economy, () -> operationalFeatureEnabled("maintenance"));
         gui = new FactoryGuiService(storage, itemRegistry, machineDefinitions, recipes, islands, research, economy, messages, this::operationalFeatureEnabled);
 
         loadDefinitions();
@@ -272,7 +272,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         refreshIslandCache();
         refreshMachineCache();
         logFeatureWarnings();
-        if (featureEnabled("machines")) {
+        if (operationalFeatureEnabled("machines")) {
             rebuildNetworks();
         }
         restartRuntimeTasks();
@@ -293,7 +293,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (dirtySaves != null) {
             dirtySaves.stop();
         }
-        if (featureEnabled("machines")) {
+        if (operationalFeatureEnabled("machines")) {
             ticker = new MachineTickService(
                     this,
                     machines,
@@ -318,8 +318,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                     configs.file("maintenance.yml").getInt("maintenance.locked.max-operating-tier", 1),
                     configs.file("maintenance.yml").getDouble("maintenance.break-wear", 100.0),
                     activeParticleLimit(configs.main(), configInt("settings.max-machines-per-tick", "settings.max-machines-per-cycle", 300)),
-                    () -> featureEnabled("machines"),
-                    () -> featureEnabled("maintenance"),
+                    () -> operationalFeatureEnabled("machines"),
+                    () -> operationalFeatureEnabled("maintenance"),
                     () -> operationalFeatureEnabled("resource-nodes")
             );
             ticker.start(configLong("settings.tick-period-ticks", "settings.tick-interval", 20));
@@ -354,14 +354,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-superior-runtime-dependency", "false");
         state.put("runtime-superior-runtime-policy", "migration-input-only-no-runtime-hooks");
         state.put("runtime-addon-state-gate", "addonRuntimeEnabled&&features.addon-state&&CloudIslandsApi");
-        state.put("runtime-addon-state-status", coreApiAddonStateAvailable() ? "available" : (featureEnabled("addon-state") ? "cloudislands-api-unavailable" : "addon-state-feature-disabled"));
+        state.put("runtime-addon-state-status", coreApiAddonStateAvailable() ? "available" : (operationalFeatureEnabled("addon-state") ? "cloudislands-api-unavailable" : "addon-state-feature-disabled"));
         state.put("runtime-addon-state-policy", "disabled-or-unavailable-core-api-uses-configured-database-fallback-and-preserves-local-state");
         state.put("runtime-route-events-gate", "addonRuntimeEnabled&&features.addon-state&&features.route-events&&CloudIslandsApi");
         state.put("runtime-route-events-status", routeEventStateEnabled() ? "enabled" : "route-events-or-addon-state-feature-disabled");
         state.put("runtime-route-events-policy", "disabled-feature-skips-route-diagnostic-state-without-affecting-cloudislands-routing");
         state.put("runtime-commands-registered", Boolean.toString(commandsRegistered));
         state.put("runtime-commands-gate", "addonRuntimeEnabled&&features.commands");
-        state.put("runtime-commands-status", featureEnabled("commands") ? (commandsRegistered ? "registered" : "enabled-not-registered") : "commands-feature-disabled");
+        state.put("runtime-commands-status", operationalFeatureEnabled("commands") ? (commandsRegistered ? "registered" : "enabled-not-registered") : "commands-feature-disabled");
         state.put("runtime-commands-policy", "disabled-feature-keeps-plugin-yml-command-as-disabled-stub-with-empty-tab-complete-and-registers-no-active-satis-command");
         state.put("runtime-machine-listener-registered", Boolean.toString(machineListenerRegistered));
         state.put("runtime-gui-listener-registered", Boolean.toString(guiListenerRegistered));
@@ -374,7 +374,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-migration-status", featureEnabled("migration") ? "enabled" : "migration-feature-disabled");
         state.put("runtime-migration-policy", "disabled-feature-hides-migration-command-and-import-actions");
         state.put("runtime-storage-gate", "addonRuntimeEnabled&&features.storage");
-        state.put("runtime-storage-status", featureEnabled("storage") ? "enabled" : "storage-feature-disabled");
+        state.put("runtime-storage-status", operationalFeatureEnabled("storage") ? "enabled" : "storage-feature-disabled");
         state.put("runtime-storage-policy", "disabled-feature-blocks-storage-commands-gui-and-writes-preserve-data");
         state.put("runtime-market-gate", "addonRuntimeEnabled&&features.market&&features.storage");
         state.put("runtime-market-status", operationalFeatureEnabled("market") ? "enabled" : "market-or-storage-feature-disabled");
@@ -383,24 +383,24 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-contracts-status", operationalFeatureEnabled("contracts") ? "enabled" : "contracts-or-storage-feature-disabled");
         state.put("runtime-contracts-policy", "disabled-feature-blocks-contract-commands-gui-and-writes-preserve-data");
         state.put("runtime-research-gate", "addonRuntimeEnabled&&features.research");
-        state.put("runtime-research-status", featureEnabled("research") ? "enabled" : "research-feature-disabled");
+        state.put("runtime-research-status", operationalFeatureEnabled("research") ? "enabled" : "research-feature-disabled");
         state.put("runtime-research-policy", "disabled-feature-blocks-research-commands-gui-and-writes-preserve-data");
         state.put("runtime-machines-gate", "addonRuntimeEnabled&&features.machines");
-        state.put("runtime-machines-status", featureEnabled("machines") ? "enabled" : "machines-feature-disabled");
+        state.put("runtime-machines-status", operationalFeatureEnabled("machines") ? "enabled" : "machines-feature-disabled");
         state.put("runtime-machines-policy", "disabled-feature-blocks-machine-listener-ticker-commands-gui-and-writes-preserve-data");
         state.put("runtime-resource-nodes-gate", "addonRuntimeEnabled&&features.resource-nodes&&features.machines");
         state.put("runtime-resource-nodes-status", operationalFeatureEnabled("resource-nodes") ? "enabled" : "resource-nodes-or-machines-feature-disabled");
         state.put("runtime-resource-nodes-policy", "disabled-feature-blocks-node-generation-commands-gui-and-writes-preserve-data");
         state.put("runtime-gui-gate", "addonRuntimeEnabled&&features.gui");
-        state.put("runtime-gui-status", featureEnabled("gui") ? "enabled" : "gui-feature-disabled");
+        state.put("runtime-gui-status", operationalFeatureEnabled("gui") ? "enabled" : "gui-feature-disabled");
         state.put("runtime-gui-policy", "disabled-feature-registers-no-gui-listener-and-opens-no-satis-menus");
         state.put("runtime-menus-gate", "addonRuntimeEnabled&&features.menus->features.gui");
         state.put("runtime-menus-status", operationalFeatureEnabled("menus") ? "enabled" : "menus-or-gui-feature-disabled");
         state.put("runtime-lifecycle-gate", "addonRuntimeEnabled&&features.lifecycle");
-        state.put("runtime-lifecycle-status", featureEnabled("lifecycle") ? "enabled" : "lifecycle-feature-disabled");
+        state.put("runtime-lifecycle-status", operationalFeatureEnabled("lifecycle") ? "enabled" : "lifecycle-feature-disabled");
         state.put("runtime-lifecycle-policy", "disabled-feature-registers-no-lifecycle-listener-and-does-not-write-lifecycle-state");
         state.put("runtime-maintenance-gate", "addonRuntimeEnabled&&features.maintenance");
-        state.put("runtime-maintenance-status", featureEnabled("maintenance") ? "enabled" : "maintenance-feature-disabled");
+        state.put("runtime-maintenance-status", operationalFeatureEnabled("maintenance") ? "enabled" : "maintenance-feature-disabled");
         state.put("runtime-maintenance-policy", "disabled-feature-blocks-maintenance-ticker-commands-gui-and-writes-preserve-data");
         state.put("runtime-factories-gate", "addonRuntimeEnabled&&features.factories->features.machines");
         state.put("runtime-factories-status", operationalFeatureEnabled("factories") ? "enabled" : "factories-or-machines-feature-disabled");
@@ -445,16 +445,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private void putDataWriteGateState(Map<String, String> state) {
         state.put("data-write-mode", dataWritesEnabled() ? "enabled" : "disabled");
-        state.put("write-gate-machines", Boolean.toString(featureEnabled("machines")));
+        state.put("write-gate-machines", Boolean.toString(operationalFeatureEnabled("machines")));
         state.put("write-gate-storage", Boolean.toString(storageDataEnabled()));
         state.put("write-gate-resource-nodes", Boolean.toString(operationalFeatureEnabled("resource-nodes")));
         state.put("write-gate-market", Boolean.toString(operationalFeatureEnabled("market")));
         state.put("write-gate-contracts", Boolean.toString(operationalFeatureEnabled("contracts")));
-        state.put("write-gate-research", Boolean.toString(featureEnabled("research")));
-        state.put("write-gate-maintenance", Boolean.toString(featureEnabled("maintenance")));
+        state.put("write-gate-research", Boolean.toString(operationalFeatureEnabled("research")));
+        state.put("write-gate-maintenance", Boolean.toString(operationalFeatureEnabled("maintenance")));
         state.put("write-gate-lifecycle-state", Boolean.toString(lifecycleStateEnabled()));
         state.put("write-gate-lifecycle-listener", Boolean.toString(lifecycleListenerNeeded()));
-        state.put("write-gate-addon-state", Boolean.toString(featureEnabled("addon-state") && coreApiAddonStateAvailable()));
+        state.put("write-gate-addon-state", Boolean.toString(operationalFeatureEnabled("addon-state") && coreApiAddonStateAvailable()));
         state.put("write-gate-route-events", Boolean.toString(routeEventStateEnabled()));
         state.put("write-gate-dirty-save", Boolean.toString(dataWritesEnabled()));
     }
@@ -515,10 +515,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             blocked.add("commands:" + runtimeCommandBlockReason());
         }
         if (!machineListenerRegistered) {
-            blocked.add("machine-listener:" + (!featureEnabled("machines") ? "machines-feature-disabled" : "not-registered"));
+            blocked.add("machine-listener:" + (!operationalFeatureEnabled("machines") ? "machines-feature-disabled" : "not-registered"));
         }
         if (!guiListenerRegistered) {
-            blocked.add("gui-listener:" + (!featureEnabled("gui") ? "gui-feature-disabled" : "not-registered"));
+            blocked.add("gui-listener:" + (!operationalFeatureEnabled("gui") ? "gui-feature-disabled" : "not-registered"));
         }
         if (!lifecycleListenerRegistered) {
             blocked.add("lifecycle-listener:" + (!lifecycleListenerNeeded() ? "lifecycle-state-disabled" : "not-registered"));
@@ -527,10 +527,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             blocked.add("placeholders:" + placeholderBlockReason());
         }
         if (ticker == null || !ticker.running()) {
-            blocked.add("machine-ticker:" + (!featureEnabled("machines") ? "machines-feature-disabled" : "not-running"));
+            blocked.add("machine-ticker:" + (!operationalFeatureEnabled("machines") ? "machines-feature-disabled" : "not-running"));
         }
         if (maintenanceTicker == null || !maintenanceTicker.running()) {
-            blocked.add("maintenance-ticker:" + (!featureEnabled("maintenance") ? "maintenance-feature-disabled" : "not-running"));
+            blocked.add("maintenance-ticker:" + (!operationalFeatureEnabled("maintenance") ? "maintenance-feature-disabled" : "not-running"));
         }
         if (dirtySaves == null || !dirtySaves.running()) {
             blocked.add("dirty-save:" + (!dataWritesEnabled() ? "data-writes-disabled" : "not-running"));
@@ -579,16 +579,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             skipped.add("machine-listener");
             skipped.add("machine-ticker");
         }
-        if (!featureEnabled("gui")) {
+        if (!operationalFeatureEnabled("gui")) {
             skipped.add("gui-listener");
         }
         if (!lifecycleListenerNeeded()) {
             skipped.add("lifecycle-listener");
         }
-        if (!featureEnabled("maintenance")) {
+        if (!operationalFeatureEnabled("maintenance")) {
             skipped.add("maintenance-ticker");
         }
-        if (!featureEnabled("placeholders")) {
+        if (!operationalFeatureEnabled("placeholders")) {
             skipped.add("placeholder-expansion");
         } else if (!getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             skipped.add("placeholder-expansion:placeholderapi-not-installed");
@@ -596,7 +596,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (!dataWritesEnabled()) {
             skipped.add("dirty-save");
         }
-        if (!featureEnabled("addon-state") || !coreApiAddonStateAvailable()) {
+        if (!operationalFeatureEnabled("addon-state") || !coreApiAddonStateAvailable()) {
             skipped.add("core-api-state-writer");
         }
         return skipped.isEmpty() ? "none" : String.join(",", skipped);
@@ -627,8 +627,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean storageDataEnabled() {
-        return featureEnabled("storage")
-                || featureEnabled("machines");
+        return operationalFeatureEnabled("storage")
+                || operationalFeatureEnabled("machines");
     }
 
     static long dirtySavePeriodTicks(FileConfiguration config) {
@@ -699,7 +699,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         } else {
             itemRegistry.clear();
         }
-        if (featureEnabled("machines")) {
+        if (operationalFeatureEnabled("machines")) {
             machineDefinitions.load(configs.file("machines.yml"));
             recipes.load(configs.file("recipes.yml"));
         } else {
@@ -724,12 +724,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         } else {
             contracts.clear();
         }
-        if (featureEnabled("maintenance")) {
+        if (operationalFeatureEnabled("maintenance")) {
             maintenance.load(configs.file("maintenance.yml"));
         } else {
             maintenance.clear();
         }
-        if (featureEnabled("research")) {
+        if (operationalFeatureEnabled("research")) {
             research.load(configs.file("research.yml"), configs.file("maintenance.yml"));
         } else {
             research.clear();
@@ -750,14 +750,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean itemDefinitionsNeeded() {
-        return featureEnabled("machines")
+        return operationalFeatureEnabled("machines")
                 || operationalFeatureEnabled("market")
                 || operationalFeatureEnabled("contracts")
-                || featureEnabled("gui");
+                || operationalFeatureEnabled("gui");
     }
 
     private void refreshMachineCache() {
-        if (featureEnabled("machines")) {
+        if (operationalFeatureEnabled("machines")) {
             machines.load();
             if (itemNetworks != null) {
                 itemNetworks.activate();
@@ -857,7 +857,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void registerListeners() {
-        if (!featureEnabled("machines")) {
+        if (!operationalFeatureEnabled("machines")) {
             machineListenerRegistered = unregisterListener(machineListener, machineListenerRegistered);
             machineListener = null;
         } else if (!machineListenerRegistered) {
@@ -1050,10 +1050,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         nodes.dirtySaves(dirtySaves);
         itemNetworks = new ItemNetworkService(database, machines, machineDefinitions);
         power = new PowerNetworkService(database, machines, machineDefinitions, recipes, storage);
-        market = new MarketService(storage, economy, database, itemRegistry, () -> featureEnabled("maintenance"));
-        contracts = new ContractService(storage, economy, database, boosts, () -> featureEnabled("maintenance"));
+        market = new MarketService(storage, economy, database, itemRegistry, () -> operationalFeatureEnabled("maintenance"));
+        contracts = new ContractService(storage, economy, database, boosts, () -> operationalFeatureEnabled("maintenance"));
         maintenance = new MaintenanceService(machines, economy, database);
-        research = new ResearchService(database, economy, () -> featureEnabled("maintenance"));
+        research = new ResearchService(database, economy, () -> operationalFeatureEnabled("maintenance"));
         gui = new FactoryGuiService(storage, itemRegistry, machineDefinitions, recipes, islands, research, economy, messages, this::operationalFeatureEnabled);
         coreHydratedIslands.clear();
     }
@@ -1071,8 +1071,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return;
         }
         dirtySaves.writeGates(
-                () -> featureEnabled("machines"),
-                () -> featureEnabled("storage"),
+                () -> operationalFeatureEnabled("machines"),
+                () -> operationalFeatureEnabled("storage"),
                 () -> operationalFeatureEnabled("resource-nodes"),
                 this::dataWritesEnabled
         );
@@ -1369,7 +1369,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private Map<String, String> addonStateSnapshot() {
-        if (!featureEnabled("addon-state")) {
+        if (!operationalFeatureEnabled("addon-state")) {
             return Map.of("status", "disabled", "feature", "addon-state");
         }
         if (cloudIslandsApi == null) {
@@ -1386,7 +1386,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private Map<String, String> addonIslandStateSnapshot(UUID islandId) {
-        if (!featureEnabled("addon-state")) {
+        if (!operationalFeatureEnabled("addon-state")) {
             return Map.of("status", "disabled", "feature", "addon-state");
         }
         if (cloudIslandsApi == null || islandId == null) {
@@ -1758,7 +1758,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void publishLifecycleState(UUID islandId, String operation, FactoryIsland island, String remapDelta, boolean machinesRemapped, boolean resourceNodesRemapped) {
-        if (cloudIslandsApi == null || islandId == null || !featureEnabled("addon-state")) {
+        if (cloudIslandsApi == null || islandId == null || !operationalFeatureEnabled("addon-state")) {
             return;
         }
         String safeOperation = operation == null || operation.isBlank() ? "unknown" : operation;
@@ -1805,7 +1805,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void publishLifecycleFailure(UUID islandId, String operation, RuntimeException exception) {
-        if (cloudIslandsApi == null || islandId == null || !featureEnabled("addon-state")) {
+        if (cloudIslandsApi == null || islandId == null || !operationalFeatureEnabled("addon-state")) {
             return;
         }
         String safeOperation = operation == null || operation.isBlank() ? "unknown" : operation;
@@ -1846,7 +1846,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void publishIslandLifecycleState(UUID islandId, String operation, FactoryIsland island, String status, String error, String remapDelta, boolean machinesRemapped, boolean resourceNodesRemapped) {
-        if (cloudIslandsApi == null || islandId == null || !featureEnabled("addon-state")) {
+        if (cloudIslandsApi == null || islandId == null || !operationalFeatureEnabled("addon-state")) {
             return;
         }
         String safeOperation = operation == null || operation.isBlank() ? "unknown" : operation;
@@ -1895,7 +1895,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void clearIslandLifecycleState(UUID islandId) {
-        if (cloudIslandsApi == null || islandId == null || !featureEnabled("addon-state")) {
+        if (cloudIslandsApi == null || islandId == null || !operationalFeatureEnabled("addon-state")) {
             return;
         }
         cloudIslandsApi.addons().clearIslandState(ADDON_ID, islandId).exceptionally(error -> {
@@ -2268,7 +2268,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void publishPreCreateLifecycleState(IslandPreCreateEvent event) {
-        if (cloudIslandsApi == null || !featureEnabled("addon-state")) {
+        if (cloudIslandsApi == null || !operationalFeatureEnabled("addon-state")) {
             return;
         }
         String templateId = event.templateId() == null || event.templateId().isBlank() ? "default" : event.templateId();
@@ -2290,15 +2290,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean routeEventStateEnabled() {
-        return cloudIslandsApi != null && featureEnabled("addon-state") && featureEnabled("route-events");
+        return cloudIslandsApi != null && operationalFeatureEnabled("addon-state") && operationalFeatureEnabled("route-events");
     }
 
     private void runSatisLifecycle(UUID islandId, String operation, Runnable action) {
-        if (islandId == null || database == null || !featureEnabled("lifecycle") || !lifecycleStateEnabled()) {
+        if (islandId == null || database == null || !operationalFeatureEnabled("lifecycle") || !lifecycleStateEnabled()) {
             return;
         }
         getServer().getScheduler().runTask(this, () -> {
-            if (!isEnabled() || database == null || !featureEnabled("lifecycle") || !lifecycleStateEnabled()) {
+            if (!isEnabled() || database == null || !operationalFeatureEnabled("lifecycle") || !lifecycleStateEnabled()) {
                 return;
             }
             try {
@@ -2442,7 +2442,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 int deltaY = island.hasActiveCenter() ? activeCenter.getBlockY() - island.activeCenterY() : 0;
                 int deltaZ = island.hasActiveCenter() ? activeCenter.getBlockZ() - island.activeCenterZ() : 0;
                 remapDelta = deltaX + "," + deltaY + "," + deltaZ;
-                if (machines != null && featureEnabled("machines")) {
+                if (machines != null && operationalFeatureEnabled("machines")) {
                     machinesRemapped = machines.remapIslandRegion(islandId, activeWorld, deltaX, deltaY, deltaZ);
                 }
                 if (nodes != null && operationalFeatureEnabled("resource-nodes")) {
@@ -2457,10 +2457,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                             + " differed from resolved active world " + activeWorld + " for " + islandId);
                 }
             }
-            if (maintenance != null && featureEnabled("maintenance")) {
+            if (maintenance != null && operationalFeatureEnabled("maintenance")) {
                 maintenance.updateStatus(island);
             }
-            if (machines != null && itemNetworks != null && power != null && featureEnabled("machines")) {
+            if (machines != null && itemNetworks != null && power != null && operationalFeatureEnabled("machines")) {
                 itemNetworks.rebuildIsland(islandId);
                 power.rebuildIsland(islandId);
             }
@@ -2550,7 +2550,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void publishSuspendedLifecycleState(UUID islandId, String operation) {
-        if (cloudIslandsApi == null || islandId == null || !featureEnabled("addon-state")) {
+        if (cloudIslandsApi == null || islandId == null || !operationalFeatureEnabled("addon-state")) {
             return;
         }
         String safeOperation = operation == null || operation.isBlank() ? "recovery-required" : operation;
@@ -2593,7 +2593,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (islands != null) {
             islands.forget(islandId);
         }
-        if (machines != null && featureEnabled("machines")) {
+        if (machines != null && operationalFeatureEnabled("machines")) {
             machines.forgetIsland(islandId);
         }
         if (storage != null && storageDataEnabled()) {
@@ -2699,7 +2699,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         refreshIslandCache();
         refreshMachineCache();
         configureCoreApiStateWriters();
-        if (featureEnabled("machines")) {
+        if (operationalFeatureEnabled("machines")) {
             rebuildNetworks();
         }
         restartRuntimeTasks();
@@ -2739,7 +2739,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private void putAddonStateSyncState(Map<String, String> state) {
         state.put("addon-state-sync", Boolean.toString(coreApiAddonStateAvailable()));
         state.put("addon-state-sync-configured", Boolean.toString(configuredFeatureEnabled("addon-state")));
-        state.put("addon-state-sync-effective", Boolean.toString(featureEnabled("addon-state")));
+        state.put("addon-state-sync-effective", Boolean.toString(operationalFeatureEnabled("addon-state")));
         state.put("addon-state-sync-available", Boolean.toString(coreApiAddonStateAvailable()));
         state.put("addon-state-sync-policy", "configured-and-effective-feature-plus-cloudislands-api");
         state.put("addon-state-sync-runtime-source", "CloudIslands IslandRuntime");
@@ -2765,7 +2765,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean coreApiAddonStateAvailable() {
-        return cloudIslandsApi != null && featureEnabled("addon-state");
+        return cloudIslandsApi != null && operationalFeatureEnabled("addon-state");
     }
 
     private String featureWarnings(CloudIslandsAddonSnapshot snapshot) {
