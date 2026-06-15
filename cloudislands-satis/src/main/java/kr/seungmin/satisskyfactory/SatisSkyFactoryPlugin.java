@@ -340,6 +340,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-migration-gate", "addonRuntimeEnabled&&features.migration");
         state.put("runtime-migration-status", featureEnabled("migration") ? "enabled" : "migration-feature-disabled");
         state.put("runtime-migration-policy", "disabled-feature-hides-migration-command-and-import-actions");
+        state.put("runtime-storage-gate", "addonRuntimeEnabled&&features.storage");
+        state.put("runtime-storage-status", featureEnabled("storage") ? "enabled" : "storage-feature-disabled");
+        state.put("runtime-storage-policy", "disabled-feature-blocks-storage-commands-gui-and-writes-preserve-data");
         state.put("runtime-data-writes-enabled", Boolean.toString(dataWritesEnabled()));
         state.put("runtime-lifecycle-state-enabled", Boolean.toString(lifecycleStateEnabled()));
         state.put("runtime-machine-ticker-running", Boolean.toString(ticker != null && ticker.running()));
