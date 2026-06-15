@@ -271,6 +271,12 @@ public final class CoreApiSatisStateService {
         state.put("last-core-global-table-publish-status", safeStatus);
         state.put("last-core-global-table-publish-error", safeError);
         state.put("last-core-global-table-publish-at", Instant.now().toString());
+        state.put("last-core-global-table-publish-authority", "cloudislands-addon-state");
+        state.put("last-core-global-table-publish-node-bound", "false");
+        state.put("last-core-global-table-publish-runtime-bound", "false");
+        state.put("last-core-global-table-publish-scope", "shared-addon-global-state");
+        state.put("last-core-global-table-publish-write-policy", "last-confirmed-state-wins");
+        state.put("last-core-global-table-publish-conflict-policy", "global-table-replace-after-bulk-fallback");
         cloudIslandsApi.addons().putState(addonId, state).exceptionally(publishError -> {
             logger.warning("Failed to publish Satis core-api global table status: " + publishError.getMessage());
             return Map.of();
