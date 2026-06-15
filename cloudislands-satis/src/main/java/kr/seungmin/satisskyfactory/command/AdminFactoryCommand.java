@@ -134,12 +134,16 @@ public final class AdminFactoryCommand {
     }
 
     public boolean execute(CommandSender sender, String[] args) {
+        return execute(sender, args, "factory");
+    }
+
+    public boolean execute(CommandSender sender, String[] args, String label) {
         if (args.length < 2) {
             if (!sender.hasPermission("satisskyfactory.admin")) {
                 messages.send(sender, "no-permission");
                 return true;
             }
-            help(sender, 1);
+            help(sender, label, 1);
             return true;
         }
         String subcommand = args[1].toLowerCase(Locale.ROOT);
@@ -158,7 +162,7 @@ public final class AdminFactoryCommand {
             return true;
         }
         switch (subcommand) {
-            case "help", "commands", "command", "command-list", "명령어", "명령어목록" -> help(sender, helpPage(args));
+            case "help", "commands", "command", "command-list", "명령어", "명령어목록" -> help(sender, label, helpPage(args));
             case "reload" -> {
                 reload.run();
                 messages.send(sender, "reloaded");
@@ -1108,8 +1112,8 @@ public final class AdminFactoryCommand {
                 ))));
     }
 
-    private void help(CommandSender sender, int page) {
-        List<String> commands = visibleHelpCommands();
+    private void help(CommandSender sender, String label, int page) {
+        List<String> commands = visibleHelpCommands(label);
         int maxPage = Math.max(1, (commands.size() + HELP_PAGE_SIZE - 1) / HELP_PAGE_SIZE);
         int safePage = Math.max(1, Math.min(page, maxPage));
         int from = (safePage - 1) * HELP_PAGE_SIZE;
@@ -1119,17 +1123,17 @@ public final class AdminFactoryCommand {
             sender.sendMessage(messages.raw("command-list-entry", Map.of("command", command)));
         }
         if (safePage < maxPage) {
-            sender.sendMessage(messages.raw("command-list-entry", Map.of("command", "factory admin command list " + (safePage + 1))));
+            sender.sendMessage(messages.raw("command-list-entry", Map.of("command", label + " admin command list " + (safePage + 1))));
         }
     }
 
-    private List<String> visibleHelpCommands() {
+    private List<String> visibleHelpCommands(String label) {
         List<String> values = new ArrayList<>();
         for (String command : HELP_COMMANDS) {
             if (commandRequiresDisabledFeature(command)) {
                 continue;
             }
-            values.add(command);
+            values.add(command.replaceFirst("^factory", label));
         }
         return values;
     }

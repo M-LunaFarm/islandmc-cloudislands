@@ -122,7 +122,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args.length > 0 && args[0].equalsIgnoreCase("admin")) {
-            return adminCommand.execute(sender, args);
+            return adminCommand.execute(sender, args, label);
         }
         if (!(sender instanceof Player player)) {
             messages.send(sender, "no-player");
