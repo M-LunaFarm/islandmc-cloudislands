@@ -1979,6 +1979,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-core-config-snapshot-compress-prefix", " snapshotCompress=") + boolValue(body, "snapshotCompress")
             + adminText("admin-command-core-config-snapshot-checksum-prefix", " snapshotChecksum=") + textValue(body, "snapshotChecksumAlgorithm")
             + adminText("admin-command-core-config-snapshot-restore-prefix", " snapshotRestore=") + textValue(body, "snapshotRestorePipeline")
+            + " rankingPolicy=" + textValue(body, "rankingUpdatePolicy")
+            + " blockValuePolicy=" + textValue(body, "blockValuePolicy")
+            + " upgradePolicy=" + textValue(body, "upgradePolicy")
+            + " generatorPolicy=" + textValue(body, "generatorPolicy")
             + adminText("admin-command-core-config-mtls-prefix", " mtls=") + boolValue(body, "requireMtls")
             + adminText("admin-command-core-config-ip-allowlist-prefix", " ipAllowlist=") + boolValue(body, "ipAllowlistEnabled");
     }

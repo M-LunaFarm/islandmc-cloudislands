@@ -1958,6 +1958,10 @@ public final class VelocityRoutingController {
             + " snapshotCompress=" + boolValue(body, "snapshotCompress")
             + " snapshotChecksum=" + jsonValue(body, "snapshotChecksumAlgorithm")
             + " snapshotRestore=" + jsonValue(body, "snapshotRestorePipeline")
+            + " rankingPolicy=" + jsonValue(body, "rankingUpdatePolicy")
+            + " blockValuePolicy=" + jsonValue(body, "blockValuePolicy")
+            + " upgradePolicy=" + jsonValue(body, "upgradePolicy")
+            + " generatorPolicy=" + jsonValue(body, "generatorPolicy")
             + " mtls=" + boolValue(body, "requireMtls")
             + " ipAllowlist=" + boolValue(body, "ipAllowlistEnabled");
     }
