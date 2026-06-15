@@ -63,6 +63,7 @@ public final class IslandActivationJobHandler {
         }
         UUID islandId = job.islandId();
         ShardWorldManager.CellAssignment cell = null;
+        boolean hadCellBeforeActivation = shardWorldManager.reserved(islandId);
         try {
             IslandBundleManifest manifest = manifestFor(job, islandId);
             IslandSaveService.SaveResult preMutationSnapshot = snapshotBeforeMutation(job);
@@ -88,7 +89,7 @@ public final class IslandActivationJobHandler {
             IslandSaveService.SaveResult creationSnapshot = snapshotAfterCreate(job, cell, manifest);
             return new ActivationResult(true, "ACTIVE", islandId, cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), manifest.size(), manifest.schemaVersion(), longValue(job.payload().get("fencingToken")), restorePlan == null ? null : restorePlan.extractedRoot().toString(), preMutationSnapshot == null ? 0L : preMutationSnapshot.snapshotNo(), preMutationSnapshot == null ? "" : preMutationSnapshot.checksum(), preMutationSnapshot == null ? 0L : preMutationSnapshot.sizeBytes(), preMutationReason(job), creationSnapshot == null ? 0L : creationSnapshot.snapshotNo(), creationSnapshot == null ? "" : creationSnapshot.checksum(), creationSnapshot == null ? 0L : creationSnapshot.sizeBytes());
         } catch (Exception exception) {
-            if (cell != null) {
+            if (cell != null && !hadCellBeforeActivation) {
                 shardWorldManager.release(islandId);
             }
             return new ActivationResult(false, "ERROR_ACTIVATING", islandId, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L, "", 0L, "", 0L);

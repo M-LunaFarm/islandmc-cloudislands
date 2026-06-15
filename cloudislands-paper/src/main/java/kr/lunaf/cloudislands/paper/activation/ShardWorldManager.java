@@ -58,6 +58,10 @@ public final class ShardWorldManager {
         return candidate;
     }
 
+    public boolean reserved(UUID islandId) {
+        return activeCells.containsKey(islandId);
+    }
+
     public void release(UUID islandId) {
         activeCells.remove(islandId);
     }
