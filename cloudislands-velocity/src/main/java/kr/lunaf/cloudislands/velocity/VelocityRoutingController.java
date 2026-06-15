@@ -123,7 +123,7 @@ public final class VelocityRoutingController {
     }
 
     public String statusSummary() {
-        return "CloudIslands Velocity router online, fallback=" + fallbackServer
+        return "CloudIslands Velocity router online, fallback=" + displayServerName(fallbackServer)
             + ", islandPool=" + islandPool
             + ", islandPoolServers=" + islandPoolServerCount()
             + ", islandPoolServerNames=" + islandPoolServerNames()
@@ -163,6 +163,10 @@ public final class VelocityRoutingController {
     }
 
     private String islandPoolServerNames() {
+        int count = islandPoolServerCount();
+        if (hideNodeNames) {
+            return count <= 0 ? "-" : "hidden(" + count + ")";
+        }
         StringBuilder names = new StringBuilder();
         for (RegisteredServer server : proxy.getAllServers()) {
             String name = server.getServerInfo().getName();
@@ -175,6 +179,13 @@ public final class VelocityRoutingController {
             names.append(name);
         }
         return names.isEmpty() ? "-" : names.toString();
+    }
+
+    private String displayServerName(String serverName) {
+        if (!hideNodeNames || !isIslandPoolServer(serverName)) {
+            return serverName == null || serverName.isBlank() ? "-" : serverName;
+        }
+        return "island-pool";
     }
 
     private boolean isIslandPoolServer(String serverName) {
