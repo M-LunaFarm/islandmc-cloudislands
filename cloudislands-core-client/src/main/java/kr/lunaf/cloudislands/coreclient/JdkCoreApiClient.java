@@ -1171,6 +1171,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         String normalizedAction = action == null || action.isBlank() ? "scan" : action.toLowerCase();
         String endpoint = switch (normalizedAction) {
             case "scan" -> "scan";
+            case "status" -> "status";
             case "dryrun", "dry-run" -> "dryrun";
             case "extract", "extract-worlds", "world-extract" -> "extract";
             case "import" -> "import";
@@ -1184,7 +1185,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         String value = path == null ? "" : path;
         String payload = endpoint.equals("import")
             ? "{\"approval\":\"" + escape(value) + "\"}"
-            : endpoint.equals("rollback") ? "{}" : "{\"path\":\"" + escape(value) + "\"}";
+            : (endpoint.equals("rollback") || endpoint.equals("status")) ? "{}" : "{\"path\":\"" + escape(value) + "\"}";
         return postWithResultBody("/v1/admin/migrations/superiorskyblock2/" + endpoint, payload);
     }
 

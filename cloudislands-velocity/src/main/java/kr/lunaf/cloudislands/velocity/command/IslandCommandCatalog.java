@@ -171,6 +171,7 @@ public final class IslandCommandCatalog {
         }
         commands.addAll(List.of(
             "ciadmin migrate-superiorskyblock2 scan [path]",
+            "ciadmin migrate-superiorskyblock2 status",
             "ciadmin migrate-superiorskyblock2 dryrun [path]",
             "ciadmin migrate-superiorskyblock2 dry-run [path]",
             "ciadmin migrate-superiorskyblock2 extract [outputPath]",

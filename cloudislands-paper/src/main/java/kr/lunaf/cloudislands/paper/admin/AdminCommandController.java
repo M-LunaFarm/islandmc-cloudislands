@@ -40,7 +40,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private static final List<String> BLOCK_VALUE_COMMANDS = List.of("list", "set");
     private static final List<String> BLOCK_VALUE_MATERIALS = List.of("minecraft:stone", "minecraft:diamond_block", "minecraft:emerald_block", "minecraft:spawner");
     private static final List<String> TEMPLATE_COMMANDS = List.of("list", "upsert", "enable", "disable");
-    private static final List<String> MIGRATION_COMMANDS = List.of("scan", "dryrun", "dry-run", "extract", "extract-worlds", "world-extract", "import", "verify", "rollback");
+    private static final List<String> MIGRATION_COMMANDS = List.of("scan", "status", "dryrun", "dry-run", "extract", "extract-worlds", "world-extract", "import", "verify", "rollback");
     private static final List<String> NODE_DANGER_REASONS = List.of("maintenance", "restart", "drain");
     private static final List<String> HELP_COMMANDS = List.of(
         "ciadmin status",
@@ -112,6 +112,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     );
     private static final List<String> MIGRATION_HELP_COMMANDS = List.of(
         "ciadmin migrate-superiorskyblock2 scan [path]",
+        "ciadmin migrate-superiorskyblock2 status",
         "ciadmin migrate-superiorskyblock2 dryrun [path]",
         "ciadmin migrate-superiorskyblock2 dry-run [path]",
         "ciadmin migrate-superiorskyblock2 extract [outputPath]",
@@ -839,6 +840,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (!MIGRATION_COMMANDS.contains(action.toLowerCase(Locale.ROOT))) {
             sendCommandUsage(sender, List.of(
                 "/ciadmin migrate-superiorskyblock2 scan [path]",
+                "/ciadmin migrate-superiorskyblock2 status",
                 "/ciadmin migrate-superiorskyblock2 dryrun [path]",
                 "/ciadmin migrate-superiorskyblock2 extract [path]",
                 "/ciadmin migrate-superiorskyblock2 import <approvalToken>",
@@ -936,6 +938,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         String approvalToken = textValue(body, "approvalToken");
         String issues = arrayValue(body, "issues");
         long manifests = longValue(body, "manifests");
+        if (manifests == 0L && body.contains("\"scanManifests\"")) {
+            manifests = longValue(body, "scanManifests");
+        }
         long importedIslands = longValue(body, "importedIslands");
         long removedIslands = longValue(body, "removedIslands");
         StringBuilder builder = new StringBuilder(adminText("admin-command-migration-state-prefix", "Migration: state="))
@@ -969,6 +974,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (body.contains("\"canImport\"")) {
             builder.append(adminText("admin-command-migration-can-import-prefix", " canImport=")).append(boolValue(body, "canImport"));
+        }
+        if (body.contains("\"planManifests\"")) {
+            builder.append(adminText("admin-command-migration-plan-manifests-prefix", " planManifests=")).append(longValue(body, "planManifests"));
+        }
+        if (body.contains("\"rollbackPlanAvailable\"")) {
+            builder.append(adminText("admin-command-migration-rollback-plan-prefix", " rollbackPlan=")).append(boolValue(body, "rollbackPlanAvailable"));
         }
         if (body.contains("\"manifestStatus\"")) {
             builder.append(adminText("admin-command-migration-manifest-status-prefix", " manifestStatus=")).append(textValue(body, "manifestStatus"))

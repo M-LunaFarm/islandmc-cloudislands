@@ -1440,7 +1440,7 @@ public final class CloudIslandsVelocityPlugin {
             addLiteralSuggestions(matches, args[4], List.of("16", "32", "64"));
         }
         if (config.superiorSkyblock2MigrationEnabled() && args.length == 2 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
-            addLiteralSuggestions(matches, args[1], List.of("scan", "dryrun", "extract", "import", "verify", "rollback"));
+            addLiteralSuggestions(matches, args[1], List.of("scan", "status", "dryrun", "extract", "import", "verify", "rollback"));
         }
         if (config.superiorSkyblock2MigrationEnabled() && args.length == 3 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
             String action = args[1].toLowerCase(Locale.ROOT);

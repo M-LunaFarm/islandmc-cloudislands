@@ -1137,6 +1137,9 @@ public final class VelocityRoutingController {
         String approvalToken = jsonValue(body, "approvalToken");
         String issues = arrayValue(body, "issues");
         long manifests = longValue(body, "manifests");
+        if (manifests == 0L && body.contains("\"scanManifests\"")) {
+            manifests = longValue(body, "scanManifests");
+        }
         long importedIslands = longValue(body, "importedIslands");
         long removedIslands = longValue(body, "removedIslands");
         StringBuilder builder = new StringBuilder("Migration: state=")
@@ -1170,6 +1173,12 @@ public final class VelocityRoutingController {
         }
         if (body.contains("\"canImport\"")) {
             builder.append(" canImport=").append(boolValue(body, "canImport"));
+        }
+        if (body.contains("\"planManifests\"")) {
+            builder.append(" planManifests=").append(longValue(body, "planManifests"));
+        }
+        if (body.contains("\"rollbackPlanAvailable\"")) {
+            builder.append(" rollbackPlan=").append(boolValue(body, "rollbackPlanAvailable"));
         }
         if (body.contains("\"approvalRequired\"")) {
             builder.append(" approvalRequired=").append(boolValue(body, "approvalRequired"));
