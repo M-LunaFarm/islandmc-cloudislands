@@ -1025,6 +1025,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("feature-aliases", featureAliasesMetadata());
         metadata.put("feature-alias-disabled", disabledFeatureAliases());
         metadata.put("feature-dependencies", featureDependenciesMetadata());
+        metadata.put("feature-gate-policy", "host-addon-config-and-satis-config-must-all-allow");
+        metadata.put("feature-gate-sources", "addons.cloudislands-satis.enabled,satis.enabled,addons.cloudislands-satis.features,satis.features,features(legacy)");
+        metadata.put("feature-gate-disabled-by", featureGateDisabledBy());
+        metadata.put("feature-gate-runtime-policy", "disabled-features-skip-commands-gui-listeners-tasks-and-writes-preserve-data");
         metadata.put("configured-features", featureState(featureSnapshot()));
         metadata.put("effective-features", operationalFeatureState(featureSnapshot()));
         metadata.put("feature-warnings", featureWarnings());
@@ -1107,6 +1111,51 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                     }
                 });
         return disabled.isEmpty() ? "none" : String.join(",", disabled);
+    }
+
+    private String featureGateDisabledBy() {
+        if (configs == null) {
+            return "config-not-loaded";
+        }
+        List<String> disabled = new ArrayList<>();
+        if (configs.main().contains("addons." + ADDON_ID + ".enabled") && !configs.main().getBoolean("addons." + ADDON_ID + ".enabled", true)) {
+            disabled.add("addon=addons." + ADDON_ID + ".enabled");
+        }
+        if (configs.main().contains("satis.enabled") && !configs.main().getBoolean("satis.enabled", true)) {
+            disabled.add("addon=satis.enabled");
+        }
+        featureSnapshot().keySet().stream()
+                .sorted()
+                .forEach(feature -> {
+                    List<String> sources = featureDisabledSources(feature);
+                    if (!sources.isEmpty()) {
+                        disabled.add(feature + "=" + String.join("|", sources));
+                    }
+                });
+        return disabled.isEmpty() ? "none" : String.join(",", disabled);
+    }
+
+    private List<String> featureDisabledSources(String feature) {
+        List<String> sources = new ArrayList<>();
+        addDisabledFeatureSource(sources, "addons." + ADDON_ID + ".features." + feature);
+        addDisabledFeatureSource(sources, "satis.features." + feature);
+        addDisabledFeatureSource(sources, "features." + feature);
+        FEATURE_ALIASES.entrySet().stream()
+                .filter(entry -> entry.getValue().equals(feature))
+                .map(Map.Entry::getKey)
+                .sorted()
+                .forEach(alias -> {
+                    addDisabledFeatureSource(sources, "addons." + ADDON_ID + ".features." + alias);
+                    addDisabledFeatureSource(sources, "satis.features." + alias);
+                    addDisabledFeatureSource(sources, "features." + alias);
+                });
+        return sources;
+    }
+
+    private void addDisabledFeatureSource(List<String> sources, String path) {
+        if (configs.main().contains(path) && !configs.main().getBoolean(path, true)) {
+            sources.add(path);
+        }
     }
 
     @Override
@@ -1231,6 +1280,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("effective-features", featureState(snapshot.features()));
         state.put("operational-features", operationalFeatureState(snapshot.features()));
         state.put("feature-alias-disabled", disabledFeatureAliases());
+        state.put("feature-gate-policy", "host-addon-config-and-satis-config-must-all-allow");
+        state.put("feature-gate-sources", "addons.cloudislands-satis.enabled,satis.enabled,addons.cloudislands-satis.features,satis.features,features(legacy)");
+        state.put("feature-gate-disabled-by", featureGateDisabledBy());
+        state.put("feature-gate-runtime-policy", "disabled-features-skip-commands-gui-listeners-tasks-and-writes-preserve-data");
         state.put("dependency-disabled-features", dependencyDisabledFeatures(snapshot));
         state.put("feature-warnings", featureWarnings(snapshot));
         state.put("last-sync-reason", reason == null || reason.isBlank() ? "unknown" : reason);
