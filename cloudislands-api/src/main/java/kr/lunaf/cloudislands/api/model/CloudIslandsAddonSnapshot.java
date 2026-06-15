@@ -91,11 +91,6 @@ public record CloudIslandsAddonSnapshot(
         if (!canonical.equals(requested) && source.containsKey(requested)) {
             enabled = enabled && source.get(requested);
         }
-        for (Map.Entry<String, String> alias : featureAliases().entrySet()) {
-            if (alias.getValue().equals(canonical) && source.containsKey(alias.getKey())) {
-                enabled = enabled && source.get(alias.getKey());
-            }
-        }
         if (!includeDependencies) {
             return enabled;
         }
@@ -108,13 +103,7 @@ public record CloudIslandsAddonSnapshot(
     }
 
     private boolean linkedFeatureEnabledIn(Map<String, Boolean> source, String canonical, boolean fallback) {
-        boolean enabled = source.getOrDefault(canonical, fallback);
-        for (Map.Entry<String, String> alias : featureAliases().entrySet()) {
-            if (alias.getValue().equals(canonical) && source.containsKey(alias.getKey())) {
-                enabled = enabled && source.get(alias.getKey());
-            }
-        }
-        return enabled;
+        return source.getOrDefault(canonical, fallback);
     }
 
     public Map<String, String> featureAliases() {
