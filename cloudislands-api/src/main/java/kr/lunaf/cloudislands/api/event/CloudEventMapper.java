@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
+import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 
 public final class CloudEventMapper {
@@ -21,9 +22,11 @@ public final class CloudEventMapper {
         Map<String, String> fields = snapshot.fields() == null ? Map.of() : snapshot.fields();
         Instant occurredAt = snapshot.occurredAt();
         return switch (snapshot.type()) {
+            case "ISLAND_PRE_CREATE", "ISLAND_CREATE_REQUESTED" -> Optional.of(new IslandPreCreateEvent(uuid(fields, "islandId"), firstUuid(fields, "ownerUuid", "playerUuid"), firstText(fields, "templateId", "template"), occurredAt));
             case "ISLAND_CREATED" -> Optional.of(new IslandCreatedEvent(uuid(fields, "islandId"), uuid(fields, "ownerUuid"), occurredAt));
             case "ISLAND_DELETED" -> Optional.of(new IslandDeletedEvent(uuid(fields, "islandId"), longValue(fields, "snapshotNo"), occurredAt));
             case "ISLAND_DELETE_REQUESTED" -> Optional.of(new IslandDeleteRequestEvent(uuid(fields, "islandId"), firstText(fields, "targetNode", "nodeId"), text(fields, "reason"), occurredAt));
+            case "ISLAND_PRE_ACTIVATE" -> Optional.of(new IslandPreActivateEvent(uuid(fields, "islandId"), firstText(fields, "targetNode", "nodeId"), occurredAt));
             case "ISLAND_ACTIVATE_REQUESTED" -> Optional.of(new IslandActivationRequestEvent(uuid(fields, "islandId"), text(fields, "state"), firstText(fields, "targetNode", "nodeId"), occurredAt));
             case "ISLAND_ACTIVATED" -> Optional.of(new IslandActivatedEvent(uuid(fields, "islandId"), text(fields, "nodeId"), text(fields, "worldName"), intValue(fields, "cellX"), intValue(fields, "cellZ"), occurredAt));
             case "ISLAND_DEACTIVATE_REQUESTED" -> Optional.of(new IslandDeactivationRequestEvent(uuid(fields, "islandId"), text(fields, "state"), occurredAt));
@@ -37,19 +40,26 @@ public final class CloudEventMapper {
             case "ISLAND_RECOVERY_REQUIRED" -> Optional.of(new IslandRecoveryRequiredEvent(uuid(fields, "islandId"), text(fields, "nodeId"), text(fields, "reason"), occurredAt));
             case "ISLAND_REPAIRED" -> Optional.of(new IslandRepairedEvent(uuid(fields, "islandId"), text(fields, "reason"), occurredAt));
             case "ISLAND_RUNTIME_CHANGED" -> Optional.of(new IslandRuntimeChangeEvent(uuid(fields, "islandId"), text(fields, "state"), firstText(fields, "targetNode", "nodeId"), text(fields, "reason"), text(fields, "error"), occurredAt));
+            case "ISLAND_PRE_VISIT", "ISLAND_VISIT_REQUESTED" -> Optional.of(new IslandPreVisitEvent(uuid(fields, "islandId"), firstUuid(fields, "visitorUuid", "playerUuid"), occurredAt));
             case "ISLAND_VISITED" -> Optional.of(new IslandVisitEvent(uuid(fields, "islandId"), firstUuid(fields, "visitorUuid", "playerUuid"), firstText(fields, "nodeId", "targetNode"), occurredAt));
             case "ISLAND_INVITE_CHANGED" -> Optional.of(new IslandInviteChangeEvent(uuid(fields, "islandId"), firstUuid(fields, "inviteId", "id"), firstUuid(fields, "playerUuid", "actorUuid"), firstUuid(fields, "targetUuid", "targetPlayerUuid"), text(fields, "state"), nullableBool(fields, "accepted"), nullableBool(fields, "declined"), occurredAt));
+            case "ISLAND_MEMBER_JOINED" -> Optional.of(new IslandMemberJoinEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), firstRole(fields, "role", "newRole"), occurredAt));
+            case "ISLAND_MEMBER_LEFT" -> Optional.of(new IslandMemberLeaveEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), occurredAt));
             case "ISLAND_MEMBER_CHANGED" -> Optional.of(new IslandMemberChangedEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), text(fields, "action"), role(fields, "oldRole"), firstRole(fields, "newRole", "role"), occurredAt));
+            case "ISLAND_MEMBER_ROLE_CHANGED" -> Optional.of(new IslandRoleChangeEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), role(fields, "oldRole"), firstRole(fields, "newRole", "role"), occurredAt));
             case "ISLAND_OWNERSHIP_CHANGED" -> Optional.of(new IslandOwnershipChangeEvent(uuid(fields, "islandId"), firstUuid(fields, "actorUuid", "playerUuid"), firstUuid(fields, "targetUuid", "newOwnerUuid"), occurredAt));
             case "ISLAND_RENAMED" -> Optional.of(new IslandRenamedEvent(uuid(fields, "islandId"), firstUuid(fields, "actorUuid", "playerUuid"), firstText(fields, "name", "islandName"), occurredAt));
             case "ISLAND_ACCESS_CHANGED" -> Optional.of(new IslandAccessChangeEvent(uuid(fields, "islandId"), nullableBool(fields, "publicAccess"), nullableBool(fields, "locked"), occurredAt));
             case "ISLAND_VISITOR_BAN_CHANGED" -> Optional.of(new IslandVisitorBanChangeEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), bool(fields, "banned"), occurredAt));
             case "ISLAND_VISITOR_KICKED" -> Optional.of(new IslandVisitorKickEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), firstUuid(fields, "actorUuid", "requesterUuid"), occurredAt));
             case "ISLAND_FLAG_CHANGED" -> Optional.of(new IslandFlagChangeEvent(uuid(fields, "islandId"), flag(fields, "flag"), text(fields, "value"), occurredAt));
+            case "ISLAND_PERMISSION_CHECKED" -> Optional.of(new IslandPermissionCheckEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), permission(fields, "permission"), bool(fields, "allowed"), occurredAt));
             case "ISLAND_PERMISSION_CHANGED" -> Optional.of(new IslandPermissionChangeEvent(uuid(fields, "islandId"), firstRole(fields, "role", "targetRole"), permission(fields, "permission"), nullableBool(fields, "allowed"), occurredAt));
             case "ISLAND_ROLE_CHANGED" -> Optional.of(new IslandRoleCatalogChangeEvent(uuid(fields, "islandId"), firstRole(fields, "role", "targetRole"), text(fields, "operation"), occurredAt));
             case "ISLAND_BIOME_CHANGED" -> Optional.of(new IslandBiomeChangeEvent(uuid(fields, "islandId"), firstText(fields, "biomeKey", "biome"), occurredAt));
             case "ISLAND_HOME_CHANGED" -> Optional.of(new IslandHomeChangeEvent(uuid(fields, "islandId"), firstText(fields, "homeName", "name"), occurredAt));
+            case "ISLAND_WARP_CREATED" -> Optional.of(new IslandWarpCreateEvent(uuid(fields, "islandId"), firstText(fields, "warpName", "name"), location(fields), occurredAt));
+            case "ISLAND_WARP_DELETED" -> Optional.of(new IslandWarpDeleteEvent(uuid(fields, "islandId"), firstText(fields, "warpName", "name"), occurredAt));
             case "ISLAND_WARP_CHANGED" -> Optional.of(new IslandWarpChangeEvent(uuid(fields, "islandId"), firstText(fields, "warpName", "name"), text(fields, "operation"), occurredAt));
             case "ISLAND_BANK_CHANGED" -> Optional.of(new IslandBankChangeEvent(uuid(fields, "islandId"), text(fields, "operation"), text(fields, "amount"), text(fields, "balance"), occurredAt));
             case "ISLAND_CHAT_SENT" -> Optional.of(new IslandChatSentEvent(uuid(fields, "islandId"), uuid(fields, "playerUuid"), text(fields, "channel"), text(fields, "message"), occurredAt));
@@ -178,6 +188,33 @@ public final class CloudEventMapper {
             return new BigDecimal(value);
         } catch (NumberFormatException ignored) {
             return null;
+        }
+    }
+
+    private static IslandLocation location(Map<String, String> fields) {
+        return new IslandLocation(
+            firstText(fields, "worldName", "world"),
+            doubleValue(fields, "localX"),
+            doubleValue(fields, "localY"),
+            doubleValue(fields, "localZ"),
+            floatValue(fields, "yaw"),
+            floatValue(fields, "pitch")
+        );
+    }
+
+    private static double doubleValue(Map<String, String> fields, String key) {
+        try {
+            return Double.parseDouble(text(fields, key));
+        } catch (NumberFormatException ignored) {
+            return 0D;
+        }
+    }
+
+    private static float floatValue(Map<String, String> fields, String key) {
+        try {
+            return Float.parseFloat(text(fields, key));
+        } catch (NumberFormatException ignored) {
+            return 0F;
         }
     }
 }
