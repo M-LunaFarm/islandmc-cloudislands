@@ -214,6 +214,14 @@ public interface IslandAddonService {
         return tableKeyValueBulkSaveState(id, values, tables);
     }
 
+    default CompletableFuture<Map<String, String>> tableKeyValueBulkState(String id, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return tableKeyValueBulkSaveState(id, values, tables);
+    }
+
+    default CompletableFuture<Map<String, String>> bulkTableKeyValueState(String id, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return tableKeyValueBulkState(id, values, tables);
+    }
+
     default CompletableFuture<Map<String, String>> putTableState(String id, String table, Map<String, String> values) {
         return putState(id, tableStateValues(table, values));
     }
@@ -303,6 +311,14 @@ public interface IslandAddonService {
 
     default CompletableFuture<Map<String, String>> bulkSaveIslandTableKeyValueState(String id, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         return tableKeyValueBulkSaveIslandState(id, islandId, values, tables);
+    }
+
+    default CompletableFuture<Map<String, String>> tableKeyValueBulkIslandState(String id, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return tableKeyValueBulkSaveIslandState(id, islandId, values, tables);
+    }
+
+    default CompletableFuture<Map<String, String>> bulkIslandTableKeyValueState(String id, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return tableKeyValueBulkIslandState(id, islandId, values, tables);
     }
 
     default CompletableFuture<Map<String, String>> putIslandTableState(String id, UUID islandId, String table, Map<String, String> values) {
