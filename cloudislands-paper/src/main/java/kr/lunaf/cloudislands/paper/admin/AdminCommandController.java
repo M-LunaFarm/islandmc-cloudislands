@@ -1768,6 +1768,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " registeredRequired=" + boolValue(body, "registeredAddonRequired")
             + " orphanPolicy=" + textValue(body, "orphanStatePolicy")
             + " missingPolicy=" + textValue(body, "missingAddonStatePolicy")
+            + " tableKeyPrefix=" + textValue(body, "tableKeyPrefix")
+            + " maxKeysPerAddon=" + longValue(body, "maxKeysPerAddon")
+            + " maxValueLength=" + longValue(body, "maxValueLength")
             + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
