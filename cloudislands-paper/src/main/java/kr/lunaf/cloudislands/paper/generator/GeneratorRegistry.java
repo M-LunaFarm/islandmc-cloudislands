@@ -10,6 +10,14 @@ public final class GeneratorRegistry {
         rules.computeIfAbsent(generatorKey, ignored -> new HashMap<>()).put(level, rule);
     }
 
+    public int generatorKeyCount() {
+        return rules.size();
+    }
+
+    public int ruleLevelCount() {
+        return rules.values().stream().mapToInt(Map::size).sum();
+    }
+
     public GeneratorRule rule(String generatorKey, int level) {
         Map<Integer, GeneratorRule> byLevel = rules.get(generatorKey);
         if (byLevel == null || byLevel.isEmpty()) {

@@ -476,6 +476,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_paper_generator_replacements_total{node=\"" + nodeId + "\",source=\"block_form\"} " + (generator == null ? 0L : generator.formReplacements()) + "\n"
             + "cloudislands_paper_generator_replacements_total{node=\"" + nodeId + "\",source=\"fluid_collision\"} " + (generator == null ? 0L : generator.fluidReplacements()) + "\n"
             + "cloudislands_paper_generator_material_failures_total{node=\"" + nodeId + "\"} " + (generator == null ? 0L : generator.materialResolveFailures()) + "\n"
+            + "cloudislands_paper_generator_keys{node=\"" + nodeId + "\"} " + (generator == null ? 0 : generator.generatorKeyCount()) + "\n"
+            + "cloudislands_paper_generator_rule_levels{node=\"" + nodeId + "\"} " + (generator == null ? 0 : generator.ruleLevelCount()) + "\n"
+            + "cloudislands_paper_generator_cache_ttl_seconds{node=\"" + nodeId + "\"} " + (generator == null ? 0L : generator.cacheTtlSeconds()) + "\n"
             + "cloudislands_permission_checks_total{node=\"" + nodeId + "\"} " + agent.permissionCache().lookupCount() + "\n"
             + "cloudislands_permission_cache_hit_ratio{node=\"" + nodeId + "\"} " + agent.permissionCache().hitRatio() + "\n"
             + "cloudislands_paper_velocity_forwarding_required{node=\"" + nodeId + "\"} " + (forwardingRequired ? 1 : 0) + "\n"
@@ -550,6 +553,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";periodicSaveFailures=" + (periodicSaveTask == null ? 0L : periodicSaveTask.failuresTotal())
             + ";emptySaveRetryQueue=" + (emptyIslandSaveTask == null ? 0 : emptyIslandSaveTask.retryQueueSize())
             + ";emptySaveFailures=" + (emptyIslandSaveTask == null ? 0L : emptyIslandSaveTask.failuresTotal())
+            + ";generatorKeys=" + (generatorListener == null ? 0 : generatorListener.generatorKeyCount())
+            + ";generatorRuleLevels=" + (generatorListener == null ? 0 : generatorListener.ruleLevelCount())
+            + ";generatorCacheTtlSeconds=" + (generatorListener == null ? 0L : generatorListener.cacheTtlSeconds())
             + ";proxySourceRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.proxySourceRejections())
             + ";forwardingRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.forwardingRejections())
             + ";routeSessionRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.routeSessionRejections())

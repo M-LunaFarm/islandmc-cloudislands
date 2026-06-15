@@ -115,4 +115,16 @@ public final class IslandGeneratorListener implements Listener {
     public long materialResolveFailures() {
         return materialResolveFailures.get();
     }
+
+    public int generatorKeyCount() {
+        return registry.generatorKeyCount();
+    }
+
+    public int ruleLevelCount() {
+        return registry.ruleLevelCount();
+    }
+
+    public long cacheTtlSeconds() {
+        return levels.ttlSeconds();
+    }
 }

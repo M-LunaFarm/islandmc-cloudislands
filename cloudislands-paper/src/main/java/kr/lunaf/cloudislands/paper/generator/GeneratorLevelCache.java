@@ -55,6 +55,10 @@ public final class GeneratorLevelCache {
         cache.clear();
     }
 
+    public long ttlSeconds() {
+        return TTL_MILLIS / 1000L;
+    }
+
     private GeneratorProfile parseGeneratorProfile(String json) {
         if (json == null || json.isBlank()) {
             return new GeneratorProfile(defaultGeneratorKey, 1);
