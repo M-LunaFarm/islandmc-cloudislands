@@ -12,6 +12,7 @@ import org.bukkit.scheduler.BukkitTask;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 public final class DirtySaveService {
@@ -24,6 +25,10 @@ public final class DirtySaveService {
     private final Object flushLock = new Object();
     private Consumer<DirtySaveBatch> coreStatePublisher;
     private Consumer<DirtyRowDelete> coreStateDeletePublisher;
+    private BooleanSupplier machineWritesEnabled = () -> true;
+    private BooleanSupplier inventoryWritesEnabled = () -> true;
+    private BooleanSupplier nodeWritesEnabled = () -> true;
+    private BooleanSupplier islandWritesEnabled = () -> true;
     private BukkitTask task;
 
     public DirtySaveService(JavaPlugin plugin, DatabaseService database) {
@@ -44,6 +49,14 @@ public final class DirtySaveService {
 
     public void coreStateDeletePublisher(Consumer<DirtyRowDelete> coreStateDeletePublisher) {
         this.coreStateDeletePublisher = coreStateDeletePublisher;
+    }
+
+    public void writeGates(BooleanSupplier machineWritesEnabled, BooleanSupplier inventoryWritesEnabled,
+                           BooleanSupplier nodeWritesEnabled, BooleanSupplier islandWritesEnabled) {
+        this.machineWritesEnabled = machineWritesEnabled == null ? () -> true : machineWritesEnabled;
+        this.inventoryWritesEnabled = inventoryWritesEnabled == null ? () -> true : inventoryWritesEnabled;
+        this.nodeWritesEnabled = nodeWritesEnabled == null ? () -> true : nodeWritesEnabled;
+        this.islandWritesEnabled = islandWritesEnabled == null ? () -> true : islandWritesEnabled;
     }
 
     public void start(long intervalTicks) {
@@ -77,6 +90,9 @@ public final class DirtySaveService {
     }
 
     public void markMachine(MachineInstance machine) {
+        if (!machineWritesEnabled.getAsBoolean()) {
+            return;
+        }
         if (machine == null || machine.machineId() == null) {
             return;
         }
@@ -95,6 +111,9 @@ public final class DirtySaveService {
             return;
         }
         forgetMachine(machineId);
+        if (!machineWritesEnabled.getAsBoolean()) {
+            return;
+        }
         publishCoreDelete(islandUuid, "table/machines/" + machineId);
     }
 
@@ -103,6 +122,9 @@ public final class DirtySaveService {
     }
 
     public void markInventory(VirtualInventory inventory) {
+        if (!inventoryWritesEnabled.getAsBoolean()) {
+            return;
+        }
         if (inventory == null || inventory.inventoryId() == null) {
             return;
         }
@@ -121,6 +143,9 @@ public final class DirtySaveService {
             return;
         }
         forgetInventory(inventoryId);
+        if (!inventoryWritesEnabled.getAsBoolean()) {
+            return;
+        }
         publishCoreDelete(islandUuid, "table/virtual_inventories/" + inventoryId);
     }
 
@@ -139,6 +164,9 @@ public final class DirtySaveService {
     }
 
     public void markNode(ResourceNode node) {
+        if (!nodeWritesEnabled.getAsBoolean()) {
+            return;
+        }
         if (node == null || node.nodeId() == null) {
             return;
         }
@@ -150,6 +178,9 @@ public final class DirtySaveService {
     }
 
     public void markIsland(FactoryIsland island) {
+        if (!islandWritesEnabled.getAsBoolean()) {
+            return;
+        }
         if (island == null || island.islandUuid() == null) {
             return;
         }
@@ -178,10 +209,10 @@ public final class DirtySaveService {
 
     private void flush() {
         synchronized (flushLock) {
-            Map<UUID, VirtualInventory> inventoryBatch = drain(inventories);
-            Map<UUID, MachineInstance> machineBatch = drain(machines);
-            Map<UUID, ResourceNode> nodeBatch = drain(nodes);
-            Map<UUID, FactoryIsland> islandBatch = drain(islands);
+            Map<UUID, VirtualInventory> inventoryBatch = drainIfEnabled(inventories, inventoryWritesEnabled);
+            Map<UUID, MachineInstance> machineBatch = drainIfEnabled(machines, machineWritesEnabled);
+            Map<UUID, ResourceNode> nodeBatch = drainIfEnabled(nodes, nodeWritesEnabled);
+            Map<UUID, FactoryIsland> islandBatch = drainIfEnabled(islands, islandWritesEnabled);
             saveBatch("inventory", inventoryBatch, inventories, database::saveInventory);
             saveBatch("machine", machineBatch, machines, database::saveMachine);
             saveBatch("node", nodeBatch, nodes, database::saveNode);
@@ -195,10 +226,13 @@ public final class DirtySaveService {
             return;
         }
         synchronized (flushLock) {
-            Map<UUID, VirtualInventory> inventoryBatch = drainIsland(inventories, islandUuid);
-            Map<UUID, MachineInstance> machineBatch = drainIsland(machines, islandUuid);
-            Map<UUID, ResourceNode> nodeBatch = drainIsland(nodes, islandUuid);
-            FactoryIsland island = islands.remove(islandUuid);
+            Map<UUID, VirtualInventory> inventoryBatch = drainIslandIfEnabled(inventories, islandUuid, inventoryWritesEnabled);
+            Map<UUID, MachineInstance> machineBatch = drainIslandIfEnabled(machines, islandUuid, machineWritesEnabled);
+            Map<UUID, ResourceNode> nodeBatch = drainIslandIfEnabled(nodes, islandUuid, nodeWritesEnabled);
+            FactoryIsland island = islandWritesEnabled.getAsBoolean() ? islands.remove(islandUuid) : null;
+            if (!islandWritesEnabled.getAsBoolean()) {
+                islands.remove(islandUuid);
+            }
             Map<UUID, FactoryIsland> islandBatch = island == null ? Map.of() : Map.of(islandUuid, island);
             saveBatch("inventory", inventoryBatch, inventories, database::saveInventory);
             saveBatch("machine", machineBatch, machines, database::saveMachine);
@@ -258,12 +292,28 @@ public final class DirtySaveService {
         return snapshot;
     }
 
+    private <T> Map<UUID, T> drainIfEnabled(Map<UUID, T> source, BooleanSupplier enabled) {
+        if (!enabled.getAsBoolean()) {
+            source.clear();
+            return Map.of();
+        }
+        return drain(source);
+    }
+
     private <T> Map<UUID, T> drainIsland(Map<UUID, T> source, UUID islandUuid) {
         Map<UUID, T> snapshot = source.entrySet().stream()
                 .filter(entry -> islandUuid.equals(islandUuid(entry.getValue())))
                 .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         snapshot.forEach((id, value) -> source.remove(id, value));
         return snapshot;
+    }
+
+    private <T> Map<UUID, T> drainIslandIfEnabled(Map<UUID, T> source, UUID islandUuid, BooleanSupplier enabled) {
+        if (!enabled.getAsBoolean()) {
+            drainIsland(source, islandUuid);
+            return Map.of();
+        }
+        return drainIsland(source, islandUuid);
     }
 
     private UUID islandUuid(Object value) {

@@ -194,6 +194,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         boosts.configure(configs.main());
         nodes = new ResourceNodeService(database);
         dirtySaves = new DirtySaveService(this, database);
+        configureDirtySaveWriteGates();
         configureCoreApiStateWriters();
         storage.dirtySaves(dirtySaves);
         islands.dirtySaves(dirtySaves);
@@ -953,6 +954,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         machines = new MachineService(database, machineDefinitions, storage);
         nodes = new ResourceNodeService(database);
         dirtySaves = new DirtySaveService(this, database);
+        configureDirtySaveWriteGates();
         configureCoreApiStateWriters();
         storage.dirtySaves(dirtySaves);
         islands.dirtySaves(dirtySaves);
@@ -974,6 +976,18 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 && database != null
                 && database.activeBackend() != DatabaseService.StorageBackend.CORE_API
                 && coreApiAddonStateAvailable();
+    }
+
+    private void configureDirtySaveWriteGates() {
+        if (dirtySaves == null) {
+            return;
+        }
+        dirtySaves.writeGates(
+                () -> featureEnabled("machines"),
+                () -> featureEnabled("storage"),
+                () -> operationalFeatureEnabled("resource-nodes"),
+                this::dataWritesEnabled
+        );
     }
 
     private void configureCoreApiStateWriters() {
