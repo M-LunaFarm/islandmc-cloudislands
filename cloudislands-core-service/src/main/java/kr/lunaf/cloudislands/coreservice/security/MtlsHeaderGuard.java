@@ -20,4 +20,8 @@ public final class MtlsHeaderGuard {
         String value = exchange.getRequestHeaders().getFirst(headerName);
         return expectedValue.equalsIgnoreCase(value == null ? "" : value.trim());
     }
+
+    public boolean required() {
+        return required;
+    }
 }

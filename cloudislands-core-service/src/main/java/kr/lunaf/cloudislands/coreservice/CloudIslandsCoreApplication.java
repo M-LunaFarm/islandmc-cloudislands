@@ -3009,7 +3009,11 @@ public final class CloudIslandsCoreApplication {
 
     private static void logSecurityPosture(CoreServiceConfig config) {
         if (config.coreToken() == null || config.coreToken().isBlank()) {
-            LOGGER.warning("CloudIslands security: Core API token is empty; non-health requests will be rejected");
+            if (config.requireMtls()) {
+                LOGGER.warning("CloudIslands security: Core API token is empty; non-health requests require mTLS verification");
+            } else {
+                LOGGER.warning("CloudIslands security: Core API token is empty and mTLS verification is disabled; non-health requests will be rejected");
+            }
         }
         if (config.adminApiEnabled() && (config.adminToken() == null || config.adminToken().isBlank())) {
             LOGGER.warning("CloudIslands security: Admin API is enabled but admin token is empty; admin requests will be rejected");
@@ -3120,14 +3124,10 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 429, ApiResponses.error("RATE_LIMITED", "Too many requests"));
                 return;
             }
-            if (!path.equals("/health") && !tokenGuard.allowed(exchange)) {
-                auditSecurityReject("UNAUTHORIZED", path, exchange);
-                write(exchange, 401, ApiResponses.error("UNAUTHORIZED", "Missing or invalid API token"));
-                return;
-            }
-            if (!path.equals("/health") && !mtlsGuard.allowed(exchange)) {
-                auditSecurityReject("MTLS_REQUIRED", path, exchange);
-                write(exchange, 401, ApiResponses.error("MTLS_REQUIRED", "mTLS verification is required"));
+            if (!path.equals("/health") && !coreApiAuthenticated(exchange)) {
+                String rejectCode = coreApiAuthRejectCode();
+                auditSecurityReject(rejectCode, path, exchange);
+                write(exchange, 401, ApiResponses.error(rejectCode, coreApiAuthRejectMessage(rejectCode)));
                 return;
             }
             if (!ipAllowlist.allowed(exchange)) {
@@ -3152,14 +3152,10 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 429, ApiResponses.error("RATE_LIMITED", "Too many requests"));
                 return;
             }
-            if (!tokenGuard.allowed(exchange)) {
-                auditSecurityReject("UNAUTHORIZED", exchange.getRequestURI().getPath(), exchange);
-                write(exchange, 401, ApiResponses.error("UNAUTHORIZED", "Missing or invalid API token"));
-                return;
-            }
-            if (!mtlsGuard.allowed(exchange)) {
-                auditSecurityReject("MTLS_REQUIRED", exchange.getRequestURI().getPath(), exchange);
-                write(exchange, 401, ApiResponses.error("MTLS_REQUIRED", "mTLS verification is required"));
+            if (!coreApiAuthenticated(exchange)) {
+                String rejectCode = coreApiAuthRejectCode();
+                auditSecurityReject(rejectCode, exchange.getRequestURI().getPath(), exchange);
+                write(exchange, 401, ApiResponses.error(rejectCode, coreApiAuthRejectMessage(rejectCode)));
                 return;
             }
             if (!ipAllowlist.allowed(exchange)) {
@@ -3174,6 +3170,20 @@ public final class CloudIslandsCoreApplication {
             }
             handler.handle(exchange);
         });
+    }
+
+    private boolean coreApiAuthenticated(HttpExchange exchange) {
+        return tokenGuard.allowed(exchange) || mtlsGuard.allowed(exchange);
+    }
+
+    private String coreApiAuthRejectCode() {
+        return mtlsGuard.required() ? "MTLS_REQUIRED" : "UNAUTHORIZED";
+    }
+
+    private String coreApiAuthRejectMessage(String rejectCode) {
+        return "MTLS_REQUIRED".equals(rejectCode)
+            ? "mTLS verification or API token authentication is required"
+            : "Missing or invalid API token";
     }
 
     private static void lifecycle(HttpExchange exchange, IslandLifecycleWorkflow.Result result) throws IOException {
