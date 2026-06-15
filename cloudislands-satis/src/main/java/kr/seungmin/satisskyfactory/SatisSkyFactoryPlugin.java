@@ -3208,17 +3208,19 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (configured != null && !configured.isBlank()) {
             return configured.trim();
         }
-        String host = firstNonBlank(configs.main().getString("setup.database." + section + ".host", ""), configs.main().getString("database." + section + ".host", "127.0.0.1"));
-        String databaseName = firstNonBlank(configs.main().getString("setup.database." + section + ".name", ""),
+        String host = firstNonBlank(backendEnv(section, "HOST"), firstNonBlank(configs.main().getString("setup.database." + section + ".host", ""), configs.main().getString("database." + section + ".host", "127.0.0.1")));
+        String databaseName = firstNonBlank(backendEnv(section, "NAME"),
+                firstNonBlank(backendEnv(section, "DATABASE"),
+                firstNonBlank(configs.main().getString("setup.database." + section + ".name", ""),
                 firstNonBlank(configs.main().getString("setup.database." + section + ".database", ""),
                         firstNonBlank(configs.main().getString("database." + section + ".name", ""),
-                                configs.main().getString("database." + section + ".database", ""))));
+                                configs.main().getString("database." + section + ".database", "")))));
         if (host == null || host.isBlank() || databaseName == null || databaseName.isBlank()) {
             return "";
         }
-        int setupPort = configs.main().getInt("setup.database." + section + ".port", 0);
+        int setupPort = backendEnvInt(section, "PORT", configs.main().getInt("setup.database." + section + ".port", 0));
         int port = Math.max(1, setupPort > 0 ? setupPort : configs.main().getInt("database." + section + ".port", defaultPort));
-        String options = firstNonBlank(configs.main().getString("setup.database." + section + ".options", ""), configs.main().getString("database." + section + ".options", ""));
+        String options = firstNonBlank(backendEnv(section, "OPTIONS"), firstNonBlank(configs.main().getString("setup.database." + section + ".options", ""), configs.main().getString("database." + section + ".options", "")));
         String url = prefix + "://" + host.trim() + ":" + port + "/" + databaseName.trim();
         if (options != null && !options.isBlank()) {
             url += "?" + options.trim();
@@ -3476,8 +3478,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String base = "setup.database." + section + ".";
         return !backendEnv(section, "JDBC_URL").isBlank()
                 || !backendEnv(section, "URL").isBlank()
+                || !backendEnv(section, "HOST").isBlank()
+                || !backendEnv(section, "NAME").isBlank()
+                || !backendEnv(section, "DATABASE").isBlank()
+                || !backendEnv(section, "OPTIONS").isBlank()
                 || !backendEnv(section, "USERNAME").isBlank()
                 || !backendEnv(section, "PASSWORD").isBlank()
+                || backendEnvInt(section, "PORT", 0) > 0
                 || backendEnvInt(section, "MAX_POOL_SIZE", 0) > 0
                 || backendEnvLong(section, "CONNECTION_TIMEOUT_MS", 0L) > 0L
                 || nonBlankConfig(base + "jdbc-url")
@@ -4028,11 +4035,18 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private String databaseJdbcSource() {
         if (envPresent("CLOUDISLANDS_SATIS_JDBC_URL")) {
-            return "CLOUDISLANDS_SATIS_JDBC_URL,CLOUDISLANDS_SATIS_POSTGRESQL_JDBC_URL,CLOUDISLANDS_SATIS_MYSQL_JDBC_URL,CLOUDISLANDS_SATIS_MARIADB_JDBC_URL";
+            return "CLOUDISLANDS_SATIS_JDBC_URL";
         }
         String backend = configuredDatabaseBackendName().toLowerCase(java.util.Locale.ROOT);
         if (!backendEnv(backend, "JDBC_URL").isBlank() || !backendEnv(backend, "URL").isBlank()) {
             return "CLOUDISLANDS_SATIS_" + backend.toUpperCase(Locale.ROOT) + "_JDBC_URL";
+        }
+        if (!backendEnv(backend, "HOST").isBlank()
+                || !backendEnv(backend, "NAME").isBlank()
+                || !backendEnv(backend, "DATABASE").isBlank()
+                || backendEnvInt(backend, "PORT", 0) > 0
+                || !backendEnv(backend, "OPTIONS").isBlank()) {
+            return "CLOUDISLANDS_SATIS_" + backend.toUpperCase(Locale.ROOT) + "_HOST";
         }
         if (nonBlankConfig("setup.database.jdbc.url")) {
             return "setup.database.jdbc.url";
