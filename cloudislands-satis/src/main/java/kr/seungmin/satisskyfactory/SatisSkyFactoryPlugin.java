@@ -2882,11 +2882,34 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
             return "CORE_API";
         }
+        String jdbcType = inferredJdbcDatabaseType();
+        if (!jdbcType.isBlank()) {
+            return jdbcType;
+        }
         String setupSectionType = inferredSetupDatabaseType();
         if (!setupSectionType.isBlank()) {
             return setupSectionType;
         }
         return configs.main().getString("database.type", "SQLITE");
+    }
+
+    private String inferredJdbcDatabaseType() {
+        String jdbcUrl = firstNonBlank(System.getenv("CLOUDISLANDS_SATIS_JDBC_URL"),
+                firstNonBlank(configs.main().getString("setup.database.jdbc.url", ""), configs.main().getString("database.jdbc.url", "")));
+        if (jdbcUrl == null || jdbcUrl.isBlank()) {
+            return "";
+        }
+        String normalized = jdbcUrl.trim().toLowerCase(Locale.ROOT);
+        if (normalized.startsWith("jdbc:postgresql:")) {
+            return "POSTGRESQL";
+        }
+        if (normalized.startsWith("jdbc:mysql:")) {
+            return "MYSQL";
+        }
+        if (normalized.startsWith("jdbc:mariadb:")) {
+            return "MARIADB";
+        }
+        return "";
     }
 
     private String inferredSetupDatabaseType() {
@@ -2925,11 +2948,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
             return false;
         }
-        return !inferredSetupDatabaseType().isBlank();
+        return !inferredJdbcDatabaseType().isBlank() || !inferredSetupDatabaseType().isBlank();
     }
 
     private String databaseSetupSelectedBackendMetadata() {
-        return databaseSetupAutoSelected() ? inferredSetupDatabaseType() : "none";
+        if (!databaseSetupAutoSelected()) {
+            return "none";
+        }
+        String jdbcType = inferredJdbcDatabaseType();
+        return jdbcType.isBlank() ? inferredSetupDatabaseType() : jdbcType;
     }
 
     private String databaseSetupWarningMetadata() {
