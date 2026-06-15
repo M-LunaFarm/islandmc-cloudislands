@@ -61,6 +61,9 @@ public final class CoreApiSatisStateService {
             values.put("core-api-sync-remap-policy", "island-uuid-stable-active-world-and-center-volatile");
             values.put("core-api-sync-remap-key", "islandUuid+activeWorld+activeCenter");
             values.put("core-api-sync-write-policy", "last-confirmed-state-wins");
+            values.put("core-api-sync-write-fence", "active-island-runtime-owner-only");
+            values.put("core-api-sync-duplicate-tick-policy", "single-active-runtime-owner");
+            values.put("core-api-sync-node-handoff-policy", "save-on-source-restore-on-target-by-island-uuid");
             values.put("core-api-sync-updated-at", Instant.now().toString());
             values.put("core-api-sync-keys", Integer.toString(values.size() + tableKeys));
             values.put("core-api-sync-tables", Integer.toString(tables.size()));
@@ -167,6 +170,10 @@ public final class CoreApiSatisStateService {
         state.put("last-core-table-publish-status", safeStatus);
         state.put("last-core-table-publish-error", safeError);
         state.put("last-core-table-publish-at", Instant.now().toString());
+        state.put("last-core-table-publish-authority", "cloudislands-addon-state");
+        state.put("last-core-table-publish-node-bound", "false");
+        state.put("last-core-table-publish-write-fence", "active-island-runtime-owner-only");
+        state.put("last-core-table-publish-duplicate-tick-policy", "single-active-runtime-owner");
         cloudIslandsApi.addons().putState(addonId, state).exceptionally(publishError -> {
             logger.warning("Failed to publish Satis core-api table status: " + publishError.getMessage());
             return Map.of();
