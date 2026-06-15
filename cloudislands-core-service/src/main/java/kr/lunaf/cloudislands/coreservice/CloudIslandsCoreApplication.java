@@ -2947,9 +2947,8 @@ public final class CloudIslandsCoreApplication {
         if (nodes == null) {
             return 0L;
         }
-        String pool = config.islandPool() == null || config.islandPool().isBlank() ? "island" : config.islandPool();
         return nodes.snapshot().stream()
-            .filter(node -> pool.equals(node.pool() == null || node.pool().isBlank() ? "island" : node.pool()))
+            .filter(node -> inIslandPool(config, node))
             .count();
     }
 
@@ -2957,11 +2956,12 @@ public final class CloudIslandsCoreApplication {
         if (nodes == null) {
             return 0L;
         }
-        String pool = config.islandPool() == null || config.islandPool().isBlank() ? "island" : config.islandPool();
+        java.util.List<NodeLoad> snapshot = nodes.snapshot();
+        java.util.Map<String, Long> velocityServerCounts = islandPoolVelocityServerCounts(config, snapshot);
         java.time.Instant now = java.time.Instant.now();
-        return nodes.snapshot().stream()
-            .filter(node -> pool.equals(node.pool() == null || node.pool().isBlank() ? "island" : node.pool()))
-            .filter(node -> node.allocationBlockReason(now, config.heartbeatTimeout()).isBlank())
+        return snapshot.stream()
+            .filter(node -> inIslandPool(config, node))
+            .filter(node -> islandPoolRouteCandidateBlockReason(config, node, now, velocityServerCounts).isBlank())
             .count();
     }
 
@@ -2998,15 +2998,11 @@ public final class CloudIslandsCoreApplication {
         if (nodes == null) {
             return 0L;
         }
-        String pool = config.islandPool() == null || config.islandPool().isBlank() ? "island" : config.islandPool();
-        java.util.Map<String, Long> serverCounts = nodes.snapshot().stream()
-            .filter(node -> pool.equals(node.pool() == null || node.pool().isBlank() ? "island" : node.pool()))
-            .map(node -> node.velocityServerName() == null ? "" : node.velocityServerName().trim().toLowerCase(Locale.ROOT))
-            .filter(server -> !server.isBlank())
-            .collect(java.util.stream.Collectors.groupingBy(server -> server, java.util.stream.Collectors.counting()));
-        return nodes.snapshot().stream()
-            .filter(node -> pool.equals(node.pool() == null || node.pool().isBlank() ? "island" : node.pool()))
-            .map(node -> node.velocityServerName() == null ? "" : node.velocityServerName().trim().toLowerCase(Locale.ROOT))
+        java.util.List<NodeLoad> snapshot = nodes.snapshot();
+        java.util.Map<String, Long> serverCounts = islandPoolVelocityServerCounts(config, snapshot);
+        return snapshot.stream()
+            .filter(node -> inIslandPool(config, node))
+            .map(CloudIslandsCoreApplication::velocityServerNameKey)
             .filter(server -> !server.isBlank() && serverCounts.getOrDefault(server, 0L) > 1L)
             .count();
     }
@@ -3015,15 +3011,42 @@ public final class CloudIslandsCoreApplication {
         if (nodes == null) {
             return 0L;
         }
-        String pool = config.islandPool() == null || config.islandPool().isBlank() ? "island" : config.islandPool();
         return nodes.snapshot().stream()
-            .filter(node -> pool.equals(node.pool() == null || node.pool().isBlank() ? "island" : node.pool()))
-            .filter(node -> {
-                String nodeId = node.nodeId() == null ? "" : node.nodeId().trim();
-                String serverName = node.velocityServerName() == null ? "" : node.velocityServerName().trim();
-                return nodeId.equalsIgnoreCase("island-1") || serverName.equalsIgnoreCase("Island-1");
-            })
+            .filter(node -> inIslandPool(config, node))
+            .filter(NodeLoad::defaultNodeIdentityRisk)
             .count();
+    }
+
+    private static boolean inIslandPool(CoreServiceConfig config, NodeLoad node) {
+        return node != null && node.inPool(islandPool(config));
+    }
+
+    private static String islandPool(CoreServiceConfig config) {
+        return config == null || config.islandPool() == null || config.islandPool().isBlank() ? "island" : config.islandPool();
+    }
+
+    private static java.util.Map<String, Long> islandPoolVelocityServerCounts(CoreServiceConfig config, java.util.List<NodeLoad> snapshot) {
+        return snapshot.stream()
+            .filter(node -> inIslandPool(config, node))
+            .map(CloudIslandsCoreApplication::velocityServerNameKey)
+            .filter(server -> !server.isBlank())
+            .collect(java.util.stream.Collectors.groupingBy(server -> server, java.util.stream.Collectors.counting()));
+    }
+
+    private static String islandPoolRouteCandidateBlockReason(CoreServiceConfig config, NodeLoad node, java.time.Instant now, java.util.Map<String, Long> velocityServerCounts) {
+        String blockReason = node.allocationBlockReason(now, config.heartbeatTimeout());
+        if (!blockReason.isBlank()) {
+            return blockReason;
+        }
+        String server = velocityServerNameKey(node);
+        if (!server.isBlank() && velocityServerCounts.getOrDefault(server, 0L) > 1L) {
+            return "DUPLICATE_VELOCITY_SERVER_NAME";
+        }
+        return "";
+    }
+
+    private static String velocityServerNameKey(NodeLoad node) {
+        return node == null || node.velocityServerName() == null ? "" : node.velocityServerName().trim().toLowerCase(Locale.ROOT);
     }
 
     private static void logSecurityPosture(CoreServiceConfig config) {
