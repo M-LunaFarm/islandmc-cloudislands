@@ -3210,11 +3210,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         String host = firstNonBlank(backendEnv(section, "HOST"), firstNonBlank(configs.main().getString("setup.database." + section + ".host", ""), configs.main().getString("database." + section + ".host", "127.0.0.1")));
         String databaseName = firstNonBlank(backendEnv(section, "NAME"),
+                firstNonBlank(backendEnv(section, "DB_NAME"),
                 firstNonBlank(backendEnv(section, "DATABASE"),
                 firstNonBlank(configs.main().getString("setup.database." + section + ".name", ""),
                 firstNonBlank(configs.main().getString("setup.database." + section + ".database", ""),
                         firstNonBlank(configs.main().getString("database." + section + ".name", ""),
-                                configs.main().getString("database." + section + ".database", "")))));
+                                configs.main().getString("database." + section + ".database", ""))))));
         if (host == null || host.isBlank() || databaseName == null || databaseName.isBlank()) {
             return "";
         }
@@ -3480,6 +3481,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 || !backendEnv(section, "URL").isBlank()
                 || !backendEnv(section, "HOST").isBlank()
                 || !backendEnv(section, "NAME").isBlank()
+                || !backendEnv(section, "DB_NAME").isBlank()
                 || !backendEnv(section, "DATABASE").isBlank()
                 || !backendEnv(section, "OPTIONS").isBlank()
                 || !backendEnv(section, "USERNAME").isBlank()
@@ -4043,6 +4045,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (!backendEnv(backend, "HOST").isBlank()
                 || !backendEnv(backend, "NAME").isBlank()
+                || !backendEnv(backend, "DB_NAME").isBlank()
                 || !backendEnv(backend, "DATABASE").isBlank()
                 || backendEnvInt(backend, "PORT", 0) > 0
                 || !backendEnv(backend, "OPTIONS").isBlank()) {
