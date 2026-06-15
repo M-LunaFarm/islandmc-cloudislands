@@ -118,13 +118,14 @@ public final class CloudIslandsVelocityPlugin {
                     int indent = leadingSpaces(rawLine);
                     String parent = parentSection(sections, indent);
                     String key = line.substring(0, colon).strip();
-                    String value = unquote(line.substring(colon + 1).strip());
+                    String rawValue = line.substring(colon + 1).strip();
+                    String value = unquote(rawValue);
                     String fullKey = parent.isBlank() ? key : parent + "." + key;
                     if (fullKey.equals("commands.aliases") && value.isBlank()) {
                         readingAliases = true;
                         continue;
                     }
-                    if (value.isBlank()) {
+                    if (rawValue.isBlank()) {
                         sections.entrySet().removeIf(entry -> entry.getKey() >= indent);
                         sections.put(indent, fullKey);
                         continue;
