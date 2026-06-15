@@ -958,7 +958,9 @@ public final class AdminFactoryCommand {
                         "core-api-table-save-mode",
                         "route-event-source",
                         "route-event-policy",
-                        "route-event-feature-gate"
+                        "route-event-feature-gate",
+                        "route-event-state-scope",
+                        "route-event-state-keys"
                 ).forEach(key -> {
                     String value = metadata.get(key);
                     if (value != null && !value.isBlank()) {
