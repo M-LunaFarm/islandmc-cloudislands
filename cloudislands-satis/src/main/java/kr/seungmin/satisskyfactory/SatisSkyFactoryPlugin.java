@@ -2658,6 +2658,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         databaseFallbackReason = (cloudIslandsApi == null ? "core-api-cloudislands-api-missing" : "core-api-addon-state-disabled") + "->" + fallbackBackend.name();
         getLogger().warning("Satis CORE_API database backend is unavailable; falling back to " + fallbackBackend + ".");
         database.close();
+        List<DatabaseService.StorageBackend> safeFallbackOrder = fallbackOrder.stream()
+                .filter(backend -> backend != DatabaseService.StorageBackend.CORE_API)
+                .toList();
         database = new DatabaseService(this, new DatabaseService.Settings(
                 fallbackBackend,
                 settings.sqliteFileName(),
@@ -2673,7 +2676,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 settings.mysqlSettings(),
                 settings.mariadbSettings(),
                 true,
-                fallbackOrder
+                safeFallbackOrder
         ));
         database.open();
         String backendFallback = database.fallbackReason();
