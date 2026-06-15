@@ -40,6 +40,7 @@ public final class RedisRouteSessionStore implements RouteSessionStore {
             }
             long ttlMillis = Math.max(1L, session.expiresAt().toEpochMilli() - System.currentTimeMillis());
             redis.command("SET", key(ticket.playerUuid()), encode(session), "PX", Long.toString(ttlMillis));
+            redis.command("SET", legacyKey(ticket.playerUuid()), encode(session), "PX", Long.toString(ttlMillis));
             fallback.put(ticket);
             return session;
         } catch (IOException | RuntimeException exception) {
@@ -62,6 +63,12 @@ public final class RedisRouteSessionStore implements RouteSessionStore {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             String sessionKey = key(playerUuid);
             String value = redis.command("GETDEL", sessionKey);
+            if (value == null || value.isBlank()) {
+                sessionKey = legacyKey(playerUuid);
+                value = redis.command("GETDEL", sessionKey);
+            } else {
+                redis.command("DEL", legacyKey(playerUuid));
+            }
             if (value == null || value.isBlank()) {
                 return Optional.empty();
             }
@@ -86,11 +93,15 @@ public final class RedisRouteSessionStore implements RouteSessionStore {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             String value = redis.command("GET", key(playerUuid));
             if (value == null || value.isBlank()) {
+                value = redis.command("GET", legacyKey(playerUuid));
+            }
+            if (value == null || value.isBlank()) {
                 return Optional.empty();
             }
             PlayerRouteSession session = decode(value);
             if (session.expiresAt().isBefore(Instant.now())) {
                 redis.command("DEL", key(playerUuid));
+                redis.command("DEL", legacyKey(playerUuid));
                 return Optional.empty();
             }
             return Optional.of(session);
@@ -103,7 +114,9 @@ public final class RedisRouteSessionStore implements RouteSessionStore {
     public boolean clear(UUID playerUuid) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             fallback.clear(playerUuid);
-            return !"0".equals(redis.command("DEL", key(playerUuid)));
+            boolean clearedCurrent = !"0".equals(redis.command("DEL", key(playerUuid)));
+            boolean clearedLegacy = !"0".equals(redis.command("DEL", legacyKey(playerUuid)));
+            return clearedCurrent || clearedLegacy;
         } catch (IOException | RuntimeException exception) {
             failures.incrementAndGet();
             return fallback.clear(playerUuid);
@@ -197,19 +210,29 @@ public final class RedisRouteSessionStore implements RouteSessionStore {
     }
 
     private String key(UUID playerUuid) {
+        return RedisKeys.playerSession(playerUuid);
+    }
+
+    private String legacyKey(UUID playerUuid) {
         return RedisKeys.playerRouteSession(playerUuid);
     }
 
     private List<String> sessionKeys() {
         List<String> keys = new ArrayList<>();
+        scanSessionKeys(keys, "ci:player:*:session");
+        scanSessionKeys(keys, "ci:player:*:route-session");
+        return keys;
+    }
+
+    private void scanSessionKeys(List<String> keys, String pattern) {
         String cursor = "0";
         do {
             try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-                String response = redis.command("SCAN", cursor, "MATCH", "ci:player:*:route-session", "COUNT", "100");
+                String response = redis.command("SCAN", cursor, "MATCH", pattern, "COUNT", "100");
                 String[] lines = response.split("\\n");
                 cursor = lines.length == 0 || lines[0].isBlank() ? "0" : lines[0];
                 for (int i = 1; i < lines.length; i++) {
-                    if (!lines[i].isBlank()) {
+                    if (!lines[i].isBlank() && !keys.contains(lines[i])) {
                         keys.add(lines[i]);
                     }
                 }
@@ -218,7 +241,6 @@ public final class RedisRouteSessionStore implements RouteSessionStore {
                 throw new IllegalStateException("failed to scan redis route sessions", exception);
             }
         } while (!"0".equals(cursor));
-        return keys;
     }
 
     private String encode(PlayerRouteSession session) {
