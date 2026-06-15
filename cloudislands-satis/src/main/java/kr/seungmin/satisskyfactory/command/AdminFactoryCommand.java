@@ -67,6 +67,7 @@ public final class AdminFactoryCommand {
             "factory admin features",
             "factory admin integration",
             "factory admin migration",
+            "factory admin migration status",
             "factory admin migration scan <sqlitePath>",
             "factory admin migration dryrun <sqlitePath>",
             "factory admin migration verify <sqlitePath>",
@@ -295,7 +296,7 @@ public final class AdminFactoryCommand {
             return filter(List.of("list"), args[2]);
         }
         if (args.length == 3 && args[1].equalsIgnoreCase("migration") && enabled("migration")) {
-            return filter(List.of("scan", "dryrun", "dry-run", "verify", "import", "rollback"), args[2]);
+            return filter(List.of("status", "scan", "dryrun", "dry-run", "verify", "import", "rollback"), args[2]);
         }
         if ((args[1].equalsIgnoreCase("give") || args[1].equalsIgnoreCase("giveitem") || args[1].equalsIgnoreCase("removehere")) && !enabled("machines")) {
             return new ArrayList<>();
@@ -645,6 +646,10 @@ public final class AdminFactoryCommand {
         }
         if (args.length >= 3) {
             String action = args[2].toLowerCase(Locale.ROOT);
+            if (action.equals("status")) {
+                showMigration(sender);
+                return;
+            }
             if (action.equals("scan") || action.equals("dryrun") || action.equals("dry-run") || action.equals("verify")) {
                 scanLegacyDatabase(sender, args, action);
                 return;
