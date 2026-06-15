@@ -29,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
 public final class AdminCommandController implements CommandExecutor, TabCompleter {
     private static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "config", "cache", "addons", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
-    private static final List<String> ADDON_COMMANDS = List.of("list", "info", "feature", "enable", "disable", "reload", "state", "state-summary");
+    private static final List<String> ADDON_COMMANDS = List.of("list", "info", "feature", "enable", "disable", "reload", "state", "state-summary", "endpoints");
     private static final List<String> ADDON_FEATURES = List.of("commands", "machines", "storage", "factories", "generators", "upgrades", "missions", "menus", "gui", "lifecycle", "resource-nodes", "market", "contracts", "research", "maintenance", "placeholders", "migration", "addon-state");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "islands", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
@@ -57,6 +57,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         "ciadmin addons reload [addonId]",
         "ciadmin addons state",
         "ciadmin addons state-summary",
+        "ciadmin addons endpoints",
         "ciadmin node menu",
         "ciadmin node list",
         "ciadmin node info <node>",
@@ -359,6 +360,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "Addon state summary", coreApiClient.addonStateSummary().thenApply(this::addonStateSummaryMessage));
             return true;
         }
+        if (args.length > 1 && args[1].equalsIgnoreCase("endpoints")) {
+            run(sender, "Addon endpoints", coreApiClient.coreConfig().thenApply(this::addonEndpointMessage));
+            return true;
+        }
         CloudIslandsApi api = CloudIslandsProvider.get().orElse(null);
         if (api == null) {
             sender.sendMessage(adminText("admin-command-addons-api-missing", "CloudIslands API가 준비되지 않았습니다."));
@@ -435,7 +440,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             "/ciadmin addons enable <addonId>",
             "/ciadmin addons disable <addonId>",
             "/ciadmin addons reload [addonId]",
-            "/ciadmin addons state"
+            "/ciadmin addons state",
+            "/ciadmin addons endpoints"
         ));
         return true;
     }
@@ -1845,6 +1851,15 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-core-config-lease-duration-prefix", " leaseDuration=") + longValue(body, "leaseDurationSeconds") + "s"
             + adminText("admin-command-core-config-mtls-prefix", " mtls=") + boolValue(body, "requireMtls")
             + adminText("admin-command-core-config-ip-allowlist-prefix", " ipAllowlist=") + boolValue(body, "ipAllowlistEnabled");
+    }
+
+    private String addonEndpointMessage(String body) {
+        return "Addon endpoints: "
+            + "bulkSave=" + boolValue(body, "addonStateBulkSaveApi")
+            + " global=" + textValue(body, "addonStateBulkSaveGlobalEndpoint")
+            + " island=" + textValue(body, "addonStateBulkSaveIslandEndpoint")
+            + " tableGlobal=" + textValue(body, "addonStateTableKeyValueBulkSaveGlobalEndpoint")
+            + " tableIsland=" + textValue(body, "addonStateTableKeyValueBulkSaveIslandEndpoint");
     }
 
     private String eventListMessage(String body) {

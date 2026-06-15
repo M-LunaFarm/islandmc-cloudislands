@@ -149,6 +149,7 @@ public final class IslandCommandCatalog {
             "ciadmin storage",
             "ciadmin addons state",
             "ciadmin addons state-summary",
+            "ciadmin addons endpoints",
             "ciadmin addons list",
             "ciadmin rankings level [limit]",
             "ciadmin rankings worth [limit]",

@@ -1070,6 +1070,10 @@ public final class VelocityRoutingController {
         sendBodyResult(player, coreApiClient.coreConfig().thenApply(this::coreConfigMessage), "Core config를 불러오지 못했습니다.");
     }
 
+    public void addonEndpoints(Player player) {
+        sendBodyResult(player, coreApiClient.coreConfig().thenApply(this::addonEndpointMessage), "Addon endpoint 상태를 불러오지 못했습니다.");
+    }
+
     public void storageStatus(Player player) {
         sendBodyResult(player, coreApiClient.storageStatus().thenApply(this::storageStatusMessage), "Storage 상태를 불러오지 못했습니다.");
     }
@@ -1834,6 +1838,15 @@ public final class VelocityRoutingController {
             + " leaseDuration=" + longValue(body, "leaseDurationSeconds") + "s"
             + " mtls=" + boolValue(body, "requireMtls")
             + " ipAllowlist=" + boolValue(body, "ipAllowlistEnabled");
+    }
+
+    private String addonEndpointMessage(String body) {
+        return "Addon endpoints: "
+            + "bulkSave=" + boolValue(body, "addonStateBulkSaveApi")
+            + " global=" + jsonValue(body, "addonStateBulkSaveGlobalEndpoint")
+            + " island=" + jsonValue(body, "addonStateBulkSaveIslandEndpoint")
+            + " tableGlobal=" + jsonValue(body, "addonStateTableKeyValueBulkSaveGlobalEndpoint")
+            + " tableIsland=" + jsonValue(body, "addonStateTableKeyValueBulkSaveIslandEndpoint");
     }
 
     public void playerInfo(Player player, UUID playerUuid) {
