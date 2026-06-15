@@ -76,6 +76,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -2867,7 +2868,35 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
             return "CORE_API";
         }
+        String setupSectionType = inferredSetupDatabaseType();
+        if (!setupSectionType.isBlank()) {
+            return setupSectionType;
+        }
         return configs.main().getString("database.type", "SQLITE");
+    }
+
+    private String inferredSetupDatabaseType() {
+        List<String> configured = new ArrayList<>();
+        if (setupDatabaseSectionConfigured("postgresql")) {
+            configured.add("POSTGRESQL");
+        }
+        if (setupDatabaseSectionConfigured("mysql")) {
+            configured.add("MYSQL");
+        }
+        if (setupDatabaseSectionConfigured("mariadb")) {
+            configured.add("MARIADB");
+        }
+        return configured.size() == 1 ? configured.get(0) : "";
+    }
+
+    private boolean setupDatabaseSectionConfigured(String section) {
+        String base = "setup.database." + section + ".";
+        return nonBlankConfig(base + "jdbc-url")
+                || nonBlankConfig(base + "url")
+                || nonBlankConfig(base + "host")
+                || nonBlankConfig(base + "name")
+                || nonBlankConfig(base + "database")
+                || configs.main().getInt(base + "port", 0) > 0;
     }
 
     private String configuredDatabaseBackendName() {
@@ -3232,6 +3261,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
             return "setup.database.core-api.enabled";
+        }
+        String setupSectionType = inferredSetupDatabaseType();
+        if (!setupSectionType.isBlank()) {
+            return "setup.database." + setupSectionType.toLowerCase(Locale.ROOT);
         }
         if (backend != DatabaseService.StorageBackend.SQLITE) {
             return "database.type";
