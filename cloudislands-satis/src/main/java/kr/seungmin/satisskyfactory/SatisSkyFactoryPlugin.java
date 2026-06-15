@@ -2933,6 +2933,21 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String databaseSetupWarningMetadata() {
+        String envType = System.getenv("CLOUDISLANDS_SATIS_DATABASE_TYPE");
+        if (envType != null && !envType.isBlank()) {
+            return "none";
+        }
+        String setupType = configs.main().getString("setup.database.type", "");
+        if (setupType != null && !setupType.isBlank()) {
+            return "none";
+        }
+        if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
+            return "none";
+        }
+        String databaseType = configs.main().getString("database.type", "");
+        if (databaseType != null && !databaseType.isBlank() && !"SQLITE".equalsIgnoreCase(databaseType.trim())) {
+            return "none";
+        }
         List<String> configured = configuredSetupDatabaseSections();
         if (configured.size() <= 1) {
             return "none";
