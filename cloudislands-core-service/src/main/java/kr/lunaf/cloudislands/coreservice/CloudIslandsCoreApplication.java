@@ -1531,6 +1531,14 @@ public final class CloudIslandsCoreApplication {
             audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_SCAN", "MIGRATION", "superiorskyblock2", Map.of());
             write(exchange, 202, migrationAdmin.scan(JsonFields.text(body, "path", "plugins/SuperiorSkyblock2")));
         });
+        route("/v1/admin/migrations/superiorskyblock2/status", exchange -> {
+            if (!config.superiorSkyblock2MigrationEnabled()) {
+                write(exchange, 403, migrationDisabledJson());
+                return;
+            }
+            audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_STATUS", "MIGRATION", "superiorskyblock2", Map.of());
+            write(exchange, 200, migrationAdmin.status());
+        });
         route("/v1/admin/migrations/superiorskyblock2/dryrun", exchange -> {
             if (!config.superiorSkyblock2MigrationEnabled()) {
                 write(exchange, 403, migrationDisabledJson());

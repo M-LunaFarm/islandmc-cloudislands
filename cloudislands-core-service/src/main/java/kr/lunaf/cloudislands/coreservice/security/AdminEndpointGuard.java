@@ -124,7 +124,7 @@ public final class AdminEndpointGuard {
             }
         }
         return switch (path) {
-            case "/v1/audit", "/v1/admin/audit", "/v1/admin/audit/list" -> AdminPermission.AUDIT_READ;
+            case "/v1/audit", "/v1/admin/audit", "/v1/admin/audit/list", "/v1/admin/migrations/superiorskyblock2/status" -> AdminPermission.AUDIT_READ;
             case "/v1/events" -> AdminPermission.AUDIT_READ;
             case "/metrics" -> AdminPermission.AUDIT_READ;
             case "/v1/jobs", "/v1/jobs/claim", "/v1/jobs/complete", "/v1/jobs/fail", "/v1/jobs/recover" -> AdminPermission.JOB_MANAGE;

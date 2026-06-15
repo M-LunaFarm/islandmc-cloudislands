@@ -138,6 +138,32 @@ public final class MigrationAdminService {
         return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"manifests\":" + lastPlan.manifests().size() + ",\"canImport\":" + lastPlan.canImport() + ",\"approvalRequired\":" + lastPlan.canImport() + (lastApprovalToken.isBlank() ? "" : ",\"approvalToken\":\"" + lastApprovalToken + "\"") + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastPlan.issues()) + "}";
     }
 
+    public synchronized String status() {
+        boolean rollbackPlanAvailable = lastRollbackPlan != null;
+        return "{\"state\":\"STATUS\""
+            + migrationBoundaryFields()
+            + rollbackSafetyFields(rollbackPlanAvailable)
+            + ",\"sourcePlugin\":\"SuperiorSkyblock2\""
+            + ",\"migrationInputOnly\":true"
+            + ",\"runtimeDependency\":false"
+            + ",\"operations\":\"scan,dryrun,extract,import,verify,rollback,status\""
+            + ",\"scanManifests\":" + lastScan.manifests().size()
+            + ",\"planManifests\":" + lastPlan.manifests().size()
+            + ",\"canImport\":" + lastPlan.canImport()
+            + ",\"approvalRequired\":" + (lastPlan.canImport() && !lastApprovalToken.isBlank())
+            + ",\"approvalTokenAvailable\":" + !lastApprovalToken.isBlank()
+            + ",\"rollbackPlanAvailable\":" + rollbackPlanAvailable
+            + ",\"rollbackPlan\":" + rollbackPlanJson(lastRollbackPlan)
+            + ",\"migrationBundleRoot\":\"" + escape(migrationBundleRoot.toString()) + "\""
+            + ",\"lastExtractionRoot\":\"" + escape((lastExtractionRoot == null ? migrationBundleRoot : lastExtractionRoot).toString()) + "\""
+            + ",\"manifestPath\":\"" + escape(migrationManifestPath().toString()) + "\""
+            + ",\"dryrunReportPath\":\"" + escape(migrationReportPath("dryrun").toString()) + "\""
+            + ",\"verifyReportPath\":\"" + escape(migrationReportPath("verify").toString()) + "\""
+            + reportFields(lastPlan.report())
+            + ",\"issues\":" + issuesJson(lastPlan.issues())
+            + "}";
+    }
+
     private List<MigrationIssue> targetConflictIssues(List<MigrationManifest> manifests) {
         List<MigrationIssue> issues = new ArrayList<>();
         for (MigrationManifest manifest : manifests) {
