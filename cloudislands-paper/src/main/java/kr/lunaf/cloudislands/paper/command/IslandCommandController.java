@@ -338,17 +338,17 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return true;
         }
         if (args.length == 0) {
-            sendCommandList(player, "섬 명령어 목록", HELP_COMMANDS, 1);
+            sendCommandList(player, label, "섬 명령어 목록", HELP_COMMANDS, 1);
             return true;
         }
         String subcommand = args[0].toLowerCase(Locale.ROOT);
         int commandListPage = commandListPage(args);
         if (commandListPage > 0) {
-            sendCommandList(player, "섬 명령어 목록", HELP_COMMANDS, commandListPage);
+            sendCommandList(player, label, "섬 명령어 목록", HELP_COMMANDS, commandListPage);
             return true;
         }
         if (subcommand.equals("menu") || subcommand.equals("메뉴")) {
-            sendCommandList(player, "섬 명령어 목록", HELP_COMMANDS, 1);
+            sendCommandList(player, label, "섬 명령어 목록", HELP_COMMANDS, 1);
             return true;
         }
         if (subcommand.equals("create-menu") || subcommand.equals("templates") || subcommand.equals("생성메뉴") || subcommand.equals("템플릿")) {
@@ -990,11 +990,15 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             setIslandPermission(player, args[1], args[2], args[3]);
             return true;
         }
-        sendCommandList(player, "섬 명령어 목록", HELP_COMMANDS, 1);
+        sendCommandList(player, label, "섬 명령어 목록", HELP_COMMANDS, 1);
         return true;
     }
 
     private void sendCommandList(Player player, String title, List<String> commands, int page) {
+        sendCommandList(player, "섬", title, commands, page);
+    }
+
+    private void sendCommandList(Player player, String label, String title, List<String> commands, int page) {
         int pageSize = 12;
         int maxPage = Math.max(1, (commands.size() + pageSize - 1) / pageSize);
         int safePage = Math.max(1, Math.min(page, maxPage));
@@ -1004,10 +1008,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         String headerSuffix = routeMessage("command-list-suffix", " - 1 line > 1 command");
         player.sendMessage(headerTitle + safePage + "/" + maxPage + headerSuffix);
         for (String command : commands.subList(from, to)) {
-            player.sendMessage("> /" + command);
+            player.sendMessage("> /" + command.replaceFirst("^섬", label));
         }
         if (safePage < maxPage) {
-            player.sendMessage("> /섬 command list " + (safePage + 1));
+            player.sendMessage("> /" + label + " command list " + (safePage + 1));
         }
     }
 
