@@ -333,6 +333,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-registration-policy", "disabled-features-skip-commands-gui-listeners-tasks-and-writes");
         state.put("runtime-disabled-features", disabledRuntimeFeatures());
         putDataWriteGateState(state);
+        putIslandMobilityState(state);
     }
 
     private void putDataWriteGateState(Map<String, String> state) {
@@ -348,6 +349,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("write-gate-lifecycle-listener", Boolean.toString(lifecycleListenerNeeded()));
         state.put("write-gate-addon-state", Boolean.toString(featureEnabled("addon-state") && coreApiAddonStateAvailable()));
         state.put("write-gate-dirty-save", Boolean.toString(dataWritesEnabled()));
+    }
+
+    private void putIslandMobilityState(Map<String, String> state) {
+        state.put("island-state-key", "cloudislands-island-uuid");
+        state.put("island-state-node-bound", "false");
+        state.put("island-state-mobility", "portable-across-island-nodes");
+        state.put("island-state-migration-policy", "remap-location-only-preserve-island-uuid");
+        state.put("island-state-authority", "cloudislands-core-api");
     }
 
     private String disabledRuntimeFeatures() {
@@ -970,6 +979,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("effective-skyblock-provider", "CLOUDISLANDS");
         metadata.put("skyblock-provider-policy", "cloudislands-api-only");
         metadata.put("legacy-skyblock-provider-ignored", Boolean.toString(!"CLOUDISLANDS".equalsIgnoreCase(configuredSkyblockProvider()) && !"CLOUD_ISLANDS".equalsIgnoreCase(configuredSkyblockProvider())));
+        putIslandMobilityState(metadata);
         metadata.put("satis-state-schema", "3");
         metadata.put("legacy-satismc-import-scan", "factory admin migration scan <sqlitePath>");
         metadata.put("legacy-satismc-import-dryrun", "factory admin migration dryrun <sqlitePath>");
