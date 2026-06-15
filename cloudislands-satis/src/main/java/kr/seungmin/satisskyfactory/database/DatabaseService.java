@@ -480,21 +480,46 @@ public final class DatabaseService {
     }
 
     public LegacyRollbackResult rollbackLastLegacyImport() {
-        if (activeBackend != StorageBackend.SQLITE || sqlDialect != SqlDialect.SQLITE) {
-            return new LegacyRollbackResult(false, "unsupported-backend:" + activeBackend.name(), "", "restore database backup manually for shared backends");
-        }
         File backup = legacyRollbackBackupFile();
         if (!backup.isFile()) {
             return new LegacyRollbackResult(false, "backup-missing", backup.getAbsolutePath(), "run import once after this version creates a rollback snapshot");
         }
-        File target = databaseFile();
-        try {
-            close();
-            java.nio.file.Files.copy(backup.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            open();
-            return new LegacyRollbackResult(true, "restored", backup.getAbsolutePath(), "run verify against the legacy source before accepting rollback");
-        } catch (java.io.IOException exception) {
-            throw new IllegalStateException("Failed to restore legacy import rollback snapshot", exception);
+        if (sqlDialect == SqlDialect.SQLITE) {
+            File target = databaseFile();
+            try {
+                close();
+                java.nio.file.Files.copy(backup.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                open();
+                publishAllCoreState();
+                return new LegacyRollbackResult(true, "restored", backup.getAbsolutePath(), "run verify against the legacy source before accepting rollback");
+            } catch (java.io.IOException exception) {
+                throw new IllegalStateException("Failed to restore legacy import rollback snapshot", exception);
+            }
+        }
+        try (Connection target = connection();
+             Connection source = legacyConnection(backup)) {
+            boolean autoCommit = target.getAutoCommit();
+            target.setAutoCommit(false);
+            try {
+                for (String table : reverseLegacyImportTables()) {
+                    try (Statement statement = target.createStatement()) {
+                        statement.executeUpdate("DELETE FROM " + table);
+                    }
+                }
+                for (String table : legacyImportTables()) {
+                    copyTableRows(target, source, table, sqlDialect, SqlDialect.SQLITE);
+                }
+                target.commit();
+            } catch (SQLException exception) {
+                target.rollback();
+                throw exception;
+            } finally {
+                target.setAutoCommit(autoCommit);
+            }
+            publishAllCoreState();
+            return new LegacyRollbackResult(true, "restored-shared-backend", backup.getAbsolutePath(), "run verify against the legacy source before accepting rollback");
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to restore shared backend legacy import rollback snapshot", exception);
         }
     }
 
@@ -582,9 +607,6 @@ public final class DatabaseService {
     }
 
     private String createLegacyImportRollbackSnapshot(Connection target) throws SQLException {
-        if (activeBackend != StorageBackend.SQLITE || sqlDialect != SqlDialect.SQLITE) {
-            return "unsupported-for-" + activeBackend.name();
-        }
         File backup = legacyRollbackBackupFile();
         File parent = backup.getParentFile();
         if (parent != null) {
@@ -595,8 +617,17 @@ public final class DatabaseService {
         } catch (java.io.IOException exception) {
             throw new SQLException("failed to replace legacy rollback snapshot", exception);
         }
-        try (Statement statement = target.createStatement()) {
-            statement.execute("VACUUM main INTO '" + sqliteLiteral(backup.getAbsolutePath()) + "'");
+        if (sqlDialect == SqlDialect.SQLITE) {
+            try (Statement statement = target.createStatement()) {
+                statement.execute("VACUUM main INTO '" + sqliteLiteral(backup.getAbsolutePath()) + "'");
+            }
+            return backup.getAbsolutePath();
+        }
+        try (Connection backupConnection = legacyConnection(backup)) {
+            new MigrationService().migrate(backupConnection, MigrationService.Dialect.SQLITE);
+            for (String table : legacyImportTables()) {
+                copyTableRows(backupConnection, target, table, SqlDialect.SQLITE, sqlDialect);
+            }
         }
         return backup.getAbsolutePath();
     }
@@ -625,6 +656,12 @@ public final class DatabaseService {
                 "island_unlocks",
                 "ledger"
         );
+    }
+
+    private List<String> reverseLegacyImportTables() {
+        List<String> tables = new ArrayList<>(legacyImportTables());
+        java.util.Collections.reverse(tables);
+        return tables;
     }
 
     private long copyLegacyTable(Connection target, Connection source, String table) throws SQLException {
@@ -671,11 +708,41 @@ public final class DatabaseService {
         return Math.max(0L, tableCount(target, table) - before);
     }
 
+    private long copyTableRows(Connection target, Connection source, String table, SqlDialect targetDialect, SqlDialect sourceDialect) throws SQLException {
+        Set<String> targetColumns = tableColumns(target, table, targetDialect);
+        Set<String> sourceColumns = tableColumns(source, table, sourceDialect);
+        List<String> columns = targetColumns.stream()
+                .filter(sourceColumns::contains)
+                .toList();
+        if (columns.isEmpty()) {
+            return 0L;
+        }
+        String columnList = String.join(", ", columns);
+        String placeholders = columns.stream().map(_column -> "?").collect(java.util.stream.Collectors.joining(", "));
+        long before = tableCount(target, table, targetDialect);
+        try (Statement select = source.createStatement();
+             ResultSet rs = select.executeQuery("SELECT " + columnList + " FROM " + table);
+             PreparedStatement insert = target.prepareStatement(insertIgnoreSql(table, columnList, placeholders, targetDialect))) {
+            while (rs.next()) {
+                for (int index = 0; index < columns.size(); index++) {
+                    insert.setObject(index + 1, rs.getObject(index + 1));
+                }
+                insert.addBatch();
+            }
+            insert.executeBatch();
+        }
+        return Math.max(0L, tableCount(target, table, targetDialect) - before);
+    }
+
     private String insertIgnoreSql(String table, String columns, String placeholders) {
-        if (sqlDialect == SqlDialect.MYSQL) {
+        return insertIgnoreSql(table, columns, placeholders, sqlDialect);
+    }
+
+    private String insertIgnoreSql(String table, String columns, String placeholders, SqlDialect dialect) {
+        if (dialect == SqlDialect.MYSQL) {
             return "INSERT IGNORE INTO " + table + "(" + columns + ") VALUES(" + placeholders + ")";
         }
-        if (sqlDialect == SqlDialect.POSTGRESQL) {
+        if (dialect == SqlDialect.POSTGRESQL) {
             return "INSERT INTO " + table + "(" + columns + ") VALUES(" + placeholders + ") ON CONFLICT DO NOTHING";
         }
         return "INSERT OR IGNORE INTO " + table + "(" + columns + ") VALUES(" + placeholders + ")";
@@ -759,7 +826,11 @@ public final class DatabaseService {
     }
 
     private Set<String> tableColumns(Connection connection, String schema, String table) throws SQLException {
-        if (sqlDialect != SqlDialect.SQLITE) {
+        return tableColumns(connection, schema, table, sqlDialect);
+    }
+
+    private Set<String> tableColumns(Connection connection, String schema, String table, SqlDialect dialect) throws SQLException {
+        if (dialect != SqlDialect.SQLITE) {
             Set<String> columns = new LinkedHashSet<>();
             try (ResultSet rs = connection.getMetaData().getColumns(null, null, table, null)) {
                 while (rs.next()) {
@@ -780,6 +851,10 @@ public final class DatabaseService {
 
     private Set<String> tableColumns(Connection connection, String table) throws SQLException {
         return tableColumns(connection, "main", table);
+    }
+
+    private Set<String> tableColumns(Connection connection, String table, SqlDialect dialect) throws SQLException {
+        return tableColumns(connection, "main", table, dialect);
     }
 
     private Set<String> sqliteTableColumns(Connection connection, String table) throws SQLException {
@@ -805,7 +880,15 @@ public final class DatabaseService {
     }
 
     private long tableCount(Connection connection, String schema, String table) throws SQLException {
-        String source = sqlDialect == SqlDialect.SQLITE ? schema + "." + table : table;
+        return tableCount(connection, schema, table, sqlDialect);
+    }
+
+    private long tableCount(Connection connection, String table, SqlDialect dialect) throws SQLException {
+        return tableCount(connection, "main", table, dialect);
+    }
+
+    private long tableCount(Connection connection, String schema, String table, SqlDialect dialect) throws SQLException {
+        String source = dialect == SqlDialect.SQLITE ? schema + "." + table : table;
         try (Statement statement = connection.createStatement();
              ResultSet rs = statement.executeQuery("SELECT COUNT(*) AS count FROM " + source)) {
             return rs.next() ? rs.getLong("count") : 0L;
