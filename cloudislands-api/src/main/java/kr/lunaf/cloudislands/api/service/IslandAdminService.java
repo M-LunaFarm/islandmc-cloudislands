@@ -63,6 +63,9 @@ public interface IslandAdminService {
     CompletableFuture<java.util.Optional<IslandRuntimeSnapshot>> repairIslandResult(UUID islandId, String reason);
     CompletableFuture<Void> deleteIsland(UUID islandId);
     CompletableFuture<IslandActionResult> adminDeleteIslandResult(UUID islandId);
+    default CompletableFuture<IslandActionResult> deleteIslandResult(UUID islandId) {
+        return adminDeleteIslandResult(islandId);
+    }
     CompletableFuture<RouteTicket> createAdminTeleportTicket(UUID playerUuid, UUID islandId);
     CompletableFuture<RoutePlan> resolveAdminTeleport(UUID playerUuid, UUID islandId);
     CompletableFuture<java.util.Optional<RouteTicket>> getRouteTicket(UUID ticketId);

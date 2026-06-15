@@ -159,6 +159,9 @@ public interface CoreApiClient {
     CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId);
     CompletableFuture<String> adminDeleteIsland(UUID islandId);
     CompletableFuture<String> adminDeleteIslandResult(UUID islandId);
+    default CompletableFuture<String> deleteIslandResult(UUID islandId) {
+        return adminDeleteIslandResult(islandId);
+    }
     CompletableFuture<String> repairIsland(UUID islandId, String reason);
     CompletableFuture<String> repairIslandResult(UUID islandId, String reason);
     CompletableFuture<String> debugRoutes(UUID playerUuid);

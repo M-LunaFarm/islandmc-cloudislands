@@ -716,7 +716,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> quarantineIslandResult(UUID islandId, String reason) {
-        return postWithResultBody("/v1/admin/islands/quarantine", "{\"islandId\":\"" + islandId + "\",\"reason\":\"" + escape(reason) + "\"}");
+        return postWithResultBody("/v1/admin/islands/" + islandId + "/quarantine", "{\"reason\":\"" + escape(reason) + "\"}");
     }
 
     @Override
@@ -741,7 +741,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> adminDeleteIslandResult(UUID islandId) {
-        return postWithResultBody("/v1/admin/islands/delete", "{\"islandId\":\"" + islandId + "\"}");
+        return postWithResultBody("/v1/admin/islands/" + islandId + "/delete", "{}");
     }
 
     @Override
@@ -751,7 +751,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> repairIslandResult(UUID islandId, String reason) {
-        return postWithResultBody("/v1/admin/islands/repair", "{\"islandId\":\"" + islandId + "\",\"reason\":\"" + escape(reason) + "\"}");
+        return postWithResultBody("/v1/admin/islands/" + islandId + "/repair", "{\"reason\":\"" + escape(reason) + "\"}");
     }
 
     @Override
