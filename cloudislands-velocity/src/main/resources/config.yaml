@@ -23,6 +23,7 @@ routing:
   route-ticket-ttl-seconds: 30
   wait-for-activation-timeout-seconds: 20
   fallback-on-failure: "Lobby"
+  # Keep true for production so players see logical islands, not Island-1/Island-2 node names.
   hide-node-names: true
 
 security:

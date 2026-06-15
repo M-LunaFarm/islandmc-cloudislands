@@ -338,6 +338,8 @@ public final class CloudIslandsVelocityPlugin {
             + "\"pluginMessagingControlPolicy\":\"block-cloudislands-control-messages-at-proxy\","
             + "\"cloudIslandsPluginMessagesBlocked\":" + config.blockCloudIslandsPluginMessages() + ","
             + "\"hideNodeNames\":" + config.hideNodeNames() + ","
+            + "\"playerTopologyPolicy\":\"logical-island-only\","
+            + "\"playerNodeNamePolicy\":\"" + (config.hideNodeNames() ? "hidden-from-player-routing-messages" : "visible-risk-admin-debug-only") + "\","
             + "\"topologyExposureRisk\":" + !config.hideNodeNames() + ","
             + "\"pluginMessagesBlockedTotal\":" + pluginMessagesBlocked.get() + ","
             + "\"aliases\":\"" + escapeJson(String.join(",", commandAliases)) + "\","
