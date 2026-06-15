@@ -1444,7 +1444,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandRecoveryRequired(kr.lunaf.cloudislands.api.event.IslandRecoveryRequiredEvent event) {
-        runSatisLifecycle(event.islandId(), "flush", () -> flushSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), "recovery-required:" + lifecycleNode(event.nodeId()), () -> suspendRecoveredIsland(event.islandId(), "recovery-required:" + lifecycleNode(event.nodeId())));
     }
 
     @Override
@@ -1455,7 +1455,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     @Override
     public void onIslandRuntimeChanged(IslandRuntimeChangeEvent event) {
         String state = event.state() == null ? "" : event.state();
-        if (state.equalsIgnoreCase("SAVING") || state.equalsIgnoreCase("DEACTIVATING") || state.equalsIgnoreCase("RECOVERY_REQUIRED") || state.equalsIgnoreCase("QUARANTINED")) {
+        if (state.equalsIgnoreCase("RECOVERY_REQUIRED") || state.equalsIgnoreCase("QUARANTINED")) {
+            String operation = runtimeOperation(state, event.targetNode());
+            runSatisLifecycle(event.islandId(), operation, () -> suspendRecoveredIsland(event.islandId(), operation));
+            return;
+        }
+        if (state.equalsIgnoreCase("SAVING") || state.equalsIgnoreCase("DEACTIVATING")) {
             runSatisLifecycle(event.islandId(), runtimeOperation(state, event.targetNode()), () -> flushSatisIsland(event.islandId()));
             return;
         }
@@ -1723,6 +1728,26 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             dirtySaves.flushIslandSafely(islandId);
         }
         publishLifecycleState(islandId, "flush");
+    }
+
+    private void suspendRecoveredIsland(UUID islandId, String operation) {
+        if (dirtySaves != null) {
+            dirtySaves.forgetIsland(islandId);
+        }
+        if (machines != null) {
+            machines.forgetIsland(islandId);
+        }
+        if (storage != null) {
+            storage.forgetIsland(islandId);
+        }
+        if (nodes != null) {
+            nodes.forgetIsland(islandId);
+        }
+        if (islands != null) {
+            islands.forget(islandId);
+        }
+        coreHydratedIslands.remove(islandId);
+        publishIslandLifecycleState(islandId, operation, null, "suspended", "recovery-required-local-cache-evicted");
     }
 
     private void purgeSatisIsland(UUID islandId) {
