@@ -6,6 +6,7 @@ import kr.seungmin.satisskyfactory.machine.IslandBoostService;
 import kr.seungmin.satisskyfactory.machine.MachineService;
 import kr.seungmin.satisskyfactory.model.FactoryContext;
 import kr.seungmin.satisskyfactory.model.FactoryIsland;
+import kr.seungmin.satisskyfactory.node.ResourceNodeService;
 import kr.seungmin.satisskyfactory.power.PowerNetworkService;
 import kr.seungmin.satisskyfactory.research.ResearchService;
 import kr.seungmin.satisskyfactory.storage.StorageService;
@@ -25,6 +26,7 @@ public final class PlaceholderHook extends PlaceholderExpansion {
     private final FactoryIslandService islands;
     private final MachineService machines;
     private final StorageService storage;
+    private final ResourceNodeService nodes;
     private final PowerNetworkService power;
     private final IslandBoostService boosts;
     private final ResearchService research;
@@ -32,12 +34,14 @@ public final class PlaceholderHook extends PlaceholderExpansion {
     private final Predicate<String> featureEnabled;
 
     public PlaceholderHook(JavaPlugin plugin, FactoryIslandService islands, MachineService machines, StorageService storage,
+                           ResourceNodeService nodes,
                            PowerNetworkService power, IslandBoostService boosts, ResearchService research,
                            ContractService contracts, Predicate<String> featureEnabled) {
         this.plugin = plugin;
         this.islands = islands;
         this.machines = machines;
         this.storage = storage;
+        this.nodes = nodes;
         this.power = power;
         this.boosts = boosts;
         this.research = research;
@@ -106,6 +110,9 @@ public final class PlaceholderHook extends PlaceholderExpansion {
         }
         if (key.equals("machines")) {
             return String.valueOf(machines.byIsland(island.islandUuid()).size());
+        }
+        if (key.equals("resource_nodes") || key.equals("resource_node_count") || key.equals("nodes")) {
+            return String.valueOf(nodes.nodes(island.islandUuid()).size());
         }
         if (key.equals("storage_used")) {
             return storage.findIslandStorage(island.islandUuid())
@@ -181,6 +188,9 @@ public final class PlaceholderHook extends PlaceholderExpansion {
         }
         if (key.startsWith("storage_")) {
             return enabled("storage");
+        }
+        if (key.equals("resource_nodes") || key.equals("resource_node_count") || key.equals("nodes")) {
+            return enabled("resource-nodes");
         }
         if (key.equals("factory_score") || key.equals("machines")
                 || key.startsWith("power_") || key.startsWith("battery_") || key.equals("agriculture_boost")

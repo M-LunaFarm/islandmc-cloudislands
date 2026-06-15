@@ -816,7 +816,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (placeholderHook != null) {
             return;
         }
-        placeholderHook = new PlaceholderHook(this, islands, machines, storage, power, boosts, research, contracts, this::operationalFeatureEnabled);
+        placeholderHook = new PlaceholderHook(this, islands, machines, storage, nodes, power, boosts, research, contracts, this::operationalFeatureEnabled);
         placeholderHook.register();
         getLogger().info("Registered PlaceholderAPI expansion: satisskyfactory");
     }
