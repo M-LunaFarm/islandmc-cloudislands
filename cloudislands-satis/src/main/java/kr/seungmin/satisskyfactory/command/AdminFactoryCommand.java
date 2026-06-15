@@ -790,6 +790,8 @@ public final class AdminFactoryCommand {
                 List.of(
                         "database-configured-backend",
                         "database-setup-sections",
+                        "database-setup-auto-selected",
+                        "database-setup-selected-backend",
                         "database-setup-warning",
                         "database-active-backend",
                         "database-attempted-backends",

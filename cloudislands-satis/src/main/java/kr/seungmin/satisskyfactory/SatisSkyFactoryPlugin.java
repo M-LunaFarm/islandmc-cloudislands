@@ -1050,6 +1050,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-supported-backends", "SQLITE,POSTGRESQL,MYSQL,MARIADB,CORE_API");
         metadata.put("database-configured-backend", configuredDatabaseBackendName());
         metadata.put("database-setup-sections", databaseSetupSectionsMetadata());
+        metadata.put("database-setup-auto-selected", Boolean.toString(databaseSetupAutoSelected()));
+        metadata.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
         metadata.put("database-setup-warning", databaseSetupWarningMetadata());
         metadata.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
         metadata.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
@@ -1330,6 +1332,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-supported-backends", "SQLITE,POSTGRESQL,MYSQL,MARIADB,CORE_API");
         state.put("database-configured-backend", configuredDatabaseBackendName());
         state.put("database-setup-sections", databaseSetupSectionsMetadata());
+        state.put("database-setup-auto-selected", Boolean.toString(databaseSetupAutoSelected()));
+        state.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
         state.put("database-setup-warning", databaseSetupWarningMetadata());
         state.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
         state.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
@@ -1416,6 +1420,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-supported-backends", "SQLITE,POSTGRESQL,MYSQL,MARIADB,CORE_API");
         state.put("database-configured-backend", configuredDatabaseBackendName());
         state.put("database-setup-sections", databaseSetupSectionsMetadata());
+        state.put("database-setup-auto-selected", Boolean.toString(databaseSetupAutoSelected()));
+        state.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
         state.put("database-setup-warning", databaseSetupWarningMetadata());
         state.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
         state.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
@@ -2905,6 +2911,25 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private String databaseSetupSectionsMetadata() {
         List<String> configured = configuredSetupDatabaseSections();
         return configured.isEmpty() ? "none" : String.join(",", configured);
+    }
+
+    private boolean databaseSetupAutoSelected() {
+        String envType = System.getenv("CLOUDISLANDS_SATIS_DATABASE_TYPE");
+        if (envType != null && !envType.isBlank()) {
+            return false;
+        }
+        String setupType = configs.main().getString("setup.database.type", "");
+        if (setupType != null && !setupType.isBlank()) {
+            return false;
+        }
+        if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
+            return false;
+        }
+        return !inferredSetupDatabaseType().isBlank();
+    }
+
+    private String databaseSetupSelectedBackendMetadata() {
+        return databaseSetupAutoSelected() ? inferredSetupDatabaseType() : "none";
     }
 
     private String databaseSetupWarningMetadata() {
