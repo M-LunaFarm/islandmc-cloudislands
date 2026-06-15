@@ -14,6 +14,7 @@ runtime:
 superiorskyblock2:
   migration-input-only: true
   runtime-dependency: false
+  runtime-policy: migration-input-only-no-runtime-hooks
 features:
   configurable: true
   root-switch: satis.enabled
