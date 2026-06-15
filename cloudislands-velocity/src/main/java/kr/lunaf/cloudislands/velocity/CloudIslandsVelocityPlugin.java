@@ -481,7 +481,7 @@ public final class CloudIslandsVelocityPlugin {
             routingController.storageStatus(player);
             return;
         }
-        if (args.length >= 1 && args[0].equalsIgnoreCase("addons") && (args.length == 1 || args[1].equalsIgnoreCase("state") || args[1].equalsIgnoreCase("state-summary"))) {
+        if (args.length >= 1 && args[0].equalsIgnoreCase("addons") && (args.length == 1 || args[1].equalsIgnoreCase("state") || args[1].equalsIgnoreCase("state-summary") || args[1].equalsIgnoreCase("list"))) {
             routingController.addonStateSummary(player);
             return;
         }
