@@ -378,6 +378,8 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_pool_routing_healthy_nodes", "gauge");
         help(out, "cloudislands_pool_storage_available_nodes", "Fresh nodes per pool reporting object storage availability");
         type(out, "cloudislands_pool_storage_available_nodes", "gauge");
+        help(out, "cloudislands_pool_degraded", "Whether a pool has multiple registered nodes but only one route candidate");
+        type(out, "cloudislands_pool_degraded", "gauge");
         for (Map.Entry<String, long[]> entry : poolCounts.entrySet()) {
             String poolLabel = "{pool=\"" + escape(entry.getKey()) + "\"}";
             long[] counts = entry.getValue();
@@ -386,6 +388,7 @@ public final class PrometheusMetricsRenderer {
             out.append("cloudislands_pool_route_candidate_nodes").append(poolLabel).append(' ').append(counts[2]).append('\n');
             out.append("cloudislands_pool_routing_healthy_nodes").append(poolLabel).append(' ').append(counts[3]).append('\n');
             out.append("cloudislands_pool_storage_available_nodes").append(poolLabel).append(' ').append(counts[4]).append('\n');
+            out.append("cloudislands_pool_degraded").append(poolLabel).append(' ').append(counts[0] > 1L && counts[2] == 1L ? 1 : 0).append('\n');
         }
         help(out, "cloudislands_jobs_total", "Island jobs by in-memory state or backend mode");
         type(out, "cloudislands_jobs_total", "gauge");
