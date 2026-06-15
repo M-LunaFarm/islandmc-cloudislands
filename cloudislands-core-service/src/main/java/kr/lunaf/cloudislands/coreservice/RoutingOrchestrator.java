@@ -504,8 +504,7 @@ public final class RoutingOrchestrator {
         if (activationLock != null) {
             lease = activationLock.acquire(runtime.islandId(), "route").orElseThrow(() -> new IllegalStateException("ACTIVATION_LOCKED"));
         }
-        IslandPlacement.Assignment placement = IslandPlacement.choose(runtime.islandId(), runtimes);
-        IslandRuntimeSnapshot activating = runtimes.markActivating(runtime.islandId(), selected.nodeId(), placement.worldName(), placement.cellX(), placement.cellZ());
+        IslandRuntimeSnapshot activating = IslandPlacement.markActivating(runtime.islandId(), selected.nodeId(), runtimes);
         try {
             jobs.publish(new IslandJob(
                 UUID.randomUUID(),

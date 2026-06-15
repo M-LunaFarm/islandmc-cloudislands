@@ -104,18 +104,19 @@ public final class CreateIslandWorkflow {
         IslandSnapshot island = islands.createOwnedIsland(islandId, ownerUuid, normalizedTemplate, "Island");
         metadata.upsertMember(islandId, ownerUuid, IslandRole.OWNER);
         playerProfiles.setPrimaryIsland(ownerUuid, islandId);
-        kr.lunaf.cloudislands.coreservice.IslandPlacement.Assignment placement = kr.lunaf.cloudislands.coreservice.IslandPlacement.choose(islandId, runtimes);
+        kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime = kr.lunaf.cloudislands.coreservice.IslandPlacement.markActivating(islandId, node.nodeId(), runtimes);
         try {
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.CREATE_ISLAND, islandId, node.nodeId(), 0, Map.of("templateId", normalizedTemplate, "ownerUuid", ownerUuid.toString(), "islandSize", Integer.toString(island.size()), "worldName", placement.worldName(), "cellX", Integer.toString(placement.cellX()), "cellZ", Integer.toString(placement.cellZ())), Instant.now()));
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.CREATE_ISLAND, islandId, node.nodeId(), 0, Map.of("templateId", normalizedTemplate, "ownerUuid", ownerUuid.toString(), "islandSize", Integer.toString(island.size()), "worldName", runtime.activeWorld() == null ? kr.lunaf.cloudislands.coreservice.IslandPlacement.worldName(islandId) : runtime.activeWorld(), "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()), "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ())), Instant.now()));
         } catch (RuntimeException exception) {
             releaseCreationLock(lease);
             islands.setState(islandId, IslandState.ERROR_CREATING);
+            runtimes.setState(islandId, IslandState.ERROR_CREATING);
             publishTicketFailure(ownerUuid, islandId, "JOB_QUEUE_UNAVAILABLE");
             events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", IslandState.ERROR_CREATING.name(), "reason", "JOB_QUEUE_UNAVAILABLE", "targetNode", node.nodeId()));
             return new CreateIslandResult(false, "JOB_QUEUE_UNAVAILABLE", islands.findById(islandId).orElse(island), null);
         }
         events.publish(CloudIslandEventType.ISLAND_CREATED.name(), Map.of("islandId", islandId.toString(), "ownerUuid", ownerUuid.toString(), "targetNode", node.nodeId()));
-        RouteTicket ticket = tickets.save(new RouteTicket(UUID.randomUUID(), ownerUuid, RouteAction.HOME, islandId, node.nodeId(), placement.worldName(), RouteTicketState.PREPARING, Instant.now().plus(routePreparingTicketTtl), UUID.randomUUID().toString(), Map.of(
+        RouteTicket ticket = tickets.save(new RouteTicket(UUID.randomUUID(), ownerUuid, RouteAction.HOME, islandId, node.nodeId(), runtime.activeWorld() == null ? kr.lunaf.cloudislands.coreservice.IslandPlacement.worldName(islandId) : runtime.activeWorld(), RouteTicketState.PREPARING, Instant.now().plus(routePreparingTicketTtl), UUID.randomUUID().toString(), Map.of(
             "targetServerName", node.velocityServerName(),
             "targetType", "ISLAND_HOME",
             "homeName", "default",
