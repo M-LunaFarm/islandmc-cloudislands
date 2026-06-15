@@ -2430,12 +2430,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean configuredFeatureEnabled(String key) {
+        String requested = key == null ? "" : key;
         String canonical = canonicalFeature(key);
         boolean enabled = configFeature(canonical);
-        for (Map.Entry<String, String> alias : FEATURE_ALIASES.entrySet()) {
-            if (alias.getValue().equals(canonical) && configFeatureDefined(alias.getKey())) {
-                enabled = enabled && configFeature(alias.getKey());
-            }
+        if (!requested.equals(canonical) && configFeatureDefined(requested)) {
+            enabled = enabled && configFeature(requested);
         }
         return enabled;
     }
@@ -2467,14 +2466,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (!addonRuntimeEnabled) {
             return false;
         }
+        String requested = key == null ? "" : key;
         String canonical = canonicalFeature(key);
         boolean enabled = effectiveFeatures.getOrDefault(canonical, configuredFeatureEnabled(canonical));
-        for (Map.Entry<String, String> alias : FEATURE_ALIASES.entrySet()) {
-            if (alias.getValue().equals(canonical)) {
-                Boolean effective = effectiveFeatures.get(alias.getKey());
-                if (effective != null) {
-                    enabled = enabled && effective;
-                }
+        if (!requested.equals(canonical)) {
+            Boolean effective = effectiveFeatures.get(requested);
+            if (effective != null) {
+                enabled = enabled && effective;
             }
         }
         return enabled;
