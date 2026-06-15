@@ -1409,8 +1409,18 @@ public final class CloudIslandsVelocityPlugin {
         if (args.length == 5 && args[0].equalsIgnoreCase("jobs") && args[1].equalsIgnoreCase("recover")) {
             addLiteralSuggestions(matches, args[4], List.of("16", "32", "64"));
         }
+        if (config.superiorSkyblock2MigrationEnabled() && args.length == 2 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
+            addLiteralSuggestions(matches, args[1], List.of("scan", "dryrun", "extract", "import", "verify", "rollback"));
+        }
         if (config.superiorSkyblock2MigrationEnabled() && args.length == 3 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
-            addLiteralSuggestions(matches, args[2], List.of("plugins/SuperiorSkyblock2"));
+            String action = args[1].toLowerCase(Locale.ROOT);
+            if (action.equals("scan") || action.equals("dryrun") || action.equals("dry-run")) {
+                addLiteralSuggestions(matches, args[2], List.of("plugins/SuperiorSkyblock2"));
+            } else if (action.equals("extract") || action.equals("verify")) {
+                addLiteralSuggestions(matches, args[2], List.of("cloudislands-storage", "migration-bundles"));
+            } else if (action.equals("import")) {
+                addLiteralSuggestions(matches, args[2], List.of("<approvalToken>"));
+            }
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("rankings")) {
             addLiteralSuggestions(matches, args[1], List.of("level", "worth"));
