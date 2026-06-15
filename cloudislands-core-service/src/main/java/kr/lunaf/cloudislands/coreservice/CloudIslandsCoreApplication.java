@@ -2765,7 +2765,7 @@ public final class CloudIslandsCoreApplication {
             + "\"redisStreamPolicy\":\"jobs,events,audit-append-only-observability\","
             + "\"globalEventTypes\":\"IslandCreated,IslandDeleted,IslandActivated,IslandDeactivated,IslandMigrated,IslandMemberChanged,IslandFlagChanged,IslandLevelUpdated,IslandSnapshotCreated,NodeStateChanged,RouteTicketCreated,RouteSessionPublished,RouteTicketConsumed,RouteTicketFailed,RouteTicketCleared\","
             + "\"routeMetricsTargetServerName\":true,"
-            + "\"routeMetricsTargetServerNameEvents\":\"RouteTicketCreated,RouteSessionPublished,RouteTicketConsumed\","
+            + "\"routeMetricsTargetServerNameEvents\":\"RouteTicketCreated,RouteSessionPublished,RouteTicketConsumed,RouteTicketFailed\","
             + "\"routeMetricsRequestedNode\":true,"
             + "\"routeMetricsRequestedNodeEvents\":\"RouteTicketFailed\","
             + "\"distributedLockPolicy\":\"redis-fast-lock-plus-postgresql-row-lock\","

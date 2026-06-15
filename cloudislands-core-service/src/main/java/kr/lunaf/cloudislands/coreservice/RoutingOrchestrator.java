@@ -210,6 +210,7 @@ public final class RoutingOrchestrator {
             "islandId", ticket == null ? "" : ticket.islandId().toString(),
             "action", ticket == null ? "" : ticket.action().name(),
             "targetNode", ticket == null ? "" : ticket.targetNode(),
+            "targetServerName", ticket == null ? "" : ticket.payload().getOrDefault("targetServerName", ticket.targetNode()),
             "requestedNode", nodeId == null ? "" : nodeId,
             "reason", reason
         ));
@@ -444,6 +445,7 @@ public final class RoutingOrchestrator {
             "islandId", islandId == null ? "" : islandId.toString(),
             "action", action == null ? "" : action.name(),
             "targetNode", targetNode == null ? "" : targetNode,
+            "targetServerName", targetNode == null ? "" : targetNode,
             "reason", reason
         ));
     }
