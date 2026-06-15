@@ -1008,6 +1008,8 @@ public final class AdminFactoryCommand {
                         "data-write-mode",
                         "write-gate-machines",
                         "write-gate-storage",
+                        "write-gate-storage-direct",
+                        "write-gate-storage-direct-policy",
                         "write-gate-resource-nodes",
                         "write-gate-market",
                         "write-gate-contracts",
