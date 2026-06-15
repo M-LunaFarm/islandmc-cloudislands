@@ -2612,7 +2612,7 @@ public final class CloudIslandsCoreApplication {
             + "\"satisAddonRemovalPolicy\":\"core-boots-and-islands-load-without-satis-jar\","
             + "\"satisDataRetentionPolicy\":\"addon-state-preserved-when-disabled-or-removed\","
             + "\"satisCoreBootRequiresAddon\":false,"
-            + "\"satisCommandOwner\":\"cloudislands-satis-paper-addon\","
+            + "\"satisCommandOwner\":\"optional-satis-paper-addon\","
             + "\"velocitySatisCommandPolicy\":\"no-direct-satis-command-handler-route-only\","
             + "\"paperSatisCommandPolicy\":\"addon-registers-own-commands-when-enabled\","
             + "\"islandPool\":\"" + escape(config.islandPool()) + "\","
