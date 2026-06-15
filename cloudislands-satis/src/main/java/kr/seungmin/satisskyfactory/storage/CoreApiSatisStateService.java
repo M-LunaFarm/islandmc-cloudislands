@@ -159,6 +159,9 @@ public final class CoreApiSatisStateService {
         if (cloudIslandsApi == null || islandId == null || key == null || key.isBlank()) {
             return;
         }
+        if (!tableFeatureEnabled(key)) {
+            return;
+        }
         cloudIslandsApi.addons().removeIslandState(addonId, islandId, key).exceptionally(error -> {
             logger.warning("Failed to remove Satis core-api table state " + key + " for island " + islandId + ": " + error.getMessage());
             recordCoreStateFailure("island-row-remove", error);
@@ -168,6 +171,9 @@ public final class CoreApiSatisStateService {
 
     public void publishRow(DatabaseService.CoreRowWrite row) {
         if (cloudIslandsApi == null || row == null || row.islandUuid() == null || row.key() == null || row.key().isBlank() || row.value() == null) {
+            return;
+        }
+        if (!tableFeatureEnabled(row.key())) {
             return;
         }
         Map<String, Map<String, String>> tablePayload = tablePayload(row.key(), row.value());
@@ -184,6 +190,9 @@ public final class CoreApiSatisStateService {
 
     public void publishTable(DatabaseService.CoreTableWrite table) {
         if (cloudIslandsApi == null || table == null || table.islandUuid() == null || table.table() == null || table.table().isBlank()) {
+            return;
+        }
+        if (!tableNameFeatureEnabled(table.table())) {
             return;
         }
         if (table.values() == null) {
@@ -262,6 +271,9 @@ public final class CoreApiSatisStateService {
         if (cloudIslandsApi == null || row == null || row.key() == null || row.key().isBlank() || row.value() == null) {
             return;
         }
+        if (!tableFeatureEnabled(row.key())) {
+            return;
+        }
         Map<String, Map<String, String>> tablePayload = tablePayload(row.key(), row.value());
         if (!tablePayload.isEmpty()) {
             publishGlobalTableKeyValueBulk(Map.of(), tablePayload, "Satis core-api global row " + row.key());
@@ -295,7 +307,10 @@ public final class CoreApiSatisStateService {
             return;
         }
         Map<String, String> safeValues = values == null ? Map.of() : values;
-        Map<String, Map<String, String>> safeTables = tables == null ? Map.of() : tables;
+        Map<String, Map<String, String>> safeTables = enabledTables(tables);
+        if (safeValues.isEmpty() && safeTables.isEmpty()) {
+            return;
+        }
         cloudIslandsApi.addons().tableKeyValueBulkSaveIslandState(addonId, islandId, safeValues, safeTables)
                 .handle((state, error) -> {
                     if (error == null) {
@@ -332,7 +347,10 @@ public final class CoreApiSatisStateService {
             return;
         }
         Map<String, String> safeValues = values == null ? Map.of() : values;
-        Map<String, Map<String, String>> safeTables = tables == null ? Map.of() : tables;
+        Map<String, Map<String, String>> safeTables = enabledTables(tables);
+        if (safeValues.isEmpty() && safeTables.isEmpty()) {
+            return;
+        }
         cloudIslandsApi.addons().tableKeyValueBulkSaveState(addonId, safeValues, safeTables)
                 .handle((state, error) -> {
                     if (error == null) {
@@ -578,6 +596,9 @@ public final class CoreApiSatisStateService {
         if (cloudIslandsApi == null || table == null || table.table() == null || table.table().isBlank() || table.values() == null) {
             return;
         }
+        if (!tableNameFeatureEnabled(table.table())) {
+            return;
+        }
         if (table.values().isEmpty()) {
             cloudIslandsApi.addons().clearTableState(addonId, table.table())
                     .thenApply(state -> {
@@ -798,6 +819,9 @@ public final class CoreApiSatisStateService {
         if (key == null) {
             return false;
         }
+        if (!key.startsWith(IslandAddonService.TABLE_STATE_KEY_PREFIX)) {
+            return true;
+        }
         if (key.startsWith(IslandAddonService.tableStateKeyPrefix("factory_islands"))) {
             return stateFeatureEnabled("lifecycle");
         }
@@ -830,6 +854,27 @@ public final class CoreApiSatisStateService {
             return stateFeatureEnabled("machines");
         }
         return true;
+    }
+
+    private boolean tableNameFeatureEnabled(String table) {
+        String tableName = tableName(table);
+        if (tableName.isBlank()) {
+            return false;
+        }
+        return tableFeatureEnabled(IslandAddonService.tableStateKey(tableName, "__feature_gate__"));
+    }
+
+    private Map<String, Map<String, String>> enabledTables(Map<String, Map<String, String>> tables) {
+        if (tables == null || tables.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Map<String, String>> filtered = new LinkedHashMap<>();
+        tables.forEach((table, values) -> {
+            if (tableNameFeatureEnabled(table) && values != null) {
+                filtered.put(table, values);
+            }
+        });
+        return filtered.isEmpty() ? Map.of() : Map.copyOf(filtered);
     }
 
     private boolean stateFeatureEnabled(String feature) {
