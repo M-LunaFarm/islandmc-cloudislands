@@ -120,6 +120,7 @@ public final class PaperIslandJobWorker {
                 }
                 IslandJobCompletionPayload payload = IslandJobCompletionPayload
                     .activation(result.worldName(), result.cellX(), result.cellZ(), result.schemaVersion(), result.fencingToken(), result.extractedRoot())
+                    .with("placementSource", result.placementSource())
                     .withPreMutationSnapshot(result.preMutationSnapshotNo(), result.preMutationReason(), result.preMutationChecksum(), result.preMutationSizeBytes())
                     .withSnapshot(result.creationSnapshotNo(), "CREATED", result.creationSnapshotChecksum(), result.creationSnapshotSizeBytes());
                 jobSource.complete(nodeId, job.jobId(), payload.asMap());

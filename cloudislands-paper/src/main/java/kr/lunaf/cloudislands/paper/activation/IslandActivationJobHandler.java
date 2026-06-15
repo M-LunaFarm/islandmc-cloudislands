@@ -59,11 +59,12 @@ public final class IslandActivationJobHandler {
 
     public ActivationResult handle(IslandJob job) {
         if (job.type() != IslandJobType.ACTIVATE_ISLAND && job.type() != IslandJobType.CREATE_ISLAND && job.type() != IslandJobType.MIGRATE_ISLAND && job.type() != IslandJobType.RESTORE_ISLAND && job.type() != IslandJobType.RESET_ISLAND) {
-            return new ActivationResult(false, "UNSUPPORTED_JOB", null, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L, "", 0L, "", 0L);
+            return new ActivationResult(false, "UNSUPPORTED_JOB", null, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L, "", 0L, "", 0L, "");
         }
         UUID islandId = job.islandId();
         ShardWorldManager.CellAssignment cell = null;
         boolean hadCellBeforeActivation = shardWorldManager.reserved(islandId);
+        String placementSource = placementSource(job);
         try {
             IslandBundleManifest manifest = manifestFor(job, islandId);
             IslandSaveService.SaveResult preMutationSnapshot = snapshotBeforeMutation(job);
@@ -87,12 +88,12 @@ public final class IslandActivationJobHandler {
             }
             protectionController.registerIsland(islandId, cell.worldName(), cell.originX(), cell.originZ(), manifest.size(), cell.cellX(), cell.cellZ());
             IslandSaveService.SaveResult creationSnapshot = snapshotAfterCreate(job, cell, manifest);
-            return new ActivationResult(true, "ACTIVE", islandId, cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), manifest.size(), manifest.schemaVersion(), longValue(job.payload().get("fencingToken")), restorePlan == null ? null : restorePlan.extractedRoot().toString(), preMutationSnapshot == null ? 0L : preMutationSnapshot.snapshotNo(), preMutationSnapshot == null ? "" : preMutationSnapshot.checksum(), preMutationSnapshot == null ? 0L : preMutationSnapshot.sizeBytes(), preMutationReason(job), creationSnapshot == null ? 0L : creationSnapshot.snapshotNo(), creationSnapshot == null ? "" : creationSnapshot.checksum(), creationSnapshot == null ? 0L : creationSnapshot.sizeBytes());
+            return new ActivationResult(true, "ACTIVE", islandId, cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), manifest.size(), manifest.schemaVersion(), longValue(job.payload().get("fencingToken")), restorePlan == null ? null : restorePlan.extractedRoot().toString(), preMutationSnapshot == null ? 0L : preMutationSnapshot.snapshotNo(), preMutationSnapshot == null ? "" : preMutationSnapshot.checksum(), preMutationSnapshot == null ? 0L : preMutationSnapshot.sizeBytes(), preMutationReason(job), creationSnapshot == null ? 0L : creationSnapshot.snapshotNo(), creationSnapshot == null ? "" : creationSnapshot.checksum(), creationSnapshot == null ? 0L : creationSnapshot.sizeBytes(), placementSource);
         } catch (Exception exception) {
             if (cell != null && !hadCellBeforeActivation) {
                 shardWorldManager.release(islandId);
             }
-            return new ActivationResult(false, "ERROR_ACTIVATING", islandId, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L, "", 0L, "", 0L);
+            return new ActivationResult(false, "ERROR_ACTIVATING", islandId, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L, "", 0L, "", 0L, placementSource);
         }
     }
 
@@ -134,6 +135,10 @@ public final class IslandActivationJobHandler {
             return shardWorldManager.reserveCell(islandId, worldName, intValue(job.payload().get("cellX"), 0), intValue(job.payload().get("cellZ"), 0));
         }
         return shardWorldManager.allocateCell(islandId);
+    }
+
+    private String placementSource(IslandJob job) {
+        return job.payload().getOrDefault("worldName", "").isBlank() ? "paper-allocator" : "core-payload";
     }
 
     private IslandSaveService.SaveResult snapshotBeforeMutation(IslandJob job) throws IOException {
@@ -200,5 +205,5 @@ public final class IslandActivationJobHandler {
         }
     }
 
-    public record ActivationResult(boolean success, String state, UUID islandId, String worldName, int cellX, int cellZ, int originX, int originZ, int islandSize, long schemaVersion, long fencingToken, String extractedRoot, long preMutationSnapshotNo, String preMutationChecksum, long preMutationSizeBytes, String preMutationReason, long creationSnapshotNo, String creationSnapshotChecksum, long creationSnapshotSizeBytes) {}
+    public record ActivationResult(boolean success, String state, UUID islandId, String worldName, int cellX, int cellZ, int originX, int originZ, int islandSize, long schemaVersion, long fencingToken, String extractedRoot, long preMutationSnapshotNo, String preMutationChecksum, long preMutationSizeBytes, String preMutationReason, long creationSnapshotNo, String creationSnapshotChecksum, long creationSnapshotSizeBytes, String placementSource) {}
 }
