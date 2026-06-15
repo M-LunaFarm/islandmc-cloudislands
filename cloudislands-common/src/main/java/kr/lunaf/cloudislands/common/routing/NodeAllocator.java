@@ -126,6 +126,9 @@ public final class NodeAllocator {
     }
 
     private String sharedNewActivationBlockReason(NodeLoad node, Instant now, boolean ignoreHardPlayerCap) {
+        if (node.defaultNodeIdentityRisk()) {
+            return "DEFAULT_NODE_IDENTITY";
+        }
         if (!node.storageAvailable()) {
             return "STORAGE_UNAVAILABLE";
         }
@@ -169,6 +172,9 @@ public final class NodeAllocator {
         }
         if (reason.equals("DUPLICATE_VELOCITY_SERVER_NAME")) {
             return 25;
+        }
+        if (reason.equals("DEFAULT_NODE_IDENTITY")) {
+            return 26;
         }
         if (reason.equals("MAX_ACTIVATION_QUEUE")) {
             return 30;
