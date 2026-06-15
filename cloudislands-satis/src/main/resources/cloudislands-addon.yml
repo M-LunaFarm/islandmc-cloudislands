@@ -14,6 +14,12 @@ runtime:
   owns-islands: false
   storage-key: cloudislands-island-uuid
   default-database-mode: CORE_API
+  component-audit:
+    active-key: runtime-active-components
+    skipped-key: runtime-skipped-components
+    blocked-key: runtime-blocked-components
+    policy-key: runtime-component-audit
+    policy: disabled-features-skip-commands-listeners-tickers-placeholders-core-api-writers-and-dirty-save
 database:
   setup-path: setup.database
   default-mode: CORE_API
@@ -32,6 +38,11 @@ database:
   fallback:
     enabled-path: setup.database.fallback.enabled
     order-path: setup.database.fallback.order
+    safety-state-keys:
+      - database-fallback-risk
+      - database-fallback-production-safe
+      - database-fallback-first-shared-backend
+      - database-fallback-local-position
     recommended-order:
       - POSTGRESQL
       - MYSQL
@@ -61,6 +72,7 @@ state:
   authority: core-api-table-key-value-or-shared-database
   move-policy: remap-state-to-current-active-world-and-cell
   fallback-policy: local-cache-on-core-api-failure-with-configurable-database-fallback
+  fallback-safety-policy: production-safe-when-shared-backend-precedes-local-sqlite
   placement-source-policy: record-core-payload-or-paper-allocator-on-activate-and-migrate
   placement-source-state-key: last-lifecycle-operation
 events:
