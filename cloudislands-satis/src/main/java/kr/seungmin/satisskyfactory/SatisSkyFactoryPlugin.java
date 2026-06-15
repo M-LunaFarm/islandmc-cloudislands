@@ -1627,9 +1627,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private Map<String, Boolean> operationalFeatureSnapshot(Map<String, Boolean> features) {
         Map<String, Boolean> operational = new LinkedHashMap<>(features == null ? Map.of() : features);
-        boolean machinesEnabled = Boolean.TRUE.equals(operational.get("machines"));
-        boolean storageEnabled = Boolean.TRUE.equals(operational.get("storage"));
-        boolean factoriesEnabled = Boolean.TRUE.equals(operational.get("factories"));
+        boolean machinesEnabled = operational.getOrDefault("machines", true);
+        boolean storageEnabled = operational.getOrDefault("storage", true);
+        boolean factoriesEnabled = operational.getOrDefault("factories", machinesEnabled);
         operational.computeIfPresent("resource-nodes", (_key, enabled) -> enabled && machinesEnabled);
         operational.computeIfPresent("market", (_key, enabled) -> enabled && storageEnabled);
         operational.computeIfPresent("contracts", (_key, enabled) -> enabled && storageEnabled);
