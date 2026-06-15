@@ -404,6 +404,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-dirty-save-gate", "addonRuntimeEnabled&&any-write-feature-enabled");
         state.put("runtime-duplicate-tick-guard", "ticker-stops-when-addon-or-machine-feature-disabled");
         state.put("runtime-core-api-state-writer", Boolean.toString(coreApiState != null));
+        state.put("runtime-core-api-state-failures", coreApiState == null ? "0" : Long.toString(coreApiState.coreStateFailures()));
+        state.put("runtime-core-api-state-last-failure", coreApiState == null ? "" : coreApiState.lastFailure());
+        state.put("runtime-core-api-state-last-failure-at", coreApiState == null ? "" : coreApiState.lastFailureAt());
         state.put("runtime-registration-policy", "disabled-features-skip-commands-gui-listeners-tasks-and-writes");
         state.put("runtime-disabled-features", disabledRuntimeFeatures());
         state.put("runtime-command-handler-mode", commandsRegistered ? "active" : "disabled-stub");
@@ -2524,6 +2527,17 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("addon-state-sync-flattened-fallback-enabled", Boolean.toString(coreApiFlattenedFallbackEnabled()));
         state.put("addon-state-sync-bulk-status-keys", "last-core-bulk-publish-status,last-core-bulk-publish-mode,last-core-global-bulk-publish-status,last-core-global-bulk-publish-mode");
         state.put("addon-state-sync-write-fallback", databaseCoreApiWriteFallbackPolicy());
+        state.put("addon-state-sync-island-bulk-successes", coreApiState == null ? "0" : Long.toString(coreApiState.islandBulkSuccesses()));
+        state.put("addon-state-sync-island-bulk-fallbacks", coreApiState == null ? "0" : Long.toString(coreApiState.islandBulkFallbacks()));
+        state.put("addon-state-sync-island-bulk-failures", coreApiState == null ? "0" : Long.toString(coreApiState.islandBulkFailures()));
+        state.put("addon-state-sync-global-bulk-successes", coreApiState == null ? "0" : Long.toString(coreApiState.globalBulkSuccesses()));
+        state.put("addon-state-sync-global-bulk-fallbacks", coreApiState == null ? "0" : Long.toString(coreApiState.globalBulkFallbacks()));
+        state.put("addon-state-sync-global-bulk-failures", coreApiState == null ? "0" : Long.toString(coreApiState.globalBulkFailures()));
+        state.put("addon-state-sync-table-successes", coreApiState == null ? "0" : Long.toString(coreApiState.tableSuccesses()));
+        state.put("addon-state-sync-table-failures", coreApiState == null ? "0" : Long.toString(coreApiState.tableFailures()));
+        state.put("addon-state-sync-core-api-failures", coreApiState == null ? "0" : Long.toString(coreApiState.coreStateFailures()));
+        state.put("addon-state-sync-last-failure", coreApiState == null ? "" : coreApiState.lastFailure());
+        state.put("addon-state-sync-last-failure-at", coreApiState == null ? "" : coreApiState.lastFailureAt());
     }
 
     private boolean coreApiAddonStateAvailable() {

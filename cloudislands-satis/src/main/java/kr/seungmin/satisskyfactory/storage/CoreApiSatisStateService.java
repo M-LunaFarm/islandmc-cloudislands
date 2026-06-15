@@ -21,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
 public final class CoreApiSatisStateService {
@@ -32,6 +33,17 @@ public final class CoreApiSatisStateService {
     private volatile String lastGlobalBulkStatusFingerprint = "";
     private volatile String lastTableStatusFingerprint = "";
     private volatile String lastGlobalTableStatusFingerprint = "";
+    private final AtomicLong islandBulkSuccesses = new AtomicLong();
+    private final AtomicLong islandBulkFallbacks = new AtomicLong();
+    private final AtomicLong islandBulkFailures = new AtomicLong();
+    private final AtomicLong globalBulkSuccesses = new AtomicLong();
+    private final AtomicLong globalBulkFallbacks = new AtomicLong();
+    private final AtomicLong globalBulkFailures = new AtomicLong();
+    private final AtomicLong tableSuccesses = new AtomicLong();
+    private final AtomicLong tableFailures = new AtomicLong();
+    private final AtomicLong coreStateFailures = new AtomicLong();
+    private volatile String lastFailure = "";
+    private volatile String lastFailureAt = "";
 
     public CoreApiSatisStateService(Logger logger, CloudIslandsApi cloudIslandsApi, String addonId) {
         this(logger, cloudIslandsApi, addonId, true);
@@ -42,6 +54,50 @@ public final class CoreApiSatisStateService {
         this.cloudIslandsApi = cloudIslandsApi;
         this.addonId = addonId;
         this.flattenedFallbackEnabled = flattenedFallbackEnabled;
+    }
+
+    public long islandBulkSuccesses() {
+        return islandBulkSuccesses.get();
+    }
+
+    public long islandBulkFallbacks() {
+        return islandBulkFallbacks.get();
+    }
+
+    public long islandBulkFailures() {
+        return islandBulkFailures.get();
+    }
+
+    public long globalBulkSuccesses() {
+        return globalBulkSuccesses.get();
+    }
+
+    public long globalBulkFallbacks() {
+        return globalBulkFallbacks.get();
+    }
+
+    public long globalBulkFailures() {
+        return globalBulkFailures.get();
+    }
+
+    public long tableSuccesses() {
+        return tableSuccesses.get();
+    }
+
+    public long tableFailures() {
+        return tableFailures.get();
+    }
+
+    public long coreStateFailures() {
+        return coreStateFailures.get();
+    }
+
+    public String lastFailure() {
+        return lastFailure;
+    }
+
+    public String lastFailureAt() {
+        return lastFailureAt;
     }
 
     public void publishDirtyBatch(DirtySaveService.DirtySaveBatch batch) {
@@ -91,6 +147,7 @@ public final class CoreApiSatisStateService {
         }
         cloudIslandsApi.addons().removeIslandState(addonId, islandId, key).exceptionally(error -> {
             logger.warning("Failed to remove Satis core-api table state " + key + " for island " + islandId + ": " + error.getMessage());
+            recordCoreStateFailure("island-row-remove", error);
             return Map.of();
         });
     }
@@ -106,6 +163,7 @@ public final class CoreApiSatisStateService {
         }
         cloudIslandsApi.addons().putIslandState(addonId, row.islandUuid(), Map.of(row.key(), row.value())).exceptionally(error -> {
             logger.warning("Failed to publish Satis core-api row " + row.key() + " for island " + row.islandUuid() + ": " + error.getMessage());
+            recordCoreStateFailure("island-row", error);
             return Map.of();
         });
     }
@@ -160,6 +218,7 @@ public final class CoreApiSatisStateService {
         String keyCount = table.values() == null ? "0" : Integer.toString(table.values().size());
         String safeStatus = status == null || status.isBlank() ? "unknown" : status;
         String safeError = error == null ? "" : error;
+        recordTableStatus(safeStatus, safeError);
         String fingerprint = island + "|" + tableName + "|" + keyCount + "|" + safeStatus + "|" + safeError;
         if (fingerprint.equals(lastTableStatusFingerprint)) {
             return;
@@ -193,6 +252,7 @@ public final class CoreApiSatisStateService {
         }
         cloudIslandsApi.addons().putState(addonId, Map.of(row.key(), row.value())).exceptionally(error -> {
             logger.warning("Failed to publish Satis core-api global row " + row.key() + ": " + error.getMessage());
+            recordCoreStateFailure("global-row", error);
             return Map.of();
         });
     }
@@ -297,6 +357,7 @@ public final class CoreApiSatisStateService {
         String safeStatus = status == null || status.isBlank() ? "unknown" : status;
         String safeMode = mode == null || mode.isBlank() ? "unknown" : mode;
         String safeError = compactError(error);
+        recordIslandBulkStatus(safeStatus, safeError);
         String fingerprint = islandId + "|" + valueKeys + "|" + tablesCount + "|" + tableKeys + "|" + safeStatus + "|" + safeMode + "|" + safeError;
         if (fingerprint.equals(lastBulkStatusFingerprint)) {
             return;
@@ -315,6 +376,7 @@ public final class CoreApiSatisStateService {
         state.put("last-core-bulk-publish-fallback-policy", flattenedFallbackEnabled ? "flattened-state-retry" : "disabled");
         cloudIslandsApi.addons().putState(addonId, state).exceptionally(publishError -> {
             logger.warning("Failed to publish Satis core-api bulk status: " + publishError.getMessage());
+            recordCoreStateFailure("island-bulk-status", publishError);
             return Map.of();
         });
     }
@@ -329,6 +391,7 @@ public final class CoreApiSatisStateService {
         String safeStatus = status == null || status.isBlank() ? "unknown" : status;
         String safeMode = mode == null || mode.isBlank() ? "unknown" : mode;
         String safeError = compactError(error);
+        recordGlobalBulkStatus(safeStatus, safeError);
         String fingerprint = valueKeys + "|" + tablesCount + "|" + tableKeys + "|" + safeStatus + "|" + safeMode + "|" + safeError;
         if (fingerprint.equals(lastGlobalBulkStatusFingerprint)) {
             return;
@@ -346,8 +409,65 @@ public final class CoreApiSatisStateService {
         state.put("last-core-global-bulk-publish-fallback-policy", flattenedFallbackEnabled ? "flattened-state-retry" : "disabled");
         cloudIslandsApi.addons().putState(addonId, state).exceptionally(publishError -> {
             logger.warning("Failed to publish Satis core-api global bulk status: " + publishError.getMessage());
+            recordCoreStateFailure("global-bulk-status", publishError);
             return Map.of();
         });
+    }
+
+    private void recordIslandBulkStatus(String status, String error) {
+        String value = status == null ? "" : status;
+        if ("success".equals(value)) {
+            islandBulkSuccesses.incrementAndGet();
+            return;
+        }
+        if ("fallback".equals(value)) {
+            islandBulkFallbacks.incrementAndGet();
+            return;
+        }
+        if ("failed".equals(value) || "fallback-empty".equals(value)) {
+            islandBulkFailures.incrementAndGet();
+            recordCoreStateFailure("island-bulk-" + value, error);
+        }
+    }
+
+    private void recordGlobalBulkStatus(String status, String error) {
+        String value = status == null ? "" : status;
+        if ("success".equals(value)) {
+            globalBulkSuccesses.incrementAndGet();
+            return;
+        }
+        if ("fallback".equals(value)) {
+            globalBulkFallbacks.incrementAndGet();
+            return;
+        }
+        if ("failed".equals(value) || "fallback-empty".equals(value)) {
+            globalBulkFailures.incrementAndGet();
+            recordCoreStateFailure("global-bulk-" + value, error);
+        }
+    }
+
+    private void recordTableStatus(String status, String error) {
+        String value = status == null ? "" : status;
+        if ("success".equals(value) || "cleared".equals(value)) {
+            tableSuccesses.incrementAndGet();
+            return;
+        }
+        if ("failed".equals(value)) {
+            tableFailures.incrementAndGet();
+            recordCoreStateFailure("table-" + value, error);
+        }
+    }
+
+    private void recordCoreStateFailure(String scope, Throwable error) {
+        recordCoreStateFailure(scope, error == null ? "" : error.getMessage());
+    }
+
+    private void recordCoreStateFailure(String scope, String error) {
+        coreStateFailures.incrementAndGet();
+        String safeScope = scope == null || scope.isBlank() ? "unknown" : scope;
+        String safeError = compactError(error);
+        lastFailure = safeError.isBlank() ? safeScope : safeScope + ": " + safeError;
+        lastFailureAt = Instant.now().toString();
     }
 
     private int tableKeyCount(Map<String, Map<String, String>> tables) {
@@ -456,6 +576,7 @@ public final class CoreApiSatisStateService {
         String keyCount = table.values() == null ? "0" : Integer.toString(table.values().size());
         String safeStatus = status == null || status.isBlank() ? "unknown" : status;
         String safeError = error == null ? "" : error;
+        recordTableStatus(safeStatus, safeError);
         String fingerprint = tableName + "|" + keyCount + "|" + safeStatus + "|" + safeError;
         if (fingerprint.equals(lastGlobalTableStatusFingerprint)) {
             return;
@@ -475,6 +596,7 @@ public final class CoreApiSatisStateService {
         state.put("last-core-global-table-publish-conflict-policy", "global-table-replace-after-bulk-fallback");
         cloudIslandsApi.addons().putState(addonId, state).exceptionally(publishError -> {
             logger.warning("Failed to publish Satis core-api global table status: " + publishError.getMessage());
+            recordCoreStateFailure("global-table-status", publishError);
             return Map.of();
         });
     }
