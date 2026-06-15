@@ -284,7 +284,7 @@ public final class PrometheusMetricsRenderer {
             }
             boolean routeCandidate = allocationBlockReason.isBlank();
             boolean routingHealthy = fresh && node.state() != NodeState.DOWN && routeCandidate;
-            boolean defaultNodeIdentityRisk = defaultNodeIdentityRisk(node);
+            boolean defaultNodeIdentityRisk = node.defaultNodeIdentityRisk();
             poolCounters[0]++;
             if (duplicateVelocityServerName) {
                 duplicateVelocityServerNameNodes++;
@@ -685,15 +685,6 @@ public final class PrometheusMetricsRenderer {
         }
         String pool = node.pool() == null || node.pool().isBlank() ? "island" : node.pool().trim().toLowerCase(java.util.Locale.ROOT);
         return pool + "\n" + node.velocityServerName().trim().toLowerCase(java.util.Locale.ROOT);
-    }
-
-    private static boolean defaultNodeIdentityRisk(NodeLoad node) {
-        if (node == null) {
-            return false;
-        }
-        String nodeId = node.nodeId() == null ? "" : node.nodeId().trim();
-        String serverName = node.velocityServerName() == null ? "" : node.velocityServerName().trim();
-        return nodeId.equalsIgnoreCase("island-1") || serverName.equalsIgnoreCase("Island-1");
     }
 
     private static String escape(String value) {

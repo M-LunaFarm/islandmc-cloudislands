@@ -61,7 +61,7 @@ public interface NodeRegistry {
         long ready = snapshot.stream().filter(node -> allocationBlockReason(node, timeout, nowInstant, velocityServerCounts).isBlank()).count();
         long stale = snapshot.stream().filter(node -> node.lastHeartbeat() == null || node.lastHeartbeat().isBefore(nowInstant.minus(timeout))).count();
         long duplicateVelocityServers = duplicateVelocityServerNameNodes(snapshot);
-        long defaultNodeIdentities = snapshot.stream().filter(NodeRegistry::defaultNodeIdentityRisk).count();
+        long defaultNodeIdentities = snapshot.stream().filter(NodeLoad::defaultNodeIdentityRisk).count();
         StringBuilder builder = new StringBuilder("{")
             .append("\"nodeCount\":").append(snapshot.size()).append(',')
             .append("\"routeCandidateCount\":").append(ready).append(',')
@@ -108,7 +108,7 @@ public interface NodeRegistry {
             if (routeCandidate && !stale) {
                 summary.healthy++;
             }
-            if (defaultNodeIdentityRisk(node)) {
+            if (node.defaultNodeIdentityRisk()) {
                 summary.defaultNodeIdentityRisk++;
             }
             String serverKey = velocityServerKey(node);
@@ -182,15 +182,6 @@ public interface NodeRegistry {
         return pool + "\n" + node.velocityServerName().trim().toLowerCase(java.util.Locale.ROOT);
     }
 
-    private static boolean defaultNodeIdentityRisk(NodeLoad node) {
-        if (node == null) {
-            return false;
-        }
-        String nodeId = node.nodeId() == null ? "" : node.nodeId().trim();
-        String serverName = node.velocityServerName() == null ? "" : node.velocityServerName().trim();
-        return nodeId.equalsIgnoreCase("island-1") || serverName.equalsIgnoreCase("Island-1");
-    }
-
     final class PoolSummary {
         private long nodes;
         private long routeCandidates;
@@ -250,7 +241,7 @@ public interface NodeRegistry {
             .append("\"recentFailurePenalty\":").append(node.recentFailurePenalty()).append(',')
             .append("\"storageAvailable\":").append(node.storageAvailable()).append(',')
             .append("\"supportedTemplates\":\"").append(node.templateList() == null ? "*" : node.templateList().replace("\"", "'")).append("\",")
-            .append("\"defaultNodeIdentityRisk\":").append(defaultNodeIdentityRisk(node)).append(',')
+            .append("\"defaultNodeIdentityRisk\":").append(node.defaultNodeIdentityRisk()).append(',')
             .append("\"levelScan\":{")
             .append("\"running\":").append(Boolean.parseBoolean(metadata.getOrDefault("levelScanRunning", "false"))).append(',')
             .append("\"lastIsland\":\"").append(metadata.getOrDefault("lastLevelScanIsland", "").replace("\"", "'")).append("\",")

@@ -52,6 +52,9 @@ public record NodeLoad(
         if (state != NodeState.READY && state != NodeState.SOFT_FULL) {
             return "STATE_" + state.name();
         }
+        if (defaultNodeIdentityRisk()) {
+            return "DEFAULT_NODE_IDENTITY";
+        }
         if (!storageAvailable) {
             return "STORAGE_UNAVAILABLE";
         }
@@ -80,6 +83,9 @@ public record NodeLoad(
     public String existingRouteBlockReason(Instant now, Duration heartbeatTimeout, String templateId, String minVersion) {
         if (state != NodeState.READY && state != NodeState.SOFT_FULL) {
             return "STATE_" + state.name();
+        }
+        if (defaultNodeIdentityRisk()) {
+            return "DEFAULT_NODE_IDENTITY";
         }
         if (lastHeartbeat == null) {
             return "HEARTBEAT_MISSING";
@@ -135,6 +141,15 @@ public record NodeLoad(
             result.put(parts[i].substring(0, separator), parts[i].substring(separator + 1));
         }
         return result;
+    }
+
+    public boolean defaultNodeIdentityRisk() {
+        if ("true".equalsIgnoreCase(heartbeatMetadata().getOrDefault("defaultNodeIdentityRisk", "false"))) {
+            return true;
+        }
+        String safeNodeId = nodeId == null ? "" : nodeId.trim();
+        String safeVelocityServerName = velocityServerName == null ? "" : velocityServerName.trim();
+        return safeNodeId.equalsIgnoreCase("island-1") || safeVelocityServerName.equalsIgnoreCase("Island-1");
     }
 
     public boolean satisfiesMinVersion(String minVersion) {
