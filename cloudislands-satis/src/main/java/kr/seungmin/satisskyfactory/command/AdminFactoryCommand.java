@@ -606,7 +606,7 @@ public final class AdminFactoryCommand {
         state.put("superior-import-dryrun", "/ciadmin migrate-superiorskyblock2 dryrun [path]");
         state.put("superior-import-import", "/ciadmin migrate-superiorskyblock2 import <approvalToken>");
         state.put("superior-import-verify", "/ciadmin migrate-superiorskyblock2 verify [path]");
-        state.put("superior-import-rollback", "/ciadmin migrate-superiorskyblock2 rollback [path]");
+        state.put("superior-import-rollback", "/ciadmin migrate-superiorskyblock2 rollback");
         state.put("satismc-import-scan", "/factory admin migration scan <sqlitePath>");
         state.put("satismc-import-dryrun", "/factory admin migration dryrun <sqlitePath>");
         state.put("satismc-import-verify", "/factory admin migration verify <sqlitePath>");
