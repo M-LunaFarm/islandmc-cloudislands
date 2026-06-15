@@ -2665,7 +2665,7 @@ public final class VelocityRoutingController {
 
     private String hiddenNodeLabel(String nodeId) {
         if (hideNodeNames) {
-            return nodeId == null || nodeId.isBlank() ? "" : " node-hidden";
+            return "";
         }
         return nodeId == null || nodeId.isBlank() ? "" : " " + nodeId;
     }
@@ -2674,28 +2674,28 @@ public final class VelocityRoutingController {
         if (nodeId == null || nodeId.isBlank()) {
             return "";
         }
-        return hideNodeNames ? " node=node-hidden" : " node=" + nodeId;
+        return hideNodeNames ? "" : " node=" + nodeId;
     }
 
     private String routeServerSuffix(String serverName) {
         if (serverName == null || serverName.isBlank()) {
             return "";
         }
-        return hideNodeNames ? " server=server-hidden" : " server=" + serverName;
+        return hideNodeNames ? "" : " server=" + serverName;
     }
 
     private String runtimeWorldSuffix(String worldName) {
         if (worldName == null || worldName.isBlank()) {
             return "";
         }
-        return hideNodeNames ? " world=world-hidden" : " world=" + worldName;
+        return hideNodeNames ? "" : " world=" + worldName;
     }
 
     private String runtimeCellSuffix(String object) {
         if (object == null || object.contains("\"cellX\":null") || object.contains("\"cellZ\":null")) {
             return "";
         }
-        return hideNodeNames ? " cell=cell-hidden" : " cell=" + longValue(object, "cellX") + "," + longValue(object, "cellZ");
+        return hideNodeNames ? "" : " cell=" + longValue(object, "cellX") + "," + longValue(object, "cellZ");
     }
 
     private String nodeIslandRuntimeSuffix(String object) {
