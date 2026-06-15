@@ -65,6 +65,22 @@ public final class ProtectionController {
         return regionIndex.findIsland(islandId);
     }
 
+    public int indexedChunkCount() {
+        return regionIndex.indexedChunkCount();
+    }
+
+    public int indexedIslandCount() {
+        return regionIndex.indexedIslandCount();
+    }
+
+    public int migratingIslandCount() {
+        return migratingIslands.size();
+    }
+
+    public String synchronousDecisionPolicy() {
+        return "region-index-and-local-permission-cache-only";
+    }
+
     public IslandRole role(UUID islandId, UUID playerUuid) {
         return permissionCache.role(islandId, playerUuid);
     }

@@ -375,6 +375,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         PermissionEventPoller events = permissionEventPoller;
         PeriodicIslandSaveTask saver = periodicSaveTask;
         EmptyIslandSaveTask emptySaver = emptyIslandSaveTask;
+        ProtectionController protection = agent == null ? null : agent.protection();
         return "{"
             + "\"status\":\"UP\","
             + "\"role\":\"" + role.name() + "\","
@@ -386,6 +387,11 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"roleActivationWorkerEnabled\":" + activationWorkerEnabled + ","
             + "\"roleIslandProtectionEnabled\":" + islandProtectionEnabled + ","
             + "\"roleIslandSaveTasksEnabled\":" + islandSaveTasksEnabled + ","
+            + "\"protectionDecisionPolicy\":\"" + (protection == null ? "unavailable" : protection.synchronousDecisionPolicy()) + "\","
+            + "\"protectionSynchronousEventsUseRemoteCalls\":false,"
+            + "\"protectionIndexedChunks\":" + (protection == null ? 0 : protection.indexedChunkCount()) + ","
+            + "\"protectionIndexedIslands\":" + (protection == null ? 0 : protection.indexedIslandCount()) + ","
+            + "\"protectionMigratingIslands\":" + (protection == null ? 0 : protection.migratingIslandCount()) + ","
             + "\"activeIslands\":" + (activeIslands == null ? 0 : activeIslands.size()) + ","
             + "\"activationQueue\":" + (jobWorker == null ? 0 : jobWorker.activationQueue()) + ","
             + "\"redisAvailable\":" + redis.available() + ","
@@ -452,6 +458,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         IslandGeneratorListener generator = generatorListener;
         PaperRouteSessionListener routeSessions = routeSessionListener;
         PermissionEventPoller events = permissionEventPoller;
+        ProtectionController protection = agent.protection();
         return ""
             + "cloudislands_paper_online_players " + getServer().getOnlinePlayers().size() + "\n"
             + "cloudislands_paper_online_mode " + (getServer().getOnlineMode() ? 1 : 0) + "\n"
@@ -481,6 +488,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_paper_generator_cache_ttl_seconds{node=\"" + nodeId + "\"} " + (generator == null ? 0L : generator.cacheTtlSeconds()) + "\n"
             + "cloudislands_permission_checks_total{node=\"" + nodeId + "\"} " + agent.permissionCache().lookupCount() + "\n"
             + "cloudislands_permission_cache_hit_ratio{node=\"" + nodeId + "\"} " + agent.permissionCache().hitRatio() + "\n"
+            + "cloudislands_protection_indexed_chunks{node=\"" + nodeId + "\"} " + protection.indexedChunkCount() + "\n"
+            + "cloudislands_protection_indexed_islands{node=\"" + nodeId + "\"} " + protection.indexedIslandCount() + "\n"
+            + "cloudislands_protection_migrating_islands{node=\"" + nodeId + "\"} " + protection.migratingIslandCount() + "\n"
+            + "cloudislands_protection_sync_events_remote_calls{node=\"" + nodeId + "\"} 0\n"
             + "cloudislands_paper_velocity_forwarding_required{node=\"" + nodeId + "\"} " + (forwardingRequired ? 1 : 0) + "\n"
             + "cloudislands_paper_forwarding_secret_configured{node=\"" + nodeId + "\"} " + (forwardingSecretConfigured ? 1 : 0) + "\n"
             + "cloudislands_paper_route_session_enforced{node=\"" + nodeId + "\"} " + (routeSessionEnforced ? 1 : 0) + "\n"
