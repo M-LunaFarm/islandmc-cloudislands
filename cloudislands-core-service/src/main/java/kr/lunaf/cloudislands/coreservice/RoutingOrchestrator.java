@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -451,6 +452,9 @@ public final class RoutingOrchestrator {
                 markActiveRouteRecoveryRequired(runtime, "active_node_not_registered");
                 throw new IllegalStateException("active node is unavailable");
             }
+            if (duplicateVelocityServerName(activeNode, nodes.snapshot())) {
+                throw new IllegalStateException("ACTIVE_NODE_DUPLICATE_VELOCITY_SERVER_NAME");
+            }
             String blockReason = allocator.existingRouteBlockReason(activeNode, Instant.now(), templateId, minNodeVersion, islandPool);
             if (!blockReason.isBlank()) {
                 if (activeRouteRecoveryReason(blockReason)) {
@@ -513,6 +517,29 @@ public final class RoutingOrchestrator {
             reservedLimit = Math.min(reservedLimit, node.hardPlayerCap());
         }
         return node.players() >= reservedLimit;
+    }
+
+    private boolean duplicateVelocityServerName(NodeLoad target, List<NodeLoad> snapshot) {
+        String targetKey = velocityServerKey(target);
+        if (targetKey.isBlank()) {
+            return false;
+        }
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (NodeLoad node : snapshot) {
+            String key = velocityServerKey(node);
+            if (!key.isBlank()) {
+                counts.merge(key, 1, Integer::sum);
+            }
+        }
+        return counts.getOrDefault(targetKey, 0) > 1;
+    }
+
+    private String velocityServerKey(NodeLoad node) {
+        if (node == null || node.velocityServerName() == null || node.velocityServerName().isBlank()) {
+            return "";
+        }
+        String pool = node.pool() == null || node.pool().isBlank() ? "island" : node.pool().trim().toLowerCase(java.util.Locale.ROOT);
+        return pool + "\n" + node.velocityServerName().trim().toLowerCase(java.util.Locale.ROOT);
     }
 
     private boolean activeRouteRecoveryReason(String blockReason) {
