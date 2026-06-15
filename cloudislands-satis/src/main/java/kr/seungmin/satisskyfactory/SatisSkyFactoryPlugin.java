@@ -17,17 +17,26 @@ import kr.lunaf.cloudislands.api.event.IslandHomeChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandLevelRecalculateEvent;
 import kr.lunaf.cloudislands.api.event.IslandLimitChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandMemberChangedEvent;
+import kr.lunaf.cloudislands.api.event.IslandMemberJoinEvent;
+import kr.lunaf.cloudislands.api.event.IslandMemberLeaveEvent;
 import kr.lunaf.cloudislands.api.event.IslandMigratedEvent;
 import kr.lunaf.cloudislands.api.event.IslandMigrationEvent;
 import kr.lunaf.cloudislands.api.event.IslandOwnershipChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandPermissionChangeEvent;
+import kr.lunaf.cloudislands.api.event.IslandPermissionCheckEvent;
+import kr.lunaf.cloudislands.api.event.IslandPreActivateEvent;
+import kr.lunaf.cloudislands.api.event.IslandPreCreateEvent;
+import kr.lunaf.cloudislands.api.event.IslandPreVisitEvent;
 import kr.lunaf.cloudislands.api.event.IslandRoleCatalogChangeEvent;
+import kr.lunaf.cloudislands.api.event.IslandRoleChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandRuntimeChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotCreateEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandUpgradeEvent;
 import kr.lunaf.cloudislands.api.event.IslandVisitEvent;
 import kr.lunaf.cloudislands.api.event.IslandWarpChangeEvent;
+import kr.lunaf.cloudislands.api.event.IslandWarpCreateEvent;
+import kr.lunaf.cloudislands.api.event.IslandWarpDeleteEvent;
 import kr.lunaf.cloudislands.api.event.IslandWorthChangeEvent;
 import kr.lunaf.cloudislands.api.event.RouteSessionPublishedEvent;
 import kr.lunaf.cloudislands.api.event.RouteTicketClearedEvent;
@@ -449,7 +458,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private void putLifecycleCoverageState(Map<String, String> state) {
         state.put("lifecycle-event-source", "CloudIslandsAddon.onCloudEvent");
-        state.put("lifecycle-event-coverage", "create,activate,deactivation-request,deactivated,migration-request,migrated,delete,restore,reset,recovery,repair,runtime,visit,member,role,ownership,flag,permission,bank,biome,home,warp,level,worth,upgrade,limit,snapshot");
+        state.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,restore,reset,recovery,repair,runtime,pre-visit,visit,member-join,member-left,member-role,member,role,ownership,flag,permission-check,permission,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot");
         state.put("lifecycle-event-actions", "activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete-and-reset=purge,recovery=suspend,member-role-ownership-permission-bank-biome-home-warp-level-worth=synchronize");
         state.put("lifecycle-event-storage-policy", "cloudislands-island-uuid-stable-state-remap-active-world");
     }
@@ -1831,6 +1840,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     @Override
+    public void onIslandPreCreate(IslandPreCreateEvent event) {
+        if (hasConcreteIslandId(event.islandId())) {
+            String operation = "pre-create:" + (event.templateId() == null || event.templateId().isBlank() ? "default" : event.templateId());
+            runSatisLifecycle(event.islandId(), operation, () -> publishIslandLifecycleState(event.islandId(), operation, null, "requested", ""));
+        }
+    }
+
+    @Override
     public void onIslandCreated(IslandCreatedEvent event) {
         runSatisLifecycle(event.islandId(), "created", () -> {
             islands.getOrCreate(new kr.seungmin.satisskyfactory.hook.IslandRef(null, event.islandId(), event.ownerUuid()));
@@ -1839,6 +1856,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             }
             synchronizeSatisIsland(event.islandId(), "created");
         });
+    }
+
+    @Override
+    public void onIslandPreActivate(IslandPreActivateEvent event) {
+        String operation = "pre-activate:" + lifecycleNode(event.targetNode());
+        runSatisLifecycle(event.islandId(), operation, () -> publishIslandLifecycleState(event.islandId(), operation, islands.find(event.islandId()).orElse(null), "requested", ""));
     }
 
     @Override
@@ -1934,14 +1957,36 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     @Override
+    public void onIslandPreVisit(IslandPreVisitEvent event) {
+        runSatisLifecycle(event.islandId(), "pre-visit", () -> publishIslandLifecycleState(event.islandId(), "pre-visit", islands.find(event.islandId()).orElse(null), "requested", ""));
+    }
+
+    @Override
     public void onIslandVisited(IslandVisitEvent event) {
         String operation = "visited:" + lifecycleNode(event.nodeId());
         runSatisLifecycle(event.islandId(), operation, () -> publishIslandLifecycleState(event.islandId(), operation, islands.find(event.islandId()).orElse(null), "ok", ""));
     }
 
     @Override
+    public void onIslandMemberJoined(IslandMemberJoinEvent event) {
+        String operation = "member-join:" + (event.role() == null ? "unknown" : event.role().name());
+        runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
+    }
+
+    @Override
+    public void onIslandMemberLeft(IslandMemberLeaveEvent event) {
+        runSatisLifecycle(event.islandId(), "member-left", () -> synchronizeSatisIsland(event.islandId(), "member-left"));
+    }
+
+    @Override
     public void onIslandMemberChanged(IslandMemberChangedEvent event) {
         runSatisLifecycle(event.islandId(), "member-change", () -> synchronizeSatisIsland(event.islandId(), "member-change"));
+    }
+
+    @Override
+    public void onIslandRoleChanged(IslandRoleChangeEvent event) {
+        String operation = "member-role-change:" + (event.newRole() == null ? "unknown" : event.newRole().name());
+        runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
     }
 
     @Override
@@ -1958,6 +2003,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     @Override
     public void onIslandFlagChanged(IslandFlagChangeEvent event) {
         runSatisLifecycle(event.islandId(), "flag-change", () -> synchronizeSatisIsland(event.islandId(), "flag-change"));
+    }
+
+    @Override
+    public void onIslandPermissionChecked(IslandPermissionCheckEvent event) {
+        String operation = "permission-check:" + (event.allowed() ? "allowed" : "denied");
+        runSatisLifecycle(event.islandId(), operation, () -> publishIslandLifecycleState(event.islandId(), operation, islands.find(event.islandId()).orElse(null), "checked", ""));
     }
 
     @Override
@@ -1980,6 +2031,18 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     @Override
     public void onIslandHomeChanged(IslandHomeChangeEvent event) {
         String operation = "home-change:" + (event.name() == null || event.name().isBlank() ? "default" : event.name());
+        runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
+    }
+
+    @Override
+    public void onIslandWarpCreated(IslandWarpCreateEvent event) {
+        String operation = "warp-create:" + (event.warpName() == null || event.warpName().isBlank() ? "unknown" : event.warpName());
+        runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
+    }
+
+    @Override
+    public void onIslandWarpDeleted(IslandWarpDeleteEvent event) {
+        String operation = "warp-delete:" + (event.warpName() == null || event.warpName().isBlank() ? "unknown" : event.warpName());
         runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
     }
 
@@ -2083,6 +2146,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private String safeRouteValue(String value) {
         return value == null ? "" : value;
+    }
+
+    private static boolean hasConcreteIslandId(UUID islandId) {
+        return islandId != null && (islandId.getMostSignificantBits() != 0L || islandId.getLeastSignificantBits() != 0L);
     }
 
     private boolean routeEventStateEnabled() {
