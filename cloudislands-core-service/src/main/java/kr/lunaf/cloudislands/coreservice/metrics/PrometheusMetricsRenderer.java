@@ -647,6 +647,7 @@ public final class PrometheusMetricsRenderer {
                 "islandId", ticket.islandId().toString(),
                 "action", ticket.action().name(),
                 "targetNode", ticket.targetNode(),
+                "targetServerName", ticket.payload().getOrDefault("targetServerName", ticket.targetNode()),
                 "reason", "TICKET_EXPIRED"
             ));
         }

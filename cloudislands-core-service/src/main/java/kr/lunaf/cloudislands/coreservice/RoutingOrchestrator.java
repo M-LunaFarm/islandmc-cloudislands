@@ -445,9 +445,19 @@ public final class RoutingOrchestrator {
             "islandId", islandId == null ? "" : islandId.toString(),
             "action", action == null ? "" : action.name(),
             "targetNode", targetNode == null ? "" : targetNode,
-            "targetServerName", targetNode == null ? "" : targetNode,
+            "targetServerName", targetServerName(targetNode),
             "reason", reason
         ));
+    }
+
+    private String targetServerName(String targetNode) {
+        if (targetNode == null || targetNode.isBlank()) {
+            return "";
+        }
+        return nodes.find(targetNode)
+            .map(NodeLoad::velocityServerName)
+            .filter(value -> value != null && !value.isBlank())
+            .orElse(targetNode);
     }
 
     private RouteTarget routeTarget(IslandRuntimeSnapshot runtime, String templateId, String minNodeVersion, boolean visitorRoute) {
