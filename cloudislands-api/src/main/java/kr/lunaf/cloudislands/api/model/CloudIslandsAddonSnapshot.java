@@ -73,7 +73,7 @@ public record CloudIslandsAddonSnapshot(
     }
 
     public boolean featureEnabled(String key, boolean fallback) {
-        return featureEnabledIn(features, key, fallback);
+        return featureEnabledIn(features, key, fallback, true);
     }
 
     public boolean configuredFeatureEnabled(String key) {
@@ -81,10 +81,10 @@ public record CloudIslandsAddonSnapshot(
     }
 
     public boolean configuredFeatureEnabled(String key, boolean fallback) {
-        return featureEnabledIn(configuredFeatures, key, fallback);
+        return featureEnabledIn(configuredFeatures, key, fallback, false);
     }
 
-    private boolean featureEnabledIn(Map<String, Boolean> source, String key, boolean fallback) {
+    private boolean featureEnabledIn(Map<String, Boolean> source, String key, boolean fallback, boolean includeDependencies) {
         String canonical = canonicalFeature(key);
         String requested = key == null ? "" : key.trim();
         boolean enabled = source.getOrDefault(canonical, source.getOrDefault(requested, fallback));
@@ -95,6 +95,9 @@ public record CloudIslandsAddonSnapshot(
             if (alias.getValue().equals(canonical) && source.containsKey(alias.getKey())) {
                 enabled = enabled && source.get(alias.getKey());
             }
+        }
+        if (!includeDependencies) {
+            return enabled;
         }
         for (Map.Entry<String, String> dependency : featureDependencies().entrySet()) {
             if (dependency.getKey().equals(canonical) || dependency.getKey().equals(requested)) {

@@ -1690,6 +1690,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 + adminText("admin-command-addons-version-prefix", " version=") + addon.version()
                 + adminText("admin-command-addons-enabled-prefix", " enabled=") + addon.enabled()
                 + addonDependencySuffix(addon)
+                + addonDependencyDisabledSuffix(addon)
                 + addonMetadataSuffix(addon)
                 + addonConfiguredFeatureSuffix(addon)
                 + addonFeatureSuffix(addon));
@@ -1707,6 +1708,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-addons-registered-prefix", " registered=") + addon.registeredAt()
             + adminText("admin-command-addons-updated-prefix", " updated=") + addon.updatedAt()
             + addonDependencySuffix(addon)
+            + addonDependencyDisabledSuffix(addon)
             + addonMetadataSuffix(addon)
             + addonConfiguredFeatureSuffix(addon)
             + addonFeatureSuffix(addon);
@@ -1756,6 +1758,26 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             .sorted(java.util.Map.Entry.comparingByKey())
             .forEach(entry -> dependencies.add(entry.getKey() + ":" + entry.getValue()));
         return adminText("admin-command-addons-dependencies-prefix", " dependencies=") + String.join(",", dependencies);
+    }
+
+    private String addonDependencyDisabledSuffix(CloudIslandsAddonSnapshot addon) {
+        if (!addon.enabled() || addon.featureDependencies().isEmpty()) {
+            return "";
+        }
+        List<String> disabled = new ArrayList<>();
+        addon.featureDependencies().entrySet().stream()
+            .sorted(java.util.Map.Entry.comparingByKey())
+            .forEach(entry -> {
+                String feature = entry.getKey();
+                String required = entry.getValue();
+                if (addon.configuredFeatureEnabled(feature, true) && !addon.featureEnabled(required, true)) {
+                    disabled.add(feature + "->" + required);
+                }
+            });
+        if (disabled.isEmpty()) {
+            return "";
+        }
+        return adminText("admin-command-addons-dependency-disabled-prefix", " dependencyDisabled=") + String.join(",", disabled);
     }
 
     private String addonMetadataSuffix(CloudIslandsAddonSnapshot addon) {
