@@ -1142,7 +1142,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         String value = path == null ? "" : path;
         String payload = endpoint.equals("import")
             ? "{\"approval\":\"" + escape(value) + "\"}"
-            : "{\"path\":\"" + escape(value) + "\"}";
+            : endpoint.equals("rollback") ? "{}" : "{\"path\":\"" + escape(value) + "\"}";
         return postWithResultBody("/v1/admin/migrations/superiorskyblock2/" + endpoint, payload);
     }
 

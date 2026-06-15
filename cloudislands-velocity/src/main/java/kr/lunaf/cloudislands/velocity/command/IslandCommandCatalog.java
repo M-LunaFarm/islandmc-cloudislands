@@ -176,7 +176,7 @@ public final class IslandCommandCatalog {
             "ciadmin migrate-superiorskyblock2 extract [outputPath]",
             "ciadmin migrate-superiorskyblock2 import <approvalToken>",
             "ciadmin migrate-superiorskyblock2 verify [path]",
-            "ciadmin migrate-superiorskyblock2 rollback [path]"
+            "ciadmin migrate-superiorskyblock2 rollback"
         ));
         return List.copyOf(commands);
     }
