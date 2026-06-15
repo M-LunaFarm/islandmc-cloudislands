@@ -2692,7 +2692,13 @@ public final class CloudIslandsCoreApplication {
         if (nodeCount == 1L) {
             return candidates > 0L ? "SINGLE_NODE_READY" : "SINGLE_NODE_BLOCKED";
         }
-        return candidates > 0L ? "MULTI_NODE_READY" : "MULTI_NODE_BLOCKED";
+        if (candidates <= 0L) {
+            return "MULTI_NODE_BLOCKED";
+        }
+        if (candidates == 1L) {
+            return "MULTI_NODE_DEGRADED";
+        }
+        return "MULTI_NODE_READY";
     }
 
     private static void logSecurityPosture(CoreServiceConfig config) {
