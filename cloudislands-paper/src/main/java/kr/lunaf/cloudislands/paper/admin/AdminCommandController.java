@@ -1952,6 +1952,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " poolScaleModel=" + textValue(body, "islandPoolScaleModel")
             + " poolMultiNodeReady=" + boolValue(body, "islandPoolMultiNodeReady")
             + " poolScaleGuidance=" + textValue(body, "islandPoolScaleGuidance")
+            + " poolHorizontalScale=" + textValue(body, "islandPoolHorizontalScalePolicy")
+            + " poolFiveSixNodes=" + textValue(body, "islandPoolFiveSixNodePolicy")
             + " nodeHardRules=" + textValue(body, "islandNodeHardRules")
             + " nodeScoreWeights=" + textValue(body, "islandNodeScoreWeights")
             + " nodeSchema=" + textValue(body, "islandNodeSchemaColumns")

@@ -1927,6 +1927,8 @@ public final class VelocityRoutingController {
             + " poolScaleModel=" + jsonValue(body, "islandPoolScaleModel")
             + " poolMultiNodeReady=" + boolValue(body, "islandPoolMultiNodeReady")
             + " poolScaleGuidance=" + jsonValue(body, "islandPoolScaleGuidance")
+            + " poolHorizontalScale=" + jsonValue(body, "islandPoolHorizontalScalePolicy")
+            + " poolFiveSixNodes=" + jsonValue(body, "islandPoolFiveSixNodePolicy")
             + " nodeHardRules=" + jsonValue(body, "islandNodeHardRules")
             + " nodeScoreWeights=" + jsonValue(body, "islandNodeScoreWeights")
             + " nodeSchema=" + jsonValue(body, "islandNodeSchemaColumns")
