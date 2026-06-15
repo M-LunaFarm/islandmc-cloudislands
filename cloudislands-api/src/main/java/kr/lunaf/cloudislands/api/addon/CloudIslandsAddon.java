@@ -9,6 +9,9 @@ import kr.lunaf.cloudislands.api.event.CoreCacheClearEvent;
 import kr.lunaf.cloudislands.api.event.CoreReloadEvent;
 import kr.lunaf.cloudislands.api.event.IslandActivationRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandActivatedEvent;
+import kr.lunaf.cloudislands.api.event.IslandAccessChangeEvent;
+import kr.lunaf.cloudislands.api.event.IslandBankChangeEvent;
+import kr.lunaf.cloudislands.api.event.IslandBiomeChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandBlockValueChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandBlocksChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandChatSentEvent;
@@ -18,6 +21,8 @@ import kr.lunaf.cloudislands.api.event.IslandDeactivateEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeleteRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeletedEvent;
 import kr.lunaf.cloudislands.api.event.IslandFlagChangeEvent;
+import kr.lunaf.cloudislands.api.event.IslandHomeChangeEvent;
+import kr.lunaf.cloudislands.api.event.IslandInviteChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandLevelRecalculateEvent;
 import kr.lunaf.cloudislands.api.event.IslandLimitChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandMemberChangedEvent;
@@ -28,16 +33,21 @@ import kr.lunaf.cloudislands.api.event.IslandMissionProgressEvent;
 import kr.lunaf.cloudislands.api.event.IslandOwnershipChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandPermissionChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandRecoveryRequiredEvent;
+import kr.lunaf.cloudislands.api.event.IslandRenamedEvent;
 import kr.lunaf.cloudislands.api.event.IslandRepairedEvent;
 import kr.lunaf.cloudislands.api.event.IslandResetEvent;
 import kr.lunaf.cloudislands.api.event.IslandRestoredEvent;
 import kr.lunaf.cloudislands.api.event.IslandRestoreRequestEvent;
+import kr.lunaf.cloudislands.api.event.IslandRoleCatalogChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandRuntimeChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotCreateEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandTemplateChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandUpgradeEvent;
+import kr.lunaf.cloudislands.api.event.IslandVisitorBanChangeEvent;
+import kr.lunaf.cloudislands.api.event.IslandVisitorKickEvent;
 import kr.lunaf.cloudislands.api.event.IslandVisitEvent;
+import kr.lunaf.cloudislands.api.event.IslandWarpChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandWorthChangeEvent;
 import kr.lunaf.cloudislands.api.event.NodeStateChangedEvent;
 import kr.lunaf.cloudislands.api.event.RouteSessionPublishedEvent;
@@ -109,12 +119,24 @@ public interface CloudIslandsAddon {
             onIslandRuntimeChanged(runtimeChanged);
         } else if (event instanceof IslandVisitEvent visited) {
             onIslandVisited(visited);
+        } else if (event instanceof IslandInviteChangeEvent inviteChanged) {
+            onIslandInviteChanged(inviteChanged);
         } else if (event instanceof IslandMemberChangedEvent memberChanged) {
             onIslandMemberChanged(memberChanged);
+        } else if (event instanceof IslandRenamedEvent renamed) {
+            onIslandRenamed(renamed);
+        } else if (event instanceof IslandAccessChangeEvent accessChanged) {
+            onIslandAccessChanged(accessChanged);
+        } else if (event instanceof IslandVisitorBanChangeEvent visitorBanChanged) {
+            onIslandVisitorBanChanged(visitorBanChanged);
+        } else if (event instanceof IslandVisitorKickEvent visitorKicked) {
+            onIslandVisitorKicked(visitorKicked);
         } else if (event instanceof IslandFlagChangeEvent flagChanged) {
             onIslandFlagChanged(flagChanged);
         } else if (event instanceof IslandPermissionChangeEvent permissionChanged) {
             onIslandPermissionChanged(permissionChanged);
+        } else if (event instanceof IslandRoleCatalogChangeEvent roleCatalogChanged) {
+            onIslandRoleCatalogChanged(roleCatalogChanged);
         } else if (event instanceof IslandOwnershipChangeEvent ownershipChanged) {
             onIslandOwnershipChanged(ownershipChanged);
         } else if (event instanceof IslandChatSentEvent chatSent) {
@@ -135,6 +157,14 @@ public interface CloudIslandsAddon {
             onIslandUpgradeChanged(upgrade);
         } else if (event instanceof IslandLimitChangeEvent limit) {
             onIslandLimitChanged(limit);
+        } else if (event instanceof IslandBiomeChangeEvent biomeChanged) {
+            onIslandBiomeChanged(biomeChanged);
+        } else if (event instanceof IslandHomeChangeEvent homeChanged) {
+            onIslandHomeChanged(homeChanged);
+        } else if (event instanceof IslandWarpChangeEvent warpChanged) {
+            onIslandWarpChanged(warpChanged);
+        } else if (event instanceof IslandBankChangeEvent bankChanged) {
+            onIslandBankChanged(bankChanged);
         } else if (event instanceof IslandSnapshotRequestEvent snapshotRequested) {
             onIslandSnapshotRequested(snapshotRequested);
         } else if (event instanceof IslandSnapshotCreateEvent snapshotCreated) {
@@ -207,13 +237,31 @@ public interface CloudIslandsAddon {
     default void onIslandRuntimeChanged(IslandRuntimeChangeEvent event) {
     }
 
+    default void onIslandInviteChanged(IslandInviteChangeEvent event) {
+    }
+
     default void onIslandMemberChanged(IslandMemberChangedEvent event) {
+    }
+
+    default void onIslandRenamed(IslandRenamedEvent event) {
+    }
+
+    default void onIslandAccessChanged(IslandAccessChangeEvent event) {
+    }
+
+    default void onIslandVisitorBanChanged(IslandVisitorBanChangeEvent event) {
+    }
+
+    default void onIslandVisitorKicked(IslandVisitorKickEvent event) {
     }
 
     default void onIslandFlagChanged(IslandFlagChangeEvent event) {
     }
 
     default void onIslandPermissionChanged(IslandPermissionChangeEvent event) {
+    }
+
+    default void onIslandRoleCatalogChanged(IslandRoleCatalogChangeEvent event) {
     }
 
     default void onIslandOwnershipChanged(IslandOwnershipChangeEvent event) {
@@ -244,6 +292,18 @@ public interface CloudIslandsAddon {
     }
 
     default void onIslandLimitChanged(IslandLimitChangeEvent event) {
+    }
+
+    default void onIslandBiomeChanged(IslandBiomeChangeEvent event) {
+    }
+
+    default void onIslandHomeChanged(IslandHomeChangeEvent event) {
+    }
+
+    default void onIslandWarpChanged(IslandWarpChangeEvent event) {
+    }
+
+    default void onIslandBankChanged(IslandBankChangeEvent event) {
     }
 
     default void onIslandSnapshotRequested(IslandSnapshotRequestEvent event) {
