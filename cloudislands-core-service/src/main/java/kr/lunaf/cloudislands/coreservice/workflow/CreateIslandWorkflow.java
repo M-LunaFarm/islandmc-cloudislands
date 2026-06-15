@@ -104,7 +104,17 @@ public final class CreateIslandWorkflow {
         IslandSnapshot island = islands.createOwnedIsland(islandId, ownerUuid, normalizedTemplate, "Island");
         metadata.upsertMember(islandId, ownerUuid, IslandRole.OWNER);
         playerProfiles.setPrimaryIsland(ownerUuid, islandId);
-        kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime = kr.lunaf.cloudislands.coreservice.IslandPlacement.markActivating(islandId, node.nodeId(), runtimes);
+        kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime;
+        try {
+            runtime = kr.lunaf.cloudislands.coreservice.IslandPlacement.markActivating(islandId, node.nodeId(), runtimes);
+        } catch (RuntimeException exception) {
+            releaseCreationLock(lease);
+            islands.setState(islandId, IslandState.ERROR_CREATING);
+            runtimes.setState(islandId, IslandState.ERROR_CREATING);
+            publishTicketFailure(ownerUuid, islandId, "PLACEMENT_UNAVAILABLE");
+            events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", IslandState.ERROR_CREATING.name(), "reason", "PLACEMENT_UNAVAILABLE", "targetNode", node.nodeId()));
+            return new CreateIslandResult(false, "PLACEMENT_UNAVAILABLE", islands.findById(islandId).orElse(island), null);
+        }
         try {
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.CREATE_ISLAND, islandId, node.nodeId(), 0, Map.of("templateId", normalizedTemplate, "ownerUuid", ownerUuid.toString(), "islandSize", Integer.toString(island.size()), "worldName", runtime.activeWorld() == null ? kr.lunaf.cloudislands.coreservice.IslandPlacement.worldName(islandId) : runtime.activeWorld(), "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()), "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ())), Instant.now()));
         } catch (RuntimeException exception) {
