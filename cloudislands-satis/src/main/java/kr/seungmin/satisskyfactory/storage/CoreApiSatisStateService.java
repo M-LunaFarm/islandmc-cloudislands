@@ -57,7 +57,7 @@ public final class CoreApiSatisStateService {
             values.put("core-api-sync-updated-at", Instant.now().toString());
             values.put("core-api-sync-keys", Integer.toString(values.size() + tableKeys));
             values.put("core-api-sync-tables", Integer.toString(tables.size()));
-            cloudIslandsApi.addons().bulkSaveIslandState(addonId, islandId, values, tables).exceptionally(error -> {
+            cloudIslandsApi.addons().tableKeyValueBulkSaveIslandState(addonId, islandId, values, tables).exceptionally(error -> {
                 logger.warning("Failed to publish Satis core-api table state for island " + islandId + ": " + error.getMessage());
                 return Map.of();
             });
@@ -86,7 +86,7 @@ public final class CoreApiSatisStateService {
         }
         Map<String, Map<String, String>> tablePayload = tablePayload(row.key(), row.value());
         if (!tablePayload.isEmpty()) {
-            cloudIslandsApi.addons().bulkSaveIslandState(addonId, row.islandUuid(), Map.of(), tablePayload).exceptionally(error -> {
+            cloudIslandsApi.addons().tableKeyValueBulkSaveIslandState(addonId, row.islandUuid(), Map.of(), tablePayload).exceptionally(error -> {
                 logger.warning("Failed to publish Satis core-api row " + row.key() + " for island " + row.islandUuid() + ": " + error.getMessage());
                 return Map.of();
             });
@@ -129,7 +129,7 @@ public final class CoreApiSatisStateService {
                                 logger.warning("Failed to clear Satis core-api table " + table.table() + " for island " + table.islandUuid() + " before retry: " + clearError.getMessage());
                                 return Map.of();
                             })
-                            .thenCompose(_cleared -> cloudIslandsApi.addons().bulkSaveIslandState(addonId, table.islandUuid(), Map.of(), Map.of(table.table(), table.values())));
+                            .thenCompose(_cleared -> cloudIslandsApi.addons().tableKeyValueBulkSaveIslandState(addonId, table.islandUuid(), Map.of(), Map.of(table.table(), table.values())));
                 })
                 .thenCompose(result -> result)
                 .thenApply(state -> {
@@ -176,7 +176,7 @@ public final class CoreApiSatisStateService {
         }
         Map<String, Map<String, String>> tablePayload = tablePayload(row.key(), row.value());
         if (!tablePayload.isEmpty()) {
-            cloudIslandsApi.addons().bulkSaveState(addonId, Map.of(), tablePayload).exceptionally(error -> {
+            cloudIslandsApi.addons().tableKeyValueBulkSaveState(addonId, Map.of(), tablePayload).exceptionally(error -> {
                 logger.warning("Failed to publish Satis core-api global row " + row.key() + ": " + error.getMessage());
                 return Map.of();
             });
@@ -232,7 +232,7 @@ public final class CoreApiSatisStateService {
                                 logger.warning("Failed to clear Satis core-api global table " + table.table() + " before retry: " + clearError.getMessage());
                                 return Map.of();
                             })
-                            .thenCompose(_cleared -> cloudIslandsApi.addons().bulkSaveState(addonId, Map.of(), Map.of(table.table(), table.values())));
+                            .thenCompose(_cleared -> cloudIslandsApi.addons().tableKeyValueBulkSaveState(addonId, Map.of(), Map.of(table.table(), table.values())));
                 })
                 .thenCompose(result -> result)
                 .thenApply(state -> {
