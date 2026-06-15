@@ -1072,6 +1072,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-open", Boolean.toString(database != null));
         metadata.put("database-file", configuredDatabaseFileName());
         metadata.put("database-shared", Boolean.toString(databaseShared()));
+        putAddonReconnectPolicy(metadata);
         metadata.put("configured-skyblock-provider", configuredSkyblockProvider());
         metadata.put("effective-skyblock-provider", "CLOUDISLANDS");
         metadata.put("skyblock-provider-policy", "cloudislands-api-only");
@@ -1347,6 +1348,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-path", resolveDatabaseFileName());
         state.put("database-open", Boolean.toString(database != null));
         putRuntimeActivityState(state);
+        putAddonReconnectPolicy(state);
         state.put("satis-state-schema", "3");
         state.put("island-position-remap", "center-delta");
         state.put("recovery-suspend-mode", "drop-local-dirty-state");
@@ -1422,12 +1424,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-open", Boolean.toString(database != null));
         putRuntimeActivityState(state);
         state.put("satis-state-schema", "3");
-        state.put("unregister-delete-addon-data", "false");
-        state.put("unregister-delete-island-state", "false");
-        state.put("unregister-preserve-core-state", "true");
-        state.put("unregister-preserve-local-cache", "true");
-        state.put("reinstall-reconnect-policy", "reuse-existing-addon-state-by-island-uuid");
-        state.put("reinstall-reconnect-requires", "matching-cloudislands-island-uuid-and-compatible-satis-state-schema");
+        putAddonReconnectPolicy(state);
         state.put("last-sync-reason", "unregistered");
         state.put("last-sync-at", Instant.now().toString());
         state.put("last-lifecycle-status", "unregistered");
@@ -1437,6 +1434,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             getLogger().warning("Failed to publish CloudIslands Satis unregister state: " + error.getMessage());
             return Map.of();
         });
+    }
+
+    private void putAddonReconnectPolicy(Map<String, String> state) {
+        state.put("unregister-delete-addon-data", "false");
+        state.put("unregister-delete-island-state", "false");
+        state.put("unregister-preserve-core-state", "true");
+        state.put("unregister-preserve-local-cache", "true");
+        state.put("reinstall-reconnect-policy", "reuse-existing-addon-state-by-island-uuid");
+        state.put("reinstall-reconnect-requires", "matching-cloudislands-island-uuid-and-compatible-satis-state-schema");
     }
 
     private void publishLifecycleState(UUID islandId, String operation) {
