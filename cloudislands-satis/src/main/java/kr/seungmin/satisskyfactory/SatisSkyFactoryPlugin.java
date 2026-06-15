@@ -1590,10 +1590,23 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             }
             return lifecycleNodePart(operation.substring(arrow + 2));
         }
+        if (operation.startsWith("migration-requested:")) {
+            int arrow = operation.indexOf("->");
+            if (arrow < 0 || arrow + 2 >= operation.length()) {
+                return "";
+            }
+            return lifecycleNodePart(operation.substring(arrow + 2));
+        }
         return "";
     }
 
     private String lifecycleEventNode(String operation) {
+        if (operation != null && operation.startsWith("migration-requested:")) {
+            int arrow = operation.indexOf("->");
+            if (arrow > "migration-requested:".length()) {
+                return lifecycleNodePart(operation.substring("migration-requested:".length(), arrow));
+            }
+        }
         String activeNode = lifecycleActiveNode(operation);
         if (!activeNode.isBlank()) {
             return activeNode;
