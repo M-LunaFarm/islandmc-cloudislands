@@ -3,6 +3,10 @@ satis:
   features:
     # Dependencies are enforced even when a child feature is set to true:
     # resource-nodes requires machines, market requires storage, contracts requires storage.
+    # Disabled features do not register active commands, GUI listeners, event listeners, tickers,
+    # or write paths for that feature. Existing Satis data is preserved for later re-enable.
+    # Legacy satismc names are aliases:
+    # factories -> machines, generators -> resource-nodes, upgrades -> research, missions -> contracts.
     commands: true
     machines: true
     storage: true
@@ -25,8 +29,10 @@ addons:
   cloudislands-satis:
     # Same switch shape as CloudIslands Paper config. If both this block and satis.* are present,
     # both sides must allow a feature before it runs.
+    # Set enabled=false to remove the Satis content layer without breaking base CloudIslands islands.
     enabled: true
     features:
+      # This block can be used by host-level addon config. It follows the same disable policy as satis.features.
       commands: true
       machines: true
       storage: true
