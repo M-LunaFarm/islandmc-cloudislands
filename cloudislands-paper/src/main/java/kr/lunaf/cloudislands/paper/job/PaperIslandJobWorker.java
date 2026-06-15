@@ -114,7 +114,7 @@ public final class PaperIslandJobWorker {
                 if (job.type() == IslandJobType.CREATE_ISLAND) {
                     Bukkit.getPluginManager().callEvent(new IslandCreateEvent(result.islandId(), job.jobId(), nodeId, result.worldName()));
                 }
-                Bukkit.getPluginManager().callEvent(new IslandActivateEvent(result.islandId(), nodeId, result.worldName(), result.cellX(), result.cellZ(), result.schemaVersion()));
+                Bukkit.getPluginManager().callEvent(new IslandActivateEvent(result.islandId(), nodeId, result.worldName(), result.cellX(), result.cellZ(), result.schemaVersion(), result.placementSource()));
                 if (permissionSync != null) {
                     permissionSync.sync(job.islandId());
                 }

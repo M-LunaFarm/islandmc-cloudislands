@@ -13,8 +13,13 @@ public final class IslandActivateEvent extends Event {
     private final int cellX;
     private final int cellZ;
     private final long schemaVersion;
+    private final String placementSource;
 
     public IslandActivateEvent(UUID islandId, String nodeId, String worldName, int cellX, int cellZ, long schemaVersion) {
+        this(islandId, nodeId, worldName, cellX, cellZ, schemaVersion, "");
+    }
+
+    public IslandActivateEvent(UUID islandId, String nodeId, String worldName, int cellX, int cellZ, long schemaVersion, String placementSource) {
         super(true);
         this.islandId = islandId;
         this.nodeId = nodeId;
@@ -22,6 +27,7 @@ public final class IslandActivateEvent extends Event {
         this.cellX = cellX;
         this.cellZ = cellZ;
         this.schemaVersion = schemaVersion;
+        this.placementSource = placementSource == null ? "" : placementSource;
     }
 
     public UUID islandId() {
@@ -46,6 +52,10 @@ public final class IslandActivateEvent extends Event {
 
     public long schemaVersion() {
         return schemaVersion;
+    }
+
+    public String placementSource() {
+        return placementSource;
     }
 
     @Override
