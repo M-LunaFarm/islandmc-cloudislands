@@ -172,6 +172,7 @@ public final class NodeFailureMonitor {
     private static boolean requiresRecovery(IslandRuntimeSnapshot runtime) {
         return runtime.state() == IslandState.ACTIVE
             || runtime.state() == IslandState.ACTIVATING
+            || runtime.state() == IslandState.RESTORING
             || runtime.state() == IslandState.SAVING
             || runtime.state() == IslandState.DEACTIVATING;
     }

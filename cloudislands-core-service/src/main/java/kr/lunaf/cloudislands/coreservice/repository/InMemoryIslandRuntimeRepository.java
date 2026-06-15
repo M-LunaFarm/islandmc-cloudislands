@@ -101,7 +101,7 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
             if (!nodeId.equals(runtime.activeNode())) {
                 continue;
             }
-            if (runtime.state() != IslandState.ACTIVE && runtime.state() != IslandState.ACTIVATING && runtime.state() != IslandState.SAVING && runtime.state() != IslandState.DEACTIVATING) {
+            if (runtime.state() != IslandState.ACTIVE && runtime.state() != IslandState.ACTIVATING && runtime.state() != IslandState.RESTORING && runtime.state() != IslandState.SAVING && runtime.state() != IslandState.DEACTIVATING) {
                 continue;
             }
             put(new IslandRuntimeSnapshot(runtime.islandId(), IslandState.RECOVERY_REQUIRED, runtime.activeNode(), runtime.activeWorld(), runtime.cellX(), runtime.cellZ(), runtime.leaseOwner(), runtime.fencingToken(), runtime.activatedAt(), Instant.now()));
@@ -118,6 +118,7 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
     private boolean runningOnNode(IslandRuntimeSnapshot runtime) {
         return runtime.state() == IslandState.ACTIVE
             || runtime.state() == IslandState.ACTIVATING
+            || runtime.state() == IslandState.RESTORING
             || runtime.state() == IslandState.SAVING
             || runtime.state() == IslandState.DEACTIVATING;
     }

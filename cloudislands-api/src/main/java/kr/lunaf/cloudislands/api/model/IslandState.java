@@ -5,6 +5,7 @@ public enum IslandState {
     CREATING,
     INACTIVE_READY,
     ACTIVATING,
+    RESTORING,
     ACTIVE,
     SAVING,
     DELETE_REQUESTED,
