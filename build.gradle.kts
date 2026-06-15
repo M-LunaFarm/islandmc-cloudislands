@@ -30,12 +30,11 @@ subprojects {
 
 tasks.register<Copy>("distPlugins") {
     group = "distribution"
-    description = "Collects CloudIslands plugin jars, including the Satis addon."
+    description = "Collects required CloudIslands plugin jars."
 
     val pluginProjects = listOf(
         "cloudislands-paper",
-        "cloudislands-velocity",
-        "cloudislands-satis"
+        "cloudislands-velocity"
     )
     pluginProjects.forEach { projectName ->
         val jarTask = project(":$projectName").tasks.named<Jar>("jar")
@@ -43,6 +42,21 @@ tasks.register<Copy>("distPlugins") {
         from(jarTask.flatMap { it.archiveFile })
     }
     into(layout.buildDirectory.dir("dist/plugins"))
+}
+
+tasks.register<Copy>("distAddons") {
+    group = "distribution"
+    description = "Collects optional CloudIslands addon jars."
+
+    val addonProjects = listOf(
+        "cloudislands-satis"
+    )
+    addonProjects.forEach { projectName ->
+        val jarTask = project(":$projectName").tasks.named<Jar>("jar")
+        dependsOn(jarTask)
+        from(jarTask.flatMap { it.archiveFile })
+    }
+    into(layout.buildDirectory.dir("dist/addons"))
 }
 
 tasks.register<Copy>("distServices") {
@@ -70,12 +84,16 @@ tasks.register<Zip>("distBundle") {
     group = "distribution"
     description = "Packages CloudIslands plugin jars, Core API service runtime, and migration tools."
     dependsOn(tasks.named("distPlugins"))
+    dependsOn(tasks.named("distAddons"))
     dependsOn(tasks.named("distServices"))
     dependsOn(tasks.named("distTools"))
     archiveBaseName.set("cloudislands")
     archiveVersion.set(project.version.toString())
     from(layout.buildDirectory.dir("dist/plugins")) {
         into("plugins")
+    }
+    from(layout.buildDirectory.dir("dist/addons")) {
+        into("addons")
     }
     from(layout.buildDirectory.dir("dist/services")) {
         into("services")
