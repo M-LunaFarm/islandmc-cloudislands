@@ -343,6 +343,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-command-block-reason", runtimeCommandBlockReason());
         state.put("runtime-blocked-components", runtimeBlockedComponents());
         state.put("runtime-disabled-component-policy", "preserve-data-and-return-empty-tabs-or-unregister-listeners");
+        state.put("command-list-format", "one-line-per-command");
+        state.put("command-list-paging", "factory command list [page],factory admin command list [page]");
+        state.put("command-list-page-size", "12");
+        state.put("command-list-disabled-policy", "empty-tab-complete-disabled-command-stub");
         putDataWriteGateState(state);
         putLifecycleCoverageState(state);
         putIslandMobilityState(state);
