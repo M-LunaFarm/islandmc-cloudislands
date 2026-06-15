@@ -1826,6 +1826,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String activeNode = lifecycleActiveNode(safeOperation);
         String eventWorld = lifecycleEventWorld(safeOperation);
         String eventCell = lifecycleEventCell(safeOperation);
+        String placementSource = lifecycleEventPlacementSource(safeOperation);
         Map<String, String> state = new LinkedHashMap<>();
         state.put("last-lifecycle-island", islandId.toString());
         state.put("last-lifecycle-operation", safeOperation);
@@ -1846,6 +1847,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (!eventCell.isBlank()) {
             state.put("last-lifecycle-active-cell", eventCell);
+        }
+        if (!placementSource.isBlank()) {
+            state.put("last-lifecycle-placement-source", placementSource);
         }
         if (island != null && island.hasActiveCenter()) {
             state.put("last-lifecycle-active-world", island.activeWorld());
@@ -1873,6 +1877,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String activeNode = lifecycleActiveNode(safeOperation);
         String eventWorld = lifecycleEventWorld(safeOperation);
         String eventCell = lifecycleEventCell(safeOperation);
+        String placementSource = lifecycleEventPlacementSource(safeOperation);
         Map<String, String> state = new LinkedHashMap<>();
         state.put("last-lifecycle-island", islandId.toString());
         state.put("last-lifecycle-operation", safeOperation);
@@ -1894,6 +1899,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (!eventCell.isBlank()) {
             state.put("last-lifecycle-active-cell", eventCell);
         }
+        if (!placementSource.isBlank()) {
+            state.put("last-lifecycle-placement-source", placementSource);
+        }
         cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
             getLogger().warning("Failed to publish CloudIslands Satis lifecycle failure: " + error.getMessage());
             return Map.of();
@@ -1914,6 +1922,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String activeNode = lifecycleActiveNode(safeOperation);
         String eventWorld = lifecycleEventWorld(safeOperation);
         String eventCell = lifecycleEventCell(safeOperation);
+        String placementSource = lifecycleEventPlacementSource(safeOperation);
         Map<String, String> state = new LinkedHashMap<>();
         state.put("island", islandId.toString());
         state.put("operation", safeOperation);
@@ -2477,7 +2486,27 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         String cell = operation.substring(cellSeparator + 1);
         int separator = cell.indexOf(' ');
-        return separator < 0 ? cell : cell.substring(0, separator);
+        if (separator >= 0) {
+            cell = cell.substring(0, separator);
+        }
+        int placementSeparator = cell.indexOf(":placement-");
+        if (placementSeparator >= 0) {
+            cell = cell.substring(0, placementSeparator);
+        }
+        return cell;
+    }
+
+    private String lifecycleEventPlacementSource(String operation) {
+        if (operation == null) {
+            return "";
+        }
+        int placementSeparator = operation.indexOf(":placement-");
+        if (placementSeparator < 0) {
+            return "";
+        }
+        String value = operation.substring(placementSeparator + ":placement-".length());
+        int separator = value.indexOf(' ');
+        return separator < 0 ? value : value.substring(0, separator);
     }
 
     private void synchronizeSatisIsland(UUID islandId) {
@@ -2675,6 +2704,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (!eventCell.isBlank()) {
             state.put("last-lifecycle-active-cell", eventCell);
+        }
+        if (!placementSource.isBlank()) {
+            state.put("last-lifecycle-placement-source", placementSource);
         }
         cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
             getLogger().warning("Failed to publish CloudIslands Satis suspended lifecycle state: " + error.getMessage());
