@@ -799,6 +799,36 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
+        public CompletableFuture<Map<String, String>> tableKeyValueBulkSaveState(String id, String table, Map<String, String> values) {
+            return bulkSaveState(id, Map.of(), table == null ? Map.of() : Map.of(table, values == null ? Map.<String, String>of() : values));
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> bulkSaveTableKeyValueState(String id, String table, Map<String, String> values) {
+            return tableKeyValueBulkSaveState(id, table, values);
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> saveTableKeyValueState(String id, String table, Map<String, String> values) {
+            return tableKeyValueBulkSaveState(id, table, values);
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> tableKeyValueBulkSaveAliasState(String id, String table, Map<String, String> values) {
+            return tableKeyValueBulkSaveState(id, table, values);
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> tableKeyValueBulkState(String id, String table, Map<String, String> values) {
+            return tableKeyValueBulkSaveState(id, table, values);
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> bulkTableKeyValueState(String id, String table, Map<String, String> values) {
+            return tableKeyValueBulkState(id, table, values);
+        }
+
+        @Override
         public CompletableFuture<Map<String, String>> clearTableState(String id, String table) {
             String safeId = safeRegistrationId(id);
             if (table == null || table.isBlank()) {
@@ -1089,6 +1119,36 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<Map<String, String>> bulkIslandTableKeyValueState(String id, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
             return bulkSaveIslandState(id, islandId, values, tables);
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> tableKeyValueBulkSaveIslandState(String id, UUID islandId, String table, Map<String, String> values) {
+            return bulkSaveIslandState(id, islandId, Map.of(), table == null ? Map.of() : Map.of(table, values == null ? Map.<String, String>of() : values));
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> bulkSaveIslandTableKeyValueState(String id, UUID islandId, String table, Map<String, String> values) {
+            return tableKeyValueBulkSaveIslandState(id, islandId, table, values);
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> saveIslandTableKeyValueState(String id, UUID islandId, String table, Map<String, String> values) {
+            return tableKeyValueBulkSaveIslandState(id, islandId, table, values);
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> tableKeyValueBulkSaveAliasIslandState(String id, UUID islandId, String table, Map<String, String> values) {
+            return tableKeyValueBulkSaveIslandState(id, islandId, table, values);
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> tableKeyValueBulkIslandState(String id, UUID islandId, String table, Map<String, String> values) {
+            return tableKeyValueBulkSaveIslandState(id, islandId, table, values);
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> bulkIslandTableKeyValueState(String id, UUID islandId, String table, Map<String, String> values) {
+            return tableKeyValueBulkIslandState(id, islandId, table, values);
         }
 
         @Override
