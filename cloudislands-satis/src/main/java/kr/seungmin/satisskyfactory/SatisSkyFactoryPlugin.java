@@ -3367,6 +3367,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
             return "setup.database.core-api.enabled";
         }
+        if (!inferredJdbcDatabaseType().isBlank()) {
+            return databaseJdbcSource();
+        }
         String setupSectionType = inferredSetupDatabaseType();
         if (!setupSectionType.isBlank()) {
             return "setup.database." + setupSectionType.toLowerCase(Locale.ROOT);
