@@ -1876,7 +1876,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " global=" + textValue(body, "addonStateBulkSaveGlobalEndpoint")
             + " island=" + textValue(body, "addonStateBulkSaveIslandEndpoint")
             + " tableGlobal=" + textValue(body, "addonStateTableKeyValueBulkSaveGlobalEndpoint")
-            + " tableIsland=" + textValue(body, "addonStateTableKeyValueBulkSaveIslandEndpoint");
+            + " tableIsland=" + textValue(body, "addonStateTableKeyValueBulkSaveIslandEndpoint")
+            + " payload=" + textValue(body, "addonStateTableKeyValueBulkSavePayload")
+            + " storage=" + textValue(body, "addonStateTableKeyValueBulkSaveStorageMode")
+            + " fallback=" + textValue(body, "addonStateTableKeyValueBulkSaveFallback");
     }
 
     private String eventListMessage(String body) {

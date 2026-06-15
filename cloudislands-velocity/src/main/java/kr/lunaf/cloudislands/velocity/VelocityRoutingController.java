@@ -1854,7 +1854,10 @@ public final class VelocityRoutingController {
             + " global=" + jsonValue(body, "addonStateBulkSaveGlobalEndpoint")
             + " island=" + jsonValue(body, "addonStateBulkSaveIslandEndpoint")
             + " tableGlobal=" + jsonValue(body, "addonStateTableKeyValueBulkSaveGlobalEndpoint")
-            + " tableIsland=" + jsonValue(body, "addonStateTableKeyValueBulkSaveIslandEndpoint");
+            + " tableIsland=" + jsonValue(body, "addonStateTableKeyValueBulkSaveIslandEndpoint")
+            + " payload=" + jsonValue(body, "addonStateTableKeyValueBulkSavePayload")
+            + " storage=" + jsonValue(body, "addonStateTableKeyValueBulkSaveStorageMode")
+            + " fallback=" + jsonValue(body, "addonStateTableKeyValueBulkSaveFallback");
     }
 
     public void playerInfo(Player player, UUID playerUuid) {
