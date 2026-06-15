@@ -55,6 +55,11 @@ public final class CachingIslandRuntimeRepository implements IslandRuntimeReposi
     }
 
     @Override
+    public boolean placementOccupied(String worldName, int cellX, int cellZ, UUID exceptIslandId) {
+        return delegate.placementOccupied(worldName, cellX, cellZ, exceptIslandId);
+    }
+
+    @Override
     public IslandRuntimeSnapshot markActivating(UUID islandId, String targetNode, String targetWorld, int cellX, int cellZ) {
         return cacheChanged(delegate.markActivating(islandId, targetNode, targetWorld, cellX, cellZ));
     }
