@@ -2791,6 +2791,7 @@ public final class CloudIslandsCoreApplication {
             + "\"addonStateOwnershipPolicy\":\"core-persists-addon-key-value-state-without-addon-business-logic\","
             + "\"addonRemovalSafetyPolicy\":\"missing-addon-metadata-or-state-must-not-block-island-lifecycle\","
             + "\"addonExtensionModel\":\"optional-external-plugin-using-cloudislands-api\","
+            + "\"addonApiLookupPolicy\":\"cloudislands-provider-first-bukkit-servicesmanager-fallback\","
             + "\"addonEventDeliveryPolicy\":\"core-global-events-to-paper-poller-to-cloudislands-addon-and-bukkit-events\","
             + "\"addonEventCoverage\":\"pre-create,create,pre-activate,activate,deactivate,migrate,delete,restore,reset,recovery,runtime,pre-visit,visit,member-join,member-left,member-role,member-change,permission-check,permission-change,role-catalog,warp-create,warp-delete,warp-change,level,worth,upgrade,limit,snapshot,route-ticket\","
             + "\"addonEventBackfillPolicy\":\"paper-poller-uses-listEventsSince-with-sequence-gap-cache-invalidation\","

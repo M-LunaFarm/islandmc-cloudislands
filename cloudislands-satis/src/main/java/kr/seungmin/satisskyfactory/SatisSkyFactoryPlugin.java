@@ -1223,6 +1223,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("recovery-stale-write-policy", "discard-local-dirty-state");
         metadata.put("runtime-registration-policy", "disabled-features-skip-active-commands-gui-listeners-tasks-and-writes");
         metadata.put("runtime-disabled-features", disabledRuntimeFeatures());
+        metadata.put("addon-api-lookup-policy", "CloudIslandsProvider-first-Bukkit-ServicesManager-fallback");
+        metadata.put("addon-api-bootstrap-policy", "register-if-cloudislands-api-available-disable-runtime-components-when-missing");
         putDataWriteGateState(metadata);
         putAddonStateSyncState(metadata);
         metadata.put("addon-state-bulk-save-api", "true");
