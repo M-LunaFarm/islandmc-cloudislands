@@ -62,10 +62,11 @@ public final class IslandActivationJobHandler {
             return new ActivationResult(false, "UNSUPPORTED_JOB", null, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L, "", 0L, "", 0L);
         }
         UUID islandId = job.islandId();
+        ShardWorldManager.CellAssignment cell = null;
         try {
             IslandBundleManifest manifest = manifestFor(job, islandId);
             IslandSaveService.SaveResult preMutationSnapshot = snapshotBeforeMutation(job);
-            ShardWorldManager.CellAssignment cell = cellFor(job, islandId);
+            cell = cellFor(job, islandId);
             long snapshotNo = longValue(job.payload().get("snapshotNo"));
             String storagePath = job.payload().getOrDefault("storagePath", "");
             BundleRestorePlan restorePlan = stageBundle(job, islandId, cell, snapshotNo, storagePath);
@@ -87,6 +88,9 @@ public final class IslandActivationJobHandler {
             IslandSaveService.SaveResult creationSnapshot = snapshotAfterCreate(job, cell, manifest);
             return new ActivationResult(true, "ACTIVE", islandId, cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), manifest.size(), manifest.schemaVersion(), longValue(job.payload().get("fencingToken")), restorePlan == null ? null : restorePlan.extractedRoot().toString(), preMutationSnapshot == null ? 0L : preMutationSnapshot.snapshotNo(), preMutationSnapshot == null ? "" : preMutationSnapshot.checksum(), preMutationSnapshot == null ? 0L : preMutationSnapshot.sizeBytes(), preMutationReason(job), creationSnapshot == null ? 0L : creationSnapshot.snapshotNo(), creationSnapshot == null ? "" : creationSnapshot.checksum(), creationSnapshot == null ? 0L : creationSnapshot.sizeBytes());
         } catch (Exception exception) {
+            if (cell != null) {
+                shardWorldManager.release(islandId);
+            }
             return new ActivationResult(false, "ERROR_ACTIVATING", islandId, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L, "", 0L, "", 0L);
         }
     }
