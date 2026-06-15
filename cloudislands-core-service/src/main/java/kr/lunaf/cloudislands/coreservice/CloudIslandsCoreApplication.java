@@ -1727,6 +1727,22 @@ public final class CloudIslandsCoreApplication {
                 lifecycle(exchange, result);
                 return;
             }
+            if (tail.endsWith("/snapshot")) {
+                String body = readBody(exchange);
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/snapshot".length()));
+                String reason = adminSnapshotReason(JsonFields.text(body, "reason", "MANUAL"));
+                IslandLifecycleWorkflow.Result result = lifecycle.snapshot(islandId, reason);
+                audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_SNAPSHOT_REQUEST", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code(), "reason", reason));
+                lifecycle(exchange, result);
+                return;
+            }
+            if (tail.endsWith("/restore")) {
+                String body = readBody(exchange);
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/restore".length()));
+                long snapshotNo = JsonFields.longValue(body, "snapshotNo", 0L);
+                restoreIslandSnapshot(exchange, audit, lifecycle, snapshotRepository, islandId, snapshotNo);
+                return;
+            }
             if (tail.endsWith("/rollback")) {
                 String body = readBody(exchange);
                 UUID islandId = uuidPath(tail.substring(0, tail.length() - "/rollback".length()));
@@ -1747,10 +1763,7 @@ public final class CloudIslandsCoreApplication {
         route("/v1/admin/islands/snapshot", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            String reason = JsonFields.text(body, "reason", "MANUAL");
-            if (!reason.toUpperCase(java.util.Locale.ROOT).contains("MANUAL")) {
-                reason = "MANUAL:" + (reason.isBlank() ? "snapshot" : reason);
-            }
+            String reason = adminSnapshotReason(JsonFields.text(body, "reason", "MANUAL"));
             IslandLifecycleWorkflow.Result result = lifecycle.snapshot(islandId, reason);
             audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_SNAPSHOT_REQUEST", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code(), "reason", reason));
             lifecycle(exchange, result);
@@ -1759,20 +1772,7 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             long snapshotNo = JsonFields.longValue(body, "snapshotNo", 0L);
-            java.util.Optional<kr.lunaf.cloudislands.api.model.IslandSnapshotRecord> snapshot = snapshotRepository.find(islandId, snapshotNo);
-            if (snapshotNo <= 0L || snapshot.isEmpty()) {
-                audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_RESTORE_REQUEST", "ISLAND", islandId.toString(), Map.of("accepted", "false", "code", "SNAPSHOT_NOT_FOUND", "snapshotNo", Long.toString(snapshotNo)));
-                write(exchange, 404, ApiResponses.error("SNAPSHOT_NOT_FOUND", "Snapshot was not found"));
-            } else {
-                IslandLifecycleWorkflow.Result result = lifecycle.restore(islandId, snapshotNo, snapshot.get().storagePath());
-                audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_RESTORE_REQUEST", "ISLAND", islandId.toString(), Map.of(
-                    "accepted", Boolean.toString(result.accepted()),
-                    "code", result.code(),
-                    "snapshotNo", Long.toString(snapshotNo),
-                    "storagePath", snapshot.get().storagePath() == null ? "" : snapshot.get().storagePath()
-                ));
-                lifecycle(exchange, result);
-            }
+            restoreIslandSnapshot(exchange, audit, lifecycle, snapshotRepository, islandId, snapshotNo);
         });
         route("/v1/admin/islands/rollback", exchange -> {
             String body = readBody(exchange);
@@ -3411,6 +3411,28 @@ public final class CloudIslandsCoreApplication {
     private static String adminSaveReason(String reason) {
         String safeReason = reason == null || reason.isBlank() ? "save" : reason;
         return safeReason.toUpperCase(java.util.Locale.ROOT).contains("ADMIN_SAVE") ? safeReason : "ADMIN_SAVE:" + safeReason;
+    }
+
+    private static String adminSnapshotReason(String reason) {
+        String safeReason = reason == null || reason.isBlank() ? "snapshot" : reason;
+        return safeReason.toUpperCase(java.util.Locale.ROOT).contains("MANUAL") ? safeReason : "MANUAL:" + safeReason;
+    }
+
+    private static void restoreIslandSnapshot(com.sun.net.httpserver.HttpExchange exchange, AuditLogger audit, IslandLifecycleWorkflow lifecycle, IslandSnapshotRepository snapshotRepository, UUID islandId, long snapshotNo) throws java.io.IOException {
+        java.util.Optional<kr.lunaf.cloudislands.api.model.IslandSnapshotRecord> snapshot = snapshotRepository.find(islandId, snapshotNo);
+        if (snapshotNo <= 0L || snapshot.isEmpty()) {
+            audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_RESTORE_REQUEST", "ISLAND", islandId.toString(), Map.of("accepted", "false", "code", "SNAPSHOT_NOT_FOUND", "snapshotNo", Long.toString(snapshotNo)));
+            write(exchange, 404, ApiResponses.error("SNAPSHOT_NOT_FOUND", "Snapshot was not found"));
+            return;
+        }
+        IslandLifecycleWorkflow.Result result = lifecycle.restore(islandId, snapshotNo, snapshot.get().storagePath());
+        audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_RESTORE_REQUEST", "ISLAND", islandId.toString(), Map.of(
+            "accepted", Boolean.toString(result.accepted()),
+            "code", result.code(),
+            "snapshotNo", Long.toString(snapshotNo),
+            "storagePath", snapshot.get().storagePath() == null ? "" : snapshot.get().storagePath()
+        ));
+        lifecycle(exchange, result);
     }
 
     private static void rollbackIslandSnapshot(com.sun.net.httpserver.HttpExchange exchange, AuditLogger audit, IslandLifecycleWorkflow lifecycle, IslandSnapshotRepository snapshotRepository, UUID islandId, long snapshotNo) throws java.io.IOException {
