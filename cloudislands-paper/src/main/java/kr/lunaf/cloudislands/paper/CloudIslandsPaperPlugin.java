@@ -147,15 +147,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         localCaches.register("limits", limitCache::invalidateAll);
         long denyMessageCooldownMs = getConfig().getLong("protection.deny-message-cooldown-ms", 1000L);
         BlockDeltaReporter blockDeltas = new BlockDeltaReporter(this, client);
-        getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection(), blockDeltas, denyMessageCooldownMs, denyMessages()), this);
-        getServer().getPluginManager().registerEvents(new IslandBoundaryListener(agent.protection(), messages), this);
         getServer().getPluginManager().registerEvents(new PaperPlayerProfileListener(client), this);
         getServer().getPluginManager().registerEvents(new PaperBrandingListener(this, messages), this);
         getServer().getPluginManager().registerEvents(new PaperChatListener(messages), this);
         getServer().getPluginManager().registerEvents(new PaperScoreboardListener(this, messages), this);
-        getServer().getPluginManager().registerEvents(new IslandGameplayFlagListener(agent.protection(), messages), this);
-        getServer().getPluginManager().registerEvents(new IslandLimitListener(agent.protection(), limitCache, messages), this);
-        getServer().getPluginManager().registerEvents(new IslandEntityLimitListener(agent.protection(), limitCache, messages), this);
         getServer().getPluginManager().registerEvents(new AdminNodeMenu(messages), this);
         getServer().getPluginManager().registerEvents(new IslandBankMenu(messages), this);
         getServer().getPluginManager().registerEvents(new IslandBanMenu(messages), this);
@@ -181,13 +176,20 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandUpgradeMenu(messages), this);
         getServer().getPluginManager().registerEvents(new IslandVisitMenu(messages), this);
         getServer().getPluginManager().registerEvents(new IslandWarpMenu(messages), this);
-        this.generatorLevels = new GeneratorLevelCache(client, getConfig().getString("generators.default-key", "default"));
-        CropGrowthLevelCache cropGrowthLevels = new CropGrowthLevelCache(client);
-        localCaches.register("generator-levels", generatorLevels::invalidateAll);
-        localCaches.register("crop-growth-levels", cropGrowthLevels::invalidateAll);
-        this.generatorListener = new IslandGeneratorListener(agent.protection(), ConfigGeneratorRules.load(this), generatorLevels, blockDeltas);
-        getServer().getPluginManager().registerEvents(generatorListener, this);
-        getServer().getPluginManager().registerEvents(new IslandCropGrowthListener(agent.protection(), cropGrowthLevels), this);
+        if (role == AgentRole.ISLAND_NODE) {
+            getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection(), blockDeltas, denyMessageCooldownMs, denyMessages()), this);
+            getServer().getPluginManager().registerEvents(new IslandBoundaryListener(agent.protection(), messages), this);
+            getServer().getPluginManager().registerEvents(new IslandGameplayFlagListener(agent.protection(), messages), this);
+            getServer().getPluginManager().registerEvents(new IslandLimitListener(agent.protection(), limitCache, messages), this);
+            getServer().getPluginManager().registerEvents(new IslandEntityLimitListener(agent.protection(), limitCache, messages), this);
+            this.generatorLevels = new GeneratorLevelCache(client, getConfig().getString("generators.default-key", "default"));
+            CropGrowthLevelCache cropGrowthLevels = new CropGrowthLevelCache(client);
+            localCaches.register("generator-levels", generatorLevels::invalidateAll);
+            localCaches.register("crop-growth-levels", cropGrowthLevels::invalidateAll);
+            this.generatorListener = new IslandGeneratorListener(agent.protection(), ConfigGeneratorRules.load(this), generatorLevels, blockDeltas);
+            getServer().getPluginManager().registerEvents(generatorListener, this);
+            getServer().getPluginManager().registerEvents(new IslandCropGrowthListener(agent.protection(), cropGrowthLevels), this);
+        }
         String fallbackServerName = getConfig().getString("routing.fallback-on-failure", "Lobby");
         boolean enforceRouteSession = role == AgentRole.ISLAND_NODE && configBoolean("security.enforce-route-session", true);
         boolean requireRouteSession = role == AgentRole.ISLAND_NODE && (configBoolean("routing.require-route-session", true) || enforceRouteSession);
