@@ -117,6 +117,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private boolean machineListenerRegistered;
     private boolean guiListenerRegistered;
     private boolean lifecycleListenerRegistered;
+    private boolean addonStateReportingWasEnabled;
     private MachineListener machineListener;
     private FactoryGuiListener guiListener;
     private FactoryLifecycleListener lifecycleListener;
@@ -1095,6 +1096,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     public void onAddonRegistered(CloudIslandsAddonSnapshot snapshot) {
         addonRuntimeEnabled = snapshot.enabled();
         effectiveFeatures = snapshot.features();
+        addonStateReportingWasEnabled = addonStateReportingEnabled(snapshot);
         publishAddonState(snapshot, "registered");
     }
 
@@ -1102,6 +1104,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     public void onAddonReloaded(CloudIslandsAddonSnapshot snapshot) {
         addonRuntimeEnabled = snapshot.enabled();
         effectiveFeatures = snapshot.features();
+        addonStateReportingWasEnabled = addonStateReportingEnabled(snapshot);
         publishAddonState(snapshot, "reloaded");
         getLogger().info("Reloaded CloudIslands addon config: " + snapshot.id() + " enabled=" + snapshot.enabled());
         if (!snapshot.enabled()) {
@@ -1218,8 +1221,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         });
     }
 
-    private void publishUnregisteredState() {
-        if (cloudIslandsApi == null || !configuredFeatureEnabled("addon-state")) {
+    private void publishUnregisteredState(boolean allowed) {
+        if (cloudIslandsApi == null || !allowed) {
             return;
         }
         Map<String, String> state = new LinkedHashMap<>();
@@ -1437,10 +1440,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onAddonUnregistered() {
+        boolean publishUnregistered = addonStateReportingWasEnabled;
+        addonStateReportingWasEnabled = false;
         addonRuntimeEnabled = false;
         effectiveFeatures = Map.of();
         stopRuntimeActivity();
-        publishUnregisteredState();
+        publishUnregisteredState(publishUnregistered);
     }
 
     @Override
