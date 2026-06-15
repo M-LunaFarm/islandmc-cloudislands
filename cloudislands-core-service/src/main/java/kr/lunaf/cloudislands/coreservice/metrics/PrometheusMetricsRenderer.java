@@ -26,6 +26,7 @@ public final class PrometheusMetricsRenderer {
     private final Duration heartbeatTimeout;
     private final DoubleSupplier databaseQuerySeconds;
     private final LongSupplier databaseActiveConnections;
+    private final LongSupplier databaseMaxConnections;
     private final LongSupplier databaseOpenedConnections;
     private final LongSupplier databaseConnectionFailures;
     private final LongSupplier databaseQueryFailures;
@@ -55,14 +56,14 @@ public final class PrometheusMetricsRenderer {
     private final LongSupplier securityRejectsAdminPermissionDenied;
 
     public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures) {
-        this(nodes, jobs, tickets, runtimes, events, heartbeatTimeout, databaseQuerySeconds, databaseActiveConnections, databaseOpenedConnections, databaseConnectionFailures, databaseQueryFailures, redisEventFailures, redisCacheFailures, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L);
+        this(nodes, jobs, tickets, runtimes, events, heartbeatTimeout, databaseQuerySeconds, databaseActiveConnections, databaseOpenedConnections, databaseConnectionFailures, databaseQueryFailures, redisEventFailures, redisCacheFailures, () -> 0L, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L);
     }
 
     public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures, BooleanSupplier coreTokenConfigured, BooleanSupplier adminTokenConfigured, BooleanSupplier adminApiEnabled, BooleanSupplier mtlsRequired, BooleanSupplier ipAllowlistEnabled, BooleanSupplier publicBindWithoutIpAllowlist, BooleanSupplier redisPublicHost, BooleanSupplier postgresqlPublicHost, BooleanSupplier objectStoragePublicHost, BooleanSupplier objectStoragePlainHttpPublicHost) {
-        this(nodes, jobs, tickets, runtimes, events, heartbeatTimeout, databaseQuerySeconds, databaseActiveConnections, databaseOpenedConnections, databaseConnectionFailures, databaseQueryFailures, redisEventFailures, redisCacheFailures, coreTokenConfigured, adminTokenConfigured, adminApiEnabled, mtlsRequired, ipAllowlistEnabled, publicBindWithoutIpAllowlist, redisPublicHost, postgresqlPublicHost, objectStoragePublicHost, objectStoragePlainHttpPublicHost, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L);
+        this(nodes, jobs, tickets, runtimes, events, heartbeatTimeout, databaseQuerySeconds, databaseActiveConnections, databaseOpenedConnections, databaseConnectionFailures, databaseQueryFailures, redisEventFailures, redisCacheFailures, () -> 0L, coreTokenConfigured, adminTokenConfigured, adminApiEnabled, mtlsRequired, ipAllowlistEnabled, publicBindWithoutIpAllowlist, redisPublicHost, postgresqlPublicHost, objectStoragePublicHost, objectStoragePlainHttpPublicHost, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L);
     }
 
-    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures, BooleanSupplier coreTokenConfigured, BooleanSupplier adminTokenConfigured, BooleanSupplier adminApiEnabled, BooleanSupplier mtlsRequired, BooleanSupplier ipAllowlistEnabled, BooleanSupplier publicBindWithoutIpAllowlist, BooleanSupplier redisPublicHost, BooleanSupplier postgresqlPublicHost, BooleanSupplier objectStoragePublicHost, BooleanSupplier objectStoragePlainHttpPublicHost, LongSupplier rateLimitRequests, LongSupplier rateLimitWindowSeconds, LongSupplier rankingDirtyDrainedTotal, LongSupplier rankingRecalculatedTotal, LongSupplier rankingRecalculationFailuresTotal, LongSupplier rankingRecalculationLastBatchSize, LongSupplier securityRejectsTotal, LongSupplier securityRejectsRateLimited, LongSupplier securityRejectsUnauthorized, LongSupplier securityRejectsMtlsRequired, LongSupplier securityRejectsIpNotAllowed, LongSupplier securityRejectsAdminPermissionDenied) {
+    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures, LongSupplier databaseMaxConnections, BooleanSupplier coreTokenConfigured, BooleanSupplier adminTokenConfigured, BooleanSupplier adminApiEnabled, BooleanSupplier mtlsRequired, BooleanSupplier ipAllowlistEnabled, BooleanSupplier publicBindWithoutIpAllowlist, BooleanSupplier redisPublicHost, BooleanSupplier postgresqlPublicHost, BooleanSupplier objectStoragePublicHost, BooleanSupplier objectStoragePlainHttpPublicHost, LongSupplier rateLimitRequests, LongSupplier rateLimitWindowSeconds, LongSupplier rankingDirtyDrainedTotal, LongSupplier rankingRecalculatedTotal, LongSupplier rankingRecalculationFailuresTotal, LongSupplier rankingRecalculationLastBatchSize, LongSupplier securityRejectsTotal, LongSupplier securityRejectsRateLimited, LongSupplier securityRejectsUnauthorized, LongSupplier securityRejectsMtlsRequired, LongSupplier securityRejectsIpNotAllowed, LongSupplier securityRejectsAdminPermissionDenied) {
         this.nodes = nodes;
         this.jobs = jobs;
         this.tickets = tickets;
@@ -71,6 +72,7 @@ public final class PrometheusMetricsRenderer {
         this.heartbeatTimeout = heartbeatTimeout;
         this.databaseQuerySeconds = databaseQuerySeconds;
         this.databaseActiveConnections = databaseActiveConnections;
+        this.databaseMaxConnections = databaseMaxConnections;
         this.databaseOpenedConnections = databaseOpenedConnections;
         this.databaseConnectionFailures = databaseConnectionFailures;
         this.databaseQueryFailures = databaseQueryFailures;
@@ -398,7 +400,15 @@ public final class PrometheusMetricsRenderer {
         out.append("cloudislands_database_query_seconds ").append(databaseQuerySeconds.getAsDouble()).append('\n');
         help(out, "cloudislands_database_connections_active", "Active JDBC connections currently open in Core API");
         type(out, "cloudislands_database_connections_active", "gauge");
-        out.append("cloudislands_database_connections_active ").append(databaseActiveConnections.getAsLong()).append('\n');
+        long activeDatabaseConnections = Math.max(0L, databaseActiveConnections.getAsLong());
+        long maxDatabaseConnections = Math.max(0L, databaseMaxConnections.getAsLong());
+        out.append("cloudislands_database_connections_active ").append(activeDatabaseConnections).append('\n');
+        help(out, "cloudislands_database_connections_max", "Configured maximum JDBC connections for Core API");
+        type(out, "cloudislands_database_connections_max", "gauge");
+        out.append("cloudislands_database_connections_max ").append(maxDatabaseConnections).append('\n');
+        help(out, "cloudislands_database_connection_pool_usage_ratio", "Active JDBC connections divided by configured maximum connections");
+        type(out, "cloudislands_database_connection_pool_usage_ratio", "gauge");
+        out.append("cloudislands_database_connection_pool_usage_ratio ").append(maxDatabaseConnections <= 0L ? 0.0D : (double) activeDatabaseConnections / maxDatabaseConnections).append('\n');
         help(out, "cloudislands_database_connections_opened_total", "JDBC connections opened by Core API");
         type(out, "cloudislands_database_connections_opened_total", "counter");
         out.append("cloudislands_database_connections_opened_total ").append(databaseOpenedConnections.getAsLong()).append('\n');

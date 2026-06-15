@@ -13,7 +13,7 @@
       "datasource": "${DS_PROMETHEUS}",
       "fieldConfig": {
         "defaults": {
-          "unit": "short"
+          "unit": "percentunit"
         },
         "overrides": []
       },
@@ -201,8 +201,8 @@
       "id": 8,
       "targets": [
         {
-          "expr": "cloudislands_database_connections_active",
-          "legendFormat": "active",
+          "expr": "cloudislands_database_connection_pool_usage_ratio",
+          "legendFormat": "usage",
           "refId": "A"
         }
       ],
