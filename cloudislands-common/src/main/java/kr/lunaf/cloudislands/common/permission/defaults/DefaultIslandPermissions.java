@@ -18,7 +18,6 @@ public final class DefaultIslandPermissions {
         allowMember(set, IslandRole.CUSTOM_4);
         allowMember(set, IslandRole.CUSTOM_5);
         allowTrusted(set);
-        allowVisitor(set);
         allowManagement(set, IslandRole.MODERATOR);
         allowManagement(set, IslandRole.CO_OWNER);
         return set;
@@ -63,12 +62,6 @@ public final class DefaultIslandPermissions {
         }) {
             set.put(IslandRole.TRUSTED, permission, true);
         }
-    }
-
-    private static void allowVisitor(CachedPermissionSet set) {
-        set.put(IslandRole.VISITOR, IslandPermission.USE_DOOR, true);
-        set.put(IslandRole.VISITOR, IslandPermission.USE_BUTTON, true);
-        set.put(IslandRole.VISITOR, IslandPermission.USE_PRESSURE_PLATE, true);
     }
 
     private static void allowManagement(CachedPermissionSet set, IslandRole role) {

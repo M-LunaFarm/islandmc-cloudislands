@@ -105,7 +105,7 @@ public final class ProtectionController {
                     return PermissionResult.allow(role);
                 }
                 IslandFlag visitorFlag = visitorFlag(permission);
-                if (visitorFlag != null && permissionCache.flagAllowed(region.islandId(), visitorFlag)) {
+                if (role == IslandRole.VISITOR && visitorFlag != null && permissionCache.flagAllowed(region.islandId(), visitorFlag)) {
                     return PermissionResult.allow(IslandRole.VISITOR);
                 }
                 return PermissionResult.deny("DEFAULT_DENY", role);
