@@ -29,6 +29,11 @@ tasks.jar {
             "CloudIslands-Core-Depends-On-Addon" to "false",
             "CloudIslands-Addon-Removal-Safe" to "true",
             "CloudIslands-Addon-Data-Retention" to "preserve-addon-state-by-island-uuid",
+            "CloudIslands-Addon-State-Authority" to "core-api-table-key-value-or-shared-database",
+            "CloudIslands-Addon-Feature-Gates" to "commands,machines,storage,factories,generators,upgrades,missions,menus,gui,lifecycle,resource-nodes,market,contracts,research,maintenance,placeholders,migration,addon-state,route-events",
+            "CloudIslands-Addon-Feature-Disable-Policy" to "disabled-features-preserve-data-and-skip-runtime-components",
+            "CloudIslands-Addon-Island-Move-Policy" to "island-uuid-stable-remap-active-world-and-cell",
+            "CloudIslands-Addon-API-Only" to "true",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
         )
