@@ -338,6 +338,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-addon-gate", "addons.cloudislands-satis.enabled&&satis.enabled");
         state.put("runtime-addon-status", addonRuntimeEnabled ? "enabled" : "addon-disabled-by-config-or-registry");
         state.put("runtime-addon-policy", "disabled-addon-registers-no-active-components-preserves-satis-data-and-cloudislands-core");
+        state.put("runtime-cloudislands-api-required", Boolean.toString(requiresCloudIslandsApi()));
+        state.put("runtime-standalone-island-management", "false");
+        state.put("runtime-skyblock-provider-policy", "cloudislands-api-only-ignore-legacy-provider-config");
         state.put("runtime-superior-migration-input-only", "true");
         state.put("runtime-superior-runtime-dependency", "false");
         state.put("runtime-superior-runtime-policy", "migration-input-only-no-runtime-hooks");
