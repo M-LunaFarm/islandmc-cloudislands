@@ -13,5 +13,11 @@ public final class ShardCellAllocator {
         return new Cell(x, z, x * cellSize, z * cellSize);
     }
 
+    public Cell cellForCoordinates(int cellX, int cellZ) {
+        int x = Math.max(0, cellX);
+        int z = Math.max(0, cellZ);
+        return new Cell(x, z, x * cellSize, z * cellSize);
+    }
+
     public record Cell(int cellX, int cellZ, int originX, int originZ) {}
 }

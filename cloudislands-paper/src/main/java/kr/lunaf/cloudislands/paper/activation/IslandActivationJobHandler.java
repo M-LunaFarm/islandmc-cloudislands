@@ -65,7 +65,7 @@ public final class IslandActivationJobHandler {
         try {
             IslandBundleManifest manifest = manifestFor(job, islandId);
             IslandSaveService.SaveResult preMutationSnapshot = snapshotBeforeMutation(job);
-            ShardWorldManager.CellAssignment cell = shardWorldManager.allocateCell(islandId);
+            ShardWorldManager.CellAssignment cell = cellFor(job, islandId);
             long snapshotNo = longValue(job.payload().get("snapshotNo"));
             String storagePath = job.payload().getOrDefault("storagePath", "");
             BundleRestorePlan restorePlan = stageBundle(job, islandId, cell, snapshotNo, storagePath);
@@ -107,7 +107,7 @@ public final class IslandActivationJobHandler {
                 "1.21.11",
                 12,
                 Math.max(1, size),
-                new IslandLocation("ci_shard_001", 0.5D, 100.0D, 0.5D, 180.0F, 0.0F),
+                new IslandLocation(job.payload().getOrDefault("worldName", "ci_shard_001"), 0.5D, 100.0D, 0.5D, 180.0F, 0.0F),
                 now,
                 now,
                 ""
@@ -121,6 +121,14 @@ public final class IslandActivationJobHandler {
         }
         ActiveIslandRegistry.ActiveIsland activeIsland = new ActiveIslandRegistry.ActiveIsland(job.islandId(), cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), manifest.size(), manifest.schemaVersion(), Instant.now());
         return saveService.save(job.islandId(), activeIsland, manifest, "CREATED");
+    }
+
+    private ShardWorldManager.CellAssignment cellFor(IslandJob job, UUID islandId) {
+        String worldName = job.payload().getOrDefault("worldName", "");
+        if (!worldName.isBlank()) {
+            return shardWorldManager.reserveCell(islandId, worldName, intValue(job.payload().get("cellX"), 0), intValue(job.payload().get("cellZ"), 0));
+        }
+        return shardWorldManager.allocateCell(islandId);
     }
 
     private IslandSaveService.SaveResult snapshotBeforeMutation(IslandJob job) throws IOException {

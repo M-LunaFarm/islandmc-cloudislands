@@ -41,6 +41,23 @@ public final class ShardWorldManager {
         throw new IllegalStateException("No free shard cells are available");
     }
 
+    public synchronized CellAssignment reserveCell(UUID islandId, String worldName, int cellX, int cellZ) {
+        CellAssignment existing = activeCells.get(islandId);
+        if (existing != null) {
+            return existing;
+        }
+        if (worldName == null || worldName.isBlank()) {
+            return allocateCell(islandId);
+        }
+        ShardCellAllocator.Cell cell = cellAllocator.cellForCoordinates(cellX, cellZ);
+        CellAssignment candidate = new CellAssignment(worldName, cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ());
+        if (cellOccupied(candidate)) {
+            throw new IllegalStateException("Shard cell is already active: " + cellKey(candidate));
+        }
+        activeCells.put(islandId, candidate);
+        return candidate;
+    }
+
     public void release(UUID islandId) {
         activeCells.remove(islandId);
     }
