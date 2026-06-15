@@ -129,6 +129,11 @@ upgrades:
 
 block-values:
   file: "${CI_BLOCK_VALUES_FILE}"
+  level-formula:
+    type: "EXPRESSION"
+    expression: "floor(total_level_points / 1000)"
+  worth-formula:
+    type: "SUM_BLOCK_VALUES"
 
 snapshots:
   keep-hourly: 24

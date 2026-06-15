@@ -38,6 +38,9 @@ public record CoreServiceConfig(
     String ipAllowlist,
     String upgradesFile,
     String blockValuesFile,
+    String levelFormulaType,
+    String levelFormulaExpression,
+    String worthFormulaType,
     String islandPool,
     String softFullPolicy,
     String hardFullPolicy,
@@ -90,6 +93,9 @@ public record CoreServiceConfig(
             env("CI_IP_ALLOWLIST", setting(config, "security.ip-allowlist", "")),
             env("CI_UPGRADES_FILE", setting(config, "upgrades.file", "")),
             env("CI_BLOCK_VALUES_FILE", setting(config, "block-values.file", "")),
+            env("CI_LEVEL_FORMULA_TYPE", setting(config, "block-values.level-formula.type", "EXPRESSION")),
+            env("CI_LEVEL_FORMULA_EXPRESSION", setting(config, "block-values.level-formula.expression", "floor(total_level_points / 1000)")),
+            env("CI_WORTH_FORMULA_TYPE", setting(config, "block-values.worth-formula.type", "SUM_BLOCK_VALUES")),
             env("CI_ISLAND_POOL", setting(config, "routing.island-pool", "island")),
             env("CI_SOFT_FULL_POLICY", setting(config, "routing.soft-full-policy", "AVOID_NEW_ACTIVATIONS")),
             env("CI_HARD_FULL_POLICY", setting(config, "routing.hard-full-policy", "DENY_OR_QUEUE")),
@@ -127,7 +133,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, rateLimitRequests, rateLimitWindow);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, rateLimitRequests, rateLimitWindow);
     }
 
     public static String configuredDatabaseTypeSource() {

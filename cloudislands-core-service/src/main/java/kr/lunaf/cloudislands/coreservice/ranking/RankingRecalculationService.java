@@ -10,10 +10,20 @@ import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 public final class RankingRecalculationService {
     private final RankingRepository rankings;
     private final GlobalEventPublisher events;
+    private final String levelFormulaExpression;
+    private final String worthFormulaType;
+    private final long levelPointsDivisor;
 
     public RankingRecalculationService(RankingRepository rankings, GlobalEventPublisher events) {
+        this(rankings, events, "floor(total_level_points / 1000)", "SUM_BLOCK_VALUES");
+    }
+
+    public RankingRecalculationService(RankingRepository rankings, GlobalEventPublisher events, String levelFormulaExpression, String worthFormulaType) {
         this.rankings = rankings;
         this.events = events;
+        this.levelFormulaExpression = levelFormulaExpression == null || levelFormulaExpression.isBlank() ? "floor(total_level_points / 1000)" : levelFormulaExpression;
+        this.worthFormulaType = worthFormulaType == null || worthFormulaType.isBlank() ? "SUM_BLOCK_VALUES" : worthFormulaType;
+        this.levelPointsDivisor = parseLevelPointsDivisor(this.levelFormulaExpression);
     }
 
     public IslandRankSnapshot recalculate(UUID islandId, Map<String, Long> blockCounts, Map<String, BlockValue> values, int memberCount) {
@@ -28,11 +38,50 @@ public final class RankingRecalculationService {
             worth = worth.add(value.worth().multiply(BigDecimal.valueOf(counted)));
             levelPoints += value.levelPoints() * counted;
         }
-        IslandRankSnapshot snapshot = new IslandRankSnapshot(islandId, Math.floorDiv(levelPoints, 1000L), worth, memberCount, Instant.now());
+        IslandRankSnapshot snapshot = new IslandRankSnapshot(islandId, Math.floorDiv(levelPoints, levelPointsDivisor), worth, memberCount, Instant.now());
         rankings.save(snapshot);
-        events.publish(CloudIslandEventType.ISLAND_LEVEL_UPDATED.name(), Map.of("islandId", islandId.toString(), "level", Long.toString(snapshot.level()), "worth", snapshot.worth().toPlainString()));
-        events.publish(CloudIslandEventType.ISLAND_WORTH_CHANGED.name(), Map.of("islandId", islandId.toString(), "worth", snapshot.worth().toPlainString()));
+        events.publish(CloudIslandEventType.ISLAND_LEVEL_UPDATED.name(), Map.of("islandId", islandId.toString(), "level", Long.toString(snapshot.level()), "worth", snapshot.worth().toPlainString(), "levelFormula", levelFormulaExpression));
+        events.publish(CloudIslandEventType.ISLAND_WORTH_CHANGED.name(), Map.of("islandId", islandId.toString(), "worth", snapshot.worth().toPlainString(), "worthFormula", worthFormulaType));
         return snapshot;
+    }
+
+    public String levelFormulaExpression() {
+        return levelFormulaExpression;
+    }
+
+    public String worthFormulaType() {
+        return worthFormulaType;
+    }
+
+    public long levelPointsDivisor() {
+        return levelPointsDivisor;
+    }
+
+    private static long parseLevelPointsDivisor(String expression) {
+        if (expression == null || expression.isBlank()) {
+            return 1000L;
+        }
+        int slash = expression.lastIndexOf('/');
+        if (slash < 0) {
+            return 1000L;
+        }
+        StringBuilder digits = new StringBuilder();
+        for (int index = slash + 1; index < expression.length(); index++) {
+            char current = expression.charAt(index);
+            if (Character.isDigit(current)) {
+                digits.append(current);
+            } else if (digits.length() > 0) {
+                break;
+            }
+        }
+        if (digits.length() == 0) {
+            return 1000L;
+        }
+        try {
+            return Math.max(1L, Long.parseLong(digits.toString()));
+        } catch (NumberFormatException ignored) {
+            return 1000L;
+        }
     }
 
     public record BlockValue(BigDecimal worth, long levelPoints, long limit) {}

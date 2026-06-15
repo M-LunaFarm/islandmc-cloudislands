@@ -260,7 +260,7 @@ public final class CloudIslandsCoreApplication {
             ? new CachingIslandLevelRepository(baseLevelRepository, config.redisUri())
             : baseLevelRepository;
         kr.lunaf.cloudislands.coreservice.ranking.ConfigBlockValues.load(config.blockValuesFile()).forEach(levelRepository::putBlockValue);
-        RankingRecalculationService levelRecalculation = new RankingRecalculationService(rankingRepository, events);
+        RankingRecalculationService levelRecalculation = new RankingRecalculationService(rankingRepository, events, config.levelFormulaExpression(), config.worthFormulaType());
         this.rankingRecalculationTask = new DirtyRankingRecalculationTask(rankingRepository, levelRepository, metadataRepository, levelRecalculation);
         IslandUpgradeRepository baseUpgradeRepository = config.jdbcRepositories() ? new JdbcIslandUpgradeRepository(dataSource) : new InMemoryIslandUpgradeRepository();
         IslandUpgradeRepository upgradeRepository = config.redisEvents() || config.redisJobs()
@@ -2849,6 +2849,9 @@ public final class CloudIslandsCoreApplication {
             + "\"paperCommandFallbackPolicy\":\"paper-agent-keeps-local-gui-protection-and-bungee-connect-fallback-only\","
             + "\"rankingUpdatePolicy\":\"block-delta-dirty-flag-batch-recalculate-ranking-snapshot\","
             + "\"blockValuePolicy\":\"config-loaded-values-plus-admin-api-overrides-worth-level-limit\","
+            + "\"levelFormulaType\":\"" + escape(config.levelFormulaType()) + "\","
+            + "\"levelFormulaExpression\":\"" + escape(config.levelFormulaExpression()) + "\","
+            + "\"worthFormulaType\":\"" + escape(config.worthFormulaType()) + "\","
             + "\"upgradePolicy\":\"config-driven-upgrade-rules-with-bank-withdraw-and-limit-application\","
             + "\"generatorPolicy\":\"paper-agent-local-generator-rules-by-island-upgrade-level\","
             + "\"infrastructureExposurePolicy\":\"redis-postgresql-object-storage-private-only\","
