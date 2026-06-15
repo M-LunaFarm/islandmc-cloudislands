@@ -423,7 +423,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 boolean enabled = features.getOrDefault(alias, true) && features.getOrDefault(canonical, true);
                 if (features.containsKey(alias) || features.containsKey(canonical)) {
                     features.put(alias, enabled);
-                    features.put(canonical, enabled);
                 }
             }
         }
