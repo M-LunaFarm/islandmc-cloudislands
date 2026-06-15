@@ -2486,6 +2486,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return switch (canonical) {
             case "resource-nodes" -> featureEnabled("machines");
             case "market", "contracts" -> featureEnabled("storage");
+            case "generators" -> featureEnabled("factories");
+            case "missions" -> featureEnabled("storage");
             default -> true;
         };
     }
