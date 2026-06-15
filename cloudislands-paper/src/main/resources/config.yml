@@ -396,6 +396,8 @@ messages:
     admin-command-core-config-addon-bulk-prefix: " addonBulkSave="
     admin-command-core-config-addon-bulk-global-prefix: " addonBulkGlobal="
     admin-command-core-config-addon-bulk-island-prefix: " addonBulkIsland="
+    admin-command-core-config-addon-table-bulk-global-prefix: " addonTableBulkGlobal="
+    admin-command-core-config-addon-table-bulk-island-prefix: " addonTableBulkIsland="
     admin-command-events-empty: "Events: empty"
     admin-command-events-prefix: "Events: "
     admin-command-event-island-prefix: " island="

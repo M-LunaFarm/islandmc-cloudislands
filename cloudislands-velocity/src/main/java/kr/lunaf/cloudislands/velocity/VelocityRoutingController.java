@@ -1813,6 +1813,8 @@ public final class VelocityRoutingController {
             + " addonBulkSave=" + boolValue(body, "addonStateBulkSaveApi")
             + " addonBulkGlobal=" + jsonValue(body, "addonStateBulkSaveGlobalEndpoint")
             + " addonBulkIsland=" + jsonValue(body, "addonStateBulkSaveIslandEndpoint")
+            + " addonTableBulkGlobal=" + jsonValue(body, "addonStateTableKeyValueBulkSaveGlobalEndpoint")
+            + " addonTableBulkIsland=" + jsonValue(body, "addonStateTableKeyValueBulkSaveIslandEndpoint")
             + " pool=" + jsonValue(body, "islandPool")
             + " dbPool=" + longValue(body, "databasePoolSize")
             + " softFull=" + jsonValue(body, "softFullPolicy")
