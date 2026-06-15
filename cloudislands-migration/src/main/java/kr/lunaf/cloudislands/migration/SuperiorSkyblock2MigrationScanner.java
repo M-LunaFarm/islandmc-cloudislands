@@ -26,10 +26,11 @@ public final class SuperiorSkyblock2MigrationScanner {
             issues.add(new MigrationIssue("ISLAND_DIRECTORY_NOT_FOUND", "could not find SuperiorSkyblock2 island data directory under " + superiorSkyblockDataPath, true));
             return new ScanResult(List.of(), issues);
         }
+        List<MigrationBlockValue> globalBlockValues = scanGlobalBlockValues(superiorSkyblockDataPath, islandsDir, issues);
         try (Stream<Path> files = Files.walk(islandsDir, 3)) {
             files.filter(Files::isRegularFile)
                 .filter(this::looksLikeIslandFile)
-                .forEach(file -> scanFile(file, manifests, issues));
+                .forEach(file -> scanFile(file, manifests, issues, globalBlockValues));
         } catch (IOException exception) {
             issues.add(new MigrationIssue("SCAN_FAILED", exception.getMessage(), true));
         }
@@ -51,7 +52,7 @@ public final class SuperiorSkyblock2MigrationScanner {
         return name.endsWith(".json") || name.endsWith(".yml") || name.endsWith(".yaml");
     }
 
-    private void scanFile(Path file, List<MigrationManifest> manifests, List<MigrationIssue> issues) {
+    private void scanFile(Path file, List<MigrationManifest> manifests, List<MigrationIssue> issues, List<MigrationBlockValue> globalBlockValues) {
         try {
             String content = Files.readString(file, StandardCharsets.UTF_8);
             UUID islandId = parseUuid(content, "islandId", parseUuid(content, "islandUuid", parseUuid(content, "island_uuid", parseUuid(content, "uuid", uuidFromFilename(file)))));
@@ -74,7 +75,7 @@ public final class SuperiorSkyblock2MigrationScanner {
             List<MigrationUpgrade> upgrades = parseUpgrades(content);
             List<MigrationLimit> limits = parseLimits(content);
             List<MigrationMission> completedMissions = parseCompletedMissions(content);
-            List<MigrationBlockValue> blockValues = parseBlockValues(content);
+            List<MigrationBlockValue> blockValues = mergeBlockValues(globalBlockValues, parseBlockValues(content));
             List<MigrationBlockCount> blockCounts = parseBlockCounts(content);
             String biomeKey = parseBiomeKey(content);
             String bankBalance = parseString(content, "bankBalance", parseString(content, "balance", parseString(content, "islandBank", "0.00")));
@@ -91,6 +92,75 @@ public final class SuperiorSkyblock2MigrationScanner {
         } catch (RuntimeException | IOException exception) {
             issues.add(new MigrationIssue("ISLAND_FILE_PARSE_FAILED", file + ": " + exception.getMessage(), true));
         }
+    }
+
+    private List<MigrationBlockValue> scanGlobalBlockValues(Path superiorSkyblockDataPath, Path islandsDir, List<MigrationIssue> issues) {
+        LinkedHashMap<String, MigrationBlockValue> values = new LinkedHashMap<>();
+        for (Path file : globalBlockValueFiles(superiorSkyblockDataPath, islandsDir)) {
+            try {
+                for (MigrationBlockValue value : parseBlockValues(Files.readString(file, StandardCharsets.UTF_8))) {
+                    values.put(value.materialKey(), value);
+                }
+            } catch (IOException exception) {
+                issues.add(new MigrationIssue("GLOBAL_BLOCK_VALUES_SCAN_FAILED", file + ": " + exception.getMessage(), false));
+            }
+        }
+        return List.copyOf(values.values());
+    }
+
+    private List<Path> globalBlockValueFiles(Path root, Path islandsDir) {
+        LinkedHashSet<Path> files = new LinkedHashSet<>();
+        Path normalizedRoot = root == null ? Path.of(".") : root.normalize();
+        Path normalizedIslands = islandsDir == null ? Path.of("__missing__") : islandsDir.normalize();
+        addGlobalBlockValueCandidates(files, normalizedRoot);
+        if (normalizedRoot.getParent() != null) {
+            addGlobalBlockValueCandidates(files, normalizedRoot.getParent());
+        }
+        try (Stream<Path> stream = Files.walk(normalizedRoot, 3)) {
+            stream.filter(Files::isRegularFile)
+                .filter(file -> !file.normalize().startsWith(normalizedIslands))
+                .filter(this::looksLikeBlockValueConfigFile)
+                .forEach(file -> files.add(file.normalize()));
+        } catch (IOException ignored) {
+        }
+        return files.stream().filter(Files::isRegularFile).toList();
+    }
+
+    private void addGlobalBlockValueCandidates(Set<Path> files, Path root) {
+        for (String name : List.of("block-values.yml", "block-values.yaml", "blockValues.yml", "blockValues.yaml", "block_values.yml", "block_values.yaml", "worth.yml", "worth.yaml", "values.yml", "values.yaml", "config.yml", "config.yaml")) {
+            files.add(root.resolve(name).normalize());
+            files.add(root.resolve("config").resolve(name).normalize());
+            files.add(root.resolve("configs").resolve(name).normalize());
+            files.add(root.resolve("SuperiorSkyblock2").resolve(name).normalize());
+            files.add(root.resolve("SuperiorSkyblock2").resolve("config").resolve(name).normalize());
+            files.add(root.resolve("SuperiorSkyblock2").resolve("configs").resolve(name).normalize());
+        }
+    }
+
+    private boolean looksLikeBlockValueConfigFile(Path file) {
+        String name = file.getFileName().toString().toLowerCase();
+        if (!(name.endsWith(".yml") || name.endsWith(".yaml") || name.endsWith(".json"))) {
+            return false;
+        }
+        return (name.contains("block") && (name.contains("value") || name.contains("worth")))
+            || name.contains("worth")
+            || name.equals("config.yml")
+            || name.equals("config.yaml");
+    }
+
+    private List<MigrationBlockValue> mergeBlockValues(List<MigrationBlockValue> globalBlockValues, List<MigrationBlockValue> localBlockValues) {
+        LinkedHashMap<String, MigrationBlockValue> merged = new LinkedHashMap<>();
+        if (globalBlockValues != null) {
+            for (MigrationBlockValue value : globalBlockValues) {
+                merged.put(value.materialKey(), value);
+            }
+        }
+        if (localBlockValues != null) {
+            for (MigrationBlockValue value : localBlockValues) {
+                merged.put(value.materialKey(), value);
+            }
+        }
+        return List.copyOf(merged.values());
     }
 
     private String resolveSourceWorldPath(Path file, String content, UUID islandId) {
