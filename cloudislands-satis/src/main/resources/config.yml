@@ -25,6 +25,7 @@ satis:
     placeholders: true
     migration: true
     addon-state: true
+    route-events: true
 addons:
   cloudislands-satis:
     # Same switch shape as CloudIslands Paper config. If both this block and satis.* are present,
@@ -51,6 +52,7 @@ addons:
       placeholders: true
       migration: true
       addon-state: true
+      route-events: true
 integration:
   mode: ADDON
   skyblock-provider: CLOUDISLANDS

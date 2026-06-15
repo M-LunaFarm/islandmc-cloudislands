@@ -340,6 +340,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-addon-state-gate", "addonRuntimeEnabled&&features.addon-state&&CloudIslandsApi");
         state.put("runtime-addon-state-status", coreApiAddonStateAvailable() ? "available" : (featureEnabled("addon-state") ? "cloudislands-api-unavailable" : "addon-state-feature-disabled"));
         state.put("runtime-addon-state-policy", "disabled-or-unavailable-core-api-uses-configured-database-fallback-and-preserves-local-state");
+        state.put("runtime-route-events-gate", "addonRuntimeEnabled&&features.addon-state&&features.route-events&&CloudIslandsApi");
+        state.put("runtime-route-events-status", routeEventStateEnabled() ? "enabled" : "route-events-or-addon-state-feature-disabled");
+        state.put("runtime-route-events-policy", "disabled-feature-skips-route-diagnostic-state-without-affecting-cloudislands-routing");
         state.put("runtime-commands-registered", Boolean.toString(commandsRegistered));
         state.put("runtime-commands-gate", "addonRuntimeEnabled&&features.commands");
         state.put("runtime-commands-status", featureEnabled("commands") ? (commandsRegistered ? "registered" : "enabled-not-registered") : "commands-feature-disabled");
@@ -1984,7 +1987,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void publishRouteEventState(String eventName, UUID ticketId, UUID islandId, UUID playerUuid, String action, String targetNode, String requestedNode, String reason, String detail, Instant occurredAt) {
-        if (cloudIslandsApi == null || !featureEnabled("addon-state")) {
+        if (!routeEventStateEnabled()) {
             return;
         }
         Map<String, String> state = new LinkedHashMap<>();
@@ -2021,6 +2024,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private String safeRouteValue(String value) {
         return value == null ? "" : value;
+    }
+
+    private boolean routeEventStateEnabled() {
+        return cloudIslandsApi != null && featureEnabled("addon-state") && featureEnabled("route-events");
     }
 
     private void runSatisLifecycle(UUID islandId, String operation, Runnable action) {
@@ -2449,6 +2456,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         features.put("placeholders", configuredFeatureEnabled("placeholders"));
         features.put("migration", configuredFeatureEnabled("migration"));
         features.put("addon-state", configuredFeatureEnabled("addon-state"));
+        features.put("route-events", configuredFeatureEnabled("route-events"));
         FEATURE_ALIASES.forEach((alias, canonical) -> features.put(alias, features.getOrDefault(canonical, configuredFeatureEnabled(canonical)) && configuredFeatureEnabled(alias)));
         return features;
     }
