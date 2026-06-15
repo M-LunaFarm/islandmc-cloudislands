@@ -38,6 +38,7 @@ import java.util.function.Supplier;
 
 public final class AdminFactoryCommand {
     private static final int HELP_PAGE_SIZE = 12;
+    private static final String MIGRATION_IMPORT_APPROVAL = "CONFIRM_IMPORT";
     private static final List<String> FEATURE_KEYS = List.of(
             "commands",
             "machines",
@@ -68,7 +69,7 @@ public final class AdminFactoryCommand {
             "factory admin migration scan <sqlitePath>",
             "factory admin migration dryrun <sqlitePath>",
             "factory admin migration verify <sqlitePath>",
-            "factory admin migration import <sqlitePath>",
+            "factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL,
             "factory admin migration rollback",
             "factory admin state",
             "factory admin give <player> <machineType> [amount]",
@@ -609,7 +610,8 @@ public final class AdminFactoryCommand {
         state.put("satismc-import-scan", "/factory admin migration scan <sqlitePath>");
         state.put("satismc-import-dryrun", "/factory admin migration dryrun <sqlitePath>");
         state.put("satismc-import-verify", "/factory admin migration verify <sqlitePath>");
-        state.put("satismc-import-import", "/factory admin migration import <sqlitePath>");
+        state.put("satismc-import-import", "/factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL);
+        state.put("satismc-import-approval", MIGRATION_IMPORT_APPROVAL);
         state.put("satismc-import-mode", "cross-backend-sqlite-copy");
         state.put("satismc-rollback-mode", "manual-restore-from-backup");
         state.put("feature-gate", "migration=" + enabled("migration"));
@@ -698,12 +700,29 @@ public final class AdminFactoryCommand {
         if (args.length < 4) {
             sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
                     "key", "usage",
-                    "value", "/factory admin migration import <sqlitePath>"
+                    "value", "/factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL
             )));
             return;
         }
+        int approvalIndex = approvalIndex(args);
+        if (approvalIndex < 0 || approvalIndex <= 3) {
+            sender.sendMessage(messages.raw("admin-migration-title"));
+            Map<String, String> state = new LinkedHashMap<>();
+            state.put("mode", "approval-required");
+            state.put("writes", "false");
+            state.put("approval", MIGRATION_IMPORT_APPROVAL);
+            state.put("usage", "/factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL);
+            state.put("safe-path", "/factory admin migration dryrun <sqlitePath>");
+            state.entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey())
+                    .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                            "key", entry.getKey(),
+                            "value", entry.getValue()
+                    ))));
+            return;
+        }
         try {
-            DatabaseService.LegacyImportResult result = database.importLegacyDatabase(new File(joined(args, 3)));
+            DatabaseService.LegacyImportResult result = database.importLegacyDatabase(new File(joined(args, 3, approvalIndex)));
             reload.run();
             sender.sendMessage(messages.raw("admin-migration-title"));
             Map<String, String> state = new LinkedHashMap<>();
@@ -714,6 +733,7 @@ public final class AdminFactoryCommand {
             state.put("skipped-tables", result.skippedTables().isEmpty() ? "none" : String.join(",", result.skippedTables()));
             state.put("mode", "cross-backend-sqlite-copy");
             state.put("writes", "true");
+            state.put("approval", MIGRATION_IMPORT_APPROVAL);
             state.put("conflict-policy", "insert-ignore-existing-rows");
             state.entrySet().stream()
                     .sorted(Map.Entry.comparingByKey())
@@ -742,6 +762,17 @@ public final class AdminFactoryCommand {
                         "key", entry.getKey(),
                         "value", entry.getValue()
                 ))));
+    }
+
+    private int approvalIndex(String[] args) {
+        for (int i = 3; i < args.length; i++) {
+            if (args[i].equalsIgnoreCase(MIGRATION_IMPORT_APPROVAL)
+                    || args[i].equalsIgnoreCase("approval=" + MIGRATION_IMPORT_APPROVAL)
+                    || args[i].equalsIgnoreCase("--confirm=" + MIGRATION_IMPORT_APPROVAL)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private void showAddonState(CommandSender sender) {
@@ -944,10 +975,15 @@ public final class AdminFactoryCommand {
     }
 
     private String joined(String[] args, int fromIndex) {
+        return joined(args, fromIndex, args.length);
+    }
+
+    private String joined(String[] args, int fromIndex, int toIndex) {
         if (args.length <= fromIndex) {
             return "";
         }
-        return String.join(" ", java.util.Arrays.copyOfRange(args, fromIndex, args.length)).trim();
+        int safeTo = Math.min(args.length, Math.max(fromIndex, toIndex));
+        return String.join(" ", java.util.Arrays.copyOfRange(args, fromIndex, safeTo)).trim();
     }
 
     private void withPlayerContext(CommandSender sender, String[] args, int playerIndex, AdminContextConsumer consumer) {
