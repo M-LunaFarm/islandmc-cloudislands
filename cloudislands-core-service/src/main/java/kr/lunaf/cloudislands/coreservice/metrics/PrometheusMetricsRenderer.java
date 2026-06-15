@@ -278,9 +278,12 @@ public final class PrometheusMetricsRenderer {
             boolean fresh = node.lastHeartbeat() != null && Duration.between(node.lastHeartbeat(), now).compareTo(heartbeatTimeout) <= 0;
             boolean stale = !fresh;
             String allocationBlockReason = node.allocationBlockReason(now, heartbeatTimeout);
+            boolean duplicateVelocityServerName = duplicateVelocityServerNameRisk(node, velocityServerCounts);
+            if (duplicateVelocityServerName && allocationBlockReason.isBlank()) {
+                allocationBlockReason = "DUPLICATE_VELOCITY_SERVER_NAME";
+            }
             boolean routeCandidate = allocationBlockReason.isBlank();
             boolean routingHealthy = fresh && node.state() != NodeState.DOWN && routeCandidate;
-            boolean duplicateVelocityServerName = duplicateVelocityServerNameRisk(node, velocityServerCounts);
             boolean defaultNodeIdentityRisk = defaultNodeIdentityRisk(node);
             poolCounters[0]++;
             if (duplicateVelocityServerName) {

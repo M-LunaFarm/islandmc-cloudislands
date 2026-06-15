@@ -57,7 +57,8 @@ public interface NodeRegistry {
         List<NodeLoad> snapshot = snapshot();
         long now = System.currentTimeMillis();
         Instant nowInstant = Instant.ofEpochMilli(now);
-        long ready = snapshot.stream().filter(node -> node.allocationBlockReason(nowInstant, timeout).isBlank()).count();
+        Map<String, Integer> velocityServerCounts = velocityServerCounts(snapshot);
+        long ready = snapshot.stream().filter(node -> allocationBlockReason(node, timeout, nowInstant, velocityServerCounts).isBlank()).count();
         long stale = snapshot.stream().filter(node -> node.lastHeartbeat() == null || node.lastHeartbeat().isBefore(nowInstant.minus(timeout))).count();
         long duplicateVelocityServers = duplicateVelocityServerNameNodes(snapshot);
         long defaultNodeIdentities = snapshot.stream().filter(NodeRegistry::defaultNodeIdentityRisk).count();
@@ -76,7 +77,7 @@ public interface NodeRegistry {
                 builder.append(',');
             }
             first = false;
-            builder.append(toJson(node, timeout));
+            builder.append(toJson(node, timeout, velocityServerCounts));
         }
         return builder.append("]}").toString();
     }
@@ -97,7 +98,7 @@ public interface NodeRegistry {
             summary.activationQueue += Math.max(0, node.activationQueue());
             summary.maxActivationQueue += Math.max(0, node.maxActivationQueue());
             boolean stale = node.lastHeartbeat() == null || node.lastHeartbeat().isBefore(now.minus(timeout));
-            boolean routeCandidate = node.allocationBlockReason(now, timeout).isBlank();
+            boolean routeCandidate = allocationBlockReason(node, timeout, now, velocityServerCounts).isBlank();
             if (routeCandidate) {
                 summary.routeCandidates++;
             }
@@ -154,6 +155,14 @@ public interface NodeRegistry {
             .count();
     }
 
+    private static String allocationBlockReason(NodeLoad node, Duration timeout, Instant now, Map<String, Integer> velocityServerCounts) {
+        String serverKey = velocityServerKey(node);
+        if (!serverKey.isBlank() && velocityServerCounts.getOrDefault(serverKey, 0) > 1) {
+            return "DUPLICATE_VELOCITY_SERVER_NAME";
+        }
+        return node.allocationBlockReason(now, timeout);
+    }
+
     private static Map<String, Integer> velocityServerCounts(List<NodeLoad> snapshot) {
         Map<String, Integer> counts = new LinkedHashMap<>();
         for (NodeLoad node : snapshot) {
@@ -204,10 +213,14 @@ public interface NodeRegistry {
     }
 
     static String toJson(NodeLoad node, Duration heartbeatTimeout) {
+        return toJson(node, heartbeatTimeout, velocityServerCounts(List.of(node)));
+    }
+
+    private static String toJson(NodeLoad node, Duration heartbeatTimeout, Map<String, Integer> velocityServerCounts) {
         java.util.Map<String, String> metadata = node.heartbeatMetadata();
         Duration timeout = heartbeatTimeout == null ? Duration.ofSeconds(5) : heartbeatTimeout;
         java.time.Instant now = java.time.Instant.now();
-        String allocationBlockReason = node.allocationBlockReason(now, timeout);
+        String allocationBlockReason = allocationBlockReason(node, timeout, now, velocityServerCounts);
         long secondsSinceHeartbeat = node.lastHeartbeat() == null ? -1L : Math.max(0L, Duration.between(node.lastHeartbeat(), now).toSeconds());
         boolean stale = node.lastHeartbeat() == null || node.lastHeartbeat().isBefore(now.minus(timeout));
         boolean routeCandidate = allocationBlockReason.isBlank();
