@@ -57,7 +57,8 @@ public final class AdminFactoryCommand {
             "maintenance",
             "placeholders",
             "migration",
-            "addon-state"
+            "addon-state",
+            "route-events"
     );
     private static final List<String> HELP_COMMANDS = List.of(
             "factory admin help [page]",
