@@ -447,8 +447,10 @@ public final class DatabaseService {
         List<String> copiedTables = new ArrayList<>();
         List<String> skippedTables = new ArrayList<>();
         long copiedRows = 0L;
+        String rollbackBackupPath = "unsupported-for-" + activeBackend.name();
         try (Connection target = connection();
              Connection sourceConnection = legacyConnection(source)) {
+            rollbackBackupPath = createLegacyImportRollbackSnapshot(target);
             boolean autoCommit = target.getAutoCommit();
             target.setAutoCommit(false);
             try {
@@ -469,9 +471,28 @@ public final class DatabaseService {
                 target.setAutoCommit(autoCommit);
             }
             publishAllCoreState();
-            return new LegacyImportResult(source.getAbsolutePath(), copiedRows, copiedTables, skippedTables);
+            return new LegacyImportResult(source.getAbsolutePath(), copiedRows, copiedTables, skippedTables, rollbackBackupPath);
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to import legacy Satis database", exception);
+        }
+    }
+
+    public LegacyRollbackResult rollbackLastLegacyImport() {
+        if (activeBackend != StorageBackend.SQLITE || sqlDialect != SqlDialect.SQLITE) {
+            return new LegacyRollbackResult(false, "unsupported-backend:" + activeBackend.name(), "", "restore database backup manually for shared backends");
+        }
+        File backup = legacyRollbackBackupFile();
+        if (!backup.isFile()) {
+            return new LegacyRollbackResult(false, "backup-missing", backup.getAbsolutePath(), "run import once after this version creates a rollback snapshot");
+        }
+        File target = databaseFile();
+        try {
+            close();
+            java.nio.file.Files.copy(backup.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            open();
+            return new LegacyRollbackResult(true, "restored", backup.getAbsolutePath(), "run verify against the legacy source before accepting rollback");
+        } catch (java.io.IOException exception) {
+            throw new IllegalStateException("Failed to restore legacy import rollback snapshot", exception);
         }
     }
 
@@ -533,6 +554,34 @@ public final class DatabaseService {
 
     private Connection legacyConnection(File source) throws SQLException {
         return DriverManager.getConnection("jdbc:sqlite:" + source.getAbsolutePath());
+    }
+
+    private String createLegacyImportRollbackSnapshot(Connection target) throws SQLException {
+        if (activeBackend != StorageBackend.SQLITE || sqlDialect != SqlDialect.SQLITE) {
+            return "unsupported-for-" + activeBackend.name();
+        }
+        File backup = legacyRollbackBackupFile();
+        File parent = backup.getParentFile();
+        if (parent != null) {
+            ensureDirectory(parent, "Satis migration backup folder");
+        }
+        try {
+            java.nio.file.Files.deleteIfExists(backup.toPath());
+        } catch (java.io.IOException exception) {
+            throw new SQLException("failed to replace legacy rollback snapshot", exception);
+        }
+        try (Statement statement = target.createStatement()) {
+            statement.execute("VACUUM main INTO '" + sqliteLiteral(backup.getAbsolutePath()) + "'");
+        }
+        return backup.getAbsolutePath();
+    }
+
+    private File legacyRollbackBackupFile() {
+        return new File(dataFolder, "migration-backups/legacy-import-last.db");
+    }
+
+    private String sqliteLiteral(String value) {
+        return value == null ? "" : value.replace("'", "''");
     }
 
     private List<String> legacyImportTables() {
@@ -880,9 +929,10 @@ public final class DatabaseService {
         }
     }
 
-    public record LegacyImportResult(String sourcePath, long copiedRows, List<String> copiedTables, List<String> skippedTables) {}
+    public record LegacyImportResult(String sourcePath, long copiedRows, List<String> copiedTables, List<String> skippedTables, String rollbackBackupPath) {}
     public record LegacyImportTablePlan(String table, boolean importable, long sourceRows, String reason) {}
     public record LegacyImportPlan(String sourcePath, long importableRows, int importableTables, int skippedTables, List<LegacyImportTablePlan> tables) {}
+    public record LegacyRollbackResult(boolean restored, String status, String backupPath, String nextStep) {}
 
     public Optional<FactoryIsland> findIsland(UUID islandUuid) {
         try (Connection connection = connection();

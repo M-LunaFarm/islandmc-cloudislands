@@ -614,7 +614,7 @@ public final class AdminFactoryCommand {
         state.put("satismc-import-import", "/factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL);
         state.put("satismc-import-approval", MIGRATION_IMPORT_APPROVAL);
         state.put("satismc-import-mode", "cross-backend-sqlite-copy");
-        state.put("satismc-rollback-mode", "manual-restore-from-backup");
+        state.put("satismc-rollback-mode", "sqlite-snapshot-restore-or-manual-shared-backend-restore");
         state.put("feature-gate", "migration=" + enabled("migration"));
         state.put("disabled-behavior", "reject-scan-dryrun-verify-import-rollback");
         state.put("writes-when-disabled", "false");
@@ -736,6 +736,8 @@ public final class AdminFactoryCommand {
             state.put("writes", "true");
             state.put("approval", MIGRATION_IMPORT_APPROVAL);
             state.put("conflict-policy", "insert-ignore-existing-rows");
+            state.put("rollback-backup", result.rollbackBackupPath());
+            state.put("rollback-command", "/factory admin migration rollback");
             state.entrySet().stream()
                     .sorted(Map.Entry.comparingByKey())
                     .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
@@ -753,10 +755,24 @@ public final class AdminFactoryCommand {
     private void rollbackLegacyDatabase(CommandSender sender) {
         sender.sendMessage(messages.raw("admin-migration-title"));
         Map<String, String> state = new LinkedHashMap<>();
-        state.put("mode", "manual-restore-from-backup");
-        state.put("automatic-delete", "false");
-        state.put("reason", "rollback must not delete mixed live CloudIslands/Satis data automatically");
-        state.put("safe-path", "restore database backup, then run /factory admin migration verify <sqlitePath>");
+        try {
+            DatabaseService.LegacyRollbackResult result = database.rollbackLastLegacyImport();
+            if (result.restored()) {
+                reload.run();
+            }
+            state.put("mode", result.restored() ? "sqlite-snapshot-restore" : "manual-restore-required");
+            state.put("restored", Boolean.toString(result.restored()));
+            state.put("status", result.status());
+            state.put("backup", result.backupPath());
+            state.put("next-step", result.nextStep());
+            state.put("automatic-delete", "false");
+            state.put("reason", result.restored() ? "restored last SQLite pre-import snapshot" : "rollback must not delete mixed live CloudIslands/Satis data automatically");
+        } catch (RuntimeException exception) {
+            state.put("mode", "rollback-failed");
+            state.put("restored", "false");
+            state.put("error", exception.getMessage() == null ? "unknown" : exception.getMessage());
+            state.put("safe-path", "restore database backup, then run /factory admin migration verify <sqlitePath>");
+        }
         state.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
