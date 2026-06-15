@@ -977,6 +977,11 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (body.contains("\"canImport\"")) {
             builder.append(adminText("admin-command-migration-can-import-prefix", " canImport=")).append(boolValue(body, "canImport"));
         }
+        if (body.contains("\"manifestStatus\"")) {
+            builder.append(adminText("admin-command-migration-manifest-status-prefix", " manifestStatus=")).append(textValue(body, "manifestStatus"))
+                .append(adminText("admin-command-migration-conflict-status-prefix", " conflictStatus=")).append(textValue(body, "conflictStatus"))
+                .append(adminText("admin-command-migration-conflicts-prefix", " conflicts=")).append(longValue(body, "conflictIssues"));
+        }
         if (body.contains("\"imported\"")) {
             builder.append(adminText("admin-command-migration-imported-prefix", " imported=")).append(boolValue(body, "imported"))
                 .append(adminText("admin-command-migration-islands-prefix", " islands="))
