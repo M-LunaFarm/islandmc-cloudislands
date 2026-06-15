@@ -41,7 +41,13 @@ class SatisSkyFactoryPluginTest {
         Map<String, String> metadata = SatisSkyFactoryPlugin.cloudIslandsIntegrationMetadata();
 
         assertEquals("satismc", metadata.get("origin-project"));
+        assertEquals("cloudislands-addon.yml", metadata.get("addon-descriptor-resource"));
+        assertEquals("cloudislands-addon-yaml", metadata.get("addon-descriptor-format"));
         assertEquals("external-plugin", metadata.get("addon-packaging"));
+        assertEquals("true", metadata.get("addon-removal-safe"));
+        assertEquals("preserve-addon-state-by-island-uuid", metadata.get("addon-data-retention"));
+        assertEquals("false", metadata.get("addon-runtime-owns-islands"));
+        assertEquals("CORE_API", metadata.get("addon-default-database-mode"));
         assertEquals("false", metadata.get("superior-runtime-dependency"));
         assertEquals("true", metadata.get("cloudislands-api-only"));
         assertEquals("true", metadata.get("config-gated"));

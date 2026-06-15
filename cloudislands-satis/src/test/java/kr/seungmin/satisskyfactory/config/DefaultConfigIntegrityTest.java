@@ -27,7 +27,9 @@ class DefaultConfigIntegrityTest {
         assertEquals("cloudislands-satis", addon.getString("id"));
         assertEquals("external-plugin", addon.getString("packaging"));
         assertTrue(addon.getBoolean("removal.safe"));
+        assertEquals("preserve-addon-state-by-island-uuid", addon.getString("removal.data-retention"));
         assertFalse(addon.getBoolean("runtime.owns-islands"));
+        assertEquals("cloudislands-island-uuid", addon.getString("runtime.storage-key"));
         assertEquals("CORE_API", addon.getString("runtime.default-database-mode"));
         assertTrue(addon.getBoolean("superiorskyblock2.migration-input-only"));
         assertFalse(addon.getBoolean("superiorskyblock2.runtime-dependency"));
