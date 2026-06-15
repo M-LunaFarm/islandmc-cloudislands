@@ -4110,12 +4110,14 @@ public final class CloudIslandsCoreApplication {
         java.util.LinkedHashSet<String> tableNames = new java.util.LinkedHashSet<>();
         if (tables != null) {
             tables.keySet().forEach(table -> {
-                if (table != null && !table.isBlank()) {
+                Map<String, String> tableValues = tables.get(table);
+                if (tableValues != null && !tableValues.isEmpty() && table != null && !table.isBlank()
+                    && !tableStateValues(table, tableValues).isEmpty()) {
                     tableNames.add(safeTableName(table));
                 }
             });
         }
-        if (valuesTable != null && !valuesTable.isBlank()) {
+        if (valuesTable != null && !valuesTable.isBlank() && !tableStateValues(valuesTable, values).isEmpty()) {
             tableNames.add(safeTableName(valuesTable));
         }
         return tableNames.size();
