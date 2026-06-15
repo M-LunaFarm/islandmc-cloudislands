@@ -955,7 +955,10 @@ public final class AdminFactoryCommand {
                         "addon-state-table-key-value-bulk-save-global-alias",
                         "addon-state-table-key-value-bulk-save-island-alias",
                         "addon-state-bulk-save-methods",
-                        "core-api-table-save-mode"
+                        "core-api-table-save-mode",
+                        "route-event-source",
+                        "route-event-policy",
+                        "route-event-feature-gate"
                 ).forEach(key -> {
                     String value = metadata.get(key);
                     if (value != null && !value.isBlank()) {
