@@ -53,6 +53,11 @@ setup:
   database:
     # Empty values inherit from database.* below. Use this block for first-install setup.
     # type: SQLITE, POSTGRESQL, MYSQL, MARIADB, CORE_API
+    # Operational modes:
+    # - POSTGRESQL: preferred shared backend for multiple Island nodes.
+    # - MYSQL/MARIADB: supported shared backend with the same island_uuid based tables.
+    # - CORE_API: stores addon state through CloudIslands Core API bulk table/key-value endpoints.
+    # - SQLITE: local fallback only; not recommended when A/B Island nodes must share Satis state.
     # CLOUDISLANDS_SATIS_DATABASE_TYPE overrides setup.database.type and database.type.
     type: ""
     path: ""
@@ -60,10 +65,12 @@ setup:
     sqlite-file: ""
     core-api:
       # Optional selection marker for CORE_API setup. Empty type still inherits database.type.
+      # Requires the CloudIslands API and the addon-state feature to stay enabled.
       enabled: false
     fallback:
       # Empty order inherits database.fallback.order below.
       # Recommended shared fallback order: POSTGRESQL, MYSQL, MARIADB, CORE_API, SQLITE.
+      # For production A/B Island node pools, keep at least one shared backend before SQLITE.
       # Env overrides: CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED, CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER.
       enabled: true
       order: []
