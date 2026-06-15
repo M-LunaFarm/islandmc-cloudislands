@@ -407,11 +407,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private SkyblockProvider createSkyblockProvider() {
-        String provider = configs.main().getString("integration.skyblock-provider", "CLOUDISLANDS");
+        String provider = configuredSkyblockProvider();
         if (!"CLOUDISLANDS".equalsIgnoreCase(provider) && !"CLOUD_ISLANDS".equalsIgnoreCase(provider)) {
             getLogger().warning("Ignoring legacy skyblock provider '" + provider + "'. CloudIslands Satis uses the CloudIslands API provider.");
         }
         return new CloudIslandsSkyblockProvider(this);
+    }
+
+    private String configuredSkyblockProvider() {
+        return configs.main().getString("integration.skyblock-provider", "CLOUDISLANDS");
     }
 
     private int configInt(String primaryPath, String aliasPath, int fallback) {
@@ -962,6 +966,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-open", Boolean.toString(database != null));
         metadata.put("database-file", configuredDatabaseFileName());
         metadata.put("database-shared", Boolean.toString(databaseShared()));
+        metadata.put("configured-skyblock-provider", configuredSkyblockProvider());
+        metadata.put("effective-skyblock-provider", "CLOUDISLANDS");
+        metadata.put("skyblock-provider-policy", "cloudislands-api-only");
+        metadata.put("legacy-skyblock-provider-ignored", Boolean.toString(!"CLOUDISLANDS".equalsIgnoreCase(configuredSkyblockProvider()) && !"CLOUD_ISLANDS".equalsIgnoreCase(configuredSkyblockProvider())));
         metadata.put("satis-state-schema", "3");
         metadata.put("legacy-satismc-import-scan", "factory admin migration scan <sqlitePath>");
         metadata.put("legacy-satismc-import-dryrun", "factory admin migration dryrun <sqlitePath>");
