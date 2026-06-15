@@ -332,6 +332,22 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-core-api-state-writer", Boolean.toString(coreApiState != null));
         state.put("runtime-registration-policy", "disabled-features-skip-commands-gui-listeners-tasks-and-writes");
         state.put("runtime-disabled-features", disabledRuntimeFeatures());
+        putDataWriteGateState(state);
+    }
+
+    private void putDataWriteGateState(Map<String, String> state) {
+        state.put("data-write-mode", dataWritesEnabled() ? "enabled" : "disabled");
+        state.put("write-gate-machines", Boolean.toString(featureEnabled("machines")));
+        state.put("write-gate-storage", Boolean.toString(storageDataEnabled()));
+        state.put("write-gate-resource-nodes", Boolean.toString(operationalFeatureEnabled("resource-nodes")));
+        state.put("write-gate-market", Boolean.toString(operationalFeatureEnabled("market")));
+        state.put("write-gate-contracts", Boolean.toString(operationalFeatureEnabled("contracts")));
+        state.put("write-gate-research", Boolean.toString(featureEnabled("research")));
+        state.put("write-gate-maintenance", Boolean.toString(featureEnabled("maintenance")));
+        state.put("write-gate-lifecycle-state", Boolean.toString(lifecycleStateEnabled()));
+        state.put("write-gate-lifecycle-listener", Boolean.toString(lifecycleListenerNeeded()));
+        state.put("write-gate-addon-state", Boolean.toString(featureEnabled("addon-state") && coreApiAddonStateAvailable()));
+        state.put("write-gate-dirty-save", Boolean.toString(dataWritesEnabled()));
     }
 
     private String disabledRuntimeFeatures() {
@@ -961,6 +977,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("recovery-stale-write-policy", "discard-local-dirty-state");
         metadata.put("runtime-registration-policy", "disabled-features-skip-commands-gui-listeners-tasks-and-writes");
         metadata.put("runtime-disabled-features", disabledRuntimeFeatures());
+        putDataWriteGateState(metadata);
         metadata.put("addon-state-sync", Boolean.toString(configuredFeatureEnabled("addon-state")));
         metadata.put("addon-state-bulk-save-api", "true");
         metadata.put("addon-state-bulk-save-global-endpoint", "/v1/addons/state/table-key-value/bulk-save");
