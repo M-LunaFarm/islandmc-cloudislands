@@ -323,6 +323,7 @@ public final class CloudIslandsVelocityPlugin {
         if (config.healthEnabled()) {
             healthService.start();
         }
+        warnIfFallbackServerMissing();
         logger.info("CloudIslands Velocity router enabled with aliases {}", commandAliases);
     }
 
@@ -353,6 +354,8 @@ public final class CloudIslandsVelocityPlugin {
             + "\"topologyExposureRisk\":" + !config.hideNodeNames() + ","
             + "\"pluginMessagesBlockedTotal\":" + pluginMessagesBlocked.get() + ","
             + "\"aliases\":\"" + escapeJson(String.join(",", commandAliases)) + "\","
+            + "\"fallbackServer\":\"" + escapeJson(config.fallbackServer()) + "\","
+            + "\"fallbackServerRegistered\":" + fallbackServerRegistered() + ","
             + "\"routing\":\"" + escapeJson(routingController.statusSummary()) + "\""
             + "}";
     }
@@ -369,7 +372,22 @@ public final class CloudIslandsVelocityPlugin {
             + "cloudislands_velocity_forwarding_secret_configured " + (config.forwardingSecret().isBlank() ? 0 : 1) + "\n"
             + "cloudislands_velocity_hide_node_names " + (config.hideNodeNames() ? 1 : 0) + "\n"
             + "cloudislands_velocity_topology_exposure_risk " + (config.hideNodeNames() ? 0 : 1) + "\n"
+            + "cloudislands_velocity_fallback_server_registered " + (fallbackServerRegistered() ? 1 : 0) + "\n"
             + routingController.routingMetricsText();
+    }
+
+    private boolean fallbackServerRegistered() {
+        return config.fallbackServer() != null && !config.fallbackServer().isBlank() && proxy.getServer(config.fallbackServer()).isPresent();
+    }
+
+    private void warnIfFallbackServerMissing() {
+        if (config.fallbackServer() == null || config.fallbackServer().isBlank()) {
+            logger.warn("CloudIslands routing fallback server is empty; failed island routes will not have a lobby fallback");
+            return;
+        }
+        if (proxy.getServer(config.fallbackServer()).isEmpty()) {
+            logger.warn("CloudIslands routing fallback server '{}' is not registered in Velocity", config.fallbackServer());
+        }
     }
 
     private static String escapeJson(String value) {
