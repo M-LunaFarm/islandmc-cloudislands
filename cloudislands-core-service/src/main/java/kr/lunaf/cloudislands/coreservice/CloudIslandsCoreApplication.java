@@ -3188,7 +3188,7 @@ public final class CloudIslandsCoreApplication {
     }
 
     private boolean coreApiAuthenticated(HttpExchange exchange) {
-        return tokenGuard.allowed(exchange) || mtlsGuard.allowed(exchange);
+        return tokenGuard.allowed(exchange) || mtlsGuard.verified(exchange);
     }
 
     private String coreApiAuthRejectCode() {

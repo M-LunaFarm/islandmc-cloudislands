@@ -24,4 +24,8 @@ public final class MtlsHeaderGuard {
     public boolean required() {
         return required;
     }
+
+    public boolean verified(HttpExchange exchange) {
+        return required && allowed(exchange);
+    }
 }
