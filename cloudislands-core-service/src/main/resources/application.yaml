@@ -9,8 +9,8 @@ setup:
   # Preferred first-install database setup block. Legacy flat keys below still work.
   # Supported setup choices:
   # - POSTGRESQL: full Core JDBC repositories/jobs. Recommended for production.
-  # - MYSQL/MARIADB: accepted for setup compatibility and external integrations. If setup.database.postgresql.* is present in fallback order, Core state falls back to PostgreSQL JDBC.
-  # - CORE_API: client/API-only selection marker. If setup.database.postgresql.* is present in fallback order, Core state falls back to PostgreSQL JDBC.
+  # - MYSQL/MARIADB: accepted for setup compatibility and external integrations. If setup.database.postgresql.* is present in fallback order, Core state falls back to PostgreSQL JDBC and uses the PostgreSQL credentials/pool.
+  # - CORE_API: client/API-only selection marker. If setup.database.postgresql.* is present in fallback order, Core state falls back to PostgreSQL JDBC and uses the PostgreSQL credentials/pool.
   # Fallback rule: unsupported Core JDBC selections do not crash startup; they keep repositories/jobs on the configured safe fallback mode and expose the reason through /v1/admin/config.
   database:
     # POSTGRESQL enables Core JDBC repositories/jobs. MYSQL, MARIADB, and CORE_API can use setup.database.postgresql.* as a Core JDBC fallback.
@@ -29,6 +29,7 @@ setup:
     pool-size: 0
     postgresql:
       # Type-specific values override the generic setup.database host/name/options values.
+      # When MYSQL/MARIADB/CORE_API falls back to PostgreSQL, these credentials and pool values are used for Core JDBC.
       url: ""
       jdbc-url: ""
       host: ""

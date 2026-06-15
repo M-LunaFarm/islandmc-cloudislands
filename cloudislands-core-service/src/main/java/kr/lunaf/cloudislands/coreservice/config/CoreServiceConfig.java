@@ -74,9 +74,9 @@ public record CoreServiceConfig(
             env("CI_EVENT_BUS_MODE", setupSetting(config, "event-bus-mode", "REDIS")),
             env("CI_JDBC_URL", setupJdbcUrl(config, setting(config, "database.jdbc-url", "jdbc:postgresql://postgres.internal:5432/cloudislands"))),
             configuredDatabaseType(config),
-            env("CI_DB_USERNAME", typedSetupDatabaseSetting(config, configuredDatabaseType(config), "username", setupDatabaseSetting(config, "username", setting(config, "database.username", "cloudislands")))),
-            env("CI_DB_PASSWORD", typedSetupDatabaseSetting(config, configuredDatabaseType(config), "password", setupDatabaseSetting(config, "password", setting(config, "database.password", env("DB_PASSWORD", ""))))),
-            integer("CI_DB_POOL_SIZE", typedSetupDatabaseInteger(config, configuredDatabaseType(config), "pool-size", setupDatabaseInteger(config, "pool-size", configInteger(config, "database.pool-size", 20)))),
+            env("CI_DB_USERNAME", typedSetupDatabaseSetting(config, effectiveJdbcSettingsType(config), "username", setupDatabaseSetting(config, "username", setting(config, "database.username", "cloudislands")))),
+            env("CI_DB_PASSWORD", typedSetupDatabaseSetting(config, effectiveJdbcSettingsType(config), "password", setupDatabaseSetting(config, "password", setting(config, "database.password", env("DB_PASSWORD", ""))))),
+            integer("CI_DB_POOL_SIZE", typedSetupDatabaseInteger(config, effectiveJdbcSettingsType(config), "pool-size", setupDatabaseInteger(config, "pool-size", configInteger(config, "database.pool-size", 20)))),
             bool("CI_DB_FALLBACK_ENABLED", configBoolean(config, "setup.database.fallback.enabled", configBoolean(config, "setup.database-fallback-enabled", true))),
             env("CI_DB_FALLBACK_ORDER", setupDatabaseFallbackOrder(config)),
             URI.create(env("CI_REDIS_URI", setupSetting(config, "redis-uri", setting(config, "redis.uri", "redis://redis.internal:6379")))),
@@ -180,6 +180,9 @@ public record CoreServiceConfig(
         }
         String type = configuredDatabaseType(config);
         if ("CORE_API".equals(type)) {
+            if (!setupPostgresqlFallbackJdbcUrl(config).isBlank()) {
+                return "setup.database.postgresql.fallback";
+            }
             return "none:setup.database.core-api.enabled";
         }
         String typedSource = typedSetupDatabaseSettingSource(config, type, "jdbc-url");
@@ -222,6 +225,16 @@ public record CoreServiceConfig(
             return "database.jdbc-url";
         }
         return "database.jdbc-url-default";
+    }
+
+    private static String effectiveJdbcSettingsType(Map<String, String> config) {
+        String configuredType = configuredDatabaseType(config);
+        String jdbcUrl = env("CI_JDBC_URL", "");
+        if (jdbcUrl.isBlank()) {
+            jdbcUrl = setupJdbcUrl(config, setting(config, "database.jdbc-url", "jdbc:postgresql://postgres.internal:5432/cloudislands"));
+        }
+        String jdbcType = jdbcUrlDatabaseType(jdbcUrl);
+        return coreJdbcTypeSupported(jdbcType) ? jdbcType : configuredType;
     }
 
     private static String env(String key, String fallback) {
