@@ -1422,6 +1422,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-open", Boolean.toString(database != null));
         putRuntimeActivityState(state);
         state.put("satis-state-schema", "3");
+        state.put("unregister-delete-addon-data", "false");
+        state.put("unregister-delete-island-state", "false");
+        state.put("unregister-preserve-core-state", "true");
+        state.put("unregister-preserve-local-cache", "true");
+        state.put("reinstall-reconnect-policy", "reuse-existing-addon-state-by-island-uuid");
+        state.put("reinstall-reconnect-requires", "matching-cloudislands-island-uuid-and-compatible-satis-state-schema");
         state.put("last-sync-reason", "unregistered");
         state.put("last-sync-at", Instant.now().toString());
         state.put("last-lifecycle-status", "unregistered");
