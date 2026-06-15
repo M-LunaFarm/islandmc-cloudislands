@@ -428,7 +428,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-disabled-features", disabledRuntimeFeatures());
         state.put("runtime-command-handler-mode", commandsRegistered ? "active" : "disabled-stub");
         state.put("runtime-command-block-reason", runtimeCommandBlockReason());
+        state.put("runtime-active-components", activeRuntimeComponentsMetadata());
+        state.put("runtime-skipped-components", skippedRuntimeComponentsMetadata());
         state.put("runtime-blocked-components", runtimeBlockedComponents());
+        state.put("runtime-component-audit", "commands,listeners,tickers,placeholders,and-core-api-writers-are-config-gated");
         state.put("runtime-disabled-component-policy", "preserve-data-and-return-empty-tabs-or-unregister-listeners");
         state.put("runtime-readonly-command-write-policy", "status-and-machines-skip-node-generation-maintenance-charge-and-save");
         state.put("command-list-format", "one-line-per-command");
@@ -533,6 +536,70 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             blocked.add("dirty-save:" + (!dataWritesEnabled() ? "data-writes-disabled" : "not-running"));
         }
         return blocked.isEmpty() ? "none" : String.join(",", blocked);
+    }
+
+    private String activeRuntimeComponentsMetadata() {
+        java.util.List<String> active = new java.util.ArrayList<>();
+        if (commandsRegistered) {
+            active.add("commands");
+        }
+        if (machineListenerRegistered) {
+            active.add("machine-listener");
+        }
+        if (guiListenerRegistered) {
+            active.add("gui-listener");
+        }
+        if (lifecycleListenerRegistered) {
+            active.add("lifecycle-listener");
+        }
+        if (ticker != null && ticker.running()) {
+            active.add("machine-ticker");
+        }
+        if (maintenanceTicker != null && maintenanceTicker.running()) {
+            active.add("maintenance-ticker");
+        }
+        if (placeholderHook != null) {
+            active.add("placeholder-expansion");
+        }
+        if (coreApiState != null) {
+            active.add("core-api-state-writer");
+        }
+        if (dirtySaves != null && dirtySaves.running()) {
+            active.add("dirty-save");
+        }
+        return active.isEmpty() ? "none" : String.join(",", active);
+    }
+
+    private String skippedRuntimeComponentsMetadata() {
+        java.util.List<String> skipped = new java.util.ArrayList<>();
+        if (!featureEnabled("commands")) {
+            skipped.add("commands");
+        }
+        if (!featureEnabled("machines")) {
+            skipped.add("machine-listener");
+            skipped.add("machine-ticker");
+        }
+        if (!featureEnabled("gui")) {
+            skipped.add("gui-listener");
+        }
+        if (!lifecycleListenerNeeded()) {
+            skipped.add("lifecycle-listener");
+        }
+        if (!featureEnabled("maintenance")) {
+            skipped.add("maintenance-ticker");
+        }
+        if (!featureEnabled("placeholders")) {
+            skipped.add("placeholder-expansion");
+        } else if (!getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            skipped.add("placeholder-expansion:placeholderapi-not-installed");
+        }
+        if (!dataWritesEnabled()) {
+            skipped.add("dirty-save");
+        }
+        if (!featureEnabled("addon-state") || !coreApiAddonStateAvailable()) {
+            skipped.add("core-api-state-writer");
+        }
+        return skipped.isEmpty() ? "none" : String.join(",", skipped);
     }
 
     private String placeholderBlockReason() {
