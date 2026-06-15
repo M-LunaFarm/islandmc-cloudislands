@@ -29,6 +29,14 @@ public record NodeLoad(
     boolean storageAvailable,
     String supportedTemplates
 ) {
+    private static final double PLAYER_WEIGHT = 0.25D;
+    private static final double ACTIVE_ISLAND_WEIGHT = 0.15D;
+    private static final double MSPT_WEIGHT = 0.25D;
+    private static final double ACTIVATION_QUEUE_WEIGHT = 0.15D;
+    private static final double CHUNK_LOAD_WEIGHT = 0.10D;
+    private static final double MEMORY_WEIGHT = 0.05D;
+    private static final double RECENT_FAILURE_WEIGHT = 0.05D;
+
     public boolean inPool(String requestedPool) {
         if (requestedPool == null || requestedPool.isBlank()) {
             return true;
@@ -140,13 +148,41 @@ public record NodeLoad(
     }
 
     public double score() {
-        return playerPressure() * 0.25D
-            + activeIslandPressure() * 0.15D
-            + msptPressure() * 0.25D
-            + activationQueuePressure() * 0.15D
-            + chunkLoadPressure * 0.10D
-            + memoryPressure() * 0.05D
-            + recentFailurePressure() * 0.05D;
+        return playerScoreContribution()
+            + activeIslandScoreContribution()
+            + msptScoreContribution()
+            + activationQueueScoreContribution()
+            + chunkLoadScoreContribution()
+            + memoryScoreContribution()
+            + recentFailureScoreContribution();
+    }
+
+    public Map<String, Double> scoreBreakdown() {
+        Map<String, Double> breakdown = new LinkedHashMap<>();
+        breakdown.put("playerPressure", playerPressure());
+        breakdown.put("playerWeight", PLAYER_WEIGHT);
+        breakdown.put("playerContribution", playerScoreContribution());
+        breakdown.put("activeIslandPressure", activeIslandPressure());
+        breakdown.put("activeIslandWeight", ACTIVE_ISLAND_WEIGHT);
+        breakdown.put("activeIslandContribution", activeIslandScoreContribution());
+        breakdown.put("msptPressure", msptPressure());
+        breakdown.put("msptWeight", MSPT_WEIGHT);
+        breakdown.put("msptContribution", msptScoreContribution());
+        breakdown.put("activationQueuePressure", activationQueuePressure());
+        breakdown.put("activationQueueWeight", ACTIVATION_QUEUE_WEIGHT);
+        breakdown.put("activationQueueContribution", activationQueueScoreContribution());
+        breakdown.put("chunkLoadPressure", chunkLoadPressure());
+        breakdown.put("chunkLoadWeight", CHUNK_LOAD_WEIGHT);
+        breakdown.put("chunkLoadContribution", chunkLoadScoreContribution());
+        breakdown.put("memoryPressure", memoryPressure());
+        breakdown.put("memoryWeight", MEMORY_WEIGHT);
+        breakdown.put("memoryContribution", memoryScoreContribution());
+        breakdown.put("recentFailurePenalty", (double) recentFailurePenalty());
+        breakdown.put("recentFailurePressure", recentFailurePressure());
+        breakdown.put("recentFailureWeight", RECENT_FAILURE_WEIGHT);
+        breakdown.put("recentFailureContribution", recentFailureScoreContribution());
+        breakdown.put("score", score());
+        return Map.copyOf(breakdown);
     }
 
     public double playerPressure() {
@@ -171,6 +207,34 @@ public record NodeLoad(
 
     public double recentFailurePressure() {
         return Math.min(Math.max(0, recentFailurePenalty) / 20.0D, 1.5D);
+    }
+
+    public double playerScoreContribution() {
+        return playerPressure() * PLAYER_WEIGHT;
+    }
+
+    public double activeIslandScoreContribution() {
+        return activeIslandPressure() * ACTIVE_ISLAND_WEIGHT;
+    }
+
+    public double msptScoreContribution() {
+        return msptPressure() * MSPT_WEIGHT;
+    }
+
+    public double activationQueueScoreContribution() {
+        return activationQueuePressure() * ACTIVATION_QUEUE_WEIGHT;
+    }
+
+    public double chunkLoadScoreContribution() {
+        return chunkLoadPressure * CHUNK_LOAD_WEIGHT;
+    }
+
+    public double memoryScoreContribution() {
+        return memoryPressure() * MEMORY_WEIGHT;
+    }
+
+    public double recentFailureScoreContribution() {
+        return recentFailurePressure() * RECENT_FAILURE_WEIGHT;
     }
 
     private static double ratio(int value, int max) {

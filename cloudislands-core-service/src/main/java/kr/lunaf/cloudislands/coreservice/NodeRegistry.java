@@ -203,18 +203,22 @@ public interface NodeRegistry {
             .append("\"eligibleForNewActivation\":").append(allocationBlockReason.isBlank()).append(',')
             .append("\"allocationBlockReason\":\"").append(allocationBlockReason).append("\",")
             .append("\"score\":").append(node.score())
-            .append(",\"scoreBreakdown\":{")
-            .append("\"playerPressure\":").append(node.playerPressure()).append(',')
-            .append("\"activeIslandPressure\":").append(node.activeIslandPressure()).append(',')
-            .append("\"msptPressure\":").append(node.msptPressure()).append(',')
-            .append("\"activationQueuePressure\":").append(node.activationQueuePressure()).append(',')
-            .append("\"chunkLoadPressure\":").append(node.chunkLoadPressure()).append(',')
-            .append("\"memoryPressure\":").append(node.memoryPressure()).append(',')
-            .append("\"recentFailurePenalty\":").append(node.recentFailurePenalty()).append(',')
-            .append("\"recentFailurePressure\":").append(node.recentFailurePressure())
-            .append('}')
+            .append(",\"scoreBreakdown\":").append(scoreBreakdownJson(node.scoreBreakdown()))
             .append('}')
             .toString();
+    }
+
+    private static String scoreBreakdownJson(java.util.Map<String, Double> breakdown) {
+        StringBuilder builder = new StringBuilder("{");
+        boolean first = true;
+        for (java.util.Map.Entry<String, Double> entry : breakdown.entrySet()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('"').append(entry.getKey().replace("\"", "'")).append("\":").append(entry.getValue());
+        }
+        return builder.append('}').toString();
     }
 
     private static long longMetadata(java.util.Map<String, String> metadata, String key) {
