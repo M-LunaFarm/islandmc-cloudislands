@@ -1140,7 +1140,10 @@ public final class JdkCoreApiClient implements CoreApiClient {
             return CompletableFuture.completedFuture("{\"code\":\"INVALID_MIGRATION_ACTION\",\"message\":\"Unknown SuperiorSkyblock2 migration action: " + escape(normalizedAction) + "\"}");
         }
         String value = path == null ? "" : path;
-        return postWithResultBody("/v1/admin/migrations/superiorskyblock2/" + endpoint, "{\"path\":\"" + escape(value) + "\",\"approval\":\"" + escape(value) + "\"}");
+        String payload = endpoint.equals("import")
+            ? "{\"approval\":\"" + escape(value) + "\"}"
+            : "{\"path\":\"" + escape(value) + "\"}";
+        return postWithResultBody("/v1/admin/migrations/superiorskyblock2/" + endpoint, payload);
     }
 
     @Override
