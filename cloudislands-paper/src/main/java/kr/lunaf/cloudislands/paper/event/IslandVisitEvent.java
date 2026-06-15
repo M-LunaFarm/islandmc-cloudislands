@@ -12,12 +12,18 @@ public final class IslandVisitEvent extends Event {
     private final UUID visitorUuid;
     private final Player visitor;
     private final String worldName;
+    private final String placementSource;
 
     public IslandVisitEvent(UUID islandId, UUID visitorUuid, Player visitor, String worldName) {
+        this(islandId, visitorUuid, visitor, worldName, "");
+    }
+
+    public IslandVisitEvent(UUID islandId, UUID visitorUuid, Player visitor, String worldName, String placementSource) {
         this.islandId = islandId;
         this.visitorUuid = visitorUuid;
         this.visitor = visitor;
         this.worldName = worldName;
+        this.placementSource = placementSource == null ? "" : placementSource;
     }
 
     public UUID islandId() {
@@ -34,6 +40,10 @@ public final class IslandVisitEvent extends Event {
 
     public String worldName() {
         return worldName;
+    }
+
+    public String placementSource() {
+        return placementSource;
     }
 
     @Override

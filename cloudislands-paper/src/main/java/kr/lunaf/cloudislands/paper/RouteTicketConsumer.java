@@ -95,8 +95,10 @@ public final class RouteTicketConsumer {
             }
             return;
         }
+        java.util.Map<String, String> payload = ticket.payload();
+        String placementSource = payload.getOrDefault("placementSource", "");
         if (ticket.action() == RouteAction.VISIT) {
-            IslandPreVisitEvent preVisit = new IslandPreVisitEvent(ticket.islandId(), playerUuid, player, worldName);
+            IslandPreVisitEvent preVisit = new IslandPreVisitEvent(ticket.islandId(), playerUuid, player, worldName, placementSource);
             Bukkit.getPluginManager().callEvent(preVisit);
             if (preVisit.isCancelled()) {
                 hideLoading(player);
@@ -104,7 +106,6 @@ public final class RouteTicketConsumer {
                 return;
             }
         }
-        java.util.Map<String, String> payload = ticket.payload();
         Location target = targetLocation(world, ticket, payload);
         if (player.teleport(target)) {
             hideLoading(player);
@@ -118,7 +119,7 @@ public final class RouteTicketConsumer {
                     routeEventFields(ticket, target, payload)
             ));
             if (ticket.action() == RouteAction.VISIT) {
-                Bukkit.getPluginManager().callEvent(new IslandVisitEvent(ticket.islandId(), playerUuid, player, worldName));
+                Bukkit.getPluginManager().callEvent(new IslandVisitEvent(ticket.islandId(), playerUuid, player, worldName, placementSource));
             }
         } else {
             notifyRouteFailed(playerUuid);

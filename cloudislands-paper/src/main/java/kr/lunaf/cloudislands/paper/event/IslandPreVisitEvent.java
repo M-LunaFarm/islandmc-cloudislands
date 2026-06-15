@@ -13,13 +13,19 @@ public final class IslandPreVisitEvent extends Event implements Cancellable {
     private final UUID visitorUuid;
     private final Player visitor;
     private final String worldName;
+    private final String placementSource;
     private boolean cancelled;
 
     public IslandPreVisitEvent(UUID islandId, UUID visitorUuid, Player visitor, String worldName) {
+        this(islandId, visitorUuid, visitor, worldName, "");
+    }
+
+    public IslandPreVisitEvent(UUID islandId, UUID visitorUuid, Player visitor, String worldName, String placementSource) {
         this.islandId = islandId;
         this.visitorUuid = visitorUuid;
         this.visitor = visitor;
         this.worldName = worldName;
+        this.placementSource = placementSource == null ? "" : placementSource;
     }
 
     public UUID islandId() {
@@ -36,6 +42,10 @@ public final class IslandPreVisitEvent extends Event implements Cancellable {
 
     public String worldName() {
         return worldName;
+    }
+
+    public String placementSource() {
+        return placementSource;
     }
 
     @Override
