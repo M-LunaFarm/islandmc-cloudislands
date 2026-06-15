@@ -333,6 +333,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-core-api-state-writer", Boolean.toString(coreApiState != null));
         state.put("runtime-registration-policy", "disabled-features-skip-commands-gui-listeners-tasks-and-writes");
         state.put("runtime-disabled-features", disabledRuntimeFeatures());
+        state.put("runtime-command-handler-mode", commandsRegistered ? "active" : "disabled-stub");
+        state.put("runtime-command-block-reason", runtimeCommandBlockReason());
+        state.put("runtime-blocked-components", runtimeBlockedComponents());
+        state.put("runtime-disabled-component-policy", "preserve-data-and-return-empty-tabs-or-unregister-listeners");
         putDataWriteGateState(state);
         putIslandMobilityState(state);
     }
@@ -380,6 +384,58 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         });
         java.util.Collections.sort(disabled);
         return String.join(",", disabled);
+    }
+
+    private String runtimeCommandBlockReason() {
+        if (commandsRegistered) {
+            return "none";
+        }
+        if (!addonRuntimeEnabled) {
+            return "addon-disabled";
+        }
+        if (!featureEnabled("commands")) {
+            return "commands-feature-disabled";
+        }
+        return "command-not-registered";
+    }
+
+    private String runtimeBlockedComponents() {
+        java.util.List<String> blocked = new java.util.ArrayList<>();
+        if (!commandsRegistered) {
+            blocked.add("commands:" + runtimeCommandBlockReason());
+        }
+        if (!machineListenerRegistered) {
+            blocked.add("machine-listener:" + (!featureEnabled("machines") ? "machines-feature-disabled" : "not-registered"));
+        }
+        if (!guiListenerRegistered) {
+            blocked.add("gui-listener:" + (!featureEnabled("gui") ? "gui-feature-disabled" : "not-registered"));
+        }
+        if (!lifecycleListenerRegistered) {
+            blocked.add("lifecycle-listener:" + (!lifecycleListenerNeeded() ? "lifecycle-state-disabled" : "not-registered"));
+        }
+        if (placeholderHook == null) {
+            blocked.add("placeholders:" + placeholderBlockReason());
+        }
+        if (ticker == null || !ticker.running()) {
+            blocked.add("machine-ticker:" + (!featureEnabled("machines") ? "machines-feature-disabled" : "not-running"));
+        }
+        if (maintenanceTicker == null || !maintenanceTicker.running()) {
+            blocked.add("maintenance-ticker:" + (!featureEnabled("maintenance") ? "maintenance-feature-disabled" : "not-running"));
+        }
+        if (dirtySaves == null || !dirtySaves.running()) {
+            blocked.add("dirty-save:" + (!dataWritesEnabled() ? "data-writes-disabled" : "not-running"));
+        }
+        return blocked.isEmpty() ? "none" : String.join(",", blocked);
+    }
+
+    private String placeholderBlockReason() {
+        if (!featureEnabled("placeholders")) {
+            return "placeholders-feature-disabled";
+        }
+        if (!getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return "placeholderapi-not-installed";
+        }
+        return "not-registered";
     }
 
     private boolean lifecycleStateEnabled() {
