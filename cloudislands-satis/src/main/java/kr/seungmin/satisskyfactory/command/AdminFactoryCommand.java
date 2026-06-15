@@ -789,6 +789,8 @@ public final class AdminFactoryCommand {
                 Map<String, String> metadata = integrationMetadata.get();
                 List.of(
                         "database-configured-backend",
+                        "database-setup-sections",
+                        "database-setup-warning",
                         "database-active-backend",
                         "database-attempted-backends",
                         "database-attempt-order",
