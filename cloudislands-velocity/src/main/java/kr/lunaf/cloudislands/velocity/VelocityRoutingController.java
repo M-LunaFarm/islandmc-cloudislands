@@ -1105,7 +1105,21 @@ public final class VelocityRoutingController {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
             if (code.equals("MIGRATION_DISABLED")) {
-                return "SuperiorSkyblock2 migration is disabled by config.";
+                StringBuilder disabled = new StringBuilder("SuperiorSkyblock2 migration is disabled by config.");
+                if (body.contains("\"sourcePlugin\"")) {
+                    disabled.append(" source=").append(jsonValue(body, "sourcePlugin"));
+                }
+                if (body.contains("\"migrationInputOnly\"")) {
+                    disabled.append(" inputOnly=").append(boolValue(body, "migrationInputOnly"));
+                }
+                if (body.contains("\"runtimeDependency\"")) {
+                    disabled.append(" runtimeDependency=").append(boolValue(body, "runtimeDependency"));
+                }
+                String targetRuntime = jsonValue(body, "targetRuntime");
+                if (!targetRuntime.isBlank()) {
+                    disabled.append(" targetRuntime=").append(targetRuntime);
+                }
+                return disabled.toString();
             }
             String message = jsonValue(body, "message");
             return "Migration: failed code=" + code + (message.isBlank() ? "" : " message=" + message);
