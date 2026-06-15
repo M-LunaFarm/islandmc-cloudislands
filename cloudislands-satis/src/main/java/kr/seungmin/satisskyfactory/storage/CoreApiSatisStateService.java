@@ -129,7 +129,7 @@ public final class CoreApiSatisStateService {
             return;
         }
         cloudIslandsApi.addons().clearIslandTableState(addonId, table.islandUuid(), table.table())
-                .thenCompose(_cleared -> cloudIslandsApi.addons().tableKeyValueBulkSaveIslandState(addonId, table.islandUuid(), Map.of(), Map.of(table.table(), table.values())))
+                .thenCompose(_cleared -> cloudIslandsApi.addons().tableKeyValueBulkSaveIslandState(addonId, table.islandUuid(), table.table(), table.values()))
                 .handle((state, error) -> {
                     if (error == null) {
                         return java.util.concurrent.CompletableFuture.completedFuture(state);
@@ -329,7 +329,7 @@ public final class CoreApiSatisStateService {
             return;
         }
         cloudIslandsApi.addons().clearTableState(addonId, table.table())
-                .thenCompose(_cleared -> cloudIslandsApi.addons().tableKeyValueBulkSaveState(addonId, Map.of(), Map.of(table.table(), table.values())))
+                .thenCompose(_cleared -> cloudIslandsApi.addons().tableKeyValueBulkSaveState(addonId, table.table(), table.values()))
                 .handle((state, error) -> {
                     if (error == null) {
                         return java.util.concurrent.CompletableFuture.completedFuture(state);
