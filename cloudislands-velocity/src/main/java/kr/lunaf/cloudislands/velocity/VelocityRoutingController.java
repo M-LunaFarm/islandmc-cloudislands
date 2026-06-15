@@ -1810,6 +1810,8 @@ public final class VelocityRoutingController {
             + " setupDbJdbcAliases=" + jsonValue(body, "coreSetupDatabaseJdbcAliases")
             + " setupDbTypeInference=" + jsonValue(body, "coreSetupDatabaseTypeInference")
             + " jdbcFallback=" + jsonValue(body, "coreJdbcFallbackReason")
+            + " jdbcFallbackActive=" + boolValue(body, "coreJdbcFallbackActive")
+            + " jdbcFallbackStatus=" + jsonValue(body, "coreJdbcFallbackStatus")
             + " addonBulkSave=" + boolValue(body, "addonStateBulkSaveApi")
             + " addonBulkGlobal=" + jsonValue(body, "addonStateBulkSaveGlobalEndpoint")
             + " addonBulkIsland=" + jsonValue(body, "addonStateBulkSaveIslandEndpoint")
