@@ -708,7 +708,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private void startIslandNodeWorker(CoreApiClient client, String nodeId, IslandStorage storage, IslandLimitCache limitCache) {
         ShardWorldManager shardWorldManager = new ShardWorldManager(
             getConfig().getString("island-node.shard-world-prefix", "ci_shard_"),
-            getConfig().getInt("island-node.shard-count", 4),
+            getConfig().getInt("island-node.shard-count", 16),
             getConfig().getInt("island-node.cell-size", 1024)
         );
         this.activeIslands = new ActiveIslandRegistry();

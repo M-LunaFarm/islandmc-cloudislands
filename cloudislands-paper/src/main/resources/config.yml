@@ -1115,7 +1115,7 @@ generators:
 
 island-node:
   shard-world-prefix: "ci_shard_"
-  shard-count: 4
+  shard-count: 16
   cell-size: 1024
   default-island-size: 300
   activation:
