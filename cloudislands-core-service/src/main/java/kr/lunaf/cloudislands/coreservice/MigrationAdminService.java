@@ -336,13 +336,19 @@ public final class MigrationAdminService {
     private record BundlePreflight(Map<java.util.UUID, MigrationWorldBundle> bundles, List<MigrationIssue> issues) {}
 
     public synchronized String verify() {
+        return verify("");
+    }
+
+    public synchronized String verify(String bundleRootPath) {
         if (lastScan.manifests().isEmpty()) {
             List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_SCAN_REQUIRED", "run scan before verifying SuperiorSkyblock2 migration", true));
             return "{\"state\":\"" + MigrationRunState.VERIFYING + "\"" + migrationBoundaryFields() + ",\"path\":\"\",\"reportPath\":\"\",\"passed\":false,\"expected\":0,\"imported\":0,\"extractedBundles\":0,\"extractedFiles\":0,\"extractedBytes\":0,\"activationTested\":0,\"activationTestPassed\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
         }
         List<MigrationManifest> imported = new ArrayList<>();
         List<MigrationIssue> issues = new ArrayList<>();
-        Path verifyBundleRoot = lastExtractionRoot == null ? migrationBundleRoot : lastExtractionRoot;
+        Path verifyBundleRoot = bundleRootPath == null || bundleRootPath.isBlank()
+            ? (lastExtractionRoot == null ? migrationBundleRoot : lastExtractionRoot)
+            : Path.of(bundleRootPath);
         int extractedBundles = 0;
         long extractedFiles = 0L;
         long extractedBytes = 0L;

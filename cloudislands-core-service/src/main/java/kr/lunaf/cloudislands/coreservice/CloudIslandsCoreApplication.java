@@ -1523,8 +1523,10 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 403, migrationDisabledJson());
                 return;
             }
-            audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_VERIFY", "MIGRATION", "superiorskyblock2", Map.of());
-            write(exchange, 202, migrationAdmin.verify());
+            String body = readBody(exchange);
+            String path = JsonFields.text(body, "path", "");
+            audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_VERIFY", "MIGRATION", "superiorskyblock2", path.isBlank() ? Map.of() : Map.of("path", path));
+            write(exchange, 202, migrationAdmin.verify(path));
         });
         route("/v1/admin/migrations/superiorskyblock2/rollback", exchange -> {
             if (!config.superiorSkyblock2MigrationEnabled()) {
