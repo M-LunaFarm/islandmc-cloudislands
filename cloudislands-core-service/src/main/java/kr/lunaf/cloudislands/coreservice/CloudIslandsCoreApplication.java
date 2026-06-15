@@ -3896,7 +3896,11 @@ public final class CloudIslandsCoreApplication {
         java.util.TreeSet<String> addonIds = new java.util.TreeSet<>();
         addonIds.addAll(globalCounts == null ? Map.<String, Integer>of().keySet() : globalCounts.keySet());
         addonIds.addAll(islandCounts == null ? Map.<String, Integer>of().keySet() : islandCounts.keySet());
-        StringBuilder builder = new StringBuilder("{\"addons\":[");
+        StringBuilder builder = new StringBuilder("{\"stateOwnership\":\"core-addon-state-store\","
+            + "\"registeredAddonRequired\":false,"
+            + "\"orphanStatePolicy\":\"preserve-for-reinstall-or-admin-clear\","
+            + "\"missingAddonStatePolicy\":\"ignored-by-island-lifecycle\","
+            + "\"addons\":[");
         boolean first = true;
         for (String addonId : addonIds) {
             if (!first) {

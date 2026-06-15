@@ -1734,7 +1734,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             }
             index = objectEnd + 1;
         }
-        return adminText("admin-command-addons-state-total-prefix", "Addon state: total=") + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+        return adminText("admin-command-addons-state-total-prefix", "Addon state: total=") + total
+            + " owner=" + textValue(body, "stateOwnership")
+            + " registeredRequired=" + boolValue(body, "registeredAddonRequired")
+            + " orphanPolicy=" + textValue(body, "orphanStatePolicy")
+            + " missingPolicy=" + textValue(body, "missingAddonStatePolicy")
+            + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     private String addonDependencySuffix(CloudIslandsAddonSnapshot addon) {
