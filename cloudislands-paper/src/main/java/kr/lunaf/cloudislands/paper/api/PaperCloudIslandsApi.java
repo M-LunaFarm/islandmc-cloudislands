@@ -357,21 +357,25 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         private CloudIslandsAddonSnapshot snapshot(AddonRegistration registration) {
             String id = registration.id();
             boolean addonDefaultEnabled = registration.enabled();
-            boolean configEnabled = configuredAddonEnabled(id);
+            boolean configEnabled = configuredAddonEnabled(registration);
             boolean enabled = addonDefaultEnabled && configEnabled;
             Map<String, Boolean> configuredFeatures = configuredFeatures(registration);
             Map<String, Boolean> visibleFeatures = enabled ? effectiveFeatures(configuredFeatures, registration.metadata()) : disabledFeatures(configuredFeatures);
             return new CloudIslandsAddonSnapshot(id, registration.displayName(), registration.version(), enabled, registration.registeredAt(), Instant.now(), configuredFeatures, visibleFeatures, effectiveMetadata(id, registration.metadata(), addonDefaultEnabled, configEnabled));
         }
 
-        private boolean configuredAddonEnabled(String id) {
+        private boolean configuredAddonEnabled(AddonRegistration registration) {
+            String id = registration.id();
             String addonPath = "addons." + id + ".enabled";
             boolean enabled = true;
             if (plugin.getConfig().contains(addonPath)) {
                 enabled = plugin.getConfig().getBoolean(addonPath, true);
             }
-            if (id.equals("cloudislands-satis") && plugin.getConfig().contains("satis.enabled")) {
-                enabled = enabled && plugin.getConfig().getBoolean("satis.enabled", true);
+            for (String alias : parentConfigAliases(registration.metadata())) {
+                String aliasPath = alias + ".enabled";
+                if (plugin.getConfig().contains(aliasPath)) {
+                    enabled = enabled && plugin.getConfig().getBoolean(aliasPath, true);
+                }
             }
             return enabled;
         }
@@ -380,11 +384,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             String id = registration.id();
             Map<String, Boolean> features = registration.features();
             Map<String, Boolean> effective = new HashMap<>(features == null ? Map.of() : features);
-            if (id.equals("cloudislands-satis")) {
-                ConfigurationSection satisSection = plugin.getConfig().getConfigurationSection("satis.features");
-                if (satisSection != null) {
-                    for (String key : satisSection.getKeys(false)) {
-                        effective.put(key, effective.getOrDefault(key, true) && satisSection.getBoolean(key, true));
+            for (String alias : parentConfigAliases(registration.metadata())) {
+                ConfigurationSection aliasSection = plugin.getConfig().getConfigurationSection(alias + ".features");
+                if (aliasSection != null) {
+                    for (String key : aliasSection.getKeys(false)) {
+                        effective.put(key, effective.getOrDefault(key, true) && aliasSection.getBoolean(key, true));
                     }
                 }
             }
@@ -452,19 +456,16 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             } else {
                 effective.put("disabled-reason", "none");
             }
-            if (id.equals("cloudislands-satis")) {
-                boolean hasAddonConfig = plugin.getConfig().contains("addons." + id);
-                boolean hasSatisConfig = plugin.getConfig().contains("satis");
-                if (hasAddonConfig && hasSatisConfig) {
-                    effective.put("parent-config-path", "addons." + id + ",satis");
-                } else if (hasAddonConfig) {
-                    effective.put("parent-config-path", "addons." + id);
-                } else if (hasSatisConfig) {
-                    effective.put("parent-config-path", "satis");
-                } else {
-                    effective.put("parent-config-path", "default");
+            List<String> parentPaths = new ArrayList<>();
+            if (plugin.getConfig().contains("addons." + id)) {
+                parentPaths.add("addons." + id);
+            }
+            for (String alias : parentConfigAliases(metadata)) {
+                if (plugin.getConfig().contains(alias)) {
+                    parentPaths.add(alias);
                 }
             }
+            effective.put("parent-config-path", parentPaths.isEmpty() ? "default" : String.join(",", parentPaths));
             return effective;
         }
 
@@ -534,8 +535,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 return CompletableFuture.completedFuture(Optional.empty());
             }
             plugin.getConfig().set("addons." + safeId + ".enabled", enabled);
-            if (safeId.equals("cloudislands-satis")) {
-                plugin.getConfig().set("satis.enabled", enabled);
+            AddonRegistration registration = registrations.get(safeId);
+            for (String alias : parentConfigAliases(registration.metadata())) {
+                plugin.getConfig().set(alias + ".enabled", enabled);
             }
             plugin.saveConfig();
             plugin.reloadConfig();
@@ -554,8 +556,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 return CompletableFuture.completedFuture(Optional.empty());
             }
             plugin.getConfig().set("addons." + safeId + ".features." + normalizedFeature, enabled);
-            if (safeId.equals("cloudislands-satis")) {
-                plugin.getConfig().set("satis.features." + normalizedFeature, enabled);
+            for (String alias : parentConfigAliases(registration.metadata())) {
+                plugin.getConfig().set(alias + ".features." + normalizedFeature, enabled);
             }
             clearFeatureAliases(safeId, registration, normalizedFeature);
             plugin.saveConfig();
@@ -566,10 +568,22 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         private void clearFeatureAliases(String id, AddonRegistration registration, String canonicalFeature) {
             for (String alias : AddonFeatureAliases.aliasesFor(registration.metadata(), canonicalFeature)) {
                 plugin.getConfig().set("addons." + id + ".features." + alias, null);
-                if (id.equals("cloudislands-satis")) {
-                    plugin.getConfig().set("satis.features." + alias, null);
+                for (String parentAlias : parentConfigAliases(registration.metadata())) {
+                    plugin.getConfig().set(parentAlias + ".features." + alias, null);
                 }
             }
+        }
+
+        private List<String> parentConfigAliases(Map<String, String> metadata) {
+            String aliases = metadata == null ? "" : metadata.getOrDefault("parent-config-aliases", "");
+            List<String> values = new ArrayList<>();
+            for (String alias : aliases.split(",")) {
+                String safeAlias = alias == null ? "" : alias.trim();
+                if (!safeAlias.isBlank() && !safeAlias.contains("..") && !safeAlias.startsWith(".") && !safeAlias.endsWith(".")) {
+                    values.add(safeAlias);
+                }
+            }
+            return values;
         }
 
         private boolean registeredFeatureKnown(AddonRegistration registration, String requestedFeature, String normalizedFeature) {

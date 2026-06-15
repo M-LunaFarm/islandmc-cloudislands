@@ -1116,17 +1116,18 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     static Map<String, String> cloudIslandsIntegrationMetadata() {
-        return Map.of(
-                "origin-project", "satismc",
-                "origin-repository", "https://github.com/M-LunaFarm/satismc",
-                "addon-packaging", "external-plugin",
-                "extension-model", "superiorskyblock-style-addon",
-                "removable-addon", "true",
-                "superior-migration-input-only", "true",
-                "superior-runtime-dependency", "false",
-                "cloudislands-api-only", "true",
-                "feature-gate-scope", "global-and-per-feature",
-                "config-gated", "true"
+        return Map.ofEntries(
+                Map.entry("origin-project", "satismc"),
+                Map.entry("origin-repository", "https://github.com/M-LunaFarm/satismc"),
+                Map.entry("addon-packaging", "external-plugin"),
+                Map.entry("extension-model", "superiorskyblock-style-addon"),
+                Map.entry("removable-addon", "true"),
+                Map.entry("superior-migration-input-only", "true"),
+                Map.entry("superior-runtime-dependency", "false"),
+                Map.entry("cloudislands-api-only", "true"),
+                Map.entry("feature-gate-scope", "global-and-per-feature"),
+                Map.entry("config-gated", "true"),
+                Map.entry("parent-config-aliases", "satis")
         );
     }
 
