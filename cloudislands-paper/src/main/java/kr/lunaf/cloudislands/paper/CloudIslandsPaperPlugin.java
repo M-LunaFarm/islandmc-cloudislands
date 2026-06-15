@@ -366,6 +366,11 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean velocityOnlineModeMismatch = role == AgentRole.ISLAND_NODE && forwardingRequired && getServer().getOnlineMode();
         boolean bungeeConnectPluginMessaging = configBoolean("security.allow-bungee-connect-plugin-messaging", false);
         boolean bungeeConnectChannelRegistered = getServer().getMessenger().isOutgoingChannelRegistered(this, "BungeeCord");
+        boolean islandNodeRole = role == AgentRole.ISLAND_NODE;
+        boolean worldExecutionEnabled = islandNodeRole && activeIslands != null;
+        boolean activationWorkerEnabled = islandNodeRole && jobWorker != null;
+        boolean islandProtectionEnabled = islandNodeRole;
+        boolean islandSaveTasksEnabled = islandNodeRole && (periodicSaveTask != null || emptyIslandSaveTask != null);
         PaperRouteSessionListener routeSessions = routeSessionListener;
         PermissionEventPoller events = permissionEventPoller;
         PeriodicIslandSaveTask saver = periodicSaveTask;
@@ -376,6 +381,11 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"nodeId\":\"" + nodeId + "\","
             + "\"onlineMode\":" + getServer().getOnlineMode() + ","
             + "\"onlinePlayers\":" + getServer().getOnlinePlayers().size() + ","
+            + "\"rolePolicy\":\"" + (islandNodeRole ? "island-node-runs-worlds-protection-routing-and-saves" : "lobby-runs-gui-query-and-routing-entry-only") + "\","
+            + "\"roleWorldExecutionEnabled\":" + worldExecutionEnabled + ","
+            + "\"roleActivationWorkerEnabled\":" + activationWorkerEnabled + ","
+            + "\"roleIslandProtectionEnabled\":" + islandProtectionEnabled + ","
+            + "\"roleIslandSaveTasksEnabled\":" + islandSaveTasksEnabled + ","
             + "\"activeIslands\":" + (activeIslands == null ? 0 : activeIslands.size()) + ","
             + "\"activationQueue\":" + (jobWorker == null ? 0 : jobWorker.activationQueue()) + ","
             + "\"redisAvailable\":" + redis.available() + ","
