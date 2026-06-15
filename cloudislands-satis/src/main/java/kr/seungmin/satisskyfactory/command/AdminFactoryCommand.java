@@ -105,6 +105,7 @@ public final class AdminFactoryCommand {
     private final Runnable reload;
     private String lastLegacyDryRunSource;
     private long lastLegacyDryRunRows;
+    private String lastLegacyDryRunFingerprint;
 
     public AdminFactoryCommand(FactoryIslandService islands, MachineService machines, MachineDefinitionService definitions,
                                StorageService storage, ResourceNodeService nodes, SkyblockProvider skyblock,
@@ -688,6 +689,7 @@ public final class AdminFactoryCommand {
             if (action.equals("dryrun") || action.equals("dry-run") || action.equals("verify")) {
                 lastLegacyDryRunSource = plan.sourcePath();
                 lastLegacyDryRunRows = plan.importableRows();
+                lastLegacyDryRunFingerprint = legacySourceFingerprint(plan.sourcePath());
             }
             sender.sendMessage(messages.raw("admin-migration-title"));
             Map<String, String> state = new LinkedHashMap<>();
@@ -697,6 +699,9 @@ public final class AdminFactoryCommand {
             state.put("writes", "false");
             state.put("conflict-policy", "none-scan-only");
             state.put("import-prerequisite-recorded", Boolean.toString(action.equals("dryrun") || action.equals("dry-run") || action.equals("verify")));
+            if (lastLegacyDryRunSource != null && lastLegacyDryRunSource.equals(plan.sourcePath())) {
+                state.put("source-fingerprint", lastLegacyDryRunFingerprint);
+            }
             state.put("importable-rows", String.valueOf(plan.importableRows()));
             state.put("importable-tables", String.valueOf(plan.importableTables()));
             state.put("skipped-tables", String.valueOf(plan.skippedTables()));
@@ -778,6 +783,25 @@ public final class AdminFactoryCommand {
                         ))));
                 return;
             }
+            String currentFingerprint = legacySourceFingerprint(plan.sourcePath());
+            if (lastLegacyDryRunFingerprint == null || !lastLegacyDryRunFingerprint.equals(currentFingerprint)) {
+                sender.sendMessage(messages.raw("admin-migration-title"));
+                Map<String, String> state = new LinkedHashMap<>();
+                state.put("mode", "dryrun-stale");
+                state.put("writes", "false");
+                state.put("source", plan.sourcePath());
+                state.put("dryrun-fingerprint", lastLegacyDryRunFingerprint == null ? "none" : lastLegacyDryRunFingerprint);
+                state.put("current-fingerprint", currentFingerprint);
+                state.put("required", "/factory admin migration dryrun <sqlitePath>");
+                state.put("reason", "source file changed after dryrun or verify");
+                state.entrySet().stream()
+                        .sorted(Map.Entry.comparingByKey())
+                        .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                                "key", entry.getKey(),
+                                "value", entry.getValue()
+                        ))));
+                return;
+            }
             DatabaseService.LegacyImportResult result = database.importLegacyDatabase(new File(sourcePath));
             reload.run();
             sender.sendMessage(messages.raw("admin-migration-title"));
@@ -786,6 +810,7 @@ public final class AdminFactoryCommand {
             state.put("target-backend", database.activeBackend().name());
             state.put("dryrun-source", lastLegacyDryRunSource);
             state.put("dryrun-rows", String.valueOf(lastLegacyDryRunRows));
+            state.put("dryrun-fingerprint", lastLegacyDryRunFingerprint);
             state.put("copied-rows", String.valueOf(result.copiedRows()));
             state.put("copied-tables", String.join(",", result.copiedTables()));
             state.put("skipped-tables", result.skippedTables().isEmpty() ? "none" : String.join(",", result.skippedTables()));
@@ -813,6 +838,11 @@ public final class AdminFactoryCommand {
                     "value", database.activeBackend() == DatabaseService.StorageBackend.CORE_API ? "failed-or-unavailable-addon-state-writer" : "not-required-for-" + database.activeBackend().name()
             )));
         }
+    }
+
+    private String legacySourceFingerprint(String sourcePath) {
+        File source = new File(sourcePath);
+        return "size=" + source.length() + ",modified=" + source.lastModified();
     }
 
     private void rollbackLegacyDatabase(CommandSender sender) {
