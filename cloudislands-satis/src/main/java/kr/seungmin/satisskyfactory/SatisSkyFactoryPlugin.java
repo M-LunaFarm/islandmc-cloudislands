@@ -2894,8 +2894,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String inferredJdbcDatabaseType() {
-        String jdbcUrl = firstNonBlank(System.getenv("CLOUDISLANDS_SATIS_JDBC_URL"),
-                firstNonBlank(configs.main().getString("setup.database.jdbc.url", ""), configs.main().getString("database.jdbc.url", "")));
+        String jdbcUrl = configuredCommonJdbcUrl();
         if (jdbcUrl == null || jdbcUrl.isBlank()) {
             return "";
         }
@@ -2975,11 +2974,20 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (databaseType != null && !databaseType.isBlank() && !"SQLITE".equalsIgnoreCase(databaseType.trim())) {
             return "none";
         }
+        String jdbcUrl = configuredCommonJdbcUrl();
+        if (jdbcUrl != null && !jdbcUrl.isBlank() && inferredJdbcDatabaseType().isBlank()) {
+            return "unknown-jdbc-url:set-setup.database.type";
+        }
         List<String> configured = configuredSetupDatabaseSections();
         if (configured.size() <= 1) {
             return "none";
         }
         return "ambiguous:" + String.join(",", configured) + ":set-setup.database.type";
+    }
+
+    private String configuredCommonJdbcUrl() {
+        return firstNonBlank(System.getenv("CLOUDISLANDS_SATIS_JDBC_URL"),
+                firstNonBlank(configs.main().getString("setup.database.jdbc.url", ""), configs.main().getString("database.jdbc.url", "")));
     }
 
     private boolean setupDatabaseSectionConfigured(String section) {
