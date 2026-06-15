@@ -170,6 +170,7 @@ public interface CoreApiClient {
     CompletableFuture<String> listEvents(int limit);
     CompletableFuture<String> listEventsSince(long sinceSeq, int limit);
     CompletableFuture<String> listAuditLogs();
+    CompletableFuture<String> listAuditLogs(int limit);
     CompletableFuture<String> metrics();
     CompletableFuture<String> coreConfig();
     CompletableFuture<String> storageStatus();

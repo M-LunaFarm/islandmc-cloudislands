@@ -796,7 +796,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> listAuditLogs() {
-        return postWithResultBody("/v1/audit", "{}");
+        return listAuditLogs(100);
+    }
+
+    @Override
+    public CompletableFuture<String> listAuditLogs(int limit) {
+        return postWithResultBody("/v1/admin/audit/list", "{\"limit\":" + Math.max(1, Math.min(limit, 500)) + "}");
     }
 
     @Override
@@ -1310,7 +1315,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (path.equals("/v1/jobs") || path.equals("/v1/jobs/claim") || path.equals("/v1/jobs/complete") || path.equals("/v1/jobs/fail") || path.equals("/v1/jobs/recover")) {
             return "JOB_MANAGE";
         }
-        if (path.equals("/v1/audit") || path.equals("/v1/events") || path.equals("/metrics")) {
+        if (path.equals("/v1/audit") || path.equals("/v1/admin/audit") || path.equals("/v1/admin/audit/list") || path.equals("/v1/events") || path.equals("/metrics")) {
             return "AUDIT_READ";
         }
         if (path.equals("/v1/admin/cache/clear") || path.equals("/v1/admin/reload")) {

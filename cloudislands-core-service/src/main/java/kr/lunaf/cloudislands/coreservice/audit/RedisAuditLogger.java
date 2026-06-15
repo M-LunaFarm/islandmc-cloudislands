@@ -37,6 +37,11 @@ public final class RedisAuditLogger implements AuditLogger {
         }
     }
 
+    @Override
+    public String toJson(int limit) {
+        return delegate.toJson(limit);
+    }
+
     public long failuresTotal() {
         return failures.get();
     }

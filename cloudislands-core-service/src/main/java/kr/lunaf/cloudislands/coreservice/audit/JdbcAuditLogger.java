@@ -32,6 +32,7 @@ public final class JdbcAuditLogger implements AuditLogger {
         }
     }
 
+    @Override
     public String toJson(int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 500));
         try (Connection connection = dataSource.getConnection();

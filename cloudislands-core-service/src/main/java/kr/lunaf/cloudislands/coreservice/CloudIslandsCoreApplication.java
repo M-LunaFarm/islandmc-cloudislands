@@ -292,8 +292,7 @@ public final class CloudIslandsCoreApplication {
         IslandLogRepository islandLogs = config.redisEvents() || config.redisJobs()
             ? new CachingIslandLogRepository(baseIslandLogs, config.redisUri())
             : baseIslandLogs;
-        InMemoryAuditLogger inMemoryAudit = baseAudit instanceof InMemoryAuditLogger logger ? logger : new InMemoryAuditLogger();
-        java.util.function.Supplier<String> auditJson = baseAudit instanceof JdbcAuditLogger jdbcAudit ? () -> jdbcAudit.toJson(100) : inMemoryAudit::toJson;
+        java.util.function.IntFunction<String> auditJson = audit::toJson;
         RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets, islandRepository, metadataRepository, runtimeRepository, templateRepository, jobs, events, config.islandPool(), config.routeTicketTtl(), config.routePreparingTicketTtl(), activationLock);
         CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, metadataRepository, playerProfiles, templateRepository, nodes, allocator, jobs, events, tickets, config.islandPool(), config.routePreparingTicketTtl(), playerCreationLock);
         IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(runtimeRepository, islandRepository, templateRepository, nodes, allocator, jobs, events, config.islandPool(), config.migrationPolicy(), activationLock);
@@ -362,7 +361,21 @@ public final class CloudIslandsCoreApplication {
             long sinceSeq = Math.max(0L, JsonFields.longValue(body, "sinceSeq", 0L));
             write(exchange, 200, inMemoryEvents.toJson(limit, sinceSeq));
         });
-        route("/v1/audit", exchange -> write(exchange, 200, auditJson.get()));
+        route("/v1/audit", exchange -> {
+            String body = readBody(exchange);
+            int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 100), 500));
+            write(exchange, 200, auditJson.apply(limit));
+        });
+        route("/v1/admin/audit", exchange -> {
+            String body = readBody(exchange);
+            int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 100), 500));
+            write(exchange, 200, auditJson.apply(limit));
+        });
+        route("/v1/admin/audit/list", exchange -> {
+            String body = readBody(exchange);
+            int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 100), 500));
+            write(exchange, 200, auditJson.apply(limit));
+        });
         route("/v1/admin/addons/state/summary", exchange -> write(exchange, 200, addonStateSummaryJson(addonStates.globalStateCounts(), addonStates.islandStateCounts())));
         route("/v1/addons/state", exchange -> {
             String body = readBody(exchange);
