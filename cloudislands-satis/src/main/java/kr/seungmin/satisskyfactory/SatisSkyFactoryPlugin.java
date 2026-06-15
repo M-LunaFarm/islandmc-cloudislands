@@ -1422,6 +1422,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void publishLifecycleState(UUID islandId, String operation, FactoryIsland island) {
+        publishLifecycleState(islandId, operation, island, "0,0,0", false, false);
+    }
+
+    private void publishLifecycleState(UUID islandId, String operation, FactoryIsland island, String remapDelta, boolean machinesRemapped, boolean resourceNodesRemapped) {
         if (cloudIslandsApi == null || islandId == null || !featureEnabled("addon-state")) {
             return;
         }
@@ -1455,12 +1459,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             state.put("last-lifecycle-active-world", island.activeWorld());
             state.put("last-lifecycle-active-center", island.activeCenterX() + "," + island.activeCenterY() + "," + island.activeCenterZ());
         }
+        state.put("last-lifecycle-remap-delta", remapDelta == null || remapDelta.isBlank() ? "0,0,0" : remapDelta);
+        state.put("last-lifecycle-machines-remapped", Boolean.toString(machinesRemapped));
+        state.put("last-lifecycle-resource-nodes-remapped", Boolean.toString(resourceNodesRemapped));
+        state.put("last-lifecycle-remap-source", "active-world-center");
         cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
             getLogger().warning("Failed to publish CloudIslands Satis lifecycle state: " + error.getMessage());
             return Map.of();
         });
         if (!"purge".equalsIgnoreCase(operation)) {
-            publishIslandLifecycleState(islandId, operation, island, "success", "");
+            publishIslandLifecycleState(islandId, operation, island, "success", "", remapDelta, machinesRemapped, resourceNodesRemapped);
         }
     }
 
@@ -1502,6 +1510,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void publishIslandLifecycleState(UUID islandId, String operation, FactoryIsland island, String status, String error) {
+        publishIslandLifecycleState(islandId, operation, island, status, error, "0,0,0", false, false);
+    }
+
+    private void publishIslandLifecycleState(UUID islandId, String operation, FactoryIsland island, String status, String error, String remapDelta, boolean machinesRemapped, boolean resourceNodesRemapped) {
         if (cloudIslandsApi == null || islandId == null || !featureEnabled("addon-state")) {
             return;
         }
@@ -1540,6 +1552,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             state.put("active-world", island.activeWorld());
             state.put("active-center", island.activeCenterX() + "," + island.activeCenterY() + "," + island.activeCenterZ());
         }
+        state.put("remap-delta", remapDelta == null || remapDelta.isBlank() ? "0,0,0" : remapDelta);
+        state.put("machines-remapped", Boolean.toString(machinesRemapped));
+        state.put("resource-nodes-remapped", Boolean.toString(resourceNodesRemapped));
+        state.put("remap-source", "active-world-center");
         cloudIslandsApi.addons().putIslandState(ADDON_ID, islandId, state).exceptionally(publishError -> {
             getLogger().warning("Failed to publish CloudIslands Satis island state: " + publishError.getMessage());
             return Map.of();
@@ -1921,6 +1937,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         hydrateSatisIslandFromCore(islandId);
         islands.find(islandId).ifPresent(island -> {
+            String remapDelta = "0,0,0";
+            boolean machinesRemapped = false;
+            boolean resourceNodesRemapped = false;
             org.bukkit.Location activeCenter = activeIslandCenter(islandId);
             if (activeCenter == null || activeCenter.getWorld() == null) {
                 activeCenter = lifecycleFallbackCenter(island, operation);
@@ -1930,11 +1949,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 int deltaX = island.hasActiveCenter() ? activeCenter.getBlockX() - island.activeCenterX() : 0;
                 int deltaY = island.hasActiveCenter() ? activeCenter.getBlockY() - island.activeCenterY() : 0;
                 int deltaZ = island.hasActiveCenter() ? activeCenter.getBlockZ() - island.activeCenterZ() : 0;
+                remapDelta = deltaX + "," + deltaY + "," + deltaZ;
                 if (machines != null && featureEnabled("machines")) {
-                    machines.remapIslandRegion(islandId, activeWorld, deltaX, deltaY, deltaZ);
+                    machinesRemapped = machines.remapIslandRegion(islandId, activeWorld, deltaX, deltaY, deltaZ);
                 }
                 if (nodes != null && operationalFeatureEnabled("resource-nodes")) {
-                    nodes.remapIslandRegion(islandId, activeWorld, deltaX, deltaY, deltaZ);
+                    resourceNodesRemapped = nodes.remapIslandRegion(islandId, activeWorld, deltaX, deltaY, deltaZ);
                 }
                 island.activeWorld(activeWorld);
                 island.activeCenterX(activeCenter.getBlockX());
@@ -1953,7 +1973,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 power.rebuildIsland(islandId);
             }
             islands.save(island);
-            publishLifecycleState(islandId, operation, island);
+            publishLifecycleState(islandId, operation, island, remapDelta, machinesRemapped, resourceNodesRemapped);
         });
     }
 
