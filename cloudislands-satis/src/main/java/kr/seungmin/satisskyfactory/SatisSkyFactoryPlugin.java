@@ -3937,7 +3937,61 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (backend == DatabaseService.StorageBackend.CORE_API) {
             return coreApiAddonStateAvailable();
         }
-        return !databaseJdbcTargetMetadata(settings, backend).equals("not-configured");
+        return databaseFallbackJdbcTargetConfigured(backend)
+                && !databaseJdbcTargetMetadata(settings, backend).equals("not-configured");
+    }
+
+    private boolean databaseFallbackJdbcTargetConfigured(DatabaseService.StorageBackend backend) {
+        if (backend == null || backend == DatabaseService.StorageBackend.SQLITE || backend == DatabaseService.StorageBackend.CORE_API) {
+            return false;
+        }
+        String section = backend.name().toLowerCase(Locale.ROOT);
+        if (envPresent("CLOUDISLANDS_SATIS_JDBC_URL")
+                || envPresent("CLOUDISLANDS_SATIS_DB_USERNAME")
+                || envPresent("CLOUDISLANDS_SATIS_DB_PASSWORD")) {
+            return true;
+        }
+        if (!backendEnv(section, "JDBC_URL").isBlank()
+                || !backendEnv(section, "URL").isBlank()
+                || !backendEnv(section, "HOST").isBlank()
+                || !backendEnv(section, "NAME").isBlank()
+                || !backendEnv(section, "DB_NAME").isBlank()
+                || !backendEnv(section, "DATABASE").isBlank()
+                || !backendEnv(section, "OPTIONS").isBlank()
+                || !backendEnv(section, "USERNAME").isBlank()
+                || !backendEnv(section, "PASSWORD").isBlank()
+                || backendEnvInt(section, "PORT", 0) > 0
+                || backendEnvInt(section, "MAX_POOL_SIZE", 0) > 0
+                || backendEnvLong(section, "CONNECTION_TIMEOUT_MS", 0L) > 0L) {
+            return true;
+        }
+        if (nonBlankConfig("setup.database.jdbc.url")
+                || nonBlankConfig("setup.database.jdbc.username")
+                || nonBlankConfig("setup.database.jdbc.password")
+                || configs.main().getInt("setup.database.jdbc.max-pool-size", 0) > 0
+                || configs.main().getLong("setup.database.jdbc.connection-timeout-ms", 0L) > 0L) {
+            return true;
+        }
+        if (setupDatabaseSectionConfigured(section)) {
+            return true;
+        }
+        if (nonBlankConfig("database.jdbc.url")
+                || nonBlankConfig("database.jdbc.username")
+                || nonBlankConfig("database.jdbc.password")
+                || configs.main().getInt("database.jdbc.max-pool-size", 0) > 0
+                || configs.main().getLong("database.jdbc.connection-timeout-ms", 0L) > 0L) {
+            return true;
+        }
+        if (nonBlankConfig("database." + section + ".jdbc-url")
+                || nonBlankConfig("database." + section + ".url")
+                || nonBlankConfig("database." + section + ".username")
+                || nonBlankConfig("database." + section + ".password")
+                || configs.main().getInt("database." + section + ".max-pool-size", 0) > 0
+                || configs.main().getLong("database." + section + ".connection-timeout-ms", 0L) > 0L) {
+            return true;
+        }
+        String configured = configs.main().getString("database.type", "");
+        return configured != null && backend.name().equalsIgnoreCase(configured.trim());
     }
 
     private boolean databaseCoreApiFallbackActive() {
