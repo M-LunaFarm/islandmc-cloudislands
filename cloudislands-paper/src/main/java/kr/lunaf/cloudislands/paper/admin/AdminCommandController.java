@@ -2247,12 +2247,25 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (breakdown.isBlank()) {
             return "";
         }
-        return adminText("admin-command-score-parts-prefix", " parts=p:") + seconds(doubleValue(breakdown, "playerPressure"))
-            + adminText("admin-command-score-active-prefix", ",a:") + seconds(doubleValue(breakdown, "activeIslandPressure"))
-            + adminText("admin-command-score-mspt-prefix", ",m:") + seconds(doubleValue(breakdown, "msptPressure"))
-            + adminText("admin-command-score-queue-prefix", ",q:") + seconds(doubleValue(breakdown, "activationQueuePressure"))
-            + adminText("admin-command-score-memory-prefix", ",mem:") + seconds(doubleValue(breakdown, "memoryPressure"))
-            + adminText("admin-command-score-failure-prefix", ",fail:") + seconds(scorePartValue(breakdown, "recentFailurePressure", "recentFailurePenalty"));
+        return adminText("admin-command-score-parts-prefix", " parts=")
+            + "p:" + scoreTerm(breakdown, "player")
+            + adminText("admin-command-score-active-prefix", ",a:") + scoreTerm(breakdown, "activeIsland")
+            + adminText("admin-command-score-mspt-prefix", ",m:") + scoreTerm(breakdown, "mspt")
+            + adminText("admin-command-score-queue-prefix", ",q:") + scoreTerm(breakdown, "activationQueue")
+            + adminText("admin-command-score-chunk-prefix", ",chunk:") + scoreTerm(breakdown, "chunkLoad")
+            + adminText("admin-command-score-memory-prefix", ",mem:") + scoreTerm(breakdown, "memory")
+            + adminText("admin-command-score-failure-prefix", ",fail:") + scoreTerm(breakdown, "recentFailure");
+    }
+
+    private String scoreTerm(String breakdown, String keyPrefix) {
+        String pressureKey = keyPrefix + "Pressure";
+        if (keyPrefix.equals("recentFailure")) {
+            double pressure = scorePartValue(breakdown, pressureKey, "recentFailurePenalty");
+            return seconds(pressure) + "x" + seconds(doubleValue(breakdown, keyPrefix + "Weight")) + "=" + seconds(doubleValue(breakdown, keyPrefix + "Contribution"));
+        }
+        return seconds(doubleValue(breakdown, pressureKey))
+            + "x" + seconds(doubleValue(breakdown, keyPrefix + "Weight"))
+            + "=" + seconds(doubleValue(breakdown, keyPrefix + "Contribution"));
     }
 
     private double scorePartValue(String breakdown, String primaryKey, String fallbackKey) {
