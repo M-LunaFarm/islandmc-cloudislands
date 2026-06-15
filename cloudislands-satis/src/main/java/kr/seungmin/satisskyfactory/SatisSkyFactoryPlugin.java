@@ -1217,11 +1217,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("legacy-satismc-import-scan", "factory admin migration scan <sqlitePath>");
         metadata.put("legacy-satismc-import-dryrun", "factory admin migration dryrun <sqlitePath>");
         metadata.put("legacy-satismc-import-verify", "factory admin migration verify <sqlitePath>");
-        metadata.put("legacy-satismc-import-import", "factory admin migration import <sqlitePath>");
+        metadata.put("legacy-satismc-import-import", "factory admin migration import <sqlitePath> CONFIRM_IMPORT");
+        metadata.put("legacy-satismc-import-approval-token", "CONFIRM_IMPORT");
+        metadata.put("legacy-satismc-import-read-only-actions", "scan,dryrun,verify");
+        metadata.put("legacy-satismc-import-write-actions", "import");
         metadata.put("legacy-satismc-scan-mode", "scan-dryrun-verify-read-only");
         metadata.put("legacy-satismc-import-mode", "cross-backend-sqlite-copy");
+        metadata.put("legacy-satismc-import-conflict-policy", "insert-ignore-existing-rows");
         metadata.put("legacy-satismc-core-api-import-guard", "reject-core-api-import-when-addon-state-writer-unavailable");
         metadata.put("legacy-satismc-rollback-mode", "sqlite-snapshot-restore-or-manual-shared-backend-restore");
+        metadata.put("legacy-satismc-rollback-command", "factory admin migration rollback");
         metadata.put("island-position-remap", "center-delta");
         metadata.put("recovery-suspend-mode", "drop-local-dirty-state");
         metadata.put("recovery-resume-source", "core-api-confirmed-state");

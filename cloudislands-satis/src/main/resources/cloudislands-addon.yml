@@ -97,6 +97,29 @@ superiorskyblock2:
   migration-input-only: true
   runtime-dependency: false
   runtime-policy: migration-input-only-no-runtime-hooks
+migration:
+  legacy-satismc:
+    source: sqlite
+    command-root: factory admin migration
+    commands:
+      status: factory admin migration status
+      scan: factory admin migration scan <sqlitePath>
+      dryrun: factory admin migration dryrun <sqlitePath>
+      verify: factory admin migration verify <sqlitePath>
+      import: factory admin migration import <sqlitePath> CONFIRM_IMPORT
+      rollback: factory admin migration rollback
+    read-only-actions:
+      - scan
+      - dryrun
+      - verify
+    write-actions:
+      - import
+    import-approval-token: CONFIRM_IMPORT
+    import-mode: cross-backend-sqlite-copy
+    conflict-policy: insert-ignore-existing-rows
+    rollback-mode: sqlite-snapshot-restore-or-manual-shared-backend-restore
+    core-api-import-guard: reject-core-api-import-when-addon-state-writer-unavailable
+    data-retention: preserve-existing-cloudislands-and-satis-state
 features:
   configurable: true
   root-switch: satis.enabled

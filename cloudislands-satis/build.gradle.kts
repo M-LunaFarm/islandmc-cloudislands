@@ -38,6 +38,11 @@ tasks.jar {
             "CloudIslands-Addon-Feature-Gates" to "commands,machines,storage,factories,generators,upgrades,missions,menus,gui,lifecycle,resource-nodes,market,contracts,research,maintenance,placeholders,migration,addon-state,route-events",
             "CloudIslands-Addon-Feature-Disable-Policy" to "disabled-features-preserve-data-and-skip-runtime-components",
             "CloudIslands-Addon-Island-Move-Policy" to "island-uuid-stable-remap-active-world-and-cell",
+            "CloudIslands-Satis-Legacy-Migration-Source" to "sqlite",
+            "CloudIslands-Satis-Legacy-Migration-Approval" to "CONFIRM_IMPORT",
+            "CloudIslands-Satis-Legacy-Migration-Read-Only" to "scan,dryrun,verify",
+            "CloudIslands-Satis-Legacy-Migration-Import-Policy" to "cross-backend-sqlite-copy-insert-ignore-existing-rows",
+            "CloudIslands-Satis-Legacy-Migration-Rollback" to "sqlite-snapshot-restore-or-manual-shared-backend-restore",
             "CloudIslands-Addon-API-Only" to "true",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
