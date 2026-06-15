@@ -84,14 +84,15 @@ public final class ProtectionController {
                 if (migratingIslands.contains(region.islandId())) {
                     return PermissionResult.deny("ISLAND_MIGRATING", IslandRole.VISITOR);
                 }
+                IslandRole role = adminBypass ? IslandRole.OWNER : permissionCache.role(region.islandId(), playerUuid);
                 if (permissionCache.allowed(region.islandId(), playerUuid, permission, adminBypass)) {
-                    return PermissionResult.allow(IslandRole.MEMBER);
+                    return PermissionResult.allow(role);
                 }
                 IslandFlag visitorFlag = visitorFlag(permission);
                 if (visitorFlag != null && permissionCache.flagAllowed(region.islandId(), visitorFlag)) {
                     return PermissionResult.allow(IslandRole.VISITOR);
                 }
-                return PermissionResult.deny("DEFAULT_DENY", IslandRole.VISITOR);
+                return PermissionResult.deny("DEFAULT_DENY", role);
             })
             .orElseGet(() -> PermissionResult.deny("OUTSIDE_ISLAND", IslandRole.VISITOR));
     }
