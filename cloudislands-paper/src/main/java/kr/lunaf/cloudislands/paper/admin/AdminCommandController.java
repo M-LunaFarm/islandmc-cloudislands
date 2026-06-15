@@ -1963,6 +1963,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " redisKeys=" + textValue(body, "redisKeyPolicy")
             + " redisStreams=" + textValue(body, "redisStreamPolicy")
             + " globalEvents=" + textValue(body, "globalEventTypes")
+            + " routeMetricServer=" + boolValue(body, "routeMetricsTargetServerName")
+            + " routeMetricServerEvents=" + textValue(body, "routeMetricsTargetServerNameEvents")
             + " lockPolicy=" + textValue(body, "distributedLockPolicy")
             + " fencing=" + textValue(body, "fencingTokenPolicy")
             + " staleWrite=" + textValue(body, "staleWritePolicy")
