@@ -2011,6 +2011,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             getLogger().warning("Failed to publish CloudIslands Satis route event state: " + error.getMessage());
             return Map.of();
         });
+        if (islandId != null) {
+            cloudIslandsApi.addons().putIslandState(ADDON_ID, islandId, state).exceptionally(error -> {
+                getLogger().warning("Failed to publish CloudIslands Satis island route event state: " + error.getMessage());
+                return Map.of();
+            });
+        }
     }
 
     private String safeRouteValue(String value) {
