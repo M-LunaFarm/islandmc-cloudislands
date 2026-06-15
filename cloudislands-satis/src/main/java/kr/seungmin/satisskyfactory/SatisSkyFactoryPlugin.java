@@ -455,11 +455,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("write-gate-resource-nodes", Boolean.toString(operationalFeatureEnabled("resource-nodes")));
         state.put("write-gate-resource-nodes-direct", Boolean.toString(operationalFeatureEnabled("resource-nodes")));
         state.put("write-gate-island-direct", Boolean.toString(dataWritesEnabled()));
-        state.put("write-gate-direct-policy", "MachineService,ResourceNodeService,FactoryIslandService,and-StorageService-respect-feature-write-gates-before-direct-database-writes");
+        state.put("write-gate-direct-policy", "MachineService,ResourceNodeService,FactoryIslandService,StorageService,MarketService,ContractService,ResearchService,and-MaintenanceService-respect-feature-write-gates-before-direct-database-writes");
         state.put("write-gate-market", Boolean.toString(operationalFeatureEnabled("market")));
+        state.put("write-gate-market-direct", Boolean.toString(operationalFeatureEnabled("market") && storageDataEnabled()));
         state.put("write-gate-contracts", Boolean.toString(operationalFeatureEnabled("contracts")));
+        state.put("write-gate-contracts-direct", Boolean.toString(operationalFeatureEnabled("contracts") && storageDataEnabled()));
         state.put("write-gate-research", Boolean.toString(operationalFeatureEnabled("research")));
+        state.put("write-gate-research-direct", Boolean.toString(operationalFeatureEnabled("research") && dataWritesEnabled()));
         state.put("write-gate-maintenance", Boolean.toString(operationalFeatureEnabled("maintenance")));
+        state.put("write-gate-maintenance-direct", Boolean.toString(operationalFeatureEnabled("maintenance") && dataWritesEnabled()));
         state.put("write-gate-lifecycle-state", Boolean.toString(lifecycleStateEnabled()));
         state.put("write-gate-lifecycle-listener", Boolean.toString(lifecycleListenerNeeded()));
         state.put("write-gate-addon-state", Boolean.toString(operationalFeatureEnabled("addon-state") && coreApiAddonStateAvailable()));
@@ -1099,6 +1103,18 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (islands != null) {
             islands.writeGate(this::dataWritesEnabled);
+        }
+        if (market != null) {
+            market.writeGate(() -> operationalFeatureEnabled("market") && storageDataEnabled());
+        }
+        if (contracts != null) {
+            contracts.writeGate(() -> operationalFeatureEnabled("contracts") && storageDataEnabled());
+        }
+        if (research != null) {
+            research.writeGate(() -> operationalFeatureEnabled("research") && dataWritesEnabled());
+        }
+        if (maintenance != null) {
+            maintenance.writeGate(() -> operationalFeatureEnabled("maintenance") && dataWritesEnabled());
         }
     }
 

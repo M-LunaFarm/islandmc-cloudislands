@@ -32,6 +32,7 @@ public final class MarketService {
     private final DatabaseService database;
     private final ItemRegistry items;
     private final BooleanSupplier maintenanceEnabled;
+    private BooleanSupplier writesEnabled = () -> true;
     private final Map<String, Long> prices = new HashMap<>();
     private final Map<String, Long> targetDailyAmounts = new HashMap<>();
     private final Map<String, Double> itemQualityFactors = new HashMap<>();
@@ -54,6 +55,10 @@ public final class MarketService {
         this.database = database;
         this.items = items;
         this.maintenanceEnabled = maintenanceEnabled == null ? () -> true : maintenanceEnabled;
+    }
+
+    public void writeGate(BooleanSupplier writesEnabled) {
+        this.writesEnabled = writesEnabled == null ? () -> true : writesEnabled;
     }
 
     public void load(FileConfiguration config) {
@@ -137,6 +142,9 @@ public final class MarketService {
         if (!active) {
             return Optional.empty();
         }
+        if (!writesEnabled()) {
+            return Optional.empty();
+        }
         if (amount <= 0 || !prices.containsKey(itemId) || marketBlocked(island)) {
             return Optional.empty();
         }
@@ -157,6 +165,9 @@ public final class MarketService {
 
     public Optional<SellResult> sellDirect(FactoryIsland island, OfflinePlayer owner, String itemId, long amount) {
         if (!active) {
+            return Optional.empty();
+        }
+        if (!writesEnabled()) {
             return Optional.empty();
         }
         if (amount <= 0 || !prices.containsKey(itemId) || marketBlocked(island)) {
@@ -183,6 +194,10 @@ public final class MarketService {
 
     private boolean marketBlocked(FactoryIsland island) {
         return maintenanceEnabled.getAsBoolean() && lockedMarketSalesBlocked && island.maintenanceStatus() == MaintenanceStatus.LOCKED;
+    }
+
+    private boolean writesEnabled() {
+        return writesEnabled.getAsBoolean();
     }
 
     private Optional<SellResult> payout(FactoryIsland island, OfflinePlayer owner, String itemId, long amount) {

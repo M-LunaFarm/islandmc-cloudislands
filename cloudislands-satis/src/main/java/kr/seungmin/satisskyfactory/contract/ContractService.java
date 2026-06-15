@@ -37,6 +37,7 @@ public final class ContractService {
     private final DatabaseService database;
     private final IslandBoostService boosts;
     private final BooleanSupplier maintenanceEnabled;
+    private BooleanSupplier writesEnabled = () -> true;
     private final Map<String, ContractTemplate> templates = new HashMap<>();
     private ContractTemplate emergency;
     private int dailySlots;
@@ -54,6 +55,10 @@ public final class ContractService {
         this.database = database;
         this.boosts = boosts;
         this.maintenanceEnabled = maintenanceEnabled == null ? () -> true : maintenanceEnabled;
+    }
+
+    public void writeGate(BooleanSupplier writesEnabled) {
+        this.writesEnabled = writesEnabled == null ? () -> true : writesEnabled;
     }
 
     public void load(FileConfiguration config) {
@@ -98,8 +103,10 @@ public final class ContractService {
         if (!active) {
             return List.of();
         }
-        expireOldContracts(island);
-        ensureDailyContracts(island);
+        if (writesEnabled()) {
+            expireOldContracts(island);
+            ensureDailyContracts(island);
+        }
         return database.loadContracts(island.islandUuid(), "ACTIVE").stream()
                 .map(this::contract)
                 .map(contract -> new ActiveContract(contract, templates.get(contract.templateId())))
@@ -128,6 +135,9 @@ public final class ContractService {
             return false;
         }
         if (!maintenanceEnabled.getAsBoolean()) {
+            return false;
+        }
+        if (!writesEnabled()) {
             return false;
         }
         if (island.maintenanceDebt() <= 0) {
@@ -214,6 +224,9 @@ public final class ContractService {
     }
 
     private void ensureContracts(FactoryIsland island, String type, int slots, long defaultExpiresHours) {
+        if (!writesEnabled()) {
+            return;
+        }
         if (slots <= 0) {
             return;
         }
@@ -253,6 +266,9 @@ public final class ContractService {
     }
 
     private void expireOldContracts(FactoryIsland island) {
+        if (!writesEnabled()) {
+            return;
+        }
         long now = TimeUtil.nowMillis();
         for (DatabaseService.StoredContract contract : database.loadContracts(island.islandUuid(), "ACTIVE")) {
             if (contract.expiresAt() > 0 && contract.expiresAt() < now) {
@@ -262,6 +278,9 @@ public final class ContractService {
     }
 
     private boolean complete(FactoryIsland island, OfflinePlayer owner, ActiveContract active) {
+        if (!writesEnabled()) {
+            return false;
+        }
         ContractTemplate template = active.template();
         VirtualInventory inventory = storage.islandStorage(island.islandUuid());
         if (!template.required().entrySet().stream().allMatch(entry -> inventory.amount(entry.getKey()) >= entry.getValue())) {
@@ -287,6 +306,10 @@ public final class ContractService {
         database.saveIsland(island);
         database.saveContract(storedContract(active.contract().completed(template.required())));
         return true;
+    }
+
+    private boolean writesEnabled() {
+        return writesEnabled.getAsBoolean();
     }
 
     private boolean matchesTier(FactoryIsland island, ContractTemplate template) {

@@ -30,6 +30,7 @@ public final class ResearchService {
     private final DatabaseService database;
     private final EconomyService economy;
     private final BooleanSupplier maintenanceEnabled;
+    private BooleanSupplier writesEnabled = () -> true;
     private final Map<String, UnlockDefinition> unlocks = new HashMap<>();
     private boolean blockTierUpgradesWhenLimited;
     private boolean active;
@@ -38,6 +39,10 @@ public final class ResearchService {
         this.database = database;
         this.economy = economy;
         this.maintenanceEnabled = maintenanceEnabled == null ? () -> true : maintenanceEnabled;
+    }
+
+    public void writeGate(BooleanSupplier writesEnabled) {
+        this.writesEnabled = writesEnabled == null ? () -> true : writesEnabled;
     }
 
     public void load(FileConfiguration config) {
@@ -77,6 +82,9 @@ public final class ResearchService {
         if (!active) {
             return;
         }
+        if (!writesEnabled()) {
+            return;
+        }
         island.researchPoints(Math.max(0, island.researchPoints() + amount));
     }
 
@@ -86,6 +94,9 @@ public final class ResearchService {
 
     public UnlockResult unlock(FactoryIsland island, OfflinePlayer owner, String unlockId) {
         if (!active) {
+            return UnlockResult.UNKNOWN;
+        }
+        if (!writesEnabled()) {
             return UnlockResult.UNKNOWN;
         }
         UnlockDefinition unlock = unlocks.get(unlockId);
@@ -136,6 +147,10 @@ public final class ResearchService {
             return Map.of();
         }
         return Map.copyOf(unlocks);
+    }
+
+    private boolean writesEnabled() {
+        return writesEnabled.getAsBoolean();
     }
 
     private List<String> stringList(ConfigurationSection section, String firstPath, String secondPath) {

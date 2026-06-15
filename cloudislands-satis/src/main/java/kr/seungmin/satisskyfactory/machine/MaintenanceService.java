@@ -12,11 +12,13 @@ import org.bukkit.configuration.file.FileConfiguration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 
 public final class MaintenanceService {
     private final FactoryScoreService factoryScores;
     private final EconomyService economy;
     private final DatabaseService database;
+    private BooleanSupplier writesEnabled = () -> true;
     private boolean enabled = true;
     private long intervalMillis;
     private long baseCost;
@@ -45,6 +47,10 @@ public final class MaintenanceService {
         this.factoryScores = factoryScores;
         this.economy = economy;
         this.database = database;
+    }
+
+    public void writeGate(BooleanSupplier writesEnabled) {
+        this.writesEnabled = writesEnabled == null ? () -> true : writesEnabled;
     }
 
     public void load(FileConfiguration config) {
@@ -104,6 +110,9 @@ public final class MaintenanceService {
 
     private long charge(FactoryIsland island, OfflinePlayer owner, Object rawIsland, boolean force) {
         long now = Instant.now().toEpochMilli();
+        if (!writesEnabled()) {
+            return 0;
+        }
         if (!enabled) {
             factoryScores.refreshFactoryScore(island);
             island.maintenanceStatus(MaintenanceStatus.NORMAL);
@@ -140,9 +149,16 @@ public final class MaintenanceService {
     }
 
     public void setDebt(FactoryIsland island, long debt) {
+        if (!writesEnabled()) {
+            return;
+        }
         factoryScores.refreshFactoryScore(island);
         island.maintenanceDebt(Math.max(0, Math.min(debtLimit(maintenanceFee(island)), debt)));
         updateStatus(island);
+    }
+
+    private boolean writesEnabled() {
+        return writesEnabled.getAsBoolean();
     }
 
     private long maintenanceFee(FactoryIsland island) {
