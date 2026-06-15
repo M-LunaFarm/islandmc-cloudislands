@@ -2016,7 +2016,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean addonStateReportingEnabled(CloudIslandsAddonSnapshot snapshot) {
-        return snapshot.configuredFeatures().getOrDefault("addon-state", configuredFeatureEnabled("addon-state"));
+        return snapshot.enabled() && snapshot.features().getOrDefault("addon-state", configuredFeatureEnabled("addon-state"));
     }
 
     private void putAddonStateSyncState(Map<String, String> state) {
