@@ -1122,6 +1122,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-fallback-risk", databaseFallbackRisk());
         metadata.put("database-fallback-production-safe", Boolean.toString(databaseFallbackProductionSafe()));
         metadata.put("database-fallback-warning", databaseFallbackWarningMetadata());
+        metadata.put("database-fallback-authority", databaseFallbackAuthorityMetadata());
+        metadata.put("database-fallback-split-brain-risk", databaseFallbackSplitBrainRiskMetadata());
+        metadata.put("database-fallback-read-write-policy", databaseFallbackReadWritePolicyMetadata());
         metadata.put("database-fallback-source", databaseFallbackSource());
         metadata.put("database-fallback-env", "CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED,CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER");
         metadata.put("database-config-source", databaseConfigSource());
@@ -1408,6 +1411,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-risk", databaseFallbackRisk());
         state.put("database-fallback-production-safe", Boolean.toString(databaseFallbackProductionSafe()));
         state.put("database-fallback-warning", databaseFallbackWarningMetadata());
+        state.put("database-fallback-authority", databaseFallbackAuthorityMetadata());
+        state.put("database-fallback-split-brain-risk", databaseFallbackSplitBrainRiskMetadata());
+        state.put("database-fallback-read-write-policy", databaseFallbackReadWritePolicyMetadata());
         state.put("database-config-source", databaseConfigSource());
         state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         state.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
@@ -1500,6 +1506,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-risk", databaseFallbackRisk());
         state.put("database-fallback-production-safe", Boolean.toString(databaseFallbackProductionSafe()));
         state.put("database-fallback-warning", databaseFallbackWarningMetadata());
+        state.put("database-fallback-authority", databaseFallbackAuthorityMetadata());
+        state.put("database-fallback-split-brain-risk", databaseFallbackSplitBrainRiskMetadata());
+        state.put("database-fallback-read-write-policy", databaseFallbackReadWritePolicyMetadata());
         state.put("database-config-source", databaseConfigSource());
         state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         state.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
@@ -3199,6 +3208,53 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return "none";
         }
         return "unsafe:" + databaseFallbackRisk();
+    }
+
+    private String databaseFallbackAuthorityMetadata() {
+        DatabaseService.StorageBackend active = database == null
+                ? DatabaseService.StorageBackend.parse(configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE)
+                : database.activeBackend();
+        if (active == DatabaseService.StorageBackend.CORE_API) {
+            return coreApiAddonStateAvailable() ? "cloudislands-core-api-addon-state" : "local-cache-only-core-api-unavailable";
+        }
+        if (isSharedStorageBackend(active)) {
+            return "shared-" + active.name();
+        }
+        if (active == DatabaseService.StorageBackend.SQLITE) {
+            return "node-local-sqlite";
+        }
+        return active == null ? "unknown" : active.name();
+    }
+
+    private String databaseFallbackSplitBrainRiskMetadata() {
+        DatabaseService.StorageBackend active = database == null
+                ? DatabaseService.StorageBackend.parse(configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE)
+                : database.activeBackend();
+        if (active == DatabaseService.StorageBackend.SQLITE) {
+            return "high-node-local-sqlite";
+        }
+        if (databaseFallbackProductionSafe()) {
+            return "low-" + databaseFallbackRisk();
+        }
+        return "review-" + databaseFallbackRisk();
+    }
+
+    private String databaseFallbackReadWritePolicyMetadata() {
+        DatabaseService.StorageBackend active = database == null
+                ? DatabaseService.StorageBackend.parse(configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE)
+                : database.activeBackend();
+        if (active == DatabaseService.StorageBackend.CORE_API) {
+            return coreApiAddonStateAvailable()
+                    ? "core-api-authoritative-bulk-table-key-value-with-local-cache"
+                    : "local-cache-only-read-write-unshared-until-core-api-recovers";
+        }
+        if (isSharedStorageBackend(active)) {
+            return "shared-backend-authoritative-for-all-island-nodes";
+        }
+        if (active == DatabaseService.StorageBackend.SQLITE) {
+            return "node-local-read-write-not-safe-for-multiple-island-nodes";
+        }
+        return "unknown";
     }
 
     private List<DatabaseService.StorageBackend> databaseBackendAttemptOrder(DatabaseService.Settings settings) {
