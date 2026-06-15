@@ -28,6 +28,8 @@ public final class CoreApiSatisStateService {
     private final CloudIslandsApi cloudIslandsApi;
     private final String addonId;
     private final boolean flattenedFallbackEnabled;
+    private volatile String lastBulkStatusFingerprint = "";
+    private volatile String lastGlobalBulkStatusFingerprint = "";
     private volatile String lastTableStatusFingerprint = "";
     private volatile String lastGlobalTableStatusFingerprint = "";
 
@@ -220,22 +222,30 @@ public final class CoreApiSatisStateService {
         cloudIslandsApi.addons().tableKeyValueBulkSaveIslandState(addonId, islandId, safeValues, safeTables)
                 .handle((state, error) -> {
                     if (error == null) {
+                        publishBulkStatus(islandId, safeValues, safeTables, "success", "bulk", "");
                         return java.util.concurrent.CompletableFuture.completedFuture(state);
                     }
                     if (!flattenedFallbackEnabled) {
                         logger.warning("Failed to publish " + description + " and flattened addon state fallback is disabled: " + error.getMessage());
+                        publishBulkStatus(islandId, safeValues, safeTables, "failed", "bulk-fallback-disabled", error.getMessage());
                         return java.util.concurrent.CompletableFuture.completedFuture(Map.<String, String>of());
                     }
                     Map<String, String> fallback = flattenedState(safeValues, safeTables);
                     logger.warning("Failed to publish " + description + ", retrying with flattened addon state: " + error.getMessage());
                     if (fallback.isEmpty()) {
+                        publishBulkStatus(islandId, safeValues, safeTables, "fallback-empty", "flattened", error.getMessage());
                         return java.util.concurrent.CompletableFuture.completedFuture(Map.<String, String>of());
                     }
-                    return cloudIslandsApi.addons().putIslandState(addonId, islandId, fallback);
+                    return cloudIslandsApi.addons().putIslandState(addonId, islandId, fallback)
+                            .thenApply(fallbackState -> {
+                                publishBulkStatus(islandId, safeValues, safeTables, "fallback", "flattened", error.getMessage());
+                                return fallbackState;
+                            });
                 })
                 .thenCompose(result -> result)
                 .exceptionally(error -> {
                     logger.warning("Failed to publish " + description + " with flattened addon state fallback: " + error.getMessage());
+                    publishBulkStatus(islandId, safeValues, safeTables, "failed", "flattened", error.getMessage());
                     return Map.of();
                 });
     }
@@ -249,24 +259,113 @@ public final class CoreApiSatisStateService {
         cloudIslandsApi.addons().tableKeyValueBulkSaveState(addonId, safeValues, safeTables)
                 .handle((state, error) -> {
                     if (error == null) {
+                        publishGlobalBulkStatus(safeValues, safeTables, "success", "bulk", "");
                         return java.util.concurrent.CompletableFuture.completedFuture(state);
                     }
                     if (!flattenedFallbackEnabled) {
                         logger.warning("Failed to publish " + description + " and flattened addon state fallback is disabled: " + error.getMessage());
+                        publishGlobalBulkStatus(safeValues, safeTables, "failed", "bulk-fallback-disabled", error.getMessage());
                         return java.util.concurrent.CompletableFuture.completedFuture(Map.<String, String>of());
                     }
                     Map<String, String> fallback = flattenedState(safeValues, safeTables);
                     logger.warning("Failed to publish " + description + ", retrying with flattened addon state: " + error.getMessage());
                     if (fallback.isEmpty()) {
+                        publishGlobalBulkStatus(safeValues, safeTables, "fallback-empty", "flattened", error.getMessage());
                         return java.util.concurrent.CompletableFuture.completedFuture(Map.<String, String>of());
                     }
-                    return cloudIslandsApi.addons().putState(addonId, fallback);
+                    return cloudIslandsApi.addons().putState(addonId, fallback)
+                            .thenApply(fallbackState -> {
+                                publishGlobalBulkStatus(safeValues, safeTables, "fallback", "flattened", error.getMessage());
+                                return fallbackState;
+                            });
                 })
                 .thenCompose(result -> result)
                 .exceptionally(error -> {
                     logger.warning("Failed to publish " + description + " with flattened addon state fallback: " + error.getMessage());
+                    publishGlobalBulkStatus(safeValues, safeTables, "failed", "flattened", error.getMessage());
                     return Map.of();
                 });
+    }
+
+    private void publishBulkStatus(UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables, String status, String mode, String error) {
+        if (cloudIslandsApi == null || islandId == null) {
+            return;
+        }
+        int valueKeys = values == null ? 0 : values.size();
+        int tablesCount = tables == null ? 0 : tables.size();
+        int tableKeys = tableKeyCount(tables);
+        String safeStatus = status == null || status.isBlank() ? "unknown" : status;
+        String safeMode = mode == null || mode.isBlank() ? "unknown" : mode;
+        String safeError = compactError(error);
+        String fingerprint = islandId + "|" + valueKeys + "|" + tablesCount + "|" + tableKeys + "|" + safeStatus + "|" + safeMode + "|" + safeError;
+        if (fingerprint.equals(lastBulkStatusFingerprint)) {
+            return;
+        }
+        lastBulkStatusFingerprint = fingerprint;
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("last-core-bulk-publish-island", islandId.toString());
+        state.put("last-core-bulk-publish-status", safeStatus);
+        state.put("last-core-bulk-publish-mode", safeMode);
+        state.put("last-core-bulk-publish-value-keys", Integer.toString(valueKeys));
+        state.put("last-core-bulk-publish-tables", Integer.toString(tablesCount));
+        state.put("last-core-bulk-publish-table-keys", Integer.toString(tableKeys));
+        state.put("last-core-bulk-publish-error", safeError);
+        state.put("last-core-bulk-publish-at", Instant.now().toString());
+        state.put("last-core-bulk-publish-authority", "cloudislands-addon-state");
+        state.put("last-core-bulk-publish-fallback-policy", flattenedFallbackEnabled ? "flattened-state-retry" : "disabled");
+        cloudIslandsApi.addons().putState(addonId, state).exceptionally(publishError -> {
+            logger.warning("Failed to publish Satis core-api bulk status: " + publishError.getMessage());
+            return Map.of();
+        });
+    }
+
+    private void publishGlobalBulkStatus(Map<String, String> values, Map<String, Map<String, String>> tables, String status, String mode, String error) {
+        if (cloudIslandsApi == null) {
+            return;
+        }
+        int valueKeys = values == null ? 0 : values.size();
+        int tablesCount = tables == null ? 0 : tables.size();
+        int tableKeys = tableKeyCount(tables);
+        String safeStatus = status == null || status.isBlank() ? "unknown" : status;
+        String safeMode = mode == null || mode.isBlank() ? "unknown" : mode;
+        String safeError = compactError(error);
+        String fingerprint = valueKeys + "|" + tablesCount + "|" + tableKeys + "|" + safeStatus + "|" + safeMode + "|" + safeError;
+        if (fingerprint.equals(lastGlobalBulkStatusFingerprint)) {
+            return;
+        }
+        lastGlobalBulkStatusFingerprint = fingerprint;
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("last-core-global-bulk-publish-status", safeStatus);
+        state.put("last-core-global-bulk-publish-mode", safeMode);
+        state.put("last-core-global-bulk-publish-value-keys", Integer.toString(valueKeys));
+        state.put("last-core-global-bulk-publish-tables", Integer.toString(tablesCount));
+        state.put("last-core-global-bulk-publish-table-keys", Integer.toString(tableKeys));
+        state.put("last-core-global-bulk-publish-error", safeError);
+        state.put("last-core-global-bulk-publish-at", Instant.now().toString());
+        state.put("last-core-global-bulk-publish-authority", "cloudislands-addon-state");
+        state.put("last-core-global-bulk-publish-fallback-policy", flattenedFallbackEnabled ? "flattened-state-retry" : "disabled");
+        cloudIslandsApi.addons().putState(addonId, state).exceptionally(publishError -> {
+            logger.warning("Failed to publish Satis core-api global bulk status: " + publishError.getMessage());
+            return Map.of();
+        });
+    }
+
+    private int tableKeyCount(Map<String, Map<String, String>> tables) {
+        if (tables == null || tables.isEmpty()) {
+            return 0;
+        }
+        return tables.values().stream()
+                .filter(values -> values != null)
+                .mapToInt(Map::size)
+                .sum();
+    }
+
+    private String compactError(String error) {
+        if (error == null || error.isBlank()) {
+            return "";
+        }
+        String value = error.replace('\n', ' ').replace('\r', ' ').trim();
+        return value.length() <= 160 ? value : value.substring(0, 160);
     }
 
     private Map<String, String> flattenedState(Map<String, String> values, Map<String, Map<String, String>> tables) {

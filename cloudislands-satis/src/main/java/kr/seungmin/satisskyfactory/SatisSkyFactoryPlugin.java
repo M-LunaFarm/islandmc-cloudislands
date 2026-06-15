@@ -1194,6 +1194,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("addon-state-table-key-value-bulk-island-endpoint", "/v1/addons/islands/state/table/key-value/bulk");
         metadata.put("addon-state-bulk-save-methods", "bulkSaveState,tableKeyValueBulkSaveState,tableKeyValueBulkSaveState(table),bulkSaveTableKeyValueState,bulkSaveTableKeyValueState(table),tableKeyValueBulkSaveAliasState,tableKeyValueBulkState,bulkTableKeyValueState,bulkSaveIslandState,tableKeyValueBulkSaveIslandState,tableKeyValueBulkSaveIslandState(table),bulkSaveIslandTableKeyValueState,bulkSaveIslandTableKeyValueState(table),tableKeyValueBulkSaveAliasIslandState,tableKeyValueBulkIslandState,bulkIslandTableKeyValueState");
         metadata.put("core-api-table-save-mode", "bulk-save-with-table-prefix-and-configurable-flattened-fallback");
+        metadata.put("core-api-bulk-status-keys", "last-core-bulk-publish-status,last-core-bulk-publish-mode,last-core-bulk-publish-error,last-core-global-bulk-publish-status,last-core-global-bulk-publish-mode,last-core-global-bulk-publish-error");
+        metadata.put("core-api-bulk-fallback-visibility", "addon-state-records-success-fallback-and-failed-bulk-publish-status");
         metadata.put("route-event-source", "CloudIslandsAddon.route-ticket-events");
         metadata.put("route-event-policy", "diagnostic-state-only-no-routing-authority");
         metadata.put("route-event-feature-gate", "features.route-events&&features.addon-state&&CloudIslandsApi");
@@ -2490,6 +2492,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("addon-state-sync-core-api-mode", databaseCoreApiMode());
         state.put("addon-state-sync-core-api-fallback-target", databaseCoreApiFallbackTarget());
         state.put("addon-state-sync-flattened-fallback-enabled", Boolean.toString(coreApiFlattenedFallbackEnabled()));
+        state.put("addon-state-sync-bulk-status-keys", "last-core-bulk-publish-status,last-core-bulk-publish-mode,last-core-global-bulk-publish-status,last-core-global-bulk-publish-mode");
         state.put("addon-state-sync-write-fallback", databaseCoreApiWriteFallbackPolicy());
     }
 
