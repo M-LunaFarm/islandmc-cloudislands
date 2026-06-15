@@ -1492,7 +1492,12 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 403, migrationDisabledJson());
                 return;
             }
-            audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_DRYRUN", "MIGRATION", "superiorskyblock2", Map.of());
+            String body = readBody(exchange);
+            String path = JsonFields.text(body, "path", "");
+            if (!path.isBlank()) {
+                migrationAdmin.scan(path);
+            }
+            audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_DRYRUN", "MIGRATION", "superiorskyblock2", path.isBlank() ? Map.of() : Map.of("path", path));
             write(exchange, 202, migrationAdmin.dryRun());
         });
         route("/v1/admin/migrations/superiorskyblock2/extract", exchange -> {
