@@ -1844,7 +1844,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (hasConcreteIslandId(event.islandId())) {
             String operation = "pre-create:" + (event.templateId() == null || event.templateId().isBlank() ? "default" : event.templateId());
             runSatisLifecycle(event.islandId(), operation, () -> publishIslandLifecycleState(event.islandId(), operation, null, "requested", ""));
+            return;
         }
+        publishPreCreateLifecycleState(event);
     }
 
     @Override
@@ -2150,6 +2152,28 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private static boolean hasConcreteIslandId(UUID islandId) {
         return islandId != null && (islandId.getMostSignificantBits() != 0L || islandId.getLeastSignificantBits() != 0L);
+    }
+
+    private void publishPreCreateLifecycleState(IslandPreCreateEvent event) {
+        if (cloudIslandsApi == null || !featureEnabled("addon-state")) {
+            return;
+        }
+        String templateId = event.templateId() == null || event.templateId().isBlank() ? "default" : event.templateId();
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("last-lifecycle-operation", "pre-create:" + templateId);
+        state.put("last-lifecycle-owner", event.ownerUuid() == null ? "" : event.ownerUuid().toString());
+        state.put("last-lifecycle-template", templateId);
+        state.put("last-lifecycle-database-open", Boolean.toString(database != null));
+        state.put("last-lifecycle-shared-database", Boolean.toString(databaseShared()));
+        state.put("last-lifecycle-schema", "3");
+        state.put("last-lifecycle-at", Instant.now().toString());
+        state.put("last-lifecycle-status", "requested");
+        state.put("last-lifecycle-error", "");
+        state.put("last-lifecycle-remap-source", "pending-island-id");
+        cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
+            getLogger().warning("Failed to publish CloudIslands Satis pre-create state: " + error.getMessage());
+            return Map.of();
+        });
     }
 
     private boolean routeEventStateEnabled() {
