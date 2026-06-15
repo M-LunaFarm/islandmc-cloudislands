@@ -135,7 +135,7 @@ public final class MigrationAdminService {
             state = MigrationRunState.DRY_RUN_FAILED;
             lastApprovalToken = "";
         }
-        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"manifests\":" + lastPlan.manifests().size() + ",\"canImport\":" + lastPlan.canImport() + (lastApprovalToken.isBlank() ? "" : ",\"approvalToken\":\"" + lastApprovalToken + "\"") + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastPlan.issues()) + "}";
+        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"manifests\":" + lastPlan.manifests().size() + ",\"canImport\":" + lastPlan.canImport() + ",\"approvalRequired\":" + lastPlan.canImport() + (lastApprovalToken.isBlank() ? "" : ",\"approvalToken\":\"" + lastApprovalToken + "\"") + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastPlan.issues()) + "}";
     }
 
     private List<MigrationIssue> targetConflictIssues(List<MigrationManifest> manifests) {
@@ -248,7 +248,7 @@ public final class MigrationAdminService {
         }
         if (lastApprovalToken.isBlank() || approvalToken == null || !lastApprovalToken.equals(approvalToken.trim())) {
             List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_APPROVAL_REQUIRED", "run dryrun and pass the returned approval token to import", true));
-            return "{\"state\":\"" + MigrationRunState.DRY_RUN_PASSED + "\"" + migrationBoundaryFields() + ",\"imported\":false,\"importedIslands\":0" + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+            return "{\"state\":\"" + MigrationRunState.DRY_RUN_PASSED + "\"" + migrationBoundaryFields() + ",\"imported\":false,\"importedIslands\":0,\"approvalRequired\":true" + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
         }
         long[] extractedStats = new long[] {0L, 0L, 0L};
         BundlePreflight preflight = preflightMigrationBundles(lastPlan.manifests());
