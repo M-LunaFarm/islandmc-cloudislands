@@ -103,7 +103,12 @@ public final class JobCompletionService {
             long snapshotNo = recordCompletedSnapshot(job, job.type().name(), true);
             setIslandState(job.islandId(), IslandState.INACTIVE_READY);
             publishMigrationActivation(job);
-            events.publish(CloudIslandEventType.ISLAND_DEACTIVATED.name(), Map.of("islandId", job.islandId().toString()));
+            events.publish(CloudIslandEventType.ISLAND_DEACTIVATED.name(), Map.of(
+                "islandId", job.islandId().toString(),
+                "nodeId", job.targetNode() == null ? "" : job.targetNode(),
+                "phase", "DEACTIVATED",
+                "snapshotNo", Long.toString(snapshotNo)
+            ));
             return;
         }
         if (job.type() == IslandJobType.SAVE_ISLAND || job.type() == IslandJobType.SNAPSHOT_ISLAND) {

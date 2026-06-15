@@ -17,7 +17,7 @@ import kr.lunaf.cloudislands.api.event.IslandBlocksChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandChatSentEvent;
 import kr.lunaf.cloudislands.api.event.IslandCreatedEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeactivationRequestEvent;
-import kr.lunaf.cloudislands.api.event.IslandDeactivateEvent;
+import kr.lunaf.cloudislands.api.event.IslandDeactivatedEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeleteRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeletedEvent;
 import kr.lunaf.cloudislands.api.event.IslandFlagChangeEvent;
@@ -95,7 +95,7 @@ public interface CloudIslandsAddon {
             onIslandActivated(activated);
         } else if (event instanceof IslandDeactivationRequestEvent deactivationRequested) {
             onIslandDeactivationRequested(deactivationRequested);
-        } else if (event instanceof IslandDeactivateEvent deactivated) {
+        } else if (event instanceof IslandDeactivatedEvent deactivated) {
             onIslandDeactivated(deactivated);
         } else if (event instanceof IslandMigrationEvent migrationRequested) {
             onIslandMigrationRequested(migrationRequested);
@@ -204,7 +204,7 @@ public interface CloudIslandsAddon {
     default void onIslandDeactivationRequested(IslandDeactivationRequestEvent event) {
     }
 
-    default void onIslandDeactivated(IslandDeactivateEvent event) {
+    default void onIslandDeactivated(IslandDeactivatedEvent event) {
     }
 
     default void onIslandMigrationRequested(IslandMigrationEvent event) {

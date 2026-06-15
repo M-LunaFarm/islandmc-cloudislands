@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.event.CoreReloadEvent;
 import kr.lunaf.cloudislands.api.event.IslandActivatedEvent;
 import kr.lunaf.cloudislands.api.event.IslandCreatedEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeactivationRequestEvent;
-import kr.lunaf.cloudislands.api.event.IslandDeactivateEvent;
+import kr.lunaf.cloudislands.api.event.IslandDeactivatedEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeletedEvent;
 import kr.lunaf.cloudislands.api.event.IslandFlagChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandLevelRecalculateEvent;
@@ -1504,8 +1504,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     @Override
-    public void onIslandDeactivated(IslandDeactivateEvent event) {
-        String operation = "deactivated:" + lifecycleNode(event.nodeId());
+    public void onIslandDeactivated(IslandDeactivatedEvent event) {
+        String phase = event.phase() == null || event.phase().isBlank() ? "" : ":" + event.phase();
+        String target = event.targetNode() == null || event.targetNode().isBlank() ? "" : "->" + lifecycleNode(event.targetNode());
+        String operation = "deactivated:" + lifecycleNode(event.nodeId()) + target + phase + ":snapshot-" + event.snapshotNo();
         runSatisLifecycle(event.islandId(), operation, () -> flushSatisIsland(event.islandId()));
     }
 
