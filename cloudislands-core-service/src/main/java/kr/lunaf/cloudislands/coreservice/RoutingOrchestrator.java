@@ -208,7 +208,8 @@ public final class RoutingOrchestrator {
             "playerUuid", playerUuid.toString(),
             "islandId", ticket == null ? "" : ticket.islandId().toString(),
             "action", ticket == null ? "" : ticket.action().name(),
-            "targetNode", nodeId == null ? "" : nodeId,
+            "targetNode", ticket == null ? "" : ticket.targetNode(),
+            "requestedNode", nodeId == null ? "" : nodeId,
             "reason", reason
         ));
     }
