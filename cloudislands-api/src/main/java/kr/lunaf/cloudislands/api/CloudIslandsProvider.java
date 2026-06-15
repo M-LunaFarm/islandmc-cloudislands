@@ -9,15 +9,12 @@ public final class CloudIslandsProvider {
     private CloudIslandsProvider() {}
 
     public static Optional<CloudIslandsApi> get() {
-        return Optional.ofNullable(CURRENT.get());
+        CloudIslandsApi api = CURRENT.get();
+        return api == null ? findBukkitServiceApi() : Optional.of(api);
     }
 
     public static CloudIslandsApi require() {
-        CloudIslandsApi api = CURRENT.get();
-        if (api == null) {
-            throw new IllegalStateException("CloudIslands API is not available");
-        }
-        return api;
+        return get().orElseThrow(() -> new IllegalStateException("CloudIslands API is not available"));
     }
 
     public static void set(CloudIslandsApi api) {
@@ -30,6 +27,28 @@ public final class CloudIslandsProvider {
     public static void clear(CloudIslandsApi api) {
         if (api != null) {
             CURRENT.compareAndSet(api, null);
+        }
+    }
+
+    private static Optional<CloudIslandsApi> findBukkitServiceApi() {
+        try {
+            Class<?> bukkit = Class.forName("org.bukkit.Bukkit");
+            Object server = bukkit.getMethod("getServer").invoke(null);
+            if (server == null) {
+                return Optional.empty();
+            }
+            Object services = server.getClass().getMethod("getServicesManager").invoke(server);
+            if (services == null) {
+                return Optional.empty();
+            }
+            Object registration = services.getClass().getMethod("getRegistration", Class.class).invoke(services, CloudIslandsApi.class);
+            if (registration == null) {
+                return Optional.empty();
+            }
+            Object provider = registration.getClass().getMethod("getProvider").invoke(registration);
+            return provider instanceof CloudIslandsApi api ? Optional.of(api) : Optional.empty();
+        } catch (ReflectiveOperationException | LinkageError | SecurityException ignored) {
+            return Optional.empty();
         }
     }
 }
