@@ -1132,6 +1132,11 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 player.sendMessage(adminText("admin-command-route-target-missing", "섬 이동 경로를 찾을 수 없습니다."));
                 return;
             }
+            if (!agent.plugin().getServer().getMessenger().isOutgoingChannelRegistered(agent.plugin(), "BungeeCord")) {
+                clearFailedRoute(ticket, "BUNGEE_CONNECT_UNAVAILABLE");
+                player.sendMessage(adminText("admin-command-route-request-failed", "섬 이동 요청을 만들 수 없습니다."));
+                return;
+            }
             try {
                 ByteArrayOutputStream bytes = new ByteArrayOutputStream();
                 DataOutputStream output = new DataOutputStream(bytes);
@@ -1139,7 +1144,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 output.writeUTF(targetServerName);
                 player.sendPluginMessage(agent.plugin(), "BungeeCord", bytes.toByteArray());
                 player.sendMessage(adminText("admin-command-route-connecting", "섬으로 이동합니다."));
-            } catch (IOException exception) {
+            } catch (IOException | RuntimeException exception) {
                 clearFailedRoute(ticket, "PLUGIN_MESSAGE_FAILED");
                 player.sendMessage(adminText("admin-command-route-request-failed", "섬 이동 요청을 만들 수 없습니다."));
             }
