@@ -407,10 +407,11 @@ public final class CloudIslandsCoreApplication {
             try {
                 Map<String, String> stateValues = new java.util.HashMap<>(values);
                 tables.forEach((table, tableValues) -> stateValues.putAll(tableStateValues(table, tableValues)));
+                int tableKeys = tableKeyCount(tables);
                 Map<String, String> state = addonStates.put(addonId, stateValues);
                 String operation = tables.isEmpty() ? "BULK_SET" : "BULK_SAVE";
-                audit.log(new UUID(0L, 0L), "API", "ADDON_STATE_" + operation, "ADDON", addonId, Map.of("keys", Integer.toString(stateValues.size()), "tables", Integer.toString(tables.size())));
-                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "operation", operation, "keys", Integer.toString(stateValues.size()), "tables", Integer.toString(tables.size())));
+                audit.log(new UUID(0L, 0L), "API", "ADDON_STATE_" + operation, "ADDON", addonId, Map.of("keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(values.size()), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tables.size())));
+                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "operation", operation, "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(values.size()), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tables.size())));
                 write(exchange, 202, addonStateJson(state));
             } catch (IllegalArgumentException exception) {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
@@ -428,9 +429,10 @@ public final class CloudIslandsCoreApplication {
             try {
                 Map<String, String> stateValues = new java.util.HashMap<>(values);
                 tables.forEach((table, tableValues) -> stateValues.putAll(tableStateValues(table, tableValues)));
+                int tableKeys = tableKeyCount(tables);
                 Map<String, String> state = addonStates.put(addonId, stateValues);
-                audit.log(new UUID(0L, 0L), "API", "ADDON_STATE_BULK_SAVE", "ADDON", addonId, Map.of("keys", Integer.toString(stateValues.size()), "tables", Integer.toString(tables.size())));
-                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "operation", "BULK_SAVE", "keys", Integer.toString(stateValues.size()), "tables", Integer.toString(tables.size())));
+                audit.log(new UUID(0L, 0L), "API", "ADDON_STATE_BULK_SAVE", "ADDON", addonId, Map.of("keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(values.size()), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tables.size())));
+                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "operation", "BULK_SAVE", "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(values.size()), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tables.size())));
                 write(exchange, 202, addonStateJson(state));
             } catch (IllegalArgumentException exception) {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
@@ -448,9 +450,10 @@ public final class CloudIslandsCoreApplication {
             try {
                 Map<String, String> stateValues = new java.util.HashMap<>(values);
                 tables.forEach((table, tableValues) -> stateValues.putAll(tableStateValues(table, tableValues)));
+                int tableKeys = tableKeyCount(tables);
                 Map<String, String> state = addonStates.put(addonId, stateValues);
-                audit.log(new UUID(0L, 0L), "API", "ADDON_STATE_TABLE_KEY_VALUE_BULK_SAVE", "ADDON", addonId, Map.of("keys", Integer.toString(stateValues.size()), "tables", Integer.toString(tables.size())));
-                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "operation", "TABLE_KEY_VALUE_BULK_SAVE", "keys", Integer.toString(stateValues.size()), "tables", Integer.toString(tables.size())));
+                audit.log(new UUID(0L, 0L), "API", "ADDON_STATE_TABLE_KEY_VALUE_BULK_SAVE", "ADDON", addonId, Map.of("keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(values.size()), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tables.size())));
+                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "operation", "TABLE_KEY_VALUE_BULK_SAVE", "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(values.size()), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tables.size())));
                 write(exchange, 202, addonStateJson(state));
             } catch (IllegalArgumentException exception) {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
@@ -468,9 +471,10 @@ public final class CloudIslandsCoreApplication {
             try {
                 Map<String, String> stateValues = new java.util.HashMap<>(values);
                 tables.forEach((table, tableValues) -> stateValues.putAll(tableStateValues(table, tableValues)));
+                int tableKeys = tableKeyCount(tables);
                 Map<String, String> state = addonStates.put(addonId, stateValues);
-                audit.log(new UUID(0L, 0L), "API", "ADDON_STATE_TABLE_KEY_VALUE_BULK_SAVE", "ADDON", addonId, Map.of("keys", Integer.toString(stateValues.size()), "tables", Integer.toString(tables.size())));
-                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "operation", "TABLE_KEY_VALUE_BULK_SAVE", "keys", Integer.toString(stateValues.size()), "tables", Integer.toString(tables.size())));
+                audit.log(new UUID(0L, 0L), "API", "ADDON_STATE_TABLE_KEY_VALUE_BULK_SAVE", "ADDON", addonId, Map.of("keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(values.size()), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tables.size())));
+                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "operation", "TABLE_KEY_VALUE_BULK_SAVE", "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(values.size()), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tables.size())));
                 write(exchange, 202, addonStateJson(state));
             } catch (IllegalArgumentException exception) {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
@@ -615,10 +619,11 @@ public final class CloudIslandsCoreApplication {
             try {
                 Map<String, String> stateValues = new java.util.HashMap<>(values);
                 tables.forEach((table, tableValues) -> stateValues.putAll(tableStateValues(table, tableValues)));
+                int tableKeys = tableKeyCount(tables);
                 Map<String, String> state = addonStates.putIsland(addonId, islandId, stateValues);
                 String operation = tables.isEmpty() ? "BULK_SET" : "BULK_SAVE";
-                audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_STATE_" + operation, "ADDON", addonId, Map.of("islandId", islandId.toString(), "keys", Integer.toString(stateValues.size()), "tables", Integer.toString(tables.size())));
-                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", operation, "keys", Integer.toString(stateValues.size()), "tables", Integer.toString(tables.size())));
+                audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_STATE_" + operation, "ADDON", addonId, Map.of("islandId", islandId.toString(), "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(values.size()), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tables.size())));
+                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", operation, "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(values.size()), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tables.size())));
                 write(exchange, 202, addonStateJson(state));
             } catch (IllegalArgumentException exception) {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
@@ -637,9 +642,10 @@ public final class CloudIslandsCoreApplication {
             try {
                 Map<String, String> stateValues = new java.util.HashMap<>(values);
                 tables.forEach((table, tableValues) -> stateValues.putAll(tableStateValues(table, tableValues)));
+                int tableKeys = tableKeyCount(tables);
                 Map<String, String> state = addonStates.putIsland(addonId, islandId, stateValues);
-                audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_STATE_BULK_SAVE", "ADDON", addonId, Map.of("islandId", islandId.toString(), "keys", Integer.toString(stateValues.size()), "tables", Integer.toString(tables.size())));
-                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", "BULK_SAVE", "keys", Integer.toString(stateValues.size()), "tables", Integer.toString(tables.size())));
+                audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_STATE_BULK_SAVE", "ADDON", addonId, Map.of("islandId", islandId.toString(), "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(values.size()), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tables.size())));
+                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", "BULK_SAVE", "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(values.size()), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tables.size())));
                 write(exchange, 202, addonStateJson(state));
             } catch (IllegalArgumentException exception) {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
@@ -658,9 +664,10 @@ public final class CloudIslandsCoreApplication {
             try {
                 Map<String, String> stateValues = new java.util.HashMap<>(values);
                 tables.forEach((table, tableValues) -> stateValues.putAll(tableStateValues(table, tableValues)));
+                int tableKeys = tableKeyCount(tables);
                 Map<String, String> state = addonStates.putIsland(addonId, islandId, stateValues);
-                audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_STATE_TABLE_KEY_VALUE_BULK_SAVE", "ADDON", addonId, Map.of("islandId", islandId.toString(), "keys", Integer.toString(stateValues.size()), "tables", Integer.toString(tables.size())));
-                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", "TABLE_KEY_VALUE_BULK_SAVE", "keys", Integer.toString(stateValues.size()), "tables", Integer.toString(tables.size())));
+                audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_STATE_TABLE_KEY_VALUE_BULK_SAVE", "ADDON", addonId, Map.of("islandId", islandId.toString(), "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(values.size()), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tables.size())));
+                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", "TABLE_KEY_VALUE_BULK_SAVE", "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(values.size()), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tables.size())));
                 write(exchange, 202, addonStateJson(state));
             } catch (IllegalArgumentException exception) {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
@@ -679,9 +686,10 @@ public final class CloudIslandsCoreApplication {
             try {
                 Map<String, String> stateValues = new java.util.HashMap<>(values);
                 tables.forEach((table, tableValues) -> stateValues.putAll(tableStateValues(table, tableValues)));
+                int tableKeys = tableKeyCount(tables);
                 Map<String, String> state = addonStates.putIsland(addonId, islandId, stateValues);
-                audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_STATE_TABLE_KEY_VALUE_BULK_SAVE", "ADDON", addonId, Map.of("islandId", islandId.toString(), "keys", Integer.toString(stateValues.size()), "tables", Integer.toString(tables.size())));
-                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", "TABLE_KEY_VALUE_BULK_SAVE", "keys", Integer.toString(stateValues.size()), "tables", Integer.toString(tables.size())));
+                audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_STATE_TABLE_KEY_VALUE_BULK_SAVE", "ADDON", addonId, Map.of("islandId", islandId.toString(), "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(values.size()), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tables.size())));
+                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", "TABLE_KEY_VALUE_BULK_SAVE", "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(values.size()), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tables.size())));
                 write(exchange, 202, addonStateJson(state));
             } catch (IllegalArgumentException exception) {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
@@ -3467,6 +3475,16 @@ public final class CloudIslandsCoreApplication {
             }
         });
         return Map.copyOf(state);
+    }
+
+    private static int tableKeyCount(Map<String, Map<String, String>> tables) {
+        if (tables == null || tables.isEmpty()) {
+            return 0;
+        }
+        return tables.values().stream()
+            .filter(java.util.Objects::nonNull)
+            .mapToInt(Map::size)
+            .sum();
     }
 
     private static String tableStatePrefix(String table) {
