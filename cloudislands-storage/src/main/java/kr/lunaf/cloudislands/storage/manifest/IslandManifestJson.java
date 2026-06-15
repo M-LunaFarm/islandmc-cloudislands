@@ -1,6 +1,8 @@
 package kr.lunaf.cloudislands.storage.manifest;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,6 +26,9 @@ public final class IslandManifestJson {
             + "\"x\":" + spawn.localX() + ",\"y\":" + spawn.localY() + ",\"z\":" + spawn.localZ() + ","
             + "\"yaw\":" + spawn.yaw() + ",\"pitch\":" + spawn.pitch()
             + "},"
+            + "\"homes\":" + stringArray(manifest.homes()) + ","
+            + "\"warps\":" + stringArray(manifest.warps()) + ","
+            + "\"biomes\":" + stringArray(manifest.biomes()) + ","
             + "\"createdAt\":\"" + manifest.createdAt() + "\","
             + "\"savedAt\":\"" + manifest.savedAt() + "\","
             + "\"checksum\":\"" + escape(manifest.checksum()) + "\","
@@ -50,6 +55,9 @@ public final class IslandManifestJson {
             (float) decimal(json, "yaw", 180.0D),
             (float) decimal(json, "pitch", 0.0D)
         );
+        List<String> homes = stringArray(json, "homes");
+        List<String> warps = stringArray(json, "warps");
+        List<String> biomes = stringArray(json, "biomes");
         Instant createdAt = instant(json, "createdAt", Instant.now());
         Instant savedAt = instant(json, "savedAt", createdAt);
         String checksum = text(json, "checksum", "");
@@ -58,7 +66,7 @@ public final class IslandManifestJson {
         String storagePath = text(json, "storagePath", "");
         long sizeBytes = number(json, "sizeBytes", 0L);
         String snapshotReason = text(json, "snapshotReason", "");
-        return new IslandBundleManifest(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, snapshotReason);
+        return new IslandBundleManifest(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, homes, warps, biomes, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, snapshotReason);
     }
 
     public static IslandBundleManifest minimal(UUID islandId, UUID ownerUuid, String checksum) {
@@ -120,6 +128,42 @@ public final class IslandManifestJson {
             return fallback;
         }
         return matcher.group(1);
+    }
+
+    private static List<String> stringArray(String json, String field) {
+        Matcher matcher = Pattern.compile("\"" + Pattern.quote(field) + "\"\\s*:\\s*\\[(.*?)]").matcher(json);
+        if (!matcher.find()) {
+            return List.of();
+        }
+        String body = matcher.group(1).trim();
+        if (body.isEmpty()) {
+            return List.of();
+        }
+        List<String> values = new ArrayList<>();
+        Matcher valueMatcher = Pattern.compile("\"((?:\\\\.|[^\"])*)\"").matcher(body);
+        while (valueMatcher.find()) {
+            values.add(unescape(valueMatcher.group(1)));
+        }
+        return List.copyOf(values);
+    }
+
+    private static String stringArray(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return "[]";
+        }
+        StringBuilder builder = new StringBuilder("[");
+        boolean first = true;
+        for (String value : values) {
+            if (value == null) {
+                continue;
+            }
+            if (!first) {
+                builder.append(',');
+            }
+            builder.append('"').append(escape(value)).append('"');
+            first = false;
+        }
+        return builder.append(']').toString();
     }
 
     private static String unescape(String value) {
