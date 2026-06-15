@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
 public final class PowerNetworkService {
@@ -31,6 +32,7 @@ public final class PowerNetworkService {
     private final RecipeService recipes;
     private final StorageService storage;
     private final Map<UUID, NetworkState> cache = new ConcurrentHashMap<>();
+    private BooleanSupplier writesEnabled = () -> true;
     private long cycleId;
     private boolean active;
 
@@ -41,6 +43,10 @@ public final class PowerNetworkService {
         this.definitions = definitions;
         this.recipes = recipes;
         this.storage = storage;
+    }
+
+    public void writeGate(BooleanSupplier writesEnabled) {
+        this.writesEnabled = writesEnabled == null ? () -> true : writesEnabled;
     }
 
     public void beginCycle() {
@@ -77,6 +83,9 @@ public final class PowerNetworkService {
     public List<PowerNetwork> rebuildIsland(UUID islandUuid) {
         if (!active) {
             return List.of();
+        }
+        if (!writesEnabled()) {
+            return load(islandUuid);
         }
         cache.remove(islandUuid);
         List<MachineInstance> connected = machines.byIsland(islandUuid).stream()
@@ -148,6 +157,7 @@ public final class PowerNetworkService {
     }
 
     private NetworkState calculate(UUID islandUuid, boolean mutateBattery) {
+        boolean writeBattery = mutateBattery && writesEnabled();
         double generation = 0;
         double consumption = 0;
         double batteryCapacity = 0;
@@ -173,7 +183,7 @@ public final class PowerNetworkService {
         long stored = islandStorage.amount(POWER_CHARGE_ITEM);
         long maxStored = Math.max(0, Math.round(batteryCapacity));
         if (stored > maxStored) {
-            if (mutateBattery) {
+            if (writeBattery) {
                 long excess = stored - maxStored;
                 if (islandStorage.remove(POWER_CHARGE_ITEM, excess)) {
                     stored = maxStored;
@@ -187,21 +197,21 @@ public final class PowerNetworkService {
         if (generation >= consumption) {
             long charge = Math.max(0, Math.round(Math.min(generation - consumption, maxStored - stored)));
             if (charge > 0) {
-                if (mutateBattery && islandStorage.add(POWER_CHARGE_ITEM, charge)) {
+                if (writeBattery && islandStorage.add(POWER_CHARGE_ITEM, charge)) {
                     stored += charge;
                     storage.save(islandStorage);
-                } else if (!mutateBattery) {
+                } else if (!writeBattery) {
                     stored += charge;
                 }
             }
         } else {
             long discharge = maxStored <= 0 ? 0 : Math.max(0, Math.round(Math.min(stored, consumption - generation)));
             if (discharge > 0) {
-                if (mutateBattery && islandStorage.remove(POWER_CHARGE_ITEM, discharge)) {
+                if (writeBattery && islandStorage.remove(POWER_CHARGE_ITEM, discharge)) {
                     stored -= discharge;
                     available += discharge;
                     storage.save(islandStorage);
-                } else if (!mutateBattery) {
+                } else if (!writeBattery) {
                     stored -= discharge;
                     available += discharge;
                 }
@@ -212,6 +222,10 @@ public final class PowerNetworkService {
         }
         double ratio = Math.max(0.0, Math.min(1.0, available / consumption));
         return new NetworkState(cycleId, ratio, generation, consumption, stored, batteryCapacity);
+    }
+
+    private boolean writesEnabled() {
+        return writesEnabled.getAsBoolean();
     }
 
     private boolean canParticipate(MachineInstance machine) {

@@ -449,6 +449,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("data-write-mode", dataWritesEnabled() ? "enabled" : "disabled");
         state.put("write-gate-machines", Boolean.toString(operationalFeatureEnabled("machines")));
         state.put("write-gate-machines-direct", Boolean.toString(operationalFeatureEnabled("machines")));
+        state.put("write-gate-power-direct", Boolean.toString(operationalFeatureEnabled("machines") && storageDataEnabled()));
         state.put("write-gate-storage", Boolean.toString(storageDataEnabled()));
         state.put("write-gate-storage-direct", Boolean.toString(storageDataEnabled()));
         state.put("write-gate-storage-direct-policy", "StorageService.saveNow-and-delete-respect-storage-or-machine-data-gate");
@@ -1097,6 +1098,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (machines != null) {
             machines.writeGate(() -> operationalFeatureEnabled("machines"));
+        }
+        if (power != null) {
+            power.writeGate(() -> operationalFeatureEnabled("machines") && storageDataEnabled());
         }
         if (nodes != null) {
             nodes.writeGate(() -> operationalFeatureEnabled("resource-nodes"));
