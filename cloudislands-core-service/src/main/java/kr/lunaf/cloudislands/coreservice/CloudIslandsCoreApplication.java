@@ -2724,6 +2724,9 @@ public final class CloudIslandsCoreApplication {
             + "\"islandPoolNodeCount\":" + islandPoolNodeCount(config, nodes) + ","
             + "\"islandPoolRouteCandidateCount\":" + islandPoolRouteCandidateCount(config, nodes) + ","
             + "\"islandPoolScaleStatus\":\"" + escape(islandPoolScaleStatus(config, nodes)) + "\","
+            + "\"islandPoolScaleModel\":\"dynamic-node-pool-by-node-id\","
+            + "\"islandPoolScaleGuidance\":\"add-island-nodes-with-unique-node-id-unique-velocity-server-name-shared-storage\","
+            + "\"islandPoolMultiNodeReady\":" + islandPoolMultiNodeReady(config, nodes) + ","
             + "\"islandPoolDegraded\":" + islandPoolDegraded(config, nodes) + ","
             + "\"islandPoolDuplicateVelocityServerNameNodeCount\":" + islandPoolDuplicateVelocityServerNameNodeCount(config, nodes) + ","
             + "\"islandPoolDefaultNodeIdentityRiskCount\":" + islandPoolDefaultNodeIdentityRiskCount(config, nodes) + ","
@@ -2899,6 +2902,13 @@ public final class CloudIslandsCoreApplication {
 
     private static boolean islandPoolDegraded(CoreServiceConfig config, NodeRegistry nodes) {
         return islandPoolNodeCount(config, nodes) > 1L && islandPoolRouteCandidateCount(config, nodes) == 1L;
+    }
+
+    private static boolean islandPoolMultiNodeReady(CoreServiceConfig config, NodeRegistry nodes) {
+        return islandPoolNodeCount(config, nodes) > 1L
+            && islandPoolRouteCandidateCount(config, nodes) > 1L
+            && islandPoolDuplicateVelocityServerNameNodeCount(config, nodes) == 0L
+            && islandPoolDefaultNodeIdentityRiskCount(config, nodes) == 0L;
     }
 
     private static long islandPoolDuplicateVelocityServerNameNodeCount(CoreServiceConfig config, NodeRegistry nodes) {
