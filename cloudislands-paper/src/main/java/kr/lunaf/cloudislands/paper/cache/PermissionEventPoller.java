@@ -12,6 +12,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.api.model.PermissionResult;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
@@ -44,6 +46,10 @@ import kr.lunaf.cloudislands.paper.event.IslandMigrationEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMissionCompleteEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMissionProgressEvent;
 import kr.lunaf.cloudislands.paper.event.IslandPermissionChangeEvent;
+import kr.lunaf.cloudislands.paper.event.IslandPermissionCheckEvent;
+import kr.lunaf.cloudislands.paper.event.IslandPreActivateEvent;
+import kr.lunaf.cloudislands.paper.event.IslandPreCreateEvent;
+import kr.lunaf.cloudislands.paper.event.IslandPreVisitEvent;
 import kr.lunaf.cloudislands.paper.event.IslandRecoveryRequiredEvent;
 import kr.lunaf.cloudislands.paper.event.IslandRepairedEvent;
 import kr.lunaf.cloudislands.paper.event.IslandRenamedEvent;
@@ -70,6 +76,7 @@ import kr.lunaf.cloudislands.paper.event.RouteTicketConsumedEvent;
 import kr.lunaf.cloudislands.paper.event.RouteTicketClearedEvent;
 import kr.lunaf.cloudislands.paper.event.RouteTicketCreatedEvent;
 import kr.lunaf.cloudislands.paper.event.RouteTicketFailedEvent;
+import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
@@ -764,6 +771,13 @@ public final class PermissionEventPoller {
                 fields));
             return;
         }
+        if (type.equals(CloudIslandEventType.ISLAND_PRE_CREATE.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandPreCreateEvent(
+                uuidField(fields, "islandId"),
+                uuidField(fields, "jobId"),
+                firstPresent(fields, "targetNode", "nodeId")));
+            return;
+        }
         UUID islandId = islandId(fields);
         if (islandId == null) {
             return;
@@ -774,6 +788,8 @@ public final class PermissionEventPoller {
             Bukkit.getPluginManager().callEvent(new IslandCreatedEvent(islandId, uuidField(fields, "ownerUuid"), fields.getOrDefault("targetNode", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_ACTIVATED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandActivatedEvent(islandId, firstPresent(fields, "nodeId", "targetNode"), intField(fields, "readyTickets"), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_PRE_ACTIVATE.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandPreActivateEvent(islandId, uuidField(fields, "jobId"), IslandJobType.ACTIVATE_ISLAND, firstPresent(fields, "targetNode", "nodeId")));
         } else if (type.equals(CloudIslandEventType.ISLAND_DEACTIVATED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandDeactivatedEvent(islandId, fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_ACTIVATE_REQUESTED.name())) {
@@ -809,6 +825,9 @@ public final class PermissionEventPoller {
             Bukkit.getPluginManager().callEvent(new IslandFlagChangeEvent(islandId, firstPresent(fields, "flag", "flagKey"), fields.getOrDefault("value", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_PERMISSION_CHANGED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandPermissionChangeEvent(islandId, fields.getOrDefault("role", ""), fields.getOrDefault("permission", ""), booleanField(fields, "allowed"), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_PERMISSION_CHECKED.name())) {
+            UUID playerUuid = uuidField(fields, "playerUuid", "targetUuid");
+            Bukkit.getPluginManager().callEvent(new IslandPermissionCheckEvent(islandId, playerUuid, playerUuid == null ? null : Bukkit.getPlayer(playerUuid), null, permissionField(fields, "permission"), new PermissionResult(Boolean.TRUE.equals(booleanField(fields, "allowed")), fields.getOrDefault("reason", Boolean.TRUE.equals(booleanField(fields, "allowed")) ? "ALLOW" : "DENY"), null)));
         } else if (type.equals(CloudIslandEventType.ISLAND_ROLE_CHANGED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandRoleCatalogChangeEvent(islandId, fields.getOrDefault("role", ""), fields.getOrDefault("operation", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_INVITE_CHANGED.name())) {
@@ -833,8 +852,30 @@ public final class PermissionEventPoller {
             Bukkit.getPluginManager().callEvent(new IslandSnapshotCreateEvent(islandId, longField(fields, "snapshotNo"), fields.getOrDefault("reason", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_BIOME_CHANGED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandBiomeChangeEvent(islandId, fields.getOrDefault("biomeKey", ""), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_PRE_VISIT.name())) {
+            UUID visitorUuid = uuidField(fields, "visitorUuid", "playerUuid");
+            Bukkit.getPluginManager().callEvent(new IslandPreVisitEvent(islandId, visitorUuid, visitorUuid == null ? null : Bukkit.getPlayer(visitorUuid), firstPresent(fields, "targetWorld", "worldName", "world")));
+        } else if (type.equals(CloudIslandEventType.ISLAND_WARP_CREATED.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandWarpCreateEvent(islandId, firstPresent(fields, "warpName", "name"), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_WARP_DELETED.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandWarpDeleteEvent(islandId, firstPresent(fields, "warpName", "name"), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_WARP_CHANGED.name())) {
             publishWarpEvent(islandId, fields);
+        } else if (type.equals(CloudIslandEventType.ISLAND_MEMBER_JOINED.name())) {
+            UUID playerUuid = uuidField(fields, "playerUuid", "memberUuid", "targetUuid");
+            if (playerUuid != null) {
+                Bukkit.getPluginManager().callEvent(new IslandMemberJoinEvent(islandId, playerUuid, firstPresent(fields, "role", "newRole"), fields));
+            }
+        } else if (type.equals(CloudIslandEventType.ISLAND_MEMBER_LEFT.name())) {
+            UUID playerUuid = uuidField(fields, "playerUuid", "memberUuid", "targetUuid");
+            if (playerUuid != null) {
+                Bukkit.getPluginManager().callEvent(new IslandMemberLeaveEvent(islandId, playerUuid, fields));
+            }
+        } else if (type.equals(CloudIslandEventType.ISLAND_MEMBER_ROLE_CHANGED.name())) {
+            UUID playerUuid = uuidField(fields, "playerUuid", "memberUuid", "targetUuid");
+            if (playerUuid != null) {
+                Bukkit.getPluginManager().callEvent(new IslandRoleChangeEvent(islandId, playerUuid, fields.getOrDefault("oldRole", ""), firstPresent(fields, "newRole", "role"), fields));
+            }
         } else if (type.equals(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name())) {
             publishMemberEvent(islandId, fields);
         } else if (type.equals(CloudIslandEventType.ISLAND_OWNERSHIP_CHANGED.name())) {
@@ -940,6 +981,18 @@ public final class PermissionEventPoller {
         }
         try {
             return UUID.fromString(value);
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
+    private IslandPermission permissionField(Map<String, String> fields, String key) {
+        String value = fields.getOrDefault(key, "");
+        if (value.isBlank()) {
+            return null;
+        }
+        try {
+            return IslandPermission.valueOf(value);
         } catch (IllegalArgumentException ignored) {
             return null;
         }
