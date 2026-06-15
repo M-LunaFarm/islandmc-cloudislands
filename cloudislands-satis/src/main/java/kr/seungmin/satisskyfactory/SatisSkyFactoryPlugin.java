@@ -330,6 +330,19 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-maintenance-ticker-running", Boolean.toString(maintenanceTicker != null && maintenanceTicker.running()));
         state.put("runtime-dirty-save-running", Boolean.toString(dirtySaves != null && dirtySaves.running()));
         state.put("runtime-core-api-state-writer", Boolean.toString(coreApiState != null));
+        state.put("runtime-registration-policy", "disabled-features-skip-commands-gui-listeners-tasks-and-writes");
+        state.put("runtime-disabled-features", disabledRuntimeFeatures());
+    }
+
+    private String disabledRuntimeFeatures() {
+        java.util.List<String> disabled = new java.util.ArrayList<>();
+        featureSnapshot().forEach((feature, enabled) -> {
+            if (!operationalFeatureEnabled(feature)) {
+                disabled.add(feature);
+            }
+        });
+        java.util.Collections.sort(disabled);
+        return String.join(",", disabled);
     }
 
     private boolean lifecycleStateEnabled() {
@@ -946,6 +959,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("recovery-resume-source", "core-api-confirmed-state");
         metadata.put("recovery-state-authority", "last-core-confirmed-state-only");
         metadata.put("recovery-stale-write-policy", "discard-local-dirty-state");
+        metadata.put("runtime-registration-policy", "disabled-features-skip-commands-gui-listeners-tasks-and-writes");
+        metadata.put("runtime-disabled-features", disabledRuntimeFeatures());
         metadata.put("addon-state-sync", Boolean.toString(configuredFeatureEnabled("addon-state")));
         metadata.put("addon-state-bulk-save-api", "true");
         metadata.put("addon-state-bulk-save-global-endpoint", "/v1/addons/state/table-key-value/bulk-save");
