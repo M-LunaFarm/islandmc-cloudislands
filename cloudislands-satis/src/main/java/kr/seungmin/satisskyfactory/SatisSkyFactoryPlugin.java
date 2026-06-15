@@ -15,6 +15,7 @@ import kr.lunaf.cloudislands.api.event.IslandLevelRecalculateEvent;
 import kr.lunaf.cloudislands.api.event.IslandLimitChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandMemberChangedEvent;
 import kr.lunaf.cloudislands.api.event.IslandMigratedEvent;
+import kr.lunaf.cloudislands.api.event.IslandMigrationEvent;
 import kr.lunaf.cloudislands.api.event.IslandPermissionChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandRuntimeChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotCreateEvent;
@@ -1396,6 +1397,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     public void onIslandActivated(IslandActivatedEvent event) {
         String operation = "activated:" + lifecycleNode(event.nodeId()) + lifecycleWorldToken(event.worldName()) + lifecycleCellToken(event.cellX(), event.cellZ());
         runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
+    }
+
+    @Override
+    public void onIslandMigrationRequested(IslandMigrationEvent event) {
+        String operation = "migration-requested:" + lifecycleNode(event.sourceNode()) + "->" + lifecycleNode(event.targetNode()) + lifecycleWorldToken(event.worldName()) + lifecycleCellToken(event.cellX(), event.cellZ());
+        runSatisLifecycle(event.islandId(), operation, () -> publishIslandLifecycleState(event.islandId(), operation, islands == null ? null : islands.find(event.islandId()).orElse(null), "requested", ""));
     }
 
     @Override
