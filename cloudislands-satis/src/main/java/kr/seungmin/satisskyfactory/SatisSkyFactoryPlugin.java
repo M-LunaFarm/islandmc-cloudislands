@@ -1053,6 +1053,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-setup-auto-selected", Boolean.toString(databaseSetupAutoSelected()));
         metadata.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
         metadata.put("database-setup-warning", databaseSetupWarningMetadata());
+        metadata.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));
+        metadata.put("database-jdbc-inferred-backend", databaseJdbcInferredBackendMetadata());
         metadata.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
         metadata.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
         metadata.put("database-attempt-order", databaseBackendAttemptOrderMetadata());
@@ -1335,6 +1337,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-setup-auto-selected", Boolean.toString(databaseSetupAutoSelected()));
         state.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
         state.put("database-setup-warning", databaseSetupWarningMetadata());
+        state.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));
+        state.put("database-jdbc-inferred-backend", databaseJdbcInferredBackendMetadata());
         state.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
         state.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
         state.put("database-attempt-order", databaseBackendAttemptOrderMetadata());
@@ -1423,6 +1427,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-setup-auto-selected", Boolean.toString(databaseSetupAutoSelected()));
         state.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
         state.put("database-setup-warning", databaseSetupWarningMetadata());
+        state.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));
+        state.put("database-jdbc-inferred-backend", databaseJdbcInferredBackendMetadata());
         state.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
         state.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
         state.put("database-attempt-order", databaseBackendAttemptOrderMetadata());
@@ -2909,6 +2915,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return "MARIADB";
         }
         return "";
+    }
+
+    private boolean databaseJdbcInferred() {
+        return !inferredJdbcDatabaseType().isBlank();
+    }
+
+    private String databaseJdbcInferredBackendMetadata() {
+        String backend = inferredJdbcDatabaseType();
+        return backend.isBlank() ? "none" : backend;
     }
 
     private String inferredSetupDatabaseType() {

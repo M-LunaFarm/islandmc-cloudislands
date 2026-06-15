@@ -793,6 +793,8 @@ public final class AdminFactoryCommand {
                         "database-setup-auto-selected",
                         "database-setup-selected-backend",
                         "database-setup-warning",
+                        "database-jdbc-inferred",
+                        "database-jdbc-inferred-backend",
                         "database-active-backend",
                         "database-attempted-backends",
                         "database-attempt-order",
