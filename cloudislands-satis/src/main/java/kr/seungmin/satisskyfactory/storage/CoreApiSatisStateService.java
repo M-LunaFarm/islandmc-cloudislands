@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Predicate;
 import java.util.logging.Logger;
 
 public final class CoreApiSatisStateService {
@@ -36,6 +37,7 @@ public final class CoreApiSatisStateService {
     private final CloudIslandsApi cloudIslandsApi;
     private final String addonId;
     private final boolean flattenedFallbackEnabled;
+    private final Predicate<String> featureEnabled;
     private volatile String lastBulkStatusFingerprint = "";
     private volatile String lastGlobalBulkStatusFingerprint = "";
     private volatile String lastTableStatusFingerprint = "";
@@ -57,10 +59,15 @@ public final class CoreApiSatisStateService {
     }
 
     public CoreApiSatisStateService(Logger logger, CloudIslandsApi cloudIslandsApi, String addonId, boolean flattenedFallbackEnabled) {
+        this(logger, cloudIslandsApi, addonId, flattenedFallbackEnabled, _feature -> true);
+    }
+
+    public CoreApiSatisStateService(Logger logger, CloudIslandsApi cloudIslandsApi, String addonId, boolean flattenedFallbackEnabled, Predicate<String> featureEnabled) {
         this.logger = logger;
         this.cloudIslandsApi = cloudIslandsApi;
         this.addonId = addonId;
         this.flattenedFallbackEnabled = flattenedFallbackEnabled;
+        this.featureEnabled = featureEnabled == null ? _feature -> true : featureEnabled;
     }
 
     public long islandBulkSuccesses() {
@@ -642,6 +649,9 @@ public final class CoreApiSatisStateService {
         if (cloudIslandsApi == null || database == null) {
             return false;
         }
+        if (!stateFeatureEnabled("market")) {
+            return false;
+        }
         Map<String, String> state;
         try {
             state = cloudIslandsApi.addons().state(addonId).join();
@@ -710,6 +720,9 @@ public final class CoreApiSatisStateService {
                     continue;
                 }
                 try {
+                    if (!tableFeatureEnabled(key)) {
+                        continue;
+                    }
                     if (key.startsWith(IslandAddonService.tableStateKeyPrefix("factory_islands"))) {
                         database.saveIsland(island(value));
                         restored[0] = true;
@@ -779,6 +792,52 @@ public final class CoreApiSatisStateService {
             }
         });
         return restored[0];
+    }
+
+    private boolean tableFeatureEnabled(String key) {
+        if (key == null) {
+            return false;
+        }
+        if (key.startsWith(IslandAddonService.tableStateKeyPrefix("factory_islands"))) {
+            return stateFeatureEnabled("lifecycle");
+        }
+        if (key.startsWith(IslandAddonService.tableStateKeyPrefix("virtual_inventories"))) {
+            return stateFeatureEnabled("storage");
+        }
+        if (key.startsWith(IslandAddonService.tableStateKeyPrefix("machines"))) {
+            return stateFeatureEnabled("machines");
+        }
+        if (key.startsWith(IslandAddonService.tableStateKeyPrefix("resource_nodes"))) {
+            return stateFeatureEnabled("resource-nodes");
+        }
+        if (key.startsWith(IslandAddonService.tableStateKeyPrefix("contracts"))) {
+            return stateFeatureEnabled("contracts");
+        }
+        if (key.startsWith(IslandAddonService.tableStateKeyPrefix("island_unlocks"))) {
+            return stateFeatureEnabled("research");
+        }
+        if (key.startsWith(IslandAddonService.tableStateKeyPrefix("market_personal_daily"))) {
+            return stateFeatureEnabled("market");
+        }
+        if (key.startsWith(IslandAddonService.tableStateKeyPrefix("market_daily"))) {
+            return stateFeatureEnabled("market");
+        }
+        if (key.startsWith(IslandAddonService.tableStateKeyPrefix("ledger"))) {
+            return stateFeatureEnabled("storage") || stateFeatureEnabled("market") || stateFeatureEnabled("contracts");
+        }
+        if (key.startsWith(IslandAddonService.tableStateKeyPrefix("item_networks"))
+                || key.startsWith(IslandAddonService.tableStateKeyPrefix("power_networks"))) {
+            return stateFeatureEnabled("machines");
+        }
+        return true;
+    }
+
+    private boolean stateFeatureEnabled(String feature) {
+        try {
+            return featureEnabled.test(feature);
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 
     private Map<String, String> state(Map<UUID, Map<String, String>> stateByIsland, UUID islandId) {

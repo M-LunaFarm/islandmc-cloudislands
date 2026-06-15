@@ -1092,7 +1092,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (database.activeBackend() != DatabaseService.StorageBackend.CORE_API || !coreApiAddonStateAvailable()) {
             return;
         }
-        coreApiState = new CoreApiSatisStateService(getLogger(), cloudIslandsApi, ADDON_ID, coreApiFlattenedFallbackEnabled());
+        coreApiState = new CoreApiSatisStateService(getLogger(), cloudIslandsApi, ADDON_ID, coreApiFlattenedFallbackEnabled(), this::operationalFeatureEnabled);
         database.coreStateWriter(coreApiState::publishRow);
         database.coreTableWriter(coreApiState::publishTable);
         database.coreGlobalStateWriter(coreApiState::publishGlobalRow);
