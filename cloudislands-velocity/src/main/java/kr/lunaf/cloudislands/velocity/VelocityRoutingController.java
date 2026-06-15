@@ -1800,6 +1800,8 @@ public final class VelocityRoutingController {
             + " jdbcSupported=" + boolValue(body, "coreJdbcSupported")
             + " jdbcSupportedBackends=" + jsonValue(body, "coreJdbcSupportedBackends")
             + " setupFallbackBackends=" + jsonValue(body, "coreSetupFallbackBackends")
+            + " setupFallbackEnabled=" + boolValue(body, "coreSetupFallbackEnabled")
+            + " setupFallbackOrder=" + jsonValue(body, "coreSetupFallbackOrder")
             + " setupFallbackMode=" + jsonValue(body, "coreSetupFallbackMode")
             + " setupDbModes=" + jsonValue(body, "coreSetupDatabaseOperationalModes")
             + " setupDbLoader=" + jsonValue(body, "coreSetupDatabaseConfigLoader")

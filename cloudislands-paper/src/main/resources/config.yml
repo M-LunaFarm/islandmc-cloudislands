@@ -376,6 +376,8 @@ messages:
     admin-command-core-config-jdbc-supported-prefix: " jdbcSupported="
     admin-command-core-config-jdbc-supported-backends-prefix: " jdbcSupportedBackends="
     admin-command-core-config-setup-fallback-backends-prefix: " setupFallbackBackends="
+    admin-command-core-config-setup-fallback-enabled-prefix: " setupFallbackEnabled="
+    admin-command-core-config-setup-fallback-order-prefix: " setupFallbackOrder="
     admin-command-core-config-setup-fallback-mode-prefix: " setupFallbackMode="
     admin-command-core-config-setup-db-operational-modes-prefix: " setupDbModes="
     admin-command-core-config-setup-db-loader-prefix: " setupDbLoader="
