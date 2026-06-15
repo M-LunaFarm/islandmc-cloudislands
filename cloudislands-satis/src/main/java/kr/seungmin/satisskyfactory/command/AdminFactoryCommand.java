@@ -629,7 +629,8 @@ public final class AdminFactoryCommand {
         state.put("satismc-import-mode", "cross-backend-sqlite-copy");
         state.put("satismc-import-prerequisite", "same-source-dryrun-or-verify-before-import");
         state.put("satismc-core-api-import-guard", "reject-core-api-import-when-addon-state-writer-unavailable");
-        state.put("satismc-rollback-mode", "sqlite-snapshot-restore-or-manual-shared-backend-restore");
+        state.put("satismc-rollback-mode", "sqlite-snapshot-restore-or-shared-backend-table-restore");
+        state.put("satismc-rollback-safety", "restores-known-satis-tables-from-migration-backups/legacy-import-last.db");
         state.put("feature-gate", "migration=" + enabled("migration"));
         state.put("disabled-behavior", "reject-status-scan-dryrun-verify-import-rollback");
         state.put("writes-when-disabled", "false");
