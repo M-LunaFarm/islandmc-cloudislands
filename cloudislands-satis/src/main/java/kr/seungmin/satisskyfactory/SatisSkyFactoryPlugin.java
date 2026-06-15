@@ -1071,6 +1071,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         getLogger().info("Reloaded CloudIslands addon config: " + snapshot.id() + " enabled=" + snapshot.enabled());
         if (!snapshot.enabled()) {
             getLogger().info("CloudIslands disabled this addon during config reload.");
+            effectiveFeatures = Map.of();
             stopRuntimeActivity();
             return;
         }
