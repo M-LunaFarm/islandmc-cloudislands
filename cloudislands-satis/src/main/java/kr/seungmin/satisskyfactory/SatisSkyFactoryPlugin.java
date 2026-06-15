@@ -2873,15 +2873,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean databaseFallbackSharedSafe() {
-        return databaseSettings().fallbackEnabled()
-                && databaseFallbackOrder(false).stream().anyMatch(this::isSharedStorageBackend);
+        return databaseFallbackProductionSafe();
     }
 
     private String databaseFallbackRisk() {
-        if (!databaseSettings().fallbackEnabled()) {
+        DatabaseService.Settings settings = databaseSettings();
+        if (!settings.fallbackEnabled()) {
             return "fallback-disabled";
         }
-        List<DatabaseService.StorageBackend> order = databaseFallbackOrder(false);
+        List<DatabaseService.StorageBackend> order = databaseBackendAttemptOrder(settings);
         int sqliteIndex = order.indexOf(DatabaseService.StorageBackend.SQLITE);
         int firstSharedIndex = firstSharedFallbackIndex(order);
         if (firstSharedIndex >= 0 && (sqliteIndex < 0 || firstSharedIndex < sqliteIndex)) {
@@ -2899,6 +2899,23 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private boolean databaseFallbackProductionSafe() {
         String risk = databaseFallbackRisk();
         return risk.equals("shared-before-local-sqlite") || risk.equals("shared-only");
+    }
+
+    private List<DatabaseService.StorageBackend> databaseBackendAttemptOrder(DatabaseService.Settings settings) {
+        if (settings == null) {
+            return List.of(DatabaseService.StorageBackend.SQLITE);
+        }
+        List<DatabaseService.StorageBackend> order = new ArrayList<>();
+        order.add(settings.backend() == null ? DatabaseService.StorageBackend.SQLITE : settings.backend());
+        if (settings.fallbackEnabled()) {
+            List<DatabaseService.StorageBackend> fallbackOrder = settings.fallbackOrder() == null ? List.of() : settings.fallbackOrder();
+            for (DatabaseService.StorageBackend backend : fallbackOrder) {
+                if (backend != null && !order.contains(backend)) {
+                    order.add(backend);
+                }
+            }
+        }
+        return List.copyOf(order);
     }
 
     private int firstSharedFallbackIndex(List<DatabaseService.StorageBackend> order) {
