@@ -112,6 +112,7 @@ public interface CoreApiClient {
     CompletableFuture<String> requestIslandSnapshotResult(UUID islandId, String reason);
     CompletableFuture<Void> restoreIslandSnapshot(UUID islandId, long snapshotNo);
     CompletableFuture<String> restoreIslandSnapshotResult(UUID islandId, long snapshotNo);
+    CompletableFuture<String> rollbackIslandSnapshotResult(UUID islandId, long snapshotNo);
     CompletableFuture<String> listIslandLogs(UUID islandId, int limit);
     CompletableFuture<String> islandBank(UUID islandId);
     CompletableFuture<String> depositIslandBank(UUID islandId, UUID actorUuid, String amount);

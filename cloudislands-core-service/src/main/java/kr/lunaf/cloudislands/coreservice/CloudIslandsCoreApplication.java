@@ -1727,6 +1727,13 @@ public final class CloudIslandsCoreApplication {
                 lifecycle(exchange, result);
                 return;
             }
+            if (tail.endsWith("/rollback")) {
+                String body = readBody(exchange);
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/rollback".length()));
+                long snapshotNo = JsonFields.longValue(body, "snapshotNo", 0L);
+                rollbackIslandSnapshot(exchange, audit, lifecycle, snapshotRepository, islandId, snapshotNo);
+                return;
+            }
             write(exchange, 404, ApiResponses.error("ROUTE_NOT_FOUND", "Route was not found"));
         });
         route("/v1/admin/islands/save", exchange -> {
@@ -1766,6 +1773,12 @@ public final class CloudIslandsCoreApplication {
                 ));
                 lifecycle(exchange, result);
             }
+        });
+        route("/v1/admin/islands/rollback", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            long snapshotNo = JsonFields.longValue(body, "snapshotNo", 0L);
+            rollbackIslandSnapshot(exchange, audit, lifecycle, snapshotRepository, islandId, snapshotNo);
         });
         route("/v1/admin/islands/quarantine", exchange -> {
             String body = readBody(exchange);
@@ -3398,6 +3411,23 @@ public final class CloudIslandsCoreApplication {
     private static String adminSaveReason(String reason) {
         String safeReason = reason == null || reason.isBlank() ? "save" : reason;
         return safeReason.toUpperCase(java.util.Locale.ROOT).contains("ADMIN_SAVE") ? safeReason : "ADMIN_SAVE:" + safeReason;
+    }
+
+    private static void rollbackIslandSnapshot(com.sun.net.httpserver.HttpExchange exchange, AuditLogger audit, IslandLifecycleWorkflow lifecycle, IslandSnapshotRepository snapshotRepository, UUID islandId, long snapshotNo) throws java.io.IOException {
+        java.util.Optional<kr.lunaf.cloudislands.api.model.IslandSnapshotRecord> snapshot = snapshotRepository.find(islandId, snapshotNo);
+        if (snapshotNo <= 0L || snapshot.isEmpty()) {
+            audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_ROLLBACK_REQUEST", "ISLAND", islandId.toString(), Map.of("accepted", "false", "code", "SNAPSHOT_NOT_FOUND", "snapshotNo", Long.toString(snapshotNo)));
+            write(exchange, 404, ApiResponses.error("SNAPSHOT_NOT_FOUND", "Snapshot was not found"));
+            return;
+        }
+        IslandLifecycleWorkflow.Result result = lifecycle.restore(islandId, snapshotNo, snapshot.get().storagePath());
+        audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_ROLLBACK_REQUEST", "ISLAND", islandId.toString(), Map.of(
+            "accepted", Boolean.toString(result.accepted()),
+            "code", result.code(),
+            "snapshotNo", Long.toString(snapshotNo),
+            "storagePath", snapshot.get().storagePath() == null ? "" : snapshot.get().storagePath()
+        ));
+        lifecycle(exchange, result);
     }
 
     private static String membersJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandMemberSnapshot> members) {

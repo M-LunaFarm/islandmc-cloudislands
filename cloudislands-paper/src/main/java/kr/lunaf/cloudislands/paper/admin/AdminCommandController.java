@@ -584,7 +584,11 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 sender.sendMessage(adminText("admin-command-snapshot-invalid", "스냅샷 번호가 올바르지 않습니다: ") + args[3]);
                 return true;
             }
-            run(sender, "Island restore", coreApiClient.restoreIslandSnapshotResult(islandId, snapshotNo).thenApply(body -> actionResultMessage("Island restore", islandId.toString(), body)));
+            if (args[1].equalsIgnoreCase("rollback")) {
+                run(sender, "Island rollback", coreApiClient.rollbackIslandSnapshotResult(islandId, snapshotNo).thenApply(body -> actionResultMessage("Island rollback", islandId.toString(), body)));
+            } else {
+                run(sender, "Island restore", coreApiClient.restoreIslandSnapshotResult(islandId, snapshotNo).thenApply(body -> actionResultMessage("Island restore", islandId.toString(), body)));
+            }
             return true;
         }
         if (args[1].equalsIgnoreCase("quarantine")) {

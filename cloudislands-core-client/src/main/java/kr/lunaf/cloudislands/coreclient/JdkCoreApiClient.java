@@ -509,6 +509,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> rollbackIslandSnapshotResult(UUID islandId, long snapshotNo) {
+        return postWithResultBody("/v1/admin/islands/rollback", "{\"islandId\":\"" + islandId + "\",\"snapshotNo\":" + snapshotNo + "}");
+    }
+
+    @Override
     public CompletableFuture<String> listIslandLogs(UUID islandId, int limit) {
         return post("/v1/islands/logs", "{\"islandId\":\"" + islandId + "\",\"limit\":" + limit + "}");
     }
@@ -1373,6 +1378,9 @@ public final class JdkCoreApiClient implements CoreApiClient {
                 return "ISLAND_SNAPSHOT";
             }
             if (path.endsWith("/restore")) {
+                return "ISLAND_RESTORE";
+            }
+            if (path.endsWith("/rollback")) {
                 return "ISLAND_RESTORE";
             }
             if (path.endsWith("/quarantine")) {
