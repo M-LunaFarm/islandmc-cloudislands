@@ -484,6 +484,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> requestIslandSaveResult(UUID islandId, String reason) {
+        return postWithResultBody("/v1/admin/islands/save", "{\"islandId\":\"" + islandId + "\",\"reason\":\"" + escape(reason) + "\"}");
+    }
+
+    @Override
     public CompletableFuture<Void> requestIslandSnapshot(UUID islandId, String reason) {
         return requestIslandSnapshotResult(islandId, reason).thenApply(_body -> null);
     }
@@ -1362,6 +1367,9 @@ public final class JdkCoreApiClient implements CoreApiClient {
                 return "ISLAND_MIGRATE";
             }
             if (path.endsWith("/snapshot")) {
+                return "ISLAND_SNAPSHOT";
+            }
+            if (path.endsWith("/save")) {
                 return "ISLAND_SNAPSHOT";
             }
             if (path.endsWith("/restore")) {

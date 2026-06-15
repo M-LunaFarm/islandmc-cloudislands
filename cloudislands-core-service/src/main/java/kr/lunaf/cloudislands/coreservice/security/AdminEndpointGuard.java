@@ -93,6 +93,9 @@ public final class AdminEndpointGuard {
             if (path.endsWith("/migrate")) {
                 return AdminPermission.ISLAND_MIGRATE;
             }
+            if (path.endsWith("/save") || path.endsWith("/snapshot")) {
+                return AdminPermission.ISLAND_SNAPSHOT;
+            }
         }
         if (path.startsWith("/v1/admin/nodes/")) {
             if (path.endsWith("/drain")) {
@@ -127,6 +130,7 @@ public final class AdminEndpointGuard {
             case "/v1/admin/islands/activate" -> AdminPermission.ISLAND_ACTIVATE;
             case "/v1/admin/islands/deactivate" -> AdminPermission.ISLAND_DEACTIVATE;
             case "/v1/admin/islands/migrate" -> AdminPermission.ISLAND_MIGRATE;
+            case "/v1/admin/islands/save" -> AdminPermission.ISLAND_SNAPSHOT;
             case "/v1/admin/islands/snapshot" -> AdminPermission.ISLAND_SNAPSHOT;
             case "/v1/admin/islands/restore" -> AdminPermission.ISLAND_RESTORE;
             case "/v1/admin/islands/quarantine" -> AdminPermission.ISLAND_QUARANTINE;

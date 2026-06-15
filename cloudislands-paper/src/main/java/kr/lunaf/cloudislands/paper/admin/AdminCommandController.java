@@ -559,7 +559,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             run(sender, "Island migrate", coreApiClient.migrateIsland(islandId, args[3]).thenApply(body -> actionResultMessage("Island migrate", islandId.toString(), body)));
             return true;
         }
-        if (args[1].equalsIgnoreCase("save") || args[1].equalsIgnoreCase("snapshot")) {
+        if (args[1].equalsIgnoreCase("save")) {
+            String reason = args.length > 3 ? joined(args, 3) : "ADMIN_SAVE";
+            run(sender, "Island save", coreApiClient.requestIslandSaveResult(islandId, reason).thenApply(body -> actionResultMessage("Island save", islandId.toString(), body)));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("snapshot")) {
             String reason = args.length > 3 ? joined(args, 3) : "ADMIN_MANUAL";
             run(sender, "Island snapshot", coreApiClient.requestIslandSnapshotResult(islandId, reason).thenApply(body -> actionResultMessage("Island snapshot", islandId.toString(), body)));
             return true;

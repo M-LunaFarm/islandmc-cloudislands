@@ -1718,7 +1718,24 @@ public final class CloudIslandsCoreApplication {
                 lifecycle(exchange, result);
                 return;
             }
+            if (tail.endsWith("/save")) {
+                String body = readBody(exchange);
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/save".length()));
+                String reason = adminSaveReason(JsonFields.text(body, "reason", "ADMIN_SAVE"));
+                IslandLifecycleWorkflow.Result result = lifecycle.snapshot(islandId, reason);
+                audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_SAVE_REQUEST", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code(), "reason", reason));
+                lifecycle(exchange, result);
+                return;
+            }
             write(exchange, 404, ApiResponses.error("ROUTE_NOT_FOUND", "Route was not found"));
+        });
+        route("/v1/admin/islands/save", exchange -> {
+            String body = readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            String reason = adminSaveReason(JsonFields.text(body, "reason", "ADMIN_SAVE"));
+            IslandLifecycleWorkflow.Result result = lifecycle.snapshot(islandId, reason);
+            audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_SAVE_REQUEST", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code(), "reason", reason));
+            lifecycle(exchange, result);
         });
         route("/v1/admin/islands/snapshot", exchange -> {
             String body = readBody(exchange);
@@ -3376,6 +3393,11 @@ public final class CloudIslandsCoreApplication {
         } catch (RuntimeException ignored) {
             return BigDecimal.ZERO;
         }
+    }
+
+    private static String adminSaveReason(String reason) {
+        String safeReason = reason == null || reason.isBlank() ? "save" : reason;
+        return safeReason.toUpperCase(java.util.Locale.ROOT).contains("ADMIN_SAVE") ? safeReason : "ADMIN_SAVE:" + safeReason;
     }
 
     private static String membersJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandMemberSnapshot> members) {
