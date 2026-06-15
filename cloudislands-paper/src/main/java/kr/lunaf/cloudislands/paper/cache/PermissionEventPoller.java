@@ -106,6 +106,10 @@ public final class PermissionEventPoller {
     private final AtomicLong chatBroadcasts = new AtomicLong();
     private final AtomicLong chatDeliveries = new AtomicLong();
     private final AtomicLong chatNoRecipientBroadcasts = new AtomicLong();
+    private final AtomicLong islandMutationEvacuations = new AtomicLong();
+    private final AtomicLong islandMutationFallbackTransfers = new AtomicLong();
+    private final AtomicLong islandMutationFallbackKicks = new AtomicLong();
+    private final AtomicLong islandMutationFallbackFailures = new AtomicLong();
 
     public PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, GeneratorLevelCache generatorLevels, CropGrowthLevelCache cropGrowthLevels, IslandLimitCache limits, ProtectionController protection, String nodeId, String fallbackServerName) {
         this(plugin, client, permissionSync, generatorLevels, cropGrowthLevels, limits, protection, nodeId, fallbackServerName, null);
@@ -122,6 +126,22 @@ public final class PermissionEventPoller {
         this.messages = messages;
         this.nodeId = nodeId;
         this.fallbackServerName = fallbackServerName == null || fallbackServerName.isBlank() ? "Lobby" : fallbackServerName;
+    }
+
+    public long islandMutationEvacuations() {
+        return islandMutationEvacuations.get();
+    }
+
+    public long islandMutationFallbackTransfers() {
+        return islandMutationFallbackTransfers.get();
+    }
+
+    public long islandMutationFallbackKicks() {
+        return islandMutationFallbackKicks.get();
+    }
+
+    public long islandMutationFallbackFailures() {
+        return islandMutationFallbackFailures.get();
     }
 
     public void start(long intervalTicks) {
@@ -562,8 +582,10 @@ public final class PermissionEventPoller {
             if (!islandId.equals(currentIslandId)) {
                 continue;
             }
+            islandMutationEvacuations.incrementAndGet();
             player.sendMessage(reason);
             if (!canUseBungeeConnect()) {
+                islandMutationFallbackKicks.incrementAndGet();
                 player.kickPlayer(reason);
                 continue;
             }
@@ -573,7 +595,10 @@ public final class PermissionEventPoller {
                 output.writeUTF("Connect");
                 output.writeUTF(fallbackServerName);
                 player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
+                islandMutationFallbackTransfers.incrementAndGet();
             } catch (IOException | RuntimeException exception) {
+                islandMutationFallbackFailures.incrementAndGet();
+                islandMutationFallbackKicks.incrementAndGet();
                 plugin.getLogger().warning("Failed to move island player to fallback: " + exception.getMessage());
                 player.kickPlayer(reason);
             }

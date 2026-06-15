@@ -445,6 +445,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"chatBroadcastsTotal\":" + (events == null ? 0L : events.chatBroadcasts()) + ","
             + "\"chatDeliveriesTotal\":" + (events == null ? 0L : events.chatDeliveries()) + ","
             + "\"chatNoRecipientBroadcastsTotal\":" + (events == null ? 0L : events.chatNoRecipientBroadcasts()) + ","
+            + "\"islandMutationEvacuationsTotal\":" + (events == null ? 0L : events.islandMutationEvacuations()) + ","
+            + "\"islandMutationFallbackTransfersTotal\":" + (events == null ? 0L : events.islandMutationFallbackTransfers()) + ","
+            + "\"islandMutationFallbackKicksTotal\":" + (events == null ? 0L : events.islandMutationFallbackKicks()) + ","
+            + "\"islandMutationFallbackFailuresTotal\":" + (events == null ? 0L : events.islandMutationFallbackFailures()) + ","
             + "\"cacheEventInvalidationsTotal\":" + (events == null ? 0L : events.cacheEventInvalidations()) + ","
             + "\"cacheGapInvalidationsTotal\":" + (events == null ? 0L : events.cacheGapInvalidations()) + ","
             + "\"periodicSaveRetryQueue\":" + (saver == null ? 0 : saver.retryQueueSize()) + ","
@@ -550,6 +554,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_paper_chat_broadcasts_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.chatBroadcasts()) + "\n"
             + "cloudislands_paper_chat_deliveries_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.chatDeliveries()) + "\n"
             + "cloudislands_paper_chat_no_recipient_broadcasts_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.chatNoRecipientBroadcasts()) + "\n"
+            + "cloudislands_paper_island_mutation_evacuations_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.islandMutationEvacuations()) + "\n"
+            + "cloudislands_paper_island_mutation_fallback_transfers_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.islandMutationFallbackTransfers()) + "\n"
+            + "cloudislands_paper_island_mutation_fallback_kicks_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.islandMutationFallbackKicks()) + "\n"
+            + "cloudislands_paper_island_mutation_fallback_failures_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.islandMutationFallbackFailures()) + "\n"
             + "cloudislands_paper_cache_event_invalidations_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.cacheEventInvalidations()) + "\n"
             + "cloudislands_paper_cache_gap_invalidations_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.cacheGapInvalidations()) + "\n"
             + "cloudislands_redis_latency_seconds{node=\"" + nodeId + "\"} " + redis.latencySeconds() + "\n"
@@ -641,7 +649,11 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";defaultNodeIdentityRisk=" + defaultNodeIdentityRisk(parseAgentRole(getConfig().getString("node.role", "ISLAND_NODE")), getConfig().getString("node.id", "island-1"), getConfig().getString("node.velocity-server-name", getConfig().getString("node.id", "island-1")))
             + ";chatBroadcasts=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatBroadcasts())
             + ";chatDeliveries=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatDeliveries())
-            + ";chatNoRecipientBroadcasts=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatNoRecipientBroadcasts());
+            + ";chatNoRecipientBroadcasts=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatNoRecipientBroadcasts())
+            + ";islandMutationEvacuations=" + (permissionEventPoller == null ? 0L : permissionEventPoller.islandMutationEvacuations())
+            + ";islandMutationFallbackTransfers=" + (permissionEventPoller == null ? 0L : permissionEventPoller.islandMutationFallbackTransfers())
+            + ";islandMutationFallbackKicks=" + (permissionEventPoller == null ? 0L : permissionEventPoller.islandMutationFallbackKicks())
+            + ";islandMutationFallbackFailures=" + (permissionEventPoller == null ? 0L : permissionEventPoller.islandMutationFallbackFailures());
     }
 
     private void startIslandNodeWorker(CoreApiClient client, String nodeId, IslandStorage storage, IslandLimitCache limitCache) {
