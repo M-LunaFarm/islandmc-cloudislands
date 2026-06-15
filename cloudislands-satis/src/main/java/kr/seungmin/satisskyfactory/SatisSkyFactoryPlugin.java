@@ -1217,7 +1217,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-setup-warning", databaseSetupWarningMetadata());
         metadata.put("database-setup-jdbc-aliases", "setup.database.jdbc.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,database.jdbc.url,database.<backend>.url");
         metadata.put("database-setup-fallback-precedence", "env,setup.database.fallback,database.fallback");
-        metadata.put("database-setup-core-api-fallback", "cloudislands-addon-state-then-first-non-core-api-backend");
+        metadata.put("database-setup-core-api-fallback", "cloudislands-addon-state-then-configured-shared-backend-then-sqlite");
         metadata.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));
         metadata.put("database-jdbc-inferred-backend", databaseJdbcInferredBackendMetadata());
         metadata.put("database-active-backend", databaseActiveBackendName());
@@ -1550,7 +1550,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-setup-warning", databaseSetupWarningMetadata());
         state.put("database-setup-jdbc-aliases", "setup.database.jdbc.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,database.jdbc.url,database.<backend>.url");
         state.put("database-setup-fallback-precedence", "env,setup.database.fallback,database.fallback");
-        state.put("database-setup-core-api-fallback", "cloudislands-addon-state-then-first-non-core-api-backend");
+        state.put("database-setup-core-api-fallback", "cloudislands-addon-state-then-configured-shared-backend-then-sqlite");
         state.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));
         state.put("database-jdbc-inferred-backend", databaseJdbcInferredBackendMetadata());
         state.put("database-active-backend", databaseActiveBackendName());
@@ -3110,14 +3110,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             getLogger().warning("Satis CORE_API database backend is active, but CloudIslands addon-state is unavailable and database fallback is disabled.");
             return;
         }
-        DatabaseService.StorageBackend fallbackBackend = null;
         List<DatabaseService.StorageBackend> fallbackOrder = settings.fallbackOrder() == null ? List.of() : settings.fallbackOrder();
-        for (DatabaseService.StorageBackend backend : fallbackOrder) {
-            if (backend != null && backend != DatabaseService.StorageBackend.CORE_API && backend != settings.backend()) {
-                fallbackBackend = backend;
-                break;
-            }
-        }
+        DatabaseService.StorageBackend fallbackBackend = selectCoreApiFallbackBackend(settings);
         if (fallbackBackend == null) {
             databaseFallbackReason = cloudIslandsApi == null ? "core-api-cloudislands-api-missing" : "core-api-addon-state-disabled";
             getLogger().warning("Satis CORE_API database backend is active, but no non-CORE_API fallback backend is configured.");
@@ -3820,18 +3814,55 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (!databaseSettings().fallbackEnabled()) {
             return "disabled";
         }
-        return databaseFallbackOrder(false).stream()
-                .filter(backend -> backend != DatabaseService.StorageBackend.CORE_API)
-                .map(DatabaseService.StorageBackend::name)
-                .findFirst()
-                .orElse("none");
+        DatabaseService.StorageBackend target = selectCoreApiFallbackBackend(databaseSettings());
+        return target == null ? "none" : target.name();
     }
 
     private String databaseCoreApiFallbackPolicy() {
         if (!databaseSettings().fallbackEnabled()) {
             return "disabled-use-local-cache-only-and-warn";
         }
-        return "if-cloudislands-api-or-addon-state-unavailable-use-first-non-core-api-backend";
+        return "if-cloudislands-api-or-addon-state-unavailable-use-first-configured-shared-backend-else-sqlite";
+    }
+
+    private DatabaseService.StorageBackend selectCoreApiFallbackBackend(DatabaseService.Settings settings) {
+        if (settings == null || !settings.fallbackEnabled()) {
+            return null;
+        }
+        List<DatabaseService.StorageBackend> fallbackOrder = settings.fallbackOrder() == null ? List.of() : settings.fallbackOrder();
+        DatabaseService.StorageBackend sqlite = null;
+        DatabaseService.StorageBackend firstUnconfiguredShared = null;
+        for (DatabaseService.StorageBackend backend : fallbackOrder) {
+            if (backend == null || backend == DatabaseService.StorageBackend.CORE_API || backend == settings.backend()) {
+                continue;
+            }
+            if (backend == DatabaseService.StorageBackend.SQLITE) {
+                if (sqlite == null) {
+                    sqlite = backend;
+                }
+                continue;
+            }
+            if (databaseFallbackBackendReady(settings, backend)) {
+                return backend;
+            }
+            if (firstUnconfiguredShared == null && isSharedStorageBackend(backend)) {
+                firstUnconfiguredShared = backend;
+            }
+        }
+        return sqlite != null ? sqlite : firstUnconfiguredShared;
+    }
+
+    private boolean databaseFallbackBackendReady(DatabaseService.Settings settings, DatabaseService.StorageBackend backend) {
+        if (backend == null) {
+            return false;
+        }
+        if (backend == DatabaseService.StorageBackend.SQLITE) {
+            return true;
+        }
+        if (backend == DatabaseService.StorageBackend.CORE_API) {
+            return coreApiAddonStateAvailable();
+        }
+        return !databaseJdbcTargetMetadata(settings, backend).equals("not-configured");
     }
 
     private boolean databaseCoreApiFallbackActive() {
