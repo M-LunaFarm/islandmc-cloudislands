@@ -1874,6 +1874,9 @@ public final class VelocityRoutingController {
             + " hardFull=" + jsonValue(body, "hardFullPolicy")
             + " migration=" + jsonValue(body, "migrationPolicy")
             + " superiorMigration=" + boolValue(body, "superiorSkyblock2MigrationEnabled")
+            + " superiorInputOnly=" + boolValue(body, "superiorSkyblock2MigrationInputOnly")
+            + " superiorRuntimeDependency=" + boolValue(body, "superiorSkyblock2RuntimeDependency")
+            + " superiorRuntimePolicy=" + jsonValue(body, "superiorSkyblock2RuntimePolicy")
             + " ticketTtl=" + longValue(body, "routeTicketTtlSeconds") + "s"
             + " prepTtl=" + longValue(body, "routePreparingTicketTtlSeconds") + "s"
             + " heartbeatTimeout=" + longValue(body, "heartbeatTimeoutSeconds") + "s"
