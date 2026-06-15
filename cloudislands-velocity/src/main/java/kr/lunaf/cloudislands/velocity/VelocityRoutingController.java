@@ -1927,6 +1927,9 @@ public final class VelocityRoutingController {
             + " addonBulkIsland=" + jsonValue(body, "addonStateBulkSaveIslandEndpoint")
             + " addonTableBulkGlobal=" + jsonValue(body, "addonStateTableKeyValueBulkSaveGlobalEndpoint")
             + " addonTableBulkIsland=" + jsonValue(body, "addonStateTableKeyValueBulkSaveIslandEndpoint")
+            + " addonTablePrefix=" + jsonValue(body, "addonStateTableKeyPrefix")
+            + " addonMaxKeys=" + longValue(body, "addonStateMaxKeysPerAddon")
+            + " addonMaxValue=" + longValue(body, "addonStateMaxValueLength")
             + " satisCoreRequiresAddon=" + boolValue(body, "satisCoreBootRequiresAddon")
             + " satisDataRetention=" + jsonValue(body, "satisDataRetentionPolicy")
             + " satisCommandOwner=" + jsonValue(body, "satisCommandOwner")
@@ -2008,6 +2011,9 @@ public final class VelocityRoutingController {
             + " tableBulkIsland=" + jsonValue(body, "addonStateTableKeyValueBulkIslandEndpoint")
             + " payload=" + jsonValue(body, "addonStateTableKeyValueBulkSavePayload")
             + " storage=" + jsonValue(body, "addonStateTableKeyValueBulkSaveStorageMode")
+            + " tablePrefix=" + jsonValue(body, "addonStateTableKeyPrefix")
+            + " maxKeys=" + longValue(body, "addonStateMaxKeysPerAddon")
+            + " maxValue=" + longValue(body, "addonStateMaxValueLength")
             + " fallback=" + jsonValue(body, "addonStateTableKeyValueBulkSaveFallback");
     }
 

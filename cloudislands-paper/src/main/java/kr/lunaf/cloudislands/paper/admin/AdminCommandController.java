@@ -1973,6 +1973,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " addonTableBulkIslandAlias=" + textValue(body, "addonStateTableKeyValueBulkSaveIslandAlias")
             + " addonTableBulkGlobalCompat=" + textValue(body, "addonStateTableKeyValueBulkGlobalEndpoint")
             + " addonTableBulkIslandCompat=" + textValue(body, "addonStateTableKeyValueBulkIslandEndpoint")
+            + " addonTablePrefix=" + textValue(body, "addonStateTableKeyPrefix")
+            + " addonMaxKeys=" + longValue(body, "addonStateMaxKeysPerAddon")
+            + " addonMaxValue=" + longValue(body, "addonStateMaxValueLength")
             + " satisCoreRequiresAddon=" + boolValue(body, "satisCoreBootRequiresAddon")
             + " satisDataRetention=" + textValue(body, "satisDataRetentionPolicy")
             + " satisCommandOwner=" + textValue(body, "satisCommandOwner")
@@ -2054,6 +2057,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " tableBulkIsland=" + textValue(body, "addonStateTableKeyValueBulkIslandEndpoint")
             + " payload=" + textValue(body, "addonStateTableKeyValueBulkSavePayload")
             + " storage=" + textValue(body, "addonStateTableKeyValueBulkSaveStorageMode")
+            + " tablePrefix=" + textValue(body, "addonStateTableKeyPrefix")
+            + " maxKeys=" + longValue(body, "addonStateMaxKeysPerAddon")
+            + " maxValue=" + longValue(body, "addonStateMaxValueLength")
             + " fallback=" + textValue(body, "addonStateTableKeyValueBulkSaveFallback");
     }
 
