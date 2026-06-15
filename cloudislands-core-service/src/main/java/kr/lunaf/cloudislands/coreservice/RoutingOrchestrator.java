@@ -311,10 +311,10 @@ public final class RoutingOrchestrator {
                 return rejectRoute(409, "ACTIVATION_LOCKED", "Island activation is already in progress", playerUuid, island.islandId(), action);
             }
             if (exception.getMessage() != null && exception.getMessage().startsWith("ACTIVE_NODE_")) {
-                return rejectRoute(409, exception.getMessage(), "The active island node cannot accept this route", playerUuid, island.islandId(), action, runtime == null ? "" : runtime.activeNode());
+                return rejectRoute(409, "NODE_UNAVAILABLE", "No eligible island node is available", playerUuid, island.islandId(), action, runtime == null ? "" : runtime.activeNode(), exception.getMessage());
             }
             if ("NO_READY_NODE".equals(exception.getMessage()) || (exception.getMessage() != null && exception.getMessage().startsWith("NO_READY_NODE_"))) {
-                return rejectRoute(409, exception.getMessage(), "No ready island node is available", playerUuid, island.islandId(), action);
+                return rejectRoute(409, "NODE_UNAVAILABLE", "No ready island node is available", playerUuid, island.islandId(), action, "", exception.getMessage());
             }
             return rejectRoute(409, "NODE_UNAVAILABLE", "No eligible island node is available", playerUuid, island.islandId(), action);
         }
@@ -363,6 +363,11 @@ public final class RoutingOrchestrator {
     private RoutePreparationResult rejectRoute(int status, String reason, String message, UUID playerUuid, UUID islandId, RouteAction action, String targetNode) {
         publishTicketFailure(playerUuid, islandId, action, reason, targetNode);
         return RoutePreparationResult.rejected(status, ApiResponses.error(reason, message));
+    }
+
+    private RoutePreparationResult rejectRoute(int status, String publicReason, String message, UUID playerUuid, UUID islandId, RouteAction action, String targetNode, String debugReason) {
+        publishTicketFailure(playerUuid, islandId, action, debugReason == null || debugReason.isBlank() ? publicReason : debugReason, targetNode);
+        return RoutePreparationResult.rejected(status, ApiResponses.error(publicReason, message));
     }
 
     private void publishTicketFailure(UUID playerUuid, UUID islandId, RouteAction action, String reason) {
