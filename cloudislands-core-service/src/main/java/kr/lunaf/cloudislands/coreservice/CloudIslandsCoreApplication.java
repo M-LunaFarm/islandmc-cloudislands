@@ -2593,6 +2593,8 @@ public final class CloudIslandsCoreApplication {
             + "\"islandPoolRouteCandidateCount\":" + islandPoolRouteCandidateCount(config, nodes) + ","
             + "\"islandPoolScaleStatus\":\"" + escape(islandPoolScaleStatus(config, nodes)) + "\","
             + "\"islandPoolDegraded\":" + islandPoolDegraded(config, nodes) + ","
+            + "\"islandPoolDuplicateVelocityServerNameNodeCount\":" + islandPoolDuplicateVelocityServerNameNodeCount(config, nodes) + ","
+            + "\"islandPoolDefaultNodeIdentityRiskCount\":" + islandPoolDefaultNodeIdentityRiskCount(config, nodes) + ","
             + "\"softFullPolicy\":\"" + escape(config.softFullPolicy()) + "\","
             + "\"hardFullPolicy\":\"" + escape(config.hardFullPolicy()) + "\","
             + "\"migrationPolicy\":\"" + escape(config.migrationPolicy()) + "\","
@@ -2704,6 +2706,38 @@ public final class CloudIslandsCoreApplication {
 
     private static boolean islandPoolDegraded(CoreServiceConfig config, NodeRegistry nodes) {
         return islandPoolNodeCount(config, nodes) > 1L && islandPoolRouteCandidateCount(config, nodes) == 1L;
+    }
+
+    private static long islandPoolDuplicateVelocityServerNameNodeCount(CoreServiceConfig config, NodeRegistry nodes) {
+        if (nodes == null) {
+            return 0L;
+        }
+        String pool = config.islandPool() == null || config.islandPool().isBlank() ? "island" : config.islandPool();
+        java.util.Map<String, Long> serverCounts = nodes.snapshot().stream()
+            .filter(node -> pool.equals(node.pool() == null || node.pool().isBlank() ? "island" : node.pool()))
+            .map(node -> node.velocityServerName() == null ? "" : node.velocityServerName().trim().toLowerCase(Locale.ROOT))
+            .filter(server -> !server.isBlank())
+            .collect(java.util.stream.Collectors.groupingBy(server -> server, java.util.stream.Collectors.counting()));
+        return nodes.snapshot().stream()
+            .filter(node -> pool.equals(node.pool() == null || node.pool().isBlank() ? "island" : node.pool()))
+            .map(node -> node.velocityServerName() == null ? "" : node.velocityServerName().trim().toLowerCase(Locale.ROOT))
+            .filter(server -> !server.isBlank() && serverCounts.getOrDefault(server, 0L) > 1L)
+            .count();
+    }
+
+    private static long islandPoolDefaultNodeIdentityRiskCount(CoreServiceConfig config, NodeRegistry nodes) {
+        if (nodes == null) {
+            return 0L;
+        }
+        String pool = config.islandPool() == null || config.islandPool().isBlank() ? "island" : config.islandPool();
+        return nodes.snapshot().stream()
+            .filter(node -> pool.equals(node.pool() == null || node.pool().isBlank() ? "island" : node.pool()))
+            .filter(node -> {
+                String nodeId = node.nodeId() == null ? "" : node.nodeId().trim();
+                String serverName = node.velocityServerName() == null ? "" : node.velocityServerName().trim();
+                return nodeId.equalsIgnoreCase("island-1") || serverName.equalsIgnoreCase("Island-1");
+            })
+            .count();
     }
 
     private static void logSecurityPosture(CoreServiceConfig config) {
