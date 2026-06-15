@@ -1012,9 +1012,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         }
         if (body.contains("\"members\"")) {
             builder.append(adminText("admin-command-migration-members-prefix", " members=")).append(longValue(body, "members"))
+                .append(adminText("admin-command-migration-member-roles-prefix", " roles=")).append(longValue(body, "memberRoles"))
                 .append(adminText("admin-command-migration-bans-prefix", " bans=")).append(longValue(body, "bannedVisitors"))
                 .append(adminText("admin-command-migration-homes-prefix", " homes=")).append(longValue(body, "homes"))
                 .append(adminText("admin-command-migration-warps-prefix", " warps=")).append(longValue(body, "warps"))
+                .append(adminText("admin-command-migration-locations-prefix", " locations=")).append(longValue(body, "islandLocations"))
+                .append(adminText("admin-command-migration-source-worlds-prefix", " sourceWorlds=")).append(longValue(body, "sourceWorlds"))
                 .append(adminText("admin-command-migration-flags-prefix", " flags=")).append(longValue(body, "flags"))
                 .append(adminText("admin-command-migration-perms-prefix", " perms=")).append(longValue(body, "permissions"))
                 .append(adminText("admin-command-migration-upgrades-prefix", " upgrades=")).append(longValue(body, "upgrades"))

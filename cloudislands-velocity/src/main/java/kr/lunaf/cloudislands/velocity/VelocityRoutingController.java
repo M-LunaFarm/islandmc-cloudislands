@@ -1186,8 +1186,11 @@ public final class VelocityRoutingController {
         }
         if (body.contains("\"members\"")) {
             builder.append(" members=").append(longValue(body, "members"))
+                .append(" roles=").append(longValue(body, "memberRoles"))
                 .append(" homes=").append(longValue(body, "homes"))
                 .append(" warps=").append(longValue(body, "warps"))
+                .append(" locations=").append(longValue(body, "islandLocations"))
+                .append(" sourceWorlds=").append(longValue(body, "sourceWorlds"))
                 .append(" perms=").append(longValue(body, "permissions"));
         }
         if (body.contains("\"blockingIssues\"")) {

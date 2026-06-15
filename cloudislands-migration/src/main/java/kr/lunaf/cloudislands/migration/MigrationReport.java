@@ -5,9 +5,12 @@ import java.util.List;
 public record MigrationReport(
     int manifests,
     int members,
+    int memberRoles,
     int bannedVisitors,
     int homes,
     int warps,
+    int islandLocations,
+    int sourceWorlds,
     int flags,
     int permissions,
     int upgrades,

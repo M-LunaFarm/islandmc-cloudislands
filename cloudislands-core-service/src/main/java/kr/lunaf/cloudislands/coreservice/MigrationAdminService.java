@@ -466,9 +466,12 @@ public final class MigrationAdminService {
 
     private String reportFields(MigrationReport report) {
         return ",\"members\":" + report.members()
+            + ",\"memberRoles\":" + report.memberRoles()
             + ",\"bannedVisitors\":" + report.bannedVisitors()
             + ",\"homes\":" + report.homes()
             + ",\"warps\":" + report.warps()
+            + ",\"islandLocations\":" + report.islandLocations()
+            + ",\"sourceWorlds\":" + report.sourceWorlds()
             + ",\"flags\":" + report.flags()
             + ",\"permissions\":" + report.permissions()
             + ",\"upgrades\":" + report.upgrades()
@@ -603,9 +606,12 @@ public final class MigrationAdminService {
             + "\"generatedAt\":\"" + Instant.now() + "\","
             + "\"manifests\":" + report.manifests() + ','
             + "\"members\":" + report.members() + ','
+            + "\"memberRoles\":" + report.memberRoles() + ','
             + "\"bannedVisitors\":" + report.bannedVisitors() + ','
             + "\"homes\":" + report.homes() + ','
             + "\"warps\":" + report.warps() + ','
+            + "\"islandLocations\":" + report.islandLocations() + ','
+            + "\"sourceWorlds\":" + report.sourceWorlds() + ','
             + "\"flags\":" + report.flags() + ','
             + "\"permissions\":" + report.permissions() + ','
             + "\"upgrades\":" + report.upgrades() + ','

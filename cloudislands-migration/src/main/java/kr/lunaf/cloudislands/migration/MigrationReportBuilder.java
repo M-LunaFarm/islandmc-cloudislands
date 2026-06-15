@@ -13,9 +13,12 @@ public final class MigrationReportBuilder {
         return new MigrationReport(
             safeManifests.size(),
             sum(safeManifests, CountTarget.MEMBERS),
+            sum(safeManifests, CountTarget.MEMBER_ROLES),
             sum(safeManifests, CountTarget.BANNED_VISITORS),
             sum(safeManifests, CountTarget.HOMES),
             sum(safeManifests, CountTarget.WARPS),
+            sum(safeManifests, CountTarget.ISLAND_LOCATIONS),
+            sum(safeManifests, CountTarget.SOURCE_WORLDS),
             sum(safeManifests, CountTarget.FLAGS),
             sum(safeManifests, CountTarget.PERMISSIONS),
             sum(safeManifests, CountTarget.UPGRADES),
@@ -34,9 +37,12 @@ public final class MigrationReportBuilder {
         for (MigrationManifest manifest : manifests) {
             total += switch (target) {
                 case MEMBERS -> manifest.members().size();
+                case MEMBER_ROLES -> manifest.memberRoles().size();
                 case BANNED_VISITORS -> manifest.bannedVisitors().size();
                 case HOMES -> manifest.homes().size();
                 case WARPS -> manifest.warps().size();
+                case ISLAND_LOCATIONS -> manifest.islandLocation() != null && manifest.islandLocation().present() ? 1 : 0;
+                case SOURCE_WORLDS -> manifest.sourceWorldPath() != null && !manifest.sourceWorldPath().isBlank() ? 1 : 0;
                 case FLAGS -> manifest.flags().size();
                 case PERMISSIONS -> manifest.permissions().size();
                 case UPGRADES -> manifest.upgrades().size();
@@ -51,9 +57,12 @@ public final class MigrationReportBuilder {
 
     private enum CountTarget {
         MEMBERS,
+        MEMBER_ROLES,
         BANNED_VISITORS,
         HOMES,
         WARPS,
+        ISLAND_LOCATIONS,
+        SOURCE_WORLDS,
         FLAGS,
         PERMISSIONS,
         UPGRADES,
