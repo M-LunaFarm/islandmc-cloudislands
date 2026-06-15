@@ -476,6 +476,10 @@ public final class MigrationAdminService {
             + ",\"completedMissions\":" + report.completedMissions()
             + ",\"blockValues\":" + report.blockValues()
             + ",\"blockCounts\":" + report.blockCounts()
+            + ",\"manifestGenerated\":" + report.manifestGenerated()
+            + ",\"manifestStatus\":\"" + escape(report.manifestStatus()) + "\""
+            + ",\"conflictIssues\":" + report.conflictIssues()
+            + ",\"conflictStatus\":\"" + escape(report.conflictStatus()) + "\""
             + ",\"blockingIssues\":" + report.blockingIssues()
             + ",\"warningIssues\":" + report.warningIssues();
     }
@@ -609,6 +613,10 @@ public final class MigrationAdminService {
             + "\"completedMissions\":" + report.completedMissions() + ','
             + "\"blockValues\":" + report.blockValues() + ','
             + "\"blockCounts\":" + report.blockCounts() + ','
+            + "\"manifestGenerated\":" + report.manifestGenerated() + ','
+            + "\"manifestStatus\":\"" + escape(report.manifestStatus()) + "\","
+            + "\"conflictIssues\":" + report.conflictIssues() + ','
+            + "\"conflictStatus\":\"" + escape(report.conflictStatus()) + "\","
             + "\"blockingIssues\":" + report.blockingIssues() + ','
             + "\"warningIssues\":" + report.warningIssues() + ','
             + "\"canImport\":" + report.canImport() + ','
