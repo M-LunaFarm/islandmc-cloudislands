@@ -554,14 +554,32 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (!registeredFeatureKnown(registration, feature, normalizedFeature)) {
                 return CompletableFuture.completedFuture(Optional.empty());
             }
-            plugin.getConfig().set("addons." + safeId + ".features." + normalizedFeature, enabled);
+            String configFeature = configFeatureKey(registration, feature, normalizedFeature);
+            plugin.getConfig().set("addons." + safeId + ".features." + configFeature, enabled);
             for (String alias : parentConfigAliases(registration.metadata())) {
-                plugin.getConfig().set(alias + ".features." + normalizedFeature, enabled);
+                plugin.getConfig().set(alias + ".features." + configFeature, enabled);
             }
-            clearFeatureAliases(safeId, registration, normalizedFeature);
+            if (configFeature.equals(normalizedFeature)) {
+                clearFeatureAliases(safeId, registration, normalizedFeature);
+            }
             plugin.saveConfig();
             plugin.reloadConfig();
             return refresh(safeId);
+        }
+
+        private String configFeatureKey(AddonRegistration registration, String requestedFeature, String normalizedFeature) {
+            String requested = requestedFeature == null ? "" : requestedFeature.trim();
+            if (requested.isBlank()) {
+                return normalizedFeature;
+            }
+            Map<String, Boolean> features = registration.features() == null ? Map.of() : registration.features();
+            Map<String, String> dependencies = AddonFeatureAliases.dependencies(registration.metadata());
+            if (features.containsKey(requested)
+                    || dependencies.containsKey(requested)
+                    || AddonFeatureAliases.aliasesFor(registration.metadata(), normalizedFeature).contains(requested)) {
+                return requested;
+            }
+            return normalizedFeature;
         }
 
         private void clearFeatureAliases(String id, AddonRegistration registration, String canonicalFeature) {
