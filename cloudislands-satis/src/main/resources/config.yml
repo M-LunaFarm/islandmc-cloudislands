@@ -98,7 +98,7 @@ setup:
       order: []
     jdbc:
       # Empty values inherit database.jdbc.* below.
-      # CLOUDISLANDS_SATIS_JDBC_URL, CLOUDISLANDS_SATIS_DB_USERNAME, and
+      # CLOUDISLANDS_SATIS_JDBC_URL,CLOUDISLANDS_SATIS_POSTGRESQL_JDBC_URL,CLOUDISLANDS_SATIS_MYSQL_JDBC_URL,CLOUDISLANDS_SATIS_MARIADB_JDBC_URL, CLOUDISLANDS_SATIS_DB_USERNAME, and
       # CLOUDISLANDS_SATIS_DB_PASSWORD override config values.
       # A common JDBC URL here can infer setup.database.type from the URL prefix.
       url: ""
@@ -245,7 +245,10 @@ database:
     connection-timeout-ms: 0
   # If you override database.type to SQLITE, use one of these in multi-node CloudIslands setups so A/B island nodes share Satis state.
   # Environment variable CLOUDISLANDS_SATIS_DB has the highest priority for SQLite file paths.
-  # Environment variable CLOUDISLANDS_SATIS_JDBC_URL has the highest priority for JDBC backends.
+  # Environment variable CLOUDISLANDS_SATIS_JDBC_URL,CLOUDISLANDS_SATIS_POSTGRESQL_JDBC_URL,CLOUDISLANDS_SATIS_MYSQL_JDBC_URL,CLOUDISLANDS_SATIS_MARIADB_JDBC_URL has the highest priority for JDBC backends.
+  # Backend-specific JDBC env values are also supported:
+  # CLOUDISLANDS_SATIS_POSTGRESQL_JDBC_URL, CLOUDISLANDS_SATIS_MYSQL_JDBC_URL,
+  # CLOUDISLANDS_SATIS_MARIADB_JDBC_URL.
   # Other env overrides: CLOUDISLANDS_SATIS_DATABASE_TYPE, CLOUDISLANDS_SATIS_DB_USERNAME,
   # CLOUDISLANDS_SATIS_DB_PASSWORD, CLOUDISLANDS_SATIS_DB_MAX_POOL_SIZE,
   # CLOUDISLANDS_SATIS_DB_CONNECTION_TIMEOUT_MS, CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED,

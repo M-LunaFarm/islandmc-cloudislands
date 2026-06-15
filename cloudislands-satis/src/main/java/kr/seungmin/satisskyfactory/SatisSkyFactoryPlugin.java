@@ -1266,11 +1266,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-core-api-write-fallback", databaseCoreApiWriteFallbackPolicy());
         metadata.put("database-config-env", "CLOUDISLANDS_SATIS_DATABASE_TYPE,CLOUDISLANDS_SATIS_DB");
         metadata.put("database-jdbc-source", databaseJdbcSource());
-        metadata.put("database-jdbc-env", "CLOUDISLANDS_SATIS_JDBC_URL");
+        metadata.put("database-jdbc-env", "CLOUDISLANDS_SATIS_JDBC_URL,CLOUDISLANDS_SATIS_POSTGRESQL_JDBC_URL,CLOUDISLANDS_SATIS_MYSQL_JDBC_URL,CLOUDISLANDS_SATIS_MARIADB_JDBC_URL");
         metadata.put("database-credentials-source", databaseCredentialsSource());
-        metadata.put("database-credentials-env", "CLOUDISLANDS_SATIS_DB_USERNAME,CLOUDISLANDS_SATIS_DB_PASSWORD");
+        metadata.put("database-credentials-env", "CLOUDISLANDS_SATIS_DB_USERNAME,CLOUDISLANDS_SATIS_DB_PASSWORD,CLOUDISLANDS_SATIS_POSTGRESQL_USERNAME/PASSWORD,CLOUDISLANDS_SATIS_MYSQL_USERNAME/PASSWORD,CLOUDISLANDS_SATIS_MARIADB_USERNAME/PASSWORD");
         metadata.put("database-pool-source", databasePoolSource());
-        metadata.put("database-pool-env", "CLOUDISLANDS_SATIS_DB_MAX_POOL_SIZE,CLOUDISLANDS_SATIS_DB_CONNECTION_TIMEOUT_MS");
+        metadata.put("database-pool-env", "CLOUDISLANDS_SATIS_DB_MAX_POOL_SIZE,CLOUDISLANDS_SATIS_DB_CONNECTION_TIMEOUT_MS,CLOUDISLANDS_SATIS_POSTGRESQL_MAX_POOL_SIZE/CONNECTION_TIMEOUT_MS,CLOUDISLANDS_SATIS_MYSQL_MAX_POOL_SIZE/CONNECTION_TIMEOUT_MS,CLOUDISLANDS_SATIS_MARIADB_MAX_POOL_SIZE/CONNECTION_TIMEOUT_MS");
         metadata.put("database-path", resolveDatabaseFileName());
         metadata.put("database-open", Boolean.toString(database != null));
         metadata.put("database-file", configuredDatabaseFileName());
@@ -1597,11 +1597,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-core-api-write-fallback", databaseCoreApiWriteFallbackPolicy());
         state.put("database-config-env", "CLOUDISLANDS_SATIS_DATABASE_TYPE,CLOUDISLANDS_SATIS_DB");
         state.put("database-jdbc-source", databaseJdbcSource());
-        state.put("database-jdbc-env", "CLOUDISLANDS_SATIS_JDBC_URL");
+        state.put("database-jdbc-env", "CLOUDISLANDS_SATIS_JDBC_URL,CLOUDISLANDS_SATIS_POSTGRESQL_JDBC_URL,CLOUDISLANDS_SATIS_MYSQL_JDBC_URL,CLOUDISLANDS_SATIS_MARIADB_JDBC_URL");
         state.put("database-credentials-source", databaseCredentialsSource());
-        state.put("database-credentials-env", "CLOUDISLANDS_SATIS_DB_USERNAME,CLOUDISLANDS_SATIS_DB_PASSWORD");
+        state.put("database-credentials-env", "CLOUDISLANDS_SATIS_DB_USERNAME,CLOUDISLANDS_SATIS_DB_PASSWORD,CLOUDISLANDS_SATIS_POSTGRESQL_USERNAME/PASSWORD,CLOUDISLANDS_SATIS_MYSQL_USERNAME/PASSWORD,CLOUDISLANDS_SATIS_MARIADB_USERNAME/PASSWORD");
         state.put("database-pool-source", databasePoolSource());
-        state.put("database-pool-env", "CLOUDISLANDS_SATIS_DB_MAX_POOL_SIZE,CLOUDISLANDS_SATIS_DB_CONNECTION_TIMEOUT_MS");
+        state.put("database-pool-env", "CLOUDISLANDS_SATIS_DB_MAX_POOL_SIZE,CLOUDISLANDS_SATIS_DB_CONNECTION_TIMEOUT_MS,CLOUDISLANDS_SATIS_POSTGRESQL_MAX_POOL_SIZE/CONNECTION_TIMEOUT_MS,CLOUDISLANDS_SATIS_MYSQL_MAX_POOL_SIZE/CONNECTION_TIMEOUT_MS,CLOUDISLANDS_SATIS_MARIADB_MAX_POOL_SIZE/CONNECTION_TIMEOUT_MS");
         state.put("database-fallback-source", databaseFallbackSource());
         state.put("database-fallback-env", "CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED,CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER");
         state.put("database-path", resolveDatabaseFileName());
@@ -1717,11 +1717,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         putAddonStateSyncState(state);
         state.put("database-config-env", "CLOUDISLANDS_SATIS_DATABASE_TYPE,CLOUDISLANDS_SATIS_DB");
         state.put("database-jdbc-source", databaseJdbcSource());
-        state.put("database-jdbc-env", "CLOUDISLANDS_SATIS_JDBC_URL");
+        state.put("database-jdbc-env", "CLOUDISLANDS_SATIS_JDBC_URL,CLOUDISLANDS_SATIS_POSTGRESQL_JDBC_URL,CLOUDISLANDS_SATIS_MYSQL_JDBC_URL,CLOUDISLANDS_SATIS_MARIADB_JDBC_URL");
         state.put("database-credentials-source", databaseCredentialsSource());
-        state.put("database-credentials-env", "CLOUDISLANDS_SATIS_DB_USERNAME,CLOUDISLANDS_SATIS_DB_PASSWORD");
+        state.put("database-credentials-env", "CLOUDISLANDS_SATIS_DB_USERNAME,CLOUDISLANDS_SATIS_DB_PASSWORD,CLOUDISLANDS_SATIS_POSTGRESQL_USERNAME/PASSWORD,CLOUDISLANDS_SATIS_MYSQL_USERNAME/PASSWORD,CLOUDISLANDS_SATIS_MARIADB_USERNAME/PASSWORD");
         state.put("database-pool-source", databasePoolSource());
-        state.put("database-pool-env", "CLOUDISLANDS_SATIS_DB_MAX_POOL_SIZE,CLOUDISLANDS_SATIS_DB_CONNECTION_TIMEOUT_MS");
+        state.put("database-pool-env", "CLOUDISLANDS_SATIS_DB_MAX_POOL_SIZE,CLOUDISLANDS_SATIS_DB_CONNECTION_TIMEOUT_MS,CLOUDISLANDS_SATIS_POSTGRESQL_MAX_POOL_SIZE/CONNECTION_TIMEOUT_MS,CLOUDISLANDS_SATIS_MYSQL_MAX_POOL_SIZE/CONNECTION_TIMEOUT_MS,CLOUDISLANDS_SATIS_MARIADB_MAX_POOL_SIZE/CONNECTION_TIMEOUT_MS");
         state.put("database-fallback-source", databaseFallbackSource());
         state.put("database-fallback-env", "CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED,CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER");
         state.put("database-path", resolveDatabaseFileName());
@@ -3199,10 +3199,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String jdbcUrl(String section, String prefix, int defaultPort) {
-        String configured = firstNonBlank(configs.main().getString("setup.database." + section + ".jdbc-url", ""),
+        String configured = firstNonBlank(backendEnv(section, "JDBC_URL"),
+                firstNonBlank(backendEnv(section, "URL"),
+                firstNonBlank(configs.main().getString("setup.database." + section + ".jdbc-url", ""),
                 firstNonBlank(configs.main().getString("setup.database." + section + ".url", ""),
                         firstNonBlank(configs.main().getString("database." + section + ".jdbc-url", ""),
-                                configs.main().getString("database." + section + ".url", ""))));
+                                configs.main().getString("database." + section + ".url", "")))));
         if (configured != null && !configured.isBlank()) {
             return configured.trim();
         }
@@ -3262,11 +3264,43 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private DatabaseService.BackendSettings databaseBackendSettings(String section) {
         return new DatabaseService.BackendSettings(
-                firstNonBlank(configs.main().getString("setup.database." + section + ".username", ""), configs.main().getString("database." + section + ".username", "")),
-                firstNonBlank(configs.main().getString("setup.database." + section + ".password", ""), configs.main().getString("database." + section + ".password", "")),
-                positiveInt("setup.database." + section + ".max-pool-size", positiveInt("database." + section + ".max-pool-size", 0)),
-                positiveLong("setup.database." + section + ".connection-timeout-ms", positiveLong("database." + section + ".connection-timeout-ms", 0L))
+                firstNonBlank(backendEnv(section, "USERNAME"), firstNonBlank(configs.main().getString("setup.database." + section + ".username", ""), configs.main().getString("database." + section + ".username", ""))),
+                firstNonBlank(backendEnv(section, "PASSWORD"), firstNonBlank(configs.main().getString("setup.database." + section + ".password", ""), configs.main().getString("database." + section + ".password", ""))),
+                backendEnvInt(section, "MAX_POOL_SIZE", positiveInt("setup.database." + section + ".max-pool-size", positiveInt("database." + section + ".max-pool-size", 0))),
+                backendEnvLong(section, "CONNECTION_TIMEOUT_MS", positiveLong("setup.database." + section + ".connection-timeout-ms", positiveLong("database." + section + ".connection-timeout-ms", 0L)))
         );
+    }
+
+    private String backendEnv(String section, String key) {
+        if (section == null || section.isBlank() || key == null || key.isBlank()) {
+            return "";
+        }
+        String value = System.getenv("CLOUDISLANDS_SATIS_" + section.trim().toUpperCase(Locale.ROOT).replace('-', '_') + "_" + key);
+        return value == null ? "" : value.trim();
+    }
+
+    private int backendEnvInt(String section, String key, int fallback) {
+        String value = backendEnv(section, key);
+        if (value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException exception) {
+            return fallback;
+        }
+    }
+
+    private long backendEnvLong(String section, String key, long fallback) {
+        String value = backendEnv(section, key);
+        if (value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException exception) {
+            return fallback;
+        }
     }
 
     private String typedDatabaseSetting(String key) {
@@ -3440,7 +3474,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private boolean setupDatabaseSectionConfigured(String section) {
         String base = "setup.database." + section + ".";
-        return nonBlankConfig(base + "jdbc-url")
+        return !backendEnv(section, "JDBC_URL").isBlank()
+                || !backendEnv(section, "URL").isBlank()
+                || !backendEnv(section, "USERNAME").isBlank()
+                || !backendEnv(section, "PASSWORD").isBlank()
+                || backendEnvInt(section, "MAX_POOL_SIZE", 0) > 0
+                || backendEnvLong(section, "CONNECTION_TIMEOUT_MS", 0L) > 0L
+                || nonBlankConfig(base + "jdbc-url")
                 || nonBlankConfig(base + "url")
                 || nonBlankConfig(base + "host")
                 || nonBlankConfig(base + "name")
@@ -3969,6 +4009,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         String typedSection = databaseSetupSection();
         if (!typedSection.isBlank()
+                && (!backendEnv(typedSection, "USERNAME").isBlank() || !backendEnv(typedSection, "PASSWORD").isBlank())) {
+            return "CLOUDISLANDS_SATIS_" + typedSection.toUpperCase(Locale.ROOT) + "_USERNAME/PASSWORD";
+        }
+        if (!typedSection.isBlank()
                 && (!configs.main().getString("setup.database." + typedSection + ".username", "").isBlank()
                 || !configs.main().getString("setup.database." + typedSection + ".password", "").isBlank())) {
             return "setup.database." + typedSection + ".username/password";
@@ -3984,7 +4028,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private String databaseJdbcSource() {
         if (envPresent("CLOUDISLANDS_SATIS_JDBC_URL")) {
-            return "CLOUDISLANDS_SATIS_JDBC_URL";
+            return "CLOUDISLANDS_SATIS_JDBC_URL,CLOUDISLANDS_SATIS_POSTGRESQL_JDBC_URL,CLOUDISLANDS_SATIS_MYSQL_JDBC_URL,CLOUDISLANDS_SATIS_MARIADB_JDBC_URL";
+        }
+        String backend = configuredDatabaseBackendName().toLowerCase(java.util.Locale.ROOT);
+        if (!backendEnv(backend, "JDBC_URL").isBlank() || !backendEnv(backend, "URL").isBlank()) {
+            return "CLOUDISLANDS_SATIS_" + backend.toUpperCase(Locale.ROOT) + "_JDBC_URL";
         }
         if (nonBlankConfig("setup.database.jdbc.url")) {
             return "setup.database.jdbc.url";
@@ -3992,7 +4040,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (nonBlankConfig("database.jdbc.url")) {
             return "database.jdbc.url";
         }
-        String backend = configuredDatabaseBackendName().toLowerCase(java.util.Locale.ROOT);
         if (nonBlankConfig("setup.database." + backend + ".jdbc-url")
                 || nonBlankConfig("setup.database." + backend + ".url")
                 || nonBlankConfig("setup.database." + backend + ".host")
@@ -4008,6 +4055,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return "CLOUDISLANDS_SATIS_DB_MAX_POOL_SIZE/CONNECTION_TIMEOUT_MS";
         }
         String typedSection = databaseSetupSection();
+        if (!typedSection.isBlank()
+                && (backendEnvInt(typedSection, "MAX_POOL_SIZE", 0) > 0
+                || backendEnvLong(typedSection, "CONNECTION_TIMEOUT_MS", 0L) > 0L)) {
+            return "CLOUDISLANDS_SATIS_" + typedSection.toUpperCase(Locale.ROOT) + "_POOL";
+        }
         if (!typedSection.isBlank()
                 && (configs.main().getInt("setup.database." + typedSection + ".max-pool-size", 0) > 0
                 || configs.main().getLong("setup.database." + typedSection + ".connection-timeout-ms", 0L) > 0L)) {
