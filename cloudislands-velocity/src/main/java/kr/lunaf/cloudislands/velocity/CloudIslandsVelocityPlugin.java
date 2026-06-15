@@ -244,7 +244,17 @@ public final class CloudIslandsVelocityPlugin {
     }
 
     private static String[] commandAliasArray(List<String> aliases) {
-        return aliases.stream().filter(alias -> !alias.equalsIgnoreCase("섬")).distinct().toArray(String[]::new);
+        List<String> result = new ArrayList<>();
+        for (String alias : aliases) {
+            String normalized = alias == null ? "" : alias.trim();
+            if (normalized.isBlank() || normalized.equalsIgnoreCase("섬")) {
+                continue;
+            }
+            if (result.stream().noneMatch(existing -> existing.equalsIgnoreCase(normalized))) {
+                result.add(normalized);
+            }
+        }
+        return result.toArray(String[]::new);
     }
 
     private void logSecurityPosture(VelocityConfig config, String coreToken, String adminToken) {
