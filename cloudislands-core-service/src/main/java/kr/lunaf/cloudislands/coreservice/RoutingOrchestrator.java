@@ -149,7 +149,7 @@ public final class RoutingOrchestrator {
         java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
         payload.put("targetType", "MIGRATION_RETURN");
         payload.putAll(locationPayload == null ? Map.of() : locationPayload);
-        RouteTicket saved = tickets.save(ticket(playerUuid, islandId, RouteAction.RETURN_AFTER_MIGRATION, payload, new RouteTarget(node, "ci_shard_001", RouteTicketState.PREPARING)));
+        RouteTicket saved = tickets.save(ticket(playerUuid, islandId, RouteAction.RETURN_AFTER_MIGRATION, payload, new RouteTarget(node, IslandPlacement.worldName(islandId), RouteTicketState.PREPARING)));
         events.publish(CloudIslandEventType.ROUTE_TICKET_CREATED.name(), Map.of(
             "ticketId", saved.ticketId().toString(),
             "playerUuid", saved.playerUuid().toString(),
@@ -504,7 +504,7 @@ public final class RoutingOrchestrator {
         if (activationLock != null) {
             lease = activationLock.acquire(runtime.islandId(), "route").orElseThrow(() -> new IllegalStateException("ACTIVATION_LOCKED"));
         }
-        IslandRuntimeSnapshot activating = runtimes.markActivating(runtime.islandId(), selected.nodeId(), "ci_shard_001", 0, 0);
+        IslandRuntimeSnapshot activating = runtimes.markActivating(runtime.islandId(), selected.nodeId(), IslandPlacement.worldName(runtime.islandId()), IslandPlacement.cellX(runtime.islandId()), IslandPlacement.cellZ(runtime.islandId()));
         try {
             jobs.publish(new IslandJob(
                 UUID.randomUUID(),
