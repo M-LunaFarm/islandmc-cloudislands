@@ -11,17 +11,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
 
 public final class ItemNetworkService {
     private final DatabaseService database;
     private final MachineService machines;
     private final NetworkRebuildService networkRebuild;
+    private BooleanSupplier writesEnabled = () -> true;
     private boolean active = true;
 
     public ItemNetworkService(DatabaseService database, MachineService machines, MachineDefinitionService definitions) {
         this.database = database;
         this.machines = machines;
         this.networkRebuild = new NetworkRebuildService(definitions);
+    }
+
+    public void writeGate(BooleanSupplier writesEnabled) {
+        this.writesEnabled = writesEnabled == null ? () -> true : writesEnabled;
     }
 
     public void activate() {
@@ -31,6 +37,9 @@ public final class ItemNetworkService {
     public List<ItemNetwork> rebuildIsland(UUID islandUuid) {
         if (!active) {
             return List.of();
+        }
+        if (!writesEnabled()) {
+            return load(islandUuid);
         }
         List<MachineInstance> islandMachines = machines.byIsland(islandUuid).stream().toList();
         NetworkRebuildService.RebuildResult result = networkRebuild.rebuild(
@@ -60,5 +69,9 @@ public final class ItemNetworkService {
 
     public void clear() {
         active = false;
+    }
+
+    private boolean writesEnabled() {
+        return writesEnabled.getAsBoolean();
     }
 }
