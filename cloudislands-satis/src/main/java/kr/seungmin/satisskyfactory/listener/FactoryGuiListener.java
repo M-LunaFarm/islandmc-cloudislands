@@ -313,7 +313,11 @@ public final class FactoryGuiListener implements Listener {
 
     private Optional<MachineInstance> machine(FactoryGuiHolder holder) {
         UUID machineId = holder.machineId();
-        return machineId == null ? Optional.empty() : machines.find(machineId);
+        if (machineId == null) {
+            return Optional.empty();
+        }
+        return machines.find(machineId)
+                .filter(machine -> machine.islandUuid().equals(holder.islandUuid()));
     }
 
     private boolean canUseIslandGui(Player player, FactoryIsland island) {
