@@ -947,6 +947,7 @@ public final class AdminFactoryCommand {
                         "runtime-command-block-reason",
                         "runtime-blocked-components",
                         "runtime-disabled-component-policy",
+                        "runtime-readonly-command-write-policy",
                         "legacy-satismc-import-status",
                         "legacy-satismc-import-scan",
                         "legacy-satismc-import-dryrun",

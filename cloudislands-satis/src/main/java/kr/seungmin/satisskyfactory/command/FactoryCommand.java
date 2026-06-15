@@ -142,17 +142,18 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             messages.send(player, "feature-disabled", Map.of("feature", disabledFeature));
             return true;
         }
-        Optional<FactoryContext> context = readOnlyCommand(sub) ? islands.existingContext(player) : islands.context(player);
+        boolean readOnly = readOnlyCommand(sub);
+        Optional<FactoryContext> context = readOnly ? islands.existingContext(player) : islands.context(player);
         if (context.isEmpty()) {
             messages.send(player, "no-island");
             return true;
         }
         FactoryContext factoryContext = context.get();
         FactoryIsland island = factoryContext.factoryIsland();
-        if (enabled("resource-nodes")) {
+        if (!readOnly && enabled("resource-nodes")) {
             ensureResourceNodes(player, factoryContext);
         }
-        if (enabled("maintenance")) {
+        if (!readOnly && enabled("maintenance")) {
             maintenance.chargeIfDue(island, player, factoryContext.islandRef().raw());
             islands.save(island);
         }
