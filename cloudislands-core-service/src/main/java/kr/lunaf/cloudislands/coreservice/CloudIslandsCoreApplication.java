@@ -3796,9 +3796,8 @@ public final class CloudIslandsCoreApplication {
         if (tables == null || tables.isEmpty()) {
             return 0;
         }
-        return tables.values().stream()
-            .filter(java.util.Objects::nonNull)
-            .mapToInt(Map::size)
+        return tables.entrySet().stream()
+            .mapToInt(entry -> tableStateValues(entry.getKey(), entry.getValue()).size())
             .sum();
     }
 
