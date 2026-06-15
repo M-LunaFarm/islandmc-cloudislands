@@ -122,6 +122,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         String pool = getConfig().getString("node.pool", "island");
         String velocityServerName = getConfig().getString("node.velocity-server-name", nodeId);
         AgentRole role = AgentRole.valueOf(getConfig().getString("node.role", "ISLAND_NODE"));
+        warnIfDefaultNodeIdentity(role, nodeId, velocityServerName);
         CoreApiClient client = new JdkCoreApiClient(
             URI.create(coreApiBaseUrl()),
             coreApiToken(),
@@ -358,6 +359,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean routeSessionEnforced = configBoolean("security.enforce-route-session", true) || configBoolean("routing.require-route-session", true);
         boolean hideNodeNames = configBoolean("routing.hide-node-names", true);
         boolean topologyExposureRisk = !hideNodeNames;
+        boolean defaultNodeIdentityRisk = defaultNodeIdentityRisk(role, nodeId, getConfig().getString("node.velocity-server-name", nodeId));
         int proxySourceAllowlistEntries = proxySourceAllowlist == null ? 0 : proxySourceAllowlist.entryCount();
         boolean proxySourceAllowlistConfigured = proxySourceAllowlistEntries > 0;
         boolean directAccessRisk = role == AgentRole.ISLAND_NODE && !getServer().getOnlineMode() && !proxySourceAllowlistConfigured;
@@ -382,6 +384,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"routeSessionEnforced\":" + routeSessionEnforced + ","
             + "\"hideNodeNames\":" + hideNodeNames + ","
             + "\"topologyExposureRisk\":" + topologyExposureRisk + ","
+            + "\"defaultNodeIdentityRisk\":" + defaultNodeIdentityRisk + ","
             + "\"proxySourceAllowlistConfigured\":" + proxySourceAllowlistConfigured + ","
             + "\"proxySourceAllowlistEntries\":" + proxySourceAllowlistEntries + ","
             + "\"directAccessRisk\":" + directAccessRisk + ","
@@ -416,6 +419,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean routeSessionEnforced = configBoolean("security.enforce-route-session", true) || configBoolean("routing.require-route-session", true);
         boolean hideNodeNames = configBoolean("routing.hide-node-names", true);
         boolean topologyExposureRisk = !hideNodeNames;
+        boolean defaultNodeIdentityRisk = defaultNodeIdentityRisk(role, nodeId, getConfig().getString("node.velocity-server-name", nodeId));
         int proxySourceAllowlistEntries = proxySourceAllowlist == null ? 0 : proxySourceAllowlist.entryCount();
         boolean proxySourceAllowlistConfigured = proxySourceAllowlistEntries > 0;
         boolean directAccessRisk = role == AgentRole.ISLAND_NODE && !getServer().getOnlineMode() && !proxySourceAllowlistConfigured;
@@ -458,6 +462,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_paper_route_session_enforced{node=\"" + nodeId + "\"} " + (routeSessionEnforced ? 1 : 0) + "\n"
             + "cloudislands_paper_hide_node_names{node=\"" + nodeId + "\"} " + (hideNodeNames ? 1 : 0) + "\n"
             + "cloudislands_paper_topology_exposure_risk{node=\"" + nodeId + "\"} " + (topologyExposureRisk ? 1 : 0) + "\n"
+            + "cloudislands_paper_default_node_identity_risk{node=\"" + nodeId + "\"} " + (defaultNodeIdentityRisk ? 1 : 0) + "\n"
             + "cloudislands_paper_proxy_source_allowlist_configured{node=\"" + nodeId + "\"} " + (proxySourceAllowlistConfigured ? 1 : 0) + "\n"
             + "cloudislands_paper_proxy_source_allowlist_entries{node=\"" + nodeId + "\"} " + proxySourceAllowlistEntries + "\n"
             + "cloudislands_paper_direct_access_risk{node=\"" + nodeId + "\"} " + (directAccessRisk ? 1 : 0) + "\n"
@@ -475,6 +480,22 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_paper_redis_latency_seconds{node=\"" + nodeId + "\"} " + redis.latencySeconds() + "\n"
             + "cloudislands_paper_redis_failures_total{node=\"" + nodeId + "\"} " + redis.failuresTotal() + "\n"
             + (localCaches == null ? "" : localCaches.prometheus(nodeId));
+    }
+
+    private void warnIfDefaultNodeIdentity(AgentRole role, String nodeId, String velocityServerName) {
+        if (!defaultNodeIdentityRisk(role, nodeId, velocityServerName)) {
+            return;
+        }
+        getLogger().warning("CloudIslands node.id/velocity-server-name still use the default island-1/Island-1 identity. Set a unique node.id and Velocity server name for every Island node before running multiple Island servers.");
+    }
+
+    private boolean defaultNodeIdentityRisk(AgentRole role, String nodeId, String velocityServerName) {
+        if (role != AgentRole.ISLAND_NODE) {
+            return false;
+        }
+        String safeNodeId = nodeId == null ? "" : nodeId.trim();
+        String safeVelocityServerName = velocityServerName == null ? "" : velocityServerName.trim();
+        return safeNodeId.equalsIgnoreCase("island-1") || safeVelocityServerName.equalsIgnoreCase("Island-1");
     }
 
     private String levelScanStatus(String supportedTemplates) {
@@ -514,6 +535,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";routeSessionCheckFailures=" + (routeSessionListener == null ? 0L : routeSessionListener.routeSessionCheckFailures())
             + ";hideNodeNames=" + configBoolean("routing.hide-node-names", true)
             + ";topologyExposureRisk=" + !configBoolean("routing.hide-node-names", true)
+            + ";defaultNodeIdentityRisk=" + defaultNodeIdentityRisk(AgentRole.valueOf(getConfig().getString("node.role", "ISLAND_NODE")), getConfig().getString("node.id", "island-1"), getConfig().getString("node.velocity-server-name", getConfig().getString("node.id", "island-1")))
             + ";chatBroadcasts=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatBroadcasts())
             + ";chatDeliveries=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatDeliveries())
             + ";chatNoRecipientBroadcasts=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatNoRecipientBroadcasts());
