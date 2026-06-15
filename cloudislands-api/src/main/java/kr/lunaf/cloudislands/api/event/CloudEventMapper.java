@@ -40,6 +40,7 @@ public final class CloudEventMapper {
             case "ISLAND_VISITED" -> Optional.of(new IslandVisitEvent(uuid(fields, "islandId"), firstUuid(fields, "visitorUuid", "playerUuid"), firstText(fields, "nodeId", "targetNode"), occurredAt));
             case "ISLAND_INVITE_CHANGED" -> Optional.of(new IslandInviteChangeEvent(uuid(fields, "islandId"), firstUuid(fields, "inviteId", "id"), firstUuid(fields, "playerUuid", "actorUuid"), firstUuid(fields, "targetUuid", "targetPlayerUuid"), text(fields, "state"), nullableBool(fields, "accepted"), nullableBool(fields, "declined"), occurredAt));
             case "ISLAND_MEMBER_CHANGED" -> Optional.of(new IslandMemberChangedEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), text(fields, "action"), role(fields, "oldRole"), firstRole(fields, "newRole", "role"), occurredAt));
+            case "ISLAND_OWNERSHIP_CHANGED" -> Optional.of(new IslandOwnershipChangeEvent(uuid(fields, "islandId"), firstUuid(fields, "actorUuid", "playerUuid"), firstUuid(fields, "targetUuid", "newOwnerUuid"), occurredAt));
             case "ISLAND_RENAMED" -> Optional.of(new IslandRenamedEvent(uuid(fields, "islandId"), firstUuid(fields, "actorUuid", "playerUuid"), firstText(fields, "name", "islandName"), occurredAt));
             case "ISLAND_ACCESS_CHANGED" -> Optional.of(new IslandAccessChangeEvent(uuid(fields, "islandId"), nullableBool(fields, "publicAccess"), nullableBool(fields, "locked"), occurredAt));
             case "ISLAND_VISITOR_BAN_CHANGED" -> Optional.of(new IslandVisitorBanChangeEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), bool(fields, "banned"), occurredAt));
@@ -51,12 +52,15 @@ public final class CloudEventMapper {
             case "ISLAND_HOME_CHANGED" -> Optional.of(new IslandHomeChangeEvent(uuid(fields, "islandId"), firstText(fields, "homeName", "name"), occurredAt));
             case "ISLAND_WARP_CHANGED" -> Optional.of(new IslandWarpChangeEvent(uuid(fields, "islandId"), firstText(fields, "warpName", "name"), text(fields, "operation"), occurredAt));
             case "ISLAND_BANK_CHANGED" -> Optional.of(new IslandBankChangeEvent(uuid(fields, "islandId"), text(fields, "operation"), text(fields, "amount"), text(fields, "balance"), occurredAt));
+            case "ISLAND_CHAT_SENT" -> Optional.of(new IslandChatSentEvent(uuid(fields, "islandId"), uuid(fields, "playerUuid"), text(fields, "channel"), text(fields, "message"), occurredAt));
             case "ISLAND_MISSION_PROGRESS" -> Optional.of(new IslandMissionProgressEvent(uuid(fields, "islandId"), text(fields, "missionKey"), text(fields, "kind"), longValue(fields, "progress"), longValue(fields, "goal"), longValue(fields, "amount"), bool(fields, "completed"), occurredAt));
             case "ISLAND_MISSION_COMPLETED" -> Optional.of(new IslandMissionCompleteEvent(uuid(fields, "islandId"), text(fields, "missionKey"), text(fields, "kind"), occurredAt));
             case "ISLAND_LEVEL_UPDATED" -> Optional.of(new IslandLevelRecalculateEvent(uuid(fields, "islandId"), longValue(fields, "level"), decimalOrNull(fields, "worth"), occurredAt));
             case "ISLAND_WORTH_CHANGED" -> Optional.of(new IslandWorthChangeEvent(uuid(fields, "islandId"), decimal(fields, "worth"), occurredAt));
             case "ISLAND_UPGRADE" -> Optional.of(new IslandUpgradeEvent(uuid(fields, "islandId"), text(fields, "upgradeKey"), intValue(fields, "level"), occurredAt));
             case "ISLAND_LIMIT_CHANGED" -> Optional.of(new IslandLimitChangeEvent(uuid(fields, "islandId"), firstText(fields, "limitKey", "key"), longValue(fields, "value"), occurredAt));
+            case "ISLAND_BLOCKS_CHANGED" -> Optional.of(new IslandBlocksChangeEvent(uuid(fields, "islandId"), text(fields, "materialKey"), text(fields, "delta"), occurredAt));
+            case "ISLAND_BLOCK_VALUE_CHANGED" -> Optional.of(new IslandBlockValueChangeEvent(text(fields, "materialKey"), decimal(fields, "worth"), longValue(fields, "levelPoints"), longValue(fields, "limit"), occurredAt));
             case "ISLAND_SNAPSHOT_REQUESTED" -> Optional.of(new IslandSnapshotRequestEvent(uuid(fields, "islandId"), text(fields, "reason"), occurredAt));
             case "ISLAND_SNAPSHOT_CREATED" -> Optional.of(new IslandSnapshotCreateEvent(uuid(fields, "islandId"), longValue(fields, "snapshotNo"), text(fields, "reason"), occurredAt));
             case "NODE_STATE_CHANGED" -> Optional.of(new NodeStateChangedEvent(text(fields, "nodeId"), text(fields, "state"), text(fields, "operation"), text(fields, "reason"), intValue(fields, "recoveryRequired"), occurredAt));
