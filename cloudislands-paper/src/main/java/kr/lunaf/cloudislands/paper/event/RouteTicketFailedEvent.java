@@ -13,16 +13,18 @@ public final class RouteTicketFailedEvent extends Event {
     private final UUID playerUuid;
     private final String action;
     private final String targetNode;
+    private final String requestedNode;
     private final String reason;
     private final Map<String, String> fields;
 
-    public RouteTicketFailedEvent(UUID ticketId, UUID islandId, UUID playerUuid, String action, String targetNode, String reason, Map<String, String> fields) {
+    public RouteTicketFailedEvent(UUID ticketId, UUID islandId, UUID playerUuid, String action, String targetNode, String requestedNode, String reason, Map<String, String> fields) {
         super(true);
         this.ticketId = ticketId;
         this.islandId = islandId;
         this.playerUuid = playerUuid;
         this.action = action == null ? "" : action;
         this.targetNode = targetNode == null ? "" : targetNode;
+        this.requestedNode = requestedNode == null ? "" : requestedNode;
         this.reason = reason == null ? "" : reason;
         this.fields = Map.copyOf(fields);
     }
@@ -45,6 +47,10 @@ public final class RouteTicketFailedEvent extends Event {
 
     public String targetNode() {
         return targetNode;
+    }
+
+    public String requestedNode() {
+        return requestedNode;
     }
 
     public String reason() {

@@ -677,6 +677,7 @@ public final class PermissionEventPoller {
                 uuidField(fields, "playerUuid"),
                 fields.getOrDefault("action", ""),
                 fields.getOrDefault("targetNode", ""),
+                fields.getOrDefault("requestedNode", ""),
                 fields.getOrDefault("reason", ""),
                 fields));
             return;
