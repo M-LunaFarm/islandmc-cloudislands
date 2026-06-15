@@ -793,6 +793,7 @@ public final class AdminFactoryCommand {
                         "database-attempted-backends",
                         "database-attempt-order",
                         "database-jdbc-target",
+                        "database-fallback-jdbc-target",
                         "database-supported-backends",
                         "database-fallback-reason",
                         "database-fallback-active",
