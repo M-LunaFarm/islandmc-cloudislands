@@ -472,6 +472,11 @@ public final class MigrationAdminService {
             + ",\"warps\":" + report.warps()
             + ",\"islandLocations\":" + report.islandLocations()
             + ",\"sourceWorlds\":" + report.sourceWorlds()
+            + ",\"islandSizes\":" + report.islandSizes()
+            + ",\"levels\":" + report.levels()
+            + ",\"worthValues\":" + report.worthValues()
+            + ",\"biomes\":" + report.biomes()
+            + ",\"bankBalances\":" + report.bankBalances()
             + ",\"flags\":" + report.flags()
             + ",\"permissions\":" + report.permissions()
             + ",\"upgrades\":" + report.upgrades()
@@ -612,6 +617,11 @@ public final class MigrationAdminService {
             + "\"warps\":" + report.warps() + ','
             + "\"islandLocations\":" + report.islandLocations() + ','
             + "\"sourceWorlds\":" + report.sourceWorlds() + ','
+            + "\"islandSizes\":" + report.islandSizes() + ','
+            + "\"levels\":" + report.levels() + ','
+            + "\"worthValues\":" + report.worthValues() + ','
+            + "\"biomes\":" + report.biomes() + ','
+            + "\"bankBalances\":" + report.bankBalances() + ','
             + "\"flags\":" + report.flags() + ','
             + "\"permissions\":" + report.permissions() + ','
             + "\"upgrades\":" + report.upgrades() + ','

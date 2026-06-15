@@ -1191,6 +1191,11 @@ public final class VelocityRoutingController {
                 .append(" warps=").append(longValue(body, "warps"))
                 .append(" locations=").append(longValue(body, "islandLocations"))
                 .append(" sourceWorlds=").append(longValue(body, "sourceWorlds"))
+                .append(" sizes=").append(longValue(body, "islandSizes"))
+                .append(" levels=").append(longValue(body, "levels"))
+                .append(" worth=").append(longValue(body, "worthValues"))
+                .append(" biomes=").append(longValue(body, "biomes"))
+                .append(" bank=").append(longValue(body, "bankBalances"))
                 .append(" perms=").append(longValue(body, "permissions"));
         }
         if (body.contains("\"blockingIssues\"")) {
