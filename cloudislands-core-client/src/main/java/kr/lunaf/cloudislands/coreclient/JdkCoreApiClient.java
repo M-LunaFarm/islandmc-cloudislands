@@ -921,6 +921,14 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> tableKeyValueBulkSaveAliasAddonState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        if (blank(addonId)) {
+            return invalidAddonState("Addon id is required");
+        }
+        return postWithResultBody("/v1/addons/state/table/key-value/bulk/save", "{\"addonId\":\"" + escape(addonId) + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+    }
+
+    @Override
     public CompletableFuture<String> tableKeyValueBulkAddonState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         if (blank(addonId)) {
             return invalidAddonState("Addon id is required");
@@ -1042,6 +1050,14 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<String> bulkSaveAddonIslandTableKeyValueState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         return tableKeyValueBulkSaveAddonIslandState(addonId, islandId, values, tables);
+    }
+
+    @Override
+    public CompletableFuture<String> tableKeyValueBulkSaveAliasAddonIslandState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        if (blank(addonId) || missingIslandId(islandId)) {
+            return invalidAddonState("Addon id and island id are required");
+        }
+        return postWithResultBody("/v1/addons/islands/state/table/key-value/bulk/save", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
     }
 
     @Override

@@ -1127,7 +1127,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("addon-state-table-key-value-bulk-save-island-alias", "/v1/addons/islands/state/table/key-value/bulk/save");
         metadata.put("addon-state-table-key-value-bulk-global-endpoint", "/v1/addons/state/table/key-value/bulk");
         metadata.put("addon-state-table-key-value-bulk-island-endpoint", "/v1/addons/islands/state/table/key-value/bulk");
-        metadata.put("addon-state-bulk-save-methods", "bulkSaveState,tableKeyValueBulkSaveState,bulkSaveTableKeyValueState,tableKeyValueBulkState,bulkTableKeyValueState,bulkSaveIslandState,tableKeyValueBulkSaveIslandState,bulkSaveIslandTableKeyValueState,tableKeyValueBulkIslandState,bulkIslandTableKeyValueState");
+        metadata.put("addon-state-bulk-save-methods", "bulkSaveState,tableKeyValueBulkSaveState,bulkSaveTableKeyValueState,tableKeyValueBulkSaveAliasState,tableKeyValueBulkState,bulkTableKeyValueState,bulkSaveIslandState,tableKeyValueBulkSaveIslandState,bulkSaveIslandTableKeyValueState,tableKeyValueBulkSaveAliasIslandState,tableKeyValueBulkIslandState,bulkIslandTableKeyValueState");
         metadata.put("core-api-table-save-mode", "bulk-save-with-table-prefix-and-configurable-flattened-fallback");
         metadata.put("feature-aliases", featureAliasesMetadata());
         metadata.put("feature-alias-disabled", disabledFeatureAliases());
@@ -1397,7 +1397,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("addon-state-table-key-value-bulk-save-island-alias", "/v1/addons/islands/state/table/key-value/bulk/save");
         state.put("addon-state-table-key-value-bulk-global-endpoint", "/v1/addons/state/table/key-value/bulk");
         state.put("addon-state-table-key-value-bulk-island-endpoint", "/v1/addons/islands/state/table/key-value/bulk");
-        state.put("addon-state-bulk-save-methods", "bulkSaveState,tableKeyValueBulkSaveState,bulkSaveTableKeyValueState,tableKeyValueBulkState,bulkTableKeyValueState,bulkSaveIslandState,tableKeyValueBulkSaveIslandState,bulkSaveIslandTableKeyValueState,tableKeyValueBulkIslandState,bulkIslandTableKeyValueState");
+        state.put("addon-state-bulk-save-methods", "bulkSaveState,tableKeyValueBulkSaveState,bulkSaveTableKeyValueState,tableKeyValueBulkSaveAliasState,tableKeyValueBulkState,bulkTableKeyValueState,bulkSaveIslandState,tableKeyValueBulkSaveIslandState,bulkSaveIslandTableKeyValueState,tableKeyValueBulkSaveAliasIslandState,tableKeyValueBulkIslandState,bulkIslandTableKeyValueState");
         state.put("core-api-table-save-mode", "bulk-save-with-table-prefix-and-configurable-flattened-fallback");
         state.put("configured-features", featureState(snapshot.configuredFeatures()));
         state.put("effective-features", featureState(snapshot.features()));

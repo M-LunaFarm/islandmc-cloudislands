@@ -203,6 +203,9 @@ public interface CoreApiClient {
     default CompletableFuture<String> bulkSaveAddonTableKeyValueState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         return tableKeyValueBulkSaveAddonState(addonId, values, tables);
     }
+    default CompletableFuture<String> tableKeyValueBulkSaveAliasAddonState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return tableKeyValueBulkSaveAddonState(addonId, values, tables);
+    }
     default CompletableFuture<String> tableKeyValueBulkAddonState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         return tableKeyValueBulkSaveAddonState(addonId, values, tables);
     }
@@ -234,6 +237,9 @@ public interface CoreApiClient {
         return bulkSaveAddonIslandState(addonId, islandId, values, tables);
     }
     default CompletableFuture<String> bulkSaveAddonIslandTableKeyValueState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return tableKeyValueBulkSaveAddonIslandState(addonId, islandId, values, tables);
+    }
+    default CompletableFuture<String> tableKeyValueBulkSaveAliasAddonIslandState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         return tableKeyValueBulkSaveAddonIslandState(addonId, islandId, values, tables);
     }
     default CompletableFuture<String> tableKeyValueBulkAddonIslandState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
