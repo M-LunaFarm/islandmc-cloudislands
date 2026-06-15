@@ -1480,7 +1480,12 @@ public final class VelocityRoutingController {
             }
             index = objectEnd + 1;
         }
-        return "Addon state: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+        return "Addon state: total=" + total
+            + " owner=" + jsonValue(body, "stateOwnership")
+            + " registeredRequired=" + boolValue(body, "registeredAddonRequired")
+            + " orphanPolicy=" + jsonValue(body, "orphanStatePolicy")
+            + " missingPolicy=" + jsonValue(body, "missingAddonStatePolicy")
+            + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     private String templateListMessage(String body) {
