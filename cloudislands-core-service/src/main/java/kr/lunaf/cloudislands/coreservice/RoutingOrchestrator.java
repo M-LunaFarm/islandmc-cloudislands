@@ -352,6 +352,18 @@ public final class RoutingOrchestrator {
         if (state == IslandState.DEACTIVATING) {
             return rejectRoute(409, "ISLAND_MIGRATING", "Island is migrating to another node", playerUuid, islandId, action);
         }
+        if (state == IslandState.ACTIVATING) {
+            return rejectRoute(409, "ISLAND_PREPARING", "Island activation is already in progress", playerUuid, islandId, action);
+        }
+        if (state == IslandState.RESTORING) {
+            return rejectRoute(409, "ISLAND_RESTORING", "Island restore is already in progress", playerUuid, islandId, action);
+        }
+        if (state == IslandState.SAVING) {
+            return rejectRoute(409, "ISLAND_SAVING", "Island save is already in progress", playerUuid, islandId, action);
+        }
+        if (state == IslandState.RECOVERY_REQUIRED || state == IslandState.QUARANTINED) {
+            return rejectRoute(409, "RECOVERY_REQUIRED", "Island needs recovery before routing", playerUuid, islandId, action);
+        }
         return rejectRoute(409, "ISLAND_LOADING_FAILED", "Island is not ready for routing", playerUuid, islandId, action);
     }
 

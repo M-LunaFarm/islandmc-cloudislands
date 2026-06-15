@@ -1349,8 +1349,12 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             case "WARP_PRIVATE" -> "해당 워프는 공개 상태가 아닙니다.";
             case "WARP_LIMIT" -> "섬 워프 한도에 도달했습니다.";
             case "ISLAND_MIGRATING" -> "섬 서버를 최적화하는 중입니다. 잠시 후 자동으로 이동됩니다.";
+            case "ISLAND_PREPARING" -> "섬을 준비하는 중입니다. 잠시 후 다시 시도해주세요.";
+            case "ISLAND_RESTORING" -> "섬 스냅샷을 복원하는 중입니다. 잠시 후 다시 시도해주세요.";
+            case "ISLAND_SAVING" -> "섬을 저장하는 중입니다. 잠시 후 다시 시도해주세요.";
             case "ISLAND_LOADING_FAILED" -> "섬을 준비하지 못했습니다. 잠시 후 다시 시도해주세요.";
             case "JOB_QUEUE_UNAVAILABLE", "RECOVERY_UNAVAILABLE" -> "현재 섬 서비스 일부 기능이 점검 중입니다.";
+            case "RECOVERY_REQUIRED" -> "섬 복구가 필요한 상태입니다. 관리자에게 문의해주세요.";
             case "ISLAND_PERMISSION_DENIED" -> "섬 권한이 없습니다.";
             case "MEMBER_LIMIT" -> "섬 멤버 한도에 도달했습니다.";
             case "ALREADY_MEMBER" -> "이미 섬 멤버입니다.";
