@@ -9,6 +9,9 @@ import kr.lunaf.cloudislands.api.event.CoreCacheClearEvent;
 import kr.lunaf.cloudislands.api.event.CoreReloadEvent;
 import kr.lunaf.cloudislands.api.event.IslandActivationRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandActivatedEvent;
+import kr.lunaf.cloudislands.api.event.IslandBlockValueChangeEvent;
+import kr.lunaf.cloudislands.api.event.IslandBlocksChangeEvent;
+import kr.lunaf.cloudislands.api.event.IslandChatSentEvent;
 import kr.lunaf.cloudislands.api.event.IslandCreatedEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeactivationRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeactivateEvent;
@@ -22,6 +25,7 @@ import kr.lunaf.cloudislands.api.event.IslandMigratedEvent;
 import kr.lunaf.cloudislands.api.event.IslandMigrationEvent;
 import kr.lunaf.cloudislands.api.event.IslandMissionCompleteEvent;
 import kr.lunaf.cloudislands.api.event.IslandMissionProgressEvent;
+import kr.lunaf.cloudislands.api.event.IslandOwnershipChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandPermissionChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandRecoveryRequiredEvent;
 import kr.lunaf.cloudislands.api.event.IslandRepairedEvent;
@@ -111,6 +115,14 @@ public interface CloudIslandsAddon {
             onIslandFlagChanged(flagChanged);
         } else if (event instanceof IslandPermissionChangeEvent permissionChanged) {
             onIslandPermissionChanged(permissionChanged);
+        } else if (event instanceof IslandOwnershipChangeEvent ownershipChanged) {
+            onIslandOwnershipChanged(ownershipChanged);
+        } else if (event instanceof IslandChatSentEvent chatSent) {
+            onIslandChatSent(chatSent);
+        } else if (event instanceof IslandBlocksChangeEvent blocksChanged) {
+            onIslandBlocksChanged(blocksChanged);
+        } else if (event instanceof IslandBlockValueChangeEvent blockValueChanged) {
+            onIslandBlockValueChanged(blockValueChanged);
         } else if (event instanceof IslandMissionProgressEvent missionProgress) {
             onIslandMissionProgress(missionProgress);
         } else if (event instanceof IslandMissionCompleteEvent missionCompleted) {
@@ -202,6 +214,18 @@ public interface CloudIslandsAddon {
     }
 
     default void onIslandPermissionChanged(IslandPermissionChangeEvent event) {
+    }
+
+    default void onIslandOwnershipChanged(IslandOwnershipChangeEvent event) {
+    }
+
+    default void onIslandChatSent(IslandChatSentEvent event) {
+    }
+
+    default void onIslandBlocksChanged(IslandBlocksChangeEvent event) {
+    }
+
+    default void onIslandBlockValueChanged(IslandBlockValueChangeEvent event) {
     }
 
     default void onIslandMissionProgress(IslandMissionProgressEvent event) {
