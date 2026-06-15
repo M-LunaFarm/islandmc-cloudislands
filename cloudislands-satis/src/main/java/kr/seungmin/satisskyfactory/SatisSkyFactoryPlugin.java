@@ -1049,6 +1049,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-attempt-order", databaseBackendAttemptOrderMetadata());
         metadata.put("database-jdbc-target", databaseJdbcTargetMetadata());
         metadata.put("database-fallback-jdbc-target", databaseFallbackJdbcTargetMetadata());
+        metadata.put("database-fallback-jdbc-targets", databaseFallbackJdbcTargetsMetadata());
         metadata.put("database-fallback-reason", databaseFallbackReason);
         metadata.put("database-fallback-active", Boolean.toString(databaseFallbackActive()));
         metadata.put("database-fallback-status", databaseFallbackStatus());
@@ -1325,6 +1326,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-attempt-order", databaseBackendAttemptOrderMetadata());
         state.put("database-jdbc-target", databaseJdbcTargetMetadata());
         state.put("database-fallback-jdbc-target", databaseFallbackJdbcTargetMetadata());
+        state.put("database-fallback-jdbc-targets", databaseFallbackJdbcTargetsMetadata());
         state.put("database-fallback-reason", databaseFallbackReason);
         state.put("database-fallback-active", Boolean.toString(databaseFallbackActive()));
         state.put("database-fallback-status", databaseFallbackStatus());
@@ -1407,6 +1409,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-attempt-order", databaseBackendAttemptOrderMetadata());
         state.put("database-jdbc-target", databaseJdbcTargetMetadata());
         state.put("database-fallback-jdbc-target", databaseFallbackJdbcTargetMetadata());
+        state.put("database-fallback-jdbc-targets", databaseFallbackJdbcTargetsMetadata());
         state.put("database-fallback-reason", databaseFallbackReason);
         state.put("database-fallback-active", Boolean.toString(databaseFallbackActive()));
         state.put("database-fallback-status", databaseFallbackStatus());
@@ -2906,6 +2909,21 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             }
         }
         return "none";
+    }
+
+    private String databaseFallbackJdbcTargetsMetadata() {
+        DatabaseService.Settings settings = databaseSettings();
+        if (!settings.fallbackEnabled()) {
+            return "disabled";
+        }
+        DatabaseService.StorageBackend configured = settings.backend() == null ? DatabaseService.StorageBackend.SQLITE : settings.backend();
+        List<String> targets = new ArrayList<>();
+        for (DatabaseService.StorageBackend backend : databaseBackendAttemptOrder(settings)) {
+            if (backend != configured) {
+                targets.add(backend.name() + "=" + databaseJdbcTargetMetadata(settings, backend));
+            }
+        }
+        return targets.isEmpty() ? "none" : String.join(",", targets);
     }
 
     private String databaseJdbcTargetMetadata(DatabaseService.Settings settings, DatabaseService.StorageBackend backend) {
