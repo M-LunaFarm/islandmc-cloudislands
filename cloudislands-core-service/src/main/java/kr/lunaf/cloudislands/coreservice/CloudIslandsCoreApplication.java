@@ -4107,11 +4107,18 @@ public final class CloudIslandsCoreApplication {
     }
 
     private static int tableKeyValueBulkTableCount(Map<String, Map<String, String>> tables, String valuesTable) {
-        int count = tables == null ? 0 : tables.size();
-        if (valuesTable != null && !valuesTable.isBlank()) {
-            count++;
+        java.util.LinkedHashSet<String> tableNames = new java.util.LinkedHashSet<>();
+        if (tables != null) {
+            tables.keySet().forEach(table -> {
+                if (table != null && !table.isBlank()) {
+                    tableNames.add(safeTableName(table));
+                }
+            });
         }
-        return count;
+        if (valuesTable != null && !valuesTable.isBlank()) {
+            tableNames.add(safeTableName(valuesTable));
+        }
+        return tableNames.size();
     }
 
     private static int rootValueKeyCount(Map<String, String> values, String valuesTable) {
