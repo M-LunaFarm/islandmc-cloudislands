@@ -412,6 +412,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"backendFirewallPolicy\":\"paper-redis-database-and-object-storage-private-only\","
             + "\"routeSessionEnforced\":" + routeSessionEnforced + ","
             + "\"hideNodeNames\":" + hideNodeNames + ","
+            + "\"playerTopologyPolicy\":\"logical-island-only\","
+            + "\"playerNodeNamePolicy\":\"" + (hideNodeNames ? "hidden-from-player-routing-messages" : "visible-risk-admin-debug-only") + "\","
             + "\"topologyExposureRisk\":" + topologyExposureRisk + ","
             + "\"defaultNodeIdentityRisk\":" + defaultNodeIdentityRisk + ","
             + "\"proxySourceAllowlistConfigured\":" + proxySourceAllowlistConfigured + ","
@@ -588,6 +590,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";routeSessionRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.routeSessionRejections())
             + ";routeSessionCheckFailures=" + (routeSessionListener == null ? 0L : routeSessionListener.routeSessionCheckFailures())
             + ";hideNodeNames=" + configBoolean("routing.hide-node-names", true)
+            + ";playerTopologyPolicy=logical-island-only"
+            + ";playerNodeNamePolicy=" + (configBoolean("routing.hide-node-names", true) ? "hidden-from-player-routing-messages" : "visible-risk-admin-debug-only")
             + ";topologyExposureRisk=" + !configBoolean("routing.hide-node-names", true)
             + ";defaultNodeIdentityRisk=" + defaultNodeIdentityRisk(AgentRole.valueOf(getConfig().getString("node.role", "ISLAND_NODE")), getConfig().getString("node.id", "island-1"), getConfig().getString("node.velocity-server-name", getConfig().getString("node.id", "island-1")))
             + ";chatBroadcasts=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatBroadcasts())
