@@ -91,6 +91,8 @@ setup:
       # Recommended shared fallback order: POSTGRESQL, MYSQL, MARIADB, CORE_API, SQLITE.
       # For production A/B Island node pools, keep at least one shared backend before SQLITE.
       # Put shared backends before SQLITE so temporary DB/API failures do not split state per node.
+      # Admin state exposes the resolved safety check as database-fallback-risk,
+      # database-fallback-first-shared-backend, and database-fallback-local-position.
       # Env overrides: CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED, CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER.
       enabled: true
       order: []
@@ -191,6 +193,9 @@ database:
       enabled: true
   fallback:
     enabled: true
+    # Production-safe order keeps a shared backend before local SQLITE.
+    # If the active node falls back straight to SQLITE, A/B island servers can split Satis state.
+    # Check /factory admin state for database-fallback-risk and database-fallback-production-safe.
     order:
       - POSTGRESQL
       - MYSQL
