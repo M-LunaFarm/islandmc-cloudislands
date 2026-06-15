@@ -1061,6 +1061,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-fallback-shared-safe", Boolean.toString(databaseFallbackSharedSafe()));
         metadata.put("database-fallback-risk", databaseFallbackRisk());
         metadata.put("database-fallback-production-safe", Boolean.toString(databaseFallbackProductionSafe()));
+        metadata.put("database-fallback-warning", databaseFallbackWarningMetadata());
         metadata.put("database-fallback-source", databaseFallbackSource());
         metadata.put("database-fallback-env", "CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED,CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER");
         metadata.put("database-config-source", databaseConfigSource());
@@ -1338,6 +1339,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-shared-safe", Boolean.toString(databaseFallbackSharedSafe()));
         state.put("database-fallback-risk", databaseFallbackRisk());
         state.put("database-fallback-production-safe", Boolean.toString(databaseFallbackProductionSafe()));
+        state.put("database-fallback-warning", databaseFallbackWarningMetadata());
         state.put("database-config-source", databaseConfigSource());
         state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         state.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
@@ -1421,6 +1423,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-shared-safe", Boolean.toString(databaseFallbackSharedSafe()));
         state.put("database-fallback-risk", databaseFallbackRisk());
         state.put("database-fallback-production-safe", Boolean.toString(databaseFallbackProductionSafe()));
+        state.put("database-fallback-warning", databaseFallbackWarningMetadata());
         state.put("database-config-source", databaseConfigSource());
         state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         state.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
@@ -2985,6 +2988,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private boolean databaseFallbackProductionSafe() {
         String risk = databaseFallbackRisk();
         return risk.equals("shared-before-local-sqlite") || risk.equals("shared-only");
+    }
+
+    private String databaseFallbackWarningMetadata() {
+        if (databaseFallbackProductionSafe()) {
+            return "none";
+        }
+        return "unsafe:" + databaseFallbackRisk();
     }
 
     private List<DatabaseService.StorageBackend> databaseBackendAttemptOrder(DatabaseService.Settings settings) {

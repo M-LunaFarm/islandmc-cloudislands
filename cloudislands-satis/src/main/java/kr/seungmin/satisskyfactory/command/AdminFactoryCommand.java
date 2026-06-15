@@ -805,6 +805,7 @@ public final class AdminFactoryCommand {
                         "database-fallback-shared-safe",
                         "database-fallback-risk",
                         "database-fallback-production-safe",
+                        "database-fallback-warning",
                         "database-config-source",
                         "database-core-api-marker",
                         "database-core-api-available",
