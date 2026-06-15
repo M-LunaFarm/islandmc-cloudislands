@@ -1654,10 +1654,16 @@ public final class CloudIslandsCoreApplication {
         route("/v1/admin/templates/upsert", exchange -> {
             String body = readBody(exchange);
             String templateId = JsonFields.text(body, "templateId", JsonFields.text(body, "id", "default"));
+            boolean enabled = JsonFields.bool(body, "enabled", true);
+            if (enabled && isMigrationInputOnlyTemplate(templateId)) {
+                audit.log(new UUID(0L, 0L), "ADMIN", "TEMPLATE_UPSERT_REJECTED", "TEMPLATE", templateId, Map.of("reason", "MIGRATION_INPUT_ONLY"));
+                write(exchange, 409, ApiResponses.error("TEMPLATE_MIGRATION_INPUT_ONLY", "This template is reserved for migration imports and cannot be enabled for normal island creation"));
+                return;
+            }
             IslandTemplateSnapshot snapshot = templateRepository.upsert(
                 templateId,
                 JsonFields.text(body, "displayName", templateId),
-                JsonFields.bool(body, "enabled", true),
+                enabled,
                 JsonFields.text(body, "minNodeVersion", "")
             );
             audit.log(new UUID(0L, 0L), "ADMIN", "TEMPLATE_UPSERT", "TEMPLATE", snapshot.id(), Map.of("enabled", Boolean.toString(snapshot.enabled()), "minNodeVersion", snapshot.minNodeVersion()));
@@ -1667,6 +1673,11 @@ public final class CloudIslandsCoreApplication {
         route("/v1/admin/templates/enable", exchange -> {
             String body = readBody(exchange);
             String templateId = JsonFields.text(body, "templateId", JsonFields.text(body, "id", "default"));
+            if (isMigrationInputOnlyTemplate(templateId)) {
+                audit.log(new UUID(0L, 0L), "ADMIN", "TEMPLATE_ENABLE_REJECTED", "TEMPLATE", templateId, Map.of("reason", "MIGRATION_INPUT_ONLY"));
+                write(exchange, 409, ApiResponses.error("TEMPLATE_MIGRATION_INPUT_ONLY", "This template is reserved for migration imports and cannot be enabled for normal island creation"));
+                return;
+            }
             boolean changed = templateRepository.setEnabled(templateId, true);
             audit.log(new UUID(0L, 0L), "ADMIN", "TEMPLATE_ENABLE", "TEMPLATE", templateId, Map.of("changed", Boolean.toString(changed)));
             if (changed) {
@@ -2913,6 +2924,10 @@ public final class CloudIslandsCoreApplication {
 
     private static String migrationDisabledJson() {
         return "{\"code\":\"MIGRATION_DISABLED\",\"state\":\"DISABLED\",\"sourcePlugin\":\"SuperiorSkyblock2\",\"migrationInputOnly\":true,\"runtimeDependency\":false,\"targetRuntime\":\"CloudIslands\",\"message\":\"SuperiorSkyblock2 migration is disabled by config\"}";
+    }
+
+    private static boolean isMigrationInputOnlyTemplate(String templateId) {
+        return "superiorskyblock2".equalsIgnoreCase(templateId == null ? "" : templateId.trim());
     }
 
     private static String jdbcBackend(String jdbcUrl) {
