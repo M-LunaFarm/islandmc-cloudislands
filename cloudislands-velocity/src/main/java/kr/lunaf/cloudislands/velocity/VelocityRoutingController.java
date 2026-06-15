@@ -49,6 +49,8 @@ public final class VelocityRoutingController {
     private final AtomicLong routeSuccesses = new AtomicLong();
     private final AtomicLong routeFailures = new AtomicLong();
     private final AtomicLong fallbackTransfers = new AtomicLong();
+    private final AtomicLong fallbackMissing = new AtomicLong();
+    private final AtomicLong fallbackFailures = new AtomicLong();
     private final Set<String> seenEvents = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Long> recentRouteRequests = new ConcurrentHashMap<>();
     private ScheduledTask eventPollTask;
@@ -134,7 +136,9 @@ public final class VelocityRoutingController {
             + ", routeAttempts=" + routeAttempts.get()
             + ", routeSuccesses=" + routeSuccesses.get()
             + ", routeFailures=" + routeFailures.get()
-            + ", fallbackTransfers=" + fallbackTransfers.get();
+            + ", fallbackTransfers=" + fallbackTransfers.get()
+            + ", fallbackMissing=" + fallbackMissing.get()
+            + ", fallbackFailures=" + fallbackFailures.get();
     }
 
     public String routingMetricsText() {
@@ -143,7 +147,9 @@ public final class VelocityRoutingController {
             + "cloudislands_velocity_route_attempts_total " + routeAttempts.get() + "\n"
             + "cloudislands_velocity_route_success_total " + routeSuccesses.get() + "\n"
             + "cloudislands_velocity_route_failed_total " + routeFailures.get() + "\n"
-            + "cloudislands_velocity_fallback_transfers_total " + fallbackTransfers.get() + "\n";
+            + "cloudislands_velocity_fallback_transfers_total " + fallbackTransfers.get() + "\n"
+            + "cloudislands_velocity_fallback_missing_total " + fallbackMissing.get() + "\n"
+            + "cloudislands_velocity_fallback_failed_total " + fallbackFailures.get() + "\n";
     }
 
     private int islandPoolServerCount() {
@@ -3448,11 +3454,21 @@ public final class VelocityRoutingController {
     private void fallback(Player player, String message) {
         routeFailures.incrementAndGet();
         player.sendMessage(Component.text(message));
-        proxy.getServer(fallbackServer).ifPresent(server -> player.createConnectionRequest(server).connectWithIndication().thenAccept(success -> {
+        RegisteredServer server = findServer(fallbackServer);
+        if (server == null) {
+            fallbackMissing.incrementAndGet();
+            return;
+        }
+        player.createConnectionRequest(server).connectWithIndication().thenAccept(success -> {
             if (success) {
                 fallbackTransfers.incrementAndGet();
+            } else {
+                fallbackFailures.incrementAndGet();
             }
-        }));
+        }).exceptionally(error -> {
+            fallbackFailures.incrementAndGet();
+            return null;
+        });
     }
 
     private String routeTargetName(RouteTicket ticket) {
