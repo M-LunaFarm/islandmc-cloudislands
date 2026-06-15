@@ -22,6 +22,8 @@ public record CoreServiceConfig(
     String databaseUsername,
     String databasePassword,
     int databasePoolSize,
+    boolean setupDatabaseFallbackEnabled,
+    String setupDatabaseFallbackOrder,
     URI redisUri,
     String storageType,
     URI storageEndpoint,
@@ -72,6 +74,8 @@ public record CoreServiceConfig(
             env("CI_DB_USERNAME", typedSetupDatabaseSetting(config, configuredDatabaseType(config), "username", setupDatabaseSetting(config, "username", setting(config, "database.username", "cloudislands")))),
             env("CI_DB_PASSWORD", typedSetupDatabaseSetting(config, configuredDatabaseType(config), "password", setupDatabaseSetting(config, "password", setting(config, "database.password", env("DB_PASSWORD", ""))))),
             integer("CI_DB_POOL_SIZE", typedSetupDatabaseInteger(config, configuredDatabaseType(config), "pool-size", setupDatabaseInteger(config, "pool-size", configInteger(config, "database.pool-size", 20)))),
+            bool("CI_DB_FALLBACK_ENABLED", configBoolean(config, "setup.database.fallback.enabled", configBoolean(config, "setup.database-fallback-enabled", true))),
+            env("CI_DB_FALLBACK_ORDER", setupDatabaseFallbackOrder(config)),
             URI.create(env("CI_REDIS_URI", setupSetting(config, "redis-uri", setting(config, "redis.uri", "redis://redis.internal:6379")))),
             env("CI_STORAGE_TYPE", setupSetting(config, "storage-type", setting(config, "storage.type", "S3"))),
             URI.create(env("CI_STORAGE_ENDPOINT", setupSetting(config, "storage-endpoint", setting(config, "storage.endpoint", "http://minio.internal:9000")))),
@@ -123,7 +127,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, rateLimitRequests, rateLimitWindow);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, rateLimitRequests, rateLimitWindow);
     }
 
     public static String configuredDatabaseTypeSource() {
@@ -316,6 +320,18 @@ public record CoreServiceConfig(
             }
         }
         return setupInteger(config, "database-" + key, fallback);
+    }
+
+    private static String setupDatabaseFallbackOrder(Map<String, String> config) {
+        String nested = setting(config, "setup.database.fallback.order", "");
+        if (!nested.isBlank()) {
+            return nested;
+        }
+        String legacy = setting(config, "setup.database-fallback-order", "");
+        if (!legacy.isBlank()) {
+            return legacy;
+        }
+        return "MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC";
     }
 
     private static String setupJdbcUrl(Map<String, String> config, String fallback) {

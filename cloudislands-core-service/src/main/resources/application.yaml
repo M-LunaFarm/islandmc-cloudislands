@@ -66,6 +66,11 @@ setup:
     core-api:
       # Optional selection marker for CORE_API setup. Core JDBC stays disabled.
       enabled: false
+    fallback:
+      # Core JDBC is PostgreSQL-only. Unsupported setup choices stay online through the safe fallback path.
+      # Env overrides: CI_DB_FALLBACK_ENABLED, CI_DB_FALLBACK_ORDER.
+      enabled: true
+      order: "MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC"
   # Empty jdbc-url inherits database.jdbc-url only for POSTGRESQL.
   # MYSQL/MARIADB need database-type + host/name or CI_JDBC_URL.
   # CORE_API leaves Core JDBC disabled and reports dbBackend=NONE.
