@@ -58,6 +58,9 @@ integration:
   mode: ADDON
   skyblock-provider: CLOUDISLANDS
   cloudislands-adapter: true
+  # Used only when CloudIslands region lookup is temporarily unavailable during lifecycle sync.
+  # Must match the Paper island-node.cell-size value so Satis can remap state from event cellX/cellZ.
+  cloudislands-cell-size: 1024
 setup:
   database:
     # Empty values inherit from database.* below. Use this block for first-install setup.

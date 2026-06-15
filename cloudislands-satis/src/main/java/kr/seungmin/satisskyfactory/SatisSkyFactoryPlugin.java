@@ -1814,6 +1814,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void publishLifecycleState(UUID islandId, String operation, FactoryIsland island, String remapDelta, boolean machinesRemapped, boolean resourceNodesRemapped) {
+        publishLifecycleState(islandId, operation, island, remapDelta, machinesRemapped, resourceNodesRemapped, "active-world-center");
+    }
+
+    private void publishLifecycleState(UUID islandId, String operation, FactoryIsland island, String remapDelta, boolean machinesRemapped, boolean resourceNodesRemapped, String remapSource) {
         if (cloudIslandsApi == null || islandId == null || !operationalFeatureEnabled("addon-state")) {
             return;
         }
@@ -1850,7 +1854,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("last-lifecycle-remap-delta", remapDelta == null || remapDelta.isBlank() ? "0,0,0" : remapDelta);
         state.put("last-lifecycle-machines-remapped", Boolean.toString(machinesRemapped));
         state.put("last-lifecycle-resource-nodes-remapped", Boolean.toString(resourceNodesRemapped));
-        state.put("last-lifecycle-remap-source", "active-world-center");
+        state.put("last-lifecycle-remap-source", remapSource == null || remapSource.isBlank() ? "active-world-center" : remapSource);
         cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
             getLogger().warning("Failed to publish CloudIslands Satis lifecycle state: " + error.getMessage());
             return Map.of();
@@ -2487,11 +2491,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         hydrateSatisIslandFromCore(islandId);
         islands.find(islandId).ifPresent(island -> {
             String remapDelta = "0,0,0";
+            String remapSource = "active-world-center";
             boolean machinesRemapped = false;
             boolean resourceNodesRemapped = false;
             org.bukkit.Location activeCenter = activeIslandCenter(islandId);
             if (activeCenter == null || activeCenter.getWorld() == null) {
                 activeCenter = lifecycleFallbackCenter(island, operation);
+                remapSource = activeCenter == null || activeCenter.getWorld() == null
+                        ? "unresolved"
+                        : (!lifecycleEventCell(operation).isBlank() ? "event-cell-fallback" : "event-world-existing-center");
             }
             if (activeCenter != null && activeCenter.getWorld() != null) {
                 String activeWorld = activeCenter.getWorld().getName();
@@ -2522,7 +2530,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 power.rebuildIsland(islandId);
             }
             islands.save(island);
-            publishLifecycleState(islandId, operation, island, remapDelta, machinesRemapped, resourceNodesRemapped);
+            publishLifecycleState(islandId, operation, island, remapDelta, machinesRemapped, resourceNodesRemapped, remapSource);
         });
     }
 
@@ -2566,10 +2574,34 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (world == null) {
             return null;
         }
-        int x = island != null && island.hasActiveCenter() ? island.activeCenterX() : 0;
+        int eventCellX = lifecycleEventCellCoordinate(operation, 0);
+        int eventCellZ = lifecycleEventCellCoordinate(operation, 1);
+        int cellSize = lifecycleCellSize();
+        int x = eventCellX >= 0 ? eventCellX * cellSize : (island != null && island.hasActiveCenter() ? island.activeCenterX() : 0);
         int y = island != null && island.hasActiveCenter() ? island.activeCenterY() : 100;
-        int z = island != null && island.hasActiveCenter() ? island.activeCenterZ() : 0;
+        int z = eventCellZ >= 0 ? eventCellZ * cellSize : (island != null && island.hasActiveCenter() ? island.activeCenterZ() : 0);
         return new org.bukkit.Location(world, x + 0.5D, y, z + 0.5D);
+    }
+
+    private int lifecycleEventCellCoordinate(String operation, int index) {
+        String cell = lifecycleEventCell(operation);
+        if (cell.isBlank()) {
+            return -1;
+        }
+        String[] parts = cell.split(",", 2);
+        if (index < 0 || index >= parts.length) {
+            return -1;
+        }
+        try {
+            return Math.max(0, Integer.parseInt(parts[index].trim()));
+        } catch (NumberFormatException exception) {
+            return -1;
+        }
+    }
+
+    private int lifecycleCellSize() {
+        int configured = configs.main().getInt("integration.cloudislands-cell-size", configs.main().getInt("cloudislands.cell-size", 1024));
+        return Math.max(1, configured);
     }
 
     private void flushSatisIsland(UUID islandId) {
