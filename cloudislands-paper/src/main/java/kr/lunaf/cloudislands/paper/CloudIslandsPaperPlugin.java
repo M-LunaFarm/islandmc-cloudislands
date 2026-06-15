@@ -108,6 +108,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private MessageRenderer messages;
     private PaperRedisClient redisClient;
     private LocalCacheManager localCaches;
+    private ProxySourceAllowlist proxySourceAllowlist;
 
     @Override
     public void onEnable() {
@@ -196,7 +197,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean forwardingReady = role != AgentRole.ISLAND_NODE
             || !configBoolean("security.require-velocity-forwarding", true)
             || !resolveEnv(getConfig().getString("security.forwarding-secret", "")).isBlank();
-        ProxySourceAllowlist proxySourceAllowlist = new ProxySourceAllowlist(getConfig().getStringList("security.proxy-source-allowlist"));
+        this.proxySourceAllowlist = new ProxySourceAllowlist(getConfig().getStringList("security.proxy-source-allowlist"));
         this.routeSessionListener = new PaperRouteSessionListener(this, client, agent.routeTickets(), nodeId, requireRouteSession, forwardingReady, fallbackServerName, proxySourceAllowlist, messages);
         getServer().getPluginManager().registerEvents(routeSessionListener, this);
         PluginCommand admin = getCommand("ciadmin");
@@ -355,7 +356,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean forwardingRequired = configBoolean("security.require-velocity-forwarding", true);
         boolean forwardingSecretConfigured = !resolveEnv(getConfig().getString("security.forwarding-secret", "")).isBlank();
         boolean routeSessionEnforced = configBoolean("security.enforce-route-session", true) || configBoolean("routing.require-route-session", true);
-        boolean proxySourceAllowlistConfigured = !getConfig().getStringList("security.proxy-source-allowlist").isEmpty();
+        int proxySourceAllowlistEntries = proxySourceAllowlist == null ? 0 : proxySourceAllowlist.entryCount();
+        boolean proxySourceAllowlistConfigured = proxySourceAllowlistEntries > 0;
         PaperRouteSessionListener routeSessions = routeSessionListener;
         PermissionEventPoller events = permissionEventPoller;
         PeriodicIslandSaveTask saver = periodicSaveTask;
@@ -375,6 +377,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"forwardingSecretConfigured\":" + forwardingSecretConfigured + ","
             + "\"routeSessionEnforced\":" + routeSessionEnforced + ","
             + "\"proxySourceAllowlistConfigured\":" + proxySourceAllowlistConfigured + ","
+            + "\"proxySourceAllowlistEntries\":" + proxySourceAllowlistEntries + ","
             + "\"proxySourceRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.proxySourceRejections()) + ","
             + "\"forwardingRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.forwardingRejections()) + ","
             + "\"routeSessionRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.routeSessionRejections()) + ","
@@ -403,7 +406,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean forwardingRequired = configBoolean("security.require-velocity-forwarding", true);
         boolean forwardingSecretConfigured = !resolveEnv(getConfig().getString("security.forwarding-secret", "")).isBlank();
         boolean routeSessionEnforced = configBoolean("security.enforce-route-session", true) || configBoolean("routing.require-route-session", true);
-        boolean proxySourceAllowlistConfigured = !getConfig().getStringList("security.proxy-source-allowlist").isEmpty();
+        int proxySourceAllowlistEntries = proxySourceAllowlist == null ? 0 : proxySourceAllowlist.entryCount();
+        boolean proxySourceAllowlistConfigured = proxySourceAllowlistEntries > 0;
         boolean bungeeConnectPluginMessaging = configBoolean("security.allow-bungee-connect-plugin-messaging", false);
         PeriodicIslandLevelScanTask scanner = periodicLevelScanTask;
         PeriodicIslandSaveTask saver = periodicSaveTask;
@@ -441,6 +445,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_paper_forwarding_secret_configured{node=\"" + nodeId + "\"} " + (forwardingSecretConfigured ? 1 : 0) + "\n"
             + "cloudislands_paper_route_session_enforced{node=\"" + nodeId + "\"} " + (routeSessionEnforced ? 1 : 0) + "\n"
             + "cloudislands_paper_proxy_source_allowlist_configured{node=\"" + nodeId + "\"} " + (proxySourceAllowlistConfigured ? 1 : 0) + "\n"
+            + "cloudislands_paper_proxy_source_allowlist_entries{node=\"" + nodeId + "\"} " + proxySourceAllowlistEntries + "\n"
             + "cloudislands_paper_bungee_connect_plugin_messaging_enabled{node=\"" + nodeId + "\"} " + (bungeeConnectPluginMessaging ? 1 : 0) + "\n"
             + "cloudislands_paper_proxy_source_rejections_total{node=\"" + nodeId + "\"} " + (routeSessions == null ? 0L : routeSessions.proxySourceRejections()) + "\n"
             + "cloudislands_paper_forwarding_rejections_total{node=\"" + nodeId + "\"} " + (routeSessions == null ? 0L : routeSessions.forwardingRejections()) + "\n"

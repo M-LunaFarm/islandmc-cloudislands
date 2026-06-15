@@ -38,6 +38,10 @@ public final class ProxySourceAllowlist {
         return !exactAddresses.isEmpty() || !cidrBlocks.isEmpty();
     }
 
+    public int entryCount() {
+        return exactAddresses.size() + cidrBlocks.size();
+    }
+
     public boolean allows(InetAddress address) {
         if (!configured()) {
             return true;
