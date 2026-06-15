@@ -1229,15 +1229,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         addDisabledFeatureSource(sources, "addons." + ADDON_ID + ".features." + feature);
         addDisabledFeatureSource(sources, "satis.features." + feature);
         addDisabledFeatureSource(sources, "features." + feature);
-        FEATURE_ALIASES.entrySet().stream()
-                .filter(entry -> entry.getValue().equals(feature))
-                .map(Map.Entry::getKey)
-                .sorted()
-                .forEach(alias -> {
-                    addDisabledFeatureSource(sources, "addons." + ADDON_ID + ".features." + alias);
-                    addDisabledFeatureSource(sources, "satis.features." + alias);
-                    addDisabledFeatureSource(sources, "features." + alias);
-                });
         return sources;
     }
 
