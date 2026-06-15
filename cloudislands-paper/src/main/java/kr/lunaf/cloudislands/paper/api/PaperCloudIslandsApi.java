@@ -445,6 +445,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> effective = new HashMap<>(metadata == null ? Map.of() : metadata);
             effective.putIfAbsent("source-node", plugin.getConfig().getString("node.id", "unknown"));
             effective.putIfAbsent("addon-state-storage", "core-api-with-paper-local-fallback");
+            effective.putIfAbsent("addon-state-unregister-policy", "preserve-core-and-local-fallback-state");
+            effective.putIfAbsent("addon-state-clear-policy", "explicit-clear-only");
+            effective.putIfAbsent("addon-reinstall-policy", "reuse-preserved-state-by-addon-id-and-island-uuid");
             effective.put("addon-default-enabled", Boolean.toString(addonDefaultEnabled));
             effective.put("parent-enabled", Boolean.toString(parentEnabled));
             if (!addonDefaultEnabled) {
