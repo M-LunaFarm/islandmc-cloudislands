@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 
 public final class MachineService {
@@ -35,6 +36,7 @@ public final class MachineService {
     private final Map<LocationKey, UUID> byLocation = new ConcurrentHashMap<>();
     private final AtomicLong revision = new AtomicLong();
     private DirtySaveService dirtySaves;
+    private BooleanSupplier writesEnabled = () -> true;
     private boolean loaded;
 
     public MachineService(DatabaseService database, MachineDefinitionService definitions, StorageService storage) {
@@ -92,6 +94,9 @@ public final class MachineService {
         }
         machines.put(machine.machineId(), machine);
         byLocation.put(LocationKey.from(machine.location()), machine.machineId());
+        if (!writesEnabled()) {
+            return;
+        }
         database.saveMachine(machine);
     }
 
@@ -101,6 +106,9 @@ public final class MachineService {
         }
         machines.put(machine.machineId(), machine);
         byLocation.put(LocationKey.from(machine.location()), machine.machineId());
+        if (!writesEnabled()) {
+            return;
+        }
         if (dirtySaves == null) {
             database.saveMachine(machine);
         } else {
@@ -163,7 +171,9 @@ public final class MachineService {
         if (dirtySaves != null) {
             dirtySaves.deleteMachine(machine.islandUuid(), machine.machineId());
         }
-        database.deleteMachine(machine.machineId());
+        if (writesEnabled()) {
+            database.deleteMachine(machine.machineId());
+        }
         deleteInventories(machine);
         revision.incrementAndGet();
     }
@@ -416,5 +426,17 @@ public final class MachineService {
 
     public void dirtySaves(DirtySaveService dirtySaves) {
         this.dirtySaves = dirtySaves;
+    }
+
+    public void writeGate(BooleanSupplier writesEnabled) {
+        this.writesEnabled = writesEnabled == null ? () -> true : writesEnabled;
+    }
+
+    private boolean writesEnabled() {
+        try {
+            return writesEnabled.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 }

@@ -205,7 +205,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         dirtySaves = new DirtySaveService(this, database);
         configureDirtySaveWriteGates();
         configureCoreApiStateWriters();
-        configureStorageWriteGate();
+        configureRuntimeWriteGates();
         storage.dirtySaves(dirtySaves);
         islands.dirtySaves(dirtySaves);
         machines.dirtySaves(dirtySaves);
@@ -269,7 +269,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         reloadDatabaseIfNeeded();
         configureSkyblockHook();
         boosts.configure(configs.main());
-        configureStorageWriteGate();
+        configureRuntimeWriteGates();
         loadDefinitions();
         refreshIslandCache();
         refreshMachineCache();
@@ -448,10 +448,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private void putDataWriteGateState(Map<String, String> state) {
         state.put("data-write-mode", dataWritesEnabled() ? "enabled" : "disabled");
         state.put("write-gate-machines", Boolean.toString(operationalFeatureEnabled("machines")));
+        state.put("write-gate-machines-direct", Boolean.toString(operationalFeatureEnabled("machines")));
         state.put("write-gate-storage", Boolean.toString(storageDataEnabled()));
         state.put("write-gate-storage-direct", Boolean.toString(storageDataEnabled()));
         state.put("write-gate-storage-direct-policy", "StorageService.saveNow-and-delete-respect-storage-or-machine-data-gate");
         state.put("write-gate-resource-nodes", Boolean.toString(operationalFeatureEnabled("resource-nodes")));
+        state.put("write-gate-resource-nodes-direct", Boolean.toString(operationalFeatureEnabled("resource-nodes")));
+        state.put("write-gate-island-direct", Boolean.toString(dataWritesEnabled()));
+        state.put("write-gate-direct-policy", "MachineService,ResourceNodeService,FactoryIslandService,and-StorageService-respect-feature-write-gates-before-direct-database-writes");
         state.put("write-gate-market", Boolean.toString(operationalFeatureEnabled("market")));
         state.put("write-gate-contracts", Boolean.toString(operationalFeatureEnabled("contracts")));
         state.put("write-gate-research", Boolean.toString(operationalFeatureEnabled("research")));
@@ -1048,7 +1052,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         dirtySaves = new DirtySaveService(this, database);
         configureDirtySaveWriteGates();
         configureCoreApiStateWriters();
-        configureStorageWriteGate();
+        configureRuntimeWriteGates();
         storage.dirtySaves(dirtySaves);
         islands.dirtySaves(dirtySaves);
         machines.dirtySaves(dirtySaves);
@@ -1083,11 +1087,19 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         );
     }
 
-    private void configureStorageWriteGate() {
-        if (storage == null) {
-            return;
+    private void configureRuntimeWriteGates() {
+        if (storage != null) {
+            storage.writeGate(this::storageDataEnabled);
         }
-        storage.writeGate(this::storageDataEnabled);
+        if (machines != null) {
+            machines.writeGate(() -> operationalFeatureEnabled("machines"));
+        }
+        if (nodes != null) {
+            nodes.writeGate(() -> operationalFeatureEnabled("resource-nodes"));
+        }
+        if (islands != null) {
+            islands.writeGate(this::dataWritesEnabled);
+        }
     }
 
     private void configureCoreApiStateWriters() {

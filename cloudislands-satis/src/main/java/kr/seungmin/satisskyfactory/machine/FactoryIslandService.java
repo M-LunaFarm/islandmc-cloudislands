@@ -14,12 +14,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BooleanSupplier;
 
 public final class FactoryIslandService {
     private final SkyblockProvider skyblockHook;
     private final DatabaseService database;
     private final Map<UUID, FactoryIsland> cache = new ConcurrentHashMap<>();
     private DirtySaveService dirtySaves;
+    private BooleanSupplier writesEnabled = () -> true;
     private boolean loaded;
 
     public FactoryIslandService(SkyblockProvider skyblockHook, DatabaseService database) {
@@ -66,7 +68,9 @@ public final class FactoryIslandService {
         FactoryIsland factoryIsland = cache.computeIfAbsent(island.islandUuid(), uuid -> {
             FactoryIsland loaded = database.findIsland(uuid).orElseGet(() -> new FactoryIsland(uuid, island.ownerUuid()));
             loaded.ownerUuid(island.ownerUuid());
-            database.saveIsland(loaded);
+            if (writesEnabled()) {
+                database.saveIsland(loaded);
+            }
             return loaded;
         });
         synchronizeOwner(factoryIsland, island.ownerUuid());
@@ -110,6 +114,9 @@ public final class FactoryIslandService {
             dirtySaves.markIsland(island);
             return;
         }
+        if (!writesEnabled()) {
+            return;
+        }
         database.saveIsland(island);
     }
 
@@ -127,5 +134,17 @@ public final class FactoryIslandService {
 
     public void dirtySaves(DirtySaveService dirtySaves) {
         this.dirtySaves = dirtySaves;
+    }
+
+    public void writeGate(BooleanSupplier writesEnabled) {
+        this.writesEnabled = writesEnabled == null ? () -> true : writesEnabled;
+    }
+
+    private boolean writesEnabled() {
+        try {
+            return writesEnabled.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 }

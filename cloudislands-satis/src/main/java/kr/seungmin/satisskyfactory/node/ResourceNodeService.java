@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 
 public final class ResourceNodeService {
@@ -21,6 +22,7 @@ public final class ResourceNodeService {
     private final ConcurrentHashMap<UUID, List<ResourceNode>> nodesByIsland = new ConcurrentHashMap<>();
     private NodeGenerationService nodeGeneration;
     private DirtySaveService dirtySaves;
+    private BooleanSupplier writesEnabled = () -> true;
     private boolean enabled;
     private boolean regenerationEnabled = true;
     private long minimumRegenerationIntervalMillis = 1000L;
@@ -104,11 +106,18 @@ public final class ResourceNodeService {
             dirtySaves.markNode(node);
             return;
         }
+        if (!writesEnabled()) {
+            return;
+        }
         database.saveNode(node);
     }
 
     public void dirtySaves(DirtySaveService dirtySaves) {
         this.dirtySaves = dirtySaves;
+    }
+
+    public void writeGate(BooleanSupplier writesEnabled) {
+        this.writesEnabled = writesEnabled == null ? () -> true : writesEnabled;
     }
 
     public boolean remapIslandRegion(UUID islandUuid, String worldName, int deltaX, int deltaY, int deltaZ) {
@@ -192,6 +201,14 @@ public final class ResourceNodeService {
         int dy = a.y() - b.y();
         int dz = a.z() - b.z();
         return dx * dx + dy * dy + dz * dz;
+    }
+
+    private boolean writesEnabled() {
+        try {
+            return writesEnabled.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 
 }
