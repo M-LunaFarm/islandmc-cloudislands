@@ -476,8 +476,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             }
             registrations.remove(safeId);
             addons.remove(safeId);
-            addonStates.remove(safeId);
-            addonIslandStates.remove(safeId);
             syncEventSubscription();
             return CompletableFuture.completedFuture(null);
         }
