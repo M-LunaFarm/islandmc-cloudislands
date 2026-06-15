@@ -30,6 +30,7 @@ public interface CoreApiClient {
     CompletableFuture<String> getIslandMembers(UUID islandId);
     CompletableFuture<String> getIslandRuntime(UUID islandId);
     CompletableFuture<String> getIslandFlags(UUID islandId);
+    CompletableFuture<String> getIslandLevel(UUID islandId);
     CompletableFuture<String> getPlayerProfile(UUID playerUuid);
     CompletableFuture<String> getPlayerIsland(UUID playerUuid);
     CompletableFuture<String> getJoinedIslands(UUID playerUuid);

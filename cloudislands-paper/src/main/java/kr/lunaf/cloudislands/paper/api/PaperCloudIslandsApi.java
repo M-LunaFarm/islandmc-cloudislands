@@ -1606,7 +1606,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandLevelSnapshot> getLevel(UUID islandId) {
-            return client.islandInfo(islandId).thenApply(PaperCloudIslandsApi::level);
+            return client.getIslandLevel(islandId).thenApply(PaperCloudIslandsApi::level);
         }
 
         @Override

@@ -109,6 +109,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> getIslandLevel(UUID islandId) {
+        return get("/v1/islands/" + islandId + "/level");
+    }
+
+    @Override
     public CompletableFuture<String> getPlayerProfile(UUID playerUuid) {
         return get("/v1/players/" + playerUuid + "/profile");
     }

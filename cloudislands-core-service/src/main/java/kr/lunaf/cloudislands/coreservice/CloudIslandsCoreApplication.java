@@ -1005,6 +1005,16 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 200, flagsJson(metadataRepository.flags(islandId)));
                 return;
             }
+            if (method.equalsIgnoreCase("GET") && tail.endsWith("/level")) {
+                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/level".length()));
+                if (islandRepository.findById(islandId).isEmpty()) {
+                    write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+                    return;
+                }
+                var snapshot = levelRecalculation.recalculate(islandId, levelRepository.blockCounts(islandId), levelRepository.blockValues(), metadataRepository.members(islandId).size());
+                write(exchange, 200, levelJson(snapshot));
+                return;
+            }
             if (method.equalsIgnoreCase("GET") && tail.endsWith("/permissions")) {
                 UUID islandId = uuidPath(tail.substring(0, tail.length() - "/permissions".length()));
                 write(exchange, 200, permissionsJson(permissionRules.list(islandId)));
