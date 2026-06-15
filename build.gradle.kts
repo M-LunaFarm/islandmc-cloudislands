@@ -56,18 +56,32 @@ tasks.register<Copy>("distServices") {
     into(layout.buildDirectory.dir("dist/services/core"))
 }
 
+tasks.register<Copy>("distTools") {
+    group = "distribution"
+    description = "Collects CloudIslands admin and migration tool jars."
+
+    val migrationJar = project(":cloudislands-migration").tasks.named<Jar>("jar")
+    dependsOn(migrationJar)
+    from(migrationJar.flatMap { it.archiveFile })
+    into(layout.buildDirectory.dir("dist/tools"))
+}
+
 tasks.register<Zip>("distBundle") {
     group = "distribution"
-    description = "Packages CloudIslands plugin jars and Core API service runtime."
+    description = "Packages CloudIslands plugin jars, Core API service runtime, and migration tools."
     dependsOn(tasks.named("distPlugins"))
     dependsOn(tasks.named("distServices"))
-    archiveBaseName.set("cloudislands-plugins")
+    dependsOn(tasks.named("distTools"))
+    archiveBaseName.set("cloudislands")
     archiveVersion.set(project.version.toString())
     from(layout.buildDirectory.dir("dist/plugins")) {
         into("plugins")
     }
     from(layout.buildDirectory.dir("dist/services")) {
         into("services")
+    }
+    from(layout.buildDirectory.dir("dist/tools")) {
+        into("tools")
     }
     destinationDirectory.set(layout.buildDirectory.dir("dist"))
 }
