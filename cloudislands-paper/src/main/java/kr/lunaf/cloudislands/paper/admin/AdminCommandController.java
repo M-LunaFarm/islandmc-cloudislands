@@ -1998,6 +1998,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " existingRoutePolicy=" + textValue(body, "islandNodeExistingRoutePolicy")
             + " visitorSoftFullPolicy=" + textValue(body, "islandNodeVisitorSoftFullPolicy")
             + adminText("admin-command-core-config-pool-degraded-prefix", " poolDegraded=") + boolValue(body, "islandPoolDegraded")
+            + " poolCandidateShortfall=" + longValue(body, "islandPoolRouteCandidateShortfall")
+            + " poolCandidateBlocks=" + textValue(body, "islandPoolRouteCandidateBlockSummary")
             + adminText("admin-command-core-config-pool-duplicate-server-prefix", " poolDuplicateServers=") + longValue(body, "islandPoolDuplicateVelocityServerNameNodeCount")
             + adminText("admin-command-core-config-pool-default-identity-prefix", " poolDefaultIdentityRisk=") + longValue(body, "islandPoolDefaultNodeIdentityRiskCount")
             + adminText("admin-command-core-config-db-pool-prefix", " dbPool=") + longValue(body, "databasePoolSize")

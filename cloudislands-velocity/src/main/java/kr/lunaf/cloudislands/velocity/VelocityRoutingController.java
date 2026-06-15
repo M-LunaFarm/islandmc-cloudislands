@@ -1963,6 +1963,8 @@ public final class VelocityRoutingController {
             + " existingRoutePolicy=" + jsonValue(body, "islandNodeExistingRoutePolicy")
             + " visitorSoftFullPolicy=" + jsonValue(body, "islandNodeVisitorSoftFullPolicy")
             + " poolDegraded=" + boolValue(body, "islandPoolDegraded")
+            + " poolCandidateShortfall=" + longValue(body, "islandPoolRouteCandidateShortfall")
+            + " poolCandidateBlocks=" + jsonValue(body, "islandPoolRouteCandidateBlockSummary")
             + " poolDuplicateServers=" + longValue(body, "islandPoolDuplicateVelocityServerNameNodeCount")
             + " poolDefaultIdentityRisk=" + longValue(body, "islandPoolDefaultNodeIdentityRiskCount")
             + " dbPool=" + longValue(body, "databasePoolSize")

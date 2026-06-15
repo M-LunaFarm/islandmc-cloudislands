@@ -2853,6 +2853,8 @@ public final class CloudIslandsCoreApplication {
             + "\"islandNodeVisitorSoftFullPolicy\":\"visitors-queue-or-retry-on-soft-full-active-node-members-use-reserved-slots\","
             + "\"islandPoolMultiNodeReady\":" + islandPoolMultiNodeReady(config, nodes) + ","
             + "\"islandPoolDegraded\":" + islandPoolDegraded(config, nodes) + ","
+            + "\"islandPoolRouteCandidateShortfall\":" + islandPoolRouteCandidateShortfall(config, nodes) + ","
+            + "\"islandPoolRouteCandidateBlockSummary\":\"" + escape(islandPoolRouteCandidateBlockSummary(config, nodes)) + "\","
             + "\"islandPoolDuplicateVelocityServerNameNodeCount\":" + islandPoolDuplicateVelocityServerNameNodeCount(config, nodes) + ","
             + "\"islandPoolDefaultNodeIdentityRiskCount\":" + islandPoolDefaultNodeIdentityRiskCount(config, nodes) + ","
             + "\"softFullPolicy\":\"" + escape(config.softFullPolicy()) + "\","
@@ -3068,6 +3070,31 @@ public final class CloudIslandsCoreApplication {
             && islandPoolRouteCandidateCount(config, nodes) > 1L
             && islandPoolDuplicateVelocityServerNameNodeCount(config, nodes) == 0L
             && islandPoolDefaultNodeIdentityRiskCount(config, nodes) == 0L;
+    }
+
+    private static long islandPoolRouteCandidateShortfall(CoreServiceConfig config, NodeRegistry nodes) {
+        return Math.max(0L, islandPoolNodeCount(config, nodes) - islandPoolRouteCandidateCount(config, nodes));
+    }
+
+    private static String islandPoolRouteCandidateBlockSummary(CoreServiceConfig config, NodeRegistry nodes) {
+        if (nodes == null) {
+            return "none";
+        }
+        java.util.List<NodeLoad> snapshot = nodes.snapshot();
+        java.util.Map<String, Long> velocityServerCounts = islandPoolVelocityServerCounts(config, snapshot);
+        java.time.Instant now = java.time.Instant.now();
+        java.util.Map<String, Long> blocked = new java.util.TreeMap<>();
+        snapshot.stream()
+            .filter(node -> inIslandPool(config, node))
+            .map(node -> islandPoolRouteCandidateBlockReason(config, node, now, velocityServerCounts))
+            .filter(reason -> reason != null && !reason.isBlank())
+            .forEach(reason -> blocked.merge(reason, 1L, Long::sum));
+        if (blocked.isEmpty()) {
+            return "none";
+        }
+        return blocked.entrySet().stream()
+            .map(entry -> entry.getKey() + "=" + entry.getValue())
+            .collect(java.util.stream.Collectors.joining(","));
     }
 
     private static long islandPoolDuplicateVelocityServerNameNodeCount(CoreServiceConfig config, NodeRegistry nodes) {
