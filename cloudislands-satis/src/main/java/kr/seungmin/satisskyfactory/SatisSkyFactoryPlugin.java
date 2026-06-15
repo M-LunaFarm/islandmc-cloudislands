@@ -1136,6 +1136,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-core-api-local-cache", databaseCoreApiLocalCachePolicy());
         metadata.put("database-core-api-fallback-target", databaseCoreApiFallbackTarget());
         metadata.put("database-core-api-fallback-policy", databaseCoreApiFallbackPolicy());
+        metadata.put("database-core-api-fallback-active", Boolean.toString(databaseCoreApiFallbackActive()));
+        metadata.put("database-core-api-fallback-reason", databaseCoreApiFallbackReason());
         metadata.put("database-core-api-flattened-fallback-enabled", Boolean.toString(coreApiFlattenedFallbackEnabled()));
         metadata.put("database-core-api-write-fallback", databaseCoreApiWriteFallbackPolicy());
         metadata.put("database-config-env", "CLOUDISLANDS_SATIS_DATABASE_TYPE,CLOUDISLANDS_SATIS_DB");
@@ -1423,6 +1425,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-core-api-local-cache", databaseCoreApiLocalCachePolicy());
         state.put("database-core-api-fallback-target", databaseCoreApiFallbackTarget());
         state.put("database-core-api-fallback-policy", databaseCoreApiFallbackPolicy());
+        state.put("database-core-api-fallback-active", Boolean.toString(databaseCoreApiFallbackActive()));
+        state.put("database-core-api-fallback-reason", databaseCoreApiFallbackReason());
         state.put("database-core-api-flattened-fallback-enabled", Boolean.toString(coreApiFlattenedFallbackEnabled()));
         state.put("database-core-api-write-fallback", databaseCoreApiWriteFallbackPolicy());
         state.put("database-config-env", "CLOUDISLANDS_SATIS_DATABASE_TYPE,CLOUDISLANDS_SATIS_DB");
@@ -3363,6 +3367,24 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return "disabled-use-local-cache-only-and-warn";
         }
         return "if-cloudislands-api-or-addon-state-unavailable-use-first-non-core-api-backend";
+    }
+
+    private boolean databaseCoreApiFallbackActive() {
+        DatabaseService.StorageBackend configured = DatabaseService.StorageBackend.parse(configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE);
+        DatabaseService.StorageBackend active = database == null ? configured : database.activeBackend();
+        return configured == DatabaseService.StorageBackend.CORE_API
+                && active != DatabaseService.StorageBackend.CORE_API;
+    }
+
+    private String databaseCoreApiFallbackReason() {
+        if (!databaseCoreApiFallbackActive()) {
+            if (DatabaseService.StorageBackend.parse(configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE) == DatabaseService.StorageBackend.CORE_API
+                    && !coreApiAddonStateAvailable()) {
+                return cloudIslandsApi == null ? "core-api-cloudislands-api-missing" : "core-api-addon-state-disabled";
+            }
+            return "none";
+        }
+        return databaseFallbackReason == null || databaseFallbackReason.isBlank() ? "core-api-unavailable" : databaseFallbackReason;
     }
 
     private boolean coreApiFlattenedFallbackEnabled() {
