@@ -1158,14 +1158,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         cloudIslandsApiMissing = false;
         cloudIslandsApi = resolveCloudIslandsApi();
         if (cloudIslandsApi == null) {
-            if (requiresCloudIslandsApi()) {
-                getLogger().severe("CloudIslands API is required for the configured Satis integration mode.");
-                addonRuntimeEnabled = false;
-                cloudIslandsApiMissing = true;
-                return false;
-            }
-            addonRuntimeEnabled = true;
-            return true;
+            getLogger().severe("CloudIslands API is required. Satis will not start a standalone island runtime.");
+            addonRuntimeEnabled = false;
+            effectiveFeatures = Map.of();
+            addonStateReportingWasEnabled = false;
+            cloudIslandsApiMissing = true;
+            return false;
         }
         try {
             CloudIslandsAddonSnapshot addon = register(cloudIslandsApi).join();
