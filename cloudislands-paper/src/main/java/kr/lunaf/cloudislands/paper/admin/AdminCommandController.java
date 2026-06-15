@@ -407,8 +407,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 if (!addonFeatureKnown(addon.get(), args[3])) {
                     return adminText("admin-command-addons-feature-invalid", "알 수 없는 addon feature입니다: ") + args[3];
                 }
-                boolean enabled = addon.get().enabled() && addon.get().featureEnabled(args[3]);
-                return adminText("admin-command-addons-feature-prefix", "Addon feature: ") + args[2] + " " + args[3] + canonicalFeatureSuffix(addon.get(), args[3]) + adminText("admin-command-addons-enabled-prefix", " enabled=") + enabled;
+                return addonFeatureMessage(addon.get(), args[2], args[3]);
             }));
             return true;
         }
@@ -2759,6 +2758,32 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         return canonical != null && addon.features().containsKey(canonical)
             || addon.featureDependencies().containsKey(requested)
             || addon.featureDependencies().containsValue(requested);
+    }
+
+    private String addonFeatureMessage(CloudIslandsAddonSnapshot addon, String addonId, String feature) {
+        boolean configured = addon.configuredFeatureEnabled(feature, true);
+        boolean effective = addon.enabled() && addon.featureEnabled(feature, true);
+        return adminText("admin-command-addons-feature-prefix", "Addon feature: ") + addonId + " " + feature
+            + canonicalFeatureSuffix(addon, feature)
+            + adminText("admin-command-addons-configured-prefix", " configured=") + configured
+            + adminText("admin-command-addons-enabled-prefix", " enabled=") + effective
+            + addonFeatureDependencySuffix(addon, feature);
+    }
+
+    private String addonFeatureDependencySuffix(CloudIslandsAddonSnapshot addon, String feature) {
+        String requested = feature == null ? "" : feature.trim();
+        String required = addon.featureDependencies().get(requested);
+        if (required == null) {
+            String canonical = addon.featureAliases().get(requested);
+            required = addon.featureDependencies().get(canonical == null ? requested : canonical);
+        }
+        if (required == null) {
+            return "";
+        }
+        boolean requiredEnabled = addon.featureEnabled(required, true);
+        return adminText("admin-command-addons-required-prefix", " requires=") + required
+            + adminText("admin-command-addons-required-enabled-prefix", " requiredEnabled=") + requiredEnabled
+            + adminText("admin-command-addons-dependency-blocked-prefix", " dependencyBlocked=") + (!requiredEnabled);
     }
 
     private String canonicalFeatureSuffix(CloudIslandsAddonSnapshot addon, String feature) {
