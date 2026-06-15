@@ -1144,7 +1144,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-setup-core-api-fallback", "cloudislands-addon-state-then-first-non-core-api-backend");
         metadata.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));
         metadata.put("database-jdbc-inferred-backend", databaseJdbcInferredBackendMetadata());
-        metadata.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
+        metadata.put("database-active-backend", databaseActiveBackendName());
+        metadata.put("database-configured-backend-active", Boolean.toString(databaseConfiguredBackendActive()));
+        metadata.put("database-effective-backend-status", databaseEffectiveBackendStatus());
         metadata.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
         metadata.put("database-attempt-order", databaseBackendAttemptOrderMetadata());
         metadata.put("database-jdbc-target", databaseJdbcTargetMetadata());
@@ -1453,7 +1455,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-setup-core-api-fallback", "cloudislands-addon-state-then-first-non-core-api-backend");
         state.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));
         state.put("database-jdbc-inferred-backend", databaseJdbcInferredBackendMetadata());
-        state.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
+        state.put("database-active-backend", databaseActiveBackendName());
+        state.put("database-configured-backend-active", Boolean.toString(databaseConfiguredBackendActive()));
+        state.put("database-effective-backend-status", databaseEffectiveBackendStatus());
         state.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
         state.put("database-attempt-order", databaseBackendAttemptOrderMetadata());
         state.put("database-jdbc-target", databaseJdbcTargetMetadata());
@@ -1558,7 +1562,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-setup-core-api-fallback", "cloudislands-addon-state-then-first-non-core-api-backend");
         state.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));
         state.put("database-jdbc-inferred-backend", databaseJdbcInferredBackendMetadata());
-        state.put("database-active-backend", database == null ? "NOT_OPEN" : database.activeBackend().name());
+        state.put("database-active-backend", databaseActiveBackendName());
+        state.put("database-configured-backend-active", Boolean.toString(databaseConfiguredBackendActive()));
+        state.put("database-effective-backend-status", databaseEffectiveBackendStatus());
         state.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
         state.put("database-attempt-order", databaseBackendAttemptOrderMetadata());
         state.put("database-jdbc-target", databaseJdbcTargetMetadata());
@@ -3240,6 +3246,27 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private String configuredDatabaseBackendName() {
         return DatabaseService.StorageBackend.parse(configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE).name();
+    }
+
+    private String databaseActiveBackendName() {
+        return database == null ? "NOT_OPEN" : database.activeBackend().name();
+    }
+
+    private boolean databaseConfiguredBackendActive() {
+        return configuredDatabaseBackendName().equals(databaseActiveBackendName());
+    }
+
+    private String databaseEffectiveBackendStatus() {
+        if (database == null) {
+            return "not-open";
+        }
+        if (databaseConfiguredBackendActive()) {
+            return "configured-active";
+        }
+        if (databaseFallbackActive()) {
+            return "fallback-active:" + databaseActiveBackendName();
+        }
+        return "active-differs-from-config:" + databaseActiveBackendName();
     }
 
     private String databaseFallbackOrderMetadata() {
