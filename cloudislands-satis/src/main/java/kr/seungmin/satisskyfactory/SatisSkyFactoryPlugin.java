@@ -1198,7 +1198,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("route-event-policy", "diagnostic-state-only-no-routing-authority");
         metadata.put("route-event-feature-gate", "features.route-events&&features.addon-state&&CloudIslandsApi");
         metadata.put("route-event-state-scope", "global-addon-state-and-island-addon-state-when-islandId-present");
-        metadata.put("route-event-state-keys", "last-route-event,last-route-ticket,last-route-player,last-route-action,last-route-target-node,last-route-island,last-route-requested-node,last-route-reason,last-route-detail,last-route-at,last-route-policy");
+        metadata.put("route-event-state-keys", "last-route-event,last-route-ticket,last-route-player,last-route-action,last-route-target-node,last-route-target-server,last-route-island,last-route-requested-node,last-route-reason,last-route-detail,last-route-at,last-route-policy");
         metadata.put("feature-aliases", featureAliasesMetadata());
         metadata.put("feature-alias-disabled", disabledFeatureAliases());
         metadata.put("feature-dependencies", featureDependenciesMetadata());
@@ -1478,7 +1478,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("route-event-policy", "diagnostic-state-only-no-routing-authority");
         state.put("route-event-feature-gate", "features.route-events&&features.addon-state&&CloudIslandsApi");
         state.put("route-event-state-scope", "global-addon-state-and-island-addon-state-when-islandId-present");
-        state.put("route-event-state-keys", "last-route-event,last-route-ticket,last-route-player,last-route-action,last-route-target-node,last-route-island,last-route-requested-node,last-route-reason,last-route-detail,last-route-at,last-route-policy");
+        state.put("route-event-state-keys", "last-route-event,last-route-ticket,last-route-player,last-route-action,last-route-target-node,last-route-target-server,last-route-island,last-route-requested-node,last-route-reason,last-route-detail,last-route-at,last-route-policy");
         state.put("configured-features", featureState(snapshot.configuredFeatures()));
         state.put("effective-features", featureState(snapshot.features()));
         state.put("operational-features", operationalFeatureState(snapshot.features()));
@@ -1970,30 +1970,30 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onRouteTicketCreated(RouteTicketCreatedEvent event) {
-        publishRouteEventState("created", event.ticketId(), event.islandId(), event.playerUuid(), event.action(), event.targetNode(), "", "", "state=" + safeRouteValue(event.state()), event.occurredAt());
+        publishRouteEventState("created", event.ticketId(), event.islandId(), event.playerUuid(), event.action(), event.targetNode(), event.targetServerName(), "", "", "state=" + safeRouteValue(event.state()), event.occurredAt());
     }
 
     @Override
     public void onRouteSessionPublished(RouteSessionPublishedEvent event) {
-        publishRouteEventState("session-published", event.ticketId(), event.islandId(), event.playerUuid(), event.action(), event.targetNode(), "", "", "", event.occurredAt());
+        publishRouteEventState("session-published", event.ticketId(), event.islandId(), event.playerUuid(), event.action(), event.targetNode(), "", "", "", "", event.occurredAt());
     }
 
     @Override
     public void onRouteTicketConsumed(RouteTicketConsumedGlobalEvent event) {
-        publishRouteEventState("consumed", event.ticketId(), event.islandId(), event.playerUuid(), event.action(), event.targetNode(), "", "", "", event.occurredAt());
+        publishRouteEventState("consumed", event.ticketId(), event.islandId(), event.playerUuid(), event.action(), event.targetNode(), "", "", "", "", event.occurredAt());
     }
 
     @Override
     public void onRouteTicketFailed(RouteTicketFailedEvent event) {
-        publishRouteEventState("failed", event.ticketId(), event.islandId(), event.playerUuid(), event.action(), event.targetNode(), event.requestedNode(), event.reason(), "", event.occurredAt());
+        publishRouteEventState("failed", event.ticketId(), event.islandId(), event.playerUuid(), event.action(), event.targetNode(), "", event.requestedNode(), event.reason(), "", event.occurredAt());
     }
 
     @Override
     public void onRouteTicketCleared(RouteTicketClearedEvent event) {
-        publishRouteEventState("cleared", event.ticketId(), null, event.playerUuid(), "", "", "", event.reason(), "session=" + event.clearedSession() + ",ticket=" + event.clearedTicket(), event.occurredAt());
+        publishRouteEventState("cleared", event.ticketId(), null, event.playerUuid(), "", "", "", "", event.reason(), "session=" + event.clearedSession() + ",ticket=" + event.clearedTicket(), event.occurredAt());
     }
 
-    private void publishRouteEventState(String eventName, UUID ticketId, UUID islandId, UUID playerUuid, String action, String targetNode, String requestedNode, String reason, String detail, Instant occurredAt) {
+    private void publishRouteEventState(String eventName, UUID ticketId, UUID islandId, UUID playerUuid, String action, String targetNode, String targetServerName, String requestedNode, String reason, String detail, Instant occurredAt) {
         if (!routeEventStateEnabled()) {
             return;
         }
@@ -2003,6 +2003,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("last-route-player", playerUuid == null ? "" : playerUuid.toString());
         state.put("last-route-action", safeRouteValue(action));
         state.put("last-route-target-node", safeRouteValue(targetNode));
+        state.put("last-route-target-server", safeRouteValue(targetServerName));
         if (islandId != null) {
             state.put("last-route-island", islandId.toString());
         }

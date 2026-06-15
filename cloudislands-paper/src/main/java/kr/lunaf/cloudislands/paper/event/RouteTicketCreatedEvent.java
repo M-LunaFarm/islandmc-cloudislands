@@ -13,16 +13,22 @@ public final class RouteTicketCreatedEvent extends Event {
     private final UUID playerUuid;
     private final String action;
     private final String targetNode;
+    private final String targetServerName;
     private final String state;
     private final Map<String, String> fields;
 
     public RouteTicketCreatedEvent(UUID ticketId, UUID islandId, UUID playerUuid, String action, String targetNode, String state, Map<String, String> fields) {
+        this(ticketId, islandId, playerUuid, action, targetNode, "", state, fields);
+    }
+
+    public RouteTicketCreatedEvent(UUID ticketId, UUID islandId, UUID playerUuid, String action, String targetNode, String targetServerName, String state, Map<String, String> fields) {
         super(true);
         this.ticketId = ticketId;
         this.islandId = islandId;
         this.playerUuid = playerUuid;
         this.action = action == null ? "" : action;
         this.targetNode = targetNode == null ? "" : targetNode;
+        this.targetServerName = targetServerName == null ? "" : targetServerName;
         this.state = state == null ? "" : state;
         this.fields = Map.copyOf(fields);
     }
@@ -45,6 +51,10 @@ public final class RouteTicketCreatedEvent extends Event {
 
     public String targetNode() {
         return targetNode;
+    }
+
+    public String targetServerName() {
+        return targetServerName;
     }
 
     public String state() {
