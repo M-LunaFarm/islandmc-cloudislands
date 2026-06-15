@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 public final class ApiResponses {
     private ApiResponses() {}
@@ -25,6 +26,33 @@ public final class ApiResponses {
 
     public static String error(String code, String message) {
         return "{\"error\":{\"code\":\"" + escape(code) + "\",\"message\":\"" + escape(message) + "\",\"timestamp\":\"" + Instant.now() + "\"}}";
+    }
+
+    public static String error(String code, String message, Map<String, String> details) {
+        StringBuilder builder = new StringBuilder("{\"error\":{\"code\":\"")
+            .append(escape(code))
+            .append("\",\"message\":\"")
+            .append(escape(message))
+            .append("\",\"timestamp\":\"")
+            .append(Instant.now())
+            .append("\"");
+        if (details != null && !details.isEmpty()) {
+            builder.append(",\"details\":{");
+            boolean first = true;
+            for (Map.Entry<String, String> entry : details.entrySet()) {
+                if (!first) {
+                    builder.append(',');
+                }
+                first = false;
+                builder.append('"')
+                    .append(escape(entry.getKey()))
+                    .append("\":\"")
+                    .append(escape(entry.getValue()))
+                    .append('"');
+            }
+            builder.append('}');
+        }
+        return builder.append("}}").toString();
     }
 
     private static String escape(String value) {

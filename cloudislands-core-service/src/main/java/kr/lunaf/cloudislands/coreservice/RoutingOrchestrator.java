@@ -314,7 +314,7 @@ public final class RoutingOrchestrator {
                 return rejectRoute(409, "NODE_UNAVAILABLE", "No eligible island node is available", playerUuid, island.islandId(), action, runtime == null ? "" : runtime.activeNode(), exception.getMessage());
             }
             if ("NO_READY_NODE".equals(exception.getMessage()) || (exception.getMessage() != null && exception.getMessage().startsWith("NO_READY_NODE_"))) {
-                return rejectRoute(409, "NODE_UNAVAILABLE", "No ready island node is available", playerUuid, island.islandId(), action, "", exception.getMessage());
+                return rejectRouteWithRoutingDetails(409, "NODE_UNAVAILABLE", "No ready island node is available", playerUuid, island.islandId(), action, exception.getMessage());
             }
             return rejectRoute(409, "NODE_UNAVAILABLE", "No eligible island node is available", playerUuid, island.islandId(), action);
         }
@@ -368,6 +368,50 @@ public final class RoutingOrchestrator {
     private RoutePreparationResult rejectRoute(int status, String publicReason, String message, UUID playerUuid, UUID islandId, RouteAction action, String targetNode, String debugReason) {
         publishTicketFailure(playerUuid, islandId, action, debugReason == null || debugReason.isBlank() ? publicReason : debugReason, targetNode);
         return RoutePreparationResult.rejected(status, ApiResponses.error(publicReason, message));
+    }
+
+    private RoutePreparationResult rejectRouteWithRoutingDetails(int status, String publicReason, String message, UUID playerUuid, UUID islandId, RouteAction action, String debugReason) {
+        publishTicketFailure(playerUuid, islandId, action, debugReason == null || debugReason.isBlank() ? publicReason : debugReason, "");
+        return RoutePreparationResult.rejected(status, ApiResponses.error(publicReason, message, routingFailureDetails(debugReason)));
+    }
+
+    private Map<String, String> routingFailureDetails(String debugReason) {
+        List<NodeLoad> snapshot = nodes.snapshot();
+        long poolNodes = snapshot.stream().filter(node -> node.inPool(islandPool)).count();
+        long readyOrSoftFull = snapshot.stream()
+            .filter(node -> node.inPool(islandPool))
+            .filter(node -> node.state() == NodeState.READY || node.state() == NodeState.SOFT_FULL)
+            .count();
+        long storageReady = snapshot.stream()
+            .filter(node -> node.inPool(islandPool))
+            .filter(NodeLoad::storageAvailable)
+            .count();
+        long queueOpen = snapshot.stream()
+            .filter(node -> node.inPool(islandPool))
+            .filter(node -> node.maxActivationQueue() <= 0 || node.activationQueue() < node.maxActivationQueue())
+            .count();
+        return Map.of(
+            "pool", islandPool,
+            "nodeCount", Long.toString(poolNodes),
+            "readyOrSoftFullNodeCount", Long.toString(readyOrSoftFull),
+            "storageReadyNodeCount", Long.toString(storageReady),
+            "queueOpenNodeCount", Long.toString(queueOpen),
+            "blockReason", publicBlockReason(debugReason),
+            "physicalNodeNamesExposed", "false"
+        );
+    }
+
+    private String publicBlockReason(String reason) {
+        if (reason == null || reason.isBlank()) {
+            return "UNKNOWN";
+        }
+        if (reason.startsWith("NO_READY_NODE_")) {
+            return reason.substring("NO_READY_NODE_".length());
+        }
+        if (reason.startsWith("ACTIVE_NODE_")) {
+            return reason.substring("ACTIVE_NODE_".length());
+        }
+        return reason;
     }
 
     private void publishTicketFailure(UUID playerUuid, UUID islandId, RouteAction action, String reason) {
