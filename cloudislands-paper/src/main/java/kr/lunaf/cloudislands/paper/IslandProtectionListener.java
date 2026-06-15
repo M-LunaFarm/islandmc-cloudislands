@@ -54,6 +54,7 @@ import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerLeashEntityEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerShearEntityEvent;
 import org.bukkit.event.player.PlayerUnleashEntityEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
@@ -391,6 +392,11 @@ public final class IslandProtectionListener implements Listener {
                 reportBlockReplacement(event.getBlock(), event.getNewState().getType());
             }
         }
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        denyMessageTimes.remove(event.getPlayer().getUniqueId());
     }
 
     private boolean denied(Player player, Block block, IslandPermission permission) {
