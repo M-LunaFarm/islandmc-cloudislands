@@ -1123,6 +1123,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("addon-state-bulk-save-island-endpoint", "/v1/addons/islands/state/table-key-value/bulk-save");
         metadata.put("addon-state-table-key-value-bulk-save-global-endpoint", "/v1/addons/state/table/key-value/bulk-save");
         metadata.put("addon-state-table-key-value-bulk-save-island-endpoint", "/v1/addons/islands/state/table/key-value/bulk-save");
+        metadata.put("addon-state-table-key-value-bulk-save-global-alias", "/v1/addons/state/table/key-value/bulk/save");
+        metadata.put("addon-state-table-key-value-bulk-save-island-alias", "/v1/addons/islands/state/table/key-value/bulk/save");
         metadata.put("addon-state-table-key-value-bulk-global-endpoint", "/v1/addons/state/table/key-value/bulk");
         metadata.put("addon-state-table-key-value-bulk-island-endpoint", "/v1/addons/islands/state/table/key-value/bulk");
         metadata.put("addon-state-bulk-save-methods", "bulkSaveState,tableKeyValueBulkSaveState,bulkSaveTableKeyValueState,tableKeyValueBulkState,bulkTableKeyValueState,bulkSaveIslandState,tableKeyValueBulkSaveIslandState,bulkSaveIslandTableKeyValueState,tableKeyValueBulkIslandState,bulkIslandTableKeyValueState");
@@ -1391,6 +1393,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("addon-state-bulk-save-island-endpoint", "/v1/addons/islands/state/table-key-value/bulk-save");
         state.put("addon-state-table-key-value-bulk-save-global-endpoint", "/v1/addons/state/table/key-value/bulk-save");
         state.put("addon-state-table-key-value-bulk-save-island-endpoint", "/v1/addons/islands/state/table/key-value/bulk-save");
+        state.put("addon-state-table-key-value-bulk-save-global-alias", "/v1/addons/state/table/key-value/bulk/save");
+        state.put("addon-state-table-key-value-bulk-save-island-alias", "/v1/addons/islands/state/table/key-value/bulk/save");
         state.put("addon-state-table-key-value-bulk-global-endpoint", "/v1/addons/state/table/key-value/bulk");
         state.put("addon-state-table-key-value-bulk-island-endpoint", "/v1/addons/islands/state/table/key-value/bulk");
         state.put("addon-state-bulk-save-methods", "bulkSaveState,tableKeyValueBulkSaveState,bulkSaveTableKeyValueState,tableKeyValueBulkState,bulkTableKeyValueState,bulkSaveIslandState,tableKeyValueBulkSaveIslandState,bulkSaveIslandTableKeyValueState,tableKeyValueBulkIslandState,bulkIslandTableKeyValueState");
@@ -2328,7 +2332,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("addon-state-sync-runtime-source", "CloudIslands IslandRuntime");
         state.put("addon-state-sync-remap-policy", "island-uuid-stable-active-world-and-center-volatile");
         state.put("addon-state-sync-node-bound", "false");
-        state.put("addon-state-sync-endpoint", "table/key-value/bulk-save,table/key-value/bulk");
+        state.put("addon-state-sync-endpoint", "table/key-value/bulk-save,table/key-value/bulk/save,table/key-value/bulk");
         state.put("addon-state-sync-core-api-mode", databaseCoreApiMode());
         state.put("addon-state-sync-core-api-fallback-target", databaseCoreApiFallbackTarget());
         state.put("addon-state-sync-flattened-fallback-enabled", Boolean.toString(coreApiFlattenedFallbackEnabled()));

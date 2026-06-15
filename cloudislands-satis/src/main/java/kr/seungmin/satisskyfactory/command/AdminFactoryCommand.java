@@ -893,6 +893,8 @@ public final class AdminFactoryCommand {
                         "addon-state-bulk-save-island-endpoint",
                         "addon-state-table-key-value-bulk-save-global-endpoint",
                         "addon-state-table-key-value-bulk-save-island-endpoint",
+                        "addon-state-table-key-value-bulk-save-global-alias",
+                        "addon-state-table-key-value-bulk-save-island-alias",
                         "addon-state-bulk-save-methods",
                         "core-api-table-save-mode"
                 ).forEach(key -> {
