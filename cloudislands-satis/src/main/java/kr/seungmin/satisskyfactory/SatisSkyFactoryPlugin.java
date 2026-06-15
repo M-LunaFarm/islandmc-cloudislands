@@ -173,6 +173,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         applyCoreApiDatabaseFallback(settings);
         syncDatabaseFallbackReason();
         warnIfUnsharedDatabaseInCloudIslandsMode();
+        warnIfAmbiguousSetupDatabase();
         warnIfUnsafeDatabaseFallbackChain();
         getLogger().info("Satis database backend: " + database.activeBackend() + " (" + database.databaseDescription() + ")");
 
@@ -884,6 +885,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         applyCoreApiDatabaseFallback(settings);
         syncDatabaseFallbackReason();
         warnIfUnsharedDatabaseInCloudIslandsMode();
+        warnIfAmbiguousSetupDatabase();
         warnIfUnsafeDatabaseFallbackChain();
         getLogger().info("Reloaded Satis database backend: " + database.activeBackend() + " (" + database.databaseDescription() + ")");
         storage = new StorageService(database, configInt("storage.default-capacity", "limits.default-storage-capacity", 10000));
@@ -3405,6 +3407,17 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         getLogger().warning("CloudIslands Satis is using an unshared SQLite database from " + databaseConfigSource()
                 + " (scope=" + scope + ")"
                 + ". Set database.shared-directory, database.path, or CLOUDISLANDS_SATIS_DB so A/B island nodes share factory state.");
+    }
+
+    private void warnIfAmbiguousSetupDatabase() {
+        String warning = databaseSetupWarningMetadata();
+        if (warning.equals("none")) {
+            return;
+        }
+        getLogger().warning("CloudIslands Satis setup database selection is ambiguous"
+                + " (sections=" + databaseSetupSectionsMetadata()
+                + ", warning=" + warning
+                + "). Set setup.database.type to POSTGRESQL, MYSQL, MARIADB, or CORE_API.");
     }
 
     private void warnIfUnsafeDatabaseFallbackChain() {
