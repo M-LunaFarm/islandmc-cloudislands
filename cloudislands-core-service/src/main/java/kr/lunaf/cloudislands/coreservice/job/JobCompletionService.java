@@ -81,7 +81,9 @@ public final class JobCompletionService {
                 recordCompletedSnapshot(job, "CREATED", true);
             }
             setIslandState(job.islandId(), IslandState.ACTIVE);
-            int readyTickets = tickets.markReadyForIsland(job.islandId(), job.targetNode(), worldName, Instant.now().plus(routeTicketTtl), Map.of());
+            int readyTickets = tickets.markReadyForIsland(job.islandId(), job.targetNode(), worldName, Instant.now().plus(routeTicketTtl), Map.of(
+                "placementSource", job.payload().getOrDefault("placementSource", "")
+            ));
             events.publish(job.type() == IslandJobType.RESET_ISLAND ? CloudIslandEventType.ISLAND_RESET.name() : CloudIslandEventType.ISLAND_ACTIVATED.name(), Map.of(
                 "islandId", job.islandId().toString(),
                 "nodeId", job.targetNode() == null ? "" : job.targetNode(),
@@ -164,7 +166,8 @@ public final class JobCompletionService {
             setIslandState(job.islandId(), IslandState.ACTIVE);
             int readyTickets = tickets.markReadyForIsland(job.islandId(), job.targetNode(), worldName, Instant.now().plus(routeTicketTtl), Map.of(
                 "migrationReturnReady", "true",
-                "sourceNode", job.payload().getOrDefault("sourceNode", "")
+                "sourceNode", job.payload().getOrDefault("sourceNode", ""),
+                "placementSource", job.payload().getOrDefault("placementSource", "")
             ));
             events.publish(CloudIslandEventType.ISLAND_MIGRATED.name(), Map.of(
                 "islandId", job.islandId().toString(),
