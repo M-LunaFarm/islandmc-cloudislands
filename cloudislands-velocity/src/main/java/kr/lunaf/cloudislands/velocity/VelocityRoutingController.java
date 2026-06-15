@@ -3046,8 +3046,11 @@ public final class VelocityRoutingController {
         if (code == null || code.isBlank()) {
             return fallback;
         }
-        if (code.startsWith("NO_READY_NODE") || code.startsWith("TARGET_NODE") || code.startsWith("ACTIVE_NODE")) {
+        if (internalRouteCapacityCode(code)) {
             return "현재 섬 서비스가 혼잡합니다. 잠시 후 다시 시도해주세요.";
+        }
+        if (internalRouteMaintenanceCode(code)) {
+            return "현재 섬 서비스 일부 기능이 점검 중입니다.";
         }
         return switch (code) {
             case "ALREADY_HAS_ISLAND" -> "이미 섬을 보유하고 있습니다.";
@@ -3060,6 +3063,7 @@ public final class VelocityRoutingController {
             case "VISITOR_SOFT_FULL" -> "해당 섬은 지금 멤버 입장 슬롯을 우선 사용 중입니다. 잠시 후 다시 시도해주세요.";
             case "ACTIVATION_LOCKED" -> "섬을 준비하는 중입니다. 잠시 후 다시 시도해주세요.";
             case "NODE_UNAVAILABLE" -> "현재 섬 서비스가 혼잡합니다. 잠시 후 다시 시도해주세요.";
+            case "STORAGE_UNAVAILABLE" -> "현재 섬 저장소를 준비하는 중입니다. 잠시 후 다시 시도해주세요.";
             case "TARGET_OFFLINE_NO_ISLAND" -> "대상 플레이어의 섬을 찾을 수 없습니다.";
             case "PUBLIC_ISLAND_NOT_FOUND" -> "방문 가능한 공개 섬을 찾지 못했습니다.";
             case "WARP_NOT_FOUND" -> "해당 워프를 찾을 수 없습니다.";
@@ -3082,6 +3086,28 @@ public final class VelocityRoutingController {
             case "RATE_LIMITED" -> "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.";
             default -> fallback;
         };
+    }
+
+    private boolean internalRouteCapacityCode(String code) {
+        return code.startsWith("NO_READY_NODE")
+            || code.startsWith("TARGET_NODE")
+            || code.startsWith("ACTIVE_NODE")
+            || code.startsWith("NO_CAPACITY")
+            || code.startsWith("FULL_NODE")
+            || code.startsWith("ROUTE_ALLOCATOR");
+    }
+
+    private boolean internalRouteMaintenanceCode(String code) {
+        return code.startsWith("STORAGE_")
+            || code.startsWith("OBJECT_STORAGE_")
+            || code.startsWith("TEMPLATE_VERSION_")
+            || code.startsWith("UNSUPPORTED_TEMPLATE")
+            || code.startsWith("TARGET_SERVER_")
+            || code.startsWith("ROUTE_READY_")
+            || code.startsWith("ROUTE_STATUS_")
+            || code.startsWith("SESSION_PUBLISH_")
+            || code.startsWith("CONNECT_")
+            || code.startsWith("PENDING_");
     }
 
     private UUID parseUuid(String value) {
@@ -3385,8 +3411,11 @@ public final class VelocityRoutingController {
     }
 
     private String messageForCreateFailure(String code) {
-        if (code != null && code.startsWith("NO_READY_NODE")) {
+        if (code != null && internalRouteCapacityCode(code)) {
             return messages.text("island-create-node-unavailable");
+        }
+        if (code != null && internalRouteMaintenanceCode(code)) {
+            return messages.text("island-service-maintenance");
         }
         return switch (code) {
             case "ALREADY_HAS_ISLAND" -> messages.text("island-create-already-has-island");
