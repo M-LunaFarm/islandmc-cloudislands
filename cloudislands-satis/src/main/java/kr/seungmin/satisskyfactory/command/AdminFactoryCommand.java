@@ -919,6 +919,7 @@ public final class AdminFactoryCommand {
                         "write-gate-lifecycle-state",
                         "write-gate-lifecycle-listener",
                         "write-gate-addon-state",
+                        "write-gate-route-events",
                         "write-gate-dirty-save",
                         "lifecycle-event-source",
                         "lifecycle-event-coverage",

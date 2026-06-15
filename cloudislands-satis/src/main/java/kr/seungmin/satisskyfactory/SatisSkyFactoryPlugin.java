@@ -430,6 +430,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("write-gate-lifecycle-state", Boolean.toString(lifecycleStateEnabled()));
         state.put("write-gate-lifecycle-listener", Boolean.toString(lifecycleListenerNeeded()));
         state.put("write-gate-addon-state", Boolean.toString(featureEnabled("addon-state") && coreApiAddonStateAvailable()));
+        state.put("write-gate-route-events", Boolean.toString(routeEventStateEnabled()));
         state.put("write-gate-dirty-save", Boolean.toString(dataWritesEnabled()));
     }
 
