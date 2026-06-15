@@ -26,6 +26,9 @@ tasks.jar {
         attributes(
             "CloudIslands-Addon" to "cloudislands-satis",
             "CloudIslands-Addon-Packaging" to "external-plugin",
+            "CloudIslands-Core-Depends-On-Addon" to "false",
+            "CloudIslands-Addon-Removal-Safe" to "true",
+            "CloudIslands-Addon-Data-Retention" to "preserve-addon-state-by-island-uuid",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
         )
