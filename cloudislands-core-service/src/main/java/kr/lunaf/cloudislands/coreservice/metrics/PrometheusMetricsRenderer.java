@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.coreservice.metrics;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
@@ -262,30 +263,38 @@ public final class PrometheusMetricsRenderer {
         long staleNodes = 0L;
         long routeCandidateNodes = 0L;
         long routingHealthyNodes = 0L;
+        Map<String, long[]> poolCounts = new LinkedHashMap<>();
         double maxMspt = 0.0D;
         for (NodeLoad node : nodes.snapshot()) {
+            String pool = node.pool() == null || node.pool().isBlank() ? "island" : node.pool();
+            long[] poolCounters = poolCounts.computeIfAbsent(pool, _pool -> new long[5]);
             long heartbeatAgeSeconds = node.lastHeartbeat() == null ? -1L : Math.max(0L, Duration.between(node.lastHeartbeat(), now).toSeconds());
             boolean fresh = node.lastHeartbeat() != null && Duration.between(node.lastHeartbeat(), now).compareTo(heartbeatTimeout) <= 0;
             boolean stale = !fresh;
             String allocationBlockReason = node.allocationBlockReason(now, heartbeatTimeout);
             boolean routeCandidate = allocationBlockReason.isBlank();
             boolean routingHealthy = fresh && node.state() != NodeState.DOWN && routeCandidate;
+            poolCounters[0]++;
             if (stale) {
                 staleNodes++;
             }
             if (routeCandidate) {
                 routeCandidateNodes++;
+                poolCounters[2]++;
             }
             if (routingHealthy) {
                 routingHealthyNodes++;
+                poolCounters[3]++;
             }
             if (fresh && node.state() != NodeState.DOWN) {
                 onlineNodes++;
+                poolCounters[1]++;
                 totalPlayers += node.players();
                 totalActiveIslands += node.activeIslands();
                 totalActivationQueue += node.activationQueue();
                 if (node.storageAvailable()) {
                     storageAvailableNodes++;
+                    poolCounters[4]++;
                 }
                 maxMspt = Math.max(maxMspt, node.mspt());
             }
@@ -359,6 +368,25 @@ public final class PrometheusMetricsRenderer {
         out.append("cloudislands_cluster_route_candidate_nodes ").append(routeCandidateNodes).append('\n');
         out.append("cloudislands_cluster_routing_healthy_nodes ").append(routingHealthyNodes).append('\n');
         out.append("cloudislands_cluster_max_mspt ").append(maxMspt).append('\n');
+        help(out, "cloudislands_pool_nodes", "CloudIslands nodes registered per pool");
+        type(out, "cloudislands_pool_nodes", "gauge");
+        help(out, "cloudislands_pool_nodes_online", "Fresh non-DOWN CloudIslands nodes per pool");
+        type(out, "cloudislands_pool_nodes_online", "gauge");
+        help(out, "cloudislands_pool_route_candidate_nodes", "Nodes per pool that can receive new island activations");
+        type(out, "cloudislands_pool_route_candidate_nodes", "gauge");
+        help(out, "cloudislands_pool_routing_healthy_nodes", "Fresh route candidate nodes per pool");
+        type(out, "cloudislands_pool_routing_healthy_nodes", "gauge");
+        help(out, "cloudislands_pool_storage_available_nodes", "Fresh nodes per pool reporting object storage availability");
+        type(out, "cloudislands_pool_storage_available_nodes", "gauge");
+        for (Map.Entry<String, long[]> entry : poolCounts.entrySet()) {
+            String poolLabel = "{pool=\"" + escape(entry.getKey()) + "\"}";
+            long[] counts = entry.getValue();
+            out.append("cloudislands_pool_nodes").append(poolLabel).append(' ').append(counts[0]).append('\n');
+            out.append("cloudislands_pool_nodes_online").append(poolLabel).append(' ').append(counts[1]).append('\n');
+            out.append("cloudislands_pool_route_candidate_nodes").append(poolLabel).append(' ').append(counts[2]).append('\n');
+            out.append("cloudislands_pool_routing_healthy_nodes").append(poolLabel).append(' ').append(counts[3]).append('\n');
+            out.append("cloudislands_pool_storage_available_nodes").append(poolLabel).append(' ').append(counts[4]).append('\n');
+        }
         help(out, "cloudislands_jobs_total", "Island jobs by in-memory state or backend mode");
         type(out, "cloudislands_jobs_total", "gauge");
         Map<String, Long> jobCounts;
