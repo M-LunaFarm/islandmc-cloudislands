@@ -321,6 +321,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                     configs.file("maintenance.yml").getDouble("maintenance.break-wear", 100.0),
                     activeParticleLimit(configs.main(), configInt("settings.max-machines-per-tick", "settings.max-machines-per-cycle", 300)),
                     () -> operationalFeatureEnabled("machines"),
+                    this::storageDataEnabled,
                     () -> operationalFeatureEnabled("maintenance"),
                     () -> operationalFeatureEnabled("resource-nodes")
             );
@@ -449,6 +450,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("data-write-mode", dataWritesEnabled() ? "enabled" : "disabled");
         state.put("write-gate-machines", Boolean.toString(operationalFeatureEnabled("machines")));
         state.put("write-gate-machines-direct", Boolean.toString(operationalFeatureEnabled("machines")));
+        state.put("write-gate-machine-ticker-storage", Boolean.toString(operationalFeatureEnabled("machines") && storageDataEnabled()));
         state.put("write-gate-item-networks-direct", Boolean.toString(operationalFeatureEnabled("machines")));
         state.put("write-gate-power-direct", Boolean.toString(operationalFeatureEnabled("machines") && storageDataEnabled()));
         state.put("write-gate-storage", Boolean.toString(storageDataEnabled()));
@@ -457,7 +459,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("write-gate-resource-nodes", Boolean.toString(operationalFeatureEnabled("resource-nodes")));
         state.put("write-gate-resource-nodes-direct", Boolean.toString(operationalFeatureEnabled("resource-nodes")));
         state.put("write-gate-island-direct", Boolean.toString(dataWritesEnabled()));
-        state.put("write-gate-direct-policy", "MachineService,ResourceNodeService,FactoryIslandService,StorageService,MarketService,ContractService,ResearchService,and-MaintenanceService-respect-feature-write-gates-before-direct-database-writes");
+        state.put("write-gate-direct-policy", "MachineService,MachineTickService,ResourceNodeService,FactoryIslandService,StorageService,MarketService,ContractService,ResearchService,and-MaintenanceService-respect-feature-write-gates-before-direct-database-writes");
         state.put("write-gate-market", Boolean.toString(operationalFeatureEnabled("market")));
         state.put("write-gate-market-direct", Boolean.toString(operationalFeatureEnabled("market") && storageDataEnabled()));
         state.put("write-gate-contracts", Boolean.toString(operationalFeatureEnabled("contracts")));

@@ -70,6 +70,7 @@ public final class MachineTickService {
     private final double breakWear;
     private final int activeParticleLimit;
     private final BooleanSupplier active;
+    private final BooleanSupplier storageWritesEnabled;
     private final BooleanSupplier maintenanceEnabled;
     private final BooleanSupplier resourceNodesEnabled;
     private BukkitTask task;
@@ -87,7 +88,8 @@ public final class MachineTickService {
                               double limitedEfficiency, int limitedMaxOperatingTier,
                               double lockedRecoveryEfficiency, int lockedMaxOperatingTier, double breakWear,
                               int activeParticleLimit, BooleanSupplier active,
-                              BooleanSupplier maintenanceEnabled, BooleanSupplier resourceNodesEnabled) {
+                              BooleanSupplier storageWritesEnabled, BooleanSupplier maintenanceEnabled,
+                              BooleanSupplier resourceNodesEnabled) {
         this.plugin = plugin;
         this.machines = machines;
         this.definitions = definitions;
@@ -112,6 +114,7 @@ public final class MachineTickService {
         this.breakWear = Math.max(1.0, breakWear);
         this.activeParticleLimit = Math.max(0, activeParticleLimit);
         this.active = active == null ? () -> true : active;
+        this.storageWritesEnabled = storageWritesEnabled == null ? () -> true : storageWritesEnabled;
         this.maintenanceEnabled = maintenanceEnabled;
         this.resourceNodesEnabled = resourceNodesEnabled;
     }
@@ -134,6 +137,11 @@ public final class MachineTickService {
 
     public void tick() {
         if (!active.getAsBoolean()) {
+            activeMachineQueue.clear();
+            queuedMachines.clear();
+            return;
+        }
+        if (!storageWritesEnabled.getAsBoolean()) {
             activeMachineQueue.clear();
             queuedMachines.clear();
             return;
