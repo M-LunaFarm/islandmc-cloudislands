@@ -332,6 +332,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-addon-gate", "addons.cloudislands-satis.enabled&&satis.enabled");
         state.put("runtime-addon-status", addonRuntimeEnabled ? "enabled" : "addon-disabled-by-config-or-registry");
         state.put("runtime-addon-policy", "disabled-addon-registers-no-active-components-preserves-satis-data-and-cloudislands-core");
+        state.put("runtime-addon-state-gate", "addonRuntimeEnabled&&features.addon-state&&CloudIslandsApi");
+        state.put("runtime-addon-state-status", coreApiAddonStateAvailable() ? "available" : (featureEnabled("addon-state") ? "cloudislands-api-unavailable" : "addon-state-feature-disabled"));
+        state.put("runtime-addon-state-policy", "disabled-or-unavailable-core-api-uses-configured-database-fallback-and-preserves-local-state");
         state.put("runtime-commands-registered", Boolean.toString(commandsRegistered));
         state.put("runtime-commands-gate", "addonRuntimeEnabled&&features.commands");
         state.put("runtime-commands-status", featureEnabled("commands") ? (commandsRegistered ? "registered" : "enabled-not-registered") : "commands-feature-disabled");
