@@ -851,7 +851,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         private String tableStatePrefix(String table) {
-            return "table/" + safeTableName(table) + "/";
+            return IslandAddonService.TABLE_STATE_KEY_PREFIX + safeTableName(table) + "/";
         }
 
         private Map<String, String> tableStateValues(String table, Map<String, String> values) {
@@ -870,8 +870,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         private String safeTableName(String table) {
             String value = table == null ? "" : table.trim();
-            if (value.startsWith("table/")) {
-                value = value.substring("table/".length());
+            if (value.startsWith(IslandAddonService.TABLE_STATE_KEY_PREFIX)) {
+                value = value.substring(IslandAddonService.TABLE_STATE_KEY_PREFIX.length());
             }
             while (value.startsWith("/")) {
                 value = value.substring(1);
