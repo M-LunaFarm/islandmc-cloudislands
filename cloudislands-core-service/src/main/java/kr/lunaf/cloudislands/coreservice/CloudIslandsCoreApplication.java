@@ -172,6 +172,12 @@ public final class CloudIslandsCoreApplication {
     private final DirtyRankingRecalculationTask rankingRecalculationTask;
     private final int snapshotKeepLatest;
     private final kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotRetentionPolicy;
+    private final java.util.concurrent.atomic.AtomicLong securityRejectsTotal = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong securityRejectsRateLimited = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong securityRejectsUnauthorized = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong securityRejectsMtlsRequired = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong securityRejectsIpNotAllowed = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong securityRejectsAdminPermissionDenied = new java.util.concurrent.atomic.AtomicLong();
     private AuditLogger audit;
 
     public CloudIslandsCoreApplication(int port) throws IOException {
@@ -308,7 +314,7 @@ public final class CloudIslandsCoreApplication {
             lifecycle
         );
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotRetentionPolicy(), activationLock);
-        PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, tickets, runtimeRepository, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::activeConnections, meteredDataSource::openedConnections, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventWriter == null ? 0L : redisEventWriter.failuresTotal(), () -> redisCacheFailures(nodes, tickets, sessions, islandRepository, metadataRepository, playerProfiles, permissionRules, roleRepository, runtimeRepository, rankingRepository, levelRepository, bankRepository, limitRepository, missionRepository, upgradeRepository, templateRepository, snapshotRepository, islandLogs, redisCacheAdmin, activationLock, playerCreationLock, audit), () -> config.coreToken() != null && !config.coreToken().isBlank(), () -> config.adminToken() != null && !config.adminToken().isBlank(), config::adminApiEnabled, config::requireMtls, () -> config.ipAllowlist() != null && !config.ipAllowlist().isBlank(), () -> publicBind(config.bind()) && (config.ipAllowlist() == null || config.ipAllowlist().isBlank()), () -> config.redisUri() != null && !internalHost(config.redisUri().getHost()), () -> coreJdbcActive && !internalHost(jdbcHost(config.jdbcUrl())), () -> "S3".equalsIgnoreCase(config.storageType()) && config.storageEndpoint() != null && !internalHost(config.storageEndpoint().getHost()), () -> "S3".equalsIgnoreCase(config.storageType()) && config.storageEndpoint() != null && "http".equalsIgnoreCase(config.storageEndpoint().getScheme()) && !internalHost(config.storageEndpoint().getHost()), () -> config.rateLimitRequests(), () -> config.rateLimitWindow().toSeconds(), this.rankingRecalculationTask::drainedTotal, this.rankingRecalculationTask::recalculatedTotal, this.rankingRecalculationTask::failuresTotal, this.rankingRecalculationTask::lastBatchSize);
+        PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, tickets, runtimeRepository, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::activeConnections, meteredDataSource::openedConnections, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventWriter == null ? 0L : redisEventWriter.failuresTotal(), () -> redisCacheFailures(nodes, tickets, sessions, islandRepository, metadataRepository, playerProfiles, permissionRules, roleRepository, runtimeRepository, rankingRepository, levelRepository, bankRepository, limitRepository, missionRepository, upgradeRepository, templateRepository, snapshotRepository, islandLogs, redisCacheAdmin, activationLock, playerCreationLock, audit), () -> config.coreToken() != null && !config.coreToken().isBlank(), () -> config.adminToken() != null && !config.adminToken().isBlank(), config::adminApiEnabled, config::requireMtls, () -> config.ipAllowlist() != null && !config.ipAllowlist().isBlank(), () -> publicBind(config.bind()) && (config.ipAllowlist() == null || config.ipAllowlist().isBlank()), () -> config.redisUri() != null && !internalHost(config.redisUri().getHost()), () -> coreJdbcActive && !internalHost(jdbcHost(config.jdbcUrl())), () -> "S3".equalsIgnoreCase(config.storageType()) && config.storageEndpoint() != null && !internalHost(config.storageEndpoint().getHost()), () -> "S3".equalsIgnoreCase(config.storageType()) && config.storageEndpoint() != null && "http".equalsIgnoreCase(config.storageEndpoint().getScheme()) && !internalHost(config.storageEndpoint().getHost()), () -> config.rateLimitRequests(), () -> config.rateLimitWindow().toSeconds(), this.rankingRecalculationTask::drainedTotal, this.rankingRecalculationTask::recalculatedTotal, this.rankingRecalculationTask::failuresTotal, this.rankingRecalculationTask::lastBatchSize, securityRejectsTotal::get, securityRejectsRateLimited::get, securityRejectsUnauthorized::get, securityRejectsMtlsRequired::get, securityRejectsIpNotAllowed::get, securityRejectsAdminPermissionDenied::get);
         this.nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, islandRepository, events, config.heartbeatTimeout(), tickets, sessions, snapshotRepository, lifecycle);
         this.routeTicketExpiryMonitor = new RouteTicketExpiryMonitor(tickets, events, config.routeTicketTtl());
         this.jobRecoveryMonitor = new JobRecoveryMonitor(jobs, Duration.ofSeconds(60), config.leaseDuration().toMillis(), 16);
@@ -2777,6 +2783,7 @@ public final class CloudIslandsCoreApplication {
     }
 
     private void auditSecurityReject(String reason, String path, HttpExchange exchange) {
+        recordSecurityReject(reason);
         if (audit == null) {
             return;
         }
@@ -2791,6 +2798,20 @@ public final class CloudIslandsCoreApplication {
             ));
         } catch (RuntimeException ignored) {
             // Security rejection audit must not change the original response.
+        }
+    }
+
+    private void recordSecurityReject(String reason) {
+        securityRejectsTotal.incrementAndGet();
+        String normalized = reason == null ? "" : reason;
+        switch (normalized) {
+            case "RATE_LIMITED" -> securityRejectsRateLimited.incrementAndGet();
+            case "UNAUTHORIZED" -> securityRejectsUnauthorized.incrementAndGet();
+            case "MTLS_REQUIRED" -> securityRejectsMtlsRequired.incrementAndGet();
+            case "IP_NOT_ALLOWED" -> securityRejectsIpNotAllowed.incrementAndGet();
+            case "ADMIN_PERMISSION_DENIED" -> securityRejectsAdminPermissionDenied.incrementAndGet();
+            default -> {
+            }
         }
     }
 
