@@ -2106,9 +2106,14 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         String state = textValue(object, "state");
         String islandId = textValue(object, "islandId");
         String nodeId = textValue(object, "targetNode");
+        String targetType = textValue(object, "targetType");
+        String homeName = textValue(object, "homeName");
+        String warpName = textValue(object, "warpName");
+        String targetName = !homeName.isBlank() ? homeName : warpName;
         return shortId(ticketId)
             + " " + (action.isBlank() ? "UNKNOWN" : action)
             + " " + (state.isBlank() ? "UNKNOWN" : state)
+            + (targetType.isBlank() && targetName.isBlank() ? "" : " target=" + (targetType.isBlank() ? "-" : targetType) + (targetName.isBlank() ? "" : ":" + targetName))
             + (islandId.isBlank() ? "" : adminText("admin-command-route-ticket-island-prefix", " island=") + shortId(islandId))
             + (nodeId.isBlank() ? "" : adminText("admin-command-route-ticket-node-prefix", " node=") + nodeId);
     }

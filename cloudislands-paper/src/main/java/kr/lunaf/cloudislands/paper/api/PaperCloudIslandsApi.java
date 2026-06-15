@@ -2928,6 +2928,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
         java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
         payload.put("targetServerName", text(json, "targetServerName", text(json, "targetNode", "")));
+        putPayloadIfPresent(payload, json, "targetType");
         putPayloadIfPresent(payload, json, "homeName");
         putPayloadIfPresent(payload, json, "warpName");
         putPayloadIfPresent(payload, json, "localX");
