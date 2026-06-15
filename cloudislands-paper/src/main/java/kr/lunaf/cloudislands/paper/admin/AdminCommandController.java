@@ -1932,6 +1932,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " island=" + textValue(body, "addonStateBulkSaveIslandEndpoint")
             + " tableGlobal=" + textValue(body, "addonStateTableKeyValueBulkSaveGlobalEndpoint")
             + " tableIsland=" + textValue(body, "addonStateTableKeyValueBulkSaveIslandEndpoint")
+            + " tableBulkGlobal=" + textValue(body, "addonStateTableKeyValueBulkGlobalEndpoint")
+            + " tableBulkIsland=" + textValue(body, "addonStateTableKeyValueBulkIslandEndpoint")
             + " payload=" + textValue(body, "addonStateTableKeyValueBulkSavePayload")
             + " storage=" + textValue(body, "addonStateTableKeyValueBulkSaveStorageMode")
             + " fallback=" + textValue(body, "addonStateTableKeyValueBulkSaveFallback");

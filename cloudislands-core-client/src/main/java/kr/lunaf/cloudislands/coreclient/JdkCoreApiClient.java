@@ -921,6 +921,19 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> tableKeyValueBulkAddonState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        if (blank(addonId)) {
+            return invalidAddonState("Addon id is required");
+        }
+        return postWithResultBody("/v1/addons/state/table/key-value/bulk", "{\"addonId\":\"" + escape(addonId) + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+    }
+
+    @Override
+    public CompletableFuture<String> bulkAddonTableKeyValueState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return tableKeyValueBulkAddonState(addonId, values, tables);
+    }
+
+    @Override
     public CompletableFuture<String> putAddonTableState(String addonId, String table, Map<String, String> values) {
         if (blank(addonId) || blank(table)) {
             return invalidAddonState("Addon id and table are required");
@@ -1029,6 +1042,19 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<String> bulkSaveAddonIslandTableKeyValueState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         return tableKeyValueBulkSaveAddonIslandState(addonId, islandId, values, tables);
+    }
+
+    @Override
+    public CompletableFuture<String> tableKeyValueBulkAddonIslandState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        if (blank(addonId) || missingIslandId(islandId)) {
+            return invalidAddonState("Addon id and island id are required");
+        }
+        return postWithResultBody("/v1/addons/islands/state/table/key-value/bulk", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+    }
+
+    @Override
+    public CompletableFuture<String> bulkAddonIslandTableKeyValueState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return tableKeyValueBulkAddonIslandState(addonId, islandId, values, tables);
     }
 
     @Override
