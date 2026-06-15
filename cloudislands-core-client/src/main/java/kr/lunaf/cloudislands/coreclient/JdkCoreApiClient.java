@@ -54,7 +54,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId) {
-        return post("/v1/islands/delete", "{\"requesterUuid\":\"" + requesterUuid + "\",\"islandId\":\"" + islandId + "\"}")
+        return deleteWithResultBody("/v1/islands/" + islandId + "?requesterUuid=" + requesterUuid)
             .thenApply(body -> new DeleteIslandResult(body.contains("\"accepted\":true"), text(body, "code", "FAILED"), uuid(body, "islandId", islandId)));
     }
 
@@ -1278,6 +1278,17 @@ public final class JdkCoreApiClient implements CoreApiClient {
             .header("Authorization", "Bearer " + authToken)
             .header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(body));
+        addAdminHeaders(builder, path);
+        HttpRequest request = builder.build();
+        return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+            .thenApply(response -> response.statusCode() >= 200 && response.statusCode() < 500 ? response.body() : "");
+    }
+
+    private CompletableFuture<String> deleteWithResultBody(String path) {
+        HttpRequest.Builder builder = HttpRequest.newBuilder(baseUri.resolve(path))
+            .timeout(timeout)
+            .header("Authorization", "Bearer " + authToken)
+            .DELETE();
         addAdminHeaders(builder, path);
         HttpRequest request = builder.build();
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())

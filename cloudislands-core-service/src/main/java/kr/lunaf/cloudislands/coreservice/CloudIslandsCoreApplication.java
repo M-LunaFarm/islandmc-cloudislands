@@ -988,7 +988,8 @@ public final class CloudIslandsCoreApplication {
             if (method.equalsIgnoreCase("DELETE") && !tail.contains("/")) {
                 UUID islandId = uuidPath(tail);
                 java.util.Optional<IslandSnapshot> island = islandRepository.findById(islandId);
-                boolean deleted = island.isPresent() && requestIslandDelete(islandId, island.get().ownerUuid(), island.get().ownerUuid(), "api-delete");
+                UUID requesterUuid = queryUuid(exchange, "requesterUuid", island.map(IslandSnapshot::ownerUuid).orElse(new UUID(0L, 0L)));
+                boolean deleted = island.isPresent() && requestIslandDelete(islandId, requesterUuid, island.get().ownerUuid(), "api-delete");
                 audit.log(new UUID(0L, 0L), "API", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of("deleted", Boolean.toString(deleted)));
                 write(exchange, deleted ? 202 : 404, deleted ? ApiResponses.ok(true) : ApiResponses.error("ISLAND_NOT_DELETED", "Island was not found or could not be deleted"));
                 return;
@@ -3806,6 +3807,25 @@ public final class CloudIslandsCoreApplication {
             }
         }
         return Math.max(min, Math.min(fallback, max));
+    }
+
+    private static UUID queryUuid(HttpExchange exchange, String key, UUID fallback) {
+        String query = exchange.getRequestURI().getRawQuery();
+        if (query == null || query.isBlank()) {
+            return fallback;
+        }
+        for (String part : query.split("&")) {
+            int separator = part.indexOf('=');
+            if (separator <= 0 || !part.substring(0, separator).equals(key)) {
+                continue;
+            }
+            try {
+                return UUID.fromString(part.substring(separator + 1));
+            } catch (RuntimeException ignored) {
+                return fallback;
+            }
+        }
+        return fallback;
     }
 
     private static UUID uuidPath(String value) {
