@@ -358,6 +358,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean routeSessionEnforced = configBoolean("security.enforce-route-session", true) || configBoolean("routing.require-route-session", true);
         int proxySourceAllowlistEntries = proxySourceAllowlist == null ? 0 : proxySourceAllowlist.entryCount();
         boolean proxySourceAllowlistConfigured = proxySourceAllowlistEntries > 0;
+        boolean directAccessRisk = role == AgentRole.ISLAND_NODE && !getServer().getOnlineMode() && !proxySourceAllowlistConfigured;
+        boolean velocityOnlineModeMismatch = role == AgentRole.ISLAND_NODE && forwardingRequired && getServer().getOnlineMode();
         PaperRouteSessionListener routeSessions = routeSessionListener;
         PermissionEventPoller events = permissionEventPoller;
         PeriodicIslandSaveTask saver = periodicSaveTask;
@@ -378,6 +380,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"routeSessionEnforced\":" + routeSessionEnforced + ","
             + "\"proxySourceAllowlistConfigured\":" + proxySourceAllowlistConfigured + ","
             + "\"proxySourceAllowlistEntries\":" + proxySourceAllowlistEntries + ","
+            + "\"directAccessRisk\":" + directAccessRisk + ","
+            + "\"velocityOnlineModeMismatch\":" + velocityOnlineModeMismatch + ","
             + "\"proxySourceRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.proxySourceRejections()) + ","
             + "\"forwardingRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.forwardingRejections()) + ","
             + "\"routeSessionRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.routeSessionRejections()) + ","
@@ -408,6 +412,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean routeSessionEnforced = configBoolean("security.enforce-route-session", true) || configBoolean("routing.require-route-session", true);
         int proxySourceAllowlistEntries = proxySourceAllowlist == null ? 0 : proxySourceAllowlist.entryCount();
         boolean proxySourceAllowlistConfigured = proxySourceAllowlistEntries > 0;
+        boolean directAccessRisk = role == AgentRole.ISLAND_NODE && !getServer().getOnlineMode() && !proxySourceAllowlistConfigured;
+        boolean velocityOnlineModeMismatch = role == AgentRole.ISLAND_NODE && forwardingRequired && getServer().getOnlineMode();
         boolean bungeeConnectPluginMessaging = configBoolean("security.allow-bungee-connect-plugin-messaging", false);
         PeriodicIslandLevelScanTask scanner = periodicLevelScanTask;
         PeriodicIslandSaveTask saver = periodicSaveTask;
@@ -446,6 +452,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_paper_route_session_enforced{node=\"" + nodeId + "\"} " + (routeSessionEnforced ? 1 : 0) + "\n"
             + "cloudislands_paper_proxy_source_allowlist_configured{node=\"" + nodeId + "\"} " + (proxySourceAllowlistConfigured ? 1 : 0) + "\n"
             + "cloudislands_paper_proxy_source_allowlist_entries{node=\"" + nodeId + "\"} " + proxySourceAllowlistEntries + "\n"
+            + "cloudislands_paper_direct_access_risk{node=\"" + nodeId + "\"} " + (directAccessRisk ? 1 : 0) + "\n"
+            + "cloudislands_paper_velocity_online_mode_mismatch{node=\"" + nodeId + "\"} " + (velocityOnlineModeMismatch ? 1 : 0) + "\n"
             + "cloudislands_paper_bungee_connect_plugin_messaging_enabled{node=\"" + nodeId + "\"} " + (bungeeConnectPluginMessaging ? 1 : 0) + "\n"
             + "cloudislands_paper_proxy_source_rejections_total{node=\"" + nodeId + "\"} " + (routeSessions == null ? 0L : routeSessions.proxySourceRejections()) + "\n"
             + "cloudislands_paper_forwarding_rejections_total{node=\"" + nodeId + "\"} " + (routeSessions == null ? 0L : routeSessions.forwardingRejections()) + "\n"
