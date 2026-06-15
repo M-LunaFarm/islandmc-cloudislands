@@ -367,6 +367,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-maintenance-gate", "addonRuntimeEnabled&&features.maintenance");
         state.put("runtime-maintenance-status", featureEnabled("maintenance") ? "enabled" : "maintenance-feature-disabled");
         state.put("runtime-maintenance-policy", "disabled-feature-blocks-maintenance-ticker-commands-gui-and-writes-preserve-data");
+        state.put("runtime-factories-gate", "addonRuntimeEnabled&&features.factories->features.machines");
+        state.put("runtime-factories-status", operationalFeatureEnabled("factories") ? "enabled" : "factories-or-machines-feature-disabled");
+        state.put("runtime-generators-gate", "addonRuntimeEnabled&&features.generators->features.resource-nodes&&features.factories");
+        state.put("runtime-generators-status", operationalFeatureEnabled("generators") ? "enabled" : "generators-resource-nodes-or-factories-feature-disabled");
+        state.put("runtime-upgrades-gate", "addonRuntimeEnabled&&features.upgrades->features.research");
+        state.put("runtime-upgrades-status", operationalFeatureEnabled("upgrades") ? "enabled" : "upgrades-or-research-feature-disabled");
+        state.put("runtime-missions-gate", "addonRuntimeEnabled&&features.missions->features.contracts&&features.storage");
+        state.put("runtime-missions-status", operationalFeatureEnabled("missions") ? "enabled" : "missions-contracts-or-storage-feature-disabled");
+        state.put("runtime-alias-policy", "legacy-satismc-feature-names-map-to-cloudislands-satis-canonical-gates");
         state.put("runtime-data-writes-enabled", Boolean.toString(dataWritesEnabled()));
         state.put("runtime-lifecycle-state-enabled", Boolean.toString(lifecycleStateEnabled()));
         state.put("runtime-machine-ticker-running", Boolean.toString(ticker != null && ticker.running()));
