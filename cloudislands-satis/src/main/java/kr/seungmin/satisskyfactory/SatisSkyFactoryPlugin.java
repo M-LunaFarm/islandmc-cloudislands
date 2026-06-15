@@ -338,6 +338,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-blocked-components", runtimeBlockedComponents());
         state.put("runtime-disabled-component-policy", "preserve-data-and-return-empty-tabs-or-unregister-listeners");
         putDataWriteGateState(state);
+        putLifecycleCoverageState(state);
         putIslandMobilityState(state);
     }
 
@@ -354,6 +355,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("write-gate-lifecycle-listener", Boolean.toString(lifecycleListenerNeeded()));
         state.put("write-gate-addon-state", Boolean.toString(featureEnabled("addon-state") && coreApiAddonStateAvailable()));
         state.put("write-gate-dirty-save", Boolean.toString(dataWritesEnabled()));
+    }
+
+    private void putLifecycleCoverageState(Map<String, String> state) {
+        state.put("lifecycle-event-source", "CloudIslandsAddon.onCloudEvent");
+        state.put("lifecycle-event-coverage", "create,activate,deactivation-request,deactivated,migration-request,migrated,delete,restore,reset,recovery,repair,runtime,visit,member,flag,permission,level,worth,upgrade,limit,snapshot");
+        state.put("lifecycle-event-actions", "activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete-and-reset=purge,recovery=suspend,member-permission-level-worth=synchronize");
+        state.put("lifecycle-event-storage-policy", "cloudislands-island-uuid-stable-state-remap-active-world");
     }
 
     private void putIslandMobilityState(Map<String, String> state) {
