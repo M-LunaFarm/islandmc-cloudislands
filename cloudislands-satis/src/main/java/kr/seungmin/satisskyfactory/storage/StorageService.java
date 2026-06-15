@@ -7,12 +7,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BooleanSupplier;
 
 public final class StorageService {
     private final DatabaseService database;
     private final long defaultCapacity;
     private final Map<UUID, VirtualInventory> cache = new ConcurrentHashMap<>();
     private DirtySaveService dirtySaves;
+    private BooleanSupplier writesEnabled = () -> true;
 
     public StorageService(DatabaseService database, long defaultCapacity) {
         this.database = database;
@@ -73,6 +75,9 @@ public final class StorageService {
 
     public void save(VirtualInventory inventory) {
         cache.put(inventory.inventoryId(), inventory);
+        if (!writesEnabled()) {
+            return;
+        }
         if (dirtySaves != null) {
             dirtySaves.markInventory(inventory);
             return;
@@ -82,6 +87,9 @@ public final class StorageService {
 
     public void saveNow(VirtualInventory inventory) {
         cache.put(inventory.inventoryId(), inventory);
+        if (!writesEnabled()) {
+            return;
+        }
         database.saveInventory(inventory);
     }
 
@@ -96,6 +104,9 @@ public final class StorageService {
             } else {
                 dirtySaves.deleteInventory(removed.islandUuid(), inventoryId);
             }
+        }
+        if (!writesEnabled()) {
+            return;
         }
         database.deleteInventory(inventoryId);
     }
@@ -116,5 +127,17 @@ public final class StorageService {
 
     public void dirtySaves(DirtySaveService dirtySaves) {
         this.dirtySaves = dirtySaves;
+    }
+
+    public void writeGate(BooleanSupplier writesEnabled) {
+        this.writesEnabled = writesEnabled == null ? () -> true : writesEnabled;
+    }
+
+    private boolean writesEnabled() {
+        try {
+            return writesEnabled.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 }

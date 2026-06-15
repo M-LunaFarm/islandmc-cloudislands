@@ -205,6 +205,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         dirtySaves = new DirtySaveService(this, database);
         configureDirtySaveWriteGates();
         configureCoreApiStateWriters();
+        configureStorageWriteGate();
         storage.dirtySaves(dirtySaves);
         islands.dirtySaves(dirtySaves);
         machines.dirtySaves(dirtySaves);
@@ -268,6 +269,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         reloadDatabaseIfNeeded();
         configureSkyblockHook();
         boosts.configure(configs.main());
+        configureStorageWriteGate();
         loadDefinitions();
         refreshIslandCache();
         refreshMachineCache();
@@ -447,6 +449,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("data-write-mode", dataWritesEnabled() ? "enabled" : "disabled");
         state.put("write-gate-machines", Boolean.toString(operationalFeatureEnabled("machines")));
         state.put("write-gate-storage", Boolean.toString(storageDataEnabled()));
+        state.put("write-gate-storage-direct", Boolean.toString(storageDataEnabled()));
+        state.put("write-gate-storage-direct-policy", "StorageService.saveNow-and-delete-respect-storage-or-machine-data-gate");
         state.put("write-gate-resource-nodes", Boolean.toString(operationalFeatureEnabled("resource-nodes")));
         state.put("write-gate-market", Boolean.toString(operationalFeatureEnabled("market")));
         state.put("write-gate-contracts", Boolean.toString(operationalFeatureEnabled("contracts")));
@@ -1044,6 +1048,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         dirtySaves = new DirtySaveService(this, database);
         configureDirtySaveWriteGates();
         configureCoreApiStateWriters();
+        configureStorageWriteGate();
         storage.dirtySaves(dirtySaves);
         islands.dirtySaves(dirtySaves);
         machines.dirtySaves(dirtySaves);
@@ -1076,6 +1081,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 () -> operationalFeatureEnabled("resource-nodes"),
                 this::dataWritesEnabled
         );
+    }
+
+    private void configureStorageWriteGate() {
+        if (storage == null) {
+            return;
+        }
+        storage.writeGate(this::storageDataEnabled);
     }
 
     private void configureCoreApiStateWriters() {
