@@ -1965,6 +1965,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " globalEvents=" + textValue(body, "globalEventTypes")
             + " routeMetricServer=" + boolValue(body, "routeMetricsTargetServerName")
             + " routeMetricServerEvents=" + textValue(body, "routeMetricsTargetServerNameEvents")
+            + " routeMetricRequestedNode=" + boolValue(body, "routeMetricsRequestedNode")
+            + " routeMetricRequestedNodeEvents=" + textValue(body, "routeMetricsRequestedNodeEvents")
             + " lockPolicy=" + textValue(body, "distributedLockPolicy")
             + " fencing=" + textValue(body, "fencingTokenPolicy")
             + " staleWrite=" + textValue(body, "staleWritePolicy")

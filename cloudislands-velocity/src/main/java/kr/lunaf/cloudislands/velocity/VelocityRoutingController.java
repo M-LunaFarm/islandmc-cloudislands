@@ -1944,6 +1944,8 @@ public final class VelocityRoutingController {
             + " globalEvents=" + jsonValue(body, "globalEventTypes")
             + " routeMetricServer=" + boolValue(body, "routeMetricsTargetServerName")
             + " routeMetricServerEvents=" + jsonValue(body, "routeMetricsTargetServerNameEvents")
+            + " routeMetricRequestedNode=" + boolValue(body, "routeMetricsRequestedNode")
+            + " routeMetricRequestedNodeEvents=" + jsonValue(body, "routeMetricsRequestedNodeEvents")
             + " lockPolicy=" + jsonValue(body, "distributedLockPolicy")
             + " fencing=" + jsonValue(body, "fencingTokenPolicy")
             + " staleWrite=" + jsonValue(body, "staleWritePolicy")

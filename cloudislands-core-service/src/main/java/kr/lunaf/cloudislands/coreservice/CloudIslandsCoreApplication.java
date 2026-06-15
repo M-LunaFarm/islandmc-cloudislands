@@ -2766,6 +2766,8 @@ public final class CloudIslandsCoreApplication {
             + "\"globalEventTypes\":\"IslandCreated,IslandDeleted,IslandActivated,IslandDeactivated,IslandMigrated,IslandMemberChanged,IslandFlagChanged,IslandLevelUpdated,IslandSnapshotCreated,NodeStateChanged,RouteTicketCreated,RouteSessionPublished,RouteTicketConsumed,RouteTicketFailed,RouteTicketCleared\","
             + "\"routeMetricsTargetServerName\":true,"
             + "\"routeMetricsTargetServerNameEvents\":\"RouteTicketCreated,RouteSessionPublished,RouteTicketConsumed\","
+            + "\"routeMetricsRequestedNode\":true,"
+            + "\"routeMetricsRequestedNodeEvents\":\"RouteTicketFailed\","
             + "\"distributedLockPolicy\":\"redis-fast-lock-plus-postgresql-row-lock\","
             + "\"fencingTokenPolicy\":\"island_runtime.fencing_token-rejects-stale-node-writes\","
             + "\"staleWritePolicy\":\"current-fencing-token-required-before-snapshot-or-runtime-write\","
