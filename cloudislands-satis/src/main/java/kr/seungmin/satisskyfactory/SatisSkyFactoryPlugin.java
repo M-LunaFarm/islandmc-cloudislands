@@ -379,6 +379,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-gui-gate", "addonRuntimeEnabled&&features.gui");
         state.put("runtime-gui-status", featureEnabled("gui") ? "enabled" : "gui-feature-disabled");
         state.put("runtime-gui-policy", "disabled-feature-registers-no-gui-listener-and-opens-no-satis-menus");
+        state.put("runtime-menus-gate", "addonRuntimeEnabled&&features.menus->features.gui");
+        state.put("runtime-menus-status", operationalFeatureEnabled("menus") ? "enabled" : "menus-or-gui-feature-disabled");
         state.put("runtime-lifecycle-gate", "addonRuntimeEnabled&&features.lifecycle");
         state.put("runtime-lifecycle-status", featureEnabled("lifecycle") ? "enabled" : "lifecycle-feature-disabled");
         state.put("runtime-lifecycle-policy", "disabled-feature-registers-no-lifecycle-listener-and-does-not-write-lifecycle-state");
@@ -1307,7 +1309,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String featureDependenciesMetadata() {
-        return "resource-nodes:machines,generators:factories,market:storage,contracts:storage,missions:storage,route-events:addon-state";
+        return "resource-nodes:machines,generators:factories,market:storage,contracts:storage,missions:storage,upgrades:research,menus:gui,route-events:addon-state";
     }
 
     private String disabledFeatureAliases() {
