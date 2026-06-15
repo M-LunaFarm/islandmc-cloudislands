@@ -67,10 +67,7 @@ public final class CoreApiSatisStateService {
             values.put("core-api-sync-updated-at", Instant.now().toString());
             values.put("core-api-sync-keys", Integer.toString(values.size() + tableKeys));
             values.put("core-api-sync-tables", Integer.toString(tables.size()));
-            cloudIslandsApi.addons().tableKeyValueBulkSaveIslandState(addonId, islandId, values, tables).exceptionally(error -> {
-                logger.warning("Failed to publish Satis core-api table state for island " + islandId + ": " + error.getMessage());
-                return Map.of();
-            });
+            publishIslandTableKeyValueBulk(islandId, values, tables, "Satis core-api table state for island " + islandId);
         });
     }
 
@@ -96,10 +93,7 @@ public final class CoreApiSatisStateService {
         }
         Map<String, Map<String, String>> tablePayload = tablePayload(row.key(), row.value());
         if (!tablePayload.isEmpty()) {
-            cloudIslandsApi.addons().tableKeyValueBulkSaveIslandState(addonId, row.islandUuid(), Map.of(), tablePayload).exceptionally(error -> {
-                logger.warning("Failed to publish Satis core-api row " + row.key() + " for island " + row.islandUuid() + ": " + error.getMessage());
-                return Map.of();
-            });
+            publishIslandTableKeyValueBulk(row.islandUuid(), Map.of(), tablePayload, "Satis core-api row " + row.key() + " for island " + row.islandUuid());
             return;
         }
         cloudIslandsApi.addons().putIslandState(addonId, row.islandUuid(), Map.of(row.key(), row.value())).exceptionally(error -> {
@@ -186,10 +180,7 @@ public final class CoreApiSatisStateService {
         }
         Map<String, Map<String, String>> tablePayload = tablePayload(row.key(), row.value());
         if (!tablePayload.isEmpty()) {
-            cloudIslandsApi.addons().tableKeyValueBulkSaveState(addonId, Map.of(), tablePayload).exceptionally(error -> {
-                logger.warning("Failed to publish Satis core-api global row " + row.key() + ": " + error.getMessage());
-                return Map.of();
-            });
+            publishGlobalTableKeyValueBulk(Map.of(), tablePayload, "Satis core-api global row " + row.key());
             return;
         }
         cloudIslandsApi.addons().putState(addonId, Map.of(row.key(), row.value())).exceptionally(error -> {
@@ -212,6 +203,98 @@ public final class CoreApiSatisStateService {
             return Map.of();
         }
         return Map.of(table, Map.of(rowKey, value));
+    }
+
+    private void publishIslandTableKeyValueBulk(UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables, String description) {
+        if (cloudIslandsApi == null || islandId == null) {
+            return;
+        }
+        Map<String, String> safeValues = values == null ? Map.of() : values;
+        Map<String, Map<String, String>> safeTables = tables == null ? Map.of() : tables;
+        cloudIslandsApi.addons().tableKeyValueBulkSaveIslandState(addonId, islandId, safeValues, safeTables)
+                .handle((state, error) -> {
+                    if (error == null) {
+                        return java.util.concurrent.CompletableFuture.completedFuture(state);
+                    }
+                    Map<String, String> fallback = flattenedState(safeValues, safeTables);
+                    logger.warning("Failed to publish " + description + ", retrying with flattened addon state: " + error.getMessage());
+                    if (fallback.isEmpty()) {
+                        return java.util.concurrent.CompletableFuture.completedFuture(Map.<String, String>of());
+                    }
+                    return cloudIslandsApi.addons().putIslandState(addonId, islandId, fallback);
+                })
+                .thenCompose(result -> result)
+                .exceptionally(error -> {
+                    logger.warning("Failed to publish " + description + " with flattened addon state fallback: " + error.getMessage());
+                    return Map.of();
+                });
+    }
+
+    private void publishGlobalTableKeyValueBulk(Map<String, String> values, Map<String, Map<String, String>> tables, String description) {
+        if (cloudIslandsApi == null) {
+            return;
+        }
+        Map<String, String> safeValues = values == null ? Map.of() : values;
+        Map<String, Map<String, String>> safeTables = tables == null ? Map.of() : tables;
+        cloudIslandsApi.addons().tableKeyValueBulkSaveState(addonId, safeValues, safeTables)
+                .handle((state, error) -> {
+                    if (error == null) {
+                        return java.util.concurrent.CompletableFuture.completedFuture(state);
+                    }
+                    Map<String, String> fallback = flattenedState(safeValues, safeTables);
+                    logger.warning("Failed to publish " + description + ", retrying with flattened addon state: " + error.getMessage());
+                    if (fallback.isEmpty()) {
+                        return java.util.concurrent.CompletableFuture.completedFuture(Map.<String, String>of());
+                    }
+                    return cloudIslandsApi.addons().putState(addonId, fallback);
+                })
+                .thenCompose(result -> result)
+                .exceptionally(error -> {
+                    logger.warning("Failed to publish " + description + " with flattened addon state fallback: " + error.getMessage());
+                    return Map.of();
+                });
+    }
+
+    private Map<String, String> flattenedState(Map<String, String> values, Map<String, Map<String, String>> tables) {
+        Map<String, String> state = new LinkedHashMap<>();
+        if (values != null) {
+            values.forEach((key, value) -> {
+                if (key != null && !key.isBlank() && value != null) {
+                    state.put(key.trim(), value);
+                }
+            });
+        }
+        if (tables != null) {
+            tables.forEach((table, tableValues) -> {
+                if (tableValues == null) {
+                    return;
+                }
+                String tableName = tableName(table);
+                if (tableName.isBlank()) {
+                    return;
+                }
+                tableValues.forEach((key, value) -> {
+                    if (key != null && !key.isBlank() && value != null) {
+                        state.put("table/" + tableName + "/" + key.trim(), value);
+                    }
+                });
+            });
+        }
+        return Map.copyOf(state);
+    }
+
+    private String tableName(String table) {
+        String value = table == null ? "" : table.trim();
+        if (value.startsWith("table/")) {
+            value = value.substring("table/".length());
+        }
+        while (value.startsWith("/")) {
+            value = value.substring(1);
+        }
+        while (value.endsWith("/")) {
+            value = value.substring(0, value.length() - 1);
+        }
+        return value;
     }
 
     public void publishGlobalTable(DatabaseService.CoreGlobalTableWrite table) {
