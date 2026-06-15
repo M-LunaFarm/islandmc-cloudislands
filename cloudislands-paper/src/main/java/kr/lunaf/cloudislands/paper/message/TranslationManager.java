@@ -95,6 +95,7 @@ public final class TranslationManager {
         values.put("island-reset-evacuate", "섬 리셋을 위해 로비로 이동합니다.");
         values.put("island-delete-evacuate", "섬 삭제를 위해 로비로 이동합니다.");
         values.put("island-operation-evacuate", "섬 작업을 위해 로비로 이동합니다.");
+        values.put("route-login-proxy-allowlist-required", "섬 서버 프록시 보안 설정이 완료되지 않았습니다. 관리자에게 문의해주세요.");
         values.put("boundary-member-return", "섬 경계 밖으로 이동할 수 없어 섬 스폰으로 돌려보냈습니다.");
         values.put("boundary-visitor-return", "섬 경계 밖으로 이동할 수 없어 방문자 위치로 돌려보냈습니다.");
         values.put("flag-fly-denied", "이 섬에서는 비행할 수 없습니다.");

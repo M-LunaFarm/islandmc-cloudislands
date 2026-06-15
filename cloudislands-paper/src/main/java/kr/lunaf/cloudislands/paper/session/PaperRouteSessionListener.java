@@ -29,11 +29,13 @@ public final class PaperRouteSessionListener implements Listener {
     private final String nodeId;
     private final boolean requireRouteSession;
     private final boolean forwardingReady;
+    private final boolean requireProxySourceAllowlist;
     private final String fallbackServerName;
     private final ProxySourceAllowlist proxySourceAllowlist;
     private final MessageRenderer messages;
     private final Map<UUID, PlayerRouteSession> verifiedSessions = new ConcurrentHashMap<>();
     private final AtomicLong proxySourceRejections = new AtomicLong();
+    private final AtomicLong proxySourceConfigurationRejections = new AtomicLong();
     private final AtomicLong forwardingRejections = new AtomicLong();
     private final AtomicLong routeSessionRejections = new AtomicLong();
     private final AtomicLong routeSessionCheckFailures = new AtomicLong();
@@ -59,12 +61,17 @@ public final class PaperRouteSessionListener implements Listener {
     }
 
     public PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId, boolean requireRouteSession, boolean forwardingReady, String fallbackServerName, ProxySourceAllowlist proxySourceAllowlist, MessageRenderer messages) {
+        this(plugin, coreApiClient, ticketConsumer, nodeId, requireRouteSession, forwardingReady, false, fallbackServerName, proxySourceAllowlist, messages);
+    }
+
+    public PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId, boolean requireRouteSession, boolean forwardingReady, boolean requireProxySourceAllowlist, String fallbackServerName, ProxySourceAllowlist proxySourceAllowlist, MessageRenderer messages) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.ticketConsumer = ticketConsumer;
         this.nodeId = nodeId;
         this.requireRouteSession = requireRouteSession;
         this.forwardingReady = forwardingReady;
+        this.requireProxySourceAllowlist = requireProxySourceAllowlist;
         this.fallbackServerName = fallbackServerName == null || fallbackServerName.isBlank() ? "Lobby" : fallbackServerName;
         this.proxySourceAllowlist = proxySourceAllowlist == null ? new ProxySourceAllowlist(java.util.List.of()) : proxySourceAllowlist;
         this.messages = messages;
@@ -72,6 +79,12 @@ public final class PaperRouteSessionListener implements Listener {
 
     @EventHandler
     public void onPreLogin(AsyncPlayerPreLoginEvent event) {
+        if (requireProxySourceAllowlist && !proxySourceAllowlist.configured()) {
+            proxySourceConfigurationRejections.incrementAndGet();
+            plugin.getLogger().warning("Rejected login because security.proxy-source-allowlist is required but empty");
+            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, message("route-login-proxy-allowlist-required", "섬 서버 프록시 보안 설정이 완료되지 않았습니다. 관리자에게 문의해주세요."));
+            return;
+        }
         if (!proxySourceAllowlist.allows(event.getAddress())) {
             proxySourceRejections.incrementAndGet();
             plugin.getLogger().warning("Rejected non-proxy login source for " + event.getUniqueId() + " from " + event.getAddress().getHostAddress());
@@ -214,6 +227,10 @@ public final class PaperRouteSessionListener implements Listener {
 
     public long proxySourceRejections() {
         return proxySourceRejections.get();
+    }
+
+    public long proxySourceConfigurationRejections() {
+        return proxySourceConfigurationRejections.get();
     }
 
     public long forwardingRejections() {

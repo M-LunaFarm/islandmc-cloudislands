@@ -202,7 +202,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             || !configBoolean("security.require-velocity-forwarding", true)
             || !resolveEnv(getConfig().getString("security.forwarding-secret", "")).isBlank();
         this.proxySourceAllowlist = new ProxySourceAllowlist(getConfig().getStringList("security.proxy-source-allowlist"));
-        this.routeSessionListener = new PaperRouteSessionListener(this, client, agent.routeTickets(), nodeId, requireRouteSession, forwardingReady, fallbackServerName, proxySourceAllowlist, messages);
+        boolean requireProxySourceAllowlist = role == AgentRole.ISLAND_NODE && configBoolean("security.require-proxy-source-allowlist", true);
+        this.routeSessionListener = new PaperRouteSessionListener(this, client, agent.routeTickets(), nodeId, requireRouteSession, forwardingReady, requireProxySourceAllowlist, fallbackServerName, proxySourceAllowlist, messages);
         getServer().getPluginManager().registerEvents(routeSessionListener, this);
         PluginCommand admin = getCommand("ciadmin");
         int routeWaitSeconds = getConfig().getInt("routing.wait-for-activation-timeout-seconds", 20);
@@ -367,7 +368,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean defaultNodeIdentityRisk = defaultNodeIdentityRisk(role, nodeId, getConfig().getString("node.velocity-server-name", nodeId));
         int proxySourceAllowlistEntries = proxySourceAllowlist == null ? 0 : proxySourceAllowlist.entryCount();
         boolean proxySourceAllowlistConfigured = proxySourceAllowlistEntries > 0;
-        boolean directAccessRisk = role == AgentRole.ISLAND_NODE && !getServer().getOnlineMode() && !proxySourceAllowlistConfigured;
+        boolean proxySourceAllowlistRequired = role == AgentRole.ISLAND_NODE && configBoolean("security.require-proxy-source-allowlist", true);
+        boolean directAccessRisk = role == AgentRole.ISLAND_NODE && !getServer().getOnlineMode() && !proxySourceAllowlistConfigured && !proxySourceAllowlistRequired;
         boolean velocityOnlineModeMismatch = role == AgentRole.ISLAND_NODE && forwardingRequired && getServer().getOnlineMode();
         boolean bungeeConnectPluginMessaging = configBoolean("security.allow-bungee-connect-plugin-messaging", false);
         boolean bungeeConnectChannelRegistered = getServer().getMessenger().isOutgoingChannelRegistered(this, "BungeeCord");
@@ -430,6 +432,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"playerNodeNamePolicy\":\"" + (hideNodeNames ? "hidden-from-player-routing-messages" : "visible-risk-admin-debug-only") + "\","
             + "\"topologyExposureRisk\":" + topologyExposureRisk + ","
             + "\"defaultNodeIdentityRisk\":" + defaultNodeIdentityRisk + ","
+            + "\"proxySourceAllowlistRequired\":" + proxySourceAllowlistRequired + ","
             + "\"proxySourceAllowlistConfigured\":" + proxySourceAllowlistConfigured + ","
             + "\"proxySourceAllowlistEntries\":" + proxySourceAllowlistEntries + ","
             + "\"directAccessRisk\":" + directAccessRisk + ","
@@ -438,6 +441,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"bungeeConnectPluginMessagingEnabled\":" + bungeeConnectPluginMessaging + ","
             + "\"bungeeConnectChannelRegistered\":" + bungeeConnectChannelRegistered + ","
             + "\"bungeeConnectUseCase\":\"fallback-transfer-only\","
+            + "\"proxySourceConfigurationRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.proxySourceConfigurationRejections()) + ","
             + "\"proxySourceRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.proxySourceRejections()) + ","
             + "\"forwardingRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.forwardingRejections()) + ","
             + "\"routeSessionRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.routeSessionRejections()) + ","
@@ -483,7 +487,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean defaultNodeIdentityRisk = defaultNodeIdentityRisk(role, nodeId, getConfig().getString("node.velocity-server-name", nodeId));
         int proxySourceAllowlistEntries = proxySourceAllowlist == null ? 0 : proxySourceAllowlist.entryCount();
         boolean proxySourceAllowlistConfigured = proxySourceAllowlistEntries > 0;
-        boolean directAccessRisk = role == AgentRole.ISLAND_NODE && !getServer().getOnlineMode() && !proxySourceAllowlistConfigured;
+        boolean proxySourceAllowlistRequired = role == AgentRole.ISLAND_NODE && configBoolean("security.require-proxy-source-allowlist", true);
+        boolean directAccessRisk = role == AgentRole.ISLAND_NODE && !getServer().getOnlineMode() && !proxySourceAllowlistConfigured && !proxySourceAllowlistRequired;
         boolean velocityOnlineModeMismatch = role == AgentRole.ISLAND_NODE && forwardingRequired && getServer().getOnlineMode();
         boolean bungeeConnectPluginMessaging = configBoolean("security.allow-bungee-connect-plugin-messaging", false);
         PeriodicIslandLevelScanTask scanner = periodicLevelScanTask;
@@ -542,11 +547,13 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_paper_hide_node_names{node=\"" + nodeId + "\"} " + (hideNodeNames ? 1 : 0) + "\n"
             + "cloudislands_paper_topology_exposure_risk{node=\"" + nodeId + "\"} " + (topologyExposureRisk ? 1 : 0) + "\n"
             + "cloudislands_paper_default_node_identity_risk{node=\"" + nodeId + "\"} " + (defaultNodeIdentityRisk ? 1 : 0) + "\n"
+            + "cloudislands_paper_proxy_source_allowlist_required{node=\"" + nodeId + "\"} " + (proxySourceAllowlistRequired ? 1 : 0) + "\n"
             + "cloudislands_paper_proxy_source_allowlist_configured{node=\"" + nodeId + "\"} " + (proxySourceAllowlistConfigured ? 1 : 0) + "\n"
             + "cloudislands_paper_proxy_source_allowlist_entries{node=\"" + nodeId + "\"} " + proxySourceAllowlistEntries + "\n"
             + "cloudislands_paper_direct_access_risk{node=\"" + nodeId + "\"} " + (directAccessRisk ? 1 : 0) + "\n"
             + "cloudislands_paper_velocity_online_mode_mismatch{node=\"" + nodeId + "\"} " + (velocityOnlineModeMismatch ? 1 : 0) + "\n"
             + "cloudislands_paper_bungee_connect_plugin_messaging_enabled{node=\"" + nodeId + "\"} " + (bungeeConnectPluginMessaging ? 1 : 0) + "\n"
+            + "cloudislands_paper_proxy_source_configuration_rejections_total{node=\"" + nodeId + "\"} " + (routeSessions == null ? 0L : routeSessions.proxySourceConfigurationRejections()) + "\n"
             + "cloudislands_paper_proxy_source_rejections_total{node=\"" + nodeId + "\"} " + (routeSessions == null ? 0L : routeSessions.proxySourceRejections()) + "\n"
             + "cloudislands_paper_forwarding_rejections_total{node=\"" + nodeId + "\"} " + (routeSessions == null ? 0L : routeSessions.forwardingRejections()) + "\n"
             + "cloudislands_paper_route_session_rejections_total{node=\"" + nodeId + "\"} " + (routeSessions == null ? 0L : routeSessions.routeSessionRejections()) + "\n"
@@ -643,6 +650,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";routeSessionRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.routeSessionRejections())
             + ";routeSessionCheckFailures=" + (routeSessionListener == null ? 0L : routeSessionListener.routeSessionCheckFailures())
             + ";hideNodeNames=" + configBoolean("routing.hide-node-names", true)
+            + ";proxySourceAllowlistRequired=" + configBoolean("security.require-proxy-source-allowlist", true)
+            + ";proxySourceConfigurationRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.proxySourceConfigurationRejections())
             + ";playerTopologyPolicy=logical-island-only"
             + ";playerNodeNamePolicy=" + (configBoolean("routing.hide-node-names", true) ? "hidden-from-player-routing-messages" : "visible-risk-admin-debug-only")
             + ";topologyExposureRisk=" + !configBoolean("routing.hide-node-names", true)

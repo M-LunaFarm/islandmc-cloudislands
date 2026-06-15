@@ -97,6 +97,7 @@ messages:
     route-consume-preparing: "섬을 준비하는 중입니다..."
     route-consume-failed: "섬 이동 준비가 완료되지 않았습니다. 다시 시도해주세요."
     route-login-proxy-required: "정상적인 프록시 경로로 접속해주세요."
+    route-login-proxy-allowlist-required: "섬 서버 프록시 보안 설정이 완료되지 않았습니다. 관리자에게 문의해주세요."
     route-login-forwarding-not-ready: "섬 서버 보안 설정이 완료되지 않았습니다. 관리자에게 문의해주세요."
     route-login-session-required: "정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요."
     route-session-check-failed: "섬 입장 준비를 확인하지 못했습니다."
@@ -1070,6 +1071,9 @@ security:
   enforce-route-session: true
   require-velocity-forwarding: true
   forwarding-secret: "${VELOCITY_FORWARDING_SECRET}"
+  # Production Island nodes should only accept login connections from Velocity source IPs.
+  # Leave true unless this Paper server is not an Island node.
+  require-proxy-source-allowlist: true
   proxy-source-allowlist: []
   allow-bungee-connect-plugin-messaging: false
 
