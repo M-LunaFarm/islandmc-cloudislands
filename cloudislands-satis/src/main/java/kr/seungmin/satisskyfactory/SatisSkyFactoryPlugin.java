@@ -2588,6 +2588,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (cell.isBlank()) {
             return -1;
         }
+        int suffix = cell.indexOf(':');
+        if (suffix >= 0) {
+            cell = cell.substring(0, suffix);
+        }
         String[] parts = cell.split(",", 2);
         if (index < 0 || index >= parts.length) {
             return -1;
