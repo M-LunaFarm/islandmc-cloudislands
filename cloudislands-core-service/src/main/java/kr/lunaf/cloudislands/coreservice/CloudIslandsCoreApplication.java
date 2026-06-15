@@ -972,6 +972,18 @@ public final class CloudIslandsCoreApplication {
             String method = exchange.getRequestMethod();
             String path = exchange.getRequestURI().getPath();
             String tail = path.substring("/v1/players/".length());
+            if (method.equalsIgnoreCase("GET") && !tail.contains("/")) {
+                UUID playerUuid = uuidPath(tail);
+                java.util.Optional<kr.lunaf.cloudislands.api.model.PlayerIslandProfile> profile = java.util.Optional.of(playerProfiles.find(playerUuid));
+                write(exchange, profile.isPresent() ? 200 : 404, profile.map(CloudIslandsCoreApplication::playerProfileJson).orElseGet(() -> ApiResponses.error("PLAYER_NOT_FOUND", "Player was not found")));
+                return;
+            }
+            if (method.equalsIgnoreCase("GET") && tail.endsWith("/profile")) {
+                UUID playerUuid = uuidPath(tail.substring(0, tail.length() - "/profile".length()));
+                java.util.Optional<kr.lunaf.cloudislands.api.model.PlayerIslandProfile> profile = java.util.Optional.of(playerProfiles.find(playerUuid));
+                write(exchange, profile.isPresent() ? 200 : 404, profile.map(CloudIslandsCoreApplication::playerProfileJson).orElseGet(() -> ApiResponses.error("PLAYER_NOT_FOUND", "Player was not found")));
+                return;
+            }
             if (method.equalsIgnoreCase("GET") && tail.endsWith("/island")) {
                 UUID playerUuid = uuidPath(tail.substring(0, tail.length() - "/island".length()));
                 java.util.Optional<IslandSnapshot> island = islandRepository.findByOwner(playerUuid);
