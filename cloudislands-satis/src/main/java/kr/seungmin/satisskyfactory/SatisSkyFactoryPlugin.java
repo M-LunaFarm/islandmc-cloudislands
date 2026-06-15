@@ -941,6 +941,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("legacy-satismc-import-mode", "cross-backend-sqlite-copy");
         metadata.put("legacy-satismc-rollback-mode", "manual-restore-from-backup");
         metadata.put("island-position-remap", "center-delta");
+        metadata.put("recovery-suspend-mode", "drop-local-dirty-state");
+        metadata.put("recovery-resume-source", "core-api-confirmed-state");
         metadata.put("addon-state-sync", Boolean.toString(configuredFeatureEnabled("addon-state")));
         metadata.put("addon-state-bulk-save-api", "true");
         metadata.put("addon-state-bulk-save-global-endpoint", "/v1/addons/state/table-key-value/bulk-save");
@@ -1134,6 +1136,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         putRuntimeActivityState(state);
         state.put("satis-state-schema", "3");
         state.put("island-position-remap", "center-delta");
+        state.put("recovery-suspend-mode", "drop-local-dirty-state");
+        state.put("recovery-resume-source", "core-api-confirmed-state");
         state.put("addon-state-bulk-save-api", "true");
         state.put("addon-state-bulk-save-global-endpoint", "/v1/addons/state/table-key-value/bulk-save");
         state.put("addon-state-bulk-save-island-endpoint", "/v1/addons/islands/state/table-key-value/bulk-save");
@@ -1747,7 +1751,46 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             islands.forget(islandId);
         }
         coreHydratedIslands.remove(islandId);
+        publishSuspendedLifecycleState(islandId, operation);
         publishIslandLifecycleState(islandId, operation, null, "suspended", "recovery-required-local-cache-evicted");
+    }
+
+    private void publishSuspendedLifecycleState(UUID islandId, String operation) {
+        if (cloudIslandsApi == null || islandId == null || !featureEnabled("addon-state")) {
+            return;
+        }
+        String safeOperation = operation == null || operation.isBlank() ? "recovery-required" : operation;
+        String eventNode = lifecycleEventNode(safeOperation);
+        String activeNode = lifecycleActiveNode(safeOperation);
+        String eventWorld = lifecycleEventWorld(safeOperation);
+        String eventCell = lifecycleEventCell(safeOperation);
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("last-lifecycle-island", islandId.toString());
+        state.put("last-lifecycle-operation", safeOperation);
+        state.put("last-lifecycle-database-open", Boolean.toString(database != null));
+        state.put("last-lifecycle-shared-database", Boolean.toString(databaseShared()));
+        state.put("last-lifecycle-schema", "3");
+        state.put("last-lifecycle-at", Instant.now().toString());
+        state.put("last-lifecycle-status", "suspended");
+        state.put("last-lifecycle-error", "recovery-required-local-cache-evicted");
+        state.put("last-lifecycle-suspend-mode", "drop-local-dirty-state");
+        state.put("last-lifecycle-resume-source", "core-api-confirmed-state");
+        if (!eventNode.isBlank()) {
+            state.put("last-lifecycle-node", eventNode);
+        }
+        if (!activeNode.isBlank()) {
+            state.put("last-lifecycle-active-node", activeNode);
+        }
+        if (!eventWorld.isBlank()) {
+            state.put("last-lifecycle-active-world", eventWorld);
+        }
+        if (!eventCell.isBlank()) {
+            state.put("last-lifecycle-active-cell", eventCell);
+        }
+        cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
+            getLogger().warning("Failed to publish CloudIslands Satis suspended lifecycle state: " + error.getMessage());
+            return Map.of();
+        });
     }
 
     private void purgeSatisIsland(UUID islandId) {
