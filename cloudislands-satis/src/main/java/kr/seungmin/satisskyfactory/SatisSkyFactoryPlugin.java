@@ -1056,6 +1056,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         metadata.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
         metadata.put("database-core-api-requires", "cloudislands-api,addon-state");
+        metadata.put("database-core-api-mode", databaseCoreApiMode());
+        metadata.put("database-core-api-endpoint", "table/key-value/bulk-save");
+        metadata.put("database-core-api-local-cache", databaseCoreApiLocalCachePolicy());
+        metadata.put("database-core-api-fallback-target", databaseCoreApiFallbackTarget());
+        metadata.put("database-core-api-fallback-policy", databaseCoreApiFallbackPolicy());
         metadata.put("database-config-env", "CLOUDISLANDS_SATIS_DATABASE_TYPE,CLOUDISLANDS_SATIS_DB");
         metadata.put("database-jdbc-source", databaseJdbcSource());
         metadata.put("database-jdbc-env", "CLOUDISLANDS_SATIS_JDBC_URL");
@@ -1324,6 +1329,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         state.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
         state.put("database-core-api-requires", "cloudislands-api,addon-state");
+        state.put("database-core-api-mode", databaseCoreApiMode());
+        state.put("database-core-api-endpoint", "table/key-value/bulk-save");
+        state.put("database-core-api-local-cache", databaseCoreApiLocalCachePolicy());
+        state.put("database-core-api-fallback-target", databaseCoreApiFallbackTarget());
+        state.put("database-core-api-fallback-policy", databaseCoreApiFallbackPolicy());
         state.put("database-config-env", "CLOUDISLANDS_SATIS_DATABASE_TYPE,CLOUDISLANDS_SATIS_DB");
         state.put("database-jdbc-source", databaseJdbcSource());
         state.put("database-jdbc-env", "CLOUDISLANDS_SATIS_JDBC_URL");
@@ -1392,6 +1402,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         state.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
         state.put("database-core-api-requires", "cloudislands-api,addon-state");
+        state.put("database-core-api-mode", databaseCoreApiMode());
+        state.put("database-core-api-endpoint", "table/key-value/bulk-save");
+        state.put("database-core-api-local-cache", databaseCoreApiLocalCachePolicy());
+        state.put("database-core-api-fallback-target", databaseCoreApiFallbackTarget());
+        state.put("database-core-api-fallback-policy", databaseCoreApiFallbackPolicy());
         putAddonStateSyncState(state);
         state.put("database-config-env", "CLOUDISLANDS_SATIS_DATABASE_TYPE,CLOUDISLANDS_SATIS_DB");
         state.put("database-jdbc-source", databaseJdbcSource());
@@ -2247,6 +2262,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("addon-state-sync-runtime-source", "CloudIslands IslandRuntime");
         state.put("addon-state-sync-remap-policy", "island-uuid-stable-active-world-and-center-volatile");
         state.put("addon-state-sync-node-bound", "false");
+        state.put("addon-state-sync-endpoint", "table/key-value/bulk-save");
+        state.put("addon-state-sync-core-api-mode", databaseCoreApiMode());
+        state.put("addon-state-sync-core-api-fallback-target", databaseCoreApiFallbackTarget());
     }
 
     private boolean coreApiAddonStateAvailable() {
@@ -2878,6 +2896,51 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         String active = database == null ? "NOT_OPEN" : database.activeBackend().name();
         return "active:" + active;
+    }
+
+    private String databaseCoreApiMode() {
+        DatabaseService.StorageBackend configured = DatabaseService.StorageBackend.parse(configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE);
+        DatabaseService.StorageBackend active = database == null ? configured : database.activeBackend();
+        if (active == DatabaseService.StorageBackend.CORE_API) {
+            return "core-api-bulk-table-key-value-with-local-sqlite-cache";
+        }
+        if (configured == DatabaseService.StorageBackend.CORE_API) {
+            return "configured-core-api-fell-back-to-" + active.name();
+        }
+        if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
+            return "setup-core-api-marker-only";
+        }
+        return "not-selected";
+    }
+
+    private String databaseCoreApiLocalCachePolicy() {
+        DatabaseService.StorageBackend configured = DatabaseService.StorageBackend.parse(configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE);
+        DatabaseService.StorageBackend active = database == null ? configured : database.activeBackend();
+        if (active == DatabaseService.StorageBackend.CORE_API) {
+            return "required-for-runtime-reads-core-api-is-authoritative-publish-target";
+        }
+        if (configured == DatabaseService.StorageBackend.CORE_API) {
+            return "inactive-after-fallback";
+        }
+        return "not-used";
+    }
+
+    private String databaseCoreApiFallbackTarget() {
+        if (!databaseSettings().fallbackEnabled()) {
+            return "disabled";
+        }
+        return databaseFallbackOrder(false).stream()
+                .filter(backend -> backend != DatabaseService.StorageBackend.CORE_API)
+                .map(DatabaseService.StorageBackend::name)
+                .findFirst()
+                .orElse("none");
+    }
+
+    private String databaseCoreApiFallbackPolicy() {
+        if (!databaseSettings().fallbackEnabled()) {
+            return "disabled-use-local-cache-only-and-warn";
+        }
+        return "if-cloudislands-api-or-addon-state-unavailable-use-first-non-core-api-backend";
     }
 
     private int setupInt(String path, int fallback) {
