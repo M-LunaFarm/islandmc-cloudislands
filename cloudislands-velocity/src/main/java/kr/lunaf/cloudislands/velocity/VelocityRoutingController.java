@@ -1827,6 +1827,7 @@ public final class VelocityRoutingController {
             + " poolNodes=" + longValue(body, "islandPoolNodeCount")
             + " poolRouteCandidates=" + longValue(body, "islandPoolRouteCandidateCount")
             + " poolScale=" + jsonValue(body, "islandPoolScaleStatus")
+            + " poolDegraded=" + boolValue(body, "islandPoolDegraded")
             + " dbPool=" + longValue(body, "databasePoolSize")
             + " softFull=" + jsonValue(body, "softFullPolicy")
             + " hardFull=" + jsonValue(body, "hardFullPolicy")

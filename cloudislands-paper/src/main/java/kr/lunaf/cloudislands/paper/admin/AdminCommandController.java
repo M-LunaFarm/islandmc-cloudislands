@@ -1849,6 +1849,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-core-config-pool-nodes-prefix", " poolNodes=") + longValue(body, "islandPoolNodeCount")
             + adminText("admin-command-core-config-pool-route-candidates-prefix", " poolRouteCandidates=") + longValue(body, "islandPoolRouteCandidateCount")
             + adminText("admin-command-core-config-pool-scale-status-prefix", " poolScale=") + textValue(body, "islandPoolScaleStatus")
+            + adminText("admin-command-core-config-pool-degraded-prefix", " poolDegraded=") + boolValue(body, "islandPoolDegraded")
             + adminText("admin-command-core-config-db-pool-prefix", " dbPool=") + longValue(body, "databasePoolSize")
             + adminText("admin-command-core-config-soft-full-prefix", " softFull=") + textValue(body, "softFullPolicy")
             + adminText("admin-command-core-config-hard-full-prefix", " hardFull=") + textValue(body, "hardFullPolicy")
