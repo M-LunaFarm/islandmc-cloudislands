@@ -4,6 +4,8 @@ import java.util.Map;
 import java.util.UUID;
 
 public interface AddonStateRepository {
+    String TABLE_STATE_KEY_PREFIX = "table/";
+    String TABLE_STATE_KEY_SHAPE = "table/{table}/{key}";
     int MAX_ADDON_ID_LENGTH = 128;
     int MAX_KEY_LENGTH = 128;
     int MAX_VALUE_LENGTH = 65535;

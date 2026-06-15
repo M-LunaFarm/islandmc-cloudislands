@@ -2,6 +2,7 @@ package kr.seungmin.satisskyfactory.database;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import kr.lunaf.cloudislands.api.service.IslandAddonService;
 import kr.seungmin.satisskyfactory.model.BlockKey;
 import kr.seungmin.satisskyfactory.model.FactoryIsland;
 import kr.seungmin.satisskyfactory.model.ItemNetwork;
@@ -2159,8 +2160,8 @@ public final class DatabaseService {
         if (values.isEmpty()) {
             return;
         }
-        String safeTable = table.startsWith("table/") ? table.substring("table/".length()) : table;
-        values.forEach((key, value) -> publishCoreRow(islandUuid, "table/" + safeTable + "/" + key, value));
+        String safeTable = table.startsWith(IslandAddonService.TABLE_STATE_KEY_PREFIX) ? table.substring(IslandAddonService.TABLE_STATE_KEY_PREFIX.length()) : table;
+        values.forEach((key, value) -> publishCoreRow(islandUuid, IslandAddonService.TABLE_STATE_KEY_PREFIX + safeTable + "/" + key, value));
     }
 
     private String itemNetworkJson(ItemNetwork network) {
@@ -2235,7 +2236,7 @@ public final class DatabaseService {
         if (values.isEmpty()) {
             return;
         }
-        values.forEach((key, value) -> publishCoreGlobalRow("table/" + table + "/" + key, value));
+        values.forEach((key, value) -> publishCoreGlobalRow(IslandAddonService.TABLE_STATE_KEY_PREFIX + table + "/" + key, value));
     }
 
     private String marketDailyJson(String itemId, String dateKey, long soldAmount, double demandFactor) {

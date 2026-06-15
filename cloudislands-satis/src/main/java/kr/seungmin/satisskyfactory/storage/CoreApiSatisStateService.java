@@ -1,6 +1,7 @@
 package kr.seungmin.satisskyfactory.storage;
 
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
+import kr.lunaf.cloudislands.api.service.IslandAddonService;
 import kr.seungmin.satisskyfactory.database.DatabaseService;
 import kr.seungmin.satisskyfactory.model.BlockKey;
 import kr.seungmin.satisskyfactory.model.FactoryIsland;
@@ -267,14 +268,14 @@ public final class CoreApiSatisStateService {
     }
 
     private Map<String, Map<String, String>> tablePayload(String key, String value) {
-        if (key == null || value == null || !key.startsWith("table/")) {
+        if (key == null || value == null || !key.startsWith(IslandAddonService.TABLE_STATE_KEY_PREFIX)) {
             return Map.of();
         }
-        int rowKeyStart = key.indexOf('/', "table/".length());
+        int rowKeyStart = key.indexOf('/', IslandAddonService.TABLE_STATE_KEY_PREFIX.length());
         if (rowKeyStart < 0 || rowKeyStart == key.length() - 1) {
             return Map.of();
         }
-        String table = key.substring("table/".length(), rowKeyStart);
+        String table = key.substring(IslandAddonService.TABLE_STATE_KEY_PREFIX.length(), rowKeyStart);
         String rowKey = key.substring(rowKeyStart + 1);
         if (table.isBlank() || rowKey.isBlank()) {
             return Map.of();
@@ -544,7 +545,7 @@ public final class CoreApiSatisStateService {
                 }
                 tableValues.forEach((key, value) -> {
                     if (key != null && !key.isBlank() && value != null) {
-                        state.put("table/" + tableName + "/" + key.trim(), value);
+                        state.put(IslandAddonService.TABLE_STATE_KEY_PREFIX + tableName + "/" + key.trim(), value);
                     }
                 });
             });
@@ -554,8 +555,8 @@ public final class CoreApiSatisStateService {
 
     private String tableName(String table) {
         String value = table == null ? "" : table.trim();
-        if (value.startsWith("table/")) {
-            value = value.substring("table/".length());
+        if (value.startsWith(IslandAddonService.TABLE_STATE_KEY_PREFIX)) {
+            value = value.substring(IslandAddonService.TABLE_STATE_KEY_PREFIX.length());
         }
         while (value.startsWith("/")) {
             value = value.substring(1);

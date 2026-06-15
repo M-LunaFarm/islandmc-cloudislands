@@ -2752,7 +2752,7 @@ public final class CloudIslandsCoreApplication {
             + "\"addonStateTableKeyValueBulkIslandEndpoint\":\"/v1/addons/islands/state/table/key-value/bulk\","
             + "\"addonStateTableKeyValueBulkSavePayload\":\"addonId,islandId(optional),values,tables\","
             + "\"addonStateTableKeyValueBulkSaveStorageMode\":\"table-prefix-flattened-key-value\","
-            + "\"addonStateTableKeyPrefix\":\"table/{table}/{key}\","
+            + "\"addonStateTableKeyPrefix\":\"" + AddonStateRepository.TABLE_STATE_KEY_SHAPE + "\","
             + "\"addonStateMaxAddonIdLength\":" + AddonStateRepository.MAX_ADDON_ID_LENGTH + ","
             + "\"addonStateMaxKeyLength\":" + AddonStateRepository.MAX_KEY_LENGTH + ","
             + "\"addonStateMaxValueLength\":" + AddonStateRepository.MAX_VALUE_LENGTH + ","
@@ -4081,13 +4081,13 @@ public final class CloudIslandsCoreApplication {
     }
 
     private static String tableStatePrefix(String table) {
-        return "table/" + safeTableName(table) + "/";
+        return AddonStateRepository.TABLE_STATE_KEY_PREFIX + safeTableName(table) + "/";
     }
 
     private static String safeTableName(String table) {
         String value = table == null ? "" : table.trim();
-        if (value.startsWith("table/")) {
-            value = value.substring("table/".length());
+        if (value.startsWith(AddonStateRepository.TABLE_STATE_KEY_PREFIX)) {
+            value = value.substring(AddonStateRepository.TABLE_STATE_KEY_PREFIX.length());
         }
         while (value.startsWith("/")) {
             value = value.substring(1);
@@ -4239,7 +4239,7 @@ public final class CloudIslandsCoreApplication {
             + "\"registeredAddonRequired\":false,"
             + "\"orphanStatePolicy\":\"preserve-for-reinstall-or-admin-clear\","
             + "\"missingAddonStatePolicy\":\"ignored-by-island-lifecycle\","
-            + "\"tableKeyPrefix\":\"table/{table}/{key}\","
+            + "\"tableKeyPrefix\":\"" + AddonStateRepository.TABLE_STATE_KEY_SHAPE + "\","
             + "\"maxAddonIdLength\":" + AddonStateRepository.MAX_ADDON_ID_LENGTH + ","
             + "\"maxKeyLength\":" + AddonStateRepository.MAX_KEY_LENGTH + ","
             + "\"maxValueLength\":" + AddonStateRepository.MAX_VALUE_LENGTH + ","
