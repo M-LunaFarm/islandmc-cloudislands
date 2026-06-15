@@ -155,31 +155,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PaperBrandingListener(this, messages), this);
         getServer().getPluginManager().registerEvents(new PaperChatListener(messages), this);
         getServer().getPluginManager().registerEvents(new PaperScoreboardListener(this, messages), this);
-        getServer().getPluginManager().registerEvents(new AdminNodeMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandBankMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandBanMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandBiomeMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandChatMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandCreateMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandDangerMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandFlagMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandHomeMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandInfoMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandInviteMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandLimitMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandLogMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandMainMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandMemberMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandMissionMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandMyIslandsMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandPermissionMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandRankingMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandRoleMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandSettingsMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandSnapshotMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandUpgradeMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandVisitMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandWarpMenu(messages), this);
+        if (guiEnabledForRole(role)) {
+            registerIslandGuiMenus();
+        }
         if (role == AgentRole.ISLAND_NODE) {
             getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection(), blockDeltas, denyMessageCooldownMs, denyMessages()), this);
             this.boundaryListener = new IslandBoundaryListener(agent.protection(), messages);
@@ -378,6 +356,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean activationWorkerEnabled = islandNodeRole && jobWorker != null;
         boolean islandProtectionEnabled = islandNodeRole;
         boolean islandSaveTasksEnabled = islandNodeRole && (periodicSaveTask != null || emptyIslandSaveTask != null);
+        boolean guiMenusEnabled = guiEnabledForRole(role);
         PaperRouteSessionListener routeSessions = routeSessionListener;
         PermissionEventPoller events = permissionEventPoller;
         PeriodicIslandSaveTask saver = periodicSaveTask;
@@ -396,6 +375,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"roleActivationWorkerEnabled\":" + activationWorkerEnabled + ","
             + "\"roleIslandProtectionEnabled\":" + islandProtectionEnabled + ","
             + "\"roleIslandSaveTasksEnabled\":" + islandSaveTasksEnabled + ","
+            + "\"roleGuiMenusEnabled\":" + guiMenusEnabled + ","
+            + "\"roleGuiMenuPolicy\":\"configurable-paper-gui-role-gate\","
             + "\"protectionDecisionPolicy\":\"" + (protection == null ? "unavailable" : protection.synchronousDecisionPolicy()) + "\","
             + "\"protectionSynchronousEventsUseRemoteCalls\":false,"
             + "\"protectionIndexedChunks\":" + (protection == null ? 0 : protection.indexedChunkCount()) + ","
@@ -491,6 +472,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean directAccessRisk = role == AgentRole.ISLAND_NODE && !getServer().getOnlineMode() && !proxySourceAllowlistConfigured && !proxySourceAllowlistRequired;
         boolean velocityOnlineModeMismatch = role == AgentRole.ISLAND_NODE && forwardingRequired && getServer().getOnlineMode();
         boolean bungeeConnectPluginMessaging = configBoolean("security.allow-bungee-connect-plugin-messaging", false);
+        boolean guiMenusEnabled = guiEnabledForRole(role);
         PeriodicIslandLevelScanTask scanner = periodicLevelScanTask;
         PeriodicIslandSaveTask saver = periodicSaveTask;
         EmptyIslandSaveTask emptySaver = emptyIslandSaveTask;
@@ -502,6 +484,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         return ""
             + "cloudislands_paper_online_players " + getServer().getOnlinePlayers().size() + "\n"
             + "cloudislands_paper_online_mode " + (getServer().getOnlineMode() ? 1 : 0) + "\n"
+            + "cloudislands_paper_gui_menus_enabled{node=\"" + nodeId + "\",role=\"" + role.name() + "\"} " + (guiMenusEnabled ? 1 : 0) + "\n"
             + "cloudislands_paper_active_islands{node=\"" + nodeId + "\",role=\"" + role.name() + "\"} " + active + "\n"
             + "cloudislands_paper_activation_queue{node=\"" + nodeId + "\"} " + queue + "\n"
             + "cloudislands_paper_recent_failure_penalty{node=\"" + nodeId + "\"} " + failures + "\n"
@@ -572,6 +555,44 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_paper_redis_latency_seconds{node=\"" + nodeId + "\"} " + redis.latencySeconds() + "\n"
             + "cloudislands_paper_redis_failures_total{node=\"" + nodeId + "\"} " + redis.failuresTotal() + "\n"
             + (localCaches == null ? "" : localCaches.prometheus(nodeId));
+    }
+
+    private boolean guiEnabledForRole(AgentRole role) {
+        if (!configBoolean("paper-gui.enabled", true)) {
+            return false;
+        }
+        if (role == AgentRole.ISLAND_NODE) {
+            return configBoolean("paper-gui.island-node-enabled", true);
+        }
+        return configBoolean("paper-gui.lobby-enabled", true);
+    }
+
+    private void registerIslandGuiMenus() {
+        getServer().getPluginManager().registerEvents(new AdminNodeMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandBankMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandBanMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandBiomeMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandChatMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandCreateMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandDangerMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandFlagMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandHomeMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandInfoMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandInviteMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandLimitMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandLogMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandMainMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandMemberMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandMissionMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandMyIslandsMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandPermissionMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandRankingMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandRoleMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandSettingsMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandSnapshotMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandUpgradeMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandVisitMenu(messages), this);
+        getServer().getPluginManager().registerEvents(new IslandWarpMenu(messages), this);
     }
 
     private AgentRole parseAgentRole(String configuredRole) {

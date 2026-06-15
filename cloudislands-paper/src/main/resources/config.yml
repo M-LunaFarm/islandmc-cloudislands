@@ -994,6 +994,13 @@ node:
   supported-templates:
     - "*"
 
+paper-gui:
+  enabled: true
+  # Lobby role owns island menus in a lobby-first topology.
+  lobby-enabled: true
+  # Keep true for backward compatibility. Set false when Island nodes should only run worlds, protection, routing, saves, and heartbeats.
+  island-node-enabled: true
+
 setup:
   core-api:
     # Optional first-install Core API connection block. Empty values fall back to core-api below.
