@@ -996,7 +996,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("runtime-registration-policy", "disabled-features-skip-commands-gui-listeners-tasks-and-writes");
         metadata.put("runtime-disabled-features", disabledRuntimeFeatures());
         putDataWriteGateState(metadata);
-        metadata.put("addon-state-sync", Boolean.toString(configuredFeatureEnabled("addon-state")));
+        putAddonStateSyncState(metadata);
         metadata.put("addon-state-bulk-save-api", "true");
         metadata.put("addon-state-bulk-save-global-endpoint", "/v1/addons/state/table-key-value/bulk-save");
         metadata.put("addon-state-bulk-save-island-endpoint", "/v1/addons/islands/state/table-key-value/bulk-save");
@@ -1196,6 +1196,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("recovery-resume-source", "core-api-confirmed-state");
         state.put("recovery-state-authority", "last-core-confirmed-state-only");
         state.put("recovery-stale-write-policy", "discard-local-dirty-state");
+        putAddonStateSyncState(state);
         state.put("addon-state-bulk-save-api", "true");
         state.put("addon-state-bulk-save-global-endpoint", "/v1/addons/state/table-key-value/bulk-save");
         state.put("addon-state-bulk-save-island-endpoint", "/v1/addons/islands/state/table-key-value/bulk-save");
@@ -1238,6 +1239,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         state.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
         state.put("database-core-api-requires", "cloudislands-api,addon-state");
+        putAddonStateSyncState(state);
         state.put("database-config-env", "CLOUDISLANDS_SATIS_DATABASE_TYPE,CLOUDISLANDS_SATIS_DB");
         state.put("database-jdbc-source", databaseJdbcSource());
         state.put("database-jdbc-env", "CLOUDISLANDS_SATIS_JDBC_URL");
@@ -2015,6 +2017,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private boolean addonStateReportingEnabled(CloudIslandsAddonSnapshot snapshot) {
         return snapshot.configuredFeatures().getOrDefault("addon-state", configuredFeatureEnabled("addon-state"));
+    }
+
+    private void putAddonStateSyncState(Map<String, String> state) {
+        state.put("addon-state-sync", Boolean.toString(coreApiAddonStateAvailable()));
+        state.put("addon-state-sync-configured", Boolean.toString(configuredFeatureEnabled("addon-state")));
+        state.put("addon-state-sync-effective", Boolean.toString(featureEnabled("addon-state")));
+        state.put("addon-state-sync-available", Boolean.toString(coreApiAddonStateAvailable()));
+        state.put("addon-state-sync-policy", "configured-and-effective-feature-plus-cloudislands-api");
     }
 
     private boolean coreApiAddonStateAvailable() {
