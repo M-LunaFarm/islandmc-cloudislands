@@ -110,6 +110,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private PaperRedisClient redisClient;
     private LocalCacheManager localCaches;
     private ProxySourceAllowlist proxySourceAllowlist;
+    private MeteredIslandStorage islandStorage;
 
     @Override
     public void onEnable() {
@@ -219,6 +220,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             getServer().getPluginManager().registerEvents(islandController, this);
         }
         MeteredIslandStorage storage = role == AgentRole.ISLAND_NODE ? new MeteredIslandStorage(PaperStorageFactory.create(this, getConfig()), PaperStorageFactory.backendName(getConfig())) : null;
+        this.islandStorage = storage;
         String supportedTemplates = String.join(",", getConfig().getStringList("node.supported-templates"));
         if (supportedTemplates.isBlank()) {
             supportedTemplates = getConfig().getString("node.supported-template", "*");
@@ -296,6 +298,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             redisClient.close();
             redisClient = null;
         }
+        islandStorage = null;
         generatorListener = null;
         if (localCaches != null) {
             localCaches.invalidateAll();
@@ -379,6 +382,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         EmptyIslandSaveTask emptySaver = emptyIslandSaveTask;
         ProtectionController protection = agent == null ? null : agent.protection();
         IslandBoundaryListener boundary = boundaryListener;
+        MeteredIslandStorage storage = islandStorage;
         return "{"
             + "\"status\":\"UP\","
             + "\"role\":\"" + role.name() + "\","
@@ -400,6 +404,16 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"boundaryAdminBypassesTotal\":" + (boundary == null ? 0L : boundary.adminBypasses()) + ","
             + "\"activeIslands\":" + (activeIslands == null ? 0 : activeIslands.size()) + ","
             + "\"activationQueue\":" + (jobWorker == null ? 0 : jobWorker.activationQueue()) + ","
+            + "\"storageBackend\":\"" + (storage == null ? "NONE" : storage.backend()) + "\","
+            + "\"storagePrimaryDegraded\":" + (storage != null && storage.primaryStorageDegraded()) + ","
+            + "\"storagePrimaryFailuresTotal\":" + (storage == null ? 0L : storage.primaryStorageFailures()) + ","
+            + "\"storageFallbackReadsTotal\":" + (storage == null ? 0L : storage.fallbackReads()) + ","
+            + "\"storageFallbackWritesTotal\":" + (storage == null ? 0L : storage.fallbackWrites()) + ","
+            + "\"storageFallbackDeletesTotal\":" + (storage == null ? 0L : storage.fallbackDeletes()) + ","
+            + "\"storageFallbackOperationsTotal\":" + (storage == null ? 0L : storage.fallbackOperations()) + ","
+            + "\"storageUploadFailuresTotal\":" + (storage == null ? 0L : storage.uploadFailures()) + ","
+            + "\"storageDownloadFailuresTotal\":" + (storage == null ? 0L : storage.downloadFailures()) + ","
+            + "\"storageOperationFailuresTotal\":" + (storage == null ? 0L : storage.operationFailures()) + ","
             + "\"redisAvailable\":" + redis.available() + ","
             + "\"redisLatencySeconds\":" + redis.latencySeconds() + ","
             + "\"redisFailuresTotal\":" + redis.failuresTotal() + ","
