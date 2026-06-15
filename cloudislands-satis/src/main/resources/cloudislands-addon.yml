@@ -61,9 +61,12 @@ state:
   authority: core-api-table-key-value-or-shared-database
   move-policy: remap-state-to-current-active-world-and-cell
   fallback-policy: local-cache-on-core-api-failure-with-configurable-database-fallback
+  placement-source-policy: record-core-payload-or-paper-allocator-on-activate-and-migrate
+  placement-source-state-key: last-lifecycle-operation
 events:
   source: CloudIslandsAddon.onCloudEvent
   delivery: core-global-events-to-paper-poller-to-cloudislands-addon-and-bukkit-events
+  placement-source: activation-and-migration-events-forward-placementSource-to-satis-state
   coverage:
     - pre-create
     - create

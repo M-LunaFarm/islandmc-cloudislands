@@ -35,6 +35,7 @@ tasks.jar {
             "CloudIslands-Addon-Database-Shared-State-Safe" to "CORE_API,POSTGRESQL,MYSQL,MARIADB",
             "CloudIslands-Addon-Database-Fallback-Order" to "POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE",
             "CloudIslands-Addon-Database-Split-Brain-Warning" to "keep-shared-backend-before-sqlite-for-multi-island-node-pools",
+            "CloudIslands-Satis-Placement-Source-Policy" to "record-core-payload-or-paper-allocator-on-activate-and-migrate",
             "CloudIslands-Addon-Feature-Gates" to "commands,machines,storage,factories,generators,upgrades,missions,menus,gui,lifecycle,resource-nodes,market,contracts,research,maintenance,placeholders,migration,addon-state,route-events",
             "CloudIslands-Addon-Feature-Disable-Policy" to "disabled-features-preserve-data-and-skip-runtime-components",
             "CloudIslands-Addon-Island-Move-Policy" to "island-uuid-stable-remap-active-world-and-cell",
