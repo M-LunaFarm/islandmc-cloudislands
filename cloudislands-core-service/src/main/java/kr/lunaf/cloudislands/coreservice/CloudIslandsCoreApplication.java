@@ -2221,6 +2221,9 @@ public final class CloudIslandsCoreApplication {
             metadataRepository.upsertMember(islandId, playerUuid, role);
             audit.log(actorUuid, "PLAYER", "ISLAND_MEMBER_SET", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString(), "role", role.name()));
             islandLogs.append(islandId, actorUuid, "ISLAND_MEMBER_SET", Map.of("playerUuid", playerUuid.toString(), "role", role.name()));
+            events.publish(existingMember ? CloudIslandEventType.ISLAND_MEMBER_ROLE_CHANGED.name() : CloudIslandEventType.ISLAND_MEMBER_JOINED.name(), existingMember
+                ? Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "oldRole", currentRole.name(), "newRole", role.name())
+                : Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", role.name()));
             events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", role.name()));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -2259,6 +2262,7 @@ public final class CloudIslandsCoreApplication {
             metadataRepository.removeMember(islandId, playerUuid);
             audit.log(actorUuid, "PLAYER", "ISLAND_MEMBER_REMOVE", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
             islandLogs.append(islandId, actorUuid, "ISLAND_MEMBER_REMOVE", Map.of("playerUuid", playerUuid.toString()));
+            events.publish(CloudIslandEventType.ISLAND_MEMBER_LEFT.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
             events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -2308,6 +2312,7 @@ public final class CloudIslandsCoreApplication {
             events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "accepted", Boolean.toString(accepted)));
             if (accepted) {
                 invite.ifPresent(value -> islandLogs.append(value.islandId(), playerUuid, "ISLAND_INVITE_ACCEPT", Map.of("inviteId", inviteId.toString(), "accepted", "true")));
+                events.publish(CloudIslandEventType.ISLAND_MEMBER_JOINED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "role", IslandRole.MEMBER.name()));
                 events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString()));
             }
             write(exchange, accepted ? 202 : 409, accepted ? ApiResponses.ok(true) : ApiResponses.error("INVITE_UNAVAILABLE", "Invite is missing, expired, or not pending"));
@@ -2503,9 +2508,22 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 409, ApiResponses.error("WARP_LIMIT", "Island warp limit was reached"));
                 return;
             }
-            metadataRepository.upsertWarp(islandId, name, location(body), publicAccess, actorUuid);
+            IslandLocation warpLocation = location(body);
+            metadataRepository.upsertWarp(islandId, name, warpLocation, publicAccess, actorUuid);
             audit.log(actorUuid, "PLAYER", "ISLAND_WARP_SET", "ISLAND", islandId.toString(), Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
             islandLogs.append(islandId, actorUuid, "ISLAND_WARP_SET", Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
+            if (!existingWarp) {
+                events.publish(CloudIslandEventType.ISLAND_WARP_CREATED.name(), Map.of(
+                    "islandId", islandId.toString(),
+                    "name", name,
+                    "worldName", warpLocation.worldName(),
+                    "localX", Double.toString(warpLocation.localX()),
+                    "localY", Double.toString(warpLocation.localY()),
+                    "localZ", Double.toString(warpLocation.localZ()),
+                    "yaw", Float.toString(warpLocation.yaw()),
+                    "pitch", Float.toString(warpLocation.pitch())
+                ));
+            }
             events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name, "operation", existingWarp ? "WARP_UPDATE" : "WARP_CREATE"));
             write(exchange, 202, ApiResponses.ok(true));
         });
@@ -2520,6 +2538,7 @@ public final class CloudIslandsCoreApplication {
             metadataRepository.deleteWarp(islandId, name);
             audit.log(actorUuid, "PLAYER", "ISLAND_WARP_DELETE", "ISLAND", islandId.toString(), Map.of("name", name));
             islandLogs.append(islandId, actorUuid, "ISLAND_WARP_DELETE", Map.of("name", name));
+            events.publish(CloudIslandEventType.ISLAND_WARP_DELETED.name(), Map.of("islandId", islandId.toString(), "name", name));
             events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name, "operation", "WARP_DELETE"));
             write(exchange, 202, ApiResponses.ok(true));
         });

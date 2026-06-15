@@ -74,6 +74,7 @@ public final class IslandLifecycleWorkflow {
         if (activationLock != null && lease == null) {
             return new Result(false, "ACTIVATION_LOCKED", current);
         }
+        events.publish(CloudIslandEventType.ISLAND_PRE_ACTIVATE.name(), Map.of("islandId", islandId.toString(), "targetNode", node.nodeId()));
         IslandRuntimeSnapshot runtime = runtimes.markActivating(islandId, node.nodeId(), "ci_shard_001", 0, 0);
         islands.setState(islandId, IslandState.ACTIVATING);
         try {

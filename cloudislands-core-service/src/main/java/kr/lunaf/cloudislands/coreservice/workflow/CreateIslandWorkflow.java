@@ -71,6 +71,7 @@ public final class CreateIslandWorkflow {
 
     public CreateIslandResult create(UUID ownerUuid, String templateId) {
         String normalizedTemplate = templateId == null || templateId.isBlank() ? "default" : templateId;
+        events.publish(CloudIslandEventType.ISLAND_PRE_CREATE.name(), Map.of("ownerUuid", ownerUuid.toString(), "templateId", normalizedTemplate));
         if (isMigrationInputOnlyTemplate(normalizedTemplate)) {
             publishTicketFailure(ownerUuid, null, "TEMPLATE_MIGRATION_INPUT_ONLY");
             return new CreateIslandResult(false, "TEMPLATE_MIGRATION_INPUT_ONLY", null, null);

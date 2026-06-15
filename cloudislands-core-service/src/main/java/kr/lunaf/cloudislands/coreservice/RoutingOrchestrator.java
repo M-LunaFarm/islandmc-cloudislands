@@ -296,6 +296,9 @@ public final class RoutingOrchestrator {
             }
             String templateId = islands.templateId(island.islandId()).orElse("default");
             boolean visitorRoute = action == RouteAction.VISIT || (action == RouteAction.WARP && !metadata.isMember(island.islandId(), playerUuid));
+            if (action == RouteAction.VISIT) {
+                events.publish(CloudIslandEventType.ISLAND_PRE_VISIT.name(), Map.of("islandId", island.islandId().toString(), "visitorUuid", playerUuid.toString()));
+            }
             RouteTicket saved = tickets.save(ticket(playerUuid, island.islandId(), action, extraPayload, routeTarget(runtime, templateId, templates.find(templateId).map(kr.lunaf.cloudislands.coreservice.template.IslandTemplateSnapshot::minNodeVersion).orElse(""), visitorRoute)));
             events.publish(CloudIslandEventType.ROUTE_TICKET_CREATED.name(), Map.of(
                 "ticketId", saved.ticketId().toString(),
