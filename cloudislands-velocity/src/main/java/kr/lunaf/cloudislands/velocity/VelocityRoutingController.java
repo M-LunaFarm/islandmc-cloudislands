@@ -2304,13 +2304,13 @@ public final class VelocityRoutingController {
     private String nodeActionSummaryMessage(String label, String nodeId, String body) {
         String displayNode = nodeId == null || nodeId.isBlank() ? "target-node" : nodeId;
         if (body == null || body.isBlank()) {
-            return label + ": accepted node=" + displayNode;
+            return label + ": accepted" + routeNodeSuffix(displayNode);
         }
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
-            return label + ": " + (boolValue(body, "accepted") ? "accepted" : "rejected") + " node=" + displayNode + " code=" + code;
+            return label + ": " + (boolValue(body, "accepted") ? "accepted" : "rejected") + routeNodeSuffix(displayNode) + " code=" + code;
         }
-        return label + ": " + (boolValue(body, "accepted") ? "accepted" : "requested") + " node=" + displayNode;
+        return label + ": " + (boolValue(body, "accepted") ? "accepted" : "requested") + routeNodeSuffix(displayNode);
     }
 
     private String nodeSweepMessage(String body) {
@@ -2400,7 +2400,7 @@ public final class VelocityRoutingController {
             .append(" attempts=")
             .append(attempts);
         if (!targetNode.isBlank()) {
-            builder.append(" node=").append(targetNode);
+            builder.append(routeNodeSuffix(targetNode));
         }
         if (!error.isBlank()) {
             builder.append(" error=").append(error);
@@ -2462,10 +2462,10 @@ public final class VelocityRoutingController {
                 + (playerUuid.isBlank() ? "" : " player=" + shortId(playerUuid))
                 + (action.isBlank() ? "" : " action=" + action)
                 + (reason.isBlank() ? "" : " reason=" + reason)
-                + (requestedNode.isBlank() ? "" : " requestedNode=" + requestedNode)
+                + routeRequestedNodeSuffix(requestedNode)
                 + (clearedSession.isBlank() ? "" : " session=" + clearedSession)
                 + (clearedTicket.isBlank() ? "" : " ticketCleared=" + clearedTicket)
-                + (nodeId.isBlank() ? "" : " node=" + nodeId)
+                + routeNodeSuffix(nodeId)
                 + (occurredAt.isBlank() ? "" : " at=" + occurredAt));
             index = objectEnd + 1;
         }
@@ -2700,6 +2700,13 @@ public final class VelocityRoutingController {
             return "";
         }
         return hideNodeNames ? "" : " node=" + nodeId;
+    }
+
+    private String routeRequestedNodeSuffix(String nodeId) {
+        if (nodeId == null || nodeId.isBlank()) {
+            return "";
+        }
+        return hideNodeNames ? "" : " requestedNode=" + nodeId;
     }
 
     private String routeServerSuffix(String serverName) {
