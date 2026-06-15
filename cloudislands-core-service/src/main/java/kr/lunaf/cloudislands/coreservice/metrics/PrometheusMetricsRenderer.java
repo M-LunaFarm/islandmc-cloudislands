@@ -155,6 +155,8 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_cluster_activation_queue", "gauge");
         help(out, "cloudislands_cluster_storage_available_nodes", "Fresh nodes reporting object storage availability");
         type(out, "cloudislands_cluster_storage_available_nodes", "gauge");
+        help(out, "cloudislands_cluster_storage_failure_ratio", "Fresh online nodes with unavailable object storage divided by fresh online nodes");
+        type(out, "cloudislands_cluster_storage_failure_ratio", "gauge");
         help(out, "cloudislands_cluster_activation_eligible_nodes", "Fresh nodes currently eligible for island activation");
         type(out, "cloudislands_cluster_activation_eligible_nodes", "gauge");
         help(out, "cloudislands_cluster_max_mspt", "Highest MSPT reported by fresh CloudIslands nodes");
@@ -379,6 +381,7 @@ public final class PrometheusMetricsRenderer {
         out.append("cloudislands_cluster_active_islands ").append(totalActiveIslands).append('\n');
         out.append("cloudislands_cluster_activation_queue ").append(totalActivationQueue).append('\n');
         out.append("cloudislands_cluster_storage_available_nodes ").append(storageAvailableNodes).append('\n');
+        out.append("cloudislands_cluster_storage_failure_ratio ").append(onlineNodes <= 0L ? 0.0D : (double) (onlineNodes - storageAvailableNodes) / onlineNodes).append('\n');
         out.append("cloudislands_cluster_activation_eligible_nodes ").append(activationEligibleNodes).append('\n');
         out.append("cloudislands_cluster_stale_nodes ").append(staleNodes).append('\n');
         out.append("cloudislands_cluster_route_candidate_nodes ").append(routeCandidateNodes).append('\n');
