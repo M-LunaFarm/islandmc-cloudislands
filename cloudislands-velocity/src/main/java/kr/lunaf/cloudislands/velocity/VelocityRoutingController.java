@@ -1151,6 +1151,9 @@ public final class VelocityRoutingController {
         if (body.contains("\"canImport\"")) {
             builder.append(" canImport=").append(boolValue(body, "canImport"));
         }
+        if (body.contains("\"approvalRequired\"")) {
+            builder.append(" approvalRequired=").append(boolValue(body, "approvalRequired"));
+        }
         if (body.contains("\"manifestStatus\"")) {
             builder.append(" manifestStatus=").append(jsonValue(body, "manifestStatus"))
                 .append(" conflictStatus=").append(jsonValue(body, "conflictStatus"))
