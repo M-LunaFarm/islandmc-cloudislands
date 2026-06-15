@@ -760,6 +760,24 @@ public final class AdminFactoryCommand {
                         ))));
                 return;
             }
+            if (lastLegacyDryRunRows != plan.importableRows()) {
+                sender.sendMessage(messages.raw("admin-migration-title"));
+                Map<String, String> state = new LinkedHashMap<>();
+                state.put("mode", "dryrun-stale");
+                state.put("writes", "false");
+                state.put("source", plan.sourcePath());
+                state.put("dryrun-rows", String.valueOf(lastLegacyDryRunRows));
+                state.put("current-rows", String.valueOf(plan.importableRows()));
+                state.put("required", "/factory admin migration dryrun <sqlitePath>");
+                state.put("reason", "source changed after dryrun or verify");
+                state.entrySet().stream()
+                        .sorted(Map.Entry.comparingByKey())
+                        .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                                "key", entry.getKey(),
+                                "value", entry.getValue()
+                        ))));
+                return;
+            }
             DatabaseService.LegacyImportResult result = database.importLegacyDatabase(new File(sourcePath));
             reload.run();
             sender.sendMessage(messages.raw("admin-migration-title"));
