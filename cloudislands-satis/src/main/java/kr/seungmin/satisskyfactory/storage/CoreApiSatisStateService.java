@@ -54,6 +54,10 @@ public final class CoreApiSatisStateService {
             Map<String, String> values = state(valuesByIsland, islandId);
             int tableKeys = tables.values().stream().mapToInt(Map::size).sum();
             values.put("core-api-sync-schema", "1");
+            values.put("core-api-sync-authority", "cloudislands-addon-state");
+            values.put("core-api-sync-node-bound", "false");
+            values.put("core-api-sync-portability", "portable-across-island-nodes");
+            values.put("core-api-sync-write-policy", "last-confirmed-state-wins");
             values.put("core-api-sync-updated-at", Instant.now().toString());
             values.put("core-api-sync-keys", Integer.toString(values.size() + tableKeys));
             values.put("core-api-sync-tables", Integer.toString(tables.size()));

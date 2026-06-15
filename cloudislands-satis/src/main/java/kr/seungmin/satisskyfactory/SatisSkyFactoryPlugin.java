@@ -362,6 +362,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("island-state-location-remap", "active-world-center-delta");
         state.put("island-state-failover-policy", "last-confirmed-addon-state-only");
         state.put("island-state-ab-node-scenario", "A-server-to-B-server-preserve-addon-state");
+        state.put("island-state-storage-authority", coreApiAddonStateAvailable() ? "cloudislands-addon-state" : databaseScope());
+        state.put("island-state-write-fence", "cloudislands-runtime-active-island-only");
+        state.put("island-state-duplicate-tick-policy", "single-active-runtime-owner");
+        state.put("island-state-reconnect-policy", "reload-by-island-uuid-and-remap-active-world");
     }
 
     private String disabledRuntimeFeatures() {
