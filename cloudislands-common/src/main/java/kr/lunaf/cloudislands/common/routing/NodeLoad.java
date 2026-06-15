@@ -186,7 +186,8 @@ public record NodeLoad(
         breakdown.put("activationQueuePressure", activationQueuePressure());
         breakdown.put("activationQueueWeight", ACTIVATION_QUEUE_WEIGHT);
         breakdown.put("activationQueueContribution", activationQueueScoreContribution());
-        breakdown.put("chunkLoadPressure", chunkLoadPressure());
+        breakdown.put("chunkLoadRawPressure", chunkLoadPressure());
+        breakdown.put("chunkLoadPressure", chunkLoadScorePressure());
         breakdown.put("chunkLoadWeight", CHUNK_LOAD_WEIGHT);
         breakdown.put("chunkLoadContribution", chunkLoadScoreContribution());
         breakdown.put("memoryPressure", memoryPressure());
@@ -209,19 +210,23 @@ public record NodeLoad(
     }
 
     public double msptPressure() {
-        return Math.min(mspt / 50.0D, 1.5D);
+        return clampPressure(mspt / 50.0D);
     }
 
     public double activationQueuePressure() {
         return ratio(activationQueue, maxActivationQueue);
     }
 
+    public double chunkLoadScorePressure() {
+        return clampPressure(chunkLoadPressure);
+    }
+
     public double memoryPressure() {
-        return heapMaxMb <= 0 ? 1.0D : Math.min((double) heapUsedMb / heapMaxMb, 1.5D);
+        return heapMaxMb <= 0 ? 1.0D : clampPressure((double) heapUsedMb / heapMaxMb);
     }
 
     public double recentFailurePressure() {
-        return Math.min(Math.max(0, recentFailurePenalty) / 20.0D, 1.5D);
+        return clampPressure((double) Math.max(0, recentFailurePenalty) / 20.0D);
     }
 
     public double playerScoreContribution() {
@@ -241,7 +246,7 @@ public record NodeLoad(
     }
 
     public double chunkLoadScoreContribution() {
-        return chunkLoadPressure * CHUNK_LOAD_WEIGHT;
+        return chunkLoadScorePressure() * CHUNK_LOAD_WEIGHT;
     }
 
     public double memoryScoreContribution() {
@@ -253,7 +258,14 @@ public record NodeLoad(
     }
 
     private static double ratio(int value, int max) {
-        return max <= 0 ? 1.0D : Math.min((double) value / max, 1.5D);
+        return max <= 0 ? 1.0D : clampPressure((double) value / max);
+    }
+
+    private static double clampPressure(double value) {
+        if (Double.isNaN(value) || Double.isInfinite(value)) {
+            return 1.5D;
+        }
+        return Math.min(Math.max(value, 0.0D), 1.5D);
     }
 
     private static int compareVersions(String left, String right) {
