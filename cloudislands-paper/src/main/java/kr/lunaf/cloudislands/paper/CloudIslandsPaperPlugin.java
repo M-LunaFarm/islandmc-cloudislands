@@ -364,6 +364,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean proxySourceAllowlistConfigured = proxySourceAllowlistEntries > 0;
         boolean directAccessRisk = role == AgentRole.ISLAND_NODE && !getServer().getOnlineMode() && !proxySourceAllowlistConfigured;
         boolean velocityOnlineModeMismatch = role == AgentRole.ISLAND_NODE && forwardingRequired && getServer().getOnlineMode();
+        boolean bungeeConnectPluginMessaging = configBoolean("security.allow-bungee-connect-plugin-messaging", false);
+        boolean bungeeConnectChannelRegistered = getServer().getMessenger().isOutgoingChannelRegistered(this, "BungeeCord");
         PaperRouteSessionListener routeSessions = routeSessionListener;
         PermissionEventPoller events = permissionEventPoller;
         PeriodicIslandSaveTask saver = periodicSaveTask;
@@ -389,6 +391,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"proxySourceAllowlistEntries\":" + proxySourceAllowlistEntries + ","
             + "\"directAccessRisk\":" + directAccessRisk + ","
             + "\"velocityOnlineModeMismatch\":" + velocityOnlineModeMismatch + ","
+            + "\"pluginMessagingControlPolicy\":\"forbidden-for-core-control\","
+            + "\"bungeeConnectPluginMessagingEnabled\":" + bungeeConnectPluginMessaging + ","
+            + "\"bungeeConnectChannelRegistered\":" + bungeeConnectChannelRegistered + ","
+            + "\"bungeeConnectUseCase\":\"fallback-transfer-only\","
             + "\"proxySourceRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.proxySourceRejections()) + ","
             + "\"forwardingRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.forwardingRejections()) + ","
             + "\"routeSessionRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.routeSessionRejections()) + ","
