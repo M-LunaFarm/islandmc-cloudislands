@@ -356,6 +356,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean forwardingRequired = configBoolean("security.require-velocity-forwarding", true);
         boolean forwardingSecretConfigured = !resolveEnv(getConfig().getString("security.forwarding-secret", "")).isBlank();
         boolean routeSessionEnforced = configBoolean("security.enforce-route-session", true) || configBoolean("routing.require-route-session", true);
+        boolean hideNodeNames = configBoolean("routing.hide-node-names", true);
+        boolean topologyExposureRisk = !hideNodeNames;
         int proxySourceAllowlistEntries = proxySourceAllowlist == null ? 0 : proxySourceAllowlist.entryCount();
         boolean proxySourceAllowlistConfigured = proxySourceAllowlistEntries > 0;
         boolean directAccessRisk = role == AgentRole.ISLAND_NODE && !getServer().getOnlineMode() && !proxySourceAllowlistConfigured;
@@ -378,6 +380,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"velocityForwardingRequired\":" + forwardingRequired + ","
             + "\"forwardingSecretConfigured\":" + forwardingSecretConfigured + ","
             + "\"routeSessionEnforced\":" + routeSessionEnforced + ","
+            + "\"hideNodeNames\":" + hideNodeNames + ","
+            + "\"topologyExposureRisk\":" + topologyExposureRisk + ","
             + "\"proxySourceAllowlistConfigured\":" + proxySourceAllowlistConfigured + ","
             + "\"proxySourceAllowlistEntries\":" + proxySourceAllowlistEntries + ","
             + "\"directAccessRisk\":" + directAccessRisk + ","
@@ -410,6 +414,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean forwardingRequired = configBoolean("security.require-velocity-forwarding", true);
         boolean forwardingSecretConfigured = !resolveEnv(getConfig().getString("security.forwarding-secret", "")).isBlank();
         boolean routeSessionEnforced = configBoolean("security.enforce-route-session", true) || configBoolean("routing.require-route-session", true);
+        boolean hideNodeNames = configBoolean("routing.hide-node-names", true);
+        boolean topologyExposureRisk = !hideNodeNames;
         int proxySourceAllowlistEntries = proxySourceAllowlist == null ? 0 : proxySourceAllowlist.entryCount();
         boolean proxySourceAllowlistConfigured = proxySourceAllowlistEntries > 0;
         boolean directAccessRisk = role == AgentRole.ISLAND_NODE && !getServer().getOnlineMode() && !proxySourceAllowlistConfigured;
@@ -450,6 +456,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_paper_velocity_forwarding_required{node=\"" + nodeId + "\"} " + (forwardingRequired ? 1 : 0) + "\n"
             + "cloudislands_paper_forwarding_secret_configured{node=\"" + nodeId + "\"} " + (forwardingSecretConfigured ? 1 : 0) + "\n"
             + "cloudislands_paper_route_session_enforced{node=\"" + nodeId + "\"} " + (routeSessionEnforced ? 1 : 0) + "\n"
+            + "cloudislands_paper_hide_node_names{node=\"" + nodeId + "\"} " + (hideNodeNames ? 1 : 0) + "\n"
+            + "cloudislands_paper_topology_exposure_risk{node=\"" + nodeId + "\"} " + (topologyExposureRisk ? 1 : 0) + "\n"
             + "cloudislands_paper_proxy_source_allowlist_configured{node=\"" + nodeId + "\"} " + (proxySourceAllowlistConfigured ? 1 : 0) + "\n"
             + "cloudislands_paper_proxy_source_allowlist_entries{node=\"" + nodeId + "\"} " + proxySourceAllowlistEntries + "\n"
             + "cloudislands_paper_direct_access_risk{node=\"" + nodeId + "\"} " + (directAccessRisk ? 1 : 0) + "\n"
@@ -504,6 +512,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";forwardingRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.forwardingRejections())
             + ";routeSessionRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.routeSessionRejections())
             + ";routeSessionCheckFailures=" + (routeSessionListener == null ? 0L : routeSessionListener.routeSessionCheckFailures())
+            + ";hideNodeNames=" + configBoolean("routing.hide-node-names", true)
+            + ";topologyExposureRisk=" + !configBoolean("routing.hide-node-names", true)
             + ";chatBroadcasts=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatBroadcasts())
             + ";chatDeliveries=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatDeliveries())
             + ";chatNoRecipientBroadcasts=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatNoRecipientBroadcasts());
