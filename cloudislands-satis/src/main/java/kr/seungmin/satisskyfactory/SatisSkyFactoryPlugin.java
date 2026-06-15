@@ -1683,7 +1683,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandDeactivationRequested(IslandDeactivationRequestEvent event) {
-        runSatisLifecycle(event.islandId(), "deactivation-requested", () -> flushSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), "deactivation-requested", () -> flushSatisIsland(event.islandId(), "deactivation-requested"));
     }
 
     @Override
@@ -1691,7 +1691,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String phase = event.phase() == null || event.phase().isBlank() ? "" : ":" + event.phase();
         String target = event.targetNode() == null || event.targetNode().isBlank() ? "" : "->" + lifecycleNode(event.targetNode());
         String operation = "deactivated:" + lifecycleNode(event.nodeId()) + target + phase + ":snapshot-" + event.snapshotNo();
-        runSatisLifecycle(event.islandId(), operation, () -> flushSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), operation, () -> flushSatisIsland(event.islandId(), operation));
     }
 
     @Override
@@ -1707,12 +1707,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandDeleteRequested(kr.lunaf.cloudislands.api.event.IslandDeleteRequestEvent event) {
-        runSatisLifecycle(event.islandId(), "flush", () -> flushSatisIsland(event.islandId()));
+        runSatisLifecycle(event.islandId(), "delete-requested", () -> flushSatisIsland(event.islandId(), "delete-requested"));
     }
 
     @Override
     public void onIslandRestoreRequested(kr.lunaf.cloudislands.api.event.IslandRestoreRequestEvent event) {
-        runSatisLifecycle(event.islandId(), "flush", () -> flushSatisIsland(event.islandId()));
+        String operation = "restore-requested:" + lifecycleNode(event.targetNode()) + ":snapshot-" + event.snapshotNo();
+        runSatisLifecycle(event.islandId(), operation, () -> flushSatisIsland(event.islandId(), operation));
     }
 
     @Override
@@ -1750,7 +1751,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return;
         }
         if (state.equalsIgnoreCase("SAVING") || state.equalsIgnoreCase("DEACTIVATING")) {
-            runSatisLifecycle(event.islandId(), runtimeOperation(state, event.targetNode()), () -> flushSatisIsland(event.islandId()));
+            String operation = runtimeOperation(state, event.targetNode());
+            runSatisLifecycle(event.islandId(), operation, () -> flushSatisIsland(event.islandId(), operation));
             return;
         }
         if (state.equalsIgnoreCase("ACTIVE")) {
@@ -2064,11 +2066,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void flushSatisIsland(UUID islandId) {
-        synchronizeSatisIsland(islandId);
+        flushSatisIsland(islandId, "flush");
+    }
+
+    private void flushSatisIsland(UUID islandId, String operation) {
+        String safeOperation = operation == null || operation.isBlank() ? "flush" : operation;
+        synchronizeSatisIsland(islandId, safeOperation);
         if (dirtySaves != null) {
             dirtySaves.flushIslandSafely(islandId);
         }
-        publishLifecycleState(islandId, "flush");
+        publishLifecycleState(islandId, safeOperation);
     }
 
     private void suspendRecoveredIsland(UUID islandId, String operation) {
