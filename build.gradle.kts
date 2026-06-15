@@ -82,14 +82,18 @@ tasks.register<Copy>("distTools") {
 
 tasks.register<Zip>("distBundle") {
     group = "distribution"
-    description = "Packages the required CloudIslands plugins, Core API service runtime, and migration tools."
+    description = "Packages the CloudIslands plugins, optional addons, Core API service runtime, and migration tools."
     dependsOn(tasks.named("distPlugins"))
+    dependsOn(tasks.named("distAddons"))
     dependsOn(tasks.named("distServices"))
     dependsOn(tasks.named("distTools"))
     archiveBaseName.set("cloudislands")
     archiveVersion.set(project.version.toString())
     from(layout.buildDirectory.dir("dist/plugins")) {
         into("plugins")
+    }
+    from(layout.buildDirectory.dir("dist/addons")) {
+        into("addons")
     }
     from(layout.buildDirectory.dir("dist/services")) {
         into("services")
