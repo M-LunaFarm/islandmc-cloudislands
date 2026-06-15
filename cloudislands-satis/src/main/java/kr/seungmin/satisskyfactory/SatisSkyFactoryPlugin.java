@@ -2946,6 +2946,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         DatabaseService.StorageBackend configured = DatabaseService.StorageBackend.parse(configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE);
         DatabaseService.StorageBackend active = database == null ? configured : database.activeBackend();
         if (active == DatabaseService.StorageBackend.CORE_API) {
+            if (!coreApiAddonStateAvailable()) {
+                return "core-api-local-sqlite-cache-only-addon-state-unavailable";
+            }
             return "core-api-bulk-table-key-value-with-local-sqlite-cache";
         }
         if (configured == DatabaseService.StorageBackend.CORE_API) {
@@ -2961,6 +2964,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         DatabaseService.StorageBackend configured = DatabaseService.StorageBackend.parse(configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE);
         DatabaseService.StorageBackend active = database == null ? configured : database.activeBackend();
         if (active == DatabaseService.StorageBackend.CORE_API) {
+            if (!coreApiAddonStateAvailable()) {
+                return "local-cache-only-addon-state-unavailable";
+            }
             return "required-for-runtime-reads-core-api-is-authoritative-publish-target";
         }
         if (configured == DatabaseService.StorageBackend.CORE_API) {
