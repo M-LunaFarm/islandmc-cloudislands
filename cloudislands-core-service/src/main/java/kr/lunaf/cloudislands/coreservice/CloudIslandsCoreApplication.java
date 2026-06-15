@@ -493,6 +493,27 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
+        route("/v1/addons/state/table/key-value/bulk/save", exchange -> {
+            String body = readBody(exchange);
+            String addonId = JsonFields.text(body, "addonId", "");
+            Map<String, String> values = JsonFields.object(body, "values");
+            Map<String, Map<String, String>> tables = JsonFields.objectMap(body, "tables");
+            if (addonId.isBlank()) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id is required"));
+                return;
+            }
+            try {
+                Map<String, String> stateValues = new java.util.HashMap<>(values);
+                tables.forEach((table, tableValues) -> stateValues.putAll(tableStateValues(table, tableValues)));
+                int tableKeys = tableKeyCount(tables);
+                Map<String, String> state = addonStates.put(addonId, stateValues);
+                audit.log(new UUID(0L, 0L), "API", "ADDON_STATE_TABLE_KEY_VALUE_BULK_SAVE", "ADDON", addonId, Map.of("keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(values.size()), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tables.size())));
+                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "operation", "TABLE_KEY_VALUE_BULK_SAVE", "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(values.size()), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tables.size())));
+                write(exchange, 202, addonStateJson(state));
+            } catch (IllegalArgumentException exception) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
+            }
+        });
         route("/v1/addons/state/table/key-value/bulk", exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
@@ -708,6 +729,28 @@ public final class CloudIslandsCoreApplication {
             }
         });
         route("/v1/addons/islands/state/table/key-value/bulk-save", exchange -> {
+            String body = readBody(exchange);
+            String addonId = JsonFields.text(body, "addonId", "");
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            Map<String, String> values = JsonFields.object(body, "values");
+            Map<String, Map<String, String>> tables = JsonFields.objectMap(body, "tables");
+            if (addonId.isBlank() || islandId.equals(new UUID(0L, 0L))) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id and island id are required"));
+                return;
+            }
+            try {
+                Map<String, String> stateValues = new java.util.HashMap<>(values);
+                tables.forEach((table, tableValues) -> stateValues.putAll(tableStateValues(table, tableValues)));
+                int tableKeys = tableKeyCount(tables);
+                Map<String, String> state = addonStates.putIsland(addonId, islandId, stateValues);
+                audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_STATE_TABLE_KEY_VALUE_BULK_SAVE", "ADDON", addonId, Map.of("islandId", islandId.toString(), "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(values.size()), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tables.size())));
+                events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", "TABLE_KEY_VALUE_BULK_SAVE", "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(values.size()), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tables.size())));
+                write(exchange, 202, addonStateJson(state));
+            } catch (IllegalArgumentException exception) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
+            }
+        });
+        route("/v1/addons/islands/state/table/key-value/bulk/save", exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -2642,6 +2685,8 @@ public final class CloudIslandsCoreApplication {
             + "\"addonStateBulkSaveIslandEndpoint\":\"/v1/addons/islands/state/table-key-value/bulk-save\","
             + "\"addonStateTableKeyValueBulkSaveGlobalEndpoint\":\"/v1/addons/state/table/key-value/bulk-save\","
             + "\"addonStateTableKeyValueBulkSaveIslandEndpoint\":\"/v1/addons/islands/state/table/key-value/bulk-save\","
+            + "\"addonStateTableKeyValueBulkSaveGlobalAlias\":\"/v1/addons/state/table/key-value/bulk/save\","
+            + "\"addonStateTableKeyValueBulkSaveIslandAlias\":\"/v1/addons/islands/state/table/key-value/bulk/save\","
             + "\"addonStateTableKeyValueBulkGlobalEndpoint\":\"/v1/addons/state/table/key-value/bulk\","
             + "\"addonStateTableKeyValueBulkIslandEndpoint\":\"/v1/addons/islands/state/table/key-value/bulk\","
             + "\"addonStateTableKeyValueBulkSavePayload\":\"addonId,islandId(optional),values,tables\","
