@@ -1645,7 +1645,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             if (operational.containsKey(alias) || operational.containsKey(canonical)) {
                 boolean enabled = operational.getOrDefault(alias, true) && operational.getOrDefault(canonical, true);
                 operational.put(alias, enabled);
-                operational.put(canonical, enabled);
             }
         });
         return operational;
