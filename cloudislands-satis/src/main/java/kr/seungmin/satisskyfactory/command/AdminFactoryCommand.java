@@ -26,6 +26,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -842,7 +846,28 @@ public final class AdminFactoryCommand {
 
     private String legacySourceFingerprint(String sourcePath) {
         File source = new File(sourcePath);
-        return "size=" + source.length() + ",modified=" + source.lastModified();
+        return "sha256=" + sha256(source) + ",size=" + source.length() + ",modified=" + source.lastModified();
+    }
+
+    private String sha256(File source) {
+        try (InputStream input = new java.io.BufferedInputStream(new java.io.FileInputStream(source))) {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = input.read(buffer)) >= 0) {
+                if (read > 0) {
+                    digest.update(buffer, 0, read);
+                }
+            }
+            byte[] hash = digest.digest();
+            StringBuilder hex = new StringBuilder(hash.length * 2);
+            for (byte value : hash) {
+                hex.append(String.format("%02x", value));
+            }
+            return hex.toString();
+        } catch (IOException | NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("Failed to fingerprint legacy source database", exception);
+        }
     }
 
     private void rollbackLegacyDatabase(CommandSender sender) {
