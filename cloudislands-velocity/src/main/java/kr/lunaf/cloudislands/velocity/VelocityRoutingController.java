@@ -1942,6 +1942,7 @@ public final class VelocityRoutingController {
             + " setupFallbackMode=" + jsonValue(body, "coreSetupFallbackMode")
             + " setupDbRequested=" + jsonValue(body, "coreSetupDatabaseRequestedBackend")
             + " setupDbAuthority=" + jsonValue(body, "coreSetupDatabaseEffectiveAuthority")
+            + " setupDbEffectiveBackend=" + jsonValue(body, "coreSetupDatabaseEffectiveBackend")
             + " setupDbFallbackTarget=" + jsonValue(body, "coreSetupDatabaseFallbackTarget")
             + " setupDbFallbackReason=" + jsonValue(body, "coreSetupDatabaseFallbackReason")
             + " setupDbDurable=" + boolValue(body, "coreSetupDatabaseDurable")

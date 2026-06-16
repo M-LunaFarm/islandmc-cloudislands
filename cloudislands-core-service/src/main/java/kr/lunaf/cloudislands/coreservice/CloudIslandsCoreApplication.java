@@ -2743,6 +2743,7 @@ public final class CloudIslandsCoreApplication {
             + "\"coreSetupFallbackMode\":\"" + escape(coreSetupFallbackMode(config)) + "\","
             + "\"coreSetupDatabaseRequestedBackend\":\"" + escape(config.setupDatabaseRequestedBackend()) + "\","
             + "\"coreSetupDatabaseEffectiveAuthority\":\"" + escape(config.setupDatabaseEffectiveAuthority()) + "\","
+            + "\"coreSetupDatabaseEffectiveBackend\":\"" + escape(config.setupDatabaseEffectiveBackend()) + "\","
             + "\"coreSetupDatabaseFallbackTarget\":\"" + escape(config.setupDatabaseFallbackTarget()) + "\","
             + "\"coreSetupDatabaseFallbackReason\":\"" + escape(config.setupDatabaseFallbackReason()) + "\","
             + "\"coreSetupDatabaseDurable\":" + config.setupDatabaseDurable() + ","

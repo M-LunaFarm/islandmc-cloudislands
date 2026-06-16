@@ -1970,6 +1970,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-core-config-setup-fallback-mode-prefix", " setupFallbackMode=") + textValue(body, "coreSetupFallbackMode")
             + adminText("admin-command-core-config-setup-db-requested-prefix", " setupDbRequested=") + textValue(body, "coreSetupDatabaseRequestedBackend")
             + adminText("admin-command-core-config-setup-db-authority-prefix", " setupDbAuthority=") + textValue(body, "coreSetupDatabaseEffectiveAuthority")
+            + " setupDbEffectiveBackend=" + textValue(body, "coreSetupDatabaseEffectiveBackend")
             + adminText("admin-command-core-config-setup-db-fallback-target-prefix", " setupDbFallbackTarget=") + textValue(body, "coreSetupDatabaseFallbackTarget")
             + adminText("admin-command-core-config-setup-db-fallback-reason-prefix", " setupDbFallbackReason=") + textValue(body, "coreSetupDatabaseFallbackReason")
             + adminText("admin-command-core-config-setup-db-durable-prefix", " setupDbDurable=") + boolValue(body, "coreSetupDatabaseDurable")

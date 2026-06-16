@@ -160,6 +160,17 @@ public record CoreServiceConfig(
         return "SAFE_IN_MEMORY_CORE_FALLBACK";
     }
 
+    public String setupDatabaseEffectiveBackend() {
+        String requested = normalizeDatabaseType(configuredDatabaseType);
+        if (coreJdbcSupported(jdbcUrl)) {
+            return jdbcUrlDatabaseType(jdbcUrl) + "_JDBC";
+        }
+        if ("CORE_API".equals(requested)) {
+            return "CORE_API_CLIENT";
+        }
+        return "IN_MEMORY_FALLBACK";
+    }
+
     public String setupDatabaseFallbackTarget() {
         String requested = normalizeDatabaseType(configuredDatabaseType);
         String effective = jdbcUrlDatabaseType(jdbcUrl);
