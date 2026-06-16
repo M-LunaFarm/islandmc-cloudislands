@@ -72,6 +72,7 @@ public final class JobCompletionService {
         if (job.type() == IslandJobType.CREATE_ISLAND || job.type() == IslandJobType.ACTIVATE_ISLAND || job.type() == IslandJobType.RESET_ISLAND) {
             String worldName = job.payload().getOrDefault("worldName", "ci_shard_001");
             if (!markActiveFromJob(job, worldName)) {
+                releaseActivationJobLock(job);
                 return;
             }
             if (job.type() == IslandJobType.RESET_ISLAND) {
@@ -93,6 +94,7 @@ public final class JobCompletionService {
                 "placementSource", job.payload().getOrDefault("placementSource", ""),
                 "readyTickets", Integer.toString(readyTickets)
             ));
+            releaseActivationJobLock(job);
             return;
         }
         if (job.type() == IslandJobType.DEACTIVATE_ISLAND) {
@@ -213,6 +215,7 @@ public final class JobCompletionService {
             case SAVE_ISLAND, SNAPSHOT_ISLAND, DEACTIVATE_ISLAND, DELETE_ISLAND -> IslandState.ERROR_SAVING;
             default -> IslandState.RECOVERY_REQUIRED;
         };
+        releaseActivationJobLock(job);
         runtimes.setState(job.islandId(), state);
         setIslandState(job.islandId(), state);
         failPreparingRouteTickets(job, errorMessage);
@@ -356,6 +359,17 @@ public final class JobCompletionService {
     private void releaseRestoreLock(IslandJob job) {
         if (activationLock != null) {
             activationLock.releaseIfOwner(job.islandId(), "restore");
+        }
+    }
+
+    private void releaseActivationJobLock(IslandJob job) {
+        if (activationLock == null) {
+            return;
+        }
+        if (job.type() == IslandJobType.ACTIVATE_ISLAND) {
+            activationLock.releaseIfOwner(job.islandId(), "activate");
+        } else if (job.type() == IslandJobType.RESET_ISLAND) {
+            activationLock.releaseIfOwner(job.islandId(), "reset");
         }
     }
 
