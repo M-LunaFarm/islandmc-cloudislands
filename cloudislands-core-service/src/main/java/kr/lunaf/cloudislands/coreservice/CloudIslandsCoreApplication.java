@@ -1726,20 +1726,20 @@ public final class CloudIslandsCoreApplication {
             String nodeId = JsonFields.text(body, "nodeId", "");
             boolean changed = nodes.drain(nodeId);
             if (changed) {
-                events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "DRAINING"));
+                events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), nodeLifecycleFields(nodeId, "DRAINING", "DRAIN"));
             }
-            audit.log(new UUID(0L, 0L), "ADMIN", "NODE_DRAIN", "NODE", nodeId, Map.of());
-            write(exchange, changed ? 202 : 404, changed ? ApiResponses.ok(true) : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
+            audit.log(new UUID(0L, 0L), "ADMIN", "NODE_DRAIN", "NODE", nodeId, nodeLifecycleFields(nodeId, changed ? "DRAINING" : "NOT_FOUND", "DRAIN"));
+            write(exchange, changed ? 202 : 404, changed ? nodeLifecycleJson(nodeId, "DRAINING", "DRAIN") : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
         });
         route("/v1/admin/nodes/undrain", exchange -> {
             String body = readBody(exchange);
             String nodeId = JsonFields.text(body, "nodeId", "");
             boolean changed = nodes.undrain(nodeId);
             if (changed) {
-                events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "READY"));
+                events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), nodeLifecycleFields(nodeId, "READY", "UNDRAIN"));
             }
-            audit.log(new UUID(0L, 0L), "ADMIN", "NODE_UNDRAIN", "NODE", nodeId, Map.of());
-            write(exchange, changed ? 202 : 404, changed ? ApiResponses.ok(true) : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
+            audit.log(new UUID(0L, 0L), "ADMIN", "NODE_UNDRAIN", "NODE", nodeId, nodeLifecycleFields(nodeId, changed ? "READY" : "NOT_FOUND", "UNDRAIN"));
+            write(exchange, changed ? 202 : 404, changed ? nodeLifecycleJson(nodeId, "READY", "UNDRAIN") : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
         });
         route("/v1/admin/nodes/kickall", exchange -> {
             String body = readBody(exchange);
@@ -1775,20 +1775,20 @@ public final class CloudIslandsCoreApplication {
                 String nodeId = tail.substring(0, tail.length() - "/drain".length());
                 boolean changed = nodes.drain(nodeId);
                 if (changed) {
-                    events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "DRAINING"));
+                    events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), nodeLifecycleFields(nodeId, "DRAINING", "DRAIN"));
                 }
-                audit.log(new UUID(0L, 0L), "ADMIN", "NODE_DRAIN", "NODE", nodeId, Map.of());
-                write(exchange, changed ? 202 : 404, changed ? ApiResponses.ok(true) : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
+                audit.log(new UUID(0L, 0L), "ADMIN", "NODE_DRAIN", "NODE", nodeId, nodeLifecycleFields(nodeId, changed ? "DRAINING" : "NOT_FOUND", "DRAIN"));
+                write(exchange, changed ? 202 : 404, changed ? nodeLifecycleJson(nodeId, "DRAINING", "DRAIN") : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
                 return;
             }
             if (tail.endsWith("/undrain")) {
                 String nodeId = tail.substring(0, tail.length() - "/undrain".length());
                 boolean changed = nodes.undrain(nodeId);
                 if (changed) {
-                    events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "READY"));
+                    events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), nodeLifecycleFields(nodeId, "READY", "UNDRAIN"));
                 }
-                audit.log(new UUID(0L, 0L), "ADMIN", "NODE_UNDRAIN", "NODE", nodeId, Map.of());
-                write(exchange, changed ? 202 : 404, changed ? ApiResponses.ok(true) : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
+                audit.log(new UUID(0L, 0L), "ADMIN", "NODE_UNDRAIN", "NODE", nodeId, nodeLifecycleFields(nodeId, changed ? "READY" : "NOT_FOUND", "UNDRAIN"));
+                write(exchange, changed ? 202 : 404, changed ? nodeLifecycleJson(nodeId, "READY", "UNDRAIN") : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
                 return;
             }
             if (tail.endsWith("/kickall")) {
@@ -3702,6 +3702,35 @@ public final class CloudIslandsCoreApplication {
             builder.append(runtimeJson(runtime));
         }
         return builder.append("]}").toString();
+    }
+
+    private static java.util.Map<String, String> nodeLifecycleFields(String nodeId, String state, String operation) {
+        return Map.of(
+            "nodeId", nodeId == null ? "" : nodeId,
+            "state", state == null ? "" : state,
+            "operation", operation == null ? "" : operation,
+            "drainContract", kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.CONTRACT,
+            "newRoutePolicy", kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.NEW_ROUTE_POLICY,
+            "activeIslandPolicy", kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.ACTIVE_ISLAND_POLICY,
+            "nextStep", operation != null && operation.equals("UNDRAIN") ? kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.UNDRAIN_NEXT_STEP : kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.DRAIN_NEXT_STEP
+        );
+    }
+
+    private static String nodeLifecycleJson(String nodeId, String state, String operation) {
+        String nextStep = operation != null && operation.equals("UNDRAIN")
+            ? kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.UNDRAIN_NEXT_STEP
+            : kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.DRAIN_NEXT_STEP;
+        return "{\"accepted\":true"
+            + ",\"nodeId\":\"" + escape(nodeId == null ? "" : nodeId) + "\""
+            + ",\"state\":\"" + escape(state == null ? "" : state) + "\""
+            + ",\"operation\":\"" + escape(operation == null ? "" : operation) + "\""
+            + ",\"drainContract\":\"" + escape(kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.CONTRACT) + "\""
+            + ",\"newRoutePolicy\":\"" + escape(kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.NEW_ROUTE_POLICY) + "\""
+            + ",\"activeIslandPolicy\":\"" + escape(kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.ACTIVE_ISLAND_POLICY) + "\""
+            + ",\"ownerMemberPolicy\":\"" + escape(kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.OWNER_MEMBER_POLICY) + "\""
+            + ",\"visitorPolicy\":\"" + escape(kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.VISITOR_POLICY) + "\""
+            + ",\"nextStep\":\"" + escape(nextStep) + "\""
+            + "}";
     }
 
     private static String templatesJson(java.util.List<IslandTemplateSnapshot> templates) {
