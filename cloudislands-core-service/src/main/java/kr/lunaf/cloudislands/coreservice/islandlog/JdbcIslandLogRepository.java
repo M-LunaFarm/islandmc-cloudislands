@@ -22,7 +22,7 @@ public final class JdbcIslandLogRepository implements IslandLogRepository {
     @Override
     public void append(UUID islandId, UUID actorUuid, String action, Map<String, String> payload) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_logs(id, island_id, actor_uuid, action, payload) VALUES (?, ?, ?, ?, ?::jsonb)")) {
+             PreparedStatement statement = connection.prepareStatement(insertLogSql(connection))) {
             statement.setObject(1, UUID.randomUUID());
             statement.setObject(2, islandId);
             statement.setObject(3, actorUuid);
@@ -37,7 +37,7 @@ public final class JdbcIslandLogRepository implements IslandLogRepository {
     @Override
     public List<IslandLogRecord> list(UUID islandId, int limit) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT id, island_id, actor_uuid, action, payload::text AS payload, created_at FROM island_logs WHERE island_id = ? ORDER BY created_at DESC LIMIT ?")) {
+             PreparedStatement statement = connection.prepareStatement(listLogSql(connection))) {
             statement.setObject(1, islandId);
             statement.setInt(2, limit);
             try (ResultSet rs = statement.executeQuery()) {
@@ -100,5 +100,24 @@ public final class JdbcIslandLogRepository implements IslandLogRepository {
 
     private String escape(String value) {
         return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private String insertLogSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_logs(id, island_id, actor_uuid, action, payload) VALUES (?, ?, ?, ?, ?)";
+        }
+        return "INSERT INTO island_logs(id, island_id, actor_uuid, action, payload) VALUES (?, ?, ?, ?, ?::jsonb)";
+    }
+
+    private String listLogSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "SELECT id, island_id, actor_uuid, action, payload AS payload, created_at FROM island_logs WHERE island_id = ? ORDER BY created_at DESC LIMIT ?";
+        }
+        return "SELECT id, island_id, actor_uuid, action, payload::text AS payload, created_at FROM island_logs WHERE island_id = ? ORDER BY created_at DESC LIMIT ?";
+    }
+
+    private boolean mysqlLike(Connection connection) throws SQLException {
+        String productName = connection.getMetaData().getDatabaseProductName().toLowerCase();
+        return productName.contains("mysql") || productName.contains("mariadb");
     }
 }

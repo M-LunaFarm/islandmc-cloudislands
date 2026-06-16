@@ -21,7 +21,7 @@ public final class JdbcIslandRoleRepository implements IslandRoleRepository {
     @Override
     public IslandRoleSnapshot upsert(UUID islandId, IslandRole role, int weight, String displayName) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_roles(island_id, role, weight, display_name) VALUES (?, ?, ?, ?) ON CONFLICT (island_id, role) DO UPDATE SET weight = EXCLUDED.weight, display_name = EXCLUDED.display_name")) {
+             PreparedStatement statement = connection.prepareStatement(upsertRoleSql(connection))) {
             statement.setObject(1, islandId);
             statement.setString(2, role.name());
             statement.setInt(3, weight);
@@ -65,5 +65,17 @@ public final class JdbcIslandRoleRepository implements IslandRoleRepository {
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to read island roles", exception);
         }
+    }
+
+    private String upsertRoleSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_roles(island_id, role, weight, display_name) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE weight = VALUES(weight), display_name = VALUES(display_name)";
+        }
+        return "INSERT INTO island_roles(island_id, role, weight, display_name) VALUES (?, ?, ?, ?) ON CONFLICT (island_id, role) DO UPDATE SET weight = EXCLUDED.weight, display_name = EXCLUDED.display_name";
+    }
+
+    private boolean mysqlLike(Connection connection) throws SQLException {
+        String productName = connection.getMetaData().getDatabaseProductName().toLowerCase();
+        return productName.contains("mysql") || productName.contains("mariadb");
     }
 }

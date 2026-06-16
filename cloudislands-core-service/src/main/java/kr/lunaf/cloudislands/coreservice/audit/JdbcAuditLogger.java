@@ -18,7 +18,7 @@ public final class JdbcAuditLogger implements AuditLogger {
     @Override
     public void log(UUID actorUuid, String actorType, String action, String targetType, String targetId, Map<String, String> payload) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO audit_logs(id, actor_uuid, actor_type, action, target_type, target_id, payload) VALUES (?, ?, ?, ?, ?, ?, ?::jsonb)")) {
+             PreparedStatement statement = connection.prepareStatement(insertAuditSql(connection))) {
             statement.setObject(1, UUID.randomUUID());
             statement.setObject(2, actorUuid.getMostSignificantBits() == 0L && actorUuid.getLeastSignificantBits() == 0L ? null : actorUuid);
             statement.setString(3, actorType);
@@ -36,7 +36,7 @@ public final class JdbcAuditLogger implements AuditLogger {
     public String toJson(int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 500));
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT id, actor_uuid, actor_type, action, target_type, target_id, payload::text AS payload, created_at FROM audit_logs ORDER BY created_at DESC LIMIT ?")) {
+             PreparedStatement statement = connection.prepareStatement(listAuditSql(connection))) {
             statement.setInt(1, safeLimit);
             StringBuilder builder = new StringBuilder("{\"audit\":[");
             boolean first = true;
@@ -79,5 +79,24 @@ public final class JdbcAuditLogger implements AuditLogger {
 
     private String escape(String value) {
         return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private String insertAuditSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO audit_logs(id, actor_uuid, actor_type, action, target_type, target_id, payload) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        }
+        return "INSERT INTO audit_logs(id, actor_uuid, actor_type, action, target_type, target_id, payload) VALUES (?, ?, ?, ?, ?, ?, ?::jsonb)";
+    }
+
+    private String listAuditSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "SELECT id, actor_uuid, actor_type, action, target_type, target_id, payload AS payload, created_at FROM audit_logs ORDER BY created_at DESC LIMIT ?";
+        }
+        return "SELECT id, actor_uuid, actor_type, action, target_type, target_id, payload::text AS payload, created_at FROM audit_logs ORDER BY created_at DESC LIMIT ?";
+    }
+
+    private boolean mysqlLike(Connection connection) throws SQLException {
+        String productName = connection.getMetaData().getDatabaseProductName().toLowerCase();
+        return productName.contains("mysql") || productName.contains("mariadb");
     }
 }

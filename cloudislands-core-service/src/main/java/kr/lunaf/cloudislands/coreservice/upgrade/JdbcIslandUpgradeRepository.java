@@ -54,7 +54,7 @@ public final class JdbcIslandUpgradeRepository implements IslandUpgradeRepositor
     @Override
     public IslandUpgradeSnapshot setLevel(UUID islandId, String upgradeKey, UpgradeType type, int level) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_upgrades(island_id, upgrade_key, level) VALUES (?, ?, ?) ON CONFLICT (island_id, upgrade_key) DO UPDATE SET level = EXCLUDED.level, updated_at = now()")) {
+             PreparedStatement statement = connection.prepareStatement(upsertUpgradeSql(connection))) {
             statement.setObject(1, islandId);
             statement.setString(2, upgradeKey);
             statement.setInt(3, level);
@@ -68,5 +68,17 @@ public final class JdbcIslandUpgradeRepository implements IslandUpgradeRepositor
     private IslandUpgradeSnapshot map(ResultSet rs) throws SQLException {
         String key = rs.getString("upgrade_key");
         return new IslandUpgradeSnapshot((UUID) rs.getObject("island_id"), key, UpgradePolicy.typeFor(key), rs.getInt("level"), rs.getTimestamp("updated_at").toInstant());
+    }
+
+    private String upsertUpgradeSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_upgrades(island_id, upgrade_key, level) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE level = VALUES(level), updated_at = now()";
+        }
+        return "INSERT INTO island_upgrades(island_id, upgrade_key, level) VALUES (?, ?, ?) ON CONFLICT (island_id, upgrade_key) DO UPDATE SET level = EXCLUDED.level, updated_at = now()";
+    }
+
+    private boolean mysqlLike(Connection connection) throws SQLException {
+        String productName = connection.getMetaData().getDatabaseProductName().toLowerCase();
+        return productName.contains("mysql") || productName.contains("mariadb");
     }
 }

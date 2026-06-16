@@ -22,7 +22,7 @@ public final class JdbcIslandPermissionRuleRepository implements IslandPermissio
     @Override
     public void put(UUID islandId, IslandRole role, IslandPermission permission, boolean allowed) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_permissions(island_id, role, permission_key, value) VALUES (?, ?, ?, ?) ON CONFLICT (island_id, role, permission_key) DO UPDATE SET value = EXCLUDED.value")) {
+             PreparedStatement statement = connection.prepareStatement(upsertPermissionSql(connection))) {
             statement.setObject(1, islandId);
             statement.setString(2, role.name());
             statement.setString(3, permission.name());
@@ -53,5 +53,17 @@ public final class JdbcIslandPermissionRuleRepository implements IslandPermissio
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to read island permissions", exception);
         }
+    }
+
+    private String upsertPermissionSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_permissions(island_id, role, permission_key, value) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)";
+        }
+        return "INSERT INTO island_permissions(island_id, role, permission_key, value) VALUES (?, ?, ?, ?) ON CONFLICT (island_id, role, permission_key) DO UPDATE SET value = EXCLUDED.value";
+    }
+
+    private boolean mysqlLike(Connection connection) throws SQLException {
+        String productName = connection.getMetaData().getDatabaseProductName().toLowerCase();
+        return productName.contains("mysql") || productName.contains("mariadb");
     }
 }

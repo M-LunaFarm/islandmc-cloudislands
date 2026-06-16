@@ -52,7 +52,7 @@ public final class JdbcIslandTemplateRepository implements IslandTemplateReposit
         String name = displayName == null || displayName.isBlank() ? id : displayName;
         String version = minNodeVersion == null || minNodeVersion.isBlank() ? null : minNodeVersion.trim();
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_templates(id, display_name, enabled, min_node_version, updated_at) VALUES (?, ?, ?, ?, now()) ON CONFLICT (id) DO UPDATE SET display_name = EXCLUDED.display_name, enabled = EXCLUDED.enabled, min_node_version = EXCLUDED.min_node_version, updated_at = now()")) {
+             PreparedStatement statement = connection.prepareStatement(upsertTemplateSql(connection))) {
             statement.setString(1, id);
             statement.setString(2, name);
             statement.setBoolean(3, enabled);
@@ -84,5 +84,17 @@ public final class JdbcIslandTemplateRepository implements IslandTemplateReposit
 
     private static String normalize(String templateId) {
         return templateId == null || templateId.isBlank() ? "default" : templateId.trim().toLowerCase();
+    }
+
+    private String upsertTemplateSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_templates(id, display_name, enabled, min_node_version, updated_at) VALUES (?, ?, ?, ?, now()) ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), enabled = VALUES(enabled), min_node_version = VALUES(min_node_version), updated_at = now()";
+        }
+        return "INSERT INTO island_templates(id, display_name, enabled, min_node_version, updated_at) VALUES (?, ?, ?, ?, now()) ON CONFLICT (id) DO UPDATE SET display_name = EXCLUDED.display_name, enabled = EXCLUDED.enabled, min_node_version = EXCLUDED.min_node_version, updated_at = now()";
+    }
+
+    private boolean mysqlLike(Connection connection) throws SQLException {
+        String productName = connection.getMetaData().getDatabaseProductName().toLowerCase();
+        return productName.contains("mysql") || productName.contains("mariadb");
     }
 }

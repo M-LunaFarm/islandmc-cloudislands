@@ -23,7 +23,7 @@ public final class JdbcIslandSnapshotRepository implements IslandSnapshotReposit
     public IslandSnapshotRecord record(UUID islandId, long snapshotNo, String storagePath, String reason, UUID createdBy, String checksum, long sizeBytes) {
         UUID id = UUID.randomUUID();
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_snapshots(id, island_id, snapshot_no, storage_path, reason, created_by, checksum, size_bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (island_id, snapshot_no) DO UPDATE SET storage_path = EXCLUDED.storage_path, reason = EXCLUDED.reason, checksum = EXCLUDED.checksum, size_bytes = EXCLUDED.size_bytes")) {
+             PreparedStatement statement = connection.prepareStatement(upsertSnapshotSql(connection))) {
             statement.setObject(1, id);
             statement.setObject(2, islandId);
             statement.setLong(3, snapshotNo);
@@ -124,5 +124,17 @@ public final class JdbcIslandSnapshotRepository implements IslandSnapshotReposit
             rs.getLong("size_bytes"),
             rs.getTimestamp("created_at").toInstant()
         );
+    }
+
+    private String upsertSnapshotSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_snapshots(id, island_id, snapshot_no, storage_path, reason, created_by, checksum, size_bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE storage_path = VALUES(storage_path), reason = VALUES(reason), checksum = VALUES(checksum), size_bytes = VALUES(size_bytes)";
+        }
+        return "INSERT INTO island_snapshots(id, island_id, snapshot_no, storage_path, reason, created_by, checksum, size_bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (island_id, snapshot_no) DO UPDATE SET storage_path = EXCLUDED.storage_path, reason = EXCLUDED.reason, checksum = EXCLUDED.checksum, size_bytes = EXCLUDED.size_bytes";
+    }
+
+    private boolean mysqlLike(Connection connection) throws SQLException {
+        String productName = connection.getMetaData().getDatabaseProductName().toLowerCase();
+        return productName.contains("mysql") || productName.contains("mariadb");
     }
 }
