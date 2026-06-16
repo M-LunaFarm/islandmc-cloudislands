@@ -937,7 +937,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         private boolean addonAcceptsGlobalStateWrites(String id) {
             CloudIslandsAddonSnapshot snapshot = addons.get(safeRegistrationId(id));
-            return snapshot != null && snapshot.enabled() && snapshot.featureEnabled("addon-state", true);
+            return snapshot != null && snapshot.addonStateWritesEnabled();
         }
 
         private String tableStatePrefix(String table) {
@@ -1350,7 +1350,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         private boolean addonAcceptsIslandStateWrites(String id) {
             CloudIslandsAddonSnapshot snapshot = addons.get(safeRegistrationId(id));
-            return snapshot != null && snapshot.enabled() && snapshot.featureEnabled("addon-state", true);
+            return snapshot != null && snapshot.addonStateWritesEnabled();
         }
 
         private Map<String, String> stateFromJson(String json) {
@@ -1628,7 +1628,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             }
             String eventName = event.getClass().getSimpleName();
             String feature = eventFeatureGate(eventName);
-            return feature.isBlank() || snapshot.featureEnabled(feature, true);
+            return feature.isBlank() || snapshot.acceptsRuntimeFeature(feature, true);
         }
 
         private String eventFeatureGate(String eventName) {

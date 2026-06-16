@@ -84,6 +84,38 @@ public record CloudIslandsAddonSnapshot(
         return featureEnabledIn(configuredFeatures, key, fallback, false);
     }
 
+    public boolean acceptsRuntimeFeature(String key) {
+        return acceptsRuntimeFeature(key, true);
+    }
+
+    public boolean acceptsRuntimeFeature(String key, boolean fallback) {
+        return enabled && featureEnabled(key, fallback);
+    }
+
+    public boolean commandsEnabled() {
+        return acceptsRuntimeFeature("commands", true);
+    }
+
+    public boolean guiEnabled() {
+        return acceptsRuntimeFeature("gui", true);
+    }
+
+    public boolean placeholdersEnabled() {
+        return acceptsRuntimeFeature("placeholders", true);
+    }
+
+    public boolean lifecycleEventsEnabled() {
+        return acceptsRuntimeFeature("lifecycle", true);
+    }
+
+    public boolean addonStateWritesEnabled() {
+        return acceptsRuntimeFeature("addon-state", true);
+    }
+
+    public boolean routeEventsEnabled() {
+        return acceptsRuntimeFeature("route-events", true);
+    }
+
     private boolean featureEnabledIn(Map<String, Boolean> source, String key, boolean fallback, boolean includeDependencies) {
         String canonical = canonicalFeature(key);
         String requested = key == null ? "" : key.trim();
