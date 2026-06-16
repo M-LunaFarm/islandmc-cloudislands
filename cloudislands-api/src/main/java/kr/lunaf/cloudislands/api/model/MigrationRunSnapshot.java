@@ -8,6 +8,7 @@ public record MigrationRunSnapshot(
     String manifestPath,
     String reportPath,
     String approvalToken,
+    String sourceFingerprint,
     int manifests,
     boolean canImport,
     boolean imported,
@@ -16,9 +17,13 @@ public record MigrationRunSnapshot(
     int expected,
     boolean rolledBack,
     int removedIslands,
+    boolean rollbackPlanAvailable,
+    boolean rollbackPlanConsumed,
     int extractedBundles,
     long extractedFiles,
     long extractedBytes,
+    int activationTested,
+    int activationTestPassed,
     int members,
     int bannedVisitors,
     int homes,
@@ -47,7 +52,7 @@ public record MigrationRunSnapshot(
         int removedIslands,
         List<MigrationIssueSnapshot> issues
     ) {
-        this(state, path, "", "", "", manifests, canImport, imported, importedIslands, passed, expected, rolledBack, removedIslands, 0, 0L, 0L, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, issues);
+        this(state, path, "", "", "", "", manifests, canImport, imported, importedIslands, passed, expected, rolledBack, removedIslands, false, false, 0, 0L, 0L, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, issues);
     }
 
     public MigrationRunSnapshot(
@@ -76,6 +81,6 @@ public record MigrationRunSnapshot(
         int warningIssues,
         List<MigrationIssueSnapshot> issues
     ) {
-        this(state, path, "", "", "", manifests, canImport, imported, importedIslands, passed, expected, rolledBack, removedIslands, 0, 0L, 0L, members, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, blockValues, blockCounts, blockingIssues, warningIssues, issues);
+        this(state, path, "", "", "", "", manifests, canImport, imported, importedIslands, passed, expected, rolledBack, removedIslands, false, false, 0, 0L, 0L, 0, 0, members, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, blockValues, blockCounts, blockingIssues, warningIssues, issues);
     }
 }
