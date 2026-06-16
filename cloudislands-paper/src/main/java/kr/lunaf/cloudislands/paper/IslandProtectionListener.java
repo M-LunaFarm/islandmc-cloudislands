@@ -339,6 +339,10 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onFluid(BlockFromToEvent event) {
+        if (!sameIsland(event.getBlock(), event.getToBlock())) {
+            event.setCancelled(true);
+            return;
+        }
         boolean allowed = protection.checkSystemFlag(event.getToBlock(), liquidFlag(event.getBlock().getType())).allowed();
         event.setCancelled(!allowed);
         if (allowed) {
@@ -367,6 +371,10 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onSpread(BlockSpreadEvent event) {
+        if (!sameIsland(event.getSource(), event.getBlock())) {
+            event.setCancelled(true);
+            return;
+        }
         boolean allowed = protection.checkSystemFlag(event.getBlock(), IslandFlag.FIRE_SPREAD).allowed();
         event.setCancelled(!allowed);
         if (allowed) {
