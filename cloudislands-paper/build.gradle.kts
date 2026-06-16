@@ -22,6 +22,10 @@ tasks.jar {
             "CloudIslands-Multi-Node-Pool-Support" to "true",
             "CloudIslands-Multi-Node-Identity-Policy" to "unique-node-id-and-unique-velocity-server-name-per-island-node",
             "CloudIslands-Multi-Node-Shared-State-Policy" to "shared-core-database-and-shared-object-storage-required",
+            "CloudIslands-Network-Forwarding-Policy" to "velocity-modern-forwarding-required",
+            "CloudIslands-Network-Forwarding-Secret-Path" to "security.forwarding-secret",
+            "CloudIslands-Route-Ticket-Policy" to "velocity-issues-paper-consumes-ttl-bound-route-tickets",
+            "CloudIslands-Logical-Island-View" to "hide-physical-island-node-names-from-players",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
         )
