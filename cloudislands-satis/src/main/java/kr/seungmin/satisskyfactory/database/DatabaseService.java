@@ -47,8 +47,16 @@ public final class DatabaseService {
             if (value == null || value.isBlank()) {
                 return fallback;
             }
+            String normalized = value.trim().replace('-', '_').toUpperCase(Locale.ROOT);
+            normalized = switch (normalized) {
+                case "POSTGRES", "PG" -> "POSTGRESQL";
+                case "MARIA" -> "MARIADB";
+                case "CORE", "COREAPI", "CLOUDISLANDS", "CLOUDISLANDS_API" -> "CORE_API";
+                case "MEMORY", "LOCAL", "LOCAL_SQLITE" -> "SQLITE";
+                default -> normalized;
+            };
             try {
-                return StorageBackend.valueOf(value.trim().replace('-', '_').toUpperCase(Locale.ROOT));
+                return StorageBackend.valueOf(normalized);
             } catch (IllegalArgumentException ignored) {
                 return fallback;
             }
