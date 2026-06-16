@@ -596,6 +596,7 @@ public final class JobCompletionService {
         payload.put("worldName", job.payload().getOrDefault("worldName", "ci_shard_001"));
         payload.put("cellX", job.payload().getOrDefault("cellX", "0"));
         payload.put("cellZ", job.payload().getOrDefault("cellZ", "0"));
+        payload.put("placementSource", job.payload().getOrDefault("placementSource", "runtime-migration"));
         payload.put("snapshotNo", job.payload().getOrDefault("snapshotNo", "0"));
         payload.put("sourceSnapshotReason", job.payload().getOrDefault("reason", "BEFORE_MIGRATION"));
         payload.put("sourceSnapshotChecksum", job.payload().getOrDefault("checksum", ""));
@@ -609,7 +610,8 @@ public final class JobCompletionService {
             "worldName", payload.get("worldName"),
             "cellX", payload.get("cellX"),
             "cellZ", payload.get("cellZ"),
-            "fencingToken", fencingToken
+            "fencingToken", fencingToken,
+            "placementSource", payload.get("placementSource")
         ));
     }
 

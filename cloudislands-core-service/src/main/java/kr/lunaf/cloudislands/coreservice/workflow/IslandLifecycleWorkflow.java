@@ -154,17 +154,39 @@ public final class IslandLifecycleWorkflow {
         IslandRuntimeSnapshot runtime = runtimes.markMigrating(islandId, targetNode);
         islands.setState(islandId, IslandState.DEACTIVATING);
         String sourceNode = current == null ? "" : current.activeNode();
+        String migrationWorldName = runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld();
+        String migrationCellX = runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX());
+        String migrationCellZ = runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ());
         try {
             if (sourceNode != null && !sourceNode.isBlank() && !sourceNode.equals(targetNode)) {
-                jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DEACTIVATE_ISLAND, islandId, sourceNode, 10, Map.of("reason", "BEFORE_MIGRATION", "migrateTargetNode", targetNode, "fencingToken", Long.toString(runtime.fencingToken()), "migrationFencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
+                jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DEACTIVATE_ISLAND, islandId, sourceNode, 10, Map.of(
+                    "reason", "BEFORE_MIGRATION",
+                    "migrateTargetNode", targetNode,
+                    "fencingToken", Long.toString(runtime.fencingToken()),
+                    "migrationFencingToken", Long.toString(runtime.fencingToken()),
+                    "worldName", migrationWorldName,
+                    "cellX", migrationCellX,
+                    "cellZ", migrationCellZ,
+                    "placementSource", "runtime-migration"
+                ), Instant.now()));
             } else {
-                jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.MIGRATE_ISLAND, islandId, targetNode, 10, Map.of("fencingToken", Long.toString(runtime.fencingToken()), "worldName", runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld(), "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()), "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ())), Instant.now()));
+                jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.MIGRATE_ISLAND, islandId, targetNode, 10, Map.of("fencingToken", Long.toString(runtime.fencingToken()), "worldName", migrationWorldName, "cellX", migrationCellX, "cellZ", migrationCellZ, "placementSource", "runtime-migration"), Instant.now()));
             }
         } catch (RuntimeException exception) {
             releaseActivationLock(lease);
             return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
         }
-        events.publish(CloudIslandEventType.ISLAND_MIGRATE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "targetNode", targetNode, "fencingToken", Long.toString(runtime.fencingToken())));
+        events.publish(CloudIslandEventType.ISLAND_MIGRATE_REQUESTED.name(), Map.of(
+            "islandId", islandId.toString(),
+            "sourceNode", sourceNode == null ? "" : sourceNode,
+            "targetNode", targetNode,
+            "phase", sourceNode != null && !sourceNode.isBlank() && !sourceNode.equals(targetNode) ? "DEACTIVATE_SOURCE" : "ACTIVATE_TARGET",
+            "worldName", migrationWorldName,
+            "cellX", migrationCellX,
+            "cellZ", migrationCellZ,
+            "fencingToken", Long.toString(runtime.fencingToken()),
+            "placementSource", "runtime-migration"
+        ));
         return new Result(true, "MIGRATING", runtime);
     }
 
