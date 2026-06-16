@@ -20,9 +20,9 @@ tasks.jar {
         attributes(
             "CloudIslands-Core-Setup-Database-Path" to "setup.database",
             "CloudIslands-Core-Setup-Database-Supported-Targets" to "POSTGRESQL,MYSQL,MARIADB,CORE_API",
-            "CloudIslands-Core-JDBC-Native-Backend" to "POSTGRESQL",
+            "CloudIslands-Core-JDBC-Native-Backend" to "POSTGRESQL,MYSQL,MARIADB",
             "CloudIslands-Core-JDBC-Fallback-Order" to "POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC",
-            "CloudIslands-Core-Unsupported-JDBC-Policy" to "safe-fallback-with-postgresql-or-in-memory",
+            "CloudIslands-Core-Unsupported-JDBC-Policy" to "safe-fallback-with-shared-jdbc-core-api-or-in-memory",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
         )

@@ -208,7 +208,7 @@ public record CoreServiceConfig(
             if (!requested.equals(effective) && !"UNKNOWN".equals(requested)) {
                 return "requested-" + requested.toLowerCase(Locale.ROOT) + "-uses-" + effective.toLowerCase(Locale.ROOT) + "-core-jdbc-fallback";
             }
-            return "native-postgresql-core-jdbc";
+            return "native-" + effective.toLowerCase(Locale.ROOT) + "-core-jdbc";
         }
         if ("CORE_API".equals(requested)) {
             return "core-api-is-client-facing-selection-not-core-service-self-storage";
@@ -222,9 +222,6 @@ public record CoreServiceConfig(
         }
         if ("CORE_API".equals(fallbackTarget)) {
             return "requested-" + requested.toLowerCase(Locale.ROOT) + "-uses-core-api-client-fallback";
-        }
-        if ("MYSQL".equals(requested) || "MARIADB".equals(requested)) {
-            return "core-service-jdbc-repositories-are-postgresql-only-using-safe-in-memory-fallback";
         }
         if ("UNKNOWN".equals(requested)) {
             return "missing-or-unknown-database-setup-using-in-memory-fallback";
@@ -857,12 +854,18 @@ public record CoreServiceConfig(
     }
 
     private static boolean coreJdbcSupported(String jdbcUrl) {
-        return jdbcUrl != null && jdbcUrl.toLowerCase(Locale.ROOT).startsWith("jdbc:postgresql:");
+        if (jdbcUrl == null) {
+            return false;
+        }
+        String normalized = jdbcUrl.toLowerCase(Locale.ROOT);
+        return normalized.startsWith("jdbc:postgresql:")
+            || normalized.startsWith("jdbc:mysql:")
+            || normalized.startsWith("jdbc:mariadb:");
     }
 
     private static boolean coreJdbcTypeSupported(String type) {
         return switch (type.trim().replace('-', '_').toUpperCase(Locale.ROOT)) {
-            case "POSTGRES", "POSTGRESQL", "PG" -> true;
+            case "POSTGRES", "POSTGRESQL", "PG", "MYSQL", "MARIA", "MARIADB" -> true;
             default -> false;
         };
     }
