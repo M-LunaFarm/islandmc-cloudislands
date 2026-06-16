@@ -15,8 +15,8 @@ import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
 public final class ExternalTarBundleExtractor implements BundleExtractor {
     @Override
     public ExtractedBundle extract(Path bundleFile, Path targetDirectory) throws IOException {
-        Files.createDirectories(targetDirectory);
         validateBundleEntries(bundleFile);
+        recreateDirectory(targetDirectory);
         runTar(List.of("tar", "--zstd", "-xf", bundleFile.toAbsolutePath().toString(), "-C", targetDirectory.toAbsolutePath().toString()), "bundle extraction");
         Path manifest = targetDirectory.resolve("manifest.json");
         Path chunks = targetDirectory.resolve("chunks");
@@ -47,6 +47,21 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
                 throw new IOException("unsafe bundle entry: " + entry);
             }
         }
+    }
+
+    private void recreateDirectory(Path targetDirectory) throws IOException {
+        Path target = targetDirectory.toAbsolutePath().normalize();
+        if (target.getParent() == null) {
+            throw new IOException("refusing to clear unsafe bundle extraction target: " + targetDirectory);
+        }
+        if (Files.exists(target)) {
+            try (java.util.stream.Stream<Path> paths = Files.walk(target)) {
+                for (Path path : paths.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                    Files.deleteIfExists(path);
+                }
+            }
+        }
+        Files.createDirectories(target);
     }
 
     private boolean unsafeEntry(String entry) {
