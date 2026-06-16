@@ -201,6 +201,7 @@ public final class S3IslandStorage implements IslandStorage {
             return 0;
         }
         Set<String> removedSnapshots = new HashSet<>(snapshots.subList(keepLatest, snapshots.size()));
+        removedSnapshots.remove(latestSnapshotName(islandId));
         int deletedKeys = 0;
         for (String key : keys) {
             if (removedSnapshots.contains(snapshotName(prefix, key))) {
@@ -219,10 +220,14 @@ public final class S3IslandStorage implements IslandStorage {
         List<String> snapshots = keys.stream()
             .map(key -> snapshotName(prefix, key))
             .filter(name -> !name.isBlank())
-            .distinct()
-            .sorted(Comparator.reverseOrder())
-            .toList();
+                .distinct()
+                .sorted(Comparator.reverseOrder())
+                .toList();
         Set<String> retained = new HashSet<>();
+        String latest = latestSnapshotName(islandId);
+        if (!latest.isBlank()) {
+            retained.add(latest);
+        }
         int manualKept = 0;
         for (String snapshot : snapshots) {
             if (manualSnapshot(islandId, snapshot) && manualKept < effectivePolicy.keepManual()) {
@@ -252,6 +257,14 @@ public final class S3IslandStorage implements IslandStorage {
             }
         }
         return deletedKeys == 0 ? 0 : removedSnapshots.size();
+    }
+
+    private String latestSnapshotName(UUID islandId) {
+        try {
+            return request("GET", key(islandId, "latest"), null).trim();
+        } catch (IOException exception) {
+            return "";
+        }
     }
 
     private boolean manualSnapshot(UUID islandId, String snapshot) {

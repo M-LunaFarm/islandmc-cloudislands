@@ -170,8 +170,12 @@ public final class LocalIslandStorage implements IslandStorage {
                 .sorted(Comparator.comparing((Path path) -> path.getFileName().toString()).reversed())
                 .toList();
         }
+        String latest = latestSnapshotName(islandId);
         int deleted = 0;
         for (int index = keepLatest; index < snapshots.size(); index++) {
+            if (snapshots.get(index).getFileName().toString().equals(latest)) {
+                continue;
+            }
             deleteRecursively(snapshots.get(index));
             deleted++;
         }
@@ -193,6 +197,13 @@ public final class LocalIslandStorage implements IslandStorage {
                 .toList();
         }
         Set<Path> retained = new HashSet<>();
+        String latest = latestSnapshotName(islandId);
+        for (Path snapshot : snapshots) {
+            if (snapshot.getFileName().toString().equals(latest)) {
+                retained.add(snapshot);
+                break;
+            }
+        }
         int manualKept = 0;
         for (Path snapshot : snapshots) {
             if (manualSnapshot(snapshot) && manualKept < effectivePolicy.keepManual()) {
@@ -219,6 +230,18 @@ public final class LocalIslandStorage implements IslandStorage {
             }
         }
         return deleted;
+    }
+
+    private String latestSnapshotName(UUID islandId) {
+        Path latest = islandRoot(islandId).resolve("latest");
+        if (!Files.exists(latest)) {
+            return "";
+        }
+        try {
+            return Files.readString(latest, StandardCharsets.UTF_8).trim();
+        } catch (IOException exception) {
+            return "";
+        }
     }
 
     private boolean manualSnapshot(Path snapshotDir) {
