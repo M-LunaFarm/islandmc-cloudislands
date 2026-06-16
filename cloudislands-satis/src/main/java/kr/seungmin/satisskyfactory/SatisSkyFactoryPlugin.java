@@ -260,9 +260,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     public void reloadPluginConfig() {
+        Map<String, Boolean> previousEffectiveFeatures = effectiveFeatures;
         configs.load();
-        effectiveFeatures = Map.of();
         if (!registerCloudIslandsAddon()) {
+            flushPendingSatisStateBeforeDisable("reload-registration-disabled", previousEffectiveFeatures);
             stopRuntimeActivity();
             return;
         }
@@ -1565,6 +1566,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onAddonReloaded(CloudIslandsAddonSnapshot snapshot) {
+        Map<String, Boolean> previousEffectiveFeatures = effectiveFeatures;
         addonRuntimeEnabled = snapshot.enabled();
         effectiveFeatures = snapshot.features();
         addonStateReportingWasEnabled = addonStateReportingEnabled(snapshot);
@@ -1572,6 +1574,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         getLogger().info("Reloaded CloudIslands addon config: " + snapshot.id() + " enabled=" + snapshot.enabled());
         if (!snapshot.enabled()) {
             getLogger().info("CloudIslands disabled this addon during config reload.");
+            flushPendingSatisStateBeforeDisable("addon-disabled-by-parent-config", previousEffectiveFeatures);
             effectiveFeatures = Map.of();
             stopRuntimeActivity();
             return;
@@ -2768,6 +2771,37 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         FactoryIsland island = islands == null ? null : islands.find(islandId).orElse(null);
         publishCoreHydrationState(islandId, safeOperation, coreHydrationKey(safeOperation), "migration-preflush");
         publishIslandLifecycleState(islandId, safeOperation, island, "preflushed", "");
+    }
+
+    private void flushPendingSatisStateBeforeDisable(String reason) {
+        flushPendingSatisStateBeforeDisable(reason, effectiveFeatures);
+    }
+
+    private void flushPendingSatisStateBeforeDisable(String reason, Map<String, Boolean> writeFeatures) {
+        Map<String, Boolean> disabledFeatures = effectiveFeatures;
+        if (writeFeatures != null && !writeFeatures.isEmpty()) {
+            effectiveFeatures = writeFeatures;
+        }
+        try {
+            if (dirtySaves != null) {
+                dirtySaves.stop();
+            }
+        } finally {
+            effectiveFeatures = disabledFeatures;
+        }
+        if (cloudIslandsApi == null || !addonStateReportingWasEnabled) {
+            return;
+        }
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("runtime-disable-flush", "completed");
+        state.put("runtime-disable-flush-reason", reason == null || reason.isBlank() ? "addon-disabled" : reason);
+        state.put("runtime-disable-data-retention", "preserve-addon-state-by-island-uuid");
+        state.put("runtime-disable-core-policy", "stop-satis-components-without-clearing-cloudislands-island-lifecycle");
+        state.put("runtime-disable-at", Instant.now().toString());
+        cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
+            getLogger().warning("Failed to publish CloudIslands Satis disable flush state: " + error.getMessage());
+            return Map.of();
+        });
     }
 
     private void suspendRecoveredIsland(UUID islandId, String operation) {
