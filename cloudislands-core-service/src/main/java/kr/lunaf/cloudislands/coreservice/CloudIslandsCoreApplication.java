@@ -1775,22 +1775,26 @@ public final class CloudIslandsCoreApplication {
                 return;
             }
             if (tail.endsWith("/kickall")) {
+                String body = readBody(exchange);
                 String nodeId = tail.substring(0, tail.length() - "/kickall".length());
+                String reason = JsonFields.text(body, "reason", "admin-request");
                 boolean found = nodes.find(nodeId).isPresent();
                 if (found) {
-                    events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "KICKALL", "reason", "admin-request"));
+                    events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "KICKALL", "reason", reason));
                 }
-                audit.log(new UUID(0L, 0L), "ADMIN", "NODE_KICKALL", "NODE", nodeId, Map.of("reason", "admin-request"));
+                audit.log(new UUID(0L, 0L), "ADMIN", "NODE_KICKALL", "NODE", nodeId, Map.of("reason", reason));
                 write(exchange, found ? 202 : 404, found ? ApiResponses.ok(true) : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
                 return;
             }
             if (tail.endsWith("/shutdown-safe")) {
+                String body = readBody(exchange);
                 String nodeId = tail.substring(0, tail.length() - "/shutdown-safe".length());
+                String reason = JsonFields.text(body, "reason", "admin-request");
                 boolean changed = nodes.shutdownSafe(nodeId);
                 if (changed) {
-                    events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "SHUTTING_DOWN", "operation", "SHUTDOWN_SAFE", "reason", "admin-request"));
+                    events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "SHUTTING_DOWN", "operation", "SHUTDOWN_SAFE", "reason", reason));
                 }
-                audit.log(new UUID(0L, 0L), "ADMIN", "NODE_SHUTDOWN_SAFE", "NODE", nodeId, Map.of("reason", "admin-request"));
+                audit.log(new UUID(0L, 0L), "ADMIN", "NODE_SHUTDOWN_SAFE", "NODE", nodeId, Map.of("reason", reason));
                 write(exchange, changed ? 202 : 404, changed ? ApiResponses.ok(true) : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
                 return;
             }
