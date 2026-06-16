@@ -52,7 +52,7 @@ public final class DatabaseService {
                 case "POSTGRES", "PG" -> "POSTGRESQL";
                 case "MARIA" -> "MARIADB";
                 case "CORE", "COREAPI", "CLOUDISLANDS", "CLOUDISLANDS_API" -> "CORE_API";
-                case "MEMORY", "LOCAL", "LOCAL_SQLITE" -> "SQLITE";
+                case "IN_MEMORY", "MEMORY", "LOCAL", "LOCAL_SQLITE" -> "SQLITE";
                 default -> normalized;
             };
             try {
