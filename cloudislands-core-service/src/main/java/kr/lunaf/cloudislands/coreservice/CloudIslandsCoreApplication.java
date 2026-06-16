@@ -2814,6 +2814,7 @@ public final class CloudIslandsCoreApplication {
             + "\"addonRegistryPolicy\":\"paper-addon-registers-core-stores-snapshot-only\","
             + "\"addonStateOwnershipPolicy\":\"core-persists-addon-key-value-state-without-addon-business-logic\","
             + "\"addonRemovalSafetyPolicy\":\"missing-addon-metadata-or-state-must-not-block-island-lifecycle\","
+            + "\"addonStateFailureIsolationPolicy\":\"addon-state-storage-outages-return-503-without-affecting-island-lifecycle\","
             + "\"addonExtensionModel\":\"optional-external-plugin-using-cloudislands-api\","
             + "\"addonApiLookupPolicy\":\"cloudislands-provider-first-bukkit-servicesmanager-fallback\","
             + "\"addonEventDeliveryPolicy\":\"core-global-events-to-paper-poller-to-cloudislands-addon-and-bukkit-events\","
@@ -3351,7 +3352,16 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 403, ApiResponses.error("ADMIN_PERMISSION_DENIED", "Admin permission is required"));
                 return;
             }
-            handler.handle(exchange);
+            try {
+                handler.handle(exchange);
+            } catch (IllegalStateException exception) {
+                if (path.startsWith("/v1/addons/")) {
+                    LOGGER.warning("CloudIslands addon state endpoint failed without affecting island lifecycle: " + exception.getMessage());
+                    write(exchange, 503, ApiResponses.error("ADDON_STATE_UNAVAILABLE", "Addon state storage is temporarily unavailable"));
+                    return;
+                }
+                throw exception;
+            }
         });
     }
 
