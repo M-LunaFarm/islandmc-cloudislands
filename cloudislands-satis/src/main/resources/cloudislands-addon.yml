@@ -177,7 +177,7 @@ features:
     generators: factories
     market: storage
     contracts: storage
-    missions: storage
+    missions: contracts
     upgrades: research
     menus: gui
     route-events: addon-state

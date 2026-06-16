@@ -1589,7 +1589,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String featureDependenciesMetadata() {
-        return "resource-nodes:machines,generators:factories,market:storage,contracts:storage,missions:storage,upgrades:research,menus:gui,route-events:addon-state";
+        return "resource-nodes:machines,generators:factories,market:storage,contracts:storage,missions:contracts,upgrades:research,menus:gui,route-events:addon-state";
     }
 
     private String disabledFeatureAliases() {
