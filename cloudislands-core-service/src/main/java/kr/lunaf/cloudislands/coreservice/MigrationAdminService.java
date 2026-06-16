@@ -134,6 +134,7 @@ public final class MigrationAdminService {
         List<MigrationIssue> issues = new ArrayList<>(lastScan.issues());
         issues.addAll(sourcePlan.issues());
         issues.addAll(targetConflictIssues(lastScan.manifests()));
+        issues.addAll(sourceWorldIssues(lastScan.manifests()));
         lastPlan = new MigrationImportPlan(lastScan.manifests(), issues);
         MigrationRunState state = lastPlan.canImport() ? MigrationRunState.DRY_RUN_PASSED : MigrationRunState.DRY_RUN_FAILED;
         lastApprovalToken = lastPlan.canImport() ? java.util.UUID.randomUUID().toString() : "";
@@ -193,6 +194,30 @@ public final class MigrationAdminService {
                 .ifPresent(existing -> issues.add(new MigrationIssue("TARGET_OWNER_HAS_ISLAND", "owner " + manifest.ownerUuid() + " already owns island " + existing.islandId(), true)));
             playerProfiles.find(manifest.ownerUuid()).primaryIslandId()
                 .ifPresent(primaryIslandId -> issues.add(new MigrationIssue("TARGET_OWNER_PRIMARY_ISLAND_EXISTS", "owner " + manifest.ownerUuid() + " already has primary island " + primaryIslandId, true)));
+        }
+        return issues;
+    }
+
+    private List<MigrationIssue> sourceWorldIssues(List<MigrationManifest> manifests) {
+        List<MigrationIssue> issues = new ArrayList<>();
+        for (MigrationManifest manifest : manifests) {
+            String sourceWorldPath = manifest.sourceWorldPath();
+            if (sourceWorldPath == null || sourceWorldPath.isBlank()) {
+                issues.add(new MigrationIssue("WORLD_SOURCE_NOT_FOUND", "missing world source for " + manifest.islandId(), true));
+                continue;
+            }
+            Path source = Path.of(sourceWorldPath);
+            if (!Files.exists(source)) {
+                issues.add(new MigrationIssue("WORLD_SOURCE_NOT_FOUND", "world source does not exist for " + manifest.islandId() + ": " + sourceWorldPath, true));
+                continue;
+            }
+            if (!Files.isReadable(source)) {
+                issues.add(new MigrationIssue("WORLD_SOURCE_UNREADABLE", "world source is not readable for " + manifest.islandId() + ": " + sourceWorldPath, true));
+                continue;
+            }
+            if (!Files.isDirectory(source) && !Files.isRegularFile(source)) {
+                issues.add(new MigrationIssue("WORLD_SOURCE_INVALID", "world source is not a directory or bundle file for " + manifest.islandId() + ": " + sourceWorldPath, true));
+            }
         }
         return issues;
     }
