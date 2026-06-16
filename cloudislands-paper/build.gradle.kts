@@ -30,6 +30,7 @@ tasks.jar {
             "CloudIslands-Plugin-Messaging-Policy" to "no-core-control-plane-over-plugin-messages-bungeecord-connect-only-for-proxy-transfer-fallback",
             "CloudIslands-Route-Session-Security" to "paper-join-requires-core-published-route-session-and-forwarding-secret-before-island-teleport",
             "CloudIslands-Route-Ticket-Policy" to "velocity-issues-paper-consumes-ttl-bound-route-tickets",
+            "CloudIslands-Route-Preparation-Progress" to "command-route-and-ticket-consume-use-shared-actionbar-bossbar-progress-policy",
             "CloudIslands-Logical-Island-View" to "hide-physical-island-node-names-from-players",
             "CloudIslands-Paper-Event-Bridge" to "global-events-to-bukkit-events-and-cache-invalidation",
             "CloudIslands-Paper-Direct-Write-Policy" to "no-direct-core-db-writes-use-core-api-client",

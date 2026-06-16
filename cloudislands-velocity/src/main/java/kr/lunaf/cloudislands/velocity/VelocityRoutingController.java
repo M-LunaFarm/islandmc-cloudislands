@@ -24,6 +24,7 @@ import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
+import kr.lunaf.cloudislands.protocol.route.RoutePreparationProgressPolicy;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
 import net.kyori.adventure.bossbar.BossBar;
@@ -3372,7 +3373,7 @@ public final class VelocityRoutingController {
         if (ticket.state().name().equals("PREPARING")) {
             String target = routeTargetName(ticket);
             actionBar(player, messages.text("route-preparing", "target", target));
-            BossBar bossBar = BossBar.bossBar(playerComponent(messages.text("route-loading-title", "target", target)), 0.2F, BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
+            BossBar bossBar = BossBar.bossBar(playerComponent(messages.text("route-loading-title", "target", target)), RoutePreparationProgressPolicy.preparingProgress(0), BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
             showBossBar(player, bossBar);
             waitForReadyTicket(player, ticket, failureMessage, bossBar, 0);
             return;
@@ -3419,8 +3420,8 @@ public final class VelocityRoutingController {
             clearFailedRoute(ticket, "PLAYER_DISCONNECTED");
             return;
         }
-        int progress = Math.min(95, 20 + attempt);
-        bossBar.progress(progress / 100.0F);
+        int progress = RoutePreparationProgressPolicy.preparingPercent(attempt);
+        bossBar.progress(RoutePreparationProgressPolicy.preparingProgress(attempt));
         String target = routeTargetName(ticket);
         String progressValue = Integer.toString(progress);
         bossBar.name(playerComponent(messages.text("route-loading-progress", "target", target, "progress", progressValue)));

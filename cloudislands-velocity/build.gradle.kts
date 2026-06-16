@@ -26,6 +26,7 @@ tasks.jar {
             "CloudIslands-Velocity-Setup-Fallback-Policy" to "core-api-primary-with-config-visible-fallback-order-and-lobby-fallback-on-route-failure",
             "CloudIslands-Velocity-Core-API-Setup-Path" to "setup.core-api",
             "CloudIslands-Route-Ticket-Policy" to "velocity-issues-paper-consumes-ttl-bound-route-tickets",
+            "CloudIslands-Route-Preparation-Progress" to "actionbar-and-bossbar-progress-without-physical-node-name-exposure",
             "CloudIslands-Logical-Island-View" to "hide-physical-island-node-names-from-players",
             "CloudIslands-Velocity-Command-Policy" to "global-is-and-island-command-entrypoint-for-all-backend-servers",
             "CloudIslands-Velocity-Command-List-Policy" to "one-line-one-command-page-size-12",

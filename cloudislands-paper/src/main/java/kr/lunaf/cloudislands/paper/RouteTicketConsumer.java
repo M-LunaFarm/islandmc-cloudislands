@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.paper.event.IslandPreVisitEvent;
 import kr.lunaf.cloudislands.paper.event.IslandVisitEvent;
 import kr.lunaf.cloudislands.paper.event.RouteTicketConsumedEvent;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.protocol.route.RoutePreparationProgressPolicy;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -179,8 +180,8 @@ public final class RouteTicketConsumer {
     private void notifyPreparing(UUID playerUuid, int attempt) {
         Player player = Bukkit.getPlayer(playerUuid);
         if (player != null) {
-            BossBar bar = loadingBars.computeIfAbsent(playerUuid, ignored -> BossBar.bossBar(Component.text(playerMessage("route-consume-loading", "섬 로딩 중")), 0.1F, BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS));
-            bar.progress(Math.min(0.95F, 0.1F + (attempt / 20.0F) * 0.85F));
+            BossBar bar = loadingBars.computeIfAbsent(playerUuid, ignored -> BossBar.bossBar(Component.text(playerMessage("route-consume-loading", "섬 로딩 중")), RoutePreparationProgressPolicy.handoffProgress(0), BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS));
+            bar.progress(RoutePreparationProgressPolicy.handoffProgress(attempt));
             player.showBossBar(bar);
             player.sendActionBar(Component.text(playerMessage("route-consume-preparing", "섬을 준비하는 중입니다...")));
         }
