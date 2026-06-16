@@ -28,6 +28,7 @@ public final class DirtySaveService {
     private Consumer<DirtySaveBatch> coreStatePublisher;
     private Consumer<DirtyRowDelete> coreStateDeletePublisher;
     private BooleanSupplier machineWritesEnabled = () -> true;
+    private BooleanSupplier inventoryWritesAvailable = () -> true;
     private Predicate<VirtualInventory> inventoryWritesEnabled = _inventory -> true;
     private BooleanSupplier nodeWritesEnabled = () -> true;
     private BooleanSupplier islandWritesEnabled = () -> true;
@@ -57,6 +58,7 @@ public final class DirtySaveService {
                            BooleanSupplier nodeWritesEnabled, BooleanSupplier islandWritesEnabled) {
         this.machineWritesEnabled = machineWritesEnabled == null ? () -> true : machineWritesEnabled;
         BooleanSupplier inventoryGate = inventoryWritesEnabled == null ? () -> true : inventoryWritesEnabled;
+        this.inventoryWritesAvailable = inventoryGate;
         this.inventoryWritesEnabled = _inventory -> inventoryGate.getAsBoolean();
         this.nodeWritesEnabled = nodeWritesEnabled == null ? () -> true : nodeWritesEnabled;
         this.islandWritesEnabled = islandWritesEnabled == null ? () -> true : islandWritesEnabled;
@@ -170,7 +172,7 @@ public final class DirtySaveService {
             return;
         }
         forgetInventory(inventoryId);
-        if (!inventoryWritesEnabled.getAsBoolean()) {
+        if (!inventoryWritesAvailable.getAsBoolean()) {
             return;
         }
         publishCoreDelete(islandUuid, IslandAddonService.tableStateKey("virtual_inventories", inventoryId.toString()));
