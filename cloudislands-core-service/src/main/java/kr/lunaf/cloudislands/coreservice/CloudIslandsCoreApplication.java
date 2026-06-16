@@ -4149,7 +4149,7 @@ public final class CloudIslandsCoreApplication {
         java.util.HashMap<String, String> state = new java.util.HashMap<>();
         values.forEach((key, value) -> {
             if (key != null && !key.isBlank() && value != null) {
-                state.put(tableStatePrefix(safeTable) + key.trim(), value);
+                state.put(tableStateKey(safeTable, key), value);
             }
         });
         return Map.copyOf(state);
@@ -4219,6 +4219,14 @@ public final class CloudIslandsCoreApplication {
         return AddonStateRepository.TABLE_STATE_KEY_PREFIX + safeTableName(table) + "/";
     }
 
+    private static String tableStateKey(String table, String key) {
+        String value = tableStatePrefix(table) + safeTableKey(key);
+        if (value.length() > AddonStateRepository.MAX_KEY_LENGTH) {
+            throw new IllegalArgumentException("Addon state table key is too long");
+        }
+        return value;
+    }
+
     private static String safeTableName(String table) {
         String value = table == null ? "" : table.trim();
         if (value.startsWith(AddonStateRepository.TABLE_STATE_KEY_PREFIX)) {
@@ -4232,6 +4240,17 @@ public final class CloudIslandsCoreApplication {
         }
         if (value.isBlank()) {
             throw new IllegalArgumentException("Addon state table is required");
+        }
+        return value;
+    }
+
+    private static String safeTableKey(String key) {
+        String value = key == null ? "" : key.trim();
+        if (value.isBlank()) {
+            throw new IllegalArgumentException("Addon state table key is required");
+        }
+        if (value.contains("/")) {
+            throw new IllegalArgumentException("Addon state table key must not contain '/'");
         }
         return value;
     }
