@@ -28,6 +28,10 @@ core-api:
 routing:
   default-lobby: "Lobby"
   island-pool: "island"
+  # Velocity server names in this pool must match island-pool or start with island-pool + "-".
+  # For a 5/6 Island-node pool, register backend servers like island-1, island-2, island-3,
+  # island-4, island-5, island-6 in velocity.toml, then set each Paper node.velocity-server-name
+  # to the matching Velocity server name. Keep node.id unique too.
   route-ticket-ttl-seconds: 30
   wait-for-activation-timeout-seconds: 20
   fallback-on-failure: "Lobby"
