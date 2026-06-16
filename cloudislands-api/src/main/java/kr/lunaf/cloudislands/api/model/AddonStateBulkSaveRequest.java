@@ -11,9 +11,12 @@ public record AddonStateBulkSaveRequest(
     Map<String, String> values,
     Map<String, Map<String, String>> tables
 ) {
+    private static final String TABLE_STATE_KEY_PREFIX = "table/";
+    private static final int MAX_KEY_LENGTH = 128;
+
     public AddonStateBulkSaveRequest {
         addonId = addonId == null ? "" : addonId.trim();
-        table = table == null ? "" : table.trim();
+        table = safeTableName(table);
         values = copyValues(values);
         tables = copyTables(tables);
     }
@@ -56,8 +59,23 @@ public record AddonStateBulkSaveRequest(
         }
         LinkedHashMap<String, String> copy = new LinkedHashMap<>();
         source.forEach((key, value) -> {
-            if (key != null && !key.isBlank()) {
-                copy.put(key.trim(), value == null ? "" : value);
+            String safeKey = safeRootKey(key);
+            if (!safeKey.isBlank()) {
+                copy.put(safeKey, value == null ? "" : value);
+            }
+        });
+        return Map.copyOf(copy);
+    }
+
+    private static Map<String, String> copyTableValues(String table, Map<String, String> source) {
+        if (source == null || source.isEmpty()) {
+            return Map.of();
+        }
+        LinkedHashMap<String, String> copy = new LinkedHashMap<>();
+        source.forEach((key, value) -> {
+            String safeKey = safeTableKey(key);
+            if (!safeKey.isBlank() && tableKeyLength(table, safeKey) <= MAX_KEY_LENGTH) {
+                copy.put(safeKey, value == null ? "" : value);
             }
         });
         return Map.copyOf(copy);
@@ -69,10 +87,42 @@ public record AddonStateBulkSaveRequest(
         }
         LinkedHashMap<String, Map<String, String>> copy = new LinkedHashMap<>();
         source.forEach((table, values) -> {
-            if (table != null && !table.isBlank()) {
-                copy.put(table.trim(), copyValues(values));
+            String safeTable = safeTableName(table);
+            if (!safeTable.isBlank()) {
+                copy.put(safeTable, copyTableValues(safeTable, values));
             }
         });
         return Map.copyOf(copy);
+    }
+
+    private static String safeRootKey(String key) {
+        String value = key == null ? "" : key.trim();
+        return value.length() > MAX_KEY_LENGTH ? value.substring(0, MAX_KEY_LENGTH) : value;
+    }
+
+    private static String safeTableKey(String key) {
+        String value = key == null ? "" : key.trim();
+        if (value.contains("/")) {
+            return "";
+        }
+        return value;
+    }
+
+    private static String safeTableName(String table) {
+        String value = table == null ? "" : table.trim();
+        if (value.startsWith(TABLE_STATE_KEY_PREFIX)) {
+            value = value.substring(TABLE_STATE_KEY_PREFIX.length());
+        }
+        while (value.startsWith("/")) {
+            value = value.substring(1);
+        }
+        while (value.endsWith("/")) {
+            value = value.substring(0, value.length() - 1);
+        }
+        return value;
+    }
+
+    private static int tableKeyLength(String table, String key) {
+        return TABLE_STATE_KEY_PREFIX.length() + table.length() + 1 + key.length();
     }
 }
