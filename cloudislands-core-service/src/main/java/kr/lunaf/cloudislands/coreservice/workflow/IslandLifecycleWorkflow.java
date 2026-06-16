@@ -80,9 +80,10 @@ public final class IslandLifecycleWorkflow {
             return new Result(false, "ACTIVATION_LOCKED", current);
         }
         events.publish(CloudIslandEventType.ISLAND_PRE_ACTIVATE.name(), Map.of("islandId", islandId.toString(), "targetNode", node.nodeId()));
-        IslandRuntimeSnapshot runtime = kr.lunaf.cloudislands.coreservice.IslandPlacement.markActivating(islandId, node.nodeId(), runtimes);
-        islands.setState(islandId, IslandState.ACTIVATING);
+        IslandRuntimeSnapshot runtime;
         try {
+            runtime = kr.lunaf.cloudislands.coreservice.IslandPlacement.markActivating(islandId, node.nodeId(), runtimes);
+            islands.setState(islandId, IslandState.ACTIVATING);
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.ACTIVATE_ISLAND, islandId, node.nodeId(), 0, Map.of("fencingToken", Long.toString(runtime.fencingToken()), "worldName", runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld(), "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()), "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ())), Instant.now()));
         } catch (RuntimeException exception) {
             releaseActivationLock(lease);
