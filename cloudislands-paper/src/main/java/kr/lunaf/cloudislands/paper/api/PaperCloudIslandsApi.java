@@ -1609,7 +1609,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             for (CloudEvent event : events) {
                 for (Map.Entry<String, CloudIslandsAddon> target : targets) {
                     CloudIslandsAddonSnapshot snapshot = addons.get(target.getKey());
-                    if (snapshot == null || !snapshot.enabled()) {
+                    if (!addonAcceptsEvent(snapshot, event)) {
                         continue;
                     }
                     CloudIslandsAddon addon = target.getValue();
@@ -1620,6 +1620,43 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                     }
                 }
             }
+        }
+
+        private boolean addonAcceptsEvent(CloudIslandsAddonSnapshot snapshot, CloudEvent event) {
+            if (snapshot == null || !snapshot.enabled() || event == null) {
+                return false;
+            }
+            String eventName = event.getClass().getSimpleName();
+            String feature = eventFeatureGate(eventName);
+            return feature.isBlank() || snapshot.featureEnabled(feature, true);
+        }
+
+        private String eventFeatureGate(String eventName) {
+            if (eventName == null || eventName.isBlank()) {
+                return "";
+            }
+            if (eventName.startsWith("RouteTicket") || eventName.startsWith("RouteSession")) {
+                return "route-events";
+            }
+            if (eventName.equals("AddonStateChangeEvent")) {
+                return "addon-state";
+            }
+            if (eventName.equals("NodeStateChangedEvent") || eventName.startsWith("Core")) {
+                return "maintenance";
+            }
+            if (eventName.equals("IslandPreCreateEvent")
+                || eventName.equals("IslandCreatedEvent")
+                || eventName.equals("IslandPreActivateEvent")
+                || eventName.equals("IslandActivationRequestEvent")
+                || eventName.equals("IslandActivatedEvent")
+                || eventName.equals("IslandDeactivationRequestEvent")
+                || eventName.equals("IslandDeactivatedEvent")
+                || eventName.equals("IslandDeleteRequestEvent")
+                || eventName.equals("IslandDeletedEvent")
+                || eventName.equals("IslandRuntimeChangeEvent")) {
+                return "lifecycle";
+            }
+            return "";
         }
 
         private void notifyRegistered(CloudIslandsAddon addon, CloudIslandsAddonSnapshot snapshot) {
