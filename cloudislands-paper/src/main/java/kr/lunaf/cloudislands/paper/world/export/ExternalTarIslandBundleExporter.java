@@ -77,10 +77,21 @@ public final class ExternalTarIslandBundleExporter implements IslandBundleExport
             source == null ? activeIsland.schemaVersion() : source.schemaVersion(),
             source == null ? activeIsland.islandSize() : source.size(),
             new IslandLocation(activeIsland.worldName(), 0.5D, 100.0D, 0.5D, 180.0F, 0.0F),
+            source == null ? List.of() : source.homes(),
+            source == null ? List.of() : source.warps(),
+            source == null ? List.of() : source.biomes(),
             source == null ? now : source.createdAt(),
             now,
-            ""
-        ).withSnapshotReason(source == null ? "" : source.snapshotReason());
+            "",
+            "SHA-256",
+            "zstd",
+            "",
+            0L,
+            source == null ? "" : source.snapshotReason(),
+            source == null || source.portable(),
+            source == null ? "node-agnostic-shard-cell-remap" : source.placementPolicy(),
+            source == null ? "verify-checksum-then-restore-to-current-active-node" : source.restorePolicy()
+        );
         Files.writeString(manifestPath, IslandManifestJson.write(manifest), StandardCharsets.UTF_8);
     }
 

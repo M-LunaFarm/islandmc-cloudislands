@@ -84,13 +84,24 @@ public final class IslandSaveService {
             previous.ownerUuid(),
             previous.formatVersion(),
             previous.minecraftVersion(),
-            previous.schemaVersion(),
-            previous.size(),
+            activeIsland.schemaVersion(),
+            activeIsland.islandSize(),
             new IslandLocation(activeIsland.worldName(), 0.5D, 100.0D, 0.5D, 180.0F, 0.0F),
+            previous.homes(),
+            previous.warps(),
+            previous.biomes(),
             previous.createdAt(),
             java.time.Instant.now(),
-            checksum
-        ).withSnapshotReason(reason);
+            checksum,
+            "SHA-256",
+            "zstd",
+            previous.storagePath(),
+            previous.sizeBytes(),
+            reason,
+            previous.portable(),
+            previous.placementPolicy(),
+            previous.restorePolicy()
+        );
         IslandStorage.StoredBundle storedBundle;
         try (InputStream input = Files.newInputStream(exported.bundleFile())) {
             if (deleteBackup) {
