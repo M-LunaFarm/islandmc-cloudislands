@@ -54,7 +54,13 @@ public record AddonStateBulkSaveRequest(
         if (source == null || source.isEmpty()) {
             return Map.of();
         }
-        return Map.copyOf(source);
+        LinkedHashMap<String, String> copy = new LinkedHashMap<>();
+        source.forEach((key, value) -> {
+            if (key != null && !key.isBlank()) {
+                copy.put(key.trim(), value == null ? "" : value);
+            }
+        });
+        return Map.copyOf(copy);
     }
 
     private static Map<String, Map<String, String>> copyTables(Map<String, Map<String, String>> source) {
