@@ -561,7 +561,18 @@ public final class AdminFactoryCommand {
             )));
         }
         Map<String, String> details = featureDetails();
-        List.of("configured-features", "effective-features", "operational-features", "dependency-disabled-features", "feature-warnings").forEach(key -> {
+        List.of(
+                "configured-features",
+                "effective-features",
+                "operational-features",
+                "dependency-disabled-features",
+                "feature-warnings",
+                "last-core-hydrate-status",
+                "last-core-hydrate-island",
+                "last-core-hydrate-key",
+                "last-core-hydrate-at",
+                "core-hydrated-activation-count"
+        ).forEach(key -> {
             String value = details.get(key);
             if (value != null && !value.isBlank()) {
                 sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
@@ -1184,6 +1195,7 @@ public final class AdminFactoryCommand {
                         "addon-state-bulk-save-methods",
                         "core-api-table-save-mode",
                         "core-api-bulk-status-keys",
+                        "core-api-hydrate-status-keys",
                         "core-api-bulk-fallback-visibility",
                         "route-event-source",
                         "route-event-policy",
