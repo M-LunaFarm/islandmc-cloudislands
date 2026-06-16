@@ -37,6 +37,7 @@ tasks.jar {
             "CloudIslands-Paper-Agent-Roles" to "LOBBY,ISLAND_NODE",
             "CloudIslands-Paper-Lobby-Role" to "gui-ranking-invites-settings-visit-admin-no-island-world-execution",
             "CloudIslands-Paper-Island-Node-Role" to "activation-save-snapshot-shard-cell-protection-teleport-heartbeat",
+            "CloudIslands-Paper-Job-Completion-Payload" to "activation-save-deactivation-delete-completions-carry-job-context-and-fencing-token",
             "CloudIslands-Paper-Command-List-Policy" to "one-line-one-command-page-size-12",
             "CloudIslands-Paper-Protection-Decision-Policy" to "ProtectionDecisionPolicy-region-index-local-cache-only-no-sync-core-api-http-db-redis-on-hot-path",
             "CloudIslands-Paper-Protection-Event-Coverage" to "block,interact,bucket,inventory,entity-damage,explosion,hanging,item,armorstand,shear,leash,vehicle,fire,spread,decay,fluid",
