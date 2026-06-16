@@ -14,6 +14,7 @@ public final class RedisKeys {
     public static String playerNameProfile(String name) { return "ci:player-name:" + name.toLowerCase() + ":profile"; }
     public static String playerRouteTicket(UUID uuid) { return "ci:player:" + uuid + ":route-ticket"; }
     public static String routeTicket(UUID ticketId) { return "ci:route-ticket:" + ticketId; }
+    public static String routeTicketByIsland(UUID islandId) { return "ci:island:" + islandId + ":route-tickets"; }
     public static String routeTicketCounts() { return "ci:route-ticket-counts"; }
     public static String playerSession(UUID uuid) { return "ci:player:" + uuid + ":session"; }
     public static String playerRouteSession(UUID uuid) { return "ci:player:" + uuid + ":route-session"; }
@@ -33,6 +34,7 @@ public final class RedisKeys {
     public static String islandUpgrades(UUID islandId) { return "ci:island:" + islandId + ":upgrades"; }
     public static String islandSnapshots(UUID islandId) { return "ci:island:" + islandId + ":snapshots"; }
     public static String islandLogs(UUID islandId) { return "ci:island:" + islandId + ":logs"; }
+    public static String islandRouteTickets(UUID islandId) { return "ci:island:" + islandId + ":route-tickets"; }
     public static String islandBlockCounts(UUID islandId) { return "ci:island:" + islandId + ":block-counts"; }
     public static String blockValues() { return "ci:block-values"; }
     public static String templates() { return "ci:templates"; }
@@ -40,7 +42,9 @@ public final class RedisKeys {
     public static String rankingTop(String metric, int limit, long version) { return "ci:rankings:" + metric + ":" + limit + ":v" + version; }
     public static String islandLock(UUID islandId) { return "ci:lock:island:" + islandId; }
     public static String activationLock(UUID islandId) { return "ci:lock:activation:" + islandId; }
+    public static String islandFencingToken(UUID islandId) { return "ci:island:" + islandId + ":fencing-token"; }
     public static String playerCreateLock(UUID playerUuid) { return "ci:lock:player-create:" + playerUuid; }
+    public static String jobClaimLock(String nodeId) { return "ci:lock:job-claim:" + nodeId; }
     public static String jobsStream() { return "ci:stream:jobs"; }
     public static String eventsStream() { return "ci:stream:events"; }
     public static String auditStream() { return "ci:stream:audit"; }
