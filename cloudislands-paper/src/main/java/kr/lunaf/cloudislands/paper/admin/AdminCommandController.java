@@ -1339,7 +1339,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + longValue(storage, "uploadFailures")
             + longValue(storage, "downloadFailures")
             + longValue(storage, "operationFailures");
+        boolean primaryDegraded = boolValue(storage, "primaryDegraded");
         return adminText("admin-command-storage-metric-failures-prefix", "(failures=") + failures
+            + ", primaryDegraded=" + primaryDegraded
             + adminText("admin-command-storage-metric-up-prefix", ", up=") + seconds(doubleValue(storage, "uploadSeconds")) + "s"
             + adminText("admin-command-storage-metric-down-prefix", ", down=") + seconds(doubleValue(storage, "downloadSeconds")) + "s"
             + adminText("admin-command-storage-bundle-policy-prefix", ", bundle=") + "portable"

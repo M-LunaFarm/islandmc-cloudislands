@@ -3032,6 +3032,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return NodeStorageSnapshot.empty();
         }
         return new NodeStorageSnapshot(
+            bool(json, "primaryDegraded", false),
             decimal(json, "uploadSeconds", 0.0D),
             decimal(json, "downloadSeconds", 0.0D),
             longValue(json, "healthCheckFailures", 0L),

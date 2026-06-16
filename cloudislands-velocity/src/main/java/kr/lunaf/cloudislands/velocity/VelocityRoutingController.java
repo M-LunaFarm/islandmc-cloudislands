@@ -2383,7 +2383,9 @@ public final class VelocityRoutingController {
             + longValue(storage, "downloadFailures")
             + longValue(storage, "operationFailures");
         String backend = fallback(jsonValue(storage, "backend"), "unknown");
+        boolean primaryDegraded = boolValue(storage, "primaryDegraded");
         return "(backend=" + backend
+            + ", primaryDegraded=" + primaryDegraded
             + ", failures=" + failures
             + ", up=" + seconds(doubleValue(storage, "uploadSeconds")) + "s"
             + ", down=" + seconds(doubleValue(storage, "downloadSeconds")) + "s)";
