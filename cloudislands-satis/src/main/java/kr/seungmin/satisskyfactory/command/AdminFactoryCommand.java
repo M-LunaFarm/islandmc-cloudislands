@@ -68,6 +68,7 @@ public final class AdminFactoryCommand {
     );
     private static final List<String> HELP_COMMANDS = List.of(
             "factory admin help [page]",
+            "factory admin list [page]",
             "factory admin command list [page]",
             "factory admin reload",
             "factory admin features",
@@ -171,7 +172,7 @@ public final class AdminFactoryCommand {
             return true;
         }
         switch (subcommand) {
-            case "help", "commands", "command", "command-list", "명령어", "명령어목록" -> help(sender, label, helpPage(args));
+            case "help", "list", "commands", "command", "command-list", "명령어", "명령어목록" -> help(sender, label, helpPage(args));
             case "reload" -> {
                 reload.run();
                 messages.send(sender, "reloaded");
@@ -271,6 +272,7 @@ public final class AdminFactoryCommand {
             List<String> values = new ArrayList<>();
             values.add("reload");
             values.add("help");
+            values.add("list");
             values.add("commands");
             values.add("command");
             values.add("command-list");
@@ -1370,6 +1372,7 @@ public final class AdminFactoryCommand {
 
     private boolean isCommandListRoot(String value) {
         return value.equalsIgnoreCase("command")
+                || value.equalsIgnoreCase("list")
                 || value.equalsIgnoreCase("commands")
                 || value.equalsIgnoreCase("command-list")
                 || value.equals("명령어")

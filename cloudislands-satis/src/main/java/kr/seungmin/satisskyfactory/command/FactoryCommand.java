@@ -47,6 +47,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     private static final int HELP_PAGE_SIZE = 12;
     private static final List<String> HELP_COMMANDS = List.of(
             "factory help [page]",
+            "factory list [page]",
             "factory command list [page]",
             "factory status",
             "factory main",
@@ -158,7 +159,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             islands.save(island);
         }
         switch (sub) {
-            case "help", "commands", "command", "command-list", "명령어", "명령어목록" -> help(player, label, helpPage(args));
+            case "help", "list", "commands", "command", "command-list", "명령어", "명령어목록" -> help(player, label, helpPage(args));
             case "main" -> {
                 if (requireFeature(player, "gui")) {
                     gui.openMain(
@@ -558,7 +559,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         if (isCommandListRoot(first) && args.length > 1 && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
             return true;
         }
-        return first.equals("help") || first.equals("commands") || first.equals("command") || first.equals("command-list")
+        return first.equals("help") || first.equals("list") || first.equals("commands") || first.equals("command") || first.equals("command-list")
                 || first.equals("명령어") || first.equals("명령어목록");
     }
 
@@ -574,6 +575,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
 
     private boolean isCommandListRoot(String value) {
         return value.equalsIgnoreCase("command")
+                || value.equalsIgnoreCase("list")
                 || value.equalsIgnoreCase("commands")
                 || value.equalsIgnoreCase("command-list")
                 || value.equals("명령어")
@@ -660,6 +662,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             List<String> values = new ArrayList<>();
             values.add("help");
+            values.add("list");
             values.add("commands");
             values.add("command");
             values.add("command-list");
