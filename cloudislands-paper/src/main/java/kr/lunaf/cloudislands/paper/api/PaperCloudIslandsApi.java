@@ -1644,6 +1644,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (eventName.equals("NodeStateChangedEvent") || eventName.startsWith("Core")) {
                 return "maintenance";
             }
+            if (eventName.startsWith("Island")) {
+                return "lifecycle";
+            }
             if (eventName.equals("IslandPreCreateEvent")
                 || eventName.equals("IslandCreatedEvent")
                 || eventName.equals("IslandPreActivateEvent")
