@@ -92,7 +92,7 @@ public final class FactoryLifecycleListener implements Listener {
 
     @EventHandler
     public void onChunkUnload(ChunkUnloadEvent event) {
-        if (!active.getAsBoolean() || !machinesEnabled.getAsBoolean()) {
+        if (!active.getAsBoolean() || !machinesEnabled.getAsBoolean() || !lifecycleDataWritesEnabled()) {
             return;
         }
         machines.markChunkStatus(event.getChunk(), MachineStatus.CHUNK_UNLOADED);
@@ -100,7 +100,7 @@ public final class FactoryLifecycleListener implements Listener {
 
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
-        if (!active.getAsBoolean() || !machinesEnabled.getAsBoolean()) {
+        if (!active.getAsBoolean() || !machinesEnabled.getAsBoolean() || !lifecycleDataWritesEnabled()) {
             return;
         }
         for (MachineInstance machine : machines.byChunk(event.getChunk())) {
