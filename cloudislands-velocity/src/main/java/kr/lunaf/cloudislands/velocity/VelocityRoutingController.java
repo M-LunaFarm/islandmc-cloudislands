@@ -2212,7 +2212,7 @@ public final class VelocityRoutingController {
         }
         String state = fields.getOrDefault("state", "");
         String operation = fields.getOrDefault("operation", "");
-        if (!state.equals("KICKALL") && !state.equals("SHUTDOWN_SAFE") && !operation.equals("SHUTDOWN_SAFE")) {
+        if (!state.equals("KICKALL") && !state.equals("SHUTDOWN_SAFE") && !state.equals("DOWN") && !operation.equals("SHUTDOWN_SAFE")) {
             return;
         }
         String nodeId = fields.getOrDefault("nodeId", "");
@@ -3693,12 +3693,22 @@ public final class VelocityRoutingController {
         RegisteredServer target = findServer(nodeId);
         RegisteredServer fallback = findServer(fallbackServer);
         if (target == null || fallback == null) {
+            fallbackMissing.incrementAndGet();
             return 0;
         }
         java.util.List<Player> players = java.util.List.copyOf(target.getPlayersConnected());
         for (Player connected : players) {
             connected.sendMessage(Component.text("섬 점검으로 로비로 이동합니다."));
-            connected.createConnectionRequest(fallback).connectWithIndication();
+            connected.createConnectionRequest(fallback).connectWithIndication().thenAccept(success -> {
+                if (success) {
+                    fallbackTransfers.incrementAndGet();
+                } else {
+                    fallbackFailures.incrementAndGet();
+                }
+            }).exceptionally(error -> {
+                fallbackFailures.incrementAndGet();
+                return null;
+            });
         }
         return players.size();
     }
