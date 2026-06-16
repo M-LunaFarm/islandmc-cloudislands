@@ -335,7 +335,7 @@ public final class RoutingOrchestrator {
     private RouteTicket ticket(UUID playerUuid, UUID islandId, RouteAction action, Map<String, String> extraPayload, RouteTarget target) {
         java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
         payload.put("targetServerName", targetServerName(target.node().nodeId()));
-        payload.putAll(extraPayload);
+        mergePayload(payload, extraPayload);
         return new RouteTicket(
             UUID.randomUUID(),
             playerUuid,
@@ -348,6 +348,18 @@ public final class RoutingOrchestrator {
             UUID.randomUUID().toString(),
             Map.copyOf(payload)
         );
+    }
+
+    private void mergePayload(java.util.LinkedHashMap<String, String> payload, Map<String, String> extraPayload) {
+        if (extraPayload == null || extraPayload.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<String, String> entry : extraPayload.entrySet()) {
+            if (entry.getKey() == null || entry.getKey().isBlank()) {
+                continue;
+            }
+            payload.put(entry.getKey(), entry.getValue() == null ? "" : entry.getValue());
+        }
     }
 
     private RoutePreparationResult unavailableRuntime(IslandRuntimeSnapshot runtime, UUID playerUuid, UUID islandId, RouteAction action) {
