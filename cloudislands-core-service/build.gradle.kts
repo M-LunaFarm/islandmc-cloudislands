@@ -23,6 +23,7 @@ tasks.jar {
             "CloudIslands-Core-JDBC-Native-Backend" to "POSTGRESQL,MYSQL,MARIADB",
             "CloudIslands-Core-JDBC-Auto-Schema-Path" to "setup.database.auto-schema",
             "CloudIslands-Core-JDBC-Auto-Schema-Policy" to "explicit-opt-in-mysql-mariadb-bootstrap",
+            "CloudIslands-Core-JDBC-Auto-Schema-Guard-Policy" to "generated-columns-enforce-active-unique-guards-for-mysql-mariadb",
             "CloudIslands-Core-JDBC-Fallback-Order" to "POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC",
             "CloudIslands-Core-Unsupported-JDBC-Policy" to "safe-fallback-with-shared-jdbc-core-api-or-in-memory",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
