@@ -492,6 +492,9 @@ public final class DatabaseService {
         if (!backup.isFile()) {
             return new LegacyRollbackResult(false, "backup-missing", backup.getAbsolutePath(), "run import once after this version creates a rollback snapshot");
         }
+        if (activeBackend == StorageBackend.CORE_API && !coreStateWritersAvailable()) {
+            return new LegacyRollbackResult(false, "core-api-addon-state-unavailable", backup.getAbsolutePath(), "enable CloudIslands addon-state writer, then rerun rollback");
+        }
         if (sqlDialect == SqlDialect.SQLITE) {
             File target = databaseFile();
             try {
