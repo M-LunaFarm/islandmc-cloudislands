@@ -2026,6 +2026,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String eventWorld = lifecycleEventWorld(safeOperation);
         String eventCell = lifecycleEventCell(safeOperation);
         String placementSource = lifecycleEventPlacementSource(safeOperation);
+        String hydrationKey = coreHydrationKey(safeOperation);
         Map<String, String> state = new LinkedHashMap<>();
         state.put("island", islandId.toString());
         state.put("operation", safeOperation);
