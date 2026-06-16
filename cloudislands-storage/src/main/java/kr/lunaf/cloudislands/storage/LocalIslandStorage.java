@@ -6,6 +6,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.temporal.WeekFields;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -211,17 +215,7 @@ public final class LocalIslandStorage implements IslandStorage {
                 manualKept++;
             }
         }
-        int automaticKept = 0;
-        int automaticLimit = effectivePolicy.retainedAutomaticSnapshotCount();
-        for (Path snapshot : snapshots) {
-            if (manualSnapshot(snapshot)) {
-                continue;
-            }
-            if (automaticKept < automaticLimit) {
-                retained.add(snapshot);
-                automaticKept++;
-            }
-        }
+        retainAutomaticSnapshots(snapshots, retained, effectivePolicy);
         int deleted = 0;
         for (Path snapshot : snapshots) {
             if (!retained.contains(snapshot)) {
@@ -230,6 +224,31 @@ public final class LocalIslandStorage implements IslandStorage {
             }
         }
         return deleted;
+    }
+
+    private void retainAutomaticSnapshots(List<Path> snapshots, Set<Path> retained, SnapshotRetentionPolicy policy) {
+        retainAutomaticBucket(snapshots, retained, policy.keepHourly(), "hour");
+        retainAutomaticBucket(snapshots, retained, policy.keepDaily(), "day");
+        retainAutomaticBucket(snapshots, retained, policy.keepWeekly(), "week");
+    }
+
+    private void retainAutomaticBucket(List<Path> snapshots, Set<Path> retained, int limit, String bucketType) {
+        if (limit <= 0) {
+            return;
+        }
+        Set<String> retainedBuckets = new HashSet<>();
+        for (Path snapshot : snapshots) {
+            if (retained.contains(snapshot) || manualSnapshot(snapshot)) {
+                continue;
+            }
+            String bucket = snapshotBucket(snapshot, bucketType);
+            if (retainedBuckets.add(bucket)) {
+                retained.add(snapshot);
+                if (retainedBuckets.size() >= limit) {
+                    return;
+                }
+            }
+        }
     }
 
     private String latestSnapshotName(UUID islandId) {
@@ -254,6 +273,35 @@ public final class LocalIslandStorage implements IslandStorage {
             return reason != null && reason.toUpperCase(Locale.ROOT).contains("MANUAL");
         } catch (IOException exception) {
             return false;
+        }
+    }
+
+    private String snapshotBucket(Path snapshotDir, String bucketType) {
+        ZonedDateTime time = ZonedDateTime.ofInstant(snapshotTime(snapshotDir), ZoneOffset.UTC);
+        return switch (bucketType) {
+            case "hour" -> time.getYear() + "-" + time.getMonthValue() + "-" + time.getDayOfMonth() + "-" + time.getHour();
+            case "day" -> time.toLocalDate().toString();
+            case "week" -> time.getYear() + "-W" + time.get(WeekFields.ISO.weekOfWeekBasedYear());
+            default -> snapshotDir.getFileName().toString();
+        };
+    }
+
+    private Instant snapshotTime(Path snapshotDir) {
+        Path manifest = snapshotDir.resolve("manifest.json");
+        if (Files.exists(manifest)) {
+            try {
+                String savedAt = IslandManifestJson.read(Files.readString(manifest, StandardCharsets.UTF_8)).savedAt();
+                if (savedAt != null && !savedAt.isBlank()) {
+                    return Instant.parse(savedAt);
+                }
+            } catch (RuntimeException | IOException ignored) {
+                // Fall back to the directory timestamp below.
+            }
+        }
+        try {
+            return Files.getLastModifiedTime(snapshotDir).toInstant();
+        } catch (IOException ignored) {
+            return Instant.EPOCH;
         }
     }
 
