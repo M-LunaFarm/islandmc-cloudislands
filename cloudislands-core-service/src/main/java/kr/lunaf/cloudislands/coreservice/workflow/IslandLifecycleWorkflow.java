@@ -20,6 +20,11 @@ import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 
 public final class IslandLifecycleWorkflow {
+    public static final String RESTORE_MANIFEST_REQUIRED = "true";
+    public static final String RESTORE_CHECKSUM_POLICY = "verify-manifest-checksum";
+    public static final String RESTORE_PORTABLE_REQUIRED = "true";
+    public static final String RESTORE_SUPPORTED_FORMATS = "checksum=SHA-256,compression=zstd";
+
     private final IslandRuntimeRepository runtimes;
     private final IslandRepository islands;
     private final IslandTemplateRepository templates;
@@ -247,18 +252,12 @@ public final class IslandLifecycleWorkflow {
         IslandRuntimeSnapshot runtime = runtimes.setState(islandId, IslandState.RESTORING);
         islands.setState(islandId, IslandState.RESTORING);
         try {
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, node.nodeId(), 30, Map.of("snapshotNo", Long.toString(snapshotNo), "storagePath", storagePath == null ? "" : storagePath, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, node.nodeId(), 30, restoreJobPayload(snapshotNo, storagePath, runtime.fencingToken()), Instant.now()));
         } catch (RuntimeException exception) {
             releaseActivationLock(lease);
             return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
         }
-        events.publish(CloudIslandEventType.ISLAND_RESTORE_REQUESTED.name(), Map.of(
-            "islandId", islandId.toString(),
-            "state", "RESTORING",
-            "snapshotNo", Long.toString(snapshotNo),
-            "targetNode", node.nodeId(),
-            "fencingToken", Long.toString(runtime.fencingToken())
-        ));
+        events.publish(CloudIslandEventType.ISLAND_RESTORE_REQUESTED.name(), restoreRequestedEventPayload(islandId, "RESTORING", snapshotNo, storagePath, node.nodeId(), runtime.fencingToken()));
         return new Result(true, "RESTORE_QUEUED", runtime);
     }
 
@@ -318,6 +317,10 @@ public final class IslandLifecycleWorkflow {
                 "snapshotNo", Long.toString(snapshotNo),
                 "storagePath", storagePath == null ? "" : storagePath,
                 "fencingToken", Long.toString(current.fencingToken()),
+                "restoreManifestRequired", RESTORE_MANIFEST_REQUIRED,
+                "restoreChecksumPolicy", RESTORE_CHECKSUM_POLICY,
+                "restorePortableRequired", RESTORE_PORTABLE_REQUIRED,
+                "restoreSupportedFormats", RESTORE_SUPPORTED_FORMATS,
                 "worldName", current.activeWorld() == null ? "ci_shard_001" : current.activeWorld(),
                 "cellX", current.cellX() == null ? "0" : Integer.toString(current.cellX()),
                 "cellZ", current.cellZ() == null ? "0" : Integer.toString(current.cellZ())
@@ -326,14 +329,35 @@ public final class IslandLifecycleWorkflow {
             releaseActivationLock(lease);
             return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
         }
-        events.publish(CloudIslandEventType.ISLAND_RESTORE_REQUESTED.name(), Map.of(
-            "islandId", islandId.toString(),
-            "state", "RESTORING_ACTIVE",
-            "snapshotNo", Long.toString(snapshotNo),
-            "targetNode", current.activeNode(),
-            "fencingToken", Long.toString(current.fencingToken())
-        ));
+        events.publish(CloudIslandEventType.ISLAND_RESTORE_REQUESTED.name(), restoreRequestedEventPayload(islandId, "RESTORING_ACTIVE", snapshotNo, storagePath, current.activeNode(), current.fencingToken()));
         return new Result(true, "RESTORE_QUEUED", runtime);
+    }
+
+    private static Map<String, String> restoreJobPayload(long snapshotNo, String storagePath, long fencingToken) {
+        java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
+        payload.put("snapshotNo", Long.toString(snapshotNo));
+        payload.put("storagePath", storagePath == null ? "" : storagePath);
+        payload.put("fencingToken", Long.toString(fencingToken));
+        payload.put("restoreManifestRequired", RESTORE_MANIFEST_REQUIRED);
+        payload.put("restoreChecksumPolicy", RESTORE_CHECKSUM_POLICY);
+        payload.put("restorePortableRequired", RESTORE_PORTABLE_REQUIRED);
+        payload.put("restoreSupportedFormats", RESTORE_SUPPORTED_FORMATS);
+        return Map.copyOf(payload);
+    }
+
+    private static Map<String, String> restoreRequestedEventPayload(UUID islandId, String state, long snapshotNo, String storagePath, String targetNode, long fencingToken) {
+        java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
+        payload.put("islandId", islandId.toString());
+        payload.put("state", state);
+        payload.put("snapshotNo", Long.toString(snapshotNo));
+        payload.put("storagePath", storagePath == null ? "" : storagePath);
+        payload.put("targetNode", targetNode == null ? "" : targetNode);
+        payload.put("fencingToken", Long.toString(fencingToken));
+        payload.put("restoreManifestRequired", RESTORE_MANIFEST_REQUIRED);
+        payload.put("restoreChecksumPolicy", RESTORE_CHECKSUM_POLICY);
+        payload.put("restorePortableRequired", RESTORE_PORTABLE_REQUIRED);
+        payload.put("restoreSupportedFormats", RESTORE_SUPPORTED_FORMATS);
+        return Map.copyOf(payload);
     }
 
     private Result resetActive(UUID islandId, IslandRuntimeSnapshot current, String reason) {

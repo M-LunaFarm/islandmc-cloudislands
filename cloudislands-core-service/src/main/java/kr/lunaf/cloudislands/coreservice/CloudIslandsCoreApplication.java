@@ -3426,6 +3426,19 @@ public final class CloudIslandsCoreApplication {
         write(exchange, result.accepted() ? 202 : 409, "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\"}");
     }
 
+    private static void restoreLifecycle(HttpExchange exchange, IslandLifecycleWorkflow.Result result, long snapshotNo, String storagePath) throws IOException {
+        write(exchange, result.accepted() ? 202 : 409,
+            "{\"accepted\":" + result.accepted()
+                + ",\"code\":\"" + result.code() + "\""
+                + ",\"snapshotNo\":" + snapshotNo
+                + ",\"storagePath\":\"" + escape(storagePath == null ? "" : storagePath) + "\""
+                + ",\"restoreManifestRequired\":" + IslandLifecycleWorkflow.RESTORE_MANIFEST_REQUIRED
+                + ",\"restoreChecksumPolicy\":\"" + IslandLifecycleWorkflow.RESTORE_CHECKSUM_POLICY + "\""
+                + ",\"restorePortableRequired\":" + IslandLifecycleWorkflow.RESTORE_PORTABLE_REQUIRED
+                + ",\"restoreSupportedFormats\":\"" + IslandLifecycleWorkflow.RESTORE_SUPPORTED_FORMATS + "\""
+                + "}");
+    }
+
     private void auditSecurityReject(String reason, String path, HttpExchange exchange) {
         recordSecurityReject(reason);
         if (audit == null) {
@@ -4030,9 +4043,13 @@ public final class CloudIslandsCoreApplication {
             "accepted", Boolean.toString(result.accepted()),
             "code", result.code(),
             "snapshotNo", Long.toString(snapshotNo),
-            "storagePath", snapshot.get().storagePath() == null ? "" : snapshot.get().storagePath()
+            "storagePath", snapshot.get().storagePath() == null ? "" : snapshot.get().storagePath(),
+            "restoreManifestRequired", IslandLifecycleWorkflow.RESTORE_MANIFEST_REQUIRED,
+            "restoreChecksumPolicy", IslandLifecycleWorkflow.RESTORE_CHECKSUM_POLICY,
+            "restorePortableRequired", IslandLifecycleWorkflow.RESTORE_PORTABLE_REQUIRED,
+            "restoreSupportedFormats", IslandLifecycleWorkflow.RESTORE_SUPPORTED_FORMATS
         ));
-        lifecycle(exchange, result);
+        restoreLifecycle(exchange, result, snapshotNo, snapshot.get().storagePath());
     }
 
     private static void rollbackIslandSnapshot(com.sun.net.httpserver.HttpExchange exchange, AuditLogger audit, IslandLifecycleWorkflow lifecycle, IslandSnapshotRepository snapshotRepository, UUID islandId, long snapshotNo) throws java.io.IOException {
@@ -4047,9 +4064,13 @@ public final class CloudIslandsCoreApplication {
             "accepted", Boolean.toString(result.accepted()),
             "code", result.code(),
             "snapshotNo", Long.toString(snapshotNo),
-            "storagePath", snapshot.get().storagePath() == null ? "" : snapshot.get().storagePath()
+            "storagePath", snapshot.get().storagePath() == null ? "" : snapshot.get().storagePath(),
+            "restoreManifestRequired", IslandLifecycleWorkflow.RESTORE_MANIFEST_REQUIRED,
+            "restoreChecksumPolicy", IslandLifecycleWorkflow.RESTORE_CHECKSUM_POLICY,
+            "restorePortableRequired", IslandLifecycleWorkflow.RESTORE_PORTABLE_REQUIRED,
+            "restoreSupportedFormats", IslandLifecycleWorkflow.RESTORE_SUPPORTED_FORMATS
         ));
-        lifecycle(exchange, result);
+        restoreLifecycle(exchange, result, snapshotNo, snapshot.get().storagePath());
     }
 
     private static String membersJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandMemberSnapshot> members) {
