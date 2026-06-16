@@ -2772,7 +2772,7 @@ public final class CloudIslandsCoreApplication {
             + "\"addonStateTableBulkIslandEndpoint\":\"/v1/addons/islands/state/table/bulk\","
             + "\"addonStateTableKeyValueBulkSavePayload\":\"addonId,islandId(optional),values,tables\","
             + "\"addonStateTableKeyValueBulkSaveStorageMode\":\"table-prefix-flattened-key-value\","
-            + "\"addonStateTableKeyValueBulkSaveRepositoryApi\":\"AddonStateRepository.tableKeyValueBulkSave,AddonStateRepository.tableKeyValueBulkSaveIsland\","
+            + "\"addonStateTableKeyValueBulkSaveRepositoryApi\":\"AddonStateRepository.tableKeyValueBulkSave,AddonStateRepository.tableKeyValueBulkSaveIsland,IslandAddonService.tableBulkState,IslandAddonService.tableBulkIslandState,CoreApiClient.tableBulkAddonState,CoreApiClient.tableBulkAddonIslandState\","
             + "\"addonStateTableKeyPrefix\":\"" + AddonStateRepository.TABLE_STATE_KEY_SHAPE + "\","
             + "\"addonStateMaxAddonIdLength\":" + AddonStateRepository.MAX_ADDON_ID_LENGTH + ","
             + "\"addonStateMaxKeyLength\":" + AddonStateRepository.MAX_KEY_LENGTH + ","
