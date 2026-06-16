@@ -377,7 +377,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-addon-state-status", coreApiAddonStateAvailable() ? "available" : (operationalFeatureEnabled("addon-state") ? "cloudislands-api-unavailable" : "addon-state-feature-disabled"));
         state.put("runtime-addon-state-policy", "disabled-or-unavailable-core-api-uses-configured-database-fallback-and-preserves-local-state");
         state.put("runtime-route-events-gate", "addonRuntimeEnabled&&features.addon-state&&features.route-events&&CloudIslandsApi");
-        state.put("runtime-route-events-status", routeEventStateEnabled() ? "enabled" : "route-events-or-addon-state-feature-disabled");
+        state.put("runtime-route-events-status", routeEventStateEnabled() ? "enabled" : routeEventBlockReason());
         state.put("runtime-route-events-policy", "disabled-feature-skips-route-diagnostic-state-without-affecting-cloudislands-routing");
         state.put("runtime-commands-registered", Boolean.toString(commandsRegistered));
         state.put("runtime-commands-gate", "addonRuntimeEnabled&&features.commands");
@@ -2584,6 +2584,22 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private boolean routeEventStateEnabled() {
         return cloudIslandsApi != null && operationalFeatureEnabled("addon-state") && operationalFeatureEnabled("route-events");
+    }
+
+    private String routeEventBlockReason() {
+        if (!addonRuntimeEnabled) {
+            return "addon-disabled";
+        }
+        if (!operationalFeatureEnabled("addon-state")) {
+            return "addon-state-feature-disabled";
+        }
+        if (!operationalFeatureEnabled("route-events")) {
+            return "route-events-feature-disabled";
+        }
+        if (cloudIslandsApi == null) {
+            return "cloudislands-api-unavailable";
+        }
+        return "route-events-unavailable";
     }
 
     private void runSatisLifecycle(UUID islandId, String operation, Runnable action) {
