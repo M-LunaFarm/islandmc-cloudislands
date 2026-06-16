@@ -341,13 +341,18 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean dataWritesEnabled() {
-        return operationalFeatureEnabled("machines")
+        return storageWriteAuthorityReady()
+                && (operationalFeatureEnabled("machines")
                 || operationalFeatureEnabled("storage")
                 || operationalFeatureEnabled("resource-nodes")
                 || operationalFeatureEnabled("market")
                 || operationalFeatureEnabled("contracts")
                 || operationalFeatureEnabled("research")
-                || operationalFeatureEnabled("maintenance");
+                || operationalFeatureEnabled("maintenance"));
+    }
+
+    private boolean storageWriteAuthorityReady() {
+        return database == null || database.coreApiAuthorityReady();
     }
 
     private void putRuntimeActivityState(Map<String, String> state) {
@@ -424,6 +429,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-missions-status", operationalFeatureEnabled("missions") ? "enabled" : "missions-contracts-or-storage-feature-disabled");
         state.put("runtime-alias-policy", "legacy-satismc-feature-names-map-to-cloudislands-satis-canonical-gates");
         state.put("runtime-data-writes-enabled", Boolean.toString(dataWritesEnabled()));
+        state.put("runtime-data-write-authority-ready", Boolean.toString(storageWriteAuthorityReady()));
         state.put("runtime-lifecycle-state-enabled", Boolean.toString(lifecycleStateEnabled()));
         state.put("runtime-machine-ticker-running", Boolean.toString(ticker != null && ticker.running()));
         state.put("runtime-maintenance-ticker-running", Boolean.toString(maintenanceTicker != null && maintenanceTicker.running()));
@@ -457,6 +463,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private void putDataWriteGateState(Map<String, String> state) {
         state.put("data-write-mode", dataWritesEnabled() ? "enabled" : "disabled");
+        state.put("data-write-authority-ready", Boolean.toString(storageWriteAuthorityReady()));
+        state.put("data-write-authority-policy", "CORE_API backend requires addon-state writers before local cache writes are accepted");
         state.put("write-gate-machines", Boolean.toString(operationalFeatureEnabled("machines")));
         state.put("write-gate-machines-direct", Boolean.toString(operationalFeatureEnabled("machines")));
         state.put("write-gate-machine-ticker", Boolean.toString(operationalFeatureEnabled("machines")));
