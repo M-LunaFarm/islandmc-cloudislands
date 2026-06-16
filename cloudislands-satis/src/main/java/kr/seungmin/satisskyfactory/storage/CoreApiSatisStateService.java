@@ -496,8 +496,11 @@ public final class CoreApiSatisStateService {
         state.put("last-core-bulk-publish-write-path", bulkWritePath(safeStatus, safeMode, true));
         state.put("last-core-bulk-publish-fallback-policy", flattenedFallbackEnabled ? "flattened-state-retry" : "disabled");
         state.put("last-core-bulk-publish-pending-retries", Integer.toString(pendingIslandBulkRetryCount()));
+        state.put("addon-state-sync-bulk-max-pending-retries", Integer.toString(MAX_PENDING_BULK_RETRIES));
+        state.put("addon-state-sync-island-bulk-pending-retries", Integer.toString(pendingIslandBulkRetryCount()));
         state.put("addon-state-sync-island-bulk-retries-queued", Long.toString(islandBulkRetriesQueued.get()));
         state.put("addon-state-sync-island-bulk-retries-drained", Long.toString(islandBulkRetriesDrained.get()));
+        state.put("addon-state-sync-island-bulk-retries-dropped", Long.toString(islandBulkRetriesDropped.get()));
         cloudIslandsApi.addons().putState(addonId, state).exceptionally(publishError -> {
             logger.warning("Failed to publish Satis core-api bulk status: " + publishError.getMessage());
             recordCoreStateFailure("island-bulk-status", publishError);
@@ -535,8 +538,11 @@ public final class CoreApiSatisStateService {
         state.put("last-core-global-bulk-publish-write-path", bulkWritePath(safeStatus, safeMode, false));
         state.put("last-core-global-bulk-publish-fallback-policy", flattenedFallbackEnabled ? "flattened-state-retry" : "disabled");
         state.put("last-core-global-bulk-publish-pending-retries", Integer.toString(pendingGlobalBulkRetryCount()));
+        state.put("addon-state-sync-bulk-max-pending-retries", Integer.toString(MAX_PENDING_BULK_RETRIES));
+        state.put("addon-state-sync-global-bulk-pending-retries", Integer.toString(pendingGlobalBulkRetryCount()));
         state.put("addon-state-sync-global-bulk-retries-queued", Long.toString(globalBulkRetriesQueued.get()));
         state.put("addon-state-sync-global-bulk-retries-drained", Long.toString(globalBulkRetriesDrained.get()));
+        state.put("addon-state-sync-global-bulk-retries-dropped", Long.toString(globalBulkRetriesDropped.get()));
         cloudIslandsApi.addons().putState(addonId, state).exceptionally(publishError -> {
             logger.warning("Failed to publish Satis core-api global bulk status: " + publishError.getMessage());
             recordCoreStateFailure("global-bulk-status", publishError);
