@@ -214,11 +214,14 @@ public record CoreServiceConfig(
             return "core-api-is-client-facing-selection-not-core-service-self-storage";
         }
         String fallbackTarget = setupDatabaseFallbackTargetForUnsupported(requested);
+        if ("IN_MEMORY".equals(fallbackTarget) && !setupDatabaseFallbackEnabled) {
+            return "database-fallback-disabled-for-" + requested.toLowerCase(Locale.ROOT) + "-setup";
+        }
         if ("CORE_API".equals(fallbackTarget)) {
             return "requested-" + requested.toLowerCase(Locale.ROOT) + "-uses-core-api-client-fallback";
         }
         if ("MYSQL".equals(requested) || "MARIADB".equals(requested)) {
-            return "core-service-jdbc-repositories-are-postgresql-only";
+            return "core-service-jdbc-repositories-are-postgresql-only-using-safe-in-memory-fallback";
         }
         return "unsupported-or-missing-database-setup";
     }
@@ -229,6 +232,7 @@ public record CoreServiceConfig(
             + ",target=" + setupDatabaseFallbackTarget()
             + ",fallbackActive=" + setupDatabaseFallbackActive()
             + ",fallbackEnabled=" + setupDatabaseFallbackEnabled
+            + ",order=" + setupDatabaseFallbackOrder
             + ",durable=" + setupDatabaseDurable()
             + ",reason=" + setupDatabaseFallbackReason();
     }
