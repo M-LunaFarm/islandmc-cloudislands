@@ -38,6 +38,24 @@ public final class DefaultGeneratorRules {
         levelFive.add("minecraft:diamond_ore", 15);
         levelFive.add("minecraft:emerald_ore", 15);
         registry.put("default", 5, levelFive);
+
+        GeneratorRule netherOne = new GeneratorRule();
+        netherOne.add("minecraft:basalt", 80);
+        netherOne.add("minecraft:blackstone", 20);
+        registry.put("nether", 1, netherOne);
+
+        GeneratorRule netherTwo = new GeneratorRule();
+        netherTwo.add("minecraft:basalt", 60);
+        netherTwo.add("minecraft:blackstone", 30);
+        netherTwo.add("minecraft:nether_quartz_ore", 10);
+        registry.put("nether", 2, netherTwo);
+
+        GeneratorRule netherThree = new GeneratorRule();
+        netherThree.add("minecraft:basalt", 45);
+        netherThree.add("minecraft:blackstone", 30);
+        netherThree.add("minecraft:nether_quartz_ore", 15);
+        netherThree.add("minecraft:ancient_debris", 10);
+        registry.put("nether", 3, netherThree);
         return registry;
     }
 }
