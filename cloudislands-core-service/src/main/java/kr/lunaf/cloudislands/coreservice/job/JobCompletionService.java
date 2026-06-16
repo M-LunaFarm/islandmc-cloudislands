@@ -368,6 +368,7 @@ public final class JobCompletionService {
         }
         if (job.type() == IslandJobType.ACTIVATE_ISLAND) {
             activationLock.releaseIfOwner(job.islandId(), "activate");
+            activationLock.releaseIfOwner(job.islandId(), "route");
         } else if (job.type() == IslandJobType.RESET_ISLAND) {
             activationLock.releaseIfOwner(job.islandId(), "reset");
         }
