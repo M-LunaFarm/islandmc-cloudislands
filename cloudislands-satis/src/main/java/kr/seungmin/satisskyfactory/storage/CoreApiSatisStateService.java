@@ -618,14 +618,17 @@ public final class CoreApiSatisStateService {
     private PendingIslandBulk takePendingIslandBulkRetry(UUID islandId) {
         synchronized (pendingRetryLock) {
             java.util.Iterator<PendingIslandBulk> iterator = pendingIslandBulkRetries.iterator();
+            Map<String, String> values = new LinkedHashMap<>();
+            Map<String, Map<String, String>> tables = new LinkedHashMap<>();
             while (iterator.hasNext()) {
                 PendingIslandBulk pending = iterator.next();
                 if (pending.islandId().equals(islandId)) {
                     iterator.remove();
-                    return pending;
+                    values = mergeValues(values, pending.values());
+                    tables = mergeTables(tables, pending.tables());
                 }
             }
-            return null;
+            return values.isEmpty() && tables.isEmpty() ? null : new PendingIslandBulk(islandId, values, tables);
         }
     }
 
@@ -650,7 +653,14 @@ public final class CoreApiSatisStateService {
 
     private PendingGlobalBulk takePendingGlobalBulkRetry() {
         synchronized (pendingRetryLock) {
-            return pendingGlobalBulkRetries.pollFirst();
+            Map<String, String> values = new LinkedHashMap<>();
+            Map<String, Map<String, String>> tables = new LinkedHashMap<>();
+            PendingGlobalBulk pending;
+            while ((pending = pendingGlobalBulkRetries.pollFirst()) != null) {
+                values = mergeValues(values, pending.values());
+                tables = mergeTables(tables, pending.tables());
+            }
+            return values.isEmpty() && tables.isEmpty() ? null : new PendingGlobalBulk(values, tables);
         }
     }
 
