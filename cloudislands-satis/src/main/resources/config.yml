@@ -2,7 +2,8 @@ satis:
   enabled: true
   features:
     # Dependencies are enforced even when a child feature is set to true:
-    # resource-nodes requires machines, market requires storage, contracts requires storage.
+    # resource-nodes requires machines, market/contracts require storage.
+    # missions requires contracts, upgrades requires research, menus requires gui.
     # route-events requires addon-state because it only writes CloudIslands route diagnostics.
     # Disabled features do not register active commands, GUI listeners, event listeners, tickers,
     # or write paths for that feature. Existing Satis data is preserved for later re-enable.
@@ -35,6 +36,8 @@ addons:
     enabled: true
     features:
       # This block can be used by host-level addon config. It follows the same disable policy as satis.features.
+      # Parent/root disabled forces every Satis runtime feature off, even when a child value is true.
+      # Alias and dependency rules are the same as satis.features.
       commands: true
       machines: true
       storage: true
