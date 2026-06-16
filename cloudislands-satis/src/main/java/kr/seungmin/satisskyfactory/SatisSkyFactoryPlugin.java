@@ -143,7 +143,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private FactoryGuiListener guiListener;
     private FactoryLifecycleListener lifecycleListener;
     private Map<String, Boolean> effectiveFeatures = Map.of();
-    private final Set<UUID> coreHydratedIslands = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, String> coreHydratedIslandActivations = new ConcurrentHashMap<>();
     private String databaseFallbackReason = "none";
     private String pendingDatabaseConfigFallbackReason = "none";
     private String databaseSettingsFingerprint = "";
@@ -1107,7 +1107,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         maintenance = new MaintenanceService(machines, economy, database);
         research = new ResearchService(database, economy, () -> operationalFeatureEnabled("maintenance"));
         gui = new FactoryGuiService(storage, itemRegistry, machineDefinitions, recipes, islands, research, economy, messages, this::operationalFeatureEnabled);
-        coreHydratedIslands.clear();
+        coreHydratedIslandActivations.clear();
     }
 
     private boolean coreApiFallbackRecovered(DatabaseService.Settings settings) {
@@ -2565,7 +2565,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (islands == null) {
             return;
         }
-        hydrateSatisIslandFromCore(islandId);
+        hydrateSatisIslandFromCore(islandId, operation);
         islands.find(islandId).ifPresent(island -> {
             String remapDelta = "0,0,0";
             String remapSource = "active-world-center";
@@ -2611,17 +2611,19 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         });
     }
 
-    private void hydrateSatisIslandFromCore(UUID islandId) {
+    private void hydrateSatisIslandFromCore(UUID islandId, String operation) {
         if (islandId == null || database == null || coreApiState == null) {
             return;
         }
         if (database.activeBackend() != DatabaseService.StorageBackend.CORE_API) {
             return;
         }
-        if (!coreHydratedIslands.add(islandId)) {
+        String activationKey = coreHydrationKey(operation);
+        if (activationKey.equals(coreHydratedIslandActivations.get(islandId))) {
             return;
         }
         if (coreApiState.hydrateIsland(islandId, database)) {
+            coreHydratedIslandActivations.put(islandId, activationKey);
             refreshIslandCache();
             refreshMachineCache();
             if (nodes != null) {
@@ -2631,6 +2633,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 storage.forgetIsland(islandId);
             }
         }
+    }
+
+    private String coreHydrationKey(String operation) {
+        String safeOperation = operation == null || operation.isBlank() ? "unknown" : operation;
+        return lifecycleActiveNode(safeOperation)
+                + "|" + lifecycleEventWorld(safeOperation)
+                + "|" + lifecycleEventCell(safeOperation)
+                + "|" + lifecyclePlacementSource(safeOperation);
     }
 
     private org.bukkit.Location activeIslandCenter(UUID islandId) {
@@ -2714,7 +2724,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (islands != null) {
             islands.forget(islandId);
         }
-        coreHydratedIslands.remove(islandId);
+        coreHydratedIslandActivations.remove(islandId);
         publishSuspendedLifecycleState(islandId, operation);
         publishIslandLifecycleState(islandId, operation, null, "suspended", "recovery-required-local-cache-evicted");
     }
@@ -2778,7 +2788,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (dirtySaves != null) {
             dirtySaves.forgetIsland(islandId);
         }
-        coreHydratedIslands.remove(islandId);
+        coreHydratedIslandActivations.remove(islandId);
         database.purgeIsland(islandId);
         publishLifecycleState(islandId, "purge");
         clearIslandLifecycleState(islandId);
@@ -2807,7 +2817,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             database.coreGlobalTableWriter(null);
         }
         coreApiState = null;
-        coreHydratedIslands.clear();
+        coreHydratedIslandActivations.clear();
         if (placeholderHook != null) {
             placeholderHook.unregister();
             placeholderHook = null;
