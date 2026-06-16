@@ -20,7 +20,7 @@ public final class JdbcIslandLevelRepository implements IslandLevelRepository {
     @Override
     public void addBlockDelta(UUID islandId, String materialKey, long delta) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_block_counts(island_id, material_key, amount, dirty) VALUES (?, ?, GREATEST(0, ?), true) ON CONFLICT (island_id, material_key) DO UPDATE SET amount = GREATEST(0, island_block_counts.amount + ?), dirty = true, updated_at = now()")) {
+             PreparedStatement statement = connection.prepareStatement(addBlockDeltaSql(connection))) {
             statement.setObject(1, islandId);
             statement.setString(2, materialKey);
             statement.setLong(3, delta);
@@ -101,7 +101,7 @@ public final class JdbcIslandLevelRepository implements IslandLevelRepository {
             return;
         }
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO block_values(material_key, worth, level_points, island_limit) VALUES (?, ?, ?, ?) ON CONFLICT (material_key) DO UPDATE SET worth = EXCLUDED.worth, level_points = EXCLUDED.level_points, island_limit = EXCLUDED.island_limit")) {
+             PreparedStatement statement = connection.prepareStatement(putBlockValueSql(connection))) {
             statement.setString(1, materialKey.trim());
             statement.setBigDecimal(2, value.worth());
             statement.setLong(3, value.levelPoints());
@@ -110,5 +110,25 @@ public final class JdbcIslandLevelRepository implements IslandLevelRepository {
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to save block value", exception);
         }
+    }
+
+    private String addBlockDeltaSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_block_counts(island_id, material_key, amount, dirty) VALUES (?, ?, GREATEST(0, ?), true) ON DUPLICATE KEY UPDATE amount = GREATEST(0, amount + ?), dirty = true, updated_at = now()";
+        }
+        return "INSERT INTO island_block_counts(island_id, material_key, amount, dirty) VALUES (?, ?, GREATEST(0, ?), true) ON CONFLICT (island_id, material_key) DO UPDATE SET amount = GREATEST(0, island_block_counts.amount + ?), dirty = true, updated_at = now()";
+    }
+
+    private String putBlockValueSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO block_values(material_key, worth, level_points, island_limit) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE worth = VALUES(worth), level_points = VALUES(level_points), island_limit = VALUES(island_limit)";
+        }
+        return "INSERT INTO block_values(material_key, worth, level_points, island_limit) VALUES (?, ?, ?, ?) ON CONFLICT (material_key) DO UPDATE SET worth = EXCLUDED.worth, level_points = EXCLUDED.level_points, island_limit = EXCLUDED.island_limit";
+    }
+
+    private boolean mysqlLike(Connection connection) throws SQLException {
+        String product = connection.getMetaData().getDatabaseProductName();
+        String normalized = product == null ? "" : product.toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains("mysql") || normalized.contains("mariadb");
     }
 }
