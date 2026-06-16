@@ -2978,7 +2978,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("addon-state-sync-core-api-mode", databaseCoreApiMode());
         state.put("addon-state-sync-core-api-fallback-target", databaseCoreApiFallbackTarget());
         state.put("addon-state-sync-flattened-fallback-enabled", Boolean.toString(coreApiFlattenedFallbackEnabled()));
-        state.put("addon-state-sync-bulk-status-keys", "last-core-bulk-publish-status,last-core-bulk-publish-mode,last-core-global-bulk-publish-status,last-core-global-bulk-publish-mode");
+        state.put("addon-state-sync-bulk-status-keys", "last-core-bulk-publish-status,last-core-bulk-publish-mode,last-core-bulk-publish-pending-retries,last-core-global-bulk-publish-status,last-core-global-bulk-publish-mode,last-core-global-bulk-publish-pending-retries,addon-state-sync-island-bulk-retries-queued,addon-state-sync-island-bulk-retries-drained,addon-state-sync-global-bulk-retries-queued,addon-state-sync-global-bulk-retries-drained");
         state.put("addon-state-sync-write-fallback", databaseCoreApiWriteFallbackPolicy());
         state.put("addon-state-sync-island-bulk-successes", coreApiState == null ? "0" : Long.toString(coreApiState.islandBulkSuccesses()));
         state.put("addon-state-sync-island-bulk-fallbacks", coreApiState == null ? "0" : Long.toString(coreApiState.islandBulkFallbacks()));
