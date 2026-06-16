@@ -37,6 +37,10 @@ public final class JdbcSchemaBootstrap {
         for (String statementSql : statements(readResource(resource))) {
             try (Statement statement = connection.createStatement()) {
                 statement.execute(statementSql);
+            } catch (SQLException exception) {
+                if (!ignorableDuplicateSchemaObject(exception)) {
+                    throw exception;
+                }
             }
         }
         markApplied(connection, id);
@@ -63,6 +67,19 @@ public final class JdbcSchemaBootstrap {
             statement.setString(1, id);
             statement.executeUpdate();
         }
+    }
+
+    private static boolean ignorableDuplicateSchemaObject(SQLException exception) {
+        int code = exception.getErrorCode();
+        if (code == 1050 || code == 1060 || code == 1061 || code == 1826 || code == 3822) {
+            return true;
+        }
+        String state = exception.getSQLState();
+        String message = exception.getMessage() == null ? "" : exception.getMessage().toLowerCase();
+        return ("42S01".equals(state) || "42000".equals(state))
+            && (message.contains("already exists")
+            || message.contains("duplicate")
+            || message.contains("exists"));
     }
 
     private static String readResource(String resource) throws IOException {
