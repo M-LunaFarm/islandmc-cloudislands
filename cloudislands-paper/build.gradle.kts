@@ -38,6 +38,9 @@ tasks.jar {
             "CloudIslands-Paper-Protection-Decision-Policy" to "memory-cache-only-in-sync-events-no-http-or-db-on-hot-path",
             "CloudIslands-Paper-Protection-Event-Coverage" to "block,interact,bucket,inventory,entity-damage,explosion,hanging,item,armorstand,shear,leash,vehicle,fire,spread,decay,fluid",
             "CloudIslands-Paper-Level-Worth-Policy" to "block-delta-reporter-plus-periodic-island-level-scan",
+            "CloudIslands-Paper-Generator-Policy" to "config-driven-generator-rules-blockform-and-fluid-collision-replacement",
+            "CloudIslands-Paper-GUI-Coverage" to "main,member,permission,flag,ranking,node-admin,bank,warp,invite,ban,log,role,danger,snapshot,upgrade,biome,limit",
+            "CloudIslands-Paper-Degraded-Mode-Policy" to "core-down-active-island-local-protection-and-limited-teleport-object-storage-down-active-local-play",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
         )
