@@ -2115,7 +2115,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandMigrationRequested(IslandMigrationEvent event) {
-        String operation = "migration-requested:" + lifecycleNode(event.sourceNode()) + "->" + lifecycleNode(event.targetNode()) + lifecycleWorldToken(event.worldName()) + lifecycleCellToken(event.cellX(), event.cellZ());
+        String operation = "migration-requested:" + lifecycleNode(event.sourceNode()) + "->" + lifecycleNode(event.targetNode()) + lifecycleWorldToken(event.worldName()) + lifecycleCellToken(event.cellX(), event.cellZ()) + lifecyclePlacementToken(event.placementSource());
         runSatisLifecycle(event.islandId(), operation, () -> preflushSatisIslandForMigration(event.islandId(), operation));
     }
 
