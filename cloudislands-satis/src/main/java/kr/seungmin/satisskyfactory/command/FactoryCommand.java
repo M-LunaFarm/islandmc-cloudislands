@@ -702,7 +702,16 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             return filter(values, args[0]);
         }
         if (args.length == 2 && isCommandListRoot(args[0])) {
-            return filter(List.of("list"), args[1]);
+            List<String> values = new ArrayList<>();
+            values.add("list");
+            values.addAll(helpPageSuggestions());
+            return filter(values, args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("help")) {
+            return filter(helpPageSuggestions(), args[1]);
+        }
+        if (args.length == 3 && isCommandListRoot(args[0]) && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
+            return filter(helpPageSuggestions(), args[2]);
         }
         if ((args[0].equalsIgnoreCase("sell") && !enabled("market"))
                 || ((args[0].equalsIgnoreCase("sell") || args[0].equalsIgnoreCase("market")) && !enabled("storage"))
@@ -751,6 +760,15 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             return adminCommand.complete(sender, args);
         }
         return new ArrayList<>();
+    }
+
+    private List<String> helpPageSuggestions() {
+        int maxPage = Math.max(1, (visibleHelpCommands("factory").size() + HELP_PAGE_SIZE - 1) / HELP_PAGE_SIZE);
+        List<String> values = new ArrayList<>();
+        for (int page = 1; page <= maxPage; page++) {
+            values.add(String.valueOf(page));
+        }
+        return values;
     }
 
     private List<String> filter(List<String> values, String prefix) {

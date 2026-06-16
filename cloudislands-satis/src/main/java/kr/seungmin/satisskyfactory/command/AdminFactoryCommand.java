@@ -306,7 +306,16 @@ public final class AdminFactoryCommand {
             return filter(values, args[1]);
         }
         if (args.length == 3 && isCommandListRoot(args[1])) {
-            return filter(List.of("list"), args[2]);
+            List<String> values = new ArrayList<>();
+            values.add("list");
+            values.addAll(helpPageSuggestions());
+            return filter(values, args[2]);
+        }
+        if (args.length == 3 && args[1].equalsIgnoreCase("help")) {
+            return filter(helpPageSuggestions(), args[2]);
+        }
+        if (args.length == 4 && isCommandListRoot(args[1]) && (args[2].equalsIgnoreCase("list") || args[2].equals("목록"))) {
+            return filter(helpPageSuggestions(), args[3]);
         }
         if (args.length == 3 && args[1].equalsIgnoreCase("migration") && enabled("migration")) {
             return filter(List.of("status", "scan", "dryrun", "dry-run", "verify", "import", "rollback"), args[2]);
@@ -343,6 +352,15 @@ public final class AdminFactoryCommand {
             return filter(debugTargets(), args[2]);
         }
         return new ArrayList<>();
+    }
+
+    private List<String> helpPageSuggestions() {
+        int maxPage = Math.max(1, (visibleHelpCommands("factory").size() + HELP_PAGE_SIZE - 1) / HELP_PAGE_SIZE);
+        List<String> values = new ArrayList<>();
+        for (int page = 1; page <= maxPage; page++) {
+            values.add(String.valueOf(page));
+        }
+        return values;
     }
 
     private List<String> debugTargets() {
