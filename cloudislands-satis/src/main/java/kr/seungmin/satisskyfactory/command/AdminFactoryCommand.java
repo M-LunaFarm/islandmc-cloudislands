@@ -1015,6 +1015,7 @@ public final class AdminFactoryCommand {
                         "database-core-api-endpoint",
                         "database-core-api-local-cache",
                         "database-core-api-fallback-target",
+                        "database-core-api-fallback-target-ready",
                         "database-core-api-fallback-policy",
                         "database-core-api-fallback-active",
                         "database-core-api-fallback-reason",

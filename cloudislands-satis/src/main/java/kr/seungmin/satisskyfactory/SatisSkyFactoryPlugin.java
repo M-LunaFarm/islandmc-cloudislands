@@ -1344,6 +1344,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-core-api-endpoint", "table/key-value/bulk-save,table/key-value/bulk");
         metadata.put("database-core-api-local-cache", databaseCoreApiLocalCachePolicy());
         metadata.put("database-core-api-fallback-target", databaseCoreApiFallbackTarget());
+        metadata.put("database-core-api-fallback-target-ready", Boolean.toString(databaseCoreApiFallbackTargetReady()));
         metadata.put("database-core-api-fallback-policy", databaseCoreApiFallbackPolicy());
         metadata.put("database-core-api-fallback-active", Boolean.toString(databaseCoreApiFallbackActive()));
         metadata.put("database-core-api-fallback-reason", databaseCoreApiFallbackReason());
@@ -1680,6 +1681,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-core-api-endpoint", "table/key-value/bulk-save,table/key-value/bulk");
         state.put("database-core-api-local-cache", databaseCoreApiLocalCachePolicy());
         state.put("database-core-api-fallback-target", databaseCoreApiFallbackTarget());
+        state.put("database-core-api-fallback-target-ready", Boolean.toString(databaseCoreApiFallbackTargetReady()));
         state.put("database-core-api-fallback-policy", databaseCoreApiFallbackPolicy());
         state.put("database-core-api-fallback-active", Boolean.toString(databaseCoreApiFallbackActive()));
         state.put("database-core-api-fallback-reason", databaseCoreApiFallbackReason());
@@ -4077,7 +4079,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (!databaseSettings().fallbackEnabled()) {
             return "disabled-use-local-cache-only-and-warn";
         }
-        return "if-cloudislands-api-or-addon-state-unavailable-use-first-configured-shared-backend-else-sqlite";
+        return "if-cloudislands-api-or-addon-state-unavailable-use-first-ready-shared-backend-else-explicit-sqlite";
+    }
+
+    private boolean databaseCoreApiFallbackTargetReady() {
+        DatabaseService.Settings settings = databaseSettings();
+        if (settings == null || !settings.fallbackEnabled()) {
+            return false;
+        }
+        DatabaseService.StorageBackend target = selectCoreApiFallbackBackend(settings);
+        return target != null && databaseFallbackBackendReady(settings, target);
     }
 
     private DatabaseService.StorageBackend selectCoreApiFallbackBackend(DatabaseService.Settings settings) {
@@ -4086,7 +4097,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         List<DatabaseService.StorageBackend> fallbackOrder = settings.fallbackOrder() == null ? List.of() : settings.fallbackOrder();
         DatabaseService.StorageBackend sqlite = null;
-        DatabaseService.StorageBackend firstUnconfiguredShared = null;
         for (DatabaseService.StorageBackend backend : fallbackOrder) {
             if (backend == null || backend == DatabaseService.StorageBackend.CORE_API || backend == settings.backend()) {
                 continue;
@@ -4100,11 +4110,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             if (databaseFallbackBackendReady(settings, backend)) {
                 return backend;
             }
-            if (firstUnconfiguredShared == null && isSharedStorageBackend(backend)) {
-                firstUnconfiguredShared = backend;
-            }
         }
-        return sqlite != null ? sqlite : firstUnconfiguredShared;
+        return sqlite;
     }
 
     private boolean databaseFallbackBackendReady(DatabaseService.Settings settings, DatabaseService.StorageBackend backend) {
