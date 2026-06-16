@@ -92,6 +92,7 @@ messages:
     island-reset-evacuate: "섬 리셋을 위해 로비로 이동합니다."
     island-delete-evacuate: "섬 삭제를 위해 로비로 이동합니다."
     island-operation-evacuate: "섬 작업을 위해 로비로 이동합니다."
+    node-down-evacuate: "섬 서버 장애로 로비로 이동합니다."
     boundary-member-return: "섬 경계 밖으로 이동할 수 없어 섬 스폰으로 돌려보냈습니다."
     boundary-visitor-return: "섬 경계 밖으로 이동할 수 없어 방문자 위치로 돌려보냈습니다."
     flag-fly-denied: "이 섬에서는 비행할 수 없습니다."

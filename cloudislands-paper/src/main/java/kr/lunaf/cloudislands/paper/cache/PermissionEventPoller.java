@@ -328,6 +328,10 @@ public final class PermissionEventPoller {
         String reason = fields.getOrDefault("reason", "admin-request");
         String state = fields.getOrDefault("state", "");
         String operation = fields.getOrDefault("operation", "");
+        if (type.equals(CloudIslandEventType.NODE_STATE_CHANGED.name()) && state.equals("DOWN")) {
+            Bukkit.getScheduler().runTask(plugin, () -> moveAllPlayersToFallback(message("node-down-evacuate", "섬 서버 장애로 로비로 이동합니다. 사유: " + reason)));
+            return true;
+        }
         if ((type.equals(CloudIslandEventType.NODE_STATE_CHANGED.name()) && state.equals("KICKALL")) || type.equals("NODE_KICKALL")) {
             Bukkit.getScheduler().runTask(plugin, () -> kickPlayers(reason));
             return true;
@@ -607,6 +611,31 @@ public final class PermissionEventPoller {
                 islandMutationFallbackFailures.incrementAndGet();
                 islandMutationFallbackKicks.incrementAndGet();
                 plugin.getLogger().warning("Failed to move island player to fallback: " + exception.getMessage());
+                player.kickPlayer(reason);
+            }
+        }
+    }
+
+    private void moveAllPlayersToFallback(String reason) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            islandMutationEvacuations.incrementAndGet();
+            player.sendMessage(reason);
+            if (!canUseBungeeConnect()) {
+                islandMutationFallbackKicks.incrementAndGet();
+                player.kickPlayer(reason);
+                continue;
+            }
+            try {
+                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                DataOutputStream output = new DataOutputStream(bytes);
+                output.writeUTF("Connect");
+                output.writeUTF(fallbackServerName);
+                player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
+                islandMutationFallbackTransfers.incrementAndGet();
+            } catch (IOException | RuntimeException exception) {
+                islandMutationFallbackFailures.incrementAndGet();
+                islandMutationFallbackKicks.incrementAndGet();
+                plugin.getLogger().warning("Failed to move node players to fallback: " + exception.getMessage());
                 player.kickPlayer(reason);
             }
         }
