@@ -12,7 +12,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -235,17 +237,7 @@ public final class S3IslandStorage implements IslandStorage {
                 manualKept++;
             }
         }
-        int automaticKept = 0;
-        int automaticLimit = effectivePolicy.retainedAutomaticSnapshotCount();
-        for (String snapshot : snapshots) {
-            if (manualSnapshot(islandId, snapshot)) {
-                continue;
-            }
-            if (automaticKept < automaticLimit) {
-                retained.add(snapshot);
-                automaticKept++;
-            }
-        }
+        retainAutomaticSnapshots(islandId, snapshots, retained, effectivePolicy);
         int deletedKeys = 0;
         Set<String> removedSnapshots = new HashSet<>();
         for (String key : keys) {
@@ -257,6 +249,31 @@ public final class S3IslandStorage implements IslandStorage {
             }
         }
         return deletedKeys == 0 ? 0 : removedSnapshots.size();
+    }
+
+    private void retainAutomaticSnapshots(UUID islandId, List<String> snapshots, Set<String> retained, SnapshotRetentionPolicy policy) {
+        retainAutomaticBucket(islandId, snapshots, retained, policy.keepHourly(), "hour");
+        retainAutomaticBucket(islandId, snapshots, retained, policy.keepDaily(), "day");
+        retainAutomaticBucket(islandId, snapshots, retained, policy.keepWeekly(), "week");
+    }
+
+    private void retainAutomaticBucket(UUID islandId, List<String> snapshots, Set<String> retained, int limit, String bucketType) {
+        if (limit <= 0) {
+            return;
+        }
+        Set<String> retainedBuckets = new HashSet<>();
+        for (String snapshot : snapshots) {
+            if (retained.contains(snapshot) || manualSnapshot(islandId, snapshot)) {
+                continue;
+            }
+            String bucket = snapshotBucket(islandId, snapshot, bucketType);
+            if (retainedBuckets.add(bucket)) {
+                retained.add(snapshot);
+                if (retainedBuckets.size() >= limit) {
+                    return;
+                }
+            }
+        }
     }
 
     private String latestSnapshotName(UUID islandId) {
@@ -274,6 +291,37 @@ public final class S3IslandStorage implements IslandStorage {
             return reason != null && reason.toUpperCase(Locale.ROOT).contains("MANUAL");
         } catch (IOException exception) {
             return false;
+        }
+    }
+
+    private String snapshotBucket(UUID islandId, String snapshot, String bucketType) {
+        ZonedDateTime time = ZonedDateTime.ofInstant(snapshotTime(islandId, snapshot), ZoneOffset.UTC);
+        return switch (bucketType) {
+            case "hour" -> time.getYear() + "-" + time.getMonthValue() + "-" + time.getDayOfMonth() + "-" + time.getHour();
+            case "day" -> time.toLocalDate().toString();
+            case "week" -> time.getYear() + "-W" + time.get(WeekFields.ISO.weekOfWeekBasedYear());
+            default -> snapshot;
+        };
+    }
+
+    private Instant snapshotTime(UUID islandId, String snapshot) {
+        try {
+            String manifest = request("GET", key(islandId, "snapshots/" + snapshot + "/manifest.json"), null);
+            String savedAt = IslandManifestJson.read(manifest).savedAt();
+            if (savedAt != null && !savedAt.isBlank()) {
+                return Instant.parse(savedAt);
+            }
+        } catch (RuntimeException | IOException ignored) {
+            // Fall back to the snapshot id below.
+        }
+        try {
+            long numeric = Long.parseLong(snapshot);
+            if (numeric > 100_000_000_000L) {
+                return Instant.ofEpochMilli(numeric);
+            }
+            return Instant.EPOCH.plusSeconds(Math.max(0L, numeric));
+        } catch (NumberFormatException ignored) {
+            return Instant.EPOCH;
         }
     }
 
