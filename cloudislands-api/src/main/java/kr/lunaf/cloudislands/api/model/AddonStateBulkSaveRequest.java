@@ -125,7 +125,9 @@ public record AddonStateBulkSaveRequest(
         source.forEach((table, values) -> {
             String safeTable = safeTableName(table);
             if (!safeTable.isBlank()) {
-                copy.put(safeTable, copyTableValues(safeTable, values));
+                LinkedHashMap<String, String> merged = new LinkedHashMap<>(copy.getOrDefault(safeTable, Map.of()));
+                merged.putAll(copyTableValues(safeTable, values));
+                copy.put(safeTable, Map.copyOf(merged));
             }
         });
         return Map.copyOf(copy);
