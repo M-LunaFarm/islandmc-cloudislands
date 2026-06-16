@@ -402,6 +402,11 @@ public final class TranslationManager {
         values.put("admin-command-core-config-setup-db-typed-host-mode-prefix", " setupDbTypedHostMode=");
         values.put("admin-command-core-config-setup-db-typed-probe-order-prefix", " setupDbTypedProbeOrder=");
         values.put("admin-command-core-config-setup-db-core-api-mode-prefix", " setupDbCoreApiMode=");
+        values.put("admin-command-core-config-setup-db-core-api-base-url-prefix", " setupDbCoreApiBaseUrl=");
+        values.put("admin-command-core-config-setup-db-core-api-auth-token-prefix", " setupDbCoreApiAuthToken=");
+        values.put("admin-command-core-config-setup-db-core-api-admin-token-prefix", " setupDbCoreApiAdminToken=");
+        values.put("admin-command-core-config-setup-db-core-api-timeout-prefix", " setupDbCoreApiTimeoutMs=");
+        values.put("admin-command-core-config-setup-db-core-api-paths-prefix", " setupDbCoreApiPaths=");
         values.put("admin-command-core-config-setup-db-env-prefix", " setupDbEnv=");
         values.put("admin-command-core-config-setup-db-precedence-prefix", " setupDbPrecedence=");
         values.put("admin-command-core-config-setup-db-name-aliases-prefix", " setupDbNameAliases=");

@@ -24,6 +24,10 @@ public record CoreServiceConfig(
     int databasePoolSize,
     boolean setupDatabaseFallbackEnabled,
     String setupDatabaseFallbackOrder,
+    String setupDatabaseCoreApiBaseUrl,
+    boolean setupDatabaseCoreApiAuthTokenConfigured,
+    boolean setupDatabaseCoreApiAdminTokenConfigured,
+    int setupDatabaseCoreApiTimeoutMillis,
     URI redisUri,
     String storageType,
     URI storageEndpoint,
@@ -79,6 +83,10 @@ public record CoreServiceConfig(
             integer("CI_DB_POOL_SIZE", typedSetupDatabaseInteger(config, effectiveJdbcSettingsType(config), "pool-size", setupDatabaseInteger(config, "pool-size", configInteger(config, "database.pool-size", 20)))),
             bool("CI_DB_FALLBACK_ENABLED", configBoolean(config, "setup.database.fallback.enabled", configBoolean(config, "setup.database-fallback-enabled", true))),
             env("CI_DB_FALLBACK_ORDER", setupDatabaseFallbackOrder(config)),
+            env("CI_SETUP_CORE_API_BASE_URL", setupDatabaseCoreApiSetting(config, "base-url", setupDatabaseCoreApiSetting(config, "url", setting(config, "core-api.base-url", "")))),
+            !env("CI_SETUP_CORE_API_AUTH_TOKEN", setupDatabaseCoreApiSetting(config, "auth-token", setting(config, "core-api.auth-token", env("CI_CORE_TOKEN", "")))).isBlank(),
+            !env("CI_SETUP_CORE_API_ADMIN_TOKEN", setupDatabaseCoreApiSetting(config, "admin-token", setting(config, "core-api.admin-token", env("CI_ADMIN_TOKEN", "")))).isBlank(),
+            integer("CI_SETUP_CORE_API_TIMEOUT_MS", setupDatabaseCoreApiInteger(config, "timeout-ms", configInteger(config, "core-api.timeout-ms", 3000))),
             URI.create(env("CI_REDIS_URI", setupSetting(config, "redis-uri", setting(config, "redis.uri", "redis://redis.internal:6379")))),
             env("CI_STORAGE_TYPE", setupSetting(config, "storage-type", setting(config, "storage.type", "S3"))),
             URI.create(env("CI_STORAGE_ENDPOINT", setupSetting(config, "storage-endpoint", setting(config, "storage.endpoint", "http://minio.internal:9000")))),
@@ -195,7 +203,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, rateLimitRequests, rateLimitWindow);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, setupDatabaseCoreApiBaseUrl, setupDatabaseCoreApiAuthTokenConfigured, setupDatabaseCoreApiAdminTokenConfigured, setupDatabaseCoreApiTimeoutMillis, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, rateLimitRequests, rateLimitWindow);
     }
 
     public static String configuredDatabaseTypeSource() {
@@ -460,6 +468,32 @@ public record CoreServiceConfig(
             }
         }
         return setupInteger(config, "database-" + key, fallback);
+    }
+
+    private static String setupDatabaseCoreApiSetting(Map<String, String> config, String key, String fallback) {
+        String nested = setting(config, "setup.database.core-api." + key, "");
+        if (!nested.isBlank()) {
+            return nested;
+        }
+        String setupCoreApi = setting(config, "setup.core-api." + key, "");
+        if (!setupCoreApi.isBlank()) {
+            return setupCoreApi;
+        }
+        String legacy = setting(config, "setup-core-api." + key, "");
+        return legacy.isBlank() ? fallback : legacy;
+    }
+
+    private static int setupDatabaseCoreApiInteger(Map<String, String> config, String key, int fallback) {
+        String value = setupDatabaseCoreApiSetting(config, key, "");
+        if (value.isBlank()) {
+            return fallback;
+        }
+        try {
+            int parsed = Integer.parseInt(value);
+            return parsed <= 0 ? fallback : parsed;
+        } catch (NumberFormatException exception) {
+            return fallback;
+        }
     }
 
     private static String setupDatabaseFallbackOrder(Map<String, String> config) {
