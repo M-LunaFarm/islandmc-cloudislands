@@ -48,19 +48,40 @@ public final class ConfigGeneratorRules {
                 if (level < 1) {
                     continue;
                 }
-                ConfigurationSection materials = levels.getConfigurationSection(levelKey);
+                ConfigurationSection materials = levels.getConfigurationSection(levelKey + ".materials");
+                if (materials == null) {
+                    materials = levels.getConfigurationSection(levelKey);
+                }
                 if (materials == null) {
                     continue;
                 }
                 GeneratorRule rule = new GeneratorRule();
                 for (String materialKey : materials.getKeys(false)) {
-                    rule.add(materialKey, materials.getInt(materialKey, 0));
+                    if (materialKey.equalsIgnoreCase("materials")) {
+                        continue;
+                    }
+                    rule.add(materialKey, materialWeight(materials, materialKey));
                 }
                 registry.put(generatorKey, level, rule);
                 loadedRules++;
             }
         }
         return loadedRules == 0 ? null : registry;
+    }
+
+    private static int materialWeight(ConfigurationSection materials, String materialKey) {
+        if (materials.isConfigurationSection(materialKey)) {
+            return Math.max(0, materials.getInt(materialKey + ".weight", materials.getInt(materialKey + ".chance", 0)));
+        }
+        String raw = materials.getString(materialKey, "");
+        if (raw != null && !raw.isBlank()) {
+            try {
+                return Math.max(0, (int) Math.round(Double.parseDouble(raw.trim())));
+            } catch (NumberFormatException ignored) {
+                return 0;
+            }
+        }
+        return Math.max(0, materials.getInt(materialKey, 0));
     }
 
     private static int parseLevel(String value) {
