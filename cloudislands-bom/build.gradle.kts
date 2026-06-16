@@ -16,13 +16,3 @@ constraints {
     api(project(":cloudislands-migration"))
     api(project(":cloudislands-testkit"))
 }
-
-tasks.jar {
-    manifest {
-        attributes(
-            "CloudIslands-Package-Modules" to "api,common,protocol,core-client,core-service,velocity,paper,satis,storage,migration,testkit,bom",
-            "CloudIslands-Package-External-Addon" to "cloudislands-satis",
-            "CloudIslands-Package-Primary-Services" to "velocity-router,paper-agent,core-api,storage,migration"
-        )
-    }
-}
