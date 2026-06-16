@@ -39,7 +39,7 @@ tasks.jar {
             "CloudIslands-Addon-Database-Fallback-Safety-Keys" to "database-fallback-risk,database-fallback-production-safe,database-fallback-first-shared-backend,database-fallback-local-position",
             "CloudIslands-Addon-Database-Fallback-Safety-Policy" to "production-safe-when-shared-backend-precedes-local-sqlite",
             "CloudIslands-Satis-Placement-Source-Policy" to "record-core-payload-or-paper-allocator-on-activate-and-migrate",
-            "CloudIslands-Satis-Core-API-Bulk-Endpoints" to "table-key-value/bulk-save,table/key-value/bulk-save,table/key-value/bulk/save,table/key-value/bulk",
+            "CloudIslands-Satis-Core-API-Bulk-Endpoints" to "table/bulk,table-key-value/bulk-save,table/key-value/bulk-save,table/key-value/bulk/save,table/key-value/bulk",
             "CloudIslands-Satis-Core-API-Bulk-Fallback" to "flattened-addon-state-when-enabled",
             "CloudIslands-Addon-Feature-Gates" to "commands,machines,storage,factories,generators,upgrades,missions,menus,gui,lifecycle,resource-nodes,market,contracts,research,maintenance,placeholders,migration,addon-state,route-events",
             "CloudIslands-Addon-Feature-Disable-Policy" to "disabled-features-preserve-data-and-skip-runtime-components",
