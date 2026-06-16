@@ -571,7 +571,16 @@ public final class AdminFactoryCommand {
                 "last-core-hydrate-island",
                 "last-core-hydrate-key",
                 "last-core-hydrate-at",
-                "core-hydrated-activation-count"
+                "core-hydrated-activation-count",
+                "write-gate-machines",
+                "write-gate-storage",
+                "write-gate-resource-nodes",
+                "write-gate-market",
+                "write-gate-contracts",
+                "write-gate-research",
+                "runtime-commands-status",
+                "runtime-gui-status",
+                "runtime-placeholder-status"
         ).forEach(key -> {
             String value = details.get(key);
             if (value != null && !value.isBlank()) {
@@ -1197,6 +1206,8 @@ public final class AdminFactoryCommand {
                         "core-api-bulk-status-keys",
                         "core-api-hydrate-status-keys",
                         "core-api-bulk-fallback-visibility",
+                        "runtime-registration-policy",
+                        "runtime-component-audit",
                         "route-event-source",
                         "route-event-policy",
                         "route-event-feature-gate",
