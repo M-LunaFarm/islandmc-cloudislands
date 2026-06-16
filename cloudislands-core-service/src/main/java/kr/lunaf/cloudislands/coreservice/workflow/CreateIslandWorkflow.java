@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreservice.workflow;
 import java.time.Instant;
 import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
@@ -70,7 +71,7 @@ public final class CreateIslandWorkflow {
     }
 
     public CreateIslandResult create(UUID ownerUuid, String templateId) {
-        String normalizedTemplate = templateId == null || templateId.isBlank() ? "default" : templateId;
+        String normalizedTemplate = templateId == null || templateId.isBlank() ? "default" : templateId.trim().toLowerCase(Locale.ROOT);
         events.publish(CloudIslandEventType.ISLAND_PRE_CREATE.name(), Map.of("ownerUuid", ownerUuid.toString(), "templateId", normalizedTemplate));
         if (isMigrationInputOnlyTemplate(normalizedTemplate)) {
             publishTicketFailure(ownerUuid, null, "TEMPLATE_MIGRATION_INPUT_ONLY");
