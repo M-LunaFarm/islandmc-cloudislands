@@ -264,7 +264,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                     repairTarget(player, island);
                 }
             }
-            default -> help(player);
+            default -> help(player, label, 1);
         }
         return true;
     }
@@ -517,7 +517,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     }
 
     private void help(Player player, String label, int page) {
-        List<String> commands = visibleHelpCommands(label);
+        List<String> commands = visibleHelpCommands(label, player);
         int maxPage = Math.max(1, (commands.size() + HELP_PAGE_SIZE - 1) / HELP_PAGE_SIZE);
         int safePage = Math.max(1, Math.min(page, maxPage));
         int from = (safePage - 1) * HELP_PAGE_SIZE;
@@ -534,10 +534,10 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         }
     }
 
-    private List<String> visibleHelpCommands(String label) {
+    private List<String> visibleHelpCommands(String label, CommandSender viewer) {
         List<String> values = new ArrayList<>();
         for (String command : HELP_COMMANDS) {
-            if (commandRequiresDisabledFeature(command)) {
+            if (commandRequiresDisabledFeature(command, viewer)) {
                 continue;
             }
             values.add(command.replaceFirst("^factory", label));
@@ -545,7 +545,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         return values;
     }
 
-    private boolean commandRequiresDisabledFeature(String command) {
+    private boolean commandRequiresDisabledFeature(String command, CommandSender viewer) {
         return command.contains(" main") && !enabled("gui")
                 || command.contains(" storage") && (!enabled("storage") || !enabled("gui"))
                 || command.contains(" machines") && !enabled("machines")
@@ -555,7 +555,8 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                 || command.contains(" emergency") && (!enabled("contracts") || !enabled("maintenance") || !enabled("storage"))
                 || command.contains(" research") && !enabled("research")
                 || command.contains(" node") && !enabled("resource-nodes")
-                || command.contains(" repair") && (!enabled("maintenance") || !enabled("storage"));
+                || command.contains(" repair") && (!enabled("maintenance") || !enabled("storage"))
+                || command.contains(" admin ") && (viewer == null || !viewer.hasPermission("satisskyfactory.admin"));
     }
 
     private boolean isHelpRequest(String[] args) {
@@ -714,14 +715,14 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         if (args.length == 2 && isCommandListRoot(args[0])) {
             List<String> values = new ArrayList<>();
             values.add("list");
-            values.addAll(helpPageSuggestions());
+            values.addAll(helpPageSuggestions(sender));
             return filter(values, args[1]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("help")) {
-            return filter(helpPageSuggestions(), args[1]);
+            return filter(helpPageSuggestions(sender), args[1]);
         }
         if (args.length == 3 && isCommandListRoot(args[0]) && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
-            return filter(helpPageSuggestions(), args[2]);
+            return filter(helpPageSuggestions(sender), args[2]);
         }
         if ((args[0].equalsIgnoreCase("sell") && !enabled("market"))
                 || ((args[0].equalsIgnoreCase("sell") || args[0].equalsIgnoreCase("market")) && !enabled("storage"))
@@ -772,8 +773,8 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         return new ArrayList<>();
     }
 
-    private List<String> helpPageSuggestions() {
-        int maxPage = Math.max(1, (visibleHelpCommands("factory").size() + HELP_PAGE_SIZE - 1) / HELP_PAGE_SIZE);
+    private List<String> helpPageSuggestions(CommandSender sender) {
+        int maxPage = Math.max(1, (visibleHelpCommands("factory", sender).size() + HELP_PAGE_SIZE - 1) / HELP_PAGE_SIZE);
         List<String> values = new ArrayList<>();
         for (int page = 1; page <= maxPage; page++) {
             values.add(String.valueOf(page));
