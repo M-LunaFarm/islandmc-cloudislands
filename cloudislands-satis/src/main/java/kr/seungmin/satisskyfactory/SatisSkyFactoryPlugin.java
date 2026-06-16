@@ -2705,6 +2705,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (dirtySaves != null) {
             dirtySaves.flushIslandSafely(islandId);
         }
+        coreHydratedIslandActivations.remove(islandId);
         publishLifecycleState(islandId, safeOperation);
     }
 
