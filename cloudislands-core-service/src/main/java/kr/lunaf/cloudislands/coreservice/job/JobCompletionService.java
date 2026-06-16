@@ -14,6 +14,7 @@ import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
+import kr.lunaf.cloudislands.protocol.job.IslandJobCompletionPolicy;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 
@@ -326,7 +327,7 @@ public final class JobCompletionService {
     }
 
     private boolean isStaleFencingFailure(IslandJob job, String errorMessage) {
-        long fencingToken = longValue(job.payload().get("fencingToken"));
+        long fencingToken = IslandJobCompletionPolicy.fencingToken(job.payload());
         if (fencingToken <= 0L) {
             return false;
         }
@@ -348,7 +349,7 @@ public final class JobCompletionService {
     }
 
     private boolean isStaleSnapshotCompletion(IslandJob job) {
-        long fencingToken = longValue(job.payload().get("fencingToken"));
+        long fencingToken = IslandJobCompletionPolicy.fencingToken(job.payload());
         if (fencingToken <= 0L) {
             return false;
         }
@@ -386,7 +387,7 @@ public final class JobCompletionService {
     }
 
     private void completeMigrationSourceSave(IslandJob job) {
-        long fencingToken = longValue(job.payload().get("fencingToken"));
+        long fencingToken = IslandJobCompletionPolicy.fencingToken(job.payload());
         kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot current = runtimes.find(job.islandId()).orElse(null);
         String staleReason = staleCompletionReason(job, current, fencingToken);
         if (!staleReason.isBlank()) {
@@ -449,7 +450,7 @@ public final class JobCompletionService {
     }
 
     private boolean markActiveFromJob(IslandJob job, String worldName) {
-        long fencingToken = longValue(job.payload().get("fencingToken"));
+        long fencingToken = IslandJobCompletionPolicy.fencingToken(job.payload());
         kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot current = runtimes.find(job.islandId()).orElse(null);
         String staleReason = staleCompletionReason(job, current, fencingToken);
         if (!staleReason.isBlank()) {
@@ -473,7 +474,7 @@ public final class JobCompletionService {
     }
 
     private boolean markInactiveFromJob(IslandJob job) {
-        long fencingToken = longValue(job.payload().get("fencingToken"));
+        long fencingToken = IslandJobCompletionPolicy.fencingToken(job.payload());
         kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot current = runtimes.find(job.islandId()).orElse(null);
         String staleReason = staleCompletionReason(job, current, fencingToken);
         if (!staleReason.isBlank()) {

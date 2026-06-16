@@ -18,7 +18,7 @@ public record IslandJobCompletionPayload(Map<String, String> fields) {
             .with("cellX", Integer.toString(cellX))
             .with("cellZ", Integer.toString(cellZ))
             .with("schemaVersion", Long.toString(schemaVersion))
-            .with("fencingToken", Long.toString(fencingToken))
+            .with(IslandJobCompletionPolicy.FENCING_TOKEN_KEY, Long.toString(fencingToken))
             .with("extractedRoot", extractedRoot);
     }
 

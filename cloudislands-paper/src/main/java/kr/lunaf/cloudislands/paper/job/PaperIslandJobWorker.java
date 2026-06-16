@@ -14,6 +14,7 @@ import kr.lunaf.cloudislands.paper.event.IslandPreActivateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandPreCreateEvent;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobCompletionPayload;
+import kr.lunaf.cloudislands.protocol.job.IslandJobCompletionPolicy;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
@@ -123,7 +124,7 @@ public final class PaperIslandJobWorker {
                     .with("placementSource", result.placementSource())
                     .withPreMutationSnapshot(result.preMutationSnapshotNo(), result.preMutationReason(), result.preMutationChecksum(), result.preMutationSizeBytes())
                     .withSnapshot(result.creationSnapshotNo(), "CREATED", result.creationSnapshotChecksum(), result.creationSnapshotSizeBytes());
-                jobSource.complete(nodeId, job.jobId(), payload.asMap());
+                jobSource.complete(nodeId, job.jobId(), completePayload(job, payload));
             } else {
                 jobSource.fail(nodeId, job.jobId(), result.state());
             }
@@ -147,7 +148,7 @@ public final class PaperIslandJobWorker {
             if (job.type() == IslandJobType.DELETE_ISLAND && job.payload().containsKey("ownerUuid")) {
                 payload = payload.with("ownerUuid", job.payload().get("ownerUuid"));
             }
-            jobSource.complete(nodeId, job.jobId(), payload.asMap());
+            jobSource.complete(nodeId, job.jobId(), completePayload(job, payload));
         } else {
             jobSource.fail(nodeId, job.jobId(), result.errorMessage());
         }
@@ -160,7 +161,7 @@ public final class PaperIslandJobWorker {
         }
         IslandDeactivationHandler.DeactivationResult result = deactivationHandler.saveOnly(job.islandId(), job.payload().getOrDefault("reason", job.type().name()));
         if (result.success()) {
-            jobSource.complete(nodeId, job.jobId(), IslandJobCompletionPayload.snapshot(result.snapshotNo(), job.payload().getOrDefault("reason", job.type().name()), result.checksum(), result.sizeBytes()).asMap());
+            jobSource.complete(nodeId, job.jobId(), completePayload(job, IslandJobCompletionPayload.snapshot(result.snapshotNo(), job.payload().getOrDefault("reason", job.type().name()), result.checksum(), result.sizeBytes())));
         } else {
             jobSource.fail(nodeId, job.jobId(), result.errorMessage());
         }
@@ -179,5 +180,9 @@ public final class PaperIslandJobWorker {
 
     public int recentFailurePenalty() {
         return Math.min(consecutiveFailures, 20);
+    }
+
+    private Map<String, String> completePayload(IslandJob job, IslandJobCompletionPayload payload) {
+        return IslandJobCompletionPolicy.carryJobContext(job, payload, nodeId).asMap();
     }
 }
