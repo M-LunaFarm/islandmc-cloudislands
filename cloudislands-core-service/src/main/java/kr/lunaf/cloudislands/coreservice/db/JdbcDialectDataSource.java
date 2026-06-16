@@ -134,7 +134,7 @@ public final class JdbcDialectDataSource implements DataSource {
                 return toUuid(raw);
             }
             Object result = invoke(resultSet, method, args);
-            if ("getObject".equals(method.getName())) {
+            if ("getObject".equals(method.getName()) && uuidColumn(args)) {
                 Object uuid = toUuid(result);
                 return uuid == null ? result : uuid;
             }
@@ -159,6 +159,17 @@ public final class JdbcDialectDataSource implements DataSource {
             return new UUID(buffer.getLong(), buffer.getLong());
         }
         return null;
+    }
+
+    private boolean uuidColumn(Object[] args) {
+        if (args == null || args.length != 1 || !(args[0] instanceof String column)) {
+            return false;
+        }
+        String normalized = column.toLowerCase(Locale.ROOT);
+        return normalized.equals("id")
+            || normalized.endsWith("_id")
+            || normalized.equals("uuid")
+            || normalized.endsWith("_uuid");
     }
 
     private boolean uuidText(String value) {
