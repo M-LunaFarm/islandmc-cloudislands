@@ -49,7 +49,9 @@ public final class IslandWorldRestorer {
         if (manifest.isEmpty()) {
             return;
         }
-        String expectedChecksum = manifest.get().checksum();
+        IslandBundleManifest restoreManifest = manifest.get();
+        validateRestoreManifest(islandId, restoreManifest);
+        String expectedChecksum = restoreManifest.checksum();
         if (expectedChecksum == null || expectedChecksum.isBlank()) {
             return;
         }
@@ -60,6 +62,26 @@ public final class IslandWorldRestorer {
         if (!expectedChecksum.equalsIgnoreCase(actualChecksum)) {
             throw new IOException("island bundle checksum mismatch: " + islandId);
         }
+    }
+
+    private void validateRestoreManifest(UUID islandId, IslandBundleManifest manifest) throws IOException {
+        if (!manifest.portable()) {
+            throw new IOException("island bundle is not portable: " + islandId);
+        }
+        if (!supportedChecksumAlgorithm(manifest.checksumAlgorithm())) {
+            throw new IOException("unsupported island bundle checksum algorithm: " + manifest.checksumAlgorithm());
+        }
+        if (!supportedCompression(manifest.compression())) {
+            throw new IOException("unsupported island bundle compression: " + manifest.compression());
+        }
+    }
+
+    private boolean supportedChecksumAlgorithm(String algorithm) {
+        return algorithm == null || algorithm.isBlank() || algorithm.equalsIgnoreCase("SHA-256");
+    }
+
+    private boolean supportedCompression(String compression) {
+        return compression == null || compression.isBlank() || compression.equalsIgnoreCase("zstd");
     }
 
     private Optional<IslandBundleManifest> restoreManifest(UUID islandId, long snapshotNo, String storagePath) throws IOException {
