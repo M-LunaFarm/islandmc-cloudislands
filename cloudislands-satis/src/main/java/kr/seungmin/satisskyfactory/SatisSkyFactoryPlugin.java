@@ -4015,6 +4015,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         String setupType = configs.main().getString("setup.database.type", "");
         if (setupType != null && !setupType.isBlank()) {
+            if (configs.main().getBoolean("setup.database.core-api.enabled", false)
+                    && DatabaseService.StorageBackend.parse(setupType, null) != DatabaseService.StorageBackend.CORE_API) {
+                return "core-api-marker-ignored-by-setup.database.type:" + safeReasonToken(setupType);
+            }
+            if (DatabaseService.StorageBackend.parse(setupType, null) == null) {
+                return "invalid-setup.database.type:" + safeReasonToken(setupType) + ":fallback-to-sqlite";
+            }
             return "none";
         }
         if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
