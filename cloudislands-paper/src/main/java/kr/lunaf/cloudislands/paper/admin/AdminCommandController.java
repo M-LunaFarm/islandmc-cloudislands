@@ -19,6 +19,7 @@ import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -2675,20 +2676,20 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private void usage(CommandSender sender, String label, int page) {
-        int pageSize = 12;
+        int pageSize = CommandListPolicy.DEFAULT_PAGE_SIZE;
         int maxPage = Math.max(1, (helpCommands().size() + pageSize - 1) / pageSize);
         int safePage = Math.max(1, Math.min(page, maxPage));
         int from = (safePage - 1) * pageSize;
         int to = Math.min(helpCommands().size(), from + pageSize);
-        sender.sendMessage(adminText("admin-command-list-title", "CloudIslands 관리자 명령어 목록 ") + safePage + "/" + maxPage + adminText("admin-command-list-suffix", " - 1 line > 1 command"));
+        sender.sendMessage(adminText("admin-command-list-title", "CloudIslands 관리자 명령어 목록 ") + safePage + "/" + maxPage + adminText("admin-command-list-suffix", CommandListPolicy.HEADER_SUFFIX));
         for (String command : helpCommands().subList(from, to)) {
-            sender.sendMessage("> /" + command.replaceFirst("^ciadmin", label));
+            sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + command.replaceFirst("^ciadmin", label));
         }
         if (safePage > 1) {
-            sender.sendMessage("> /" + label + " command list " + (safePage - 1));
+            sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + label + " command list " + (safePage - 1));
         }
         if (safePage < maxPage) {
-            sender.sendMessage("> /" + label + " command list " + (safePage + 1));
+            sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + label + " command list " + (safePage + 1));
         }
     }
 

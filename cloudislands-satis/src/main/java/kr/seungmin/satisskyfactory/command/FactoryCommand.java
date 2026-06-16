@@ -1,5 +1,6 @@
 package kr.seungmin.satisskyfactory.command;
 
+import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import kr.seungmin.satisskyfactory.config.MessageService;
 import kr.seungmin.satisskyfactory.contract.ContractService;
 import kr.seungmin.satisskyfactory.database.DatabaseService;
@@ -44,7 +45,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public final class FactoryCommand implements CommandExecutor, TabCompleter {
-    private static final int HELP_PAGE_SIZE = 12;
+    private static final int HELP_PAGE_SIZE = CommandListPolicy.DEFAULT_PAGE_SIZE;
     private static final List<String> HELP_COMMANDS = List.of(
             "factory help [page]",
             "factory list [page]",

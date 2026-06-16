@@ -1,5 +1,6 @@
 package kr.seungmin.satisskyfactory.command;
 
+import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import kr.seungmin.satisskyfactory.config.MessageService;
 import kr.seungmin.satisskyfactory.database.DatabaseService;
 import kr.seungmin.satisskyfactory.hook.SkyblockProvider;
@@ -41,7 +42,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public final class AdminFactoryCommand {
-    private static final int HELP_PAGE_SIZE = 12;
+    private static final int HELP_PAGE_SIZE = CommandListPolicy.DEFAULT_PAGE_SIZE;
     private static final String MIGRATION_IMPORT_APPROVAL = "CONFIRM_IMPORT";
     private static final String MIGRATION_SOURCE_POLICY = "read-only-snapshot-or-sqlite-import-no-live-provider-hooks";
     private static final String MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS = "SuperiorSkyblock2,BentoBox,ASkyBlock";

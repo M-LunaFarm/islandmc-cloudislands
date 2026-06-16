@@ -31,6 +31,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JdkCoreApiClient;
+import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import kr.lunaf.cloudislands.velocity.command.IslandCommandCatalog;
 import kr.lunaf.cloudislands.velocity.health.VelocityHealthService;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
@@ -1193,20 +1194,20 @@ public final class CloudIslandsVelocityPlugin {
     }
 
     private void sendCommandList(Player player, String title, List<String> commands, int page, String nextCommand) {
-        int pageSize = 12;
+        int pageSize = CommandListPolicy.DEFAULT_PAGE_SIZE;
         int maxPage = Math.max(1, (commands.size() + pageSize - 1) / pageSize);
         int safePage = Math.max(1, Math.min(page, maxPage));
         int from = (safePage - 1) * pageSize;
         int to = Math.min(commands.size(), from + pageSize);
-        player.sendMessage(Component.text(title + " " + safePage + "/" + maxPage + " - 1 line > 1 command"));
+        player.sendMessage(Component.text(title + " " + safePage + "/" + maxPage + CommandListPolicy.HEADER_SUFFIX));
         for (String command : commands.subList(from, to)) {
-            player.sendMessage(Component.text("> /" + command));
+            player.sendMessage(Component.text(CommandListPolicy.ENTRY_PREFIX + command));
         }
         if (safePage > 1) {
-            player.sendMessage(Component.text("> /" + nextCommand + " " + (safePage - 1)));
+            player.sendMessage(Component.text(CommandListPolicy.ENTRY_PREFIX + nextCommand + " " + (safePage - 1)));
         }
         if (safePage < maxPage) {
-            player.sendMessage(Component.text("> /" + nextCommand + " " + (safePage + 1)));
+            player.sendMessage(Component.text(CommandListPolicy.ENTRY_PREFIX + nextCommand + " " + (safePage + 1)));
         }
     }
 

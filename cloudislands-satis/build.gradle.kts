@@ -9,6 +9,7 @@ dependencies {
     implementation("com.mysql:mysql-connector-j:9.1.0")
     implementation("org.mariadb.jdbc:mariadb-java-client:3.5.1")
     implementation("com.zaxxer:HikariCP:5.1.0")
+    implementation(project(":cloudislands-protocol"))
     compileOnly(project(":cloudislands-api"))
 }
 

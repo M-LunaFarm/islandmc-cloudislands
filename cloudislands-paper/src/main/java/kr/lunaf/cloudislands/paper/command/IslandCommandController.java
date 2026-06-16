@@ -25,6 +25,7 @@ import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import kr.lunaf.cloudislands.paper.gui.IslandBankMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandBiomeMenu;
@@ -999,22 +1000,22 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private void sendCommandList(Player player, String label, String title, List<String> commands, int page) {
-        int pageSize = 12;
+        int pageSize = CommandListPolicy.DEFAULT_PAGE_SIZE;
         int maxPage = Math.max(1, (commands.size() + pageSize - 1) / pageSize);
         int safePage = Math.max(1, Math.min(page, maxPage));
         int from = (safePage - 1) * pageSize;
         int to = Math.min(commands.size(), from + pageSize);
         String headerTitle = routeMessage("command-list-title", title + " ");
-        String headerSuffix = routeMessage("command-list-suffix", " - 1 line > 1 command");
+        String headerSuffix = routeMessage("command-list-suffix", CommandListPolicy.HEADER_SUFFIX);
         player.sendMessage(headerTitle + safePage + "/" + maxPage + headerSuffix);
         for (String command : commands.subList(from, to)) {
-            player.sendMessage("> /" + command.replaceFirst("^섬", label));
+            player.sendMessage(CommandListPolicy.ENTRY_PREFIX + command.replaceFirst("^섬", label));
         }
         if (safePage > 1) {
-            player.sendMessage("> /" + label + " command list " + (safePage - 1));
+            player.sendMessage(CommandListPolicy.ENTRY_PREFIX + label + " command list " + (safePage - 1));
         }
         if (safePage < maxPage) {
-            player.sendMessage("> /" + label + " command list " + (safePage + 1));
+            player.sendMessage(CommandListPolicy.ENTRY_PREFIX + label + " command list " + (safePage + 1));
         }
     }
 
