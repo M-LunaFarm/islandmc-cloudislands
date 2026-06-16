@@ -206,6 +206,7 @@ public final class IslandLifecycleWorkflow {
     }
 
     public Result snapshot(UUID islandId, String reason) {
+        String safeReason = reason == null ? "" : reason;
         IslandRuntimeSnapshot runtime = runtimes.find(islandId).orElseGet(() -> runtimes.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.INACTIVE_READY));
         if (runtime.activeNode() == null || runtime.activeNode().isBlank()) {
             return new Result(false, "ISLAND_NOT_ACTIVE", runtime);
@@ -218,11 +219,11 @@ public final class IslandLifecycleWorkflow {
             return new Result(false, "STORAGE_UNAVAILABLE", runtime);
         }
         try {
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.SNAPSHOT_ISLAND, islandId, runtime.activeNode(), 20, Map.of("reason", reason, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.SNAPSHOT_ISLAND, islandId, runtime.activeNode(), 20, Map.of("reason", safeReason, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
         } catch (RuntimeException exception) {
             return jobQueueFailed(islandId, IslandState.ERROR_SAVING);
         }
-        events.publish(CloudIslandEventType.ISLAND_SNAPSHOT_REQUESTED.name(), Map.of("islandId", islandId.toString(), "reason", reason));
+        events.publish(CloudIslandEventType.ISLAND_SNAPSHOT_REQUESTED.name(), Map.of("islandId", islandId.toString(), "reason", safeReason));
         return new Result(true, "SNAPSHOT_QUEUED", runtime);
     }
 
@@ -270,9 +271,10 @@ public final class IslandLifecycleWorkflow {
     }
 
     public Result reset(UUID islandId, String reason) {
+        String safeReason = reason == null ? "" : reason;
         IslandRuntimeSnapshot current = runtimes.find(islandId).orElse(null);
         if (current != null && current.state() == IslandState.ACTIVE) {
-            return resetActive(islandId, current, reason);
+            return resetActive(islandId, current, safeReason);
         }
         if (!canStartActivation(current)) {
             return new Result(false, "ISLAND_BUSY", current);
@@ -290,12 +292,12 @@ public final class IslandLifecycleWorkflow {
         IslandRuntimeSnapshot runtime = kr.lunaf.cloudislands.coreservice.IslandPlacement.markActivating(islandId, node.nodeId(), runtimes);
         islands.setState(islandId, IslandState.ACTIVATING);
         try {
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESET_ISLAND, islandId, node.nodeId(), 40, Map.of("templateId", templateId, "reason", reason, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESET_ISLAND, islandId, node.nodeId(), 40, Map.of("templateId", templateId, "reason", safeReason, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
         } catch (RuntimeException exception) {
             releaseActivationLock(lease);
             return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
         }
-        events.publish(CloudIslandEventType.ISLAND_RESET_REQUESTED.name(), Map.of("islandId", islandId.toString(), "state", "RESETTING", "targetNode", node.nodeId(), "reason", reason));
+        events.publish(CloudIslandEventType.ISLAND_RESET_REQUESTED.name(), Map.of("islandId", islandId.toString(), "state", "RESETTING", "targetNode", node.nodeId(), "reason", safeReason));
         return new Result(true, "RESET_QUEUED", runtime);
     }
 
