@@ -1411,7 +1411,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private Component routeComponent(String key, String fallback, String... variables) {
-        return Component.text(routeMessage(key, fallback, variables));
+        return Component.text(playerMessage(routeMessage(key, fallback, variables)));
     }
 
     private String routeMessage(String key, String fallback, String... variables) {
@@ -1433,11 +1433,11 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private void showRouteLoading(Player player, float progress, String title) {
         BossBar bossBar = routeBossBars.computeIfAbsent(player.getUniqueId(), ignored -> {
-            BossBar created = BossBar.bossBar(Component.text(title), progress, BossBar.Color.GREEN, BossBar.Overlay.PROGRESS);
+            BossBar created = BossBar.bossBar(Component.text(playerMessage(title)), progress, BossBar.Color.GREEN, BossBar.Overlay.PROGRESS);
             player.showBossBar(created);
             return created;
         });
-        bossBar.name(Component.text(title));
+        bossBar.name(Component.text(playerMessage(title)));
         bossBar.progress(Math.max(0.0f, Math.min(1.0f, progress)));
     }
 
@@ -1509,11 +1509,11 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     private void connectPlayerToServer(Player player, String targetServerName, String successMessage, String failureMessage) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             if (targetServerName == null || targetServerName.isBlank()) {
-                player.sendMessage(failureMessage);
+                player.sendMessage(playerMessage(failureMessage));
                 return;
             }
             if (!canUseBungeeConnect()) {
-                player.sendMessage(failureMessage);
+                player.sendMessage(playerMessage(failureMessage));
                 return;
             }
             try {
@@ -1522,9 +1522,9 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 output.writeUTF("Connect");
                 output.writeUTF(targetServerName);
                 player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
-                player.sendMessage(successMessage);
+                player.sendMessage(playerMessage(successMessage));
             } catch (IOException | RuntimeException exception) {
-                player.sendMessage(failureMessage);
+                player.sendMessage(playerMessage(failureMessage));
             }
         });
     }
@@ -3230,7 +3230,19 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private void message(Player player, String message) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message));
+        plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(playerMessage(message)));
+    }
+
+    private String playerMessage(String message) {
+        String value = message == null || message.isBlank() ? "섬 요청을 처리하지 못했습니다." : message;
+        return value
+            .replaceAll("(?i)\\btargetNode\\s*[=:]\\s*[^\\s,|]+", "targetNode=숨김")
+            .replaceAll("(?i)\\brequestedNode\\s*[=:]\\s*[^\\s,|]+", "requestedNode=숨김")
+            .replaceAll("(?i)\\btargetServerName\\s*[=:]\\s*[^\\s,|]+", "targetServerName=숨김")
+            .replaceAll("(?i)\\bserver\\s*[=:]\\s*[^\\s,|]+", "server=숨김")
+            .replaceAll("(?i)\\bnode\\s*[=:]\\s*[^\\s,|]+", "node=숨김")
+            .replaceAll("(?i)\\b[A-Za-z0-9_.-]*island[-_ ]?\\d+[A-Za-z0-9_.-]*\\b", "섬 서버")
+            .replaceAll("(?i)\\b[A-Za-z0-9_.-]*node[-_ ]?\\d+[A-Za-z0-9_.-]*\\b", "섬 서버");
     }
 
     private String coreWriteFailureMessage(Throwable error, String fallback) {
