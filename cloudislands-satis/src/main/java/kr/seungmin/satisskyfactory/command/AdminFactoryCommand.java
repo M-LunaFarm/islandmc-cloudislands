@@ -878,7 +878,13 @@ public final class AdminFactoryCommand {
                         ))));
                 return;
             }
+            String approvedDryRunSource = lastLegacyDryRunSource;
+            long approvedDryRunRows = lastLegacyDryRunRows;
+            String approvedDryRunFingerprint = lastLegacyDryRunFingerprint;
             DatabaseService.LegacyImportResult result = database.importLegacyDatabase(new File(sourcePath));
+            lastLegacyDryRunSource = null;
+            lastLegacyDryRunRows = 0L;
+            lastLegacyDryRunFingerprint = null;
             reload.run();
             sender.sendMessage(messages.raw("admin-migration-title"));
             Map<String, String> state = new LinkedHashMap<>();
@@ -888,9 +894,10 @@ public final class AdminFactoryCommand {
             state.put("live-provider-hooks", "false");
             state.put("forbidden-runtime-providers", MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS);
             state.put("target-backend", database.activeBackend().name());
-            state.put("dryrun-source", lastLegacyDryRunSource);
-            state.put("dryrun-rows", String.valueOf(lastLegacyDryRunRows));
-            state.put("dryrun-fingerprint", lastLegacyDryRunFingerprint);
+            state.put("dryrun-source", approvedDryRunSource);
+            state.put("dryrun-rows", String.valueOf(approvedDryRunRows));
+            state.put("dryrun-fingerprint", approvedDryRunFingerprint);
+            state.put("dryrun-cache", "cleared-after-import");
             state.put("copied-rows", String.valueOf(result.copiedRows()));
             state.put("copied-tables", String.join(",", result.copiedTables()));
             state.put("skipped-tables", result.skippedTables().isEmpty() ? "none" : String.join(",", result.skippedTables()));
@@ -902,6 +909,7 @@ public final class AdminFactoryCommand {
             state.put("core-api-writer-required", Boolean.toString(database.activeBackend() == DatabaseService.StorageBackend.CORE_API));
             state.put("rollback-backup", result.rollbackBackupPath());
             state.put("rollback-command", "/factory admin migration rollback");
+            state.put("next-import-prerequisite", "/factory admin migration dryrun <sqlitePath>");
             state.entrySet().stream()
                     .sorted(Map.Entry.comparingByKey())
                     .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
