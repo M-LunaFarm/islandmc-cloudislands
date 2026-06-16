@@ -98,10 +98,23 @@ public final class JdbcIslandBankRepository implements IslandBankRepository {
     }
 
     private void ensureRow(Connection connection, UUID islandId) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("INSERT INTO island_bank(island_id) VALUES (?) ON CONFLICT (island_id) DO NOTHING")) {
+        try (PreparedStatement statement = connection.prepareStatement(ensureRowSql(connection))) {
             statement.setObject(1, islandId);
             statement.executeUpdate();
         }
+    }
+
+    private String ensureRowSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT IGNORE INTO island_bank(island_id) VALUES (?)";
+        }
+        return "INSERT INTO island_bank(island_id) VALUES (?) ON CONFLICT (island_id) DO NOTHING";
+    }
+
+    private boolean mysqlLike(Connection connection) throws SQLException {
+        String product = connection.getMetaData().getDatabaseProductName();
+        String normalized = product == null ? "" : product.toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains("mysql") || normalized.contains("mariadb");
     }
 
     private BigDecimal lockedBalance(Connection connection, UUID islandId) throws SQLException {
