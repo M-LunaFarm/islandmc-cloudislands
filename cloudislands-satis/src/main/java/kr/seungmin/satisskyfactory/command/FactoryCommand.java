@@ -143,6 +143,10 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             messages.send(player, "feature-disabled", Map.of("feature", disabledFeature));
             return true;
         }
+        if (isHelpRequest(args)) {
+            help(player, label, helpPage(args));
+            return true;
+        }
         boolean readOnly = readOnlyCommand(sub);
         Optional<FactoryContext> context = readOnly ? islands.existingContext(player) : islands.context(player);
         if (context.isEmpty()) {
