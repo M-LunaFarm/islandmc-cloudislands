@@ -3564,6 +3564,26 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 fallbackEnabled,
                 fallbackOrder
         );
+        List<DatabaseService.StorageBackend> readyFallbackOrder = readyDatabaseFallbackOrder(settings);
+        if (!readyFallbackOrder.equals(fallbackOrder)) {
+            settings = new DatabaseService.Settings(
+                    backend,
+                    sqliteFileName,
+                    jdbcUrl,
+                    postgresqlJdbcUrl,
+                    mysqlJdbcUrl,
+                    mariadbJdbcUrl,
+                    username,
+                    password,
+                    maxPoolSize,
+                    connectionTimeoutMillis,
+                    postgresqlSettings,
+                    mysqlSettings,
+                    mariadbSettings,
+                    fallbackEnabled,
+                    readyFallbackOrder
+            );
+        }
         if (backend == DatabaseService.StorageBackend.CORE_API && !coreApiAddonStateAvailable() && fallbackEnabled) {
             DatabaseService.StorageBackend fallbackBackend = selectCoreApiFallbackBackend(settings);
             if (fallbackBackend != null && fallbackBackend != DatabaseService.StorageBackend.CORE_API) {
@@ -3593,6 +3613,30 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             appendPendingDatabaseConfigFallbackReason(cloudIslandsApi == null ? "core-api-cloudislands-api-missing:no-ready-fallback" : "core-api-addon-state-disabled:no-ready-fallback");
         }
         return settings;
+    }
+
+    private List<DatabaseService.StorageBackend> readyDatabaseFallbackOrder(DatabaseService.Settings settings) {
+        if (settings == null || !settings.fallbackEnabled()) {
+            return settings == null || settings.fallbackOrder() == null ? List.of() : settings.fallbackOrder();
+        }
+        List<DatabaseService.StorageBackend> fallbackOrder = settings.fallbackOrder() == null ? List.of() : settings.fallbackOrder();
+        List<DatabaseService.StorageBackend> ready = new ArrayList<>();
+        List<String> skipped = new ArrayList<>();
+        DatabaseService.StorageBackend primary = settings.backend() == null ? DatabaseService.StorageBackend.SQLITE : settings.backend();
+        for (DatabaseService.StorageBackend backend : fallbackOrder) {
+            if (backend == null || ready.contains(backend)) {
+                continue;
+            }
+            if (backend == primary || databaseFallbackBackendReady(settings, backend)) {
+                ready.add(backend);
+            } else {
+                skipped.add(backend.name());
+            }
+        }
+        if (!skipped.isEmpty()) {
+            appendPendingDatabaseConfigFallbackReason("skip-unconfigured-database-fallback:" + String.join("+", skipped));
+        }
+        return ready;
     }
 
     private String databaseSettingsFingerprint(DatabaseService.Settings settings) {
