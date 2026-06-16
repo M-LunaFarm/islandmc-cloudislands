@@ -23,6 +23,7 @@ import kr.lunaf.cloudislands.api.event.IslandPreCreateEvent;
 import kr.lunaf.cloudislands.api.event.IslandPreVisitEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeactivationRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeactivatedEvent;
+import kr.lunaf.cloudislands.api.event.IslandDeleteBackupFailedEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeleteRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeletedEvent;
 import kr.lunaf.cloudislands.api.event.IslandFlagChangeEvent;
@@ -118,6 +119,8 @@ public interface CloudIslandsAddon {
             onIslandDeleted(deleted);
         } else if (event instanceof IslandDeleteRequestEvent deleteRequested) {
             onIslandDeleteRequested(deleteRequested);
+        } else if (event instanceof IslandDeleteBackupFailedEvent deleteBackupFailed) {
+            onIslandDeleteBackupFailed(deleteBackupFailed);
         } else if (event instanceof IslandRestoreRequestEvent restoreRequested) {
             onIslandRestoreRequested(restoreRequested);
         } else if (event instanceof IslandRestoredEvent restored) {
@@ -250,6 +253,9 @@ public interface CloudIslandsAddon {
     }
 
     default void onIslandDeleteRequested(IslandDeleteRequestEvent event) {
+    }
+
+    default void onIslandDeleteBackupFailed(IslandDeleteBackupFailedEvent event) {
     }
 
     default void onIslandRestoreRequested(IslandRestoreRequestEvent event) {

@@ -26,6 +26,7 @@ public final class CloudEventMapper {
             case "ISLAND_CREATED" -> Optional.of(new IslandCreatedEvent(uuid(fields, "islandId"), uuid(fields, "ownerUuid"), occurredAt));
             case "ISLAND_DELETED" -> Optional.of(new IslandDeletedEvent(uuid(fields, "islandId"), longValue(fields, "snapshotNo"), occurredAt));
             case "ISLAND_DELETE_REQUESTED" -> Optional.of(new IslandDeleteRequestEvent(uuid(fields, "islandId"), firstText(fields, "targetNode", "nodeId"), text(fields, "reason"), occurredAt));
+            case "ISLAND_DELETE_BACKUP_FAILED" -> Optional.of(new IslandDeleteBackupFailedEvent(uuid(fields, "islandId"), text(fields, "reason"), text(fields, "error"), occurredAt));
             case "ISLAND_PRE_ACTIVATE" -> Optional.of(new IslandPreActivateEvent(uuid(fields, "islandId"), firstText(fields, "targetNode", "nodeId"), occurredAt));
             case "ISLAND_ACTIVATE_REQUESTED" -> Optional.of(new IslandActivationRequestEvent(uuid(fields, "islandId"), text(fields, "state"), firstText(fields, "targetNode", "nodeId"), occurredAt));
             case "ISLAND_ACTIVATED" -> Optional.of(new IslandActivatedEvent(uuid(fields, "islandId"), text(fields, "nodeId"), text(fields, "worldName"), intValue(fields, "cellX"), intValue(fields, "cellZ"), text(fields, "placementSource"), occurredAt));
