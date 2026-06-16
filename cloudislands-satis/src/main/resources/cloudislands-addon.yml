@@ -14,6 +14,9 @@ runtime:
   owns-islands: false
   storage-key: cloudislands-island-uuid
   default-database-mode: CORE_API
+  load-phase: Paper-POSTWORLD-after-CloudIslands
+  command-owner: external-addon
+  disabled-mode: disabled-command-stub-no-listeners-no-tickers-no-placeholders-no-core-api-writers
   component-audit:
     active-key: runtime-active-components
     skipped-key: runtime-skipped-components
