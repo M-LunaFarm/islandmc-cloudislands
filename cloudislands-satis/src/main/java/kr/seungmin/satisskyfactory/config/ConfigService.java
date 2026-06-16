@@ -83,12 +83,17 @@ public final class ConfigService {
         }
         boolean changed = false;
         for (String key : defaults.getKeys(false)) {
+            ConfigurationSection defaultSection = defaults.getConfigurationSection(key);
             if (!target.contains(key)) {
-                target.set(key, defaults.get(key));
+                if (defaultSection == null) {
+                    target.set(key, defaults.get(key));
+                } else {
+                    ConfigurationSection created = target.createSection(key);
+                    mergeMissingDefaults(created, defaultSection);
+                }
                 changed = true;
                 continue;
             }
-            ConfigurationSection defaultSection = defaults.getConfigurationSection(key);
             ConfigurationSection targetSection = target.getConfigurationSection(key);
             if (defaultSection != null && targetSection != null) {
                 changed |= mergeMissingDefaults(targetSection, defaultSection);
