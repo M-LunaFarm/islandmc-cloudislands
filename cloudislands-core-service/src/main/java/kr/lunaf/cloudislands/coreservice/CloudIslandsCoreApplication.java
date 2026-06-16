@@ -464,7 +464,7 @@ public final class CloudIslandsCoreApplication {
             try {
                 Map<String, String> stateValues = tableKeyValueBulkStateValues(values, tables, table);
                 int tableKeys = tableKeyValueBulkTableKeyCount(values, tables, table);
-                int tableCount = tableKeyValueBulkTableCount(tables, table);
+                int tableCount = tableKeyValueBulkTableCount(values, tables, table);
                 Map<String, String> state = addonStates.tableKeyValueBulkSave(addonId, stateValues);
                 audit.log(new UUID(0L, 0L), "API", "ADDON_STATE_TABLE_KEY_VALUE_BULK_SAVE", "ADDON", addonId, Map.of("keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(rootValueKeyCount(values, table)), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tableCount)));
                 events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "operation", "TABLE_KEY_VALUE_BULK_SAVE", "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(rootValueKeyCount(values, table)), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tableCount)));
@@ -486,7 +486,7 @@ public final class CloudIslandsCoreApplication {
             try {
                 Map<String, String> stateValues = tableKeyValueBulkStateValues(values, tables, table);
                 int tableKeys = tableKeyValueBulkTableKeyCount(values, tables, table);
-                int tableCount = tableKeyValueBulkTableCount(tables, table);
+                int tableCount = tableKeyValueBulkTableCount(values, tables, table);
                 Map<String, String> state = addonStates.tableKeyValueBulkSave(addonId, stateValues);
                 audit.log(new UUID(0L, 0L), "API", "ADDON_STATE_TABLE_KEY_VALUE_BULK_SAVE", "ADDON", addonId, Map.of("keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(rootValueKeyCount(values, table)), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tableCount)));
                 events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "operation", "TABLE_KEY_VALUE_BULK_SAVE", "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(rootValueKeyCount(values, table)), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tableCount)));
@@ -508,7 +508,7 @@ public final class CloudIslandsCoreApplication {
             try {
                 Map<String, String> stateValues = tableKeyValueBulkStateValues(values, tables, table);
                 int tableKeys = tableKeyValueBulkTableKeyCount(values, tables, table);
-                int tableCount = tableKeyValueBulkTableCount(tables, table);
+                int tableCount = tableKeyValueBulkTableCount(values, tables, table);
                 Map<String, String> state = addonStates.tableKeyValueBulkSave(addonId, stateValues);
                 audit.log(new UUID(0L, 0L), "API", "ADDON_STATE_TABLE_KEY_VALUE_BULK_SAVE", "ADDON", addonId, Map.of("keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(rootValueKeyCount(values, table)), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tableCount)));
                 events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "operation", "TABLE_KEY_VALUE_BULK_SAVE", "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(rootValueKeyCount(values, table)), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tableCount)));
@@ -530,7 +530,7 @@ public final class CloudIslandsCoreApplication {
             try {
                 Map<String, String> stateValues = tableKeyValueBulkStateValues(values, tables, table);
                 int tableKeys = tableKeyValueBulkTableKeyCount(values, tables, table);
-                int tableCount = tableKeyValueBulkTableCount(tables, table);
+                int tableCount = tableKeyValueBulkTableCount(values, tables, table);
                 Map<String, String> state = addonStates.tableKeyValueBulkSave(addonId, stateValues);
                 audit.log(new UUID(0L, 0L), "API", "ADDON_STATE_TABLE_KEY_VALUE_BULK_SAVE", "ADDON", addonId, Map.of("keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(rootValueKeyCount(values, table)), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tableCount)));
                 events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "operation", "TABLE_KEY_VALUE_BULK_SAVE", "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(rootValueKeyCount(values, table)), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tableCount)));
@@ -728,7 +728,7 @@ public final class CloudIslandsCoreApplication {
             try {
                 Map<String, String> stateValues = tableKeyValueBulkStateValues(values, tables, table);
                 int tableKeys = tableKeyValueBulkTableKeyCount(values, tables, table);
-                int tableCount = tableKeyValueBulkTableCount(tables, table);
+                int tableCount = tableKeyValueBulkTableCount(values, tables, table);
                 Map<String, String> state = addonStates.tableKeyValueBulkSaveIsland(addonId, islandId, stateValues);
                 audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_STATE_TABLE_KEY_VALUE_BULK_SAVE", "ADDON", addonId, Map.of("islandId", islandId.toString(), "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(rootValueKeyCount(values, table)), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tableCount)));
                 events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", "TABLE_KEY_VALUE_BULK_SAVE", "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(rootValueKeyCount(values, table)), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tableCount)));
@@ -751,7 +751,7 @@ public final class CloudIslandsCoreApplication {
             try {
                 Map<String, String> stateValues = tableKeyValueBulkStateValues(values, tables, table);
                 int tableKeys = tableKeyValueBulkTableKeyCount(values, tables, table);
-                int tableCount = tableKeyValueBulkTableCount(tables, table);
+                int tableCount = tableKeyValueBulkTableCount(values, tables, table);
                 Map<String, String> state = addonStates.tableKeyValueBulkSaveIsland(addonId, islandId, stateValues);
                 audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_STATE_TABLE_KEY_VALUE_BULK_SAVE", "ADDON", addonId, Map.of("islandId", islandId.toString(), "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(rootValueKeyCount(values, table)), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tableCount)));
                 events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", "TABLE_KEY_VALUE_BULK_SAVE", "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(rootValueKeyCount(values, table)), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tableCount)));
@@ -774,7 +774,7 @@ public final class CloudIslandsCoreApplication {
             try {
                 Map<String, String> stateValues = tableKeyValueBulkStateValues(values, tables, table);
                 int tableKeys = tableKeyValueBulkTableKeyCount(values, tables, table);
-                int tableCount = tableKeyValueBulkTableCount(tables, table);
+                int tableCount = tableKeyValueBulkTableCount(values, tables, table);
                 Map<String, String> state = addonStates.tableKeyValueBulkSaveIsland(addonId, islandId, stateValues);
                 audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_STATE_TABLE_KEY_VALUE_BULK_SAVE", "ADDON", addonId, Map.of("islandId", islandId.toString(), "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(rootValueKeyCount(values, table)), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tableCount)));
                 events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", "TABLE_KEY_VALUE_BULK_SAVE", "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(rootValueKeyCount(values, table)), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tableCount)));
@@ -797,7 +797,7 @@ public final class CloudIslandsCoreApplication {
             try {
                 Map<String, String> stateValues = tableKeyValueBulkStateValues(values, tables, table);
                 int tableKeys = tableKeyValueBulkTableKeyCount(values, tables, table);
-                int tableCount = tableKeyValueBulkTableCount(tables, table);
+                int tableCount = tableKeyValueBulkTableCount(values, tables, table);
                 Map<String, String> state = addonStates.tableKeyValueBulkSaveIsland(addonId, islandId, stateValues);
                 audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_STATE_TABLE_KEY_VALUE_BULK_SAVE", "ADDON", addonId, Map.of("islandId", islandId.toString(), "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(rootValueKeyCount(values, table)), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tableCount)));
                 events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", "TABLE_KEY_VALUE_BULK_SAVE", "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(rootValueKeyCount(values, table)), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tableCount)));
@@ -4281,7 +4281,7 @@ public final class CloudIslandsCoreApplication {
         return count;
     }
 
-    private static int tableKeyValueBulkTableCount(Map<String, Map<String, String>> tables, String valuesTable) {
+    private static int tableKeyValueBulkTableCount(Map<String, String> values, Map<String, Map<String, String>> tables, String valuesTable) {
         java.util.LinkedHashSet<String> tableNames = new java.util.LinkedHashSet<>();
         if (tables != null) {
             tables.keySet().forEach(table -> {
