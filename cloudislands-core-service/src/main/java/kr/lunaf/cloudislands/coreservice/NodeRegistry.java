@@ -25,6 +25,19 @@ public interface NodeRegistry {
 
     Optional<NodeLoad> find(String nodeId);
 
+    static String safeHeartbeatPool(NodeHeartbeatRequest request) {
+        return request == null || request.pool() == null || request.pool().isBlank() ? "island" : request.pool().trim();
+    }
+
+    static String safeHeartbeatVelocityServerName(NodeHeartbeatRequest request) {
+        String serverName = request == null ? "" : request.velocityServerName();
+        if (serverName != null && !serverName.isBlank()) {
+            return serverName.trim();
+        }
+        String nodeId = request == null ? "" : request.nodeId();
+        return nodeId == null || nodeId.isBlank() ? "unknown" : nodeId.trim();
+    }
+
     static NodeState normalizeHeartbeatState(NodeHeartbeatRequest request, NodeState currentState) {
         if (currentState == NodeState.DRAINING || currentState == NodeState.SHUTTING_DOWN) {
             return currentState;

@@ -56,8 +56,8 @@ public final class InMemoryNodeRegistry implements NodeRegistry {
         NodeState nextState = NodeRegistry.normalizeHeartbeatState(request, current == null ? request.state() : current.state());
         upsert(new NodeLoad(
             request.nodeId(),
-            request.pool() == null || request.pool().isBlank() ? "island" : request.pool(),
-            request.velocityServerName(),
+            NodeRegistry.safeHeartbeatPool(request),
+            NodeRegistry.safeHeartbeatVelocityServerName(request),
             request.nodeVersion(),
             nextState,
             request.players(),
