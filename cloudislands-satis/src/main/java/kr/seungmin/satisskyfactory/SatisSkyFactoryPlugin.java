@@ -158,7 +158,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         addonRuntimeEnabled = false;
         effectiveFeatures = Map.of();
         if (!registerCloudIslandsAddon()) {
-            installDisabledCommandHandler("addon-disabled");
+            unregisterAddonCommands();
             if (cloudIslandsApiMissing) {
                 getServer().getScheduler().runTask(this, () -> getServer().getPluginManager().disablePlugin(this));
             }
@@ -847,7 +847,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private void registerCommands() {
         if (!operationalFeatureEnabled("commands")) {
-            installDisabledCommandHandler("commands");
+            unregisterAddonCommands();
             commandsRegistered = false;
             return;
         }
@@ -880,15 +880,49 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         );
         PluginCommand factory = getCommand("factory");
         if (factory != null) {
+            ensureCommandRegistered(factory);
             factory.setExecutor(command);
             factory.setTabCompleter(command);
         }
         PluginCommand sfactory = getCommand("sfactory");
         if (sfactory != null) {
+            ensureCommandRegistered(sfactory);
             sfactory.setExecutor(command);
             sfactory.setTabCompleter(command);
         }
         commandsRegistered = true;
+    }
+
+    private void ensureCommandRegistered(PluginCommand command) {
+        if (command == null || command.isRegistered()) {
+            return;
+        }
+        commandMap().ifPresent(map -> map.register(getDescription().getName().toLowerCase(Locale.ROOT), command));
+    }
+
+    private void unregisterAddonCommands() {
+        unregisterPluginCommand(getCommand("factory"));
+        unregisterPluginCommand(getCommand("sfactory"));
+    }
+
+    private void unregisterPluginCommand(PluginCommand command) {
+        if (command == null || !command.isRegistered()) {
+            return;
+        }
+        command.setTabCompleter(null);
+        commandMap().ifPresent(command::unregister);
+    }
+
+    private java.util.Optional<org.bukkit.command.CommandMap> commandMap() {
+        try {
+            Object value = getServer().getClass().getMethod("getCommandMap").invoke(getServer());
+            if (value instanceof org.bukkit.command.CommandMap map) {
+                return java.util.Optional.of(map);
+            }
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            getLogger().warning("Failed to access Bukkit command map for Satis command exposure: " + exception.getMessage());
+        }
+        return java.util.Optional.empty();
     }
 
     private void installDisabledCommandHandler(String reason) {
@@ -2995,7 +3029,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void stopRuntimeActivity() {
-        installDisabledCommandHandler("addon");
+        unregisterAddonCommands();
         commandsRegistered = false;
         if (ticker != null) {
             ticker.stop();

@@ -22,13 +22,13 @@ runtime:
   default-database-mode: CORE_API
   load-phase: Paper-POSTWORLD-after-CloudIslands
   command-owner: external-addon
-  disabled-mode: disabled-command-stub-no-listeners-no-tickers-no-placeholders-no-core-api-writers
+  disabled-mode: unregister-disabled-commands-no-listeners-no-tickers-no-placeholders-no-core-api-writers
   component-audit:
     active-key: runtime-active-components
     skipped-key: runtime-skipped-components
     blocked-key: runtime-blocked-components
     policy-key: runtime-component-audit
-    policy: disabled-features-skip-commands-listeners-tickers-placeholders-core-api-writers-and-dirty-save
+    policy: disabled-features-unregister-commands-and-skip-listeners-tickers-placeholders-core-api-writers-and-dirty-save
 database:
   setup-path: setup.database
   default-mode: CORE_API
