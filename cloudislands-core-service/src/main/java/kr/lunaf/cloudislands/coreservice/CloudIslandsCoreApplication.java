@@ -4237,8 +4237,8 @@ public final class CloudIslandsCoreApplication {
         String safeTable = safeTableName(table);
         java.util.HashMap<String, String> state = new java.util.HashMap<>();
         values.forEach((key, value) -> {
-            if (key != null && !key.isBlank() && value != null) {
-                state.put(tableStateKey(safeTable, key), value);
+            if (key != null && !key.isBlank()) {
+                state.put(tableStateKey(safeTable, key), AddonStateRepository.safeValue(value));
             }
         });
         return Map.copyOf(state);
@@ -4248,7 +4248,11 @@ public final class CloudIslandsCoreApplication {
         java.util.HashMap<String, String> state = new java.util.HashMap<>();
         if (valuesTable == null || valuesTable.isBlank()) {
             if (values != null) {
-                state.putAll(values);
+                values.forEach((key, value) -> {
+                    if (key != null && !key.isBlank()) {
+                        state.put(AddonStateRepository.safeKey(key), AddonStateRepository.safeValue(value));
+                    }
+                });
             }
         } else {
             state.putAll(tableStateValues(valuesTable, values));

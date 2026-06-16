@@ -25,7 +25,11 @@ public interface AddonStateRepository {
     default Map<String, String> tableKeyValueBulkSave(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         java.util.HashMap<String, String> merged = new java.util.HashMap<>();
         if (values != null) {
-            merged.putAll(values);
+            values.forEach((key, value) -> {
+                if (key != null && !key.isBlank()) {
+                    merged.put(safeKey(key), safeValue(value));
+                }
+            });
         }
         merged.putAll(tableStateValues(tables));
         return tableKeyValueBulkSave(addonId, Map.copyOf(merged));
@@ -52,7 +56,11 @@ public interface AddonStateRepository {
     default Map<String, String> tableKeyValueBulkSaveIsland(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         java.util.HashMap<String, String> merged = new java.util.HashMap<>();
         if (values != null) {
-            merged.putAll(values);
+            values.forEach((key, value) -> {
+                if (key != null && !key.isBlank()) {
+                    merged.put(safeKey(key), safeValue(value));
+                }
+            });
         }
         merged.putAll(tableStateValues(tables));
         return tableKeyValueBulkSaveIsland(addonId, islandId, Map.copyOf(merged));
@@ -120,8 +128,8 @@ public interface AddonStateRepository {
         }
         String safeTable = safeTableName(table);
         values.forEach((key, value) -> {
-            if (key != null && !key.isBlank() && value != null) {
-                state.put(tableStateKey(safeTable, key), value);
+            if (key != null && !key.isBlank()) {
+                state.put(tableStateKey(safeTable, key), safeValue(value));
             }
         });
         return Map.copyOf(state);
