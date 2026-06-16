@@ -31,6 +31,9 @@ tasks.jar {
             "CloudIslands-Paper-Event-Bridge" to "global-events-to-bukkit-events-and-cache-invalidation",
             "CloudIslands-Paper-Direct-Write-Policy" to "no-direct-core-db-writes-use-core-api-client",
             "CloudIslands-Paper-Migration-Join-Policy" to "ticket-validated-teleport-after-restore-or-migrate",
+            "CloudIslands-Paper-Agent-Roles" to "LOBBY,ISLAND_NODE",
+            "CloudIslands-Paper-Lobby-Role" to "gui-ranking-invites-settings-visit-admin-no-island-world-execution",
+            "CloudIslands-Paper-Island-Node-Role" to "activation-save-snapshot-shard-cell-protection-teleport-heartbeat",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
         )

@@ -46,6 +46,10 @@ tasks.jar {
             "CloudIslands-Core-Migration-Policy" to "drain-save-snapshot-unload-restore-ticket-based-rejoin",
             "CloudIslands-Core-Active-Full-Policy" to "active-island-stays-single-node-members-use-reserved-slots-visitors-denied-or-queued",
             "CloudIslands-Core-Global-Event-Policy" to "redis-stream-backed-event-log-with-local-paper-event-bridging",
+            "CloudIslands-Core-Redis-Key-Contract" to "ci:server,ci:player,ci:island,ci:lock,ci:stream",
+            "CloudIslands-Core-Redis-TTL-Contract" to "heartbeat=5s,route-ticket=30s,player=300s,island-summary=60s,permissions=30s,locks=10-60s",
+            "CloudIslands-Core-Fencing-Policy" to "redis-lock-fast-path-postgresql-row-lock-final-authority-fencing-token-stale-write-guard",
+            "CloudIslands-Core-Schema-Guard-Range" to "V17-placement,V18-route-job-indexes,V19-node-identity,V20-active-state,V21-V24-route-ticket,V38-fencing,V39-V54-value-guards",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
         )
