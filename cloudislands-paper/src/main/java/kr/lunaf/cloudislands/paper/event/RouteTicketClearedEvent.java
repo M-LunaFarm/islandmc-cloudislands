@@ -10,6 +10,7 @@ public final class RouteTicketClearedEvent extends Event {
 
     private final UUID ticketId;
     private final UUID playerUuid;
+    private final String targetNode;
     private final String reason;
     private final boolean clearedSession;
     private final boolean clearedTicket;
@@ -19,10 +20,11 @@ public final class RouteTicketClearedEvent extends Event {
         super(true);
         this.ticketId = ticketId;
         this.playerUuid = playerUuid;
+        this.targetNode = fields == null ? "" : fields.getOrDefault("targetNode", "");
         this.reason = reason == null ? "" : reason;
         this.clearedSession = clearedSession;
         this.clearedTicket = clearedTicket;
-        this.fields = Map.copyOf(fields);
+        this.fields = fields == null ? Map.of() : Map.copyOf(fields);
     }
 
     public UUID ticketId() {
@@ -31,6 +33,10 @@ public final class RouteTicketClearedEvent extends Event {
 
     public UUID playerUuid() {
         return playerUuid;
+    }
+
+    public String targetNode() {
+        return targetNode;
     }
 
     public String reason() {

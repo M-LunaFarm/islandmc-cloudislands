@@ -2448,7 +2448,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onRouteTicketCleared(RouteTicketClearedEvent event) {
-        publishRouteEventState("cleared", event.ticketId(), null, event.playerUuid(), "", "", "", "", event.reason(), "session=" + event.clearedSession() + ",ticket=" + event.clearedTicket(), event.occurredAt());
+        publishRouteEventState("cleared", event.ticketId(), null, event.playerUuid(), "", event.targetNode(), event.targetNode(), "", event.reason(), "session=" + event.clearedSession() + ",ticket=" + event.clearedTicket(), event.occurredAt());
     }
 
     private void publishRouteEventState(String eventName, UUID ticketId, UUID islandId, UUID playerUuid, String action, String targetNode, String targetServerName, String requestedNode, String reason, String detail, Instant occurredAt) {
