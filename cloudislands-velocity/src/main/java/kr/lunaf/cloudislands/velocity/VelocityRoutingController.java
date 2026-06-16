@@ -2031,6 +2031,7 @@ public final class VelocityRoutingController {
             + " tableMapGlobal=" + jsonValue(body, "addonStateTableBulkGlobalEndpoint")
             + " tableMapIsland=" + jsonValue(body, "addonStateTableBulkIslandEndpoint")
             + " payload=" + jsonValue(body, "addonStateTableKeyValueBulkSavePayload")
+            + " api=" + jsonValue(body, "addonStateTableKeyValueBulkSaveRepositoryApi")
             + " storage=" + jsonValue(body, "addonStateTableKeyValueBulkSaveStorageMode")
             + " tablePrefix=" + jsonValue(body, "addonStateTableKeyPrefix")
             + " maxKeys=" + longValue(body, "addonStateMaxKeysPerAddon")
