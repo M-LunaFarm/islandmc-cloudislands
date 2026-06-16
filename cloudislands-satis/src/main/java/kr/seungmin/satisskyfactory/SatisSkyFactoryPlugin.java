@@ -75,6 +75,7 @@ import kr.seungmin.satisskyfactory.recipe.RecipeService;
 import kr.seungmin.satisskyfactory.research.ResearchService;
 import kr.seungmin.satisskyfactory.storage.CoreApiSatisStateService;
 import kr.seungmin.satisskyfactory.storage.StorageService;
+import kr.seungmin.satisskyfactory.storage.VirtualInventory;
 import kr.seungmin.satisskyfactory.task.DirtySaveService;
 import kr.seungmin.satisskyfactory.task.MachineTickService;
 import kr.seungmin.satisskyfactory.task.MaintenanceTickService;
@@ -648,8 +649,20 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean storageDataEnabled() {
-        return operationalFeatureEnabled("storage")
-                || operationalFeatureEnabled("machines");
+        return operationalFeatureEnabled("storage");
+    }
+
+    private boolean inventoryDataWritesEnabled(VirtualInventory inventory) {
+        if (inventory == null) {
+            return false;
+        }
+        return isMachineInventory(inventory)
+                ? operationalFeatureEnabled("machines")
+                : operationalFeatureEnabled("storage");
+    }
+
+    private boolean isMachineInventory(VirtualInventory inventory) {
+        return inventory.holderType() != null && inventory.holderType().startsWith("MACHINE_");
     }
 
     static long dirtySavePeriodTicks(FileConfiguration config) {
@@ -765,8 +778,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (!operationalFeatureEnabled("machines")) {
             dirtySaves.forgetMachines();
         }
-        if (!storageDataEnabled()) {
+        if (!operationalFeatureEnabled("storage") && !operationalFeatureEnabled("machines")) {
             dirtySaves.forgetInventories();
+        } else if (!operationalFeatureEnabled("storage") || !operationalFeatureEnabled("machines")) {
+            dirtySaves.forgetInventories(inventory -> !inventoryDataWritesEnabled(inventory));
         }
         if (!operationalFeatureEnabled("resource-nodes")) {
             dirtySaves.forgetNodes();
@@ -1138,11 +1153,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 () -> operationalFeatureEnabled("resource-nodes"),
                 this::dataWritesEnabled
         );
+        dirtySaves.inventoryWriteGate(this::inventoryDataWritesEnabled);
     }
 
     private void configureRuntimeWriteGates() {
         if (storage != null) {
-            storage.writeGate(this::storageDataEnabled);
+            storage.writeGates(
+                    () -> operationalFeatureEnabled("storage"),
+                    () -> operationalFeatureEnabled("machines")
+            );
         }
         if (machines != null) {
             machines.writeGate(() -> operationalFeatureEnabled("machines"));

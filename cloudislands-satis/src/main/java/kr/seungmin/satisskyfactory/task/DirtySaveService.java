@@ -15,6 +15,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public final class DirtySaveService {
     private final JavaPlugin plugin;
@@ -27,7 +28,7 @@ public final class DirtySaveService {
     private Consumer<DirtySaveBatch> coreStatePublisher;
     private Consumer<DirtyRowDelete> coreStateDeletePublisher;
     private BooleanSupplier machineWritesEnabled = () -> true;
-    private BooleanSupplier inventoryWritesEnabled = () -> true;
+    private Predicate<VirtualInventory> inventoryWritesEnabled = _inventory -> true;
     private BooleanSupplier nodeWritesEnabled = () -> true;
     private BooleanSupplier islandWritesEnabled = () -> true;
     private BukkitTask task;
@@ -55,9 +56,14 @@ public final class DirtySaveService {
     public void writeGates(BooleanSupplier machineWritesEnabled, BooleanSupplier inventoryWritesEnabled,
                            BooleanSupplier nodeWritesEnabled, BooleanSupplier islandWritesEnabled) {
         this.machineWritesEnabled = machineWritesEnabled == null ? () -> true : machineWritesEnabled;
-        this.inventoryWritesEnabled = inventoryWritesEnabled == null ? () -> true : inventoryWritesEnabled;
+        BooleanSupplier inventoryGate = inventoryWritesEnabled == null ? () -> true : inventoryWritesEnabled;
+        this.inventoryWritesEnabled = _inventory -> inventoryGate.getAsBoolean();
         this.nodeWritesEnabled = nodeWritesEnabled == null ? () -> true : nodeWritesEnabled;
         this.islandWritesEnabled = islandWritesEnabled == null ? () -> true : islandWritesEnabled;
+    }
+
+    public void inventoryWriteGate(Predicate<VirtualInventory> inventoryWritesEnabled) {
+        this.inventoryWritesEnabled = inventoryWritesEnabled == null ? _inventory -> true : inventoryWritesEnabled;
     }
 
     public void start(long intervalTicks) {
@@ -123,7 +129,7 @@ public final class DirtySaveService {
     }
 
     public void markInventory(VirtualInventory inventory) {
-        if (!inventoryWritesEnabled.getAsBoolean()) {
+        if (!inventoryWritesEnabled(inventory)) {
             return;
         }
         if (inventory == null || inventory.inventoryId() == null) {
@@ -152,6 +158,13 @@ public final class DirtySaveService {
 
     public void forgetInventories() {
         inventories.clear();
+    }
+
+    public void forgetInventories(Predicate<VirtualInventory> filter) {
+        if (filter == null) {
+            return;
+        }
+        inventories.entrySet().removeIf(entry -> filter.test(entry.getValue()));
     }
 
     public void forgetIsland(UUID islandUuid) {
@@ -210,7 +223,7 @@ public final class DirtySaveService {
 
     private void flush() {
         synchronized (flushLock) {
-            Map<UUID, VirtualInventory> inventoryBatch = drainIfEnabled(inventories, inventoryWritesEnabled);
+            Map<UUID, VirtualInventory> inventoryBatch = drainInventoriesIfEnabled(inventories);
             Map<UUID, MachineInstance> machineBatch = drainIfEnabled(machines, machineWritesEnabled);
             Map<UUID, ResourceNode> nodeBatch = drainIfEnabled(nodes, nodeWritesEnabled);
             Map<UUID, FactoryIsland> islandBatch = drainIfEnabled(islands, islandWritesEnabled);
@@ -227,7 +240,7 @@ public final class DirtySaveService {
             return;
         }
         synchronized (flushLock) {
-            Map<UUID, VirtualInventory> inventoryBatch = drainIslandIfEnabled(inventories, islandUuid, inventoryWritesEnabled);
+            Map<UUID, VirtualInventory> inventoryBatch = drainIslandInventoriesIfEnabled(inventories, islandUuid);
             Map<UUID, MachineInstance> machineBatch = drainIslandIfEnabled(machines, islandUuid, machineWritesEnabled);
             Map<UUID, ResourceNode> nodeBatch = drainIslandIfEnabled(nodes, islandUuid, nodeWritesEnabled);
             FactoryIsland island = islandWritesEnabled.getAsBoolean() ? islands.remove(islandUuid) : null;
@@ -315,6 +328,31 @@ public final class DirtySaveService {
             return Map.of();
         }
         return drainIsland(source, islandUuid);
+    }
+
+    private Map<UUID, VirtualInventory> drainInventoriesIfEnabled(Map<UUID, VirtualInventory> source) {
+        Map<UUID, VirtualInventory> snapshot = source.entrySet().stream()
+                .filter(entry -> inventoryWritesEnabled(entry.getValue()))
+                .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        source.entrySet().removeIf(entry -> !inventoryWritesEnabled(entry.getValue()) || snapshot.containsKey(entry.getKey()));
+        return snapshot;
+    }
+
+    private Map<UUID, VirtualInventory> drainIslandInventoriesIfEnabled(Map<UUID, VirtualInventory> source, UUID islandUuid) {
+        Map<UUID, VirtualInventory> snapshot = source.entrySet().stream()
+                .filter(entry -> islandUuid.equals(entry.getValue().islandUuid()))
+                .filter(entry -> inventoryWritesEnabled(entry.getValue()))
+                .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        source.entrySet().removeIf(entry -> islandUuid.equals(entry.getValue().islandUuid()) && (!inventoryWritesEnabled(entry.getValue()) || snapshot.containsKey(entry.getKey())));
+        return snapshot;
+    }
+
+    private boolean inventoryWritesEnabled(VirtualInventory inventory) {
+        try {
+            return inventoryWritesEnabled.test(inventory);
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 
     private UUID islandUuid(Object value) {

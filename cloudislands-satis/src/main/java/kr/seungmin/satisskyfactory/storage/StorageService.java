@@ -14,7 +14,8 @@ public final class StorageService {
     private final long defaultCapacity;
     private final Map<UUID, VirtualInventory> cache = new ConcurrentHashMap<>();
     private DirtySaveService dirtySaves;
-    private BooleanSupplier writesEnabled = () -> true;
+    private BooleanSupplier islandWritesEnabled = () -> true;
+    private BooleanSupplier machineInventoryWritesEnabled = () -> true;
 
     public StorageService(DatabaseService database, long defaultCapacity) {
         this.database = database;
@@ -75,7 +76,7 @@ public final class StorageService {
 
     public void save(VirtualInventory inventory) {
         cache.put(inventory.inventoryId(), inventory);
-        if (!writesEnabled()) {
+        if (!writesEnabled(inventory)) {
             return;
         }
         if (dirtySaves != null) {
@@ -87,7 +88,7 @@ public final class StorageService {
 
     public void saveNow(VirtualInventory inventory) {
         cache.put(inventory.inventoryId(), inventory);
-        if (!writesEnabled()) {
+        if (!writesEnabled(inventory)) {
             return;
         }
         database.saveInventory(inventory);
@@ -99,13 +100,13 @@ public final class StorageService {
         }
         VirtualInventory removed = cache.remove(inventoryId);
         if (dirtySaves != null) {
-            if (removed == null) {
+            if (removed == null || !writesEnabled(removed)) {
                 dirtySaves.forgetInventory(inventoryId);
             } else {
                 dirtySaves.deleteInventory(removed.islandUuid(), inventoryId);
             }
         }
-        if (!writesEnabled()) {
+        if (!deleteWritesEnabled(removed)) {
             return;
         }
         database.deleteInventory(inventoryId);
@@ -130,14 +131,39 @@ public final class StorageService {
     }
 
     public void writeGate(BooleanSupplier writesEnabled) {
-        this.writesEnabled = writesEnabled == null ? () -> true : writesEnabled;
+        this.islandWritesEnabled = writesEnabled == null ? () -> true : writesEnabled;
+        this.machineInventoryWritesEnabled = writesEnabled == null ? () -> true : writesEnabled;
     }
 
-    private boolean writesEnabled() {
+    public void writeGates(BooleanSupplier islandWritesEnabled, BooleanSupplier machineInventoryWritesEnabled) {
+        this.islandWritesEnabled = islandWritesEnabled == null ? () -> true : islandWritesEnabled;
+        this.machineInventoryWritesEnabled = machineInventoryWritesEnabled == null ? () -> true : machineInventoryWritesEnabled;
+    }
+
+    private boolean writesEnabled(VirtualInventory inventory) {
+        BooleanSupplier gate = isMachineInventory(inventory) ? machineInventoryWritesEnabled : islandWritesEnabled;
         try {
-            return writesEnabled.getAsBoolean();
+            return gate.getAsBoolean();
         } catch (RuntimeException ignored) {
             return false;
         }
+    }
+
+    private boolean deleteWritesEnabled(VirtualInventory inventory) {
+        if (inventory != null) {
+            return writesEnabled(inventory);
+        }
+        try {
+            return islandWritesEnabled.getAsBoolean() || machineInventoryWritesEnabled.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private boolean isMachineInventory(VirtualInventory inventory) {
+        if (inventory == null || inventory.holderType() == null) {
+            return false;
+        }
+        return inventory.holderType().startsWith("MACHINE_");
     }
 }
