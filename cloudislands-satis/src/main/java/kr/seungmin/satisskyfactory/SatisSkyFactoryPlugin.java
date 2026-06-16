@@ -1172,36 +1172,36 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private void configureRuntimeWriteGates() {
         if (storage != null) {
             storage.writeGates(
-                    () -> operationalFeatureEnabled("storage"),
-                    () -> operationalFeatureEnabled("machines")
+                    () -> storageWriteAuthorityReady() && operationalFeatureEnabled("storage"),
+                    () -> storageWriteAuthorityReady() && operationalFeatureEnabled("machines")
             );
         }
         if (machines != null) {
-            machines.writeGate(() -> operationalFeatureEnabled("machines"));
+            machines.writeGate(() -> storageWriteAuthorityReady() && operationalFeatureEnabled("machines"));
         }
         if (itemNetworks != null) {
-            itemNetworks.writeGate(() -> operationalFeatureEnabled("machines"));
+            itemNetworks.writeGate(() -> storageWriteAuthorityReady() && operationalFeatureEnabled("machines"));
         }
         if (power != null) {
-            power.writeGate(() -> operationalFeatureEnabled("machines") && storageDataEnabled());
+            power.writeGate(() -> storageWriteAuthorityReady() && operationalFeatureEnabled("machines") && storageDataEnabled());
         }
         if (nodes != null) {
-            nodes.writeGate(() -> operationalFeatureEnabled("resource-nodes"));
+            nodes.writeGate(() -> storageWriteAuthorityReady() && operationalFeatureEnabled("resource-nodes"));
         }
         if (islands != null) {
             islands.writeGate(this::dataWritesEnabled);
         }
         if (market != null) {
-            market.writeGate(() -> operationalFeatureEnabled("market") && storageDataEnabled());
+            market.writeGate(() -> storageWriteAuthorityReady() && operationalFeatureEnabled("market") && storageDataEnabled());
         }
         if (contracts != null) {
-            contracts.writeGate(() -> operationalFeatureEnabled("contracts") && storageDataEnabled());
+            contracts.writeGate(() -> storageWriteAuthorityReady() && operationalFeatureEnabled("contracts") && storageDataEnabled());
         }
         if (research != null) {
-            research.writeGate(() -> operationalFeatureEnabled("research") && dataWritesEnabled());
+            research.writeGate(() -> storageWriteAuthorityReady() && operationalFeatureEnabled("research") && dataWritesEnabled());
         }
         if (maintenance != null) {
-            maintenance.writeGate(() -> operationalFeatureEnabled("maintenance") && dataWritesEnabled());
+            maintenance.writeGate(() -> storageWriteAuthorityReady() && operationalFeatureEnabled("maintenance") && dataWritesEnabled());
         }
     }
 
