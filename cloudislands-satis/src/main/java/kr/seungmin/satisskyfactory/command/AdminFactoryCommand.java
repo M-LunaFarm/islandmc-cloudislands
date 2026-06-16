@@ -1207,6 +1207,8 @@ public final class AdminFactoryCommand {
                         "addon-state-table-key-value-bulk-save-island-endpoint",
                         "addon-state-table-key-value-bulk-save-global-alias",
                         "addon-state-table-key-value-bulk-save-island-alias",
+                        "addon-state-table-bulk-global-endpoint",
+                        "addon-state-table-bulk-island-endpoint",
                         "addon-state-bulk-save-methods",
                         "core-api-table-save-mode",
                         "core-api-bulk-status-keys",
