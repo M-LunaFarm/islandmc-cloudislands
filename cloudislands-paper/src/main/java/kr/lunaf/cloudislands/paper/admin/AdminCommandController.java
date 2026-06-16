@@ -1341,7 +1341,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + longValue(storage, "operationFailures");
         return adminText("admin-command-storage-metric-failures-prefix", "(failures=") + failures
             + adminText("admin-command-storage-metric-up-prefix", ", up=") + seconds(doubleValue(storage, "uploadSeconds")) + "s"
-            + adminText("admin-command-storage-metric-down-prefix", ", down=") + seconds(doubleValue(storage, "downloadSeconds")) + "s)";
+            + adminText("admin-command-storage-metric-down-prefix", ", down=") + seconds(doubleValue(storage, "downloadSeconds")) + "s"
+            + adminText("admin-command-storage-bundle-policy-prefix", ", bundle=") + "portable"
+            + adminText("admin-command-storage-manifest-policy-prefix", ", manifest=") + "manifest.json+checksums.sha256"
+            + adminText("admin-command-storage-restore-policy-prefix", ", restore=") + "verify-manifest-checksum)";
     }
 
     private String nodeSweepMessage(String body) {
