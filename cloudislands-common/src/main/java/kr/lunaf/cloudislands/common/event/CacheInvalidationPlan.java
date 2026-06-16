@@ -1,7 +1,10 @@
 package kr.lunaf.cloudislands.common.event;
 
 import java.util.EnumSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.UUID;
+import kr.lunaf.cloudislands.common.cache.RedisKeys;
 
 public final class CacheInvalidationPlan {
     private CacheInvalidationPlan() {}
@@ -35,6 +38,46 @@ public final class CacheInvalidationPlan {
             case ISLAND_PRE_VISIT, ROUTE_TICKET_CREATED, ROUTE_SESSION_PUBLISHED, ROUTE_TICKET_CONSUMED, ROUTE_TICKET_FAILED, ROUTE_TICKET_CLEARED -> EnumSet.of(CacheTarget.ROUTE, CacheTarget.ROUTE_TICKETS, CacheTarget.SUMMARY);
             case ISLAND_DELETED -> EnumSet.allOf(CacheTarget.class);
             default -> EnumSet.of(CacheTarget.SUMMARY);
+        };
+    }
+
+    public static Set<String> redisKeysFor(CloudIslandEventType eventType, UUID islandId) {
+        if (islandId == null) {
+            return Set.of();
+        }
+        Set<String> keys = new LinkedHashSet<>();
+        for (CacheTarget target : targetsFor(eventType)) {
+            String key = redisKey(target, islandId);
+            if (!key.isBlank()) {
+                keys.add(key);
+            }
+        }
+        return Set.copyOf(keys);
+    }
+
+    public static String redisKey(CacheTarget target, UUID islandId) {
+        if (target == null || islandId == null) {
+            return "";
+        }
+        return switch (target) {
+            case SUMMARY -> RedisKeys.islandSummary(islandId);
+            case RUNTIME -> RedisKeys.islandRuntime(islandId);
+            case MEMBERS -> RedisKeys.islandMembers(islandId);
+            case PERMISSIONS -> RedisKeys.islandPermissions(islandId);
+            case ROLES -> RedisKeys.islandRoles(islandId);
+            case FLAGS -> RedisKeys.islandFlags(islandId);
+            case BIOME -> RedisKeys.islandSummary(islandId);
+            case HOMES -> RedisKeys.islandHomes(islandId);
+            case WARPS -> RedisKeys.islandWarps(islandId);
+            case BANK -> RedisKeys.islandBank(islandId);
+            case MISSIONS -> RedisKeys.islandMissions(islandId, "ALL");
+            case LIMITS -> RedisKeys.islandLimits(islandId);
+            case BLOCKS -> RedisKeys.islandBlockCounts(islandId);
+            case SNAPSHOTS -> RedisKeys.islandSnapshots(islandId);
+            case ROUTE, ROUTE_TICKETS -> RedisKeys.islandRouteTickets(islandId);
+            case TEMPLATES -> RedisKeys.templates();
+            case LEVEL -> RedisKeys.rankingVersion();
+            default -> "";
         };
     }
 
