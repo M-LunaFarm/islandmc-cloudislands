@@ -339,7 +339,7 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
         }
         Map<String, String> safe = new HashMap<>();
         values.forEach((key, value) -> {
-            if (key != null && !key.isBlank() && value != null) {
+            if (key != null && !key.isBlank()) {
                 safe.put(AddonStateRepository.safeKey(key), AddonStateRepository.safeValue(value));
             }
         });
