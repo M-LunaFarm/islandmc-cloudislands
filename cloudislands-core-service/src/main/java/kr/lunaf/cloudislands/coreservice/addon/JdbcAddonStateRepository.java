@@ -80,7 +80,7 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
         try (Connection connection = dataSource.getConnection()) {
             boolean autoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
-            try (PreparedStatement statement = connection.prepareStatement("INSERT INTO addon_state(addon_id, state_key, state_value) VALUES (?, ?, ?) ON CONFLICT (addon_id, state_key) DO UPDATE SET state_value = EXCLUDED.state_value, updated_at = now()")) {
+            try (PreparedStatement statement = connection.prepareStatement(addonStateUpsertSql(connection))) {
                 ensureKeyCapacity(connection, safeAddonId, safeValues.keySet());
                 for (Map.Entry<String, String> entry : safeValues.entrySet()) {
                     statement.setString(1, safeAddonId);
@@ -148,7 +148,7 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
             boolean autoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
             try (PreparedStatement delete = connection.prepareStatement("DELETE FROM addon_state WHERE addon_id = ? AND state_key LIKE ? ESCAPE '\\'");
-                 PreparedStatement insert = connection.prepareStatement("INSERT INTO addon_state(addon_id, state_key, state_value) VALUES (?, ?, ?) ON CONFLICT (addon_id, state_key) DO UPDATE SET state_value = EXCLUDED.state_value, updated_at = now()")) {
+                 PreparedStatement insert = connection.prepareStatement(addonStateUpsertSql(connection))) {
                 delete.setString(1, safeAddonId);
                 delete.setString(2, likePrefix(keyPrefix.trim()));
                 delete.executeUpdate();
@@ -220,7 +220,7 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
         try (Connection connection = dataSource.getConnection()) {
             boolean autoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
-            try (PreparedStatement statement = connection.prepareStatement("INSERT INTO addon_island_state(addon_id, island_id, state_key, state_value) VALUES (?, ?, ?, ?) ON CONFLICT (addon_id, island_id, state_key) DO UPDATE SET state_value = EXCLUDED.state_value, updated_at = now()")) {
+            try (PreparedStatement statement = connection.prepareStatement(addonIslandStateUpsertSql(connection))) {
                 ensureIslandKeyCapacity(connection, safeAddonId, safeIslandId, safeValues.keySet());
                 for (Map.Entry<String, String> entry : safeValues.entrySet()) {
                     statement.setString(1, safeAddonId);
@@ -294,7 +294,7 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
             boolean autoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
             try (PreparedStatement delete = connection.prepareStatement("DELETE FROM addon_island_state WHERE addon_id = ? AND island_id = ? AND state_key LIKE ? ESCAPE '\\'");
-                 PreparedStatement insert = connection.prepareStatement("INSERT INTO addon_island_state(addon_id, island_id, state_key, state_value) VALUES (?, ?, ?, ?) ON CONFLICT (addon_id, island_id, state_key) DO UPDATE SET state_value = EXCLUDED.state_value, updated_at = now()")) {
+                 PreparedStatement insert = connection.prepareStatement(addonIslandStateUpsertSql(connection))) {
                 delete.setString(1, safeAddonId);
                 delete.setObject(2, safeIslandId);
                 delete.setString(3, likePrefix(keyPrefix.trim()));
@@ -353,8 +353,28 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
                 .replace("_", "\\_") + "%";
     }
 
+    private String addonStateUpsertSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO addon_state(addon_id, state_key, state_value) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE state_value = VALUES(state_value), updated_at = CURRENT_TIMESTAMP";
+        }
+        return "INSERT INTO addon_state(addon_id, state_key, state_value) VALUES (?, ?, ?) ON CONFLICT (addon_id, state_key) DO UPDATE SET state_value = EXCLUDED.state_value, updated_at = now()";
+    }
+
+    private String addonIslandStateUpsertSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO addon_island_state(addon_id, island_id, state_key, state_value) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE state_value = VALUES(state_value), updated_at = CURRENT_TIMESTAMP";
+        }
+        return "INSERT INTO addon_island_state(addon_id, island_id, state_key, state_value) VALUES (?, ?, ?, ?) ON CONFLICT (addon_id, island_id, state_key) DO UPDATE SET state_value = EXCLUDED.state_value, updated_at = now()";
+    }
+
+    private boolean mysqlLike(Connection connection) throws SQLException {
+        String product = connection.getMetaData().getDatabaseProductName();
+        String normalized = product == null ? "" : product.toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains("mysql") || normalized.contains("mariadb");
+    }
+
     private void ensureKeyCapacity(Connection connection, String addonId, Iterable<String> keys) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) AS key_count, BOOL_OR(state_key = ?) AS key_exists FROM addon_state WHERE addon_id = ?")) {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) AS key_count, SUM(CASE WHEN state_key = ? THEN 1 ELSE 0 END) AS key_exists FROM addon_state WHERE addon_id = ?")) {
             int newKeys = 0;
             int count = 0;
             for (String key : keys) {
@@ -364,7 +384,7 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
                     if (!rs.next()) {
                         continue;
                     }
-                    if (!rs.getBoolean("key_exists")) {
+                    if (rs.getInt("key_exists") <= 0) {
                         newKeys++;
                     }
                     count = Math.max(count, rs.getInt("key_count"));
@@ -377,7 +397,7 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
     }
 
     private void ensureIslandKeyCapacity(Connection connection, String addonId, UUID islandId, Iterable<String> keys) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) AS key_count, BOOL_OR(state_key = ?) AS key_exists FROM addon_island_state WHERE addon_id = ? AND island_id = ?")) {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) AS key_count, SUM(CASE WHEN state_key = ? THEN 1 ELSE 0 END) AS key_exists FROM addon_island_state WHERE addon_id = ? AND island_id = ?")) {
             int newKeys = 0;
             int count = 0;
             for (String key : keys) {
@@ -388,7 +408,7 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
                     if (!rs.next()) {
                         continue;
                     }
-                    if (!rs.getBoolean("key_exists")) {
+                    if (rs.getInt("key_exists") <= 0) {
                         newKeys++;
                     }
                     count = Math.max(count, rs.getInt("key_count"));
