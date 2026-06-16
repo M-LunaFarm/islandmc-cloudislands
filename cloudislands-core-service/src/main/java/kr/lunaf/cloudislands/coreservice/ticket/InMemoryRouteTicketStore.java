@@ -20,8 +20,22 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
     }
 
     public RouteTicket save(RouteTicket ticket) {
+        if (activeTicketState(ticket.state())) {
+            tickets.replaceAll((_id, existing) -> {
+                if (existing.ticketId().equals(ticket.ticketId())
+                        || !existing.playerUuid().equals(ticket.playerUuid())
+                        || !activeTicketState(existing.state())) {
+                    return existing;
+                }
+                return new RouteTicket(existing.ticketId(), existing.playerUuid(), existing.action(), existing.islandId(), existing.targetNode(), existing.targetWorld(), RouteTicketState.EXPIRED, existing.expiresAt(), existing.nonce(), existing.payload());
+            });
+        }
         tickets.put(ticket.ticketId(), ticket);
         return ticket;
+    }
+
+    private boolean activeTicketState(RouteTicketState state) {
+        return state == RouteTicketState.PREPARING || state == RouteTicketState.READY;
     }
 
     @Override

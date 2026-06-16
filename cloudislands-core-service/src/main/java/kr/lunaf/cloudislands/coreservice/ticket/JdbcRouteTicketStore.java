@@ -28,14 +28,31 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
 
     @Override
     public RouteTicket save(RouteTicket ticket) {
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO route_tickets(id, player_uuid, island_id, action, target_node, target_world, state, nonce, payload, expires_at, consumed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb), ?, ?) ON CONFLICT (id) DO UPDATE SET player_uuid = EXCLUDED.player_uuid, island_id = EXCLUDED.island_id, action = EXCLUDED.action, target_node = EXCLUDED.target_node, target_world = EXCLUDED.target_world, state = EXCLUDED.state, nonce = EXCLUDED.nonce, payload = EXCLUDED.payload, expires_at = EXCLUDED.expires_at, consumed_at = EXCLUDED.consumed_at")) {
-            bind(statement, ticket, ticket.state() == RouteTicketState.CONSUMED ? clock.instant() : null);
-            statement.executeUpdate();
-            return ticket;
+        try (Connection connection = dataSource.getConnection()) {
+            expireActiveTicketsForPlayer(connection, ticket);
+            try (PreparedStatement statement = connection.prepareStatement("INSERT INTO route_tickets(id, player_uuid, island_id, action, target_node, target_world, state, nonce, payload, expires_at, consumed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb), ?, ?) ON CONFLICT (id) DO UPDATE SET player_uuid = EXCLUDED.player_uuid, island_id = EXCLUDED.island_id, action = EXCLUDED.action, target_node = EXCLUDED.target_node, target_world = EXCLUDED.target_world, state = EXCLUDED.state, nonce = EXCLUDED.nonce, payload = EXCLUDED.payload, expires_at = EXCLUDED.expires_at, consumed_at = EXCLUDED.consumed_at")) {
+                bind(statement, ticket, ticket.state() == RouteTicketState.CONSUMED ? clock.instant() : null);
+                statement.executeUpdate();
+                return ticket;
+            }
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to save route ticket", exception);
         }
+    }
+
+    private void expireActiveTicketsForPlayer(Connection connection, RouteTicket ticket) throws SQLException {
+        if (!activeTicketState(ticket.state())) {
+            return;
+        }
+        try (PreparedStatement statement = connection.prepareStatement("UPDATE route_tickets SET state = 'EXPIRED' WHERE player_uuid = ? AND id <> ? AND state IN ('PREPARING', 'READY')")) {
+            statement.setObject(1, ticket.playerUuid());
+            statement.setObject(2, ticket.ticketId());
+            statement.executeUpdate();
+        }
+    }
+
+    private boolean activeTicketState(RouteTicketState state) {
+        return state == RouteTicketState.PREPARING || state == RouteTicketState.READY;
     }
 
     @Override
