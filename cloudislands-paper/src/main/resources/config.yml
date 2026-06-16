@@ -983,6 +983,9 @@ messages:
     - "관리: /섬 설정"
 
 node:
+  # In a multi-node pool, every Island server must use a unique node.id and
+  # matching unique Velocity server name. Five or six Island nodes are valid as
+  # long as each node is a distinct route candidate and island bundle storage is shared.
   id: "island-1"
   role: "ISLAND_NODE"
   pool: "island"

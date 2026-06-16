@@ -697,6 +697,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";playerTopologyPolicy=logical-island-only"
             + ";playerNodeNamePolicy=" + (configBoolean("routing.hide-node-names", true) ? "hidden-from-player-routing-messages" : "visible-risk-admin-debug-only")
             + ";topologyExposureRisk=" + !configBoolean("routing.hide-node-names", true)
+            + ";nodePoolScalePolicy=count-independent-requires-unique-node-id-unique-velocity-server-name-shared-bundle-storage"
+            + ";fiveSixNodePoolPolicy=supported-when-each-island-node-registers-as-a-distinct-route-candidate"
+            + ";nodeIdentityPolicy=node.id-and-velocity-server-name-must-be-unique-per-island-node"
             + ";defaultNodeIdentityRisk=" + defaultNodeIdentityRisk(parseAgentRole(getConfig().getString("node.role", "ISLAND_NODE")), getConfig().getString("node.id", "island-1"), getConfig().getString("node.velocity-server-name", getConfig().getString("node.id", "island-1")))
             + ";chatBroadcasts=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatBroadcasts())
             + ";chatDeliveries=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatDeliveries())
