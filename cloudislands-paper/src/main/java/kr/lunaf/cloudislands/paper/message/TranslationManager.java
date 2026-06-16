@@ -559,6 +559,11 @@ public final class TranslationManager {
         values.put("admin-command-action-result-material-prefix", " material=");
         values.put("admin-command-action-result-worth-prefix", " worth=");
         values.put("admin-command-action-result-snapshot-prefix", " snapshot=");
+        values.put("admin-command-action-result-storage-path-prefix", " storagePath=");
+        values.put("admin-command-action-result-restore-manifest-prefix", " restoreManifest=");
+        values.put("admin-command-action-result-restore-checksum-prefix", " restoreChecksum=");
+        values.put("admin-command-action-result-restore-portable-prefix", " restorePortable=");
+        values.put("admin-command-action-result-restore-formats-prefix", " restoreFormats=");
         values.put("admin-command-storage-metric-failures-prefix", "(failures=");
         values.put("admin-command-storage-metric-up-prefix", ", up=");
         values.put("admin-command-storage-metric-down-prefix", ", down=");

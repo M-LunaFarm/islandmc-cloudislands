@@ -850,7 +850,7 @@ public final class VelocityRoutingController {
 
     public void restore(Player player, UUID islandId, long snapshotNo) {
         withResolvedIsland(player, islandId, "복원할 섬을 찾지 못했습니다.", "섬 복원을 요청하지 못했습니다.",
-            resolved -> sendActionResult(player, coreApiClient.restoreIslandSnapshot(resolved, snapshotNo), "섬 복원을 요청했습니다.", "섬 복원을 요청하지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.restoreIslandSnapshotResult(resolved, snapshotNo).thenApply(body -> actionResultMessage("Island restore", resolved.toString(), body)), "섬 복원을 요청하지 못했습니다."));
     }
 
     public void listJobs(Player player) {
@@ -1321,6 +1321,24 @@ public final class VelocityRoutingController {
         }
         if (body.contains("\"snapshotNo\"")) {
             builder.append(" snapshot=").append(longValue(body, "snapshotNo"));
+        }
+        String storagePath = jsonValue(body, "storagePath");
+        if (!storagePath.isBlank()) {
+            builder.append(" storagePath=").append(storagePath);
+        }
+        if (body.contains("\"restoreManifestRequired\"")) {
+            builder.append(" restoreManifest=").append(boolValue(body, "restoreManifestRequired"));
+        }
+        String restoreChecksumPolicy = jsonValue(body, "restoreChecksumPolicy");
+        if (!restoreChecksumPolicy.isBlank()) {
+            builder.append(" restoreChecksum=").append(restoreChecksumPolicy);
+        }
+        if (body.contains("\"restorePortableRequired\"")) {
+            builder.append(" restorePortable=").append(boolValue(body, "restorePortableRequired"));
+        }
+        String restoreSupportedFormats = jsonValue(body, "restoreSupportedFormats");
+        if (!restoreSupportedFormats.isBlank()) {
+            builder.append(" restoreFormats=").append(restoreSupportedFormats);
         }
         return builder.toString();
     }

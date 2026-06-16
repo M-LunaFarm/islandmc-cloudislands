@@ -1490,6 +1490,24 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         if (body.contains("\"snapshotNo\"")) {
             builder.append(adminText("admin-command-action-result-snapshot-prefix", " snapshot=")).append(longValue(body, "snapshotNo"));
         }
+        String storagePath = textValue(body, "storagePath");
+        if (!storagePath.isBlank()) {
+            builder.append(adminText("admin-command-action-result-storage-path-prefix", " storagePath=")).append(storagePath);
+        }
+        if (body.contains("\"restoreManifestRequired\"")) {
+            builder.append(adminText("admin-command-action-result-restore-manifest-prefix", " restoreManifest=")).append(boolValue(body, "restoreManifestRequired"));
+        }
+        String restoreChecksumPolicy = textValue(body, "restoreChecksumPolicy");
+        if (!restoreChecksumPolicy.isBlank()) {
+            builder.append(adminText("admin-command-action-result-restore-checksum-prefix", " restoreChecksum=")).append(restoreChecksumPolicy);
+        }
+        if (body.contains("\"restorePortableRequired\"")) {
+            builder.append(adminText("admin-command-action-result-restore-portable-prefix", " restorePortable=")).append(boolValue(body, "restorePortableRequired"));
+        }
+        String restoreSupportedFormats = textValue(body, "restoreSupportedFormats");
+        if (!restoreSupportedFormats.isBlank()) {
+            builder.append(adminText("admin-command-action-result-restore-formats-prefix", " restoreFormats=")).append(restoreSupportedFormats);
+        }
         return builder.toString();
     }
 
