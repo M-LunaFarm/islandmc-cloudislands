@@ -303,7 +303,7 @@ public final class AdminFactoryCommand {
             }
             return filter(values, args[1]);
         }
-        if (args.length == 3 && args[1].equalsIgnoreCase("command")) {
+        if (args.length == 3 && isCommandListRoot(args[1])) {
             return filter(List.of("list"), args[2]);
         }
         if (args.length == 3 && args[1].equalsIgnoreCase("migration") && enabled("migration")) {

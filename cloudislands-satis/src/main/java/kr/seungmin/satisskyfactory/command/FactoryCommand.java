@@ -701,7 +701,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             values.add("admin");
             return filter(values, args[0]);
         }
-        if (args.length == 2 && args[0].equalsIgnoreCase("command")) {
+        if (args.length == 2 && isCommandListRoot(args[0])) {
             return filter(List.of("list"), args[1]);
         }
         if ((args[0].equalsIgnoreCase("sell") && !enabled("market"))
