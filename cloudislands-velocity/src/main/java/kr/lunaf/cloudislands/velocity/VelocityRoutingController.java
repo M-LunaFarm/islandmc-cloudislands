@@ -126,6 +126,7 @@ public final class VelocityRoutingController {
 
     public String statusSummary() {
         return "CloudIslands Velocity router online, fallback=" + displayServerName(fallbackServer)
+            + ", fallbackAvailable=" + fallbackServerAvailable()
             + ", islandPool=" + islandPool
             + ", islandPoolServers=" + islandPoolServerCount()
             + ", islandPoolServerNames=" + islandPoolServerNames()
@@ -152,6 +153,7 @@ public final class VelocityRoutingController {
             + "cloudislands_velocity_route_success_total " + routeSuccesses.get() + "\n"
             + "cloudislands_velocity_route_failed_total " + routeFailures.get() + "\n"
             + routeFailureCodeMetrics()
+            + "cloudislands_velocity_fallback_server_available " + (fallbackServerAvailable() ? 1 : 0) + "\n"
             + "cloudislands_velocity_fallback_transfers_total " + fallbackTransfers.get() + "\n"
             + "cloudislands_velocity_fallback_missing_total " + fallbackMissing.get() + "\n"
             + "cloudislands_velocity_fallback_failed_total " + fallbackFailures.get() + "\n"
@@ -166,6 +168,10 @@ public final class VelocityRoutingController {
             }
         }
         return count;
+    }
+
+    private boolean fallbackServerAvailable() {
+        return findServer(fallbackServer) != null;
     }
 
     private String islandPoolServerNames() {
