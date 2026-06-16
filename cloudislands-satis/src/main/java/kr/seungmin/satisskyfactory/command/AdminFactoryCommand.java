@@ -43,6 +43,8 @@ import java.util.function.Supplier;
 public final class AdminFactoryCommand {
     private static final int HELP_PAGE_SIZE = 12;
     private static final String MIGRATION_IMPORT_APPROVAL = "CONFIRM_IMPORT";
+    private static final String MIGRATION_SOURCE_POLICY = "read-only-snapshot-or-sqlite-import-no-live-provider-hooks";
+    private static final String MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS = "SuperiorSkyblock2,BentoBox,ASkyBlock";
     private static final List<String> FEATURE_KEYS = List.of(
             "commands",
             "machines",
@@ -678,6 +680,9 @@ public final class AdminFactoryCommand {
             state.put("feature-gate", "migration=false");
             state.put("mode", "disabled");
             state.put("writes", "false");
+            state.put("source-policy", MIGRATION_SOURCE_POLICY);
+            state.put("live-provider-hooks", "false");
+            state.put("forbidden-runtime-providers", MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS);
             state.put("reason", "migration feature is disabled by config");
             state.put("disabled-behavior", "reject-status-scan-dryrun-verify-import-rollback");
             state.entrySet().stream()
@@ -728,6 +733,10 @@ public final class AdminFactoryCommand {
             sender.sendMessage(messages.raw("admin-migration-title"));
             Map<String, String> state = new LinkedHashMap<>();
             state.put("source", plan.sourcePath());
+            state.put("source-policy", MIGRATION_SOURCE_POLICY);
+            state.put("source-kind", "sqlite-snapshot");
+            state.put("live-provider-hooks", "false");
+            state.put("forbidden-runtime-providers", MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS);
             state.put("mode", action.equals("scan") ? "scan-only" : (action.equals("verify") ? "verify-no-write" : "dryrun-no-write"));
             state.put("target-backend", database.activeBackend().name());
             state.put("writes", "false");
@@ -841,6 +850,10 @@ public final class AdminFactoryCommand {
             sender.sendMessage(messages.raw("admin-migration-title"));
             Map<String, String> state = new LinkedHashMap<>();
             state.put("source", result.sourcePath());
+            state.put("source-policy", MIGRATION_SOURCE_POLICY);
+            state.put("source-kind", "sqlite-snapshot");
+            state.put("live-provider-hooks", "false");
+            state.put("forbidden-runtime-providers", MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS);
             state.put("target-backend", database.activeBackend().name());
             state.put("dryrun-source", lastLegacyDryRunSource);
             state.put("dryrun-rows", String.valueOf(lastLegacyDryRunRows));
