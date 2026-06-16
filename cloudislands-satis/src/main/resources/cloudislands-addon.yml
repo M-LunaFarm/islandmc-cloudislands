@@ -22,6 +22,8 @@ runtime:
   default-database-mode: CORE_API
   load-phase: Paper-POSTWORLD-after-CloudIslands
   command-owner: external-addon
+  root-switch-gate: addons.cloudislands-satis.enabled&&satis.enabled
+  root-switch-policy: disabled-root-switch-forces-all-runtime-features-off-even-when-child-feature-switches-are-true
   disabled-mode: unregister-disabled-commands-no-listeners-no-tickers-no-placeholders-no-core-api-writers
   component-audit:
     active-key: runtime-active-components
@@ -162,6 +164,8 @@ migration:
 features:
   configurable: true
   root-switch: satis.enabled
+  parent-switch: addons.cloudislands-satis.enabled
+  root-switch-policy: parent-or-root-disabled-forces-all-detailed-switches-off-at-runtime
   detailed-switches:
     - commands
     - machines
