@@ -16,7 +16,7 @@ runtime:
     - BUILT_IN_COMPATIBLE
     - DISABLED
   mode-policy: external-addon-and-built-in-compatible-modes-share-cloudislands-addon-feature-gates
-  packaging-policy: integration.mode selects external-plugin, built-in-compatible, or disabled-stub registry metadata
+  packaging-policy: integration.mode selects external-plugin, built-in-compatible, or disabled-unregistered registry metadata
   owns-islands: false
   storage-key: cloudislands-island-uuid
   default-database-mode: CORE_API

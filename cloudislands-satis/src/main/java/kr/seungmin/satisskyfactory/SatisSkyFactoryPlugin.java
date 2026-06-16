@@ -379,7 +379,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-commands-registered", Boolean.toString(commandsRegistered));
         state.put("runtime-commands-gate", "addonRuntimeEnabled&&features.commands");
         state.put("runtime-commands-status", operationalFeatureEnabled("commands") ? (commandsRegistered ? "registered" : "enabled-not-registered") : "commands-feature-disabled");
-        state.put("runtime-commands-policy", "disabled-feature-keeps-plugin-yml-command-as-disabled-stub-with-empty-tab-complete-and-registers-no-active-satis-command");
+        state.put("runtime-commands-policy", "disabled-feature-unregisters-factory-and-sfactory-commands-and-registers-no-active-satis-command");
         state.put("runtime-machine-listener-registered", Boolean.toString(machineListenerRegistered));
         state.put("runtime-gui-listener-registered", Boolean.toString(guiListenerRegistered));
         state.put("runtime-lifecycle-listener-registered", Boolean.toString(lifecycleListenerRegistered));
@@ -444,7 +444,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-core-api-state-last-failure-at", coreApiState == null ? "" : coreApiState.lastFailureAt());
         state.put("runtime-registration-policy", "disabled-features-skip-active-commands-gui-listeners-tasks-and-writes");
         state.put("runtime-disabled-features", disabledRuntimeFeatures());
-        state.put("runtime-command-handler-mode", commandsRegistered ? "active" : "disabled-stub");
+        state.put("runtime-command-handler-mode", commandsRegistered ? "active" : "unregistered");
         state.put("runtime-command-block-reason", runtimeCommandBlockReason());
         state.put("runtime-active-components", activeRuntimeComponentsMetadata());
         state.put("runtime-skipped-components", skippedRuntimeComponentsMetadata());
@@ -455,7 +455,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("command-list-format", "one-line-per-command");
         state.put("command-list-paging", "factory command list [page],factory admin command list [page]");
         state.put("command-list-page-size", "12");
-        state.put("command-list-disabled-policy", "empty-tab-complete-disabled-command-stub-no-active-satis-command-list");
+        state.put("command-list-disabled-policy", "commands-feature-disabled-unregisters-command-list-entrypoints");
         putDataWriteGateState(state);
         putLifecycleCoverageState(state);
         putIslandMobilityState(state);
@@ -925,59 +925,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return java.util.Optional.empty();
     }
 
-    private void installDisabledCommandHandler(String reason) {
-        java.util.function.Consumer<PluginCommand> installer = command -> {
-            if (command == null) {
-                return;
-            }
-            command.setExecutor((sender, _command, _label, _args) -> {
-                String feature = reason == null || reason.isBlank() ? "addon" : reason;
-                if (disabledCommandListRequested(_args)) {
-                    sendDisabledCommandList(sender, _label, feature);
-                    return true;
-                }
-                if (messages != null) {
-                    messages.send(sender, "feature-disabled", Map.of("feature", feature));
-                } else {
-                    sender.sendMessage("CloudIslands Satis is disabled: " + feature);
-                }
-                return true;
-            });
-            command.setTabCompleter((_sender, _command, _alias, _args) -> java.util.List.of());
-        };
-        installer.accept(getCommand("factory"));
-        installer.accept(getCommand("sfactory"));
-    }
-
-    private boolean disabledCommandListRequested(String[] args) {
-        if (args == null || args.length == 0) {
-            return false;
-        }
-        String first = args[0] == null ? "" : args[0].toLowerCase(Locale.ROOT);
-        if (first.equals("help") || first.equals("commands") || first.equals("command") || first.equals("command-list")
-                || first.equals("명령어") || first.equals("명령어목록")) {
-            return true;
-        }
-        if (!first.equals("admin") || args.length < 2) {
-            return false;
-        }
-        String second = args[1] == null ? "" : args[1].toLowerCase(Locale.ROOT);
-        return second.equals("help") || second.equals("commands") || second.equals("command") || second.equals("command-list")
-                || second.equals("명령어") || second.equals("명령어목록");
-    }
-
-    private void sendDisabledCommandList(org.bukkit.command.CommandSender sender, String label, String feature) {
-        String commandLabel = label == null || label.isBlank() ? "factory" : label;
-        String safeFeature = feature == null || feature.isBlank() ? "addon" : feature;
-        if (messages != null) {
-            sender.sendMessage(messages.raw("command-list-title", Map.of("page", "1", "pages", "1")));
-            sender.sendMessage(messages.raw("command-list-entry", Map.of("command", commandLabel + " command list [disabled:" + safeFeature + "]")));
-            return;
-        }
-        sender.sendMessage("Factory command list 1/1 - 1 line > 1 command");
-        sender.sendMessage("> /" + commandLabel + " command list [disabled:" + safeFeature + "]");
-    }
-
     private void registerListeners() {
         if (!operationalFeatureEnabled("machines")) {
             machineListenerRegistered = unregisterListener(machineListener, machineListenerRegistered);
@@ -1362,7 +1309,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     public String addonPackaging() {
         return switch (configuredIntegrationMode()) {
             case "BUILT_IN_COMPATIBLE" -> "built-in-compatible";
-            case "DISABLED" -> "disabled-stub";
+            case "DISABLED" -> "disabled-unregistered";
             default -> "external-plugin";
         };
     }
@@ -1584,7 +1531,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private String integrationRuntimeShape(String integrationMode) {
         return switch (integrationMode) {
             case "BUILT_IN_COMPATIBLE" -> "built-in-feature-layer-using-cloudislands-addon-gates";
-            case "DISABLED" -> "disabled-command-stub-no-listeners-no-tickers-no-writers";
+            case "DISABLED" -> "disabled-unregistered-commands-no-listeners-no-tickers-no-writers";
             default -> "external-addon-plugin-using-cloudislands-addon-gates";
         };
     }
