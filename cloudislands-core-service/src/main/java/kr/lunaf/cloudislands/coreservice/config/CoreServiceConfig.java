@@ -138,6 +138,9 @@ public record CoreServiceConfig(
         if (coreJdbcSupported(jdbcUrl)) {
             return !requested.equals(effective) && !"UNKNOWN".equals(requested);
         }
+        if ("CORE_API".equals(setupDatabaseFallbackTargetForUnsupported(requested))) {
+            return true;
+        }
         return !coreJdbcTypeSupported(requested);
     }
 
@@ -157,6 +160,10 @@ public record CoreServiceConfig(
         if ("CORE_API".equals(requested)) {
             return "CORE_API_CLIENT_MODE_NO_CORE_SELF_STORAGE";
         }
+        String fallbackTarget = setupDatabaseFallbackTargetForUnsupported(requested);
+        if ("CORE_API".equals(fallbackTarget)) {
+            return "CORE_API_CLIENT_FALLBACK_FOR_" + requested;
+        }
         return "SAFE_IN_MEMORY_CORE_FALLBACK";
     }
 
@@ -165,7 +172,7 @@ public record CoreServiceConfig(
         if (coreJdbcSupported(jdbcUrl)) {
             return jdbcUrlDatabaseType(jdbcUrl) + "_JDBC";
         }
-        if ("CORE_API".equals(requested)) {
+        if ("CORE_API".equals(requested) || "CORE_API".equals(setupDatabaseFallbackTargetForUnsupported(requested))) {
             return "CORE_API_CLIENT";
         }
         return "IN_MEMORY_FALLBACK";
@@ -177,8 +184,8 @@ public record CoreServiceConfig(
         if (coreJdbcSupported(jdbcUrl) && !requested.equals(effective) && !"UNKNOWN".equals(requested)) {
             return effective;
         }
-        if (!coreJdbcTypeSupported(requested)) {
-            return "IN_MEMORY";
+        if (!coreJdbcTypeSupported(requested) || "UNKNOWN".equals(effective)) {
+            return setupDatabaseFallbackTargetForUnsupported(requested);
         }
         return "NONE";
     }
@@ -194,6 +201,10 @@ public record CoreServiceConfig(
         }
         if ("CORE_API".equals(requested)) {
             return "core-api-is-client-facing-selection-not-core-service-self-storage";
+        }
+        String fallbackTarget = setupDatabaseFallbackTargetForUnsupported(requested);
+        if ("CORE_API".equals(fallbackTarget)) {
+            return "requested-" + requested.toLowerCase(Locale.ROOT) + "-uses-core-api-client-fallback";
         }
         if ("MYSQL".equals(requested) || "MARIADB".equals(requested)) {
             return "core-service-jdbc-repositories-are-postgresql-only";
@@ -601,6 +612,33 @@ public record CoreServiceConfig(
         return false;
     }
 
+    private String setupDatabaseFallbackTargetForUnsupported(String requested) {
+        Map<String, String> config = applicationConfig();
+        if (!setupDatabaseFallbackEnabled) {
+            return "IN_MEMORY";
+        }
+        for (String entry : setupDatabaseFallbackOrder.split(",")) {
+            String normalized = normalizeDatabaseType(entry);
+            if ("POSTGRESQL".equals(normalized) && !setupPostgresqlFallbackJdbcUrl(config).isBlank()) {
+                return "POSTGRESQL";
+            }
+            if ("CORE_API".equals(normalized) && setupDatabaseCoreApiFallbackConfigured(requested)) {
+                return "CORE_API";
+            }
+            if ("IN_MEMORY".equals(normalized) || "UNSUPPORTED_JDBC".equals(normalized)) {
+                return "IN_MEMORY";
+            }
+        }
+        return "IN_MEMORY";
+    }
+
+    private boolean setupDatabaseCoreApiFallbackConfigured(String requested) {
+        return "CORE_API".equals(requested)
+            || !setupDatabaseCoreApiBaseUrl.isBlank()
+            || setupDatabaseCoreApiAuthTokenConfigured
+            || setupDatabaseCoreApiAdminTokenConfigured;
+    }
+
     private static boolean postgresqlFallbackConfigured(Map<String, String> config) {
         return presentConfig(config, "setup.database.postgresql.jdbc-url")
             || presentConfig(config, "setup.database.postgresql.url")
@@ -791,6 +829,8 @@ public record CoreServiceConfig(
             case "MYSQL" -> "MYSQL";
             case "MARIA", "MARIADB" -> "MARIADB";
             case "CORE", "CORE_API" -> "CORE_API";
+            case "IN_MEMORY", "MEMORY", "LOCAL" -> "IN_MEMORY";
+            case "UNSUPPORTED", "UNSUPPORTED_JDBC" -> "UNSUPPORTED_JDBC";
             default -> "UNKNOWN";
         };
     }

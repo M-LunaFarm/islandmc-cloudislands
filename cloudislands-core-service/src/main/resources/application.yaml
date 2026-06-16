@@ -11,7 +11,8 @@ setup:
   # - POSTGRESQL: full Core JDBC repositories/jobs. Recommended for production.
   # - MYSQL/MARIADB: accepted for setup compatibility and external integrations. If setup.database.postgresql.* is present in fallback order, Core state falls back to PostgreSQL JDBC and uses the PostgreSQL credentials/pool.
   # - CORE_API: client/API-only selection marker. If setup.database.postgresql.* is present in fallback order, Core state falls back to PostgreSQL JDBC and uses the PostgreSQL credentials/pool.
-  # Fallback rule: unsupported Core JDBC selections do not crash startup; they keep repositories/jobs on the configured safe fallback mode and expose the reason through /v1/admin/config.
+  # Fallback rule: unsupported Core JDBC selections do not crash startup; fallback.order is evaluated in order.
+  # POSTGRESQL is used when setup.database.postgresql.* is configured, CORE_API is used when core-api setup is configured, then safe in-memory keeps the core online.
   database:
     # POSTGRESQL enables Core JDBC repositories/jobs. MYSQL, MARIADB, and CORE_API can use setup.database.postgresql.* as a Core JDBC fallback.
     # CI_DATABASE_TYPE overrides this value.
@@ -72,7 +73,7 @@ setup:
       admin-token: ""
       timeout-ms: 3000
     fallback:
-      # Core JDBC is PostgreSQL-only. Unsupported setup choices stay online through the safe fallback path.
+      # Core JDBC is PostgreSQL-only. Unsupported setup choices stay online through the ordered fallback path.
       # If disabled, Core still refuses unsafe unsupported JDBC startup and reports setupFallbackSafetyForced=true.
       # Env overrides: CI_DB_FALLBACK_ENABLED, CI_DB_FALLBACK_ORDER.
       enabled: true
