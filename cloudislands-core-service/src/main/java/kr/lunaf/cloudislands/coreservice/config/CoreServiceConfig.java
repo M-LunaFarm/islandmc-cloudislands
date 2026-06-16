@@ -846,11 +846,11 @@ public record CoreServiceConfig(
 
     private static String normalizeDatabaseType(String type) {
         return switch (type.trim().replace('-', '_').toUpperCase(Locale.ROOT)) {
-            case "POSTGRES", "POSTGRESQL" -> "POSTGRESQL";
+            case "POSTGRES", "POSTGRESQL", "PG" -> "POSTGRESQL";
             case "MYSQL" -> "MYSQL";
             case "MARIA", "MARIADB" -> "MARIADB";
-            case "CORE", "CORE_API" -> "CORE_API";
-            case "IN_MEMORY", "MEMORY", "LOCAL" -> "IN_MEMORY";
+            case "CORE", "CORE_API", "COREAPI", "CLOUDISLANDS", "CLOUDISLANDS_API" -> "CORE_API";
+            case "IN_MEMORY", "MEMORY", "LOCAL", "LOCAL_SQLITE" -> "IN_MEMORY";
             case "UNSUPPORTED", "UNSUPPORTED_JDBC" -> "UNSUPPORTED_JDBC";
             default -> "UNKNOWN";
         };
@@ -862,7 +862,7 @@ public record CoreServiceConfig(
 
     private static boolean coreJdbcTypeSupported(String type) {
         return switch (type.trim().replace('-', '_').toUpperCase(Locale.ROOT)) {
-            case "POSTGRES", "POSTGRESQL" -> true;
+            case "POSTGRES", "POSTGRESQL", "PG" -> true;
             default -> false;
         };
     }

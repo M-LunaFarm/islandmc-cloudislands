@@ -15,8 +15,8 @@ setup:
   # POSTGRESQL is used when setup.database.postgresql.* is configured, CORE_API is used when core-api setup is configured, then safe in-memory keeps the core online.
   database:
     # POSTGRESQL enables Core JDBC repositories/jobs. MYSQL, MARIADB, and CORE_API can use setup.database.postgresql.* as a Core JDBC fallback.
-    # Accepted aliases: POSTGRES -> POSTGRESQL, MARIA -> MARIADB,
-    # CORE -> CORE_API, MEMORY/LOCAL -> IN_MEMORY.
+    # Accepted aliases: POSTGRES/PG -> POSTGRESQL, MARIA -> MARIADB,
+    # CORE/COREAPI/CLOUDISLANDS/CLOUDISLANDS_API -> CORE_API, MEMORY/LOCAL/LOCAL_SQLITE -> IN_MEMORY.
     # CI_DATABASE_TYPE overrides this value.
     type: ""
     # CI_JDBC_URL overrides this value. If empty, host/name/options are used when possible.
@@ -93,8 +93,8 @@ setup:
   # CORE_API leaves Core JDBC disabled and reports dbBackend=NONE.
   jdbc-url: ""
   # database-type accepts POSTGRESQL, MYSQL, MARIADB, or CORE_API.
-  # Accepted aliases: POSTGRES -> POSTGRESQL, MARIA -> MARIADB,
-  # CORE -> CORE_API, MEMORY/LOCAL -> IN_MEMORY.
+  # Accepted aliases: POSTGRES/PG -> POSTGRESQL, MARIA -> MARIADB,
+  # CORE/COREAPI/CLOUDISLANDS/CLOUDISLANDS_API -> CORE_API, MEMORY/LOCAL/LOCAL_SQLITE -> IN_MEMORY.
   # Core service JDBC repositories are PostgreSQL-only; MYSQL/MARIADB/CORE_API fall back to non-JDBC core repositories unless repository-mode is explicitly set.
   # If repository-mode/job-queue-mode is forced to JDBC with an unsupported JDBC URL, Core keeps the safe fallback active and reports jdbcFallbackActive=true.
   database-type: ""
