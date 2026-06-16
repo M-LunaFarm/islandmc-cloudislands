@@ -273,7 +273,14 @@ public final class IslandLifecycleWorkflow {
         if (activationLock != null && lease == null) {
             return new Result(false, "ACTIVATION_LOCKED", current);
         }
-        kr.lunaf.cloudislands.coreservice.IslandPlacement.markActivating(islandId, node.nodeId(), runtimes);
+        try {
+            kr.lunaf.cloudislands.coreservice.IslandPlacement.markActivating(islandId, node.nodeId(), runtimes);
+        } catch (RuntimeException exception) {
+            if (splitBrainActivationRejected(exception)) {
+                return new Result(false, "SPLIT_BRAIN_ACTIVATION_REJECTED", runtimes.find(islandId).orElse(null));
+            }
+            throw exception;
+        }
         IslandRuntimeSnapshot runtime = runtimes.setState(islandId, IslandState.RESTORING);
         islands.setState(islandId, IslandState.RESTORING);
         try {
@@ -305,7 +312,15 @@ public final class IslandLifecycleWorkflow {
         if (activationLock != null && lease == null) {
             return new Result(false, "ACTIVATION_LOCKED", current);
         }
-        IslandRuntimeSnapshot runtime = kr.lunaf.cloudislands.coreservice.IslandPlacement.markActivating(islandId, node.nodeId(), runtimes);
+        IslandRuntimeSnapshot runtime;
+        try {
+            runtime = kr.lunaf.cloudislands.coreservice.IslandPlacement.markActivating(islandId, node.nodeId(), runtimes);
+        } catch (RuntimeException exception) {
+            if (splitBrainActivationRejected(exception)) {
+                return new Result(false, "SPLIT_BRAIN_ACTIVATION_REJECTED", runtimes.find(islandId).orElse(null));
+            }
+            throw exception;
+        }
         islands.setState(islandId, IslandState.ACTIVATING);
         try {
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESET_ISLAND, islandId, node.nodeId(), 40, Map.of("templateId", templateId, "reason", safeReason, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
