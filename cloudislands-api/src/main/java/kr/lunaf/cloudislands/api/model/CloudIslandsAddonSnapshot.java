@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.api.model;
 
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public record CloudIslandsAddonSnapshot(
@@ -92,6 +93,22 @@ public record CloudIslandsAddonSnapshot(
         return enabled && featureEnabled(key, fallback);
     }
 
+    public boolean runtimeFeatureEnabled(String key) {
+        return acceptsRuntimeFeature(key);
+    }
+
+    public boolean runtimeFeatureEnabled(String key, boolean fallback) {
+        return acceptsRuntimeFeature(key, fallback);
+    }
+
+    public Map<String, Boolean> resolvedConfiguredFeatures() {
+        return resolvedFeatureStates(configuredFeatures, false);
+    }
+
+    public Map<String, Boolean> resolvedRuntimeFeatures() {
+        return resolvedFeatureStates(features, true);
+    }
+
     public boolean commandsEnabled() {
         return acceptsRuntimeFeature("commands", true);
     }
@@ -165,6 +182,39 @@ public record CloudIslandsAddonSnapshot(
         metadataPairs("feature-dependencies").forEach((feature, required) ->
             dependencies.put(feature.trim(), canonicalFeature(required, aliases)));
         return Map.copyOf(dependencies);
+    }
+
+    public String canonicalFeatureKey(String key) {
+        return canonicalFeature(key);
+    }
+
+    private Map<String, Boolean> resolvedFeatureStates(Map<String, Boolean> source, boolean runtime) {
+        Map<String, String> aliases = featureAliases();
+        Map<String, String> dependencies = featureDependencies();
+        Map<String, Boolean> resolved = new LinkedHashMap<>();
+        source.keySet().forEach(key -> putResolvedFeatureState(resolved, source, key, runtime));
+        aliases.forEach((alias, canonical) -> {
+            putResolvedFeatureState(resolved, source, alias, runtime);
+            putResolvedFeatureState(resolved, source, canonical, runtime);
+        });
+        dependencies.forEach((feature, required) -> {
+            putResolvedFeatureState(resolved, source, feature, runtime);
+            putResolvedFeatureState(resolved, source, required, runtime);
+        });
+        return Map.copyOf(resolved);
+    }
+
+    private void putResolvedFeatureState(Map<String, Boolean> resolved, Map<String, Boolean> source, String key, boolean runtime) {
+        String requested = key == null ? "" : key.trim();
+        String canonical = canonicalFeature(requested);
+        if (!canonical.isBlank()) {
+            boolean value = featureEnabledIn(source, canonical, true, runtime);
+            resolved.put(canonical, runtime ? enabled && value : value);
+        }
+        if (!requested.isBlank() && !requested.equals(canonical)) {
+            boolean value = featureEnabledIn(source, requested, true, runtime);
+            resolved.put(requested, runtime ? enabled && value : value);
+        }
     }
 
     private String canonicalFeature(String key) {
