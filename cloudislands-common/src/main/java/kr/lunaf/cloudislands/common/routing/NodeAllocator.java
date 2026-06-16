@@ -58,8 +58,8 @@ public final class NodeAllocator {
             .toList();
         Optional<NodeLoad> ready = eligible.stream()
             .filter(node -> node.state() == NodeState.READY)
-            .min(Comparator.comparingDouble(NodeLoad::score));
-        return ready.isPresent() ? ready : eligible.stream().min(Comparator.comparingDouble(NodeLoad::score));
+            .min(allocationComparator());
+        return ready.isPresent() ? ready : eligible.stream().min(allocationComparator());
     }
 
     public Optional<NodeLoad> selectReadyNode(List<NodeLoad> nodes, Instant now, String templateId, String minNodeVersion, String pool) {
@@ -70,7 +70,7 @@ public final class NodeAllocator {
             .filter(node -> newActivationBlockReason(node, now).isBlank())
             .filter(node -> node.supportsTemplate(templateId))
             .filter(node -> node.satisfiesMinVersion(minNodeVersion))
-            .min(Comparator.comparingDouble(NodeLoad::score));
+            .min(allocationComparator());
     }
 
     public Optional<NodeLoad> selectTargetNode(List<NodeLoad> nodes, Instant now, String targetNodeId, String templateId, String minNodeVersion, String pool) {
@@ -192,6 +192,14 @@ public final class NodeAllocator {
             return current;
         }
         return blockReasonPriority(next) < blockReasonPriority(current) ? next : current;
+    }
+
+    private Comparator<NodeLoad> allocationComparator() {
+        return Comparator.comparingDouble(NodeLoad::score)
+            .thenComparingInt(NodeLoad::activationQueue)
+            .thenComparingInt(NodeLoad::activeIslands)
+            .thenComparingInt(NodeLoad::players)
+            .thenComparing(node -> node.nodeId() == null ? "" : node.nodeId());
     }
 
     private int blockReasonPriority(String reason) {
