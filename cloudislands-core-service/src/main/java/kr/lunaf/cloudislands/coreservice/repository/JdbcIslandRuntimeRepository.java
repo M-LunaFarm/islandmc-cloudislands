@@ -14,6 +14,7 @@ import java.util.UUID;
 import javax.sql.DataSource;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandState;
+import kr.lunaf.cloudislands.common.runtime.IslandRuntimeStatePolicy;
 
 public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepository {
     private final DataSource dataSource;
@@ -76,7 +77,7 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
             connection.setAutoCommit(false);
             IslandRuntimeSnapshot current = findForUpdate(connection, islandId).orElse(null);
             rejectSplitBrainActivation(current, targetNode);
-            long token = (current == null ? 0L : current.fencingToken()) + 1L;
+            long token = IslandRuntimeStatePolicy.nextFencingToken(current);
             IslandRuntimeSnapshot runtime = upsert(connection, islandId, IslandState.ACTIVATING, targetNode, targetWorld, cellX, cellZ, targetNode, token, null);
             connection.commit();
             return runtime;
@@ -90,7 +91,7 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
             Optional<IslandRuntimeSnapshot> current = findForUpdate(connection, islandId);
-            if (current.isPresent() && current.get().fencingToken() > fencingToken) {
+            if (current.isPresent() && IslandRuntimeStatePolicy.staleFencingToken(current.get(), fencingToken)) {
                 connection.commit();
                 return current.get();
             }
@@ -120,7 +121,7 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
             IslandRuntimeSnapshot current = findForUpdate(connection, islandId).orElse(defaultRuntime(islandId));
-            if (current.fencingToken() > fencingToken) {
+            if (IslandRuntimeStatePolicy.staleFencingToken(current, fencingToken)) {
                 connection.commit();
                 return current;
             }
@@ -197,7 +198,7 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
 
     private long lockAndNextToken(Connection connection, UUID islandId) throws SQLException {
         Optional<IslandRuntimeSnapshot> current = findForUpdate(connection, islandId);
-        return current.map(IslandRuntimeSnapshot::fencingToken).orElse(0L) + 1L;
+        return IslandRuntimeStatePolicy.nextFencingToken(current.orElse(null));
     }
 
     private void rejectSplitBrainActivation(IslandRuntimeSnapshot current, String targetNode) {
@@ -213,11 +214,7 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
     }
 
     private boolean runningOnNode(IslandRuntimeSnapshot runtime) {
-        return runtime.state() == IslandState.ACTIVE
-            || runtime.state() == IslandState.ACTIVATING
-            || runtime.state() == IslandState.RESTORING
-            || runtime.state() == IslandState.SAVING
-            || runtime.state() == IslandState.DEACTIVATING;
+        return IslandRuntimeStatePolicy.runningOnNode(runtime);
     }
 
     private Optional<IslandRuntimeSnapshot> findForUpdate(Connection connection, UUID islandId) throws SQLException {

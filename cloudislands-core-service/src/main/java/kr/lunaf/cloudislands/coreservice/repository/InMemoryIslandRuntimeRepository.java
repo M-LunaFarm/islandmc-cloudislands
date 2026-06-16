@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandState;
+import kr.lunaf.cloudislands.common.runtime.IslandRuntimeStatePolicy;
 
 public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepository {
     private final Map<UUID, IslandRuntimeSnapshot> runtimes = new ConcurrentHashMap<>();
@@ -45,14 +46,14 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
     public synchronized IslandRuntimeSnapshot markActivating(UUID islandId, String targetNode, String targetWorld, int cellX, int cellZ) {
         IslandRuntimeSnapshot current = find(islandId).orElse(null);
         rejectSplitBrainActivation(current, targetNode);
-        long nextToken = (current == null ? 0L : current.fencingToken()) + 1L;
+        long nextToken = IslandRuntimeStatePolicy.nextFencingToken(current);
         return put(new IslandRuntimeSnapshot(islandId, IslandState.ACTIVATING, targetNode, targetWorld, cellX, cellZ, targetNode, nextToken, null, Instant.now()));
     }
 
     @Override
     public synchronized IslandRuntimeSnapshot markActive(UUID islandId, String nodeId, String worldName, int cellX, int cellZ, long fencingToken) {
         IslandRuntimeSnapshot current = find(islandId).orElse(null);
-        if (current != null && current.fencingToken() > fencingToken) {
+        if (IslandRuntimeStatePolicy.staleFencingToken(current, fencingToken)) {
             return current;
         }
         rejectSplitBrainActivation(current, nodeId);
@@ -117,7 +118,7 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
             if (!nodeId.equals(runtime.activeNode())) {
                 continue;
             }
-            if (runtime.state() != IslandState.ACTIVE && runtime.state() != IslandState.ACTIVATING && runtime.state() != IslandState.RESTORING && runtime.state() != IslandState.SAVING && runtime.state() != IslandState.DEACTIVATING) {
+            if (!IslandRuntimeStatePolicy.runningOnNode(runtime)) {
                 continue;
             }
             put(new IslandRuntimeSnapshot(runtime.islandId(), IslandState.RECOVERY_REQUIRED, runtime.activeNode(), runtime.activeWorld(), runtime.cellX(), runtime.cellZ(), runtime.leaseOwner(), runtime.fencingToken(), runtime.activatedAt(), Instant.now()));
@@ -132,11 +133,7 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
     }
 
     private boolean runningOnNode(IslandRuntimeSnapshot runtime) {
-        return runtime.state() == IslandState.ACTIVE
-            || runtime.state() == IslandState.ACTIVATING
-            || runtime.state() == IslandState.RESTORING
-            || runtime.state() == IslandState.SAVING
-            || runtime.state() == IslandState.DEACTIVATING;
+        return IslandRuntimeStatePolicy.runningOnNode(runtime);
     }
 
     private void rejectSplitBrainActivation(IslandRuntimeSnapshot current, String targetNode) {
@@ -152,11 +149,11 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
     }
 
     private boolean listedByNode(IslandRuntimeSnapshot runtime) {
-        return runningOnNode(runtime) || runtime.state() == IslandState.RECOVERY_REQUIRED;
+        return IslandRuntimeStatePolicy.listedByNode(runtime);
     }
 
     private boolean occupiesPlacement(IslandRuntimeSnapshot runtime) {
-        return runningOnNode(runtime);
+        return IslandRuntimeStatePolicy.occupiesPlacement(runtime);
     }
 
     private IslandRuntimeSnapshot defaultRuntime(UUID islandId) {
