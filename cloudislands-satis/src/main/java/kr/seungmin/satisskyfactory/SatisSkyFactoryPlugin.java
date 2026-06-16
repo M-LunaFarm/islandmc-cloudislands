@@ -2111,7 +2111,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     @Override
     public void onIslandMigrationRequested(IslandMigrationEvent event) {
         String operation = "migration-requested:" + lifecycleNode(event.sourceNode()) + "->" + lifecycleNode(event.targetNode()) + lifecycleWorldToken(event.worldName()) + lifecycleCellToken(event.cellX(), event.cellZ());
-        runSatisLifecycle(event.islandId(), operation, () -> publishIslandLifecycleState(event.islandId(), operation, islands == null ? null : islands.find(event.islandId()).orElse(null), "requested", ""));
+        runSatisLifecycle(event.islandId(), operation, () -> preflushSatisIslandForMigration(event.islandId(), operation));
     }
 
     @Override
@@ -2758,6 +2758,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         coreHydratedIslandActivations.remove(islandId);
         publishCoreHydrationState(islandId, safeOperation, coreHydrationKey(safeOperation), "reset-after-flush");
         publishLifecycleState(islandId, safeOperation);
+    }
+
+    private void preflushSatisIslandForMigration(UUID islandId, String operation) {
+        String safeOperation = operation == null || operation.isBlank() ? "migration-requested" : operation;
+        if (dirtySaves != null) {
+            dirtySaves.flushIslandSafely(islandId);
+        }
+        FactoryIsland island = islands == null ? null : islands.find(islandId).orElse(null);
+        publishCoreHydrationState(islandId, safeOperation, coreHydrationKey(safeOperation), "migration-preflush");
+        publishIslandLifecycleState(islandId, safeOperation, island, "preflushed", "");
     }
 
     private void suspendRecoveredIsland(UUID islandId, String operation) {
