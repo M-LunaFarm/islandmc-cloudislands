@@ -12,6 +12,7 @@ constraints {
     api(project(":cloudislands-core-service"))
     api(project(":cloudislands-velocity"))
     api(project(":cloudislands-paper"))
+    api(project(":cloudislands-satis"))
     api(project(":cloudislands-storage"))
     api(project(":cloudislands-migration"))
     api(project(":cloudislands-testkit"))
