@@ -34,6 +34,10 @@ tasks.jar {
             "CloudIslands-Paper-Agent-Roles" to "LOBBY,ISLAND_NODE",
             "CloudIslands-Paper-Lobby-Role" to "gui-ranking-invites-settings-visit-admin-no-island-world-execution",
             "CloudIslands-Paper-Island-Node-Role" to "activation-save-snapshot-shard-cell-protection-teleport-heartbeat",
+            "CloudIslands-Paper-Command-List-Policy" to "one-line-one-command-page-size-12",
+            "CloudIslands-Paper-Protection-Decision-Policy" to "memory-cache-only-in-sync-events-no-http-or-db-on-hot-path",
+            "CloudIslands-Paper-Protection-Event-Coverage" to "block,interact,bucket,inventory,entity-damage,explosion,hanging,item,armorstand,shear,leash,vehicle,fire,spread,decay,fluid",
+            "CloudIslands-Paper-Level-Worth-Policy" to "block-delta-reporter-plus-periodic-island-level-scan",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
         )

@@ -24,6 +24,7 @@ tasks.jar {
             "CloudIslands-Route-Ticket-Policy" to "velocity-issues-paper-consumes-ttl-bound-route-tickets",
             "CloudIslands-Logical-Island-View" to "hide-physical-island-node-names-from-players",
             "CloudIslands-Velocity-Command-Policy" to "global-is-and-island-command-entrypoint-for-all-backend-servers",
+            "CloudIslands-Velocity-Command-List-Policy" to "one-line-one-command-page-size-12",
             "CloudIslands-Velocity-Failure-Recovery" to "pending-route-clear-fallback-server-and-ticket-expiry",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false"

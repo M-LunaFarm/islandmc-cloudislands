@@ -50,6 +50,9 @@ tasks.jar {
             "CloudIslands-Core-Redis-TTL-Contract" to "heartbeat=5s,route-ticket=30s,player=300s,island-summary=60s,permissions=30s,locks=10-60s",
             "CloudIslands-Core-Fencing-Policy" to "redis-lock-fast-path-postgresql-row-lock-final-authority-fencing-token-stale-write-guard",
             "CloudIslands-Core-Schema-Guard-Range" to "V17-placement,V18-route-job-indexes,V19-node-identity,V20-active-state,V21-V24-route-ticket,V38-fencing,V39-V54-value-guards",
+            "CloudIslands-Core-Level-Worth-Policy" to "event-delta-plus-periodic-full-scan-reconciliation",
+            "CloudIslands-Core-Ranking-Policy" to "dirty-queue-batch-recalculation-redis-ranking-cache",
+            "CloudIslands-Core-Block-Value-Policy" to "material-worth-level-limit-values-backed-by-core-api",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
         )

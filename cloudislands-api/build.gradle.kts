@@ -14,6 +14,9 @@ tasks.jar {
             "CloudIslands-API-Read-Policy" to "queries-available-from-every-server-through-core-client-or-cache",
             "CloudIslands-API-Write-Policy" to "writes-go-through-core-api-no-paper-event-direct-db-writes",
             "CloudIslands-API-Event-Coverage" to "create,activate,deactivate,visit,member,role,permission,flag,level,worth,warp,biome,upgrade",
+            "CloudIslands-API-Permission-Keys" to "BUILD,BREAK,INTERACT,OPEN_CONTAINER,USE_DOOR,USE_BUTTON,USE_PRESSURE_PLATE,USE_REDSTONE,PLACE_LIQUID,BREAK_LIQUID,ATTACK_PLAYER,ATTACK_MOB,PICKUP_ITEM,DROP_ITEM,USE_SPAWNER,USE_ANVIL,USE_ENCHANT_TABLE,USE_BREWING_STAND,MANAGE_MEMBERS,MANAGE_ROLES,MANAGE_FLAGS,MANAGE_WARPS,MANAGE_UPGRADES,START_LEVEL_CALC,BAN_VISITOR,KICK_VISITOR,SET_HOME,SET_BIOME,WITHDRAW_BANK,DEPOSIT_BANK",
+            "CloudIslands-API-Flag-Keys" to "PVP,MOB_SPAWN,ANIMAL_SPAWN,MONSTER_SPAWN,FIRE_SPREAD,EXPLOSION,CREEPER_DAMAGE,TNT_DAMAGE,WITHER_DAMAGE,ENDERMAN_GRIEF,WATER_FLOW,LAVA_FLOW,ICE_MELT,LEAF_DECAY,VISITOR_INTERACT,VISITOR_CONTAINER,VISITOR_PICKUP,VISITOR_DROP,VISITOR_PVP,FLY,KEEP_INVENTORY,PUBLIC_WARPS",
+            "CloudIslands-API-Permission-Decision-Order" to "admin-bypass,owner,explicit-role,trusted,visitor-flags,default-deny",
             "CloudIslands-API-Addon-State-Bulk" to "table-and-table-key-value-bulk-save-contracts",
             "CloudIslands-API-Satis-Integration" to "external-addon-or-built-in-compatible-cloudislands-state-authority"
         )
