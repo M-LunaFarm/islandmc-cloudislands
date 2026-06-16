@@ -478,8 +478,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private void putLifecycleCoverageState(Map<String, String> state) {
         state.put("lifecycle-event-source", "CloudIslandsAddon.onCloudEvent");
-        state.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,restore,reset,recovery,repair,runtime,pre-visit,visit,member-join,member-left,member-role,member,role,ownership,flag,permission-check,permission,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot");
-        state.put("lifecycle-event-actions", "activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete-and-reset=purge,recovery=suspend,member-role-ownership-permission-bank-biome-home-warp-level-worth=synchronize");
+        state.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,delete-backup-failed,restore,reset,recovery,repair,runtime,pre-visit,visit,member-join,member-left,member-role,member,role,ownership,flag,permission-check,permission,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot");
+        state.put("lifecycle-event-actions", "activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete=purge,delete-backup-failed=flush-and-mark-failed,reset=purge,recovery=suspend,member-role-ownership-permission-bank-biome-home-warp-level-worth=synchronize");
         state.put("lifecycle-event-storage-policy", "cloudislands-island-uuid-stable-state-remap-active-world");
     }
 
@@ -1374,8 +1374,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("core-api-table-status-keys", "last-core-table-publish-status,last-core-table-publish-primary-endpoint,last-core-table-publish-fallback-endpoint,last-core-table-publish-write-path,last-core-table-publish-error");
         metadata.put("core-api-bulk-fallback-visibility", "addon-state-records-success-fallback-and-failed-bulk-publish-status");
         metadata.put("lifecycle-event-source", "CloudIslandsAddon.onCloudEvent");
-        metadata.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,restore,reset,recovery,repair,runtime,pre-visit,visit,member-join,member-left,member-role,member,role,ownership,flag,permission-check,permission,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot");
-        metadata.put("lifecycle-event-actions", "pre-create=diagnostic,activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete-and-reset=purge,recovery=suspend,member-role-ownership-permission-bank-biome-home-warp-level-worth=synchronize,permission-check-and-pre-visit=diagnostic");
+        metadata.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,delete-backup-failed,restore,reset,recovery,repair,runtime,pre-visit,visit,member-join,member-left,member-role,member,role,ownership,flag,permission-check,permission,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot");
+        metadata.put("lifecycle-event-actions", "pre-create=diagnostic,activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete=purge,delete-backup-failed=flush-and-mark-failed,reset=purge,recovery=suspend,member-role-ownership-permission-bank-biome-home-warp-level-worth=synchronize,permission-check-and-pre-visit=diagnostic");
         metadata.put("lifecycle-event-storage-policy", "cloudislands-island-uuid-stable-state-remap-active-world");
         metadata.put("lifecycle-placement-source-policy", "record-core-payload-or-paper-allocator-on-activate-and-migrate");
         metadata.put("lifecycle-placement-source-state-key", "last-lifecycle-operation");
@@ -1683,8 +1683,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("core-api-bulk-status-keys", "last-core-bulk-publish-status,last-core-bulk-publish-mode,last-core-bulk-publish-write-path,last-core-bulk-publish-primary-endpoint,last-core-bulk-publish-fallback-endpoint,last-core-bulk-publish-error,last-core-global-bulk-publish-status,last-core-global-bulk-publish-mode,last-core-global-bulk-publish-write-path,last-core-global-bulk-publish-primary-endpoint,last-core-global-bulk-publish-fallback-endpoint,last-core-global-bulk-publish-error");
         state.put("core-api-table-status-keys", "last-core-table-publish-status,last-core-table-publish-primary-endpoint,last-core-table-publish-fallback-endpoint,last-core-table-publish-write-path,last-core-table-publish-error");
         state.put("lifecycle-event-source", "CloudIslandsAddon.onCloudEvent");
-        state.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,restore,reset,recovery,repair,runtime,pre-visit,visit,member-join,member-left,member-role,member,role,ownership,flag,permission-check,permission,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot");
-        state.put("lifecycle-event-actions", "pre-create=diagnostic,activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete-and-reset=purge,recovery=suspend,member-role-ownership-permission-bank-biome-home-warp-level-worth=synchronize,permission-check-and-pre-visit=diagnostic");
+        state.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,delete-backup-failed,restore,reset,recovery,repair,runtime,pre-visit,visit,member-join,member-left,member-role,member,role,ownership,flag,permission-check,permission,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot");
+        state.put("lifecycle-event-actions", "pre-create=diagnostic,activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete=purge,delete-backup-failed=flush-and-mark-failed,reset=purge,recovery=suspend,member-role-ownership-permission-bank-biome-home-warp-level-worth=synchronize,permission-check-and-pre-visit=diagnostic");
         state.put("lifecycle-event-storage-policy", "cloudislands-island-uuid-stable-state-remap-active-world");
         state.put("lifecycle-placement-source-policy", "record-core-payload-or-paper-allocator-on-activate-and-migrate");
         state.put("lifecycle-placement-source-state-key", "last-lifecycle-operation");
@@ -2092,6 +2092,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     @Override
     public void onIslandDeleteRequested(kr.lunaf.cloudislands.api.event.IslandDeleteRequestEvent event) {
         runSatisLifecycle(event.islandId(), "delete-requested", () -> flushSatisIsland(event.islandId(), "delete-requested"));
+    }
+
+    @Override
+    public void onIslandDeleteBackupFailed(kr.lunaf.cloudislands.api.event.IslandDeleteBackupFailedEvent event) {
+        String operation = "delete-backup-failed";
+        runSatisLifecycle(event.islandId(), operation, () -> {
+            flushSatisIsland(event.islandId(), operation);
+            String message = event.error() == null || event.error().isBlank() ? "CloudIslands delete backup failed" : event.error();
+            publishLifecycleFailure(event.islandId(), operation, new IllegalStateException(message));
+        });
     }
 
     @Override
