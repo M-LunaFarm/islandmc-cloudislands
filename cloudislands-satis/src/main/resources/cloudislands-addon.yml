@@ -166,6 +166,15 @@ features:
   root-switch: satis.enabled
   parent-switch: addons.cloudislands-satis.enabled
   root-switch-policy: parent-or-root-disabled-forces-all-detailed-switches-off-at-runtime
+  dependencies:
+    resource-nodes: machines
+    generators: factories
+    market: storage
+    contracts: storage
+    missions: storage
+    upgrades: research
+    menus: gui
+    route-events: addon-state
   detailed-switches:
     - commands
     - machines
