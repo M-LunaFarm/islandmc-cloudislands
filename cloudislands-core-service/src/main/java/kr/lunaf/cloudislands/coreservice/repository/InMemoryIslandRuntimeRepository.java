@@ -42,17 +42,20 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
     }
 
     @Override
-    public IslandRuntimeSnapshot markActivating(UUID islandId, String targetNode, String targetWorld, int cellX, int cellZ) {
-        long nextToken = find(islandId).map(IslandRuntimeSnapshot::fencingToken).orElse(0L) + 1L;
+    public synchronized IslandRuntimeSnapshot markActivating(UUID islandId, String targetNode, String targetWorld, int cellX, int cellZ) {
+        IslandRuntimeSnapshot current = find(islandId).orElse(null);
+        rejectSplitBrainActivation(current, targetNode);
+        long nextToken = (current == null ? 0L : current.fencingToken()) + 1L;
         return put(new IslandRuntimeSnapshot(islandId, IslandState.ACTIVATING, targetNode, targetWorld, cellX, cellZ, targetNode, nextToken, null, Instant.now()));
     }
 
     @Override
-    public IslandRuntimeSnapshot markActive(UUID islandId, String nodeId, String worldName, int cellX, int cellZ, long fencingToken) {
+    public synchronized IslandRuntimeSnapshot markActive(UUID islandId, String nodeId, String worldName, int cellX, int cellZ, long fencingToken) {
         IslandRuntimeSnapshot current = find(islandId).orElse(null);
         if (current != null && current.fencingToken() > fencingToken) {
             return current;
         }
+        rejectSplitBrainActivation(current, nodeId);
         return put(new IslandRuntimeSnapshot(islandId, IslandState.ACTIVE, nodeId, worldName, cellX, cellZ, nodeId, fencingToken, Instant.now(), Instant.now()));
     }
 
@@ -134,6 +137,18 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
             || runtime.state() == IslandState.RESTORING
             || runtime.state() == IslandState.SAVING
             || runtime.state() == IslandState.DEACTIVATING;
+    }
+
+    private void rejectSplitBrainActivation(IslandRuntimeSnapshot current, String targetNode) {
+        if (current == null || !runningOnNode(current)) {
+            return;
+        }
+        String activeNode = current.activeNode();
+        if (activeNode == null || activeNode.isBlank() || activeNode.equals(targetNode)) {
+            return;
+        }
+        throw new IllegalStateException("split-brain activation rejected for island " + current.islandId()
+            + ": activeNode=" + activeNode + ", targetNode=" + targetNode + ", state=" + current.state());
     }
 
     private boolean listedByNode(IslandRuntimeSnapshot runtime) {

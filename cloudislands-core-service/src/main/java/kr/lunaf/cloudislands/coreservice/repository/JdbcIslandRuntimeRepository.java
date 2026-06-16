@@ -74,7 +74,9 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
     public IslandRuntimeSnapshot markActivating(UUID islandId, String targetNode, String targetWorld, int cellX, int cellZ) {
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
-            long token = lockAndNextToken(connection, islandId);
+            IslandRuntimeSnapshot current = findForUpdate(connection, islandId).orElse(null);
+            rejectSplitBrainActivation(current, targetNode);
+            long token = (current == null ? 0L : current.fencingToken()) + 1L;
             IslandRuntimeSnapshot runtime = upsert(connection, islandId, IslandState.ACTIVATING, targetNode, targetWorld, cellX, cellZ, targetNode, token, null);
             connection.commit();
             return runtime;
@@ -92,6 +94,7 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
                 connection.commit();
                 return current.get();
             }
+            rejectSplitBrainActivation(current.orElse(null), nodeId);
             IslandRuntimeSnapshot runtime = upsert(connection, islandId, IslandState.ACTIVE, nodeId, worldName, cellX, cellZ, nodeId, fencingToken, Instant.now());
             connection.commit();
             return runtime;
@@ -195,6 +198,26 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
     private long lockAndNextToken(Connection connection, UUID islandId) throws SQLException {
         Optional<IslandRuntimeSnapshot> current = findForUpdate(connection, islandId);
         return current.map(IslandRuntimeSnapshot::fencingToken).orElse(0L) + 1L;
+    }
+
+    private void rejectSplitBrainActivation(IslandRuntimeSnapshot current, String targetNode) {
+        if (current == null || !runningOnNode(current)) {
+            return;
+        }
+        String activeNode = current.activeNode();
+        if (activeNode == null || activeNode.isBlank() || activeNode.equals(targetNode)) {
+            return;
+        }
+        throw new IllegalStateException("split-brain activation rejected for island " + current.islandId()
+            + ": activeNode=" + activeNode + ", targetNode=" + targetNode + ", state=" + current.state());
+    }
+
+    private boolean runningOnNode(IslandRuntimeSnapshot runtime) {
+        return runtime.state() == IslandState.ACTIVE
+            || runtime.state() == IslandState.ACTIVATING
+            || runtime.state() == IslandState.RESTORING
+            || runtime.state() == IslandState.SAVING
+            || runtime.state() == IslandState.DEACTIVATING;
     }
 
     private Optional<IslandRuntimeSnapshot> findForUpdate(Connection connection, UUID islandId) throws SQLException {
