@@ -48,6 +48,7 @@ import kr.lunaf.cloudislands.coreservice.config.CoreServiceConfig;
 import kr.lunaf.cloudislands.coreservice.db.BoundedDataSource;
 import kr.lunaf.cloudislands.coreservice.db.DriverManagerDataSource;
 import kr.lunaf.cloudislands.coreservice.db.JdbcDialectDataSource;
+import kr.lunaf.cloudislands.coreservice.db.JdbcSchemaBootstrap;
 import kr.lunaf.cloudislands.coreservice.db.MeteredDataSource;
 import kr.lunaf.cloudislands.coreservice.event.CompositeGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
@@ -197,6 +198,9 @@ public final class CloudIslandsCoreApplication {
         MeteredDataSource meteredDataSource = new MeteredDataSource(new BoundedDataSource(new DriverManagerDataSource(config.jdbcUrl(), config.databaseUsername(), config.databasePassword()), config.databasePoolSize()));
         DataSource dataSource = new JdbcDialectDataSource(meteredDataSource);
         boolean coreJdbcActive = config.jdbcRepositories() || config.jdbcJobs();
+        if (coreJdbcActive && config.setupDatabaseAutoSchema()) {
+            LOGGER.info("CloudIslands database schema bootstrap applied=" + JdbcSchemaBootstrap.apply(dataSource));
+        }
         NodeRegistry baseNodes = config.jdbcRepositories() ? new JdbcNodeRegistry(dataSource) : new InMemoryNodeRegistry();
         NodeRegistry nodes = config.redisEvents() || config.redisJobs()
             ? new CachingNodeRegistry(baseNodes, config.redisUri(), config.heartbeatTimeout())
@@ -2748,6 +2752,8 @@ public final class CloudIslandsCoreApplication {
             + "\"coreJdbcSupported\":" + coreJdbcSupported(config.jdbcUrl()) + ","
             + "\"coreJdbcSupportedBackends\":\"POSTGRESQL,MYSQL,MARIADB\","
             + "\"coreSetupFallbackBackends\":\"POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC\","
+            + "\"coreSetupDatabaseAutoSchema\":" + config.setupDatabaseAutoSchema() + ","
+            + "\"coreSetupDatabaseAutoSchemaPolicy\":\"explicit-opt-in-mysql-mariadb-bootstrap\","
             + "\"coreSetupFallbackEnabled\":" + config.setupDatabaseFallbackEnabled() + ","
             + "\"coreSetupFallbackEffective\":" + coreJdbcFallbackActive(config) + ","
             + "\"coreSetupFallbackSafetyForced\":" + coreSetupFallbackSafetyForced(config) + ","
@@ -2783,7 +2789,7 @@ public final class CloudIslandsCoreApplication {
             + "\"coreSetupDatabaseCoreApiAdminTokenConfigured\":" + config.setupDatabaseCoreApiAdminTokenConfigured() + ","
             + "\"coreSetupDatabaseCoreApiTimeoutMs\":" + config.setupDatabaseCoreApiTimeoutMillis() + ","
             + "\"coreSetupDatabaseCoreApiConfigPaths\":\"setup.database.core-api.base-url,setup.database.core-api.auth-token,setup.database.core-api.admin-token,setup.database.core-api.timeout-ms,setup.core-api.*,core-api.*\","
-            + "\"coreSetupDatabaseEnv\":\"CI_DATABASE_TYPE,CI_JDBC_URL,CI_DB_USERNAME,CI_DB_PASSWORD,CI_DB_POOL_SIZE,CI_DB_FALLBACK_ENABLED,CI_DB_FALLBACK_ORDER,CI_SETUP_CORE_API_BASE_URL,CI_SETUP_CORE_API_AUTH_TOKEN,CI_SETUP_CORE_API_ADMIN_TOKEN,CI_SETUP_CORE_API_TIMEOUT_MS\","
+            + "\"coreSetupDatabaseEnv\":\"CI_DATABASE_TYPE,CI_JDBC_URL,CI_DB_USERNAME,CI_DB_PASSWORD,CI_DB_POOL_SIZE,CI_DB_AUTO_SCHEMA,CI_DB_FALLBACK_ENABLED,CI_DB_FALLBACK_ORDER,CI_SETUP_CORE_API_BASE_URL,CI_SETUP_CORE_API_AUTH_TOKEN,CI_SETUP_CORE_API_ADMIN_TOKEN,CI_SETUP_CORE_API_TIMEOUT_MS\","
             + "\"coreSetupDatabasePrecedence\":\"env,nested-setup-database,legacy-flat-setup,database-default\","
             + "\"coreSetupDatabaseNameAliases\":\"setup.database.name,setup.database.database,setup.database-name\","
             + "\"coreSetupDatabaseJdbcAliases\":\"CI_JDBC_URL,setup.database.jdbc-url,setup.jdbc-url,database.jdbc-url\","

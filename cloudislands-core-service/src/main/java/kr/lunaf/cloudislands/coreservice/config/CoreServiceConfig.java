@@ -22,6 +22,7 @@ public record CoreServiceConfig(
     String databaseUsername,
     String databasePassword,
     int databasePoolSize,
+    boolean setupDatabaseAutoSchema,
     boolean setupDatabaseFallbackEnabled,
     String setupDatabaseFallbackOrder,
     String setupDatabaseCoreApiBaseUrl,
@@ -81,6 +82,7 @@ public record CoreServiceConfig(
             env("CI_DB_USERNAME", typedSetupDatabaseSetting(config, effectiveJdbcSettingsType(config), "username", setupDatabaseSetting(config, "username", setting(config, "database.username", "cloudislands")))),
             env("CI_DB_PASSWORD", typedSetupDatabaseSetting(config, effectiveJdbcSettingsType(config), "password", setupDatabaseSetting(config, "password", setting(config, "database.password", env("DB_PASSWORD", ""))))),
             integer("CI_DB_POOL_SIZE", typedSetupDatabaseInteger(config, effectiveJdbcSettingsType(config), "pool-size", setupDatabaseInteger(config, "pool-size", configInteger(config, "database.pool-size", 20)))),
+            bool("CI_DB_AUTO_SCHEMA", configBoolean(config, "setup.database.auto-schema", configBoolean(config, "setup.database-auto-schema", false))),
             bool("CI_DB_FALLBACK_ENABLED", configBoolean(config, "setup.database.fallback.enabled", configBoolean(config, "setup.database-fallback-enabled", true))),
             env("CI_DB_FALLBACK_ORDER", setupDatabaseFallbackOrder(config)),
             env("CI_SETUP_CORE_API_BASE_URL", setupDatabaseCoreApiSetting(config, "base-url", setupDatabaseCoreApiSetting(config, "url", setting(config, "core-api.base-url", "")))),
@@ -257,7 +259,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, setupDatabaseCoreApiBaseUrl, setupDatabaseCoreApiAuthTokenConfigured, setupDatabaseCoreApiAdminTokenConfigured, setupDatabaseCoreApiTimeoutMillis, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, rateLimitRequests, rateLimitWindow);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseAutoSchema, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, setupDatabaseCoreApiBaseUrl, setupDatabaseCoreApiAuthTokenConfigured, setupDatabaseCoreApiAdminTokenConfigured, setupDatabaseCoreApiTimeoutMillis, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, rateLimitRequests, rateLimitWindow);
     }
 
     public static String configuredDatabaseTypeSource() {

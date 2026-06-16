@@ -30,6 +30,9 @@ setup:
     username: ""
     password: ""
     pool-size: 0
+    # Explicit opt-in schema bootstrap for first MySQL/MariaDB Core JDBC setup.
+    # Env override: CI_DB_AUTO_SCHEMA.
+    auto-schema: false
     postgresql:
       # Type-specific values override the generic setup.database host/name/options values.
       # When MYSQL/MARIADB/CORE_API falls back to PostgreSQL, these credentials and pool values are used for Core JDBC.
