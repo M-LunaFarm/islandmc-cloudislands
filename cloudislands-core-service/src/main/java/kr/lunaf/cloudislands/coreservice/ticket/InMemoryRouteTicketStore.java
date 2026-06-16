@@ -51,7 +51,7 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
                 continue;
             }
             java.util.LinkedHashMap<String, String> mergedPayload = new java.util.LinkedHashMap<>(ticket.payload());
-            mergedPayload.putAll(payload);
+            mergePayload(mergedPayload, payload);
             RouteTicket ready = new RouteTicket(
                 ticket.ticketId(),
                 ticket.playerUuid(),
@@ -68,6 +68,18 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
             updated++;
         }
         return updated;
+    }
+
+    private void mergePayload(java.util.LinkedHashMap<String, String> target, Map<String, String> source) {
+        if (source == null || source.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<String, String> entry : source.entrySet()) {
+            if (entry.getKey() == null || entry.getKey().isBlank()) {
+                continue;
+            }
+            target.put(entry.getKey(), entry.getValue() == null ? "" : entry.getValue());
+        }
     }
 
     @Override

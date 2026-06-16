@@ -66,7 +66,7 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
                 while (rs.next()) {
                     RouteTicket ticket = map(rs);
                     LinkedHashMap<String, String> mergedPayload = new LinkedHashMap<>(ticket.payload());
-                    mergedPayload.putAll(payload);
+                    mergePayload(mergedPayload, payload);
                     save(new RouteTicket(
                         ticket.ticketId(),
                         ticket.playerUuid(),
@@ -85,6 +85,18 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
             return updated;
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to mark route tickets ready", exception);
+        }
+    }
+
+    private void mergePayload(LinkedHashMap<String, String> target, Map<String, String> source) {
+        if (source == null || source.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<String, String> entry : source.entrySet()) {
+            if (entry.getKey() == null || entry.getKey().isBlank()) {
+                continue;
+            }
+            target.put(entry.getKey(), entry.getValue() == null ? "" : entry.getValue());
         }
     }
 
