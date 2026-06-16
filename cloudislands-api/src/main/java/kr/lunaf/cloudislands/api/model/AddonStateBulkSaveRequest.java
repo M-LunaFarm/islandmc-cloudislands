@@ -157,6 +157,9 @@ public record AddonStateBulkSaveRequest(
         while (value.endsWith("/")) {
             value = value.substring(0, value.length() - 1);
         }
+        if (value.contains("/")) {
+            return "";
+        }
         return value;
     }
 
