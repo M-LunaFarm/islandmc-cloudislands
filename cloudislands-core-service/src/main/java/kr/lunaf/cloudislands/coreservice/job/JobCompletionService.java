@@ -162,6 +162,7 @@ public final class JobCompletionService {
         if (job.type() == IslandJobType.MIGRATE_ISLAND) {
             String worldName = job.payload().getOrDefault("worldName", "ci_shard_001");
             if (!markActiveFromJob(job, worldName)) {
+                releaseMigrationLock(job);
                 return;
             }
             recordPreMutationSnapshot(job);
