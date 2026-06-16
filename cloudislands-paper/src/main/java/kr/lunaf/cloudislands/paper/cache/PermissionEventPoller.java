@@ -782,6 +782,8 @@ public final class PermissionEventPoller {
                 fields.getOrDefault("operation", ""),
                 fields.getOrDefault("reason", ""),
                 intField(fields, "recoveryRequired"),
+                intField(fields, "clearedSessions"),
+                intField(fields, "clearedTickets"),
                 fields));
             return;
         }
