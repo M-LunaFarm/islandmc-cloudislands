@@ -852,7 +852,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private void registerCommands() {
         if (!operationalFeatureEnabled("commands")) {
             unregisterAddonCommands();
-            commandsRegistered = false;
             return;
         }
         if (commandsRegistered) {
@@ -907,6 +906,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private void unregisterAddonCommands() {
         unregisterPluginCommand(getCommand("factory"));
         unregisterPluginCommand(getCommand("sfactory"));
+        commandsRegistered = false;
     }
 
     private void unregisterPluginCommand(PluginCommand command) {
@@ -3102,7 +3102,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private void stopRuntimeActivity() {
         unregisterAddonCommands();
-        commandsRegistered = false;
         if (ticker != null) {
             ticker.stop();
             ticker = null;
