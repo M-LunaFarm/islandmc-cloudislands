@@ -937,7 +937,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         private boolean addonAcceptsGlobalStateWrites(String id) {
             CloudIslandsAddonSnapshot snapshot = addons.get(safeRegistrationId(id));
-            return snapshot == null || snapshot.configuredFeatureEnabled("addon-state", true);
+            return snapshot != null && snapshot.enabled() && snapshot.featureEnabled("addon-state", true);
         }
 
         private String tableStatePrefix(String table) {
