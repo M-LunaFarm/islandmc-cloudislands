@@ -22,11 +22,19 @@ public interface AddonStateRepository {
     default Map<String, String> tableKeyValueBulkSave(String addonId, Map<String, String> values) {
         return bulkSave(addonId, values);
     }
-    default Map<String, String> tableBulk(String addonId, Map<String, String> values) {
-        return tableKeyValueBulkSave(addonId, values);
+    default Map<String, String> tableKeyValueBulkSave(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        java.util.HashMap<String, String> merged = new java.util.HashMap<>();
+        if (values != null) {
+            merged.putAll(values);
+        }
+        merged.putAll(tableStateValues(tables));
+        return tableKeyValueBulkSave(addonId, Map.copyOf(merged));
     }
-    default Map<String, String> bulkTable(String addonId, Map<String, String> values) {
-        return tableBulk(addonId, values);
+    default Map<String, String> tableBulk(String addonId, Map<String, Map<String, String>> tables) {
+        return tableKeyValueBulkSave(addonId, Map.of(), tables);
+    }
+    default Map<String, String> bulkTable(String addonId, Map<String, Map<String, String>> tables) {
+        return tableBulk(addonId, tables);
     }
     Map<String, String> remove(String addonId, String key);
     Map<String, String> removePrefix(String addonId, String keyPrefix);
@@ -41,11 +49,19 @@ public interface AddonStateRepository {
     default Map<String, String> tableKeyValueBulkSaveIsland(String addonId, UUID islandId, Map<String, String> values) {
         return bulkSaveIsland(addonId, islandId, values);
     }
-    default Map<String, String> tableBulkIsland(String addonId, UUID islandId, Map<String, String> values) {
-        return tableKeyValueBulkSaveIsland(addonId, islandId, values);
+    default Map<String, String> tableKeyValueBulkSaveIsland(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        java.util.HashMap<String, String> merged = new java.util.HashMap<>();
+        if (values != null) {
+            merged.putAll(values);
+        }
+        merged.putAll(tableStateValues(tables));
+        return tableKeyValueBulkSaveIsland(addonId, islandId, Map.copyOf(merged));
     }
-    default Map<String, String> bulkTableIsland(String addonId, UUID islandId, Map<String, String> values) {
-        return tableBulkIsland(addonId, islandId, values);
+    default Map<String, String> tableBulkIsland(String addonId, UUID islandId, Map<String, Map<String, String>> tables) {
+        return tableKeyValueBulkSaveIsland(addonId, islandId, Map.of(), tables);
+    }
+    default Map<String, String> bulkTableIsland(String addonId, UUID islandId, Map<String, Map<String, String>> tables) {
+        return tableBulkIsland(addonId, islandId, tables);
     }
     Map<String, String> removeIsland(String addonId, UUID islandId, String key);
     Map<String, String> removeIslandPrefix(String addonId, UUID islandId, String keyPrefix);
@@ -87,6 +103,40 @@ public interface AddonStateRepository {
             throw new IllegalArgumentException("Island id is required");
         }
         return islandId;
+    }
+
+    static Map<String, String> tableStateValues(Map<String, Map<String, String>> tables) {
+        java.util.HashMap<String, String> state = new java.util.HashMap<>();
+        if (tables != null) {
+            tables.forEach((table, values) -> state.putAll(tableStateValues(table, values)));
+        }
+        return Map.copyOf(state);
+    }
+
+    static Map<String, String> tableStateValues(String table, Map<String, String> values) {
+        java.util.HashMap<String, String> state = new java.util.HashMap<>();
+        if (values == null || values.isEmpty()) {
+            return Map.of();
+        }
+        String safeTable = safeTableName(table);
+        values.forEach((key, value) -> {
+            if (key != null && !key.isBlank() && value != null) {
+                state.put(tableStateKey(safeTable, key), value);
+            }
+        });
+        return Map.copyOf(state);
+    }
+
+    static String tableStateKey(String table, String key) {
+        return TABLE_STATE_KEY_PREFIX + safeTableName(table) + "/" + safeKey(key);
+    }
+
+    static String safeTableName(String table) {
+        String value = safeKey(table);
+        if (value.contains("/")) {
+            throw new IllegalArgumentException("Addon state table cannot contain /");
+        }
+        return value;
     }
 
     static void requireKeyCapacity(Map<String, String> state, String key) {

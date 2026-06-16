@@ -553,7 +553,9 @@ public final class CloudIslandsCoreApplication {
                 String safeTable = table.isBlank() ? "" : safeTableName(table);
                 Map<String, String> tableValues = safeTable.isBlank() ? tableKeyValueBulkStateValues(Map.of(), tables, "") : tableStateValues(safeTable, values);
                 int tableCount = safeTable.isBlank() ? tables.size() : 1;
-                Map<String, String> state = addonStates.tableKeyValueBulkSave(addonId, tableValues);
+                Map<String, String> state = safeTable.isBlank()
+                    ? addonStates.tableBulk(addonId, tables)
+                    : addonStates.tableKeyValueBulkSave(addonId, Map.of(), Map.of(safeTable, values));
                 audit.log(new UUID(0L, 0L), "API", "ADDON_TABLE_STATE_BULK_SET", "ADDON", addonId, Map.of("table", safeTable, "keys", Integer.toString(tableValues.size()), "tables", Integer.toString(tableCount)));
                 events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "operation", "TABLE_BULK_SET", "table", safeTable, "keys", Integer.toString(tableValues.size()), "tables", Integer.toString(tableCount)));
                 write(exchange, 202, addonStateJson(state));
@@ -819,7 +821,9 @@ public final class CloudIslandsCoreApplication {
                 String safeTable = table.isBlank() ? "" : safeTableName(table);
                 Map<String, String> tableValues = safeTable.isBlank() ? tableKeyValueBulkStateValues(Map.of(), tables, "") : tableStateValues(safeTable, values);
                 int tableCount = safeTable.isBlank() ? tables.size() : 1;
-                Map<String, String> state = addonStates.tableKeyValueBulkSaveIsland(addonId, islandId, tableValues);
+                Map<String, String> state = safeTable.isBlank()
+                    ? addonStates.tableBulkIsland(addonId, islandId, tables)
+                    : addonStates.tableKeyValueBulkSaveIsland(addonId, islandId, Map.of(), Map.of(safeTable, values));
                 audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_TABLE_STATE_BULK_SET", "ADDON", addonId, Map.of("islandId", islandId.toString(), "table", safeTable, "keys", Integer.toString(tableValues.size()), "tables", Integer.toString(tableCount)));
                 events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", "TABLE_BULK_SET", "table", safeTable, "keys", Integer.toString(tableValues.size()), "tables", Integer.toString(tableCount)));
                 write(exchange, 202, addonStateJson(state));
