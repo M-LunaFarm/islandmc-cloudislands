@@ -25,7 +25,8 @@ tasks.jar {
     manifest {
         attributes(
             "CloudIslands-Addon" to "cloudislands-satis",
-            "CloudIslands-Addon-Packaging" to "external-plugin",
+            "CloudIslands-Addon-Packaging" to "external-plugin-or-built-in-compatible",
+            "CloudIslands-Addon-Integration-Modes" to "EXTERNAL_ADDON,BUILT_IN_COMPATIBLE,DISABLED",
             "CloudIslands-Core-Depends-On-Addon" to "false",
             "CloudIslands-Addon-Removal-Safe" to "true",
             "CloudIslands-Addon-Data-Retention" to "preserve-addon-state-by-island-uuid",
