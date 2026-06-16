@@ -2817,7 +2817,7 @@ public final class CloudIslandsCoreApplication {
             + "\"addonExtensionModel\":\"optional-external-plugin-using-cloudislands-api\","
             + "\"addonApiLookupPolicy\":\"cloudislands-provider-first-bukkit-servicesmanager-fallback\","
             + "\"addonEventDeliveryPolicy\":\"core-global-events-to-paper-poller-to-cloudislands-addon-and-bukkit-events\","
-            + "\"addonEventCoverage\":\"pre-create,create,pre-activate,activate,deactivate,migrate,delete,restore,reset,recovery,runtime,pre-visit,visit,member-join,member-left,member-role,member-change,permission-check,permission-change,role-catalog,warp-create,warp-delete,warp-change,level,worth,upgrade,limit,snapshot,route-ticket\","
+            + "\"addonEventCoverage\":\"pre-create,create,pre-activate,activate,deactivate,migrate,delete,restore,reset,recovery,runtime,pre-visit,visit,invite,member-join,member-left,member-role,member-change,ownership,rename,access,visitor-ban,visitor-kick,flag,permission-check,permission-change,role-catalog,biome,home,warp-create,warp-delete,warp-change,bank,chat,mission,blocks,block-value,level,worth,upgrade,limit,snapshot,template,addon-state,node,core-cache,core-reload,route-ticket\","
             + "\"addonEventBackfillPolicy\":\"paper-poller-uses-listEventsSince-with-sequence-gap-cache-invalidation\","
             + "\"satisPackaging\":\"official-external-addon\","
             + "\"satisCoreCoupling\":\"optional-addon-no-core-runtime-dependency\","
