@@ -38,6 +38,9 @@ tasks.jar {
             "CloudIslands-Multi-Node-Pool-Support" to "true",
             "CloudIslands-Multi-Node-Identity-Policy" to "unique-node-id-and-unique-pool-velocity-server-name",
             "CloudIslands-Multi-Node-Duplicate-Guard" to "routing-diagnostics-report-duplicate-velocity-server-name-node-count",
+            "CloudIslands-Node-State-Policy" to "READY,SOFT_FULL,HARD_FULL,DRAINING,SHUTTING_DOWN,DOWN,WARMING",
+            "CloudIslands-Node-Routing-Hard-Rules" to "pool-match,ready-or-soft-full,fresh-heartbeat,hard-cap-open,activation-queue-open,object-storage-available,template-supported,min-node-version,not-default-identity",
+            "CloudIslands-Node-Routing-Score-Weights" to "players=0.25,activeIslands=0.15,mspt=0.25,activationQueue=0.15,chunkLoad=0.10,memory=0.05,recentFailure=0.05",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
         )

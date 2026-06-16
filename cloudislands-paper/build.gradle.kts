@@ -22,6 +22,8 @@ tasks.jar {
             "CloudIslands-Multi-Node-Pool-Support" to "true",
             "CloudIslands-Multi-Node-Identity-Policy" to "unique-node-id-and-unique-velocity-server-name-per-island-node",
             "CloudIslands-Multi-Node-Shared-State-Policy" to "shared-core-database-and-shared-object-storage-required",
+            "CloudIslands-Node-Heartbeat-Cap-Keys" to "node.soft-player-cap,node.hard-player-cap,node.reserved-slots,node.max-active-islands,node.max-activation-queue",
+            "CloudIslands-Node-Routing-Hard-Rules" to "ready-or-soft-full,fresh-heartbeat,hard-cap-open,activation-queue-open,object-storage-available,template-supported",
             "CloudIslands-Network-Forwarding-Policy" to "velocity-modern-forwarding-required",
             "CloudIslands-Network-Forwarding-Secret-Path" to "security.forwarding-secret",
             "CloudIslands-Route-Ticket-Policy" to "velocity-issues-paper-consumes-ttl-bound-route-tickets",

@@ -207,7 +207,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         if (supportedTemplates.isBlank()) {
             supportedTemplates = getConfig().getString("node.supported-template", "*");
         }
-        int maxActivationQueue = Math.max(1, getConfig().getInt("island-node.activation.max-concurrent", 4));
+        int maxActivationQueue = Math.max(1, getConfig().getInt("node.max-activation-queue", getConfig().getInt("island-node.activation.max-concurrent", 4)));
         int hardPlayerCap = Math.max(1, getConfig().getInt("node.hard-player-cap", 110));
         int reservedSlots = Math.max(0, getConfig().getInt("node.reserved-slots", 15));
         int reservedSoftCap = Math.max(1, hardPlayerCap - reservedSlots);

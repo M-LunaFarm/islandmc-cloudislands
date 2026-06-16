@@ -16,6 +16,8 @@ tasks.jar {
             "CloudIslands-Multi-Node-Pool-Support" to "true",
             "CloudIslands-Multi-Node-Identity-Policy" to "velocity-server-names-match-island-pool-prefix-and-paper-node-velocity-server-name",
             "CloudIslands-Multi-Node-Scale-Example" to "island-1,island-2,island-3,island-4,island-5,island-6",
+            "CloudIslands-Node-Routing-Policy" to "least-loaded-for-new-or-inactive-current-active-node-for-active-islands",
+            "CloudIslands-Node-Full-Policy" to "hard-full-deny-or-queue-soft-full-avoid-new-activations",
             "CloudIslands-Network-Forwarding-Policy" to "velocity-modern-forwarding-required",
             "CloudIslands-Network-Forwarding-Secret-Path" to "security.forwarding-secret",
             "CloudIslands-Route-Ticket-Policy" to "velocity-issues-paper-consumes-ttl-bound-route-tickets",
