@@ -74,7 +74,7 @@ setup:
     # Operational modes:
     # - POSTGRESQL: preferred shared backend for multiple Island nodes.
     # - MYSQL/MARIADB: supported shared backend with the same island_uuid based tables.
-    # - CORE_API: stores addon state through CloudIslands Core API bulk table/key-value endpoints.
+    # - CORE_API: stores addon state through CloudIslands Core API table bulk and table/key-value bulk endpoints.
     # - SQLITE: local fallback only; not recommended when A/B Island nodes must share Satis state.
     # CLOUDISLANDS_SATIS_DATABASE_TYPE overrides setup.database.type and database.type.
     type: ""

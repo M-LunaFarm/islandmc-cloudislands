@@ -30,8 +30,10 @@ import java.util.logging.Logger;
 
 public final class CoreApiSatisStateService {
     private static final int MAX_PENDING_BULK_RETRIES = 64;
+    private static final String GLOBAL_TABLE_BULK_ENDPOINT = "/v1/addons/state/table/bulk";
     private static final String GLOBAL_TABLE_KEY_VALUE_BULK_ENDPOINT = "/v1/addons/state/table/key-value/bulk-save";
     private static final String GLOBAL_FLATTENED_FALLBACK_ENDPOINT = "/v1/addons/state/bulk";
+    private static final String ISLAND_TABLE_BULK_ENDPOINT = "/v1/addons/islands/state/table/bulk";
     private static final String ISLAND_TABLE_KEY_VALUE_BULK_ENDPOINT = "/v1/addons/islands/state/table/key-value/bulk-save";
     private static final String ISLAND_FLATTENED_FALLBACK_ENDPOINT = "/v1/addons/islands/state/bulk";
     private static final String ISLAND_TABLE_REPLACE_FALLBACK_ENDPOINT = "/v1/addons/islands/state/table/replace";
@@ -250,7 +252,7 @@ public final class CoreApiSatisStateService {
                     }
                     logger.warning("Failed to replace Satis core-api table " + table.table() + " for island " + table.islandUuid() + ", retrying with clear and bulk save: " + error.getMessage());
                     return cloudIslandsApi.addons().clearIslandTableState(addonId, table.islandUuid(), table.table())
-                            .thenCompose(_cleared -> cloudIslandsApi.addons().tableKeyValueBulkSaveIslandState(addonId, table.islandUuid(), table.table(), table.values()));
+                            .thenCompose(_cleared -> cloudIslandsApi.addons().tableBulkIslandState(addonId, table.islandUuid(), Map.of(table.table(), table.values())));
                 })
                 .thenCompose(result -> result)
                 .thenApply(state -> {
@@ -287,9 +289,10 @@ public final class CoreApiSatisStateService {
         state.put("last-core-table-publish-error", safeError);
         state.put("last-core-table-publish-at", Instant.now().toString());
         state.put("last-core-table-publish-authority", "cloudislands-addon-state");
-        state.put("last-core-table-publish-primary-endpoint", ISLAND_TABLE_KEY_VALUE_BULK_ENDPOINT);
+        state.put("last-core-table-publish-primary-endpoint", ISLAND_TABLE_BULK_ENDPOINT);
+        state.put("last-core-table-publish-compat-endpoint", ISLAND_TABLE_KEY_VALUE_BULK_ENDPOINT);
         state.put("last-core-table-publish-fallback-endpoint", ISLAND_TABLE_REPLACE_FALLBACK_ENDPOINT);
-        state.put("last-core-table-publish-write-path", "replace-table->clear-table-and-table-key-value-bulk-save-on-failure");
+        state.put("last-core-table-publish-write-path", "replace-table->clear-table-and-table-bulk-on-failure");
         state.put("last-core-table-publish-node-bound", "false");
         state.put("last-core-table-publish-write-fence", "active-island-runtime-owner-only");
         state.put("last-core-table-publish-duplicate-tick-policy", "single-active-runtime-owner");
@@ -808,7 +811,7 @@ public final class CoreApiSatisStateService {
             return;
         }
         cloudIslandsApi.addons().clearTableState(addonId, table.table())
-                .thenCompose(_cleared -> cloudIslandsApi.addons().tableKeyValueBulkSaveState(addonId, table.table(), table.values()))
+                .thenCompose(_cleared -> cloudIslandsApi.addons().tableBulkState(addonId, Map.of(table.table(), table.values())))
                 .handle((state, error) -> {
                     if (error == null) {
                         return java.util.concurrent.CompletableFuture.completedFuture(state);
@@ -849,6 +852,8 @@ public final class CoreApiSatisStateService {
         state.put("last-core-global-table-publish-error", safeError);
         state.put("last-core-global-table-publish-at", Instant.now().toString());
         state.put("last-core-global-table-publish-authority", "cloudislands-addon-state");
+        state.put("last-core-global-table-publish-primary-endpoint", GLOBAL_TABLE_BULK_ENDPOINT);
+        state.put("last-core-global-table-publish-compat-endpoint", GLOBAL_TABLE_KEY_VALUE_BULK_ENDPOINT);
         state.put("last-core-global-table-publish-node-bound", "false");
         state.put("last-core-global-table-publish-runtime-bound", "false");
         state.put("last-core-global-table-publish-scope", "shared-addon-global-state");
