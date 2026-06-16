@@ -56,6 +56,8 @@ public final class CoreApiSatisStateService {
     private final AtomicLong globalBulkFailures = new AtomicLong();
     private final AtomicLong islandBulkRetriesQueued = new AtomicLong();
     private final AtomicLong globalBulkRetriesQueued = new AtomicLong();
+    private final AtomicLong islandBulkRetriesDrained = new AtomicLong();
+    private final AtomicLong globalBulkRetriesDrained = new AtomicLong();
     private final AtomicLong tableSuccesses = new AtomicLong();
     private final AtomicLong tableFailures = new AtomicLong();
     private final AtomicLong coreStateFailures = new AtomicLong();
@@ -114,6 +116,14 @@ public final class CoreApiSatisStateService {
 
     public long globalBulkRetriesQueued() {
         return globalBulkRetriesQueued.get();
+    }
+
+    public long islandBulkRetriesDrained() {
+        return islandBulkRetriesDrained.get();
+    }
+
+    public long globalBulkRetriesDrained() {
+        return globalBulkRetriesDrained.get();
     }
 
     public long tableSuccesses() {
@@ -462,6 +472,7 @@ public final class CoreApiSatisStateService {
         state.put("last-core-bulk-publish-fallback-policy", flattenedFallbackEnabled ? "flattened-state-retry" : "disabled");
         state.put("last-core-bulk-publish-pending-retries", Integer.toString(pendingIslandBulkRetryCount()));
         state.put("addon-state-sync-island-bulk-retries-queued", Long.toString(islandBulkRetriesQueued.get()));
+        state.put("addon-state-sync-island-bulk-retries-drained", Long.toString(islandBulkRetriesDrained.get()));
         cloudIslandsApi.addons().putState(addonId, state).exceptionally(publishError -> {
             logger.warning("Failed to publish Satis core-api bulk status: " + publishError.getMessage());
             recordCoreStateFailure("island-bulk-status", publishError);
@@ -500,6 +511,7 @@ public final class CoreApiSatisStateService {
         state.put("last-core-global-bulk-publish-fallback-policy", flattenedFallbackEnabled ? "flattened-state-retry" : "disabled");
         state.put("last-core-global-bulk-publish-pending-retries", Integer.toString(pendingGlobalBulkRetryCount()));
         state.put("addon-state-sync-global-bulk-retries-queued", Long.toString(globalBulkRetriesQueued.get()));
+        state.put("addon-state-sync-global-bulk-retries-drained", Long.toString(globalBulkRetriesDrained.get()));
         cloudIslandsApi.addons().putState(addonId, state).exceptionally(publishError -> {
             logger.warning("Failed to publish Satis core-api global bulk status: " + publishError.getMessage());
             recordCoreStateFailure("global-bulk-status", publishError);
@@ -620,13 +632,18 @@ public final class CoreApiSatisStateService {
             java.util.Iterator<PendingIslandBulk> iterator = pendingIslandBulkRetries.iterator();
             Map<String, String> values = new LinkedHashMap<>();
             Map<String, Map<String, String>> tables = new LinkedHashMap<>();
+            int drained = 0;
             while (iterator.hasNext()) {
                 PendingIslandBulk pending = iterator.next();
                 if (pending.islandId().equals(islandId)) {
                     iterator.remove();
                     values = mergeValues(values, pending.values());
                     tables = mergeTables(tables, pending.tables());
+                    drained++;
                 }
+            }
+            if (drained > 0) {
+                islandBulkRetriesDrained.addAndGet(drained);
             }
             return values.isEmpty() && tables.isEmpty() ? null : new PendingIslandBulk(islandId, values, tables);
         }
@@ -656,9 +673,14 @@ public final class CoreApiSatisStateService {
             Map<String, String> values = new LinkedHashMap<>();
             Map<String, Map<String, String>> tables = new LinkedHashMap<>();
             PendingGlobalBulk pending;
+            int drained = 0;
             while ((pending = pendingGlobalBulkRetries.pollFirst()) != null) {
                 values = mergeValues(values, pending.values());
                 tables = mergeTables(tables, pending.tables());
+                drained++;
+            }
+            if (drained > 0) {
+                globalBulkRetriesDrained.addAndGet(drained);
             }
             return values.isEmpty() && tables.isEmpty() ? null : new PendingGlobalBulk(values, tables);
         }

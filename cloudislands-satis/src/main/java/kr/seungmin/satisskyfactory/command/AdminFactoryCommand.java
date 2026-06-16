@@ -576,6 +576,8 @@ public final class AdminFactoryCommand {
                 "last-core-global-bulk-publish-pending-retries",
                 "addon-state-sync-island-bulk-retries-queued",
                 "addon-state-sync-global-bulk-retries-queued",
+                "addon-state-sync-island-bulk-retries-drained",
+                "addon-state-sync-global-bulk-retries-drained",
                 "write-gate-machines",
                 "write-gate-storage",
                 "write-gate-resource-nodes",

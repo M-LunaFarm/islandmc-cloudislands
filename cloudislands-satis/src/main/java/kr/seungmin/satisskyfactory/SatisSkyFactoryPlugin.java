@@ -2984,10 +2984,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("addon-state-sync-island-bulk-fallbacks", coreApiState == null ? "0" : Long.toString(coreApiState.islandBulkFallbacks()));
         state.put("addon-state-sync-island-bulk-failures", coreApiState == null ? "0" : Long.toString(coreApiState.islandBulkFailures()));
         state.put("addon-state-sync-island-bulk-retries-queued", coreApiState == null ? "0" : Long.toString(coreApiState.islandBulkRetriesQueued()));
+        state.put("addon-state-sync-island-bulk-retries-drained", coreApiState == null ? "0" : Long.toString(coreApiState.islandBulkRetriesDrained()));
         state.put("addon-state-sync-global-bulk-successes", coreApiState == null ? "0" : Long.toString(coreApiState.globalBulkSuccesses()));
         state.put("addon-state-sync-global-bulk-fallbacks", coreApiState == null ? "0" : Long.toString(coreApiState.globalBulkFallbacks()));
         state.put("addon-state-sync-global-bulk-failures", coreApiState == null ? "0" : Long.toString(coreApiState.globalBulkFailures()));
         state.put("addon-state-sync-global-bulk-retries-queued", coreApiState == null ? "0" : Long.toString(coreApiState.globalBulkRetriesQueued()));
+        state.put("addon-state-sync-global-bulk-retries-drained", coreApiState == null ? "0" : Long.toString(coreApiState.globalBulkRetriesDrained()));
         state.put("addon-state-sync-table-successes", coreApiState == null ? "0" : Long.toString(coreApiState.tableSuccesses()));
         state.put("addon-state-sync-table-failures", coreApiState == null ? "0" : Long.toString(coreApiState.tableFailures()));
         state.put("addon-state-sync-core-api-failures", coreApiState == null ? "0" : Long.toString(coreApiState.coreStateFailures()));
