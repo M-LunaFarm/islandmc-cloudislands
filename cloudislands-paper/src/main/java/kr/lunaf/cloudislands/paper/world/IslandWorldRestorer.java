@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 import kr.lunaf.cloudislands.paper.world.bundle.BundleRestorePlan;
 import kr.lunaf.cloudislands.paper.world.bundle.BundleRestorePlanner;
+import kr.lunaf.cloudislands.storage.BundleRestorePolicy;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
@@ -80,7 +81,7 @@ public final class IslandWorldRestorer {
     }
 
     private void validateRestoreManifest(UUID islandId, IslandBundleManifest manifest) throws IOException {
-        if (!manifest.portable()) {
+        if (BundleRestorePolicy.PORTABLE_REQUIRED && !manifest.portable()) {
             throw new IOException("island bundle is not portable: " + islandId);
         }
         if (!supportedChecksumAlgorithm(manifest.checksumAlgorithm())) {
@@ -92,11 +93,11 @@ public final class IslandWorldRestorer {
     }
 
     private boolean supportedChecksumAlgorithm(String algorithm) {
-        return algorithm == null || algorithm.isBlank() || algorithm.equalsIgnoreCase("SHA-256");
+        return algorithm == null || algorithm.isBlank() || algorithm.equalsIgnoreCase(BundleRestorePolicy.CHECKSUM_ALGORITHM);
     }
 
     private boolean supportedCompression(String compression) {
-        return compression == null || compression.isBlank() || compression.equalsIgnoreCase("zstd");
+        return compression == null || compression.isBlank() || compression.equalsIgnoreCase(BundleRestorePolicy.COMPRESSION);
     }
 
     private Optional<IslandBundleManifest> restoreManifest(UUID islandId, long snapshotNo, String storagePath) throws IOException {

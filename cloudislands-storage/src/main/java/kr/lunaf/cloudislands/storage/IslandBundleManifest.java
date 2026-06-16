@@ -32,8 +32,8 @@ public record IslandBundleManifest(
         homes = homes == null ? List.of() : List.copyOf(homes);
         warps = warps == null ? List.of() : List.copyOf(warps);
         biomes = biomes == null ? List.of() : List.copyOf(biomes);
-        placementPolicy = placementPolicy == null || placementPolicy.isBlank() ? "node-agnostic-shard-cell-remap" : placementPolicy;
-        restorePolicy = restorePolicy == null || restorePolicy.isBlank() ? "verify-checksum-then-restore-to-current-active-node" : restorePolicy;
+        placementPolicy = placementPolicy == null || placementPolicy.isBlank() ? BundleRestorePolicy.PLACEMENT_POLICY : placementPolicy;
+        restorePolicy = restorePolicy == null || restorePolicy.isBlank() ? BundleRestorePolicy.RESTORE_POLICY : restorePolicy;
     }
 
     public IslandBundleManifest(
@@ -56,7 +56,7 @@ public record IslandBundleManifest(
         long sizeBytes,
         String snapshotReason
     ) {
-        this(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, homes, warps, biomes, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, snapshotReason, true, "node-agnostic-shard-cell-remap", "verify-checksum-then-restore-to-current-active-node");
+        this(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, homes, warps, biomes, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, snapshotReason, true, BundleRestorePolicy.PLACEMENT_POLICY, BundleRestorePolicy.RESTORE_POLICY);
     }
 
     public IslandBundleManifest(
@@ -90,7 +90,7 @@ public record IslandBundleManifest(
         Instant savedAt,
         String checksum
     ) {
-        this(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, createdAt, savedAt, checksum, "SHA-256", "zstd", "", 0L, "");
+        this(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, createdAt, savedAt, checksum, BundleRestorePolicy.CHECKSUM_ALGORITHM, BundleRestorePolicy.COMPRESSION, "", 0L, "");
     }
 
     public IslandBundleManifest withSnapshotReason(String reason) {

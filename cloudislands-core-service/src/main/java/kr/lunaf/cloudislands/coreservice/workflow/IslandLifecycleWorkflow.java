@@ -18,12 +18,13 @@ import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.template.IslandTemplateRepository;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
+import kr.lunaf.cloudislands.storage.BundleRestorePolicy;
 
 public final class IslandLifecycleWorkflow {
-    public static final String RESTORE_MANIFEST_REQUIRED = "true";
-    public static final String RESTORE_CHECKSUM_POLICY = "verify-manifest-checksum";
-    public static final String RESTORE_PORTABLE_REQUIRED = "true";
-    public static final String RESTORE_SUPPORTED_FORMATS = "checksum=SHA-256,compression=zstd";
+    public static final String RESTORE_MANIFEST_REQUIRED = Boolean.toString(BundleRestorePolicy.MANIFEST_REQUIRED);
+    public static final String RESTORE_CHECKSUM_POLICY = BundleRestorePolicy.RESTORE_CHECKSUM_POLICY;
+    public static final String RESTORE_PORTABLE_REQUIRED = Boolean.toString(BundleRestorePolicy.PORTABLE_REQUIRED);
+    public static final String RESTORE_SUPPORTED_FORMATS = BundleRestorePolicy.SUPPORTED_FORMATS;
 
     private final IslandRuntimeRepository runtimes;
     private final IslandRepository islands;
