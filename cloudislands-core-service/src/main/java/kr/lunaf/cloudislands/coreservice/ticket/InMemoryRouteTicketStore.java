@@ -20,6 +20,7 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
     }
 
     public RouteTicket save(RouteTicket ticket) {
+        ticket = sanitizeTicket(ticket);
         if (activeTicketState(ticket.state())) {
             tickets.replaceAll((_id, existing) -> {
                 if (existing.ticketId().equals(ticket.ticketId())
@@ -32,6 +33,12 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
         }
         tickets.put(ticket.ticketId(), ticket);
         return ticket;
+    }
+
+    private RouteTicket sanitizeTicket(RouteTicket ticket) {
+        java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
+        mergePayload(payload, ticket.payload());
+        return new RouteTicket(ticket.ticketId(), ticket.playerUuid(), ticket.action(), ticket.islandId(), ticket.targetNode(), ticket.targetWorld(), ticket.state(), ticket.expiresAt(), ticket.nonce(), Map.copyOf(payload));
     }
 
     private boolean activeTicketState(RouteTicketState state) {

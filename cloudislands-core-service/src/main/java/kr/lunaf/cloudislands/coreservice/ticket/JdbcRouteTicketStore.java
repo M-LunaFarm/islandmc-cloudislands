@@ -28,6 +28,7 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
 
     @Override
     public RouteTicket save(RouteTicket ticket) {
+        ticket = sanitizeTicket(ticket);
         try (Connection connection = dataSource.getConnection()) {
             expireActiveTicketsForPlayer(connection, ticket);
             try (PreparedStatement statement = connection.prepareStatement("INSERT INTO route_tickets(id, player_uuid, island_id, action, target_node, target_world, state, nonce, payload, expires_at, consumed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb), ?, ?) ON CONFLICT (id) DO UPDATE SET player_uuid = EXCLUDED.player_uuid, island_id = EXCLUDED.island_id, action = EXCLUDED.action, target_node = EXCLUDED.target_node, target_world = EXCLUDED.target_world, state = EXCLUDED.state, nonce = EXCLUDED.nonce, payload = EXCLUDED.payload, expires_at = EXCLUDED.expires_at, consumed_at = EXCLUDED.consumed_at")) {
@@ -49,6 +50,12 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
             statement.setObject(2, ticket.ticketId());
             statement.executeUpdate();
         }
+    }
+
+    private RouteTicket sanitizeTicket(RouteTicket ticket) {
+        LinkedHashMap<String, String> payload = new LinkedHashMap<>();
+        mergePayload(payload, ticket.payload());
+        return new RouteTicket(ticket.ticketId(), ticket.playerUuid(), ticket.action(), ticket.islandId(), ticket.targetNode(), ticket.targetWorld(), ticket.state(), ticket.expiresAt(), ticket.nonce(), Map.copyOf(payload));
     }
 
     private boolean activeTicketState(RouteTicketState state) {
