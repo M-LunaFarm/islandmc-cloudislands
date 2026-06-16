@@ -217,13 +217,19 @@ public record CoreServiceConfig(
         if ("IN_MEMORY".equals(fallbackTarget) && !setupDatabaseFallbackEnabled) {
             return "database-fallback-disabled-for-" + requested.toLowerCase(Locale.ROOT) + "-setup";
         }
+        if ("POSTGRESQL".equals(fallbackTarget)) {
+            return "requested-" + requested.toLowerCase(Locale.ROOT) + "-uses-postgresql-setup-fallback";
+        }
         if ("CORE_API".equals(fallbackTarget)) {
             return "requested-" + requested.toLowerCase(Locale.ROOT) + "-uses-core-api-client-fallback";
         }
         if ("MYSQL".equals(requested) || "MARIADB".equals(requested)) {
             return "core-service-jdbc-repositories-are-postgresql-only-using-safe-in-memory-fallback";
         }
-        return "unsupported-or-missing-database-setup";
+        if ("UNKNOWN".equals(requested)) {
+            return "missing-or-unknown-database-setup-using-in-memory-fallback";
+        }
+        return "unsupported-" + requested.toLowerCase(Locale.ROOT) + "-database-setup-using-in-memory-fallback";
     }
 
     public String setupDatabaseFallbackSummary() {
