@@ -230,7 +230,7 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
     }
 
     private IslandRuntimeSnapshot upsert(Connection connection, UUID islandId, IslandState state, String node, String world, Integer cellX, Integer cellZ, String leaseOwner, long token, Instant activatedAt) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("INSERT INTO island_runtime(island_id, state, active_node, active_world, cell_x, cell_z, lease_owner, fencing_token, activated_at, last_heartbeat) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, now()) ON CONFLICT (island_id) DO UPDATE SET state = EXCLUDED.state, active_node = EXCLUDED.active_node, active_world = EXCLUDED.active_world, cell_x = EXCLUDED.cell_x, cell_z = EXCLUDED.cell_z, lease_owner = EXCLUDED.lease_owner, fencing_token = EXCLUDED.fencing_token, activated_at = EXCLUDED.activated_at, last_heartbeat = now(), updated_at = now()")) {
+        try (PreparedStatement statement = connection.prepareStatement(upsertSql(connection))) {
             statement.setObject(1, islandId);
             statement.setString(2, state.name());
             statement.setString(3, node);
@@ -243,6 +243,20 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
             statement.executeUpdate();
         }
         return new IslandRuntimeSnapshot(islandId, state, node, world, cellX, cellZ, leaseOwner, token, activatedAt, Instant.now());
+    }
+
+    private String upsertSql(Connection connection) throws SQLException {
+        String insert = "INSERT INTO island_runtime(island_id, state, active_node, active_world, cell_x, cell_z, lease_owner, fencing_token, activated_at, last_heartbeat) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
+        if (mysqlLike(connection)) {
+            return insert + " ON DUPLICATE KEY UPDATE state = VALUES(state), active_node = VALUES(active_node), active_world = VALUES(active_world), cell_x = VALUES(cell_x), cell_z = VALUES(cell_z), lease_owner = VALUES(lease_owner), fencing_token = VALUES(fencing_token), activated_at = VALUES(activated_at), last_heartbeat = now(), updated_at = now()";
+        }
+        return insert + " ON CONFLICT (island_id) DO UPDATE SET state = EXCLUDED.state, active_node = EXCLUDED.active_node, active_world = EXCLUDED.active_world, cell_x = EXCLUDED.cell_x, cell_z = EXCLUDED.cell_z, lease_owner = EXCLUDED.lease_owner, fencing_token = EXCLUDED.fencing_token, activated_at = EXCLUDED.activated_at, last_heartbeat = now(), updated_at = now()";
+    }
+
+    private boolean mysqlLike(Connection connection) throws SQLException {
+        String product = connection.getMetaData().getDatabaseProductName();
+        String normalized = product == null ? "" : product.toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains("mysql") || normalized.contains("mariadb");
     }
 
     private void setInteger(PreparedStatement statement, int index, Integer value) throws SQLException {
