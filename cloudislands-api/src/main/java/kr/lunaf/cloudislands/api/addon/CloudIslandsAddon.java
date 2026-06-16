@@ -410,7 +410,7 @@ public interface CloudIslandsAddon {
     }
 
     default CompletableFuture<Void> unregister(CloudIslandsApi api) {
-        return api.addons().unregister(safeAddonId());
+        return api.addons().unregisterPreservingState(safeAddonId());
     }
 
     private String safeAddonId() {

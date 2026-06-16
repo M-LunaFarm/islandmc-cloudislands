@@ -158,6 +158,15 @@ public interface IslandAddonService {
     }
 
     CompletableFuture<Void> unregister(String id);
+
+    default CompletableFuture<Void> unregisterPreservingState(String id) {
+        return unregister(id);
+    }
+
+    default CompletableFuture<Void> unregisterAndKeepState(String id) {
+        return unregisterPreservingState(id);
+    }
+
     CompletableFuture<Optional<CloudIslandsAddonSnapshot>> get(String id);
     CompletableFuture<List<CloudIslandsAddonSnapshot>> list();
     CompletableFuture<Boolean> isEnabled(String id);
