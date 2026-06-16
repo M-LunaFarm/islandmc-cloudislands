@@ -127,8 +127,9 @@ public final class CreateIslandWorkflow {
             return new CreateIslandResult(false, "JOB_QUEUE_UNAVAILABLE", islands.findById(islandId).orElse(island), null);
         }
         events.publish(CloudIslandEventType.ISLAND_CREATED.name(), Map.of("islandId", islandId.toString(), "ownerUuid", ownerUuid.toString(), "targetNode", node.nodeId()));
+        String targetServerName = node.velocityServerName() == null || node.velocityServerName().isBlank() ? node.nodeId() : node.velocityServerName();
         RouteTicket ticket = tickets.save(new RouteTicket(UUID.randomUUID(), ownerUuid, RouteAction.HOME, islandId, node.nodeId(), runtime.activeWorld() == null ? kr.lunaf.cloudislands.coreservice.IslandPlacement.worldName(islandId) : runtime.activeWorld(), RouteTicketState.PREPARING, Instant.now().plus(routePreparingTicketTtl), UUID.randomUUID().toString(), Map.of(
-            "targetServerName", node.velocityServerName(),
+            "targetServerName", targetServerName,
             "targetType", "ISLAND_HOME",
             "homeName", "default",
             "localX", "0.5",
