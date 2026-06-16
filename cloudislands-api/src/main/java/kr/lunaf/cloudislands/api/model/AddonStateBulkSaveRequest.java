@@ -78,6 +78,17 @@ public record AddonStateBulkSaveRequest(
         return rootValueKeyCount() + tableKeyCount();
     }
 
+    public Map<String, Map<String, String>> tablesWithScopedTable() {
+        if (!tableScoped() || values.isEmpty()) {
+            return tables;
+        }
+        LinkedHashMap<String, Map<String, String>> copy = new LinkedHashMap<>(tables);
+        LinkedHashMap<String, String> tableValues = new LinkedHashMap<>(copy.getOrDefault(table, Map.of()));
+        tableValues.putAll(values);
+        copy.put(table, Map.copyOf(tableValues));
+        return Map.copyOf(copy);
+    }
+
     private static Map<String, String> copyValues(Map<String, String> source) {
         if (source == null || source.isEmpty()) {
             return Map.of();

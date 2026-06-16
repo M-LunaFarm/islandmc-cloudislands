@@ -268,7 +268,7 @@ public interface IslandAddonService {
             return tableKeyValueBulkSaveIslandState(request);
         }
         if (request.tableScoped()) {
-            return tableKeyValueBulkSaveState(request.addonId(), request.table(), request.values());
+            return tableKeyValueBulkSaveState(request.addonId(), Map.of(), request.tablesWithScopedTable());
         }
         return tableKeyValueBulkSaveState(request.addonId(), request.values(), request.tables());
     }
@@ -419,7 +419,7 @@ public interface IslandAddonService {
             return CompletableFuture.completedFuture(Map.of());
         }
         if (request.tableScoped()) {
-            return tableKeyValueBulkSaveIslandState(request.addonId(), request.islandId(), request.table(), request.values());
+            return tableKeyValueBulkSaveIslandState(request.addonId(), request.islandId(), Map.of(), request.tablesWithScopedTable());
         }
         return tableKeyValueBulkSaveIslandState(request.addonId(), request.islandId(), request.values(), request.tables());
     }

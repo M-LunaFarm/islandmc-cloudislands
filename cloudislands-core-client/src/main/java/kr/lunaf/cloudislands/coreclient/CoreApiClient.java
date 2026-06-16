@@ -223,7 +223,7 @@ public interface CoreApiClient {
             return tableKeyValueBulkSaveAddonIslandState(request);
         }
         if (request.tableScoped()) {
-            return tableKeyValueBulkSaveAddonState(request.addonId(), request.table(), request.values());
+            return tableKeyValueBulkSaveAddonState(request.addonId(), Map.of(), request.tablesWithScopedTable());
         }
         return tableKeyValueBulkSaveAddonState(request.addonId(), request.values(), request.tables());
     }
@@ -298,7 +298,7 @@ public interface CoreApiClient {
             return tableKeyValueBulkSaveAddonState(request);
         }
         if (request.tableScoped()) {
-            return tableKeyValueBulkSaveAddonIslandState(request.addonId(), request.islandId(), request.table(), request.values());
+            return tableKeyValueBulkSaveAddonIslandState(request.addonId(), request.islandId(), Map.of(), request.tablesWithScopedTable());
         }
         return tableKeyValueBulkSaveAddonIslandState(request.addonId(), request.islandId(), request.values(), request.tables());
     }
