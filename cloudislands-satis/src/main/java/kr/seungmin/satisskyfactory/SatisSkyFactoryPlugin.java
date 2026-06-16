@@ -2808,6 +2808,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("last-core-hydrate-operation", safeOperation);
         state.put("last-core-hydrate-status", safeStatus);
         state.put("last-core-hydrate-key", safeHydrationKey);
+        state.put("last-core-hydrate-active-node", lifecycleActiveNode(safeOperation));
+        state.put("last-core-hydrate-world", lifecycleEventWorld(safeOperation));
+        state.put("last-core-hydrate-cell", lifecycleEventCell(safeOperation));
+        state.put("last-core-hydrate-placement-source", lifecycleEventPlacementSource(safeOperation));
         state.put("last-core-hydrate-at", Instant.now().toString());
         state.put("core-hydrated-activation-count", Integer.toString(coreHydratedIslandActivations.size()));
         cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
@@ -2818,6 +2822,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         islandState.put("core-hydrate-operation", safeOperation);
         islandState.put("core-hydrate-status", safeStatus);
         islandState.put("core-hydrate-key", safeHydrationKey);
+        islandState.put("core-hydrate-active-node", lifecycleActiveNode(safeOperation));
+        islandState.put("core-hydrate-world", lifecycleEventWorld(safeOperation));
+        islandState.put("core-hydrate-cell", lifecycleEventCell(safeOperation));
+        islandState.put("core-hydrate-placement-source", lifecycleEventPlacementSource(safeOperation));
         islandState.put("core-hydrate-at", Instant.now().toString());
         islandState.put("core-hydrate-tracked", Boolean.toString(safeHydrationKey.equals(coreHydratedIslandActivations.get(islandId))));
         cloudIslandsApi.addons().putIslandState(ADDON_ID, islandId, islandState).exceptionally(error -> {
@@ -2831,7 +2839,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return lifecycleActiveNode(safeOperation)
                 + "|" + lifecycleEventWorld(safeOperation)
                 + "|" + lifecycleEventCell(safeOperation)
-                + "|" + lifecyclePlacementSource(safeOperation);
+                + "|" + lifecycleEventPlacementSource(safeOperation);
     }
 
     private org.bukkit.Location activeIslandCenter(UUID islandId) {
