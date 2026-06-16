@@ -18,7 +18,7 @@ public final class InMemoryIslandBankRepository implements IslandBankRepository 
 
     @Override
     public synchronized IslandBankSnapshot deposit(UUID islandId, BigDecimal amount) {
-        if (amount.signum() <= 0) {
+        if (!IslandBankRepository.positiveAmount(amount)) {
             return snapshot(islandId);
         }
         balances.merge(islandId, amount, BigDecimal::add);
@@ -28,11 +28,12 @@ public final class InMemoryIslandBankRepository implements IslandBankRepository 
 
     @Override
     public synchronized BankChangeResult deposit(UUID islandId, BigDecimal amount, BigDecimal maxBalance) {
-        if (amount.signum() <= 0) {
+        if (!IslandBankRepository.positiveAmount(amount)) {
             return new BankChangeResult(false, "INVALID_AMOUNT", snapshot(islandId));
         }
         BigDecimal current = balances.getOrDefault(islandId, BigDecimal.ZERO);
-        if (maxBalance != null && current.add(amount).compareTo(maxBalance) > 0) {
+        BigDecimal limit = IslandBankRepository.effectiveMaxBalance(maxBalance);
+        if (limit != null && current.add(amount).compareTo(limit) > 0) {
             return new BankChangeResult(false, "BANK_LIMIT", snapshot(islandId));
         }
         balances.put(islandId, current.add(amount));
@@ -42,7 +43,7 @@ public final class InMemoryIslandBankRepository implements IslandBankRepository 
 
     @Override
     public synchronized BankChangeResult withdraw(UUID islandId, BigDecimal amount) {
-        if (amount.signum() <= 0) {
+        if (!IslandBankRepository.positiveAmount(amount)) {
             return new BankChangeResult(false, "INVALID_AMOUNT", snapshot(islandId));
         }
         BigDecimal current = balances.getOrDefault(islandId, BigDecimal.ZERO);

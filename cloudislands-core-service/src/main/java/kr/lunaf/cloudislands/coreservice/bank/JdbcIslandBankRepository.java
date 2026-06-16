@@ -31,7 +31,7 @@ public final class JdbcIslandBankRepository implements IslandBankRepository {
     public IslandBankSnapshot deposit(UUID islandId, BigDecimal amount) {
         try (Connection connection = dataSource.getConnection()) {
             ensureRow(connection, islandId);
-            if (amount.signum() > 0) {
+            if (IslandBankRepository.positiveAmount(amount)) {
                 try (PreparedStatement statement = connection.prepareStatement("UPDATE island_bank SET balance = balance + ?, updated_at = now() WHERE island_id = ?")) {
                     statement.setBigDecimal(1, amount);
                     statement.setObject(2, islandId);
@@ -46,14 +46,15 @@ public final class JdbcIslandBankRepository implements IslandBankRepository {
 
     @Override
     public BankChangeResult deposit(UUID islandId, BigDecimal amount, BigDecimal maxBalance) {
-        if (amount.signum() <= 0) {
+        if (!IslandBankRepository.positiveAmount(amount)) {
             return new BankChangeResult(false, "INVALID_AMOUNT", balance(islandId));
         }
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
             ensureRow(connection, islandId);
             BigDecimal current = lockedBalance(connection, islandId);
-            if (maxBalance != null && current.add(amount).compareTo(maxBalance) > 0) {
+            BigDecimal limit = IslandBankRepository.effectiveMaxBalance(maxBalance);
+            if (limit != null && current.add(amount).compareTo(limit) > 0) {
                 connection.rollback();
                 return new BankChangeResult(false, "BANK_LIMIT", new IslandBankSnapshot(islandId, current.toPlainString(), Instant.now()));
             }
@@ -72,7 +73,7 @@ public final class JdbcIslandBankRepository implements IslandBankRepository {
 
     @Override
     public BankChangeResult withdraw(UUID islandId, BigDecimal amount) {
-        if (amount.signum() <= 0) {
+        if (!IslandBankRepository.positiveAmount(amount)) {
             return new BankChangeResult(false, "INVALID_AMOUNT", balance(islandId));
         }
         try (Connection connection = dataSource.getConnection()) {
