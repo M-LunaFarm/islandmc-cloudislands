@@ -1068,7 +1068,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         DatabaseService.Settings settings = databaseSettings();
         appendDatabaseFallbackReason(pendingDatabaseConfigFallbackReason);
         String nextFingerprint = databaseSettingsFingerprint(settings);
-        if (database != null && nextFingerprint.equals(databaseSettingsFingerprint) && !coreApiFallbackRecovered(settings)) {
+        if (database != null
+                && nextFingerprint.equals(databaseSettingsFingerprint)
+                && !coreApiFallbackRecovered(settings)
+                && !coreApiAuthorityLost(settings)) {
             configureCoreApiStateWriters();
             return;
         }
@@ -1139,6 +1142,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 && database != null
                 && database.activeBackend() != DatabaseService.StorageBackend.CORE_API
                 && coreApiAddonStateAvailable();
+    }
+
+    private boolean coreApiAuthorityLost(DatabaseService.Settings settings) {
+        return settings != null
+                && settings.backend() == DatabaseService.StorageBackend.CORE_API
+                && database != null
+                && database.activeBackend() == DatabaseService.StorageBackend.CORE_API
+                && !coreApiAddonStateAvailable();
     }
 
     private void configureDirtySaveWriteGates() {
