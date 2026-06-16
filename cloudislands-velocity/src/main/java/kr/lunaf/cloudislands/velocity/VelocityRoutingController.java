@@ -3335,7 +3335,7 @@ public final class VelocityRoutingController {
         if (ticket.state().name().equals("PREPARING")) {
             String target = routeTargetName(ticket);
             actionBar(player, messages.text("route-preparing", "target", target));
-            BossBar bossBar = BossBar.bossBar(messages.component("route-loading-title", "target", target), 0.2F, BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
+            BossBar bossBar = BossBar.bossBar(playerComponent(messages.text("route-loading-title", "target", target)), 0.2F, BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
             showBossBar(player, bossBar);
             waitForReadyTicket(player, ticket, failureMessage, bossBar, 0);
             return;
@@ -3386,14 +3386,14 @@ public final class VelocityRoutingController {
         bossBar.progress(progress / 100.0F);
         String target = routeTargetName(ticket);
         String progressValue = Integer.toString(progress);
-        bossBar.name(messages.component("route-loading-progress", "target", target, "progress", progressValue));
+        bossBar.name(playerComponent(messages.text("route-loading-progress", "target", target, "progress", progressValue)));
         actionBar(player, messages.text("route-preparing-progress", "target", target, "progress", progressValue));
         coreApiClient.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
             Optional<RouteTicket> ready = status.filter(value -> value.state().name().equals("READY"));
             if (ready.isPresent()) {
                 bossBar.progress(1.0F);
                 String readyTarget = routeTargetName(ready.get());
-                Component readyMessage = messages.component("route-ready", "target", readyTarget);
+                Component readyMessage = playerComponent(messages.text("route-ready", "target", readyTarget));
                 bossBar.name(readyMessage);
                 actionBar(player, messages.text("route-ready", "target", readyTarget));
                 hideBossBar(player, bossBar);
@@ -3450,7 +3450,7 @@ public final class VelocityRoutingController {
 
     private void actionBar(Player player, String message) {
         if (useActionBar) {
-            player.sendActionBar(Component.text(message));
+            player.sendActionBar(playerComponent(message));
         }
     }
 
@@ -3537,7 +3537,7 @@ public final class VelocityRoutingController {
             fallbackSkippedOffline.incrementAndGet();
             return;
         }
-        player.sendMessage(Component.text(message));
+        player.sendMessage(playerComponent(message));
         RegisteredServer server = findServer(fallbackServer);
         if (server == null) {
             fallbackMissing.incrementAndGet();
@@ -3617,6 +3617,25 @@ public final class VelocityRoutingController {
             case "RETURN_AFTER_MIGRATION" -> "이전하던 섬";
             default -> "섬";
         };
+    }
+
+    private Component playerComponent(String message) {
+        return Component.text(playerMessage(message));
+    }
+
+    private String playerMessage(String message) {
+        String value = message == null || message.isBlank() ? "섬 이동을 처리하지 못했습니다." : message;
+        if (!hideNodeNames) {
+            return value;
+        }
+        return value
+            .replaceAll("(?i)\\btargetNode\\s*[=:]\\s*[^\\s,|]+", "targetNode=숨김")
+            .replaceAll("(?i)\\brequestedNode\\s*[=:]\\s*[^\\s,|]+", "requestedNode=숨김")
+            .replaceAll("(?i)\\btargetServerName\\s*[=:]\\s*[^\\s,|]+", "targetServerName=숨김")
+            .replaceAll("(?i)\\bserver\\s*[=:]\\s*[^\\s,|]+", "server=숨김")
+            .replaceAll("(?i)\\bnode\\s*[=:]\\s*[^\\s,|]+", "node=숨김")
+            .replaceAll("(?i)\\b[A-Za-z0-9_.-]*island[-_ ]?\\d+[A-Za-z0-9_.-]*\\b", "섬 서버")
+            .replaceAll("(?i)\\b[A-Za-z0-9_.-]*node[-_ ]?\\d+[A-Za-z0-9_.-]*\\b", "섬 서버");
     }
 
     private String arrivalMessage(RouteTicket ticket) {
