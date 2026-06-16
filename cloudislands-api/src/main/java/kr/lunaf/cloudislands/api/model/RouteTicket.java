@@ -29,4 +29,31 @@ public record RouteTicket(
         }
         payload = Map.copyOf(safePayload);
     }
+
+    public boolean preparing() {
+        return state == RouteTicketState.PREPARING;
+    }
+
+    public boolean ready() {
+        return state == RouteTicketState.READY;
+    }
+
+    public boolean consumed() {
+        return state == RouteTicketState.CONSUMED;
+    }
+
+    public boolean terminal() {
+        return state == RouteTicketState.CONSUMED
+            || state == RouteTicketState.EXPIRED
+            || state == RouteTicketState.CANCELLED
+            || state == RouteTicketState.FAILED;
+    }
+
+    public boolean expiredAt(Instant now) {
+        return expiresAt != null && now != null && expiresAt.isBefore(now);
+    }
+
+    public boolean consumableAt(Instant now) {
+        return ready() && !expiredAt(now);
+    }
 }
