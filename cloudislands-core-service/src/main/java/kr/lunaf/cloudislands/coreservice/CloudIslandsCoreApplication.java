@@ -2839,11 +2839,13 @@ public final class CloudIslandsCoreApplication {
             + "\"islandPool\":\"" + escape(config.islandPool()) + "\","
             + "\"islandPoolNodeCount\":" + islandPoolNodeCount(config, nodes) + ","
             + "\"islandPoolRouteCandidateCount\":" + islandPoolRouteCandidateCount(config, nodes) + ","
+            + "\"islandPoolRouteCandidateNodeIds\":\"" + escape(islandPoolRouteCandidateNodeIds(config, nodes)) + "\","
             + "\"islandPoolScaleStatus\":\"" + escape(islandPoolScaleStatus(config, nodes)) + "\","
             + "\"islandPoolScaleModel\":\"dynamic-node-pool-by-node-id\","
             + "\"islandPoolScaleGuidance\":\"add-island-nodes-with-unique-node-id-unique-velocity-server-name-shared-storage\","
             + "\"islandPoolHorizontalScalePolicy\":\"no-hardcoded-island-node-count-unique-node-id-unique-velocity-server-name-shared-storage-required\","
             + "\"islandPoolFiveSixNodePolicy\":\"supported-when-each-node-is-a-route-candidate-and-identity-risk-counts-stay-zero\","
+            + "\"islandPoolFiveSixNodeStatus\":\"" + escape(islandPoolFiveSixNodeStatus(config, nodes)) + "\","
             + "\"islandPlacementPolicy\":\"deterministic-uuid-shard-cell\","
             + "\"islandPlacementShardCount\":" + IslandPlacement.SHARD_COUNT + ","
             + "\"islandPlacementCellsPerAxis\":" + IslandPlacement.CELLS_PER_AXIS + ","
@@ -2857,6 +2859,7 @@ public final class CloudIslandsCoreApplication {
             + "\"islandPoolDegraded\":" + islandPoolDegraded(config, nodes) + ","
             + "\"islandPoolRouteCandidateShortfall\":" + islandPoolRouteCandidateShortfall(config, nodes) + ","
             + "\"islandPoolRouteCandidateBlockSummary\":\"" + escape(islandPoolRouteCandidateBlockSummary(config, nodes)) + "\","
+            + "\"islandPoolBlockedNodeIds\":\"" + escape(islandPoolBlockedNodeIds(config, nodes)) + "\","
             + "\"islandPoolDuplicateVelocityServerNameNodeCount\":" + islandPoolDuplicateVelocityServerNameNodeCount(config, nodes) + ","
             + "\"islandPoolDefaultNodeIdentityRiskCount\":" + islandPoolDefaultNodeIdentityRiskCount(config, nodes) + ","
             + "\"softFullPolicy\":\"" + escape(config.softFullPolicy()) + "\","
@@ -3045,6 +3048,22 @@ public final class CloudIslandsCoreApplication {
             .count();
     }
 
+    private static String islandPoolRouteCandidateNodeIds(CoreServiceConfig config, NodeRegistry nodes) {
+        if (nodes == null) {
+            return "";
+        }
+        java.util.List<NodeLoad> snapshot = nodes.snapshot();
+        java.util.Map<String, Long> velocityServerCounts = islandPoolVelocityServerCounts(config, snapshot);
+        java.time.Instant now = java.time.Instant.now();
+        return snapshot.stream()
+            .filter(node -> inIslandPool(config, node))
+            .filter(node -> islandPoolRouteCandidateBlockReason(config, node, now, velocityServerCounts).isBlank())
+            .map(NodeLoad::nodeId)
+            .filter(id -> id != null && !id.isBlank())
+            .sorted()
+            .collect(java.util.stream.Collectors.joining(","));
+    }
+
     private static String islandPoolScaleStatus(CoreServiceConfig config, NodeRegistry nodes) {
         long nodeCount = islandPoolNodeCount(config, nodes);
         long candidates = islandPoolRouteCandidateCount(config, nodes);
@@ -3074,6 +3093,25 @@ public final class CloudIslandsCoreApplication {
             && islandPoolDefaultNodeIdentityRiskCount(config, nodes) == 0L;
     }
 
+    private static String islandPoolFiveSixNodeStatus(CoreServiceConfig config, NodeRegistry nodes) {
+        long nodeCount = islandPoolNodeCount(config, nodes);
+        long candidates = islandPoolRouteCandidateCount(config, nodes);
+        if (nodeCount < 5L) {
+            return "NOT_5_6_NODE_POOL";
+        }
+        if ((nodeCount == 5L || nodeCount == 6L)
+                && candidates == nodeCount
+                && islandPoolDuplicateVelocityServerNameNodeCount(config, nodes) == 0L
+                && islandPoolDefaultNodeIdentityRiskCount(config, nodes) == 0L) {
+            return "READY";
+        }
+        if (nodeCount > 6L && candidates == nodeCount) {
+            return "READY_ABOVE_6_NODES";
+        }
+        return "DEGRADED candidates=" + candidates + "/" + nodeCount
+            + " blocked=" + islandPoolBlockedNodeIds(config, nodes);
+    }
+
     private static long islandPoolRouteCandidateShortfall(CoreServiceConfig config, NodeRegistry nodes) {
         return Math.max(0L, islandPoolNodeCount(config, nodes) - islandPoolRouteCandidateCount(config, nodes));
     }
@@ -3096,6 +3134,28 @@ public final class CloudIslandsCoreApplication {
         }
         return blocked.entrySet().stream()
             .map(entry -> entry.getKey() + "=" + entry.getValue())
+            .collect(java.util.stream.Collectors.joining(","));
+    }
+
+    private static String islandPoolBlockedNodeIds(CoreServiceConfig config, NodeRegistry nodes) {
+        if (nodes == null) {
+            return "";
+        }
+        java.util.List<NodeLoad> snapshot = nodes.snapshot();
+        java.util.Map<String, Long> velocityServerCounts = islandPoolVelocityServerCounts(config, snapshot);
+        java.time.Instant now = java.time.Instant.now();
+        return snapshot.stream()
+            .filter(node -> inIslandPool(config, node))
+            .map(node -> {
+                String reason = islandPoolRouteCandidateBlockReason(config, node, now, velocityServerCounts);
+                if (reason == null || reason.isBlank()) {
+                    return "";
+                }
+                String id = node.nodeId() == null || node.nodeId().isBlank() ? "unknown" : node.nodeId();
+                return id + ":" + reason;
+            })
+            .filter(value -> !value.isBlank())
+            .sorted()
             .collect(java.util.stream.Collectors.joining(","));
     }
 
