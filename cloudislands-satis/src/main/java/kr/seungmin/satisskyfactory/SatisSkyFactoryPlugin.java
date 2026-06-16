@@ -1405,6 +1405,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("core-api-table-save-mode", "bulk-save-with-table-prefix-and-configurable-flattened-fallback");
         metadata.put("core-api-bulk-status-keys", "last-core-bulk-publish-status,last-core-bulk-publish-mode,last-core-bulk-publish-write-path,last-core-bulk-publish-primary-endpoint,last-core-bulk-publish-fallback-endpoint,last-core-bulk-publish-error,last-core-global-bulk-publish-status,last-core-global-bulk-publish-mode,last-core-global-bulk-publish-write-path,last-core-global-bulk-publish-primary-endpoint,last-core-global-bulk-publish-fallback-endpoint,last-core-global-bulk-publish-error");
         metadata.put("core-api-table-status-keys", "last-core-table-publish-status,last-core-table-publish-primary-endpoint,last-core-table-publish-fallback-endpoint,last-core-table-publish-write-path,last-core-table-publish-error");
+        metadata.put("core-api-hydrate-status-keys", "last-core-hydrate-island,last-core-hydrate-status,last-core-hydrate-key,last-core-hydrate-at,core-hydrated-activation-count");
         metadata.put("core-api-bulk-fallback-visibility", "addon-state-records-success-fallback-and-failed-bulk-publish-status");
         metadata.put("lifecycle-event-source", "CloudIslandsAddon.onCloudEvent");
         metadata.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,delete-backup-failed,restore,reset,recovery,repair,runtime,pre-visit,visit,member-join,member-left,member-role,member,role,ownership,flag,permission-check,permission,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot");
@@ -1715,6 +1716,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("core-api-table-save-mode", "bulk-save-with-table-prefix-and-configurable-flattened-fallback");
         state.put("core-api-bulk-status-keys", "last-core-bulk-publish-status,last-core-bulk-publish-mode,last-core-bulk-publish-write-path,last-core-bulk-publish-primary-endpoint,last-core-bulk-publish-fallback-endpoint,last-core-bulk-publish-error,last-core-global-bulk-publish-status,last-core-global-bulk-publish-mode,last-core-global-bulk-publish-write-path,last-core-global-bulk-publish-primary-endpoint,last-core-global-bulk-publish-fallback-endpoint,last-core-global-bulk-publish-error");
         state.put("core-api-table-status-keys", "last-core-table-publish-status,last-core-table-publish-primary-endpoint,last-core-table-publish-fallback-endpoint,last-core-table-publish-write-path,last-core-table-publish-error");
+        state.put("core-api-hydrate-status-keys", "last-core-hydrate-island,last-core-hydrate-status,last-core-hydrate-key,last-core-hydrate-at,core-hydrated-activation-count");
+        state.put("core-hydrated-activation-count", Integer.toString(coreHydratedIslandActivations.size()));
         state.put("lifecycle-event-source", "CloudIslandsAddon.onCloudEvent");
         state.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,delete-backup-failed,restore,reset,recovery,repair,runtime,pre-visit,visit,member-join,member-left,member-role,member,role,ownership,flag,permission-check,permission,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot");
         state.put("lifecycle-event-actions", "pre-create=diagnostic,activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete=purge,delete-backup-failed=flush-and-mark-failed,reset=purge,recovery=suspend,member-role-ownership-permission-bank-biome-home-warp-level-worth=synchronize,permission-check-and-pre-visit=diagnostic");
@@ -1858,6 +1861,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String eventWorld = lifecycleEventWorld(safeOperation);
         String eventCell = lifecycleEventCell(safeOperation);
         String placementSource = lifecycleEventPlacementSource(safeOperation);
+        String hydrationKey = coreHydrationKey(safeOperation);
         Map<String, String> state = new LinkedHashMap<>();
         state.put("last-lifecycle-island", islandId.toString());
         state.put("last-lifecycle-operation", safeOperation);
@@ -1890,6 +1894,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("last-lifecycle-machines-remapped", Boolean.toString(machinesRemapped));
         state.put("last-lifecycle-resource-nodes-remapped", Boolean.toString(resourceNodesRemapped));
         state.put("last-lifecycle-remap-source", remapSource == null || remapSource.isBlank() ? "active-world-center" : remapSource);
+        state.put("last-lifecycle-core-hydrate-key", hydrationKey);
+        state.put("last-lifecycle-core-hydrate-tracked", Boolean.toString(hydrationKey.equals(coreHydratedIslandActivations.get(islandId))));
+        state.put("core-hydrated-activation-count", Integer.toString(coreHydratedIslandActivations.size()));
         cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
             getLogger().warning("Failed to publish CloudIslands Satis lifecycle state: " + error.getMessage());
             return Map.of();
@@ -1909,6 +1916,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String eventWorld = lifecycleEventWorld(safeOperation);
         String eventCell = lifecycleEventCell(safeOperation);
         String placementSource = lifecycleEventPlacementSource(safeOperation);
+        String hydrationKey = coreHydrationKey(safeOperation);
         Map<String, String> state = new LinkedHashMap<>();
         state.put("last-lifecycle-island", islandId.toString());
         state.put("last-lifecycle-operation", safeOperation);
@@ -1995,6 +2003,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("machines-remapped", Boolean.toString(machinesRemapped));
         state.put("resource-nodes-remapped", Boolean.toString(resourceNodesRemapped));
         state.put("remap-source", remapSource == null || remapSource.isBlank() ? "active-world-center" : remapSource);
+        state.put("core-hydrate-key", hydrationKey);
+        state.put("core-hydrate-tracked", Boolean.toString(hydrationKey.equals(coreHydratedIslandActivations.get(islandId))));
         cloudIslandsApi.addons().putIslandState(ADDON_ID, islandId, state).exceptionally(publishError -> {
             getLogger().warning("Failed to publish CloudIslands Satis island state: " + publishError.getMessage());
             return Map.of();
@@ -2620,6 +2630,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         String activationKey = coreHydrationKey(operation);
         if (activationKey.equals(coreHydratedIslandActivations.get(islandId))) {
+            publishCoreHydrationState(islandId, operation, activationKey, "skipped-same-activation");
             return;
         }
         if (coreApiState.hydrateIsland(islandId, database)) {
@@ -2632,7 +2643,40 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             if (storage != null) {
                 storage.forgetIsland(islandId);
             }
+            publishCoreHydrationState(islandId, operation, activationKey, "restored");
+        } else {
+            publishCoreHydrationState(islandId, operation, activationKey, "empty");
         }
+    }
+
+    private void publishCoreHydrationState(UUID islandId, String operation, String hydrationKey, String status) {
+        if (cloudIslandsApi == null || islandId == null || !operationalFeatureEnabled("addon-state")) {
+            return;
+        }
+        String safeOperation = operation == null || operation.isBlank() ? "unknown" : operation;
+        String safeHydrationKey = hydrationKey == null || hydrationKey.isBlank() ? coreHydrationKey(safeOperation) : hydrationKey;
+        String safeStatus = status == null || status.isBlank() ? "unknown" : status;
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("last-core-hydrate-island", islandId.toString());
+        state.put("last-core-hydrate-operation", safeOperation);
+        state.put("last-core-hydrate-status", safeStatus);
+        state.put("last-core-hydrate-key", safeHydrationKey);
+        state.put("last-core-hydrate-at", Instant.now().toString());
+        state.put("core-hydrated-activation-count", Integer.toString(coreHydratedIslandActivations.size()));
+        cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
+            getLogger().warning("Failed to publish CloudIslands Satis core hydrate state: " + error.getMessage());
+            return Map.of();
+        });
+        Map<String, String> islandState = new LinkedHashMap<>();
+        islandState.put("core-hydrate-operation", safeOperation);
+        islandState.put("core-hydrate-status", safeStatus);
+        islandState.put("core-hydrate-key", safeHydrationKey);
+        islandState.put("core-hydrate-at", Instant.now().toString());
+        islandState.put("core-hydrate-tracked", Boolean.toString(safeHydrationKey.equals(coreHydratedIslandActivations.get(islandId))));
+        cloudIslandsApi.addons().putIslandState(ADDON_ID, islandId, islandState).exceptionally(error -> {
+            getLogger().warning("Failed to publish CloudIslands Satis island hydrate state: " + error.getMessage());
+            return Map.of();
+        });
     }
 
     private String coreHydrationKey(String operation) {
@@ -2706,6 +2750,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             dirtySaves.flushIslandSafely(islandId);
         }
         coreHydratedIslandActivations.remove(islandId);
+        publishCoreHydrationState(islandId, safeOperation, coreHydrationKey(safeOperation), "reset-after-flush");
         publishLifecycleState(islandId, safeOperation);
     }
 
