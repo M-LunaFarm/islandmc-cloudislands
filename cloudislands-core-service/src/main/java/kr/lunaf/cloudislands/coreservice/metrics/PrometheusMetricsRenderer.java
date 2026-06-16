@@ -177,6 +177,20 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_storage_primary_degraded", "gauge");
         help(out, "cloudislands_storage_primary_failures_total", "Primary island storage backend failures reported by Paper heartbeat");
         type(out, "cloudislands_storage_primary_failures_total", "counter");
+        help(out, "cloudislands_paper_redis_available", "Whether Redis is reachable from each Paper node");
+        type(out, "cloudislands_paper_redis_available", "gauge");
+        help(out, "cloudislands_paper_redis_latency_seconds", "Redis PING latency reported by each Paper node heartbeat");
+        type(out, "cloudislands_paper_redis_latency_seconds", "gauge");
+        help(out, "cloudislands_paper_redis_failures_total", "Redis PING failures reported by each Paper node heartbeat");
+        type(out, "cloudislands_paper_redis_failures_total", "counter");
+        help(out, "cloudislands_cluster_paper_redis_reported_nodes", "Paper nodes that reported Redis heartbeat status");
+        type(out, "cloudislands_cluster_paper_redis_reported_nodes", "gauge");
+        help(out, "cloudislands_cluster_paper_redis_available_nodes", "Paper nodes reporting reachable Redis");
+        type(out, "cloudislands_cluster_paper_redis_available_nodes", "gauge");
+        help(out, "cloudislands_cluster_paper_redis_unavailable_nodes", "Paper nodes reporting unavailable Redis");
+        type(out, "cloudislands_cluster_paper_redis_unavailable_nodes", "gauge");
+        help(out, "cloudislands_cluster_paper_redis_degraded_ratio", "Paper Redis unavailable nodes divided by Paper nodes that reported Redis status");
+        type(out, "cloudislands_cluster_paper_redis_degraded_ratio", "gauge");
         help(out, "cloudislands_island_save_seconds", "Last island save bundle upload duration reported by Paper heartbeat");
         type(out, "cloudislands_island_save_seconds", "gauge");
         help(out, "cloudislands_island_activation_seconds", "Last island activation bundle download duration reported by Paper heartbeat");
@@ -279,6 +293,9 @@ public final class PrometheusMetricsRenderer {
         long routingHealthyNodes = 0L;
         long duplicateVelocityServerNameNodes = 0L;
         long defaultNodeIdentityRiskNodes = 0L;
+        long redisReportedNodes = 0L;
+        long redisAvailableNodes = 0L;
+        long redisUnavailableNodes = 0L;
         Map<String, long[]> poolCounts = new LinkedHashMap<>();
         java.util.List<NodeLoad> nodeSnapshot = nodes.snapshot();
         Map<String, Integer> velocityServerCounts = velocityServerCounts(nodeSnapshot);
@@ -380,6 +397,18 @@ public final class PrometheusMetricsRenderer {
             appendMetadataGauge(out, "cloudislands_storage_fallback_operations_total", node, "storageFallbackWrites", "operation=\"write\"");
             appendMetadataGauge(out, "cloudislands_storage_fallback_operations_total", node, "storageFallbackDeletes", "operation=\"delete\"");
             appendMetadataGauge(out, "cloudislands_storage_fallback_operations_total", node, "storageFallbackOperations", "operation=\"maintenance\"");
+            String redisAvailable = node.heartbeatMetadata().get("redisAvailable");
+            if (redisAvailable != null && !redisAvailable.isBlank()) {
+                redisReportedNodes++;
+                if (Boolean.parseBoolean(redisAvailable)) {
+                    redisAvailableNodes++;
+                } else {
+                    redisUnavailableNodes++;
+                }
+            }
+            appendMetadataBooleanGauge(out, "cloudislands_paper_redis_available", node, "redisAvailable");
+            appendMetadataGauge(out, "cloudislands_paper_redis_latency_seconds", node, "redisLatencySeconds");
+            appendMetadataGauge(out, "cloudislands_paper_redis_failures_total", node, "redisFailures");
             appendMetadataGauge(out, "cloudislands_island_save_seconds", node, "storageUploadSeconds");
             appendMetadataGauge(out, "cloudislands_island_activation_seconds", node, "storageDownloadSeconds");
             appendMetadataGauge(out, "cloudislands_island_snapshot_seconds", node, "storageUploadSeconds");
@@ -403,6 +432,10 @@ public final class PrometheusMetricsRenderer {
         out.append("cloudislands_cluster_activation_queue ").append(totalActivationQueue).append('\n');
         out.append("cloudislands_cluster_storage_available_nodes ").append(storageAvailableNodes).append('\n');
         out.append("cloudislands_cluster_storage_failure_ratio ").append(onlineNodes <= 0L ? 0.0D : (double) (onlineNodes - storageAvailableNodes) / onlineNodes).append('\n');
+        out.append("cloudislands_cluster_paper_redis_reported_nodes ").append(redisReportedNodes).append('\n');
+        out.append("cloudislands_cluster_paper_redis_available_nodes ").append(redisAvailableNodes).append('\n');
+        out.append("cloudislands_cluster_paper_redis_unavailable_nodes ").append(redisUnavailableNodes).append('\n');
+        out.append("cloudislands_cluster_paper_redis_degraded_ratio ").append(redisReportedNodes <= 0L ? 0.0D : (double) redisUnavailableNodes / redisReportedNodes).append('\n');
         out.append("cloudislands_cluster_activation_eligible_nodes ").append(activationEligibleNodes).append('\n');
         out.append("cloudislands_cluster_stale_nodes ").append(staleNodes).append('\n');
         out.append("cloudislands_cluster_route_candidate_nodes ").append(routeCandidateNodes).append('\n');

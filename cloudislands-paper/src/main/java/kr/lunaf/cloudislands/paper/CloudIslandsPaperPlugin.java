@@ -660,6 +660,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     }
 
     private String heartbeatMetadata(String supportedTemplates, MeteredIslandStorage storage) {
+        PaperRedisClient.PingResult redis = redisClient == null ? PaperRedisClient.PingResult.disabled() : redisClient.ping();
         return levelScanStatus(supportedTemplates)
             + ";localCaches=" + (localCaches == null ? "" : localCaches.namesCsv())
             + ";localCacheInvalidations=" + (localCaches == null ? 0L : localCaches.invalidationsTotal())
@@ -680,6 +681,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";storageFallbackWrites=" + (storage == null ? 0L : storage.fallbackWrites())
             + ";storageFallbackDeletes=" + (storage == null ? 0L : storage.fallbackDeletes())
             + ";storageFallbackOperations=" + (storage == null ? 0L : storage.fallbackOperations())
+            + ";redisAvailable=" + redis.available()
+            + ";redisLatencySeconds=" + redis.latencySeconds()
+            + ";redisFailures=" + redis.failuresTotal()
             + ";periodicSaveRetryQueue=" + (periodicSaveTask == null ? 0 : periodicSaveTask.retryQueueSize())
             + ";periodicSaveFailures=" + (periodicSaveTask == null ? 0L : periodicSaveTask.failuresTotal())
             + ";emptySaveRetryQueue=" + (emptyIslandSaveTask == null ? 0 : emptyIslandSaveTask.retryQueueSize())
