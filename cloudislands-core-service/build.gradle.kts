@@ -60,6 +60,7 @@ tasks.jar {
             "CloudIslands-Core-Observability-Metrics" to "nodes,node-players,node-mspt,node-active-islands,activation-queue,activation-seconds,save-seconds,snapshot-seconds,route-tickets,permission-checks,jobs,storage,database,redis",
             "CloudIslands-Core-Admin-Dashboard-Inputs" to "node-load,mspt,active-islands,activation-latency,save-failures,route-failures,redis-latency,db-pool,object-storage-failures",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
+            "SuperiorSkyblockAPI-Compile-Dependency" to "false",
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
         )
     }

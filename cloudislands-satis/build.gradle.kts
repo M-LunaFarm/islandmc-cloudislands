@@ -28,6 +28,7 @@ tasks.jar {
             "CloudIslands-Addon-Product-Role" to "official-feature-pack",
             "CloudIslands-Satis-Origin" to "M-LunaFarm/satismc",
             "CloudIslands-Satis-Origin-Dependency-Policy" to "replace-superiorskyblock2-depend-and-api-with-cloudislands-depend-and-api",
+            "CloudIslands-Satis-Origin-API-Replacement" to "SuperiorSkyblockAPI-compileOnly-removed-cloudislands-api-used-instead",
             "CloudIslands-Satis-Legacy-Command-Roots" to "factory,sfactory",
             "CloudIslands-Addon-Packaging" to "external-plugin-or-built-in-compatible",
             "CloudIslands-Addon-Integration-Modes" to "EXTERNAL_ADDON,BUILT_IN_COMPATIBLE,DISABLED",
