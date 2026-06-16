@@ -22,6 +22,12 @@ public interface AddonStateRepository {
     default Map<String, String> tableKeyValueBulkSave(String addonId, Map<String, String> values) {
         return bulkSave(addonId, values);
     }
+    default Map<String, String> tableBulk(String addonId, Map<String, String> values) {
+        return tableKeyValueBulkSave(addonId, values);
+    }
+    default Map<String, String> bulkTable(String addonId, Map<String, String> values) {
+        return tableBulk(addonId, values);
+    }
     Map<String, String> remove(String addonId, String key);
     Map<String, String> removePrefix(String addonId, String keyPrefix);
     Map<String, String> replacePrefix(String addonId, String keyPrefix, Map<String, String> values);
@@ -34,6 +40,12 @@ public interface AddonStateRepository {
     }
     default Map<String, String> tableKeyValueBulkSaveIsland(String addonId, UUID islandId, Map<String, String> values) {
         return bulkSaveIsland(addonId, islandId, values);
+    }
+    default Map<String, String> tableBulkIsland(String addonId, UUID islandId, Map<String, String> values) {
+        return tableKeyValueBulkSaveIsland(addonId, islandId, values);
+    }
+    default Map<String, String> bulkTableIsland(String addonId, UUID islandId, Map<String, String> values) {
+        return tableBulkIsland(addonId, islandId, values);
     }
     Map<String, String> removeIsland(String addonId, UUID islandId, String key);
     Map<String, String> removeIslandPrefix(String addonId, UUID islandId, String keyPrefix);
