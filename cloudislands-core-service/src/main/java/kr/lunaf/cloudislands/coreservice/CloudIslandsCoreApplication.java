@@ -2757,6 +2757,8 @@ public final class CloudIslandsCoreApplication {
             + "\"coreSetupDatabaseEffectiveAuthority\":\"" + escape(config.setupDatabaseEffectiveAuthority()) + "\","
             + "\"coreSetupDatabaseEffectiveBackend\":\"" + escape(config.setupDatabaseEffectiveBackend()) + "\","
             + "\"coreSetupDatabaseFallbackTarget\":\"" + escape(config.setupDatabaseFallbackTarget()) + "\","
+            + "\"coreSetupDatabasePostgresqlFallbackConfigured\":" + config.setupDatabasePostgresqlFallbackConfigured() + ","
+            + "\"coreSetupDatabaseCoreApiFallbackConfigured\":" + config.setupDatabaseCoreApiFallbackConfigured() + ","
             + "\"coreSetupDatabaseFallbackReason\":\"" + escape(config.setupDatabaseFallbackReason()) + "\","
             + "\"coreSetupDatabaseFallbackSummary\":\"" + escape(config.setupDatabaseFallbackSummary()) + "\","
             + "\"coreSetupDatabaseDurable\":" + config.setupDatabaseDurable() + ","

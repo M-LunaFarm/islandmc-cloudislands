@@ -193,6 +193,14 @@ public record CoreServiceConfig(
         return "NONE";
     }
 
+    public boolean setupDatabasePostgresqlFallbackConfigured() {
+        return !setupPostgresqlFallbackJdbcUrl(applicationConfig()).isBlank();
+    }
+
+    public boolean setupDatabaseCoreApiFallbackConfigured() {
+        return setupDatabaseCoreApiFallbackConfigured(setupDatabaseRequestedBackend());
+    }
+
     public String setupDatabaseFallbackReason() {
         String requested = normalizeDatabaseType(configuredDatabaseType);
         if (coreJdbcSupported(jdbcUrl)) {

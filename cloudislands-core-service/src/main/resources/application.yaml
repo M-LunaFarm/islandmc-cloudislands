@@ -74,6 +74,9 @@ setup:
       timeout-ms: 3000
     fallback:
       # Core JDBC is PostgreSQL-only. Unsupported setup choices stay online through the ordered fallback path.
+      # Example: type=MYSQL with postgresql.* configured uses PostgreSQL for Core state and still exposes MYSQL as the requested setup backend.
+      # Example: type=CORE_API with core-api.* configured keeps the Core service in client-facing mode unless PostgreSQL fallback is configured.
+      # If no durable fallback is available, in-memory keeps startup safe but is reported as non-production durable.
       # If disabled, Core still refuses unsafe unsupported JDBC startup and reports setupFallbackSafetyForced=true.
       # Env overrides: CI_DB_FALLBACK_ENABLED, CI_DB_FALLBACK_ORDER.
       enabled: true
