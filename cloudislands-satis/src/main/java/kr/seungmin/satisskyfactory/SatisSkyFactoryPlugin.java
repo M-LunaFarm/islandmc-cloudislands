@@ -2071,6 +2071,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     @Override
     public void onAddonUnregistered() {
         boolean publishUnregistered = addonStateReportingWasEnabled;
+        Map<String, Boolean> previousEffectiveFeatures = effectiveFeatures;
+        flushPendingSatisStateBeforeDisable("addon-unregistered", previousEffectiveFeatures);
         addonStateReportingWasEnabled = false;
         addonRuntimeEnabled = false;
         effectiveFeatures = Map.of();
