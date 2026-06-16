@@ -231,6 +231,14 @@ public final class IslandLifecycleWorkflow {
     }
 
     public Result restore(UUID islandId, long snapshotNo, String storagePath) {
+        return restore(islandId, snapshotNo, storagePath, false);
+    }
+
+    public Result recover(UUID islandId, long snapshotNo, String storagePath) {
+        return restore(islandId, snapshotNo, storagePath, true);
+    }
+
+    private Result restore(UUID islandId, long snapshotNo, String storagePath, boolean recoveryRestore) {
         IslandRuntimeSnapshot current = runtimes.find(islandId).orElse(null);
         if (current != null && current.state() == IslandState.ACTIVE) {
             return restoreActive(islandId, current, snapshotNo, storagePath);
@@ -252,7 +260,7 @@ public final class IslandLifecycleWorkflow {
         IslandRuntimeSnapshot runtime = runtimes.setState(islandId, IslandState.RESTORING);
         islands.setState(islandId, IslandState.RESTORING);
         try {
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, node.nodeId(), 30, restoreJobPayload(snapshotNo, storagePath, runtime.fencingToken()), Instant.now()));
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, node.nodeId(), 30, restoreJobPayload(snapshotNo, storagePath, runtime.fencingToken(), recoveryRestore), Instant.now()));
         } catch (RuntimeException exception) {
             releaseActivationLock(lease);
             return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
@@ -333,7 +341,7 @@ public final class IslandLifecycleWorkflow {
         return new Result(true, "RESTORE_QUEUED", runtime);
     }
 
-    private static Map<String, String> restoreJobPayload(long snapshotNo, String storagePath, long fencingToken) {
+    private static Map<String, String> restoreJobPayload(long snapshotNo, String storagePath, long fencingToken, boolean recoveryRestore) {
         java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
         payload.put("snapshotNo", Long.toString(snapshotNo));
         payload.put("storagePath", storagePath == null ? "" : storagePath);
@@ -342,6 +350,9 @@ public final class IslandLifecycleWorkflow {
         payload.put("restoreChecksumPolicy", RESTORE_CHECKSUM_POLICY);
         payload.put("restorePortableRequired", RESTORE_PORTABLE_REQUIRED);
         payload.put("restoreSupportedFormats", RESTORE_SUPPORTED_FORMATS);
+        if (recoveryRestore) {
+            payload.put("recoveryRestore", "true");
+        }
         return Map.copyOf(payload);
     }
 

@@ -137,7 +137,7 @@ public final class NodeFailureMonitor {
                 continue;
             }
             IslandSnapshotRecord snapshot = latest.get(0);
-            IslandLifecycleWorkflow.Result result = lifecycle.restore(runtime.islandId(), snapshot.snapshotNo(), snapshot.storagePath());
+            IslandLifecycleWorkflow.Result result = lifecycle.recover(runtime.islandId(), snapshot.snapshotNo(), snapshot.storagePath());
             if (result.accepted()) {
                 queued++;
                 events.publish(CloudIslandEventType.ISLAND_RECOVERY_REQUIRED.name(), Map.of(

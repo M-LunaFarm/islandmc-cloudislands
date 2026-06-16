@@ -202,6 +202,10 @@ public final class JobCompletionService {
         }
         if (job.type() == IslandJobType.RESTORE_ISLAND) {
             releaseRestoreLock(job);
+            if (Boolean.parseBoolean(job.payload().getOrDefault("recoveryRestore", "false"))) {
+                markRecoveryRestoreRequired(job, errorMessage);
+                return;
+            }
         }
         IslandState state = switch (job.type()) {
             case CREATE_ISLAND -> IslandState.ERROR_CREATING;
@@ -288,6 +292,23 @@ public final class JobCompletionService {
             "fencingToken", job.payload().getOrDefault("fencingToken", "0")
         ));
         releaseMigrationLock(job);
+    }
+
+    private void markRecoveryRestoreRequired(IslandJob job, String errorMessage) {
+        runtimes.setState(job.islandId(), IslandState.RECOVERY_REQUIRED);
+        setIslandState(job.islandId(), IslandState.RECOVERY_REQUIRED);
+        failPreparingRouteTickets(job, errorMessage == null || errorMessage.isBlank() ? "RECOVERY_RESTORE_FAILED" : errorMessage);
+        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
+            "islandId", job.islandId().toString(),
+            "state", IslandState.RECOVERY_REQUIRED.name(),
+            "jobType", job.type().name(),
+            "error", errorMessage == null ? "" : errorMessage,
+            "phase", "RECOVERY_RESTORE_FAILED",
+            "targetNode", job.targetNode() == null ? "" : job.targetNode(),
+            "snapshotNo", job.payload().getOrDefault("snapshotNo", ""),
+            "storagePath", job.payload().getOrDefault("storagePath", ""),
+            "fencingToken", job.payload().getOrDefault("fencingToken", "0")
+        ));
     }
 
     private boolean isStaleFencingFailure(IslandJob job, String errorMessage) {
