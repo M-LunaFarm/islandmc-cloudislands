@@ -1308,6 +1308,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (configs.main().contains("addons." + ADDON_ID + ".enabled")) {
             enabled = enabled && configs.main().getBoolean("addons." + ADDON_ID + ".enabled", true);
         }
+        if ("DISABLED".equals(configuredIntegrationMode())) {
+            enabled = false;
+        }
         return enabled;
     }
 
@@ -1335,7 +1338,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     public Map<String, String> addonMetadata() {
         Map<String, String> metadata = new LinkedHashMap<>();
         String scope = databaseScope();
-        metadata.put("mode", configs.main().getString("integration.mode", "ADDON"));
+        String integrationMode = configuredIntegrationMode();
+        metadata.put("mode", integrationMode);
+        metadata.put("integration-mode", integrationMode);
+        metadata.put("integration-mode-configured", configs.main().getString("integration.mode", "ADDON"));
+        metadata.put("integration-mode-supported", "EXTERNAL_ADDON,BUILT_IN_COMPATIBLE,DISABLED");
+        metadata.put("integration-mode-effective", "DISABLED".equals(integrationMode) ? "disabled-no-runtime-components" : "cloudislands-addon-registry");
+        metadata.put("integration-mode-policy", "external-addon-and-built-in-compatible-modes-share-the-same-cloudislands-addon-feature-gates");
         metadata.putAll(cloudIslandsIntegrationMetadata());
         metadata.put("skyblock-provider", "CLOUDISLANDS");
         metadata.put("cloudislands-adapter", Boolean.toString(configs.main().getBoolean("integration.cloudislands-adapter", true)));
@@ -1501,6 +1510,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("addon-descriptor-resource", "cloudislands-addon.yml"),
                 Map.entry("addon-descriptor-format", "cloudislands-addon-yaml"),
                 Map.entry("addon-packaging", "external-plugin"),
+                Map.entry("supported-integration-modes", "EXTERNAL_ADDON,BUILT_IN_COMPATIBLE,DISABLED"),
+                Map.entry("built-in-compatible-policy", "same-addon-api-contract-config-gated-no-core-boot-dependency"),
                 Map.entry("extension-model", "superiorskyblock-style-addon"),
                 Map.entry("removable-addon", "true"),
                 Map.entry("addon-removal-safe", "true"),
@@ -1517,6 +1528,17 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("config-gated", "true"),
                 Map.entry("parent-config-aliases", "satis")
         );
+    }
+
+    private String configuredIntegrationMode() {
+        String raw = configs == null ? "ADDON" : configs.main().getString("integration.mode", "ADDON");
+        String normalized = raw == null ? "ADDON" : raw.trim().replace('-', '_').toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "DISABLE", "DISABLED", "OFF" -> "DISABLED";
+            case "BUILTIN", "BUILT_IN", "BUILT_IN_ADDON", "BUILTIN_ADDON", "BUILT_IN_COMPATIBLE" -> "BUILT_IN_COMPATIBLE";
+            case "EXTERNAL", "EXTERNAL_PLUGIN", "PLUGIN", "ADDON", "EXTERNAL_ADDON" -> "EXTERNAL_ADDON";
+            default -> "EXTERNAL_ADDON";
+        };
     }
 
     private Map<String, String> addonStateSnapshot() {

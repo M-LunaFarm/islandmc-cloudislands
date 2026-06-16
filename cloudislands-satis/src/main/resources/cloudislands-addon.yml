@@ -11,6 +11,11 @@ removal:
   safe: true
   data-retention: preserve-addon-state-by-island-uuid
 runtime:
+  supported-integration-modes:
+    - EXTERNAL_ADDON
+    - BUILT_IN_COMPATIBLE
+    - DISABLED
+  mode-policy: external-addon-and-built-in-compatible-modes-share-cloudislands-addon-feature-gates
   owns-islands: false
   storage-key: cloudislands-island-uuid
   default-database-mode: CORE_API
