@@ -14,6 +14,8 @@ tasks.jar {
             "CloudIslands-Migration-Flow" to "scan,manifest,dry-run,conflicts,approval,db-import,world-extract,bundle,checksum,activate-test,rollback",
             "CloudIslands-Migration-Commands" to "scan,status,dryrun,dry-run,extract,import,verify,rollback",
             "CloudIslands-Migration-Approval" to "explicit-admin-token-required-before-import",
+            "CloudIslands-Migration-Safety-Policy" to "MigrationSafetyPolicy-input-only-read-only-actions-write-actions-approval-required",
+            "CloudIslands-Migration-Rollback-Policy" to "rollback-plan-removes-only-cloudislands-imported-state",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
         )
