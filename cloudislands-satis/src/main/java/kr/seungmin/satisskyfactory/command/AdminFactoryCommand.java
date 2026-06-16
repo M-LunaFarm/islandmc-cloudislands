@@ -965,6 +965,9 @@ public final class AdminFactoryCommand {
     }
 
     private String rollbackMode(DatabaseService.LegacyRollbackResult result) {
+        if (result != null && "core-api-addon-state-unavailable".equals(result.status())) {
+            return "core-api-writer-required";
+        }
         if (result == null || !result.restored()) {
             return "manual-restore-required";
         }
@@ -978,6 +981,9 @@ public final class AdminFactoryCommand {
     }
 
     private String rollbackReason(DatabaseService.LegacyRollbackResult result) {
+        if (result != null && "core-api-addon-state-unavailable".equals(result.status())) {
+            return "CORE_API rollback needs an active addon-state writer so restored cache rows are published cluster-wide";
+        }
         if (result == null || !result.restored()) {
             return "rollback must not delete mixed live CloudIslands/Satis data automatically";
         }
