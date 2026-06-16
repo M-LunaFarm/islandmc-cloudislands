@@ -37,7 +37,7 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
             return Optional.empty();
         }
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT uuid, last_name, primary_island_id, last_seen_at FROM player_profiles WHERE lower(last_name) = lower(?) ORDER BY last_seen_at DESC NULLS LAST LIMIT 1")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT uuid, last_name, primary_island_id, last_seen_at FROM player_profiles WHERE lower(last_name) = lower(?) ORDER BY CASE WHEN last_seen_at IS NULL THEN 1 ELSE 0 END, last_seen_at DESC LIMIT 1")) {
             statement.setString(1, lastName);
             try (ResultSet rs = statement.executeQuery()) {
                 return rs.next() ? Optional.of(profile(rs)) : Optional.empty();
@@ -50,12 +50,11 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
     @Override
     public PlayerIslandProfile touch(UUID playerUuid, String lastName) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO player_profiles(uuid, last_name, last_seen_at) VALUES (?, ?, now()) ON CONFLICT (uuid) DO UPDATE SET last_name = EXCLUDED.last_name, last_seen_at = now(), updated_at = now() RETURNING uuid, last_name, primary_island_id, last_seen_at")) {
+             PreparedStatement statement = connection.prepareStatement(touchSql(connection))) {
             statement.setObject(1, playerUuid);
             statement.setString(2, lastName == null ? "" : lastName);
-            try (ResultSet rs = statement.executeQuery()) {
-                return rs.next() ? profile(rs) : find(playerUuid);
-            }
+            statement.executeUpdate();
+            return find(playerUuid);
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to touch player profile", exception);
         }
@@ -65,12 +64,11 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
     public PlayerIslandProfile setPrimaryIsland(UUID playerUuid, UUID islandId) {
         ensure(playerUuid);
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE player_profiles SET primary_island_id = ?, updated_at = now() WHERE uuid = ? RETURNING uuid, last_name, primary_island_id, last_seen_at")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE player_profiles SET primary_island_id = ?, updated_at = now() WHERE uuid = ?")) {
             statement.setObject(1, islandId);
             statement.setObject(2, playerUuid);
-            try (ResultSet rs = statement.executeQuery()) {
-                return rs.next() ? profile(rs) : find(playerUuid);
-            }
+            statement.executeUpdate();
+            return find(playerUuid);
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to set player primary island", exception);
         }
@@ -80,11 +78,10 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
     public PlayerIslandProfile clearPrimaryIsland(UUID playerUuid) {
         ensure(playerUuid);
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE player_profiles SET primary_island_id = NULL, updated_at = now() WHERE uuid = ? RETURNING uuid, last_name, primary_island_id, last_seen_at")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE player_profiles SET primary_island_id = NULL, updated_at = now() WHERE uuid = ?")) {
             statement.setObject(1, playerUuid);
-            try (ResultSet rs = statement.executeQuery()) {
-                return rs.next() ? profile(rs) : find(playerUuid);
-            }
+            statement.executeUpdate();
+            return find(playerUuid);
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to clear player primary island", exception);
         }
@@ -92,12 +89,32 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
 
     private void ensure(UUID playerUuid) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO player_profiles(uuid) VALUES (?) ON CONFLICT (uuid) DO NOTHING")) {
+             PreparedStatement statement = connection.prepareStatement(ensureSql(connection))) {
             statement.setObject(1, playerUuid);
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to ensure player profile", exception);
         }
+    }
+
+    private String touchSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO player_profiles(uuid, last_name, last_seen_at) VALUES (?, ?, now()) ON DUPLICATE KEY UPDATE last_name = VALUES(last_name), last_seen_at = now(), updated_at = now()";
+        }
+        return "INSERT INTO player_profiles(uuid, last_name, last_seen_at) VALUES (?, ?, now()) ON CONFLICT (uuid) DO UPDATE SET last_name = EXCLUDED.last_name, last_seen_at = now(), updated_at = now()";
+    }
+
+    private String ensureSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT IGNORE INTO player_profiles(uuid) VALUES (?)";
+        }
+        return "INSERT INTO player_profiles(uuid) VALUES (?) ON CONFLICT (uuid) DO NOTHING";
+    }
+
+    private boolean mysqlLike(Connection connection) throws SQLException {
+        String product = connection.getMetaData().getDatabaseProductName();
+        String normalized = product == null ? "" : product.toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains("mysql") || normalized.contains("mariadb");
     }
 
     private PlayerIslandProfile profile(ResultSet rs) throws SQLException {
