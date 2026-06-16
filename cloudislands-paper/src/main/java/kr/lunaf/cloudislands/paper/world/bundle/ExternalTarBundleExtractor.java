@@ -18,19 +18,20 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
         validateBundleEntries(bundleFile);
         recreateDirectory(targetDirectory);
         runTar(List.of("tar", "--zstd", "-xf", bundleFile.toAbsolutePath().toString(), "-C", targetDirectory.toAbsolutePath().toString()), "bundle extraction");
+        validateExtractedTree(targetDirectory);
         Path manifest = targetDirectory.resolve("manifest.json");
         Path chunks = targetDirectory.resolve("chunks");
         Path checksums = targetDirectory.resolve("checksums.sha256");
         if (!Files.isRegularFile(manifest)) {
             throw new IOException("extracted bundle is missing manifest.json");
         }
-        if (!Files.isDirectory(chunks)) {
+        if (!Files.isDirectory(chunks, LinkOption.NOFOLLOW_LINKS)) {
             throw new IOException("extracted bundle is missing chunks directory");
         }
-        if (!Files.isDirectory(targetDirectory.resolve("entities"))) {
+        if (!Files.isDirectory(targetDirectory.resolve("entities"), LinkOption.NOFOLLOW_LINKS)) {
             throw new IOException("extracted bundle is missing entities directory");
         }
-        if (!Files.isDirectory(targetDirectory.resolve("block-entities"))) {
+        if (!Files.isDirectory(targetDirectory.resolve("block-entities"), LinkOption.NOFOLLOW_LINKS)) {
             throw new IOException("extracted bundle is missing block-entities directory");
         }
         if (!Files.isRegularFile(checksums)) {
@@ -62,6 +63,29 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
             }
         }
         Files.createDirectories(target);
+    }
+
+    private void validateExtractedTree(Path targetDirectory) throws IOException {
+        Path root = targetDirectory.toAbsolutePath().normalize();
+        try (java.util.stream.Stream<Path> paths = Files.walk(root)) {
+            for (Path path : paths.toList()) {
+                Path normalized = path.toAbsolutePath().normalize();
+                if (!normalized.startsWith(root)) {
+                    throw new IOException("extracted bundle entry escapes target: " + normalized);
+                }
+                if (Files.isSymbolicLink(path)) {
+                    throw new IOException("symbolic links are not allowed in island bundles: " + relativeName(root, normalized));
+                }
+                if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)
+                    && !Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
+                    throw new IOException("unsupported island bundle entry type: " + relativeName(root, normalized));
+                }
+            }
+        }
+    }
+
+    private String relativeName(Path root, Path normalized) {
+        return root.equals(normalized) ? "." : root.relativize(normalized).toString().replace('\\', '/');
     }
 
     private boolean unsafeEntry(String entry) {
