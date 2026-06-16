@@ -998,6 +998,9 @@ node:
   role: "ISLAND_NODE"
   pool: "island"
   velocity-server-name: "Island-1"
+  # Refuse production startup when the sample island-1/Island-1 identity was not changed.
+  # Set false only for a local single-node sandbox.
+  reject-default-identity: true
   soft-player-cap: 90
   hard-player-cap: 110
   reserved-slots: 15

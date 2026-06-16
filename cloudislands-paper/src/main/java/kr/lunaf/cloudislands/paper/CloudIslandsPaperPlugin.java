@@ -124,6 +124,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         String pool = getConfig().getString("node.pool", "island");
         String velocityServerName = getConfig().getString("node.velocity-server-name", nodeId);
         AgentRole role = parseAgentRole(getConfig().getString("node.role", "ISLAND_NODE"));
+        if (rejectDefaultNodeIdentity(role, nodeId, velocityServerName)) {
+            return;
+        }
         warnIfDefaultNodeIdentity(role, nodeId, velocityServerName);
         CoreApiClient client = new JdkCoreApiClient(
             URI.create(coreApiBaseUrl()),
@@ -643,6 +646,16 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getLogger().warning("CloudIslands node.id/velocity-server-name still use the default island-1/Island-1 identity. Set a unique node.id and Velocity server name for every Island node before running multiple Island servers.");
     }
 
+    private boolean rejectDefaultNodeIdentity(AgentRole role, String nodeId, String velocityServerName) {
+        if (!defaultNodeIdentityRisk(role, nodeId, velocityServerName)
+            || !configBoolean("node.reject-default-identity", true)) {
+            return false;
+        }
+        getLogger().severe("CloudIslands ISLAND_NODE refused to start with the default island-1/Island-1 identity. Set unique node.id and node.velocity-server-name for every Island node, or set node.reject-default-identity=false only for a single-node sandbox.");
+        getServer().getPluginManager().disablePlugin(this);
+        return true;
+    }
+
     private boolean defaultNodeIdentityRisk(AgentRole role, String nodeId, String velocityServerName) {
         if (role != AgentRole.ISLAND_NODE) {
             return false;
@@ -711,6 +724,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";nodePoolScalePolicy=count-independent-requires-unique-node-id-unique-velocity-server-name-shared-bundle-storage"
             + ";fiveSixNodePoolPolicy=supported-when-each-island-node-registers-as-a-distinct-route-candidate"
             + ";nodeIdentityPolicy=node.id-and-velocity-server-name-must-be-unique-per-island-node"
+            + ";defaultNodeIdentityReject=" + configBoolean("node.reject-default-identity", true)
             + ";defaultNodeIdentityRisk=" + defaultNodeIdentityRisk(parseAgentRole(getConfig().getString("node.role", "ISLAND_NODE")), getConfig().getString("node.id", "island-1"), getConfig().getString("node.velocity-server-name", getConfig().getString("node.id", "island-1")))
             + ";chatBroadcasts=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatBroadcasts())
             + ";chatDeliveries=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatDeliveries())
