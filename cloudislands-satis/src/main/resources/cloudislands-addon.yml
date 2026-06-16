@@ -74,6 +74,7 @@ database:
 state:
   authority: core-api-table-key-value-or-shared-database
   move-policy: remap-state-to-current-active-world-and-cell
+  migration-preflush-policy: flush-dirty-state-before-source-node-deactivation-then-remap-on-target-activation
   fallback-policy: local-cache-on-core-api-failure-with-configurable-database-fallback
   fallback-safety-policy: production-safe-when-shared-backend-precedes-local-sqlite
   placement-source-policy: record-core-payload-or-paper-allocator-on-activate-and-migrate
@@ -82,6 +83,7 @@ events:
   source: CloudIslandsAddon.onCloudEvent
   delivery: core-global-events-to-paper-poller-to-cloudislands-addon-and-bukkit-events
   placement-source: activation-and-migration-events-forward-placementSource-to-satis-state
+  migration-request-action: preflush-dirty-state-without-coordinate-remap
   coverage:
     - pre-create
     - create
