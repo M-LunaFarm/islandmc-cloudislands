@@ -49,6 +49,9 @@ public final class InMemoryIslandLevelRepository implements IslandLevelRepositor
 
     @Override
     public void putBlockValue(String materialKey, RankingRecalculationService.BlockValue value) {
-        values.put(materialKey, value);
+        if (materialKey == null || materialKey.isBlank() || value == null) {
+            return;
+        }
+        values.put(materialKey.trim(), value);
     }
 }

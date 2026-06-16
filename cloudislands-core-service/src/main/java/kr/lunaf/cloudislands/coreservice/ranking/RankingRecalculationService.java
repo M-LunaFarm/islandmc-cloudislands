@@ -29,16 +29,18 @@ public final class RankingRecalculationService {
     public IslandRankSnapshot recalculate(UUID islandId, Map<String, Long> blockCounts, Map<String, BlockValue> values, int memberCount) {
         BigDecimal worth = BigDecimal.ZERO;
         long levelPoints = 0L;
+        blockCounts = blockCounts == null ? Map.of() : blockCounts;
+        values = values == null ? Map.of() : values;
         for (Map.Entry<String, Long> entry : blockCounts.entrySet()) {
             BlockValue value = values.get(entry.getKey());
-            if (value == null) {
+            if (value == null || entry.getValue() == null) {
                 continue;
             }
-            long counted = value.limit() <= 0 ? entry.getValue() : Math.min(entry.getValue(), value.limit());
+            long counted = value.limit() <= 0 ? Math.max(0L, entry.getValue()) : Math.max(0L, Math.min(entry.getValue(), value.limit()));
             worth = worth.add(value.worth().multiply(BigDecimal.valueOf(counted)));
             levelPoints += value.levelPoints() * counted;
         }
-        IslandRankSnapshot snapshot = new IslandRankSnapshot(islandId, Math.floorDiv(levelPoints, levelPointsDivisor), worth, memberCount, Instant.now());
+        IslandRankSnapshot snapshot = new IslandRankSnapshot(islandId, Math.floorDiv(levelPoints, levelPointsDivisor), worth, Math.max(0, memberCount), Instant.now());
         rankings.save(snapshot);
         events.publish(CloudIslandEventType.ISLAND_LEVEL_UPDATED.name(), Map.of("islandId", islandId.toString(), "level", Long.toString(snapshot.level()), "worth", snapshot.worth().toPlainString(), "levelFormula", levelFormulaExpression));
         events.publish(CloudIslandEventType.ISLAND_WORTH_CHANGED.name(), Map.of("islandId", islandId.toString(), "worth", snapshot.worth().toPlainString(), "worthFormula", worthFormulaType));
@@ -84,5 +86,11 @@ public final class RankingRecalculationService {
         }
     }
 
-    public record BlockValue(BigDecimal worth, long levelPoints, long limit) {}
+    public record BlockValue(BigDecimal worth, long levelPoints, long limit) {
+        public BlockValue {
+            worth = worth == null || worth.signum() < 0 ? BigDecimal.ZERO : worth;
+            levelPoints = Math.max(0L, levelPoints);
+            limit = Math.max(0L, limit);
+        }
+    }
 }

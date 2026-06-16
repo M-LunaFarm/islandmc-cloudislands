@@ -97,9 +97,12 @@ public final class JdbcIslandLevelRepository implements IslandLevelRepository {
 
     @Override
     public void putBlockValue(String materialKey, RankingRecalculationService.BlockValue value) {
+        if (materialKey == null || materialKey.isBlank() || value == null) {
+            return;
+        }
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("INSERT INTO block_values(material_key, worth, level_points, island_limit) VALUES (?, ?, ?, ?) ON CONFLICT (material_key) DO UPDATE SET worth = EXCLUDED.worth, level_points = EXCLUDED.level_points, island_limit = EXCLUDED.island_limit")) {
-            statement.setString(1, materialKey);
+            statement.setString(1, materialKey.trim());
             statement.setBigDecimal(2, value.worth());
             statement.setLong(3, value.levelPoints());
             statement.setLong(4, value.limit());
