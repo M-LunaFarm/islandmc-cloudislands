@@ -762,8 +762,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (dirtySaves == null) {
             return;
         }
+        if (!operationalFeatureEnabled("machines")) {
+            dirtySaves.forgetMachines();
+        }
         if (!storageDataEnabled()) {
             dirtySaves.forgetInventories();
+        }
+        if (!operationalFeatureEnabled("resource-nodes")) {
+            dirtySaves.forgetNodes();
         }
         if (!lifecycleStateEnabled()) {
             dirtySaves.forgetIslands();
