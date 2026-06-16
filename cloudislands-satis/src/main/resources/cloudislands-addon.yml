@@ -93,7 +93,7 @@ state:
   placement-source-policy: record-core-payload-or-paper-allocator-on-activate-and-migrate
   placement-source-state-key: last-lifecycle-operation
   node-move-state-keys: source-node,target-node,node-move,node-move-policy
-  bulk-retry-state-keys: addon-state-sync-island-bulk-pending-retries,addon-state-sync-island-bulk-retries-queued,addon-state-sync-island-bulk-retries-drained,addon-state-sync-global-bulk-pending-retries,addon-state-sync-global-bulk-retries-queued,addon-state-sync-global-bulk-retries-drained
+  bulk-retry-state-keys: addon-state-sync-bulk-max-pending-retries,addon-state-sync-island-bulk-pending-retries,addon-state-sync-island-bulk-retries-queued,addon-state-sync-island-bulk-retries-drained,addon-state-sync-island-bulk-retries-dropped,addon-state-sync-global-bulk-pending-retries,addon-state-sync-global-bulk-retries-queued,addon-state-sync-global-bulk-retries-drained,addon-state-sync-global-bulk-retries-dropped
 events:
   source: CloudIslandsAddon.onCloudEvent
   delivery: core-global-events-to-paper-poller-to-cloudislands-addon-and-bukkit-events

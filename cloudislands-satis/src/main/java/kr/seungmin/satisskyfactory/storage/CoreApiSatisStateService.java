@@ -60,6 +60,8 @@ public final class CoreApiSatisStateService {
     private final AtomicLong globalBulkRetriesQueued = new AtomicLong();
     private final AtomicLong islandBulkRetriesDrained = new AtomicLong();
     private final AtomicLong globalBulkRetriesDrained = new AtomicLong();
+    private final AtomicLong islandBulkRetriesDropped = new AtomicLong();
+    private final AtomicLong globalBulkRetriesDropped = new AtomicLong();
     private final AtomicLong tableSuccesses = new AtomicLong();
     private final AtomicLong tableFailures = new AtomicLong();
     private final AtomicLong coreStateFailures = new AtomicLong();
@@ -128,12 +130,24 @@ public final class CoreApiSatisStateService {
         return globalBulkRetriesDrained.get();
     }
 
+    public long islandBulkRetriesDropped() {
+        return islandBulkRetriesDropped.get();
+    }
+
+    public long globalBulkRetriesDropped() {
+        return globalBulkRetriesDropped.get();
+    }
+
     public int pendingIslandBulkRetries() {
         return pendingIslandBulkRetryCount();
     }
 
     public int pendingGlobalBulkRetries() {
         return pendingGlobalBulkRetryCount();
+    }
+
+    public int maxPendingBulkRetries() {
+        return MAX_PENDING_BULK_RETRIES;
     }
 
     public long tableSuccesses() {
@@ -632,6 +646,7 @@ public final class CoreApiSatisStateService {
         synchronized (pendingRetryLock) {
             while (pendingIslandBulkRetries.size() >= MAX_PENDING_BULK_RETRIES) {
                 pendingIslandBulkRetries.removeFirst();
+                islandBulkRetriesDropped.incrementAndGet();
             }
             pendingIslandBulkRetries.addLast(new PendingIslandBulk(islandId, copyValues(values), copyTables(tables)));
         }
@@ -673,6 +688,7 @@ public final class CoreApiSatisStateService {
         synchronized (pendingRetryLock) {
             while (pendingGlobalBulkRetries.size() >= MAX_PENDING_BULK_RETRIES) {
                 pendingGlobalBulkRetries.removeFirst();
+                globalBulkRetriesDropped.incrementAndGet();
             }
             pendingGlobalBulkRetries.addLast(new PendingGlobalBulk(copyValues(values), copyTables(tables)));
         }
