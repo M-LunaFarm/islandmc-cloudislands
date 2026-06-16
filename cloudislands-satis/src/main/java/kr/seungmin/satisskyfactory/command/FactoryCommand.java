@@ -526,6 +526,9 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         for (String command : commands.subList(from, to)) {
             player.sendMessage(messages.raw("command-list-entry", Map.of("command", command)));
         }
+        if (safePage > 1) {
+            player.sendMessage(messages.raw("command-list-entry", Map.of("command", label + " command list " + (safePage - 1))));
+        }
         if (safePage < maxPage) {
             player.sendMessage(messages.raw("command-list-entry", Map.of("command", label + " command list " + (safePage + 1))));
         }

@@ -1333,6 +1333,9 @@ public final class AdminFactoryCommand {
         for (String command : commands.subList(from, to)) {
             sender.sendMessage(messages.raw("command-list-entry", Map.of("command", command)));
         }
+        if (safePage > 1) {
+            sender.sendMessage(messages.raw("command-list-entry", Map.of("command", label + " admin command list " + (safePage - 1))));
+        }
         if (safePage < maxPage) {
             sender.sendMessage(messages.raw("command-list-entry", Map.of("command", label + " admin command list " + (safePage + 1))));
         }
