@@ -455,7 +455,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("data-write-mode", dataWritesEnabled() ? "enabled" : "disabled");
         state.put("write-gate-machines", Boolean.toString(operationalFeatureEnabled("machines")));
         state.put("write-gate-machines-direct", Boolean.toString(operationalFeatureEnabled("machines")));
-        state.put("write-gate-machine-ticker-storage", Boolean.toString(operationalFeatureEnabled("machines") && storageDataEnabled()));
+        state.put("write-gate-machine-ticker", Boolean.toString(operationalFeatureEnabled("machines")));
+        state.put("write-gate-machine-ticker-public-storage", Boolean.toString(storageDataEnabled()));
         state.put("write-gate-item-networks-direct", Boolean.toString(operationalFeatureEnabled("machines")));
         state.put("write-gate-power-direct", Boolean.toString(operationalFeatureEnabled("machines") && storageDataEnabled()));
         state.put("write-gate-storage", Boolean.toString(storageDataEnabled()));

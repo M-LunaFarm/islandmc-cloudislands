@@ -141,11 +141,6 @@ public final class MachineTickService {
             queuedMachines.clear();
             return;
         }
-        if (!storageWritesEnabled.getAsBoolean()) {
-            activeMachineQueue.clear();
-            queuedMachines.clear();
-            return;
-        }
         power.beginCycle();
         long now = Instant.now().toEpochMilli();
         Set<UUID> touchedIslands = new HashSet<>();
@@ -431,9 +426,9 @@ public final class MachineTickService {
 
     private boolean consumeGeneratorFuel(MachineInstance machine, Map<String, Long> fuel) {
         VirtualInventory input = inputInventory(machine);
-        VirtualInventory islandStorage = storage.islandStorage(machine.islandUuid());
+        VirtualInventory islandStorage = publicStorageEnabled() ? storage.islandStorage(machine.islandUuid()) : null;
         if (fuel.entrySet().stream().anyMatch(entry ->
-                input.amount(entry.getKey()) + islandStorage.amount(entry.getKey()) < entry.getValue())) {
+                input.amount(entry.getKey()) + (islandStorage == null ? 0L : islandStorage.amount(entry.getKey())) < entry.getValue())) {
             return false;
         }
         boolean changedInput = false;
@@ -445,7 +440,7 @@ public final class MachineTickService {
                 remaining -= fromInput;
                 changedInput = true;
             }
-            if (remaining > 0 && islandStorage.remove(entry.getKey(), remaining)) {
+            if (remaining > 0 && islandStorage != null && islandStorage.remove(entry.getKey(), remaining)) {
                 changedIsland = true;
             }
         }
@@ -906,11 +901,26 @@ public final class MachineTickService {
     }
 
     private VirtualInventory inputInventory(MachineInstance machine) {
-        return storage.get(machine.inputInventoryId()).orElseGet(() -> storage.islandStorage(machine.islandUuid()));
+        return storage.get(machine.inputInventoryId()).orElseGet(() -> fallbackInventory(machine, "MACHINE_INPUT_MISSING"));
     }
 
     private VirtualInventory outputInventory(MachineInstance machine) {
-        return storage.get(machine.outputInventoryId()).orElseGet(() -> storage.islandStorage(machine.islandUuid()));
+        return storage.get(machine.outputInventoryId()).orElseGet(() -> fallbackInventory(machine, "MACHINE_OUTPUT_MISSING"));
+    }
+
+    private VirtualInventory fallbackInventory(MachineInstance machine, String holderType) {
+        if (publicStorageEnabled()) {
+            return storage.islandStorage(machine.islandUuid());
+        }
+        return new VirtualInventory(UUID.randomUUID(), machine.islandUuid(), holderType, machine.machineId().toString(), 0L);
+    }
+
+    private boolean publicStorageEnabled() {
+        try {
+            return storageWritesEnabled.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 
     private void setStatus(MachineInstance machine, MachineStatus status) {
