@@ -2757,6 +2757,7 @@ public final class CloudIslandsCoreApplication {
             + "\"coreSetupDatabaseAutoSchemaResource\":\"/db/mysql/V1__cloudislands_mysql_schema.sql\","
             + "\"coreSetupDatabaseAutoSchemaHistoryTable\":\"cloudislands_schema_bootstrap\","
             + "\"coreSetupDatabaseAutoSchemaRetryPolicy\":\"ignore-existing-schema-objects-and-mark-bootstrap-after-complete-apply\","
+            + "\"coreSetupDatabaseAutoSchemaGuardPolicy\":\"generated-columns-enforce-active-unique-guards-for-mysql-mariadb\","
             + "\"coreSetupFallbackEnabled\":" + config.setupDatabaseFallbackEnabled() + ","
             + "\"coreSetupFallbackEffective\":" + coreJdbcFallbackActive(config) + ","
             + "\"coreSetupFallbackSafetyForced\":" + coreSetupFallbackSafetyForced(config) + ","

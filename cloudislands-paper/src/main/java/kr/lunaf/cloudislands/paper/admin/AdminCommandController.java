@@ -2002,6 +2002,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-core-config-setup-db-auto-schema-resource-prefix", " setupDbAutoSchemaResource=") + textValue(body, "coreSetupDatabaseAutoSchemaResource")
             + adminText("admin-command-core-config-setup-db-auto-schema-history-prefix", " setupDbAutoSchemaHistory=") + textValue(body, "coreSetupDatabaseAutoSchemaHistoryTable")
             + adminText("admin-command-core-config-setup-db-auto-schema-retry-prefix", " setupDbAutoSchemaRetry=") + textValue(body, "coreSetupDatabaseAutoSchemaRetryPolicy")
+            + adminText("admin-command-core-config-setup-db-auto-schema-guard-prefix", " setupDbAutoSchemaGuard=") + textValue(body, "coreSetupDatabaseAutoSchemaGuardPolicy")
             + adminText("admin-command-core-config-jdbc-fallback-prefix", " jdbcFallback=") + textValue(body, "coreJdbcFallbackReason")
             + adminText("admin-command-core-config-jdbc-fallback-active-prefix", " jdbcFallbackActive=") + boolValue(body, "coreJdbcFallbackActive")
             + adminText("admin-command-core-config-setup-fallback-effective-prefix", " setupFallbackEffective=") + boolValue(body, "coreSetupFallbackEffective")

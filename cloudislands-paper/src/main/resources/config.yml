@@ -413,6 +413,7 @@ messages:
     admin-command-core-config-setup-db-auto-schema-resource-prefix: " setupDbAutoSchemaResource="
     admin-command-core-config-setup-db-auto-schema-history-prefix: " setupDbAutoSchemaHistory="
     admin-command-core-config-setup-db-auto-schema-retry-prefix: " setupDbAutoSchemaRetry="
+    admin-command-core-config-setup-db-auto-schema-guard-prefix: " setupDbAutoSchemaGuard="
     admin-command-core-config-jdbc-fallback-prefix: " jdbcFallback="
     admin-command-core-config-jdbc-fallback-active-prefix: " jdbcFallbackActive="
     admin-command-core-config-setup-fallback-effective-prefix: " setupFallbackEffective="
