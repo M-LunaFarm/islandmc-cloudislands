@@ -960,6 +960,19 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> tableBulkAddonState(String addonId, Map<String, Map<String, String>> tables) {
+        if (blank(addonId)) {
+            return invalidAddonState("Addon id is required");
+        }
+        return postWithResultBody("/v1/addons/state/table/bulk", "{\"addonId\":\"" + escape(addonId) + "\",\"tables\":" + tableMapJson(tables) + "}");
+    }
+
+    @Override
+    public CompletableFuture<String> bulkAddonTableState(String addonId, Map<String, Map<String, String>> tables) {
+        return tableBulkAddonState(addonId, tables);
+    }
+
+    @Override
     public CompletableFuture<String> putAddonTableState(String addonId, String table, Map<String, String> values) {
         if (blank(addonId) || blank(table)) {
             return invalidAddonState("Addon id and table are required");
@@ -1102,6 +1115,19 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<String> bulkAddonIslandTableKeyValueState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         return tableKeyValueBulkAddonIslandState(addonId, islandId, values, tables);
+    }
+
+    @Override
+    public CompletableFuture<String> tableBulkAddonIslandState(String addonId, UUID islandId, Map<String, Map<String, String>> tables) {
+        if (blank(addonId) || missingIslandId(islandId)) {
+            return invalidAddonState("Addon id and island id are required");
+        }
+        return postWithResultBody("/v1/addons/islands/state/table/bulk", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"tables\":" + tableMapJson(tables) + "}");
+    }
+
+    @Override
+    public CompletableFuture<String> bulkAddonIslandTableState(String addonId, UUID islandId, Map<String, Map<String, String>> tables) {
+        return tableBulkAddonIslandState(addonId, islandId, tables);
     }
 
     @Override
