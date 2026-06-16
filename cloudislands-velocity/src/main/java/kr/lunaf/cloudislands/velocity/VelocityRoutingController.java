@@ -52,6 +52,7 @@ public final class VelocityRoutingController {
     private final AtomicLong fallbackTransfers = new AtomicLong();
     private final AtomicLong fallbackMissing = new AtomicLong();
     private final AtomicLong fallbackFailures = new AtomicLong();
+    private final AtomicLong fallbackSkippedOffline = new AtomicLong();
     private final Set<String> seenEvents = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Long> recentRouteRequests = new ConcurrentHashMap<>();
     private ScheduledTask eventPollTask;
@@ -140,7 +141,8 @@ public final class VelocityRoutingController {
             + ", routeFailureCodes=" + routeFailureCodesSummary()
             + ", fallbackTransfers=" + fallbackTransfers.get()
             + ", fallbackMissing=" + fallbackMissing.get()
-            + ", fallbackFailures=" + fallbackFailures.get();
+            + ", fallbackFailures=" + fallbackFailures.get()
+            + ", fallbackSkippedOffline=" + fallbackSkippedOffline.get();
     }
 
     public String routingMetricsText() {
@@ -152,7 +154,8 @@ public final class VelocityRoutingController {
             + routeFailureCodeMetrics()
             + "cloudislands_velocity_fallback_transfers_total " + fallbackTransfers.get() + "\n"
             + "cloudislands_velocity_fallback_missing_total " + fallbackMissing.get() + "\n"
-            + "cloudislands_velocity_fallback_failed_total " + fallbackFailures.get() + "\n";
+            + "cloudislands_velocity_fallback_failed_total " + fallbackFailures.get() + "\n"
+            + "cloudislands_velocity_fallback_skipped_offline_total " + fallbackSkippedOffline.get() + "\n";
     }
 
     private int islandPoolServerCount() {
@@ -3525,6 +3528,10 @@ public final class VelocityRoutingController {
     private void fallback(Player player, String message, String code) {
         routeFailures.incrementAndGet();
         recordRouteFailureCode(code);
+        if (!playerOnline(player)) {
+            fallbackSkippedOffline.incrementAndGet();
+            return;
+        }
         player.sendMessage(Component.text(message));
         RegisteredServer server = findServer(fallbackServer);
         if (server == null) {
