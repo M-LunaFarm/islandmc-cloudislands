@@ -26,11 +26,12 @@ public interface IslandAddonService {
     }
 
     static String tableStateKey(String table, String key) {
-        String value = key == null ? "" : key.trim();
-        if (value.isBlank()) {
-            throw new IllegalArgumentException("Addon state table key is required");
+        String safeKey = safeTableKey(key);
+        String stateKey = tableStateKeyPrefix(table) + safeKey;
+        if (stateKey.length() > MAX_STATE_KEY_LENGTH) {
+            throw new IllegalArgumentException("Addon state key is too long: " + stateKey.length() + " > " + MAX_STATE_KEY_LENGTH);
         }
-        return tableStateKeyPrefix(table) + value;
+        return stateKey;
     }
 
     static boolean isTableStateKey(String key) {
@@ -519,6 +520,26 @@ public interface IslandAddonService {
         }
         if (value.isBlank()) {
             throw new IllegalArgumentException("Addon state table is required");
+        }
+        if (value.contains("/")) {
+            throw new IllegalArgumentException("Addon state table must not contain '/'");
+        }
+        if (value.length() > MAX_STATE_KEY_LENGTH - TABLE_STATE_KEY_PREFIX.length() - 2) {
+            throw new IllegalArgumentException("Addon state table is too long: " + value.length());
+        }
+        return value;
+    }
+
+    private static String safeTableKey(String key) {
+        String value = key == null ? "" : key.trim();
+        if (value.isBlank()) {
+            throw new IllegalArgumentException("Addon state table key is required");
+        }
+        if (value.contains("/")) {
+            throw new IllegalArgumentException("Addon state table key must not contain '/'");
+        }
+        if (value.length() > MAX_STATE_KEY_LENGTH - TABLE_STATE_KEY_PREFIX.length() - 2) {
+            throw new IllegalArgumentException("Addon state table key is too long: " + value.length());
         }
         return value;
     }
