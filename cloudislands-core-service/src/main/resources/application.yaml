@@ -9,12 +9,12 @@ setup:
   # Preferred first-install database setup block. Legacy flat keys below still work.
   # Supported setup choices:
   # - POSTGRESQL: full Core JDBC repositories/jobs. Recommended for production.
-  # - MYSQL/MARIADB: accepted for setup compatibility and external integrations. If setup.database.postgresql.* is present in fallback order, Core state falls back to PostgreSQL JDBC and uses the PostgreSQL credentials/pool.
-  # - CORE_API: client/API-only selection marker. If setup.database.postgresql.* is present in fallback order, Core state falls back to PostgreSQL JDBC and uses the PostgreSQL credentials/pool.
-  # Fallback rule: unsupported Core JDBC selections do not crash startup; fallback.order is evaluated in order.
-  # POSTGRESQL is used when setup.database.postgresql.* is configured, CORE_API is used when core-api setup is configured, then safe in-memory keeps the core online.
+  # - MYSQL/MARIADB: full Core JDBC repositories/jobs with dialect SQL and optional auto-schema bootstrap.
+  # - CORE_API: client/API-only selection marker for external addon clients; the Core service itself still needs a durable JDBC backend or safe in-memory fallback.
+  # Fallback rule: unsupported or incomplete setup selections do not crash startup; fallback.order is evaluated in order.
+  # POSTGRESQL, MYSQL, or MARIADB can be used as durable Core JDBC. CORE_API is used for external client/addon state, then safe in-memory keeps the core online.
   database:
-    # POSTGRESQL enables Core JDBC repositories/jobs. MYSQL, MARIADB, and CORE_API can use setup.database.postgresql.* as a Core JDBC fallback.
+    # POSTGRESQL, MYSQL, and MARIADB enable Core JDBC repositories/jobs. CORE_API is a client/addon-state selection marker, not self-storage for this Core process.
     # Accepted aliases: POSTGRES/PG -> POSTGRESQL, MARIA -> MARIADB,
     # CORE/COREAPI/CLOUDISLANDS/CLOUDISLANDS_API -> CORE_API, MEMORY/LOCAL/LOCAL_SQLITE -> IN_MEMORY.
     # CI_DATABASE_TYPE overrides this value.
@@ -35,7 +35,7 @@ setup:
     auto-schema: false
     postgresql:
       # Type-specific values override the generic setup.database host/name/options values.
-      # When MYSQL/MARIADB/CORE_API falls back to PostgreSQL, these credentials and pool values are used for Core JDBC.
+      # These credentials and pool values are used when the selected or fallback Core JDBC backend is PostgreSQL.
       url: ""
       jdbc-url: ""
       host: ""
@@ -47,7 +47,7 @@ setup:
       password: ""
       pool-size: 0
     mysql:
-      # MySQL can be configured for external integrations, but Core repositories still use safe non-JDBC fallback.
+      # MySQL can be selected as the native Core JDBC backend. Use auto-schema only for first-install bootstrap.
       url: ""
       jdbc-url: ""
       host: ""
@@ -59,7 +59,7 @@ setup:
       password: ""
       pool-size: 0
     mariadb:
-      # MariaDB can be configured for external integrations, but Core repositories still use safe non-JDBC fallback.
+      # MariaDB can be selected as the native Core JDBC backend. Use auto-schema only for first-install bootstrap.
       url: ""
       jdbc-url: ""
       host: ""
@@ -71,16 +71,16 @@ setup:
       password: ""
       pool-size: 0
     core-api:
-      # Optional selection marker for CORE_API setup. Core JDBC stays disabled unless PostgreSQL fallback is configured.
+      # Optional selection marker for CORE_API setup. This is for external client/addon-state mode, not Core self-storage.
       enabled: false
       base-url: ""
       auth-token: ""
       admin-token: ""
       timeout-ms: 3000
     fallback:
-      # Core JDBC is PostgreSQL-only. Unsupported setup choices stay online through the ordered fallback path.
-      # Example: type=MYSQL with postgresql.* configured uses PostgreSQL for Core state and still exposes MYSQL as the requested setup backend.
-      # Example: type=CORE_API with core-api.* configured keeps the Core service in client-facing mode unless PostgreSQL fallback is configured.
+      # Core JDBC supports PostgreSQL, MySQL, and MariaDB. Unsupported or incomplete setup choices stay online through the ordered fallback path.
+      # Example: type=MYSQL with mysql.* configured uses MySQL for Core state.
+      # Example: type=CORE_API with core-api.* configured keeps client/addon state pointed at Core API; the Core service uses the first durable JDBC fallback if configured.
       # If no durable fallback is available, in-memory keeps startup safe but is reported as non-production durable.
       # If disabled, Core still refuses unsafe unsupported JDBC startup and reports setupFallbackSafetyForced=true.
       # Env overrides: CI_DB_FALLBACK_ENABLED, CI_DB_FALLBACK_ORDER.
@@ -91,14 +91,14 @@ setup:
         - MARIADB
         - CORE_API
         - UNSUPPORTED_JDBC
-  # Empty jdbc-url inherits database.jdbc-url only for POSTGRESQL.
-  # MYSQL/MARIADB need database-type + host/name or CI_JDBC_URL.
+  # Empty jdbc-url inherits database.jdbc-url only for POSTGRESQL unless a typed setup.database.<backend> block is configured.
+  # MYSQL/MARIADB can use setup.database.mysql|mariadb.host/name or CI_JDBC_URL.
   # CORE_API leaves Core JDBC disabled and reports dbBackend=NONE.
   jdbc-url: ""
   # database-type accepts POSTGRESQL, MYSQL, MARIADB, or CORE_API.
   # Accepted aliases: POSTGRES/PG -> POSTGRESQL, MARIA -> MARIADB,
   # CORE/COREAPI/CLOUDISLANDS/CLOUDISLANDS_API -> CORE_API, MEMORY/LOCAL/LOCAL_SQLITE -> IN_MEMORY.
-  # Core service JDBC repositories are PostgreSQL-only; MYSQL/MARIADB/CORE_API fall back to non-JDBC core repositories unless repository-mode is explicitly set.
+  # Core service JDBC repositories support POSTGRESQL, MYSQL, and MARIADB. CORE_API is not used as Core self-storage.
   # If repository-mode/job-queue-mode is forced to JDBC with an unsupported JDBC URL, Core keeps the safe fallback active and reports jdbcFallbackActive=true.
   database-type: ""
   database-host: ""
