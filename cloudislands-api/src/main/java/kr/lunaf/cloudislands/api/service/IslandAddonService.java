@@ -213,6 +213,10 @@ public interface IslandAddonService {
         return CompletableFuture.completedFuture(Map.of());
     }
 
+    default CompletableFuture<Boolean> preservedStateExists(String id) {
+        return state(id).thenApply(values -> values != null && !values.isEmpty());
+    }
+
     default CompletableFuture<Optional<String>> state(String id, String key) {
         if (key == null) {
             return CompletableFuture.completedFuture(Optional.empty());
@@ -361,6 +365,10 @@ public interface IslandAddonService {
 
     default CompletableFuture<Map<String, String>> islandState(String id, UUID islandId) {
         return CompletableFuture.completedFuture(Map.of());
+    }
+
+    default CompletableFuture<Boolean> preservedIslandStateExists(String id, UUID islandId) {
+        return islandState(id, islandId).thenApply(values -> values != null && !values.isEmpty());
     }
 
     default CompletableFuture<Optional<String>> islandState(String id, UUID islandId, String key) {
