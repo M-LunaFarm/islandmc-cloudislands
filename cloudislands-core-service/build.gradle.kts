@@ -32,6 +32,9 @@ tasks.jar {
             "CloudIslands-Core-Addon-State-Bulk-Endpoints" to "/v1/addons/state/table/bulk,/v1/addons/state/table-key-value/bulk-save,/v1/addons/state/table/key-value/bulk-save,/v1/addons/state/table/key-value/bulk/save,/v1/addons/state/table/key-value/bulk",
             "CloudIslands-Core-Addon-Island-State-Bulk-Endpoints" to "/v1/addons/islands/state/table/bulk,/v1/addons/islands/state/table-key-value/bulk-save,/v1/addons/islands/state/table/key-value/bulk-save,/v1/addons/islands/state/table/key-value/bulk/save,/v1/addons/islands/state/table/key-value/bulk",
             "CloudIslands-Core-Addon-State-Bulk-Compatibility" to "table-key-value-and-table/key-value-routes-share-table-prefix-flattened-storage",
+            "CloudIslands-Multi-Node-Pool-Support" to "true",
+            "CloudIslands-Multi-Node-Identity-Policy" to "unique-node-id-and-unique-pool-velocity-server-name",
+            "CloudIslands-Multi-Node-Duplicate-Guard" to "routing-diagnostics-report-duplicate-velocity-server-name-node-count",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
         )

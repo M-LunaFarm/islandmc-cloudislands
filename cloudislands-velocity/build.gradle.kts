@@ -13,6 +13,9 @@ tasks.jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {
         attributes(
+            "CloudIslands-Multi-Node-Pool-Support" to "true",
+            "CloudIslands-Multi-Node-Identity-Policy" to "velocity-server-names-match-island-pool-prefix-and-paper-node-velocity-server-name",
+            "CloudIslands-Multi-Node-Scale-Example" to "island-1,island-2,island-3,island-4,island-5,island-6",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
         )
