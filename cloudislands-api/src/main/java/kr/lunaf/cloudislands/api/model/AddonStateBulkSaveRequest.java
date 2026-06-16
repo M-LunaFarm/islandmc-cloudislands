@@ -54,6 +54,30 @@ public record AddonStateBulkSaveRequest(
         return !table.isBlank();
     }
 
+    public int rootValueKeyCount() {
+        return tableScoped() ? 0 : values.size();
+    }
+
+    public int tableKeyCount() {
+        int count = tableScoped() ? values.size() : 0;
+        for (Map<String, String> tableValues : tables.values()) {
+            count += tableValues.size();
+        }
+        return count;
+    }
+
+    public int tableCount() {
+        int count = tables.size();
+        if (tableScoped() && !values.isEmpty()) {
+            count++;
+        }
+        return count;
+    }
+
+    public int totalStateKeyCount() {
+        return rootValueKeyCount() + tableKeyCount();
+    }
+
     private static Map<String, String> copyValues(Map<String, String> source) {
         if (source == null || source.isEmpty()) {
             return Map.of();
