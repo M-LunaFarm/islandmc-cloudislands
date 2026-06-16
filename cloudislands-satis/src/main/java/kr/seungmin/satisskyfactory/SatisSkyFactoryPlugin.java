@@ -911,11 +911,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void unregisterPluginCommand(PluginCommand command) {
-        if (command == null || !command.isRegistered()) {
+        if (command == null) {
             return;
         }
-        command.setTabCompleter(null);
-        commandMap().ifPresent(command::unregister);
+        command.setExecutor((_sender, _command, _label, _args) -> true);
+        command.setTabCompleter((_sender, _command, _alias, _args) -> java.util.List.of());
+        if (command.isRegistered()) {
+            commandMap().ifPresent(command::unregister);
+        }
     }
 
     private java.util.Optional<org.bukkit.command.CommandMap> commandMap() {
