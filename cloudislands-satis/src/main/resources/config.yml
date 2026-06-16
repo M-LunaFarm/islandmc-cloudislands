@@ -71,6 +71,9 @@ setup:
   database:
     # Empty values inherit from database.* below. Use this block for first-install setup.
     # type: SQLITE, POSTGRESQL, MYSQL, MARIADB, CORE_API
+    # Accepted aliases: POSTGRES/PG -> POSTGRESQL, MARIA -> MARIADB,
+    # CORE/COREAPI/CLOUDISLANDS/CLOUDISLANDS_API -> CORE_API,
+    # MEMORY/LOCAL/LOCAL_SQLITE -> SQLITE.
     # Leave type empty only when one backend is clearly configured. Setup can auto-select
     # POSTGRESQL, MYSQL, or MARIADB when exactly one setup.database.<backend> block has
     # a URL, host/database, username, password, pool, or timeout value.
@@ -197,6 +200,8 @@ economy:
   currency-symbol: "원"
 database:
   # SQLITE, POSTGRESQL, MYSQL, MARIADB, CORE_API.
+  # Accepted aliases are the same as setup.database.type:
+  # POSTGRES/PG, MARIA, CORE/COREAPI/CLOUDISLANDS/CLOUDISLANDS_API, MEMORY/LOCAL/LOCAL_SQLITE.
   # CORE_API stores Satis table rows as island-scoped CloudIslands addon-state keys and keeps
   # a local SQLite cache for fast runtime reads.
   type: CORE_API
