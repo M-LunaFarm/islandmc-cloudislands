@@ -5,9 +5,11 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Optional;
 import java.util.UUID;
 import kr.lunaf.cloudislands.paper.world.bundle.BundleRestorePlan;
 import kr.lunaf.cloudislands.paper.world.bundle.BundleRestorePlanner;
+import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
 
@@ -37,16 +39,17 @@ public final class IslandWorldRestorer {
         try (InputStream input = storagePath == null || storagePath.isBlank() ? snapshotNo > 0L ? storage.openSnapshotBundle(islandId, snapshotNo) : storage.openLatestBundle(islandId) : storage.openBundle(storagePath)) {
             Files.copy(input, bundle, StandardCopyOption.REPLACE_EXISTING);
         }
-        verifyLatestBundle(islandId, bundle, snapshotNo, storagePath);
+        verifyStagedBundle(islandId, bundle, snapshotNo, storagePath);
         RestorePlan restorePlan = new RestorePlan(islandId, worldName, originX, originZ, bundle);
         return restorePlanner.plan(restorePlan);
     }
 
-    private void verifyLatestBundle(UUID islandId, Path bundle, long snapshotNo, String storagePath) throws IOException {
-        if (snapshotNo > 0L || (storagePath != null && !storagePath.isBlank())) {
+    private void verifyStagedBundle(UUID islandId, Path bundle, long snapshotNo, String storagePath) throws IOException {
+        Optional<IslandBundleManifest> manifest = restoreManifest(islandId, snapshotNo, storagePath);
+        if (manifest.isEmpty()) {
             return;
         }
-        String expectedChecksum = storage.readManifest(islandId).checksum();
+        String expectedChecksum = manifest.get().checksum();
         if (expectedChecksum == null || expectedChecksum.isBlank()) {
             return;
         }
@@ -55,8 +58,18 @@ public final class IslandWorldRestorer {
             actualChecksum = Sha256Checksums.of(input);
         }
         if (!expectedChecksum.equalsIgnoreCase(actualChecksum)) {
-            throw new IOException("latest island bundle checksum mismatch: " + islandId);
+            throw new IOException("island bundle checksum mismatch: " + islandId);
         }
+    }
+
+    private Optional<IslandBundleManifest> restoreManifest(UUID islandId, long snapshotNo, String storagePath) throws IOException {
+        if (storagePath != null && !storagePath.isBlank()) {
+            return storage.readBundleManifest(storagePath);
+        }
+        if (snapshotNo > 0L) {
+            return storage.readSnapshotManifest(islandId, snapshotNo);
+        }
+        return Optional.of(storage.readManifest(islandId));
     }
 
     public record RestorePlan(UUID islandId, String worldName, int originX, int originZ, Path stagedBundle) {}

@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.storage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
@@ -64,6 +65,36 @@ public final class FallbackIslandStorage implements IslandStorage {
             warn("Primary island manifest read failed, using fallback for " + islandId, exception);
             return fallback.readManifest(islandId);
         }
+    }
+
+    @Override
+    public Optional<IslandBundleManifest> readSnapshotManifest(UUID islandId, long snapshotNo) throws IOException {
+        try {
+            Optional<IslandBundleManifest> manifest = primary.readSnapshotManifest(islandId, snapshotNo);
+            if (manifest.isPresent()) {
+                markPrimarySuccess();
+                return manifest;
+            }
+        } catch (IOException exception) {
+            markFallback("Primary island snapshot manifest read failed for " + islandId + " #" + snapshotNo, FallbackUse.READ);
+            warn("Primary island snapshot manifest read failed, using fallback for " + islandId + " #" + snapshotNo, exception);
+        }
+        return fallback.readSnapshotManifest(islandId, snapshotNo);
+    }
+
+    @Override
+    public Optional<IslandBundleManifest> readBundleManifest(String storagePath) throws IOException {
+        try {
+            Optional<IslandBundleManifest> manifest = primary.readBundleManifest(storagePath);
+            if (manifest.isPresent()) {
+                markPrimarySuccess();
+                return manifest;
+            }
+        } catch (IOException exception) {
+            markFallback("Primary island bundle manifest read failed for " + storagePath, FallbackUse.READ);
+            warn("Primary island bundle manifest read failed, using fallback for " + storagePath, exception);
+        }
+        return fallback.readBundleManifest(storagePath);
     }
 
     @Override

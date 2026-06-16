@@ -2,12 +2,19 @@ package kr.lunaf.cloudislands.storage;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Optional;
 import java.util.UUID;
 import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 
 public interface IslandStorage {
     boolean available() throws IOException;
     IslandBundleManifest readManifest(UUID islandId) throws IOException;
+    default Optional<IslandBundleManifest> readSnapshotManifest(UUID islandId, long snapshotNo) throws IOException {
+        return Optional.empty();
+    }
+    default Optional<IslandBundleManifest> readBundleManifest(String storagePath) throws IOException {
+        return Optional.empty();
+    }
     InputStream openLatestBundle(UUID islandId) throws IOException;
     InputStream openSnapshotBundle(UUID islandId, long snapshotNo) throws IOException;
     InputStream openBundle(String storagePath) throws IOException;

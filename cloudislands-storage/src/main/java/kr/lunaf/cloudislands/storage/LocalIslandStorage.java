@@ -10,6 +10,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
@@ -37,6 +38,24 @@ public final class LocalIslandStorage implements IslandStorage {
             throw new IOException("missing island manifest: " + islandId);
         }
         return IslandManifestJson.read(Files.readString(manifest, StandardCharsets.UTF_8));
+    }
+
+    @Override
+    public Optional<IslandBundleManifest> readSnapshotManifest(UUID islandId, long snapshotNo) throws IOException {
+        Path manifest = islandRoot(islandId).resolve("snapshots").resolve(String.format("%06d", snapshotNo)).resolve("manifest.json");
+        if (!Files.exists(manifest)) {
+            return Optional.empty();
+        }
+        return Optional.of(IslandManifestJson.read(Files.readString(manifest, StandardCharsets.UTF_8)));
+    }
+
+    @Override
+    public Optional<IslandBundleManifest> readBundleManifest(String storagePath) throws IOException {
+        Path manifest = resolveStoragePath(storagePath).resolveSibling("manifest.json");
+        if (!Files.exists(manifest)) {
+            return Optional.empty();
+        }
+        return Optional.of(IslandManifestJson.read(Files.readString(manifest, StandardCharsets.UTF_8)));
     }
 
     @Override

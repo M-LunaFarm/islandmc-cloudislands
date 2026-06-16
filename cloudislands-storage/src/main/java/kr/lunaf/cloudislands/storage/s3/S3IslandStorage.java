@@ -19,6 +19,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import javax.crypto.Mac;
@@ -75,6 +76,28 @@ public final class S3IslandStorage implements IslandStorage {
             throw new IOException("missing island manifest: " + islandId);
         }
         return IslandManifestJson.read(manifest);
+    }
+
+    @Override
+    public Optional<IslandBundleManifest> readSnapshotManifest(UUID islandId, long snapshotNo) throws IOException {
+        try {
+            String manifest = request("GET", key(islandId, "snapshots/" + String.format("%06d", snapshotNo) + "/manifest.json"), null);
+            return manifest.isBlank() ? Optional.empty() : Optional.of(IslandManifestJson.read(manifest));
+        } catch (IOException exception) {
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public Optional<IslandBundleManifest> readBundleManifest(String storagePath) throws IOException {
+        try {
+            String bundleKey = storedBundleKey(storagePath);
+            String prefix = bundleKey.substring(0, bundleKey.lastIndexOf('/') + 1);
+            String manifest = request("GET", prefix + "manifest.json", null);
+            return manifest.isBlank() ? Optional.empty() : Optional.of(IslandManifestJson.read(manifest));
+        } catch (IOException exception) {
+            return Optional.empty();
+        }
     }
 
     @Override
