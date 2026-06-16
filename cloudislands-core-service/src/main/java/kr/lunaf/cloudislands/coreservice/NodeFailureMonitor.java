@@ -80,14 +80,16 @@ public final class NodeFailureMonitor {
         List<String> downNodes = nodes.markStaleDown(heartbeatTimeout);
         for (String nodeId : downNodes) {
             int affected = markRecoveryRequiredForNode(nodeId);
-            int recoveryQueued = recoverOrQuarantineNodeIslands(nodeId);
+            RecoverySweepResult recovery = recoverOrQuarantineNodeIslandsDetailed(nodeId);
             int failedTickets = failRoutesForNode(nodeId);
             int clearedSessions = clearSessionsForNode(nodeId);
             events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of(
                 "nodeId", nodeId,
                 "state", "DOWN",
                 "recoveryRequired", Integer.toString(affected),
-                "recoveryQueued", Integer.toString(recoveryQueued),
+                "recoveryQueued", Integer.toString(recovery.queued()),
+                "recoveryQuarantined", Integer.toString(recovery.quarantined()),
+                "recoveryDeferred", Integer.toString(recovery.deferred()),
                 "failedTickets", Integer.toString(failedTickets),
                 "clearedSessions", Integer.toString(clearedSessions)
             ));
@@ -123,17 +125,29 @@ public final class NodeFailureMonitor {
     }
 
     public int recoverOrQuarantineNodeIslands(String nodeId) {
+        return recoverOrQuarantineNodeIslandsDetailed(nodeId).queued();
+    }
+
+    private RecoverySweepResult recoverOrQuarantineNodeIslandsDetailed(String nodeId) {
         if (snapshots == null || lifecycle == null) {
-            return 0;
+            return new RecoverySweepResult(0, 0, 0);
         }
         List<IslandRuntimeSnapshot> recoverable = runtimes.listByNode(nodeId, Integer.MAX_VALUE).stream()
             .filter(runtime -> runtime.state() == IslandState.RECOVERY_REQUIRED)
             .toList();
         int queued = 0;
+        int quarantined = 0;
+        int deferred = 0;
         for (IslandRuntimeSnapshot runtime : recoverable) {
             List<IslandSnapshotRecord> latest = snapshots.list(runtime.islandId(), 1);
             if (latest.isEmpty()) {
                 lifecycle.quarantine(runtime.islandId(), "MISSING_RECOVERY_SNAPSHOT");
+                quarantined++;
+                events.publish(CloudIslandEventType.ISLAND_RECOVERY_REQUIRED.name(), Map.of(
+                    "islandId", runtime.islandId().toString(),
+                    "nodeId", nodeId,
+                    "reason", "RECOVERY_QUARANTINED_MISSING_SNAPSHOT"
+                ));
                 continue;
             }
             IslandSnapshotRecord snapshot = latest.get(0);
@@ -150,9 +164,18 @@ public final class NodeFailureMonitor {
                 ));
             } else if (!result.code().startsWith("NO_READY_NODE")) {
                 lifecycle.quarantine(runtime.islandId(), "RECOVERY_RESTORE_REJECTED_" + result.code());
+                quarantined++;
+                events.publish(CloudIslandEventType.ISLAND_RECOVERY_REQUIRED.name(), Map.of(
+                    "islandId", runtime.islandId().toString(),
+                    "nodeId", nodeId,
+                    "reason", "RECOVERY_QUARANTINED_RESTORE_REJECTED",
+                    "code", result.code()
+                ));
+            } else {
+                deferred++;
             }
         }
-        return queued;
+        return new RecoverySweepResult(queued, quarantined, deferred);
     }
 
     private int failRoutesForNode(String nodeId) {
@@ -184,5 +207,8 @@ public final class NodeFailureMonitor {
         }
         lastFailureLogMillis = now;
         LOGGER.warning("CloudIslands node failure sweep failed: " + exception.getMessage());
+    }
+
+    private record RecoverySweepResult(int queued, int quarantined, int deferred) {
     }
 }
