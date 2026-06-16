@@ -93,7 +93,7 @@ setup:
         - UNSUPPORTED_JDBC
   # Empty jdbc-url inherits database.jdbc-url only for POSTGRESQL unless a typed setup.database.<backend> block is configured.
   # MYSQL/MARIADB can use setup.database.mysql|mariadb.host/name or CI_JDBC_URL.
-  # CORE_API leaves Core JDBC disabled and reports dbBackend=NONE.
+  # CORE_API alone leaves Core JDBC disabled and reports dbBackend=NONE; with a configured durable fallback, Core uses that JDBC backend safely.
   jdbc-url: ""
   # database-type accepts POSTGRESQL, MYSQL, MARIADB, or CORE_API.
   # Accepted aliases: POSTGRES/PG -> POSTGRESQL, MARIA -> MARIADB,
