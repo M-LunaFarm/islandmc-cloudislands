@@ -184,6 +184,9 @@ public record CoreServiceConfig(
         if (coreJdbcSupported(jdbcUrl) && !requested.equals(effective) && !"UNKNOWN".equals(requested)) {
             return effective;
         }
+        if ("CORE_API".equals(requested)) {
+            return "CORE_API";
+        }
         if (!coreJdbcTypeSupported(requested) || "UNKNOWN".equals(effective)) {
             return setupDatabaseFallbackTargetForUnsupported(requested);
         }
