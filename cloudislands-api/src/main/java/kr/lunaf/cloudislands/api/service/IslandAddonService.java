@@ -125,10 +125,18 @@ public interface IslandAddonService {
         if (addon == null) {
             return Map.of("metadata-error", "NullAddon");
         }
+        Map<String, String> metadata = new HashMap<>();
         try {
-            return copyStringMap(addon.addonMetadata());
+            metadata.putAll(copyStringMap(addon.addonStandardMetadata()));
         } catch (RuntimeException exception) {
-            return Map.of("metadata-error", exception.getClass().getSimpleName());
+            metadata.put("metadata-standard-error", exception.getClass().getSimpleName());
+        }
+        try {
+            metadata.putAll(copyStringMap(addon.addonMetadata()));
+            return Map.copyOf(metadata);
+        } catch (RuntimeException exception) {
+            metadata.put("metadata-error", exception.getClass().getSimpleName());
+            return Map.copyOf(metadata);
         }
     }
 

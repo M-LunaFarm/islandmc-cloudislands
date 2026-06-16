@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.api.addon;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
@@ -84,6 +85,43 @@ public interface CloudIslandsAddon {
 
     default Map<String, String> addonMetadata() {
         return Map.of();
+    }
+
+    default String addonPackaging() {
+        return "external-plugin";
+    }
+
+    default boolean addonOwnsIslands() {
+        return false;
+    }
+
+    default boolean addonRemovalSafe() {
+        return true;
+    }
+
+    default String addonDataRetentionPolicy() {
+        return "preserve-addon-state-by-addon-id-and-island-uuid";
+    }
+
+    default String addonDescriptorResource() {
+        return "";
+    }
+
+    default Map<String, String> addonStandardMetadata() {
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put("addon-packaging", safeMetadataValue(addonPackaging(), "external-plugin"));
+        metadata.put("addon-runtime-owns-islands", Boolean.toString(addonOwnsIslands()));
+        metadata.put("addon-removal-safe", Boolean.toString(addonRemovalSafe()));
+        metadata.put("addon-data-retention", safeMetadataValue(addonDataRetentionPolicy(), "preserve-addon-state-by-addon-id-and-island-uuid"));
+        String descriptor = addonDescriptorResource();
+        if (descriptor != null && !descriptor.isBlank()) {
+            metadata.put("addon-descriptor-resource", descriptor);
+        }
+        return Map.copyOf(metadata);
+    }
+
+    private static String safeMetadataValue(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 
     default void onAddonRegistered(CloudIslandsAddonSnapshot snapshot) {

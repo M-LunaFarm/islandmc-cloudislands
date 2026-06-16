@@ -1279,6 +1279,21 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     @Override
+    public String addonDescriptorResource() {
+        return "cloudislands-addon.yml";
+    }
+
+    @Override
+    public String addonPackaging() {
+        return "external-plugin";
+    }
+
+    @Override
+    public boolean addonOwnsIslands() {
+        return false;
+    }
+
+    @Override
     public Map<String, String> addonMetadata() {
         Map<String, String> metadata = new LinkedHashMap<>();
         String scope = databaseScope();

@@ -320,11 +320,20 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (addon == null) {
                 return Map.of("metadata-error", "NullAddon");
             }
+            Map<String, String> metadata = new HashMap<>();
             try {
-                return copyStringMap(addon.addonMetadata());
+                metadata.putAll(copyStringMap(addon.addonStandardMetadata()));
+            } catch (RuntimeException exception) {
+                plugin.getLogger().warning("CloudIslands addon standard metadata callback failed for " + id + ": " + exception.getMessage());
+                metadata.put("metadata-standard-error", exception.getClass().getSimpleName());
+            }
+            try {
+                metadata.putAll(copyStringMap(addon.addonMetadata()));
+                return Map.copyOf(metadata);
             } catch (RuntimeException exception) {
                 plugin.getLogger().warning("CloudIslands addon metadata callback failed for " + id + ": " + exception.getMessage());
-                return Map.of("metadata-error", exception.getClass().getSimpleName());
+                metadata.put("metadata-error", exception.getClass().getSimpleName());
+                return Map.copyOf(metadata);
             }
         }
 
@@ -444,6 +453,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         private Map<String, String> effectiveMetadata(String id, Map<String, String> metadata, boolean addonDefaultEnabled, boolean parentEnabled) {
             Map<String, String> effective = new HashMap<>(metadata == null ? Map.of() : metadata);
             effective.putIfAbsent("source-node", plugin.getConfig().getString("node.id", "unknown"));
+            effective.putIfAbsent("addon-registry-policy", "external-addons-config-gated-removable-and-state-preserving");
+            effective.putIfAbsent("addon-packaging", "external-plugin");
+            effective.putIfAbsent("addon-runtime-owns-islands", "false");
+            effective.putIfAbsent("addon-removal-safe", "true");
+            effective.putIfAbsent("addon-data-retention", "preserve-addon-state-by-addon-id-and-island-uuid");
             effective.putIfAbsent("addon-state-storage", "core-api-with-paper-local-fallback");
             effective.putIfAbsent("addon-state-unregister-policy", "preserve-core-and-local-fallback-state");
             effective.putIfAbsent("addon-state-clear-policy", "explicit-clear-only");
