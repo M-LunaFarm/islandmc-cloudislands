@@ -23,12 +23,40 @@ public record IslandBundleManifest(
     String compression,
     String storagePath,
     long sizeBytes,
-    String snapshotReason
+    String snapshotReason,
+    boolean portable,
+    String placementPolicy,
+    String restorePolicy
 ) {
     public IslandBundleManifest {
         homes = homes == null ? List.of() : List.copyOf(homes);
         warps = warps == null ? List.of() : List.copyOf(warps);
         biomes = biomes == null ? List.of() : List.copyOf(biomes);
+        placementPolicy = placementPolicy == null || placementPolicy.isBlank() ? "node-agnostic-shard-cell-remap" : placementPolicy;
+        restorePolicy = restorePolicy == null || restorePolicy.isBlank() ? "verify-checksum-then-restore-to-current-active-node" : restorePolicy;
+    }
+
+    public IslandBundleManifest(
+        UUID islandId,
+        UUID ownerUuid,
+        int formatVersion,
+        String minecraftVersion,
+        int schemaVersion,
+        int size,
+        IslandLocation spawn,
+        List<String> homes,
+        List<String> warps,
+        List<String> biomes,
+        Instant createdAt,
+        Instant savedAt,
+        String checksum,
+        String checksumAlgorithm,
+        String compression,
+        String storagePath,
+        long sizeBytes,
+        String snapshotReason
+    ) {
+        this(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, homes, warps, biomes, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, snapshotReason, true, "node-agnostic-shard-cell-remap", "verify-checksum-then-restore-to-current-active-node");
     }
 
     public IslandBundleManifest(
@@ -66,6 +94,10 @@ public record IslandBundleManifest(
     }
 
     public IslandBundleManifest withSnapshotReason(String reason) {
-        return new IslandBundleManifest(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, homes, warps, biomes, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, reason == null ? "" : reason);
+        return new IslandBundleManifest(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, homes, warps, biomes, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, reason == null ? "" : reason, portable, placementPolicy, restorePolicy);
+    }
+
+    public IslandBundleManifest withStoredBundle(String checksum, String checksumAlgorithm, String compression, String storagePath, long sizeBytes) {
+        return new IslandBundleManifest(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, homes, warps, biomes, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, snapshotReason, portable, placementPolicy, restorePolicy);
     }
 }

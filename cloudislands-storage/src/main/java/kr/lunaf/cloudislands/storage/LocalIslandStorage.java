@@ -125,23 +125,7 @@ public final class LocalIslandStorage implements IslandStorage {
             actualChecksum = Sha256Checksums.of(input);
         }
         String storagePath = normalizedStoragePath(snapshotBundle);
-        IslandBundleManifest savedManifest = new IslandBundleManifest(
-            manifest.islandId(),
-            manifest.ownerUuid(),
-            manifest.formatVersion(),
-            manifest.minecraftVersion(),
-            manifest.schemaVersion(),
-            manifest.size(),
-            manifest.spawn(),
-            manifest.createdAt(),
-            manifest.savedAt(),
-            actualChecksum,
-            "SHA-256",
-            "zstd",
-            storagePath,
-            sizeBytes,
-            manifest.snapshotReason()
-        );
+        IslandBundleManifest savedManifest = manifest.withStoredBundle(actualChecksum, "SHA-256", "zstd", storagePath, sizeBytes);
         Files.writeString(snapshotDir.resolve("manifest.json"), IslandManifestJson.write(savedManifest), StandardCharsets.UTF_8);
         Files.writeString(snapshotDir.resolve("checksums.sha256"), actualChecksum + "  bundle.tar.zst\n", StandardCharsets.UTF_8);
         if (updateLatest) {

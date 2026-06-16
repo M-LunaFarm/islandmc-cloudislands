@@ -150,7 +150,7 @@ public final class S3IslandStorage implements IslandStorage {
         byte[] bundleBytes = bundle.readAllBytes();
         String checksum = Sha256Checksums.of(new ByteArrayInputStream(bundleBytes));
         String storagePath = key(islandId, prefix + "/bundle.tar.zst");
-        IslandBundleManifest savedManifest = new IslandBundleManifest(manifest.islandId(), manifest.ownerUuid(), manifest.formatVersion(), manifest.minecraftVersion(), manifest.schemaVersion(), manifest.size(), manifest.spawn(), manifest.createdAt(), manifest.savedAt(), checksum, "SHA-256", "zstd", storagePath, bundleBytes.length, manifest.snapshotReason());
+        IslandBundleManifest savedManifest = manifest.withStoredBundle(checksum, "SHA-256", "zstd", storagePath, bundleBytes.length);
         requestBytes("PUT", storagePath, bundleBytes);
         requestBytes("PUT", key(islandId, prefix + "/manifest.json"), IslandManifestJson.write(savedManifest).getBytes(StandardCharsets.UTF_8));
         requestBytes("PUT", key(islandId, prefix + "/checksums.sha256"), (checksum + "  bundle.tar.zst\n").getBytes(StandardCharsets.UTF_8));

@@ -36,7 +36,10 @@ public final class IslandManifestJson {
             + "\"compression\":\"" + escape(manifest.compression()) + "\","
             + "\"storagePath\":\"" + escape(manifest.storagePath()) + "\","
             + "\"sizeBytes\":" + manifest.sizeBytes() + ","
-            + "\"snapshotReason\":\"" + escape(manifest.snapshotReason()) + "\""
+            + "\"snapshotReason\":\"" + escape(manifest.snapshotReason()) + "\","
+            + "\"portable\":" + manifest.portable() + ","
+            + "\"placementPolicy\":\"" + escape(manifest.placementPolicy()) + "\","
+            + "\"restorePolicy\":\"" + escape(manifest.restorePolicy()) + "\""
             + "}";
     }
 
@@ -66,7 +69,10 @@ public final class IslandManifestJson {
         String storagePath = text(json, "storagePath", "");
         long sizeBytes = number(json, "sizeBytes", 0L);
         String snapshotReason = text(json, "snapshotReason", "");
-        return new IslandBundleManifest(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, homes, warps, biomes, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, snapshotReason);
+        boolean portable = bool(json, "portable", true);
+        String placementPolicy = text(json, "placementPolicy", "node-agnostic-shard-cell-remap");
+        String restorePolicy = text(json, "restorePolicy", "verify-checksum-then-restore-to-current-active-node");
+        return new IslandBundleManifest(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, homes, warps, biomes, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, snapshotReason, portable, placementPolicy, restorePolicy);
     }
 
     public static IslandBundleManifest minimal(UUID islandId, UUID ownerUuid, String checksum) {
@@ -106,6 +112,11 @@ public final class IslandManifestJson {
         }
     }
 
+    private static boolean bool(String json, String field, boolean fallback) {
+        String value = scalar(json, field, Boolean.toString(fallback));
+        return value.equalsIgnoreCase("true") || (!value.equalsIgnoreCase("false") && fallback);
+    }
+
     private static double decimal(String json, String field, double fallback) {
         try {
             return Double.parseDouble(scalar(json, field, Double.toString(fallback)));
@@ -123,7 +134,7 @@ public final class IslandManifestJson {
     }
 
     private static String scalar(String json, String field, String fallback) {
-        Matcher matcher = Pattern.compile("\"" + Pattern.quote(field) + "\"\\s*:\\s*([-0-9.]+)").matcher(json);
+        Matcher matcher = Pattern.compile("\"" + Pattern.quote(field) + "\"\\s*:\\s*([-0-9.]+|true|false)").matcher(json);
         if (!matcher.find()) {
             return fallback;
         }
