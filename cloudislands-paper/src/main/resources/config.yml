@@ -1035,8 +1035,9 @@ setup:
     timeout-ms: 0
   database:
     # Optional first-install database choice. Core service reads the same shape from its application.yaml.
-    # POSTGRESQL is the native Core JDBC backend. MYSQL/MARIADB are accepted setup targets and should be used through fallback/external addon storage unless the core service adds native SQL support.
-    # CORE_API means this server talks to the Core API only and does not try to own core data directly.
+    # POSTGRESQL, MYSQL, and MARIADB are native Core JDBC backends.
+    # CORE_API means this Paper node talks to the Core API only and does not try to own core data directly.
+    # Keep a shared backend before local/unsupported fallback when several Island nodes share one island pool.
     type: ""
     jdbc-url: ""
     host: ""
@@ -1083,6 +1084,8 @@ setup:
     core-api:
       enabled: false
     fallback:
+      # Evaluated by the Core setup loader when the selected backend is incomplete or unsafe.
+      # POSTGRESQL/MYSQL/MARIADB keep state shared across A/B Island nodes; CORE_API keeps addon clients pointed at Core.
       enabled: true
       order: "POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC"
   storage:
