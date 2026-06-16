@@ -93,9 +93,11 @@ public final class CachingIslandRepository implements IslandRepository {
 
     @Override
     public boolean markDeleted(UUID islandId, UUID requesterUuid) {
+        Optional<IslandSnapshot> current = delegate.findById(islandId);
         boolean deleted = delegate.markDeleted(islandId, requesterUuid);
         if (deleted) {
             deleteCache(islandId);
+            current.map(IslandSnapshot::ownerUuid).ifPresent(this::deleteOwnerCache);
         }
         return deleted;
     }
@@ -111,6 +113,7 @@ public final class CachingIslandRepository implements IslandRepository {
     public boolean transferOwnership(UUID islandId, UUID currentOwnerUuid, UUID newOwnerUuid) {
         boolean transferred = delegate.transferOwnership(islandId, currentOwnerUuid, newOwnerUuid);
         if (transferred) {
+            deleteOwnerCache(currentOwnerUuid);
             delegate.findById(islandId).ifPresent(this::cache);
         }
         return transferred;
@@ -143,6 +146,17 @@ public final class CachingIslandRepository implements IslandRepository {
     private void deleteCache(UUID islandId) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             redis.command("DEL", RedisKeys.islandSummary(islandId));
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+        }
+    }
+
+    private void deleteOwnerCache(UUID ownerUuid) {
+        if (ownerUuid == null) {
+            return;
+        }
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            redis.command("DEL", RedisKeys.playerIsland(ownerUuid));
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
         }
