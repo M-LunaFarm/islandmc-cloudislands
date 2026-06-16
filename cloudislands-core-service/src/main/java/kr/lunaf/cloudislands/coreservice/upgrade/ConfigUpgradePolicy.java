@@ -78,12 +78,12 @@ public final class ConfigUpgradePolicy {
                 currentLevel = integer(line.substring(0, line.length() - 1).trim(), 0);
             } else if (rawLine.startsWith("        ") && line.startsWith("cost:")) {
                 BigDecimal cost = decimal(value(line), null);
-                if (cost != null) {
+                if (cost != null && cost.signum() >= 0) {
                     levelCosts.put(currentLevel, cost);
                 }
             } else if (rawLine.startsWith("        ") && currentLevel > 0) {
                 Long limitValue = longValue(value(line), null);
-                if (limitValue != null && effectKey(line)) {
+                if (limitValue != null && limitValue >= 0L && effectKey(line)) {
                     levelValues.put(currentLevel, limitValue);
                 }
             }
@@ -96,8 +96,8 @@ public final class ConfigUpgradePolicy {
 
     private static void putRule(Map<String, UpgradeRule> rules, String key, UpgradeType type, int maxLevel, BigDecimal baseCost, BigDecimal multiplier, Map<Integer, BigDecimal> levelCosts, Map<Integer, Long> levelValues) {
         int inferredMaxLevel = maxLevel > 0 ? maxLevel : Math.max(1, Math.max(levelCosts.keySet().stream().mapToInt(Integer::intValue).max().orElse(0), levelValues.keySet().stream().mapToInt(Integer::intValue).max().orElse(0)));
-        BigDecimal inferredBaseCost = baseCost != null ? baseCost : levelCosts.values().stream().filter(cost -> cost.signum() > 0).findFirst().orElse(BigDecimal.ZERO);
-        BigDecimal inferredMultiplier = multiplier != null ? multiplier : inferMultiplier(levelCosts, inferredBaseCost);
+        BigDecimal inferredBaseCost = baseCost != null && baseCost.signum() >= 0 ? baseCost : levelCosts.values().stream().filter(cost -> cost.signum() > 0).findFirst().orElse(BigDecimal.ZERO);
+        BigDecimal inferredMultiplier = multiplier != null && multiplier.signum() > 0 ? multiplier : inferMultiplier(levelCosts, inferredBaseCost);
         rules.put(key.toLowerCase(), new UpgradeRule(key.toLowerCase(), type == null ? UpgradePolicy.typeFor(key) : type, inferredMaxLevel, inferredBaseCost, inferredMultiplier, levelCosts, levelValues));
     }
 

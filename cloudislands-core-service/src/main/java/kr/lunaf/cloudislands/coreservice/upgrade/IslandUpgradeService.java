@@ -26,6 +26,9 @@ public final class IslandUpgradeService {
             return new UpgradePurchaseResult(false, "MAX_LEVEL", BigDecimal.ZERO, repository.find(islandId, rule.upgradeKey()).orElse(null));
         }
         BigDecimal cost = rule.costForNextLevel(currentLevel);
+        if (cost.signum() < 0) {
+            return new UpgradePurchaseResult(false, "INVALID_UPGRADE_COST", BigDecimal.ZERO, repository.find(islandId, rule.upgradeKey()).orElse(null));
+        }
         if (cost.signum() > 0) {
             IslandBankRepository.BankChangeResult payment = bankRepository.withdraw(islandId, cost);
             if (!payment.accepted()) {
