@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
@@ -214,6 +215,18 @@ public interface CoreApiClient {
     default CompletableFuture<String> tableKeyValueBulkSaveAddonState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         return bulkSaveAddonState(addonId, values, tables);
     }
+    default CompletableFuture<String> tableKeyValueBulkSaveAddonState(AddonStateBulkSaveRequest request) {
+        if (request == null) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("Addon state request is required"));
+        }
+        if (request.islandScoped()) {
+            return tableKeyValueBulkSaveAddonIslandState(request);
+        }
+        if (request.tableScoped()) {
+            return tableKeyValueBulkSaveAddonState(request.addonId(), request.table(), request.values());
+        }
+        return tableKeyValueBulkSaveAddonState(request.addonId(), request.values(), request.tables());
+    }
     default CompletableFuture<String> bulkSaveAddonTableKeyValueState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         return tableKeyValueBulkSaveAddonState(addonId, values, tables);
     }
@@ -276,6 +289,18 @@ public interface CoreApiClient {
     }
     default CompletableFuture<String> tableKeyValueBulkSaveAddonIslandState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         return bulkSaveAddonIslandState(addonId, islandId, values, tables);
+    }
+    default CompletableFuture<String> tableKeyValueBulkSaveAddonIslandState(AddonStateBulkSaveRequest request) {
+        if (request == null) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("Addon state request is required"));
+        }
+        if (!request.islandScoped()) {
+            return tableKeyValueBulkSaveAddonState(request);
+        }
+        if (request.tableScoped()) {
+            return tableKeyValueBulkSaveAddonIslandState(request.addonId(), request.islandId(), request.table(), request.values());
+        }
+        return tableKeyValueBulkSaveAddonIslandState(request.addonId(), request.islandId(), request.values(), request.tables());
     }
     default CompletableFuture<String> bulkSaveAddonIslandTableKeyValueState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         return tableKeyValueBulkSaveAddonIslandState(addonId, islandId, values, tables);

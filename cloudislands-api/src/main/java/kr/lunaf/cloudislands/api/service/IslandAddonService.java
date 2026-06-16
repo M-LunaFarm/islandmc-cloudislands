@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
+import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 
 public interface IslandAddonService {
@@ -255,6 +256,19 @@ public interface IslandAddonService {
         return bulkSaveState(id, values, tables);
     }
 
+    default CompletableFuture<Map<String, String>> tableKeyValueBulkSaveState(AddonStateBulkSaveRequest request) {
+        if (request == null) {
+            return CompletableFuture.completedFuture(Map.of());
+        }
+        if (request.islandScoped()) {
+            return tableKeyValueBulkSaveIslandState(request);
+        }
+        if (request.tableScoped()) {
+            return tableKeyValueBulkSaveState(request.addonId(), request.table(), request.values());
+        }
+        return tableKeyValueBulkSaveState(request.addonId(), request.values(), request.tables());
+    }
+
     default CompletableFuture<Map<String, String>> bulkSaveTableKeyValueState(String id, Map<String, String> values, Map<String, Map<String, String>> tables) {
         return tableKeyValueBulkSaveState(id, values, tables);
     }
@@ -390,6 +404,16 @@ public interface IslandAddonService {
 
     default CompletableFuture<Map<String, String>> tableKeyValueBulkSaveIslandState(String id, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         return bulkSaveIslandState(id, islandId, values, tables);
+    }
+
+    default CompletableFuture<Map<String, String>> tableKeyValueBulkSaveIslandState(AddonStateBulkSaveRequest request) {
+        if (request == null || !request.islandScoped()) {
+            return CompletableFuture.completedFuture(Map.of());
+        }
+        if (request.tableScoped()) {
+            return tableKeyValueBulkSaveIslandState(request.addonId(), request.islandId(), request.table(), request.values());
+        }
+        return tableKeyValueBulkSaveIslandState(request.addonId(), request.islandId(), request.values(), request.tables());
     }
 
     default CompletableFuture<Map<String, String>> bulkSaveIslandTableKeyValueState(String id, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
