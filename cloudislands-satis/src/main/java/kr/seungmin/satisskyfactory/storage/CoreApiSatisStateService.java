@@ -128,6 +128,14 @@ public final class CoreApiSatisStateService {
         return globalBulkRetriesDrained.get();
     }
 
+    public int pendingIslandBulkRetries() {
+        return pendingIslandBulkRetryCount();
+    }
+
+    public int pendingGlobalBulkRetries() {
+        return pendingGlobalBulkRetryCount();
+    }
+
     public long tableSuccesses() {
         return tableSuccesses.get();
     }
