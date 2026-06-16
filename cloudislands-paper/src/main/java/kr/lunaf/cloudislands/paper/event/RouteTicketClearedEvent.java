@@ -14,6 +14,8 @@ public final class RouteTicketClearedEvent extends Event {
     private final String reason;
     private final boolean clearedSession;
     private final boolean clearedTicket;
+    private final int clearedSessions;
+    private final int clearedTickets;
     private final Map<String, String> fields;
 
     public RouteTicketClearedEvent(UUID ticketId, UUID playerUuid, String reason, boolean clearedSession, boolean clearedTicket, Map<String, String> fields) {
@@ -24,6 +26,8 @@ public final class RouteTicketClearedEvent extends Event {
         this.reason = reason == null ? "" : reason;
         this.clearedSession = clearedSession;
         this.clearedTicket = clearedTicket;
+        this.clearedSessions = fields == null ? (clearedSession ? 1 : 0) : countOrBool(fields, "clearedSessions", clearedSession);
+        this.clearedTickets = fields == null ? (clearedTicket ? 1 : 0) : countOrBool(fields, "clearedTickets", clearedTicket);
         this.fields = fields == null ? Map.of() : Map.copyOf(fields);
     }
 
@@ -51,6 +55,14 @@ public final class RouteTicketClearedEvent extends Event {
         return clearedTicket;
     }
 
+    public int clearedSessions() {
+        return clearedSessions;
+    }
+
+    public int clearedTickets() {
+        return clearedTickets;
+    }
+
     public Map<String, String> fields() {
         return fields;
     }
@@ -62,5 +74,14 @@ public final class RouteTicketClearedEvent extends Event {
 
     public static HandlerList getHandlerList() {
         return HANDLERS;
+    }
+
+    private static int countOrBool(Map<String, String> fields, String key, boolean fallback) {
+        try {
+            int value = Integer.parseInt(fields.getOrDefault(key, ""));
+            return value > 0 ? value : (fallback ? 1 : 0);
+        } catch (NumberFormatException exception) {
+            return fallback ? 1 : 0;
+        }
     }
 }
