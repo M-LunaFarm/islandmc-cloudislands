@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper.world;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -12,6 +13,7 @@ import kr.lunaf.cloudislands.paper.world.bundle.BundleRestorePlanner;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
+import kr.lunaf.cloudislands.storage.manifest.IslandManifestJson;
 
 public final class IslandWorldRestorer {
     private final IslandStorage storage;
@@ -41,7 +43,9 @@ public final class IslandWorldRestorer {
         }
         verifyStagedBundle(islandId, bundle, snapshotNo, storagePath);
         RestorePlan restorePlan = new RestorePlan(islandId, worldName, originX, originZ, bundle);
-        return restorePlanner.plan(restorePlan);
+        BundleRestorePlan plan = restorePlanner.plan(restorePlan);
+        validateExtractedManifest(islandId, plan.extractedRoot().resolve("manifest.json"));
+        return plan;
     }
 
     private void verifyStagedBundle(UUID islandId, Path bundle, long snapshotNo, String storagePath) throws IOException {
@@ -62,6 +66,17 @@ public final class IslandWorldRestorer {
         if (!expectedChecksum.equalsIgnoreCase(actualChecksum)) {
             throw new IOException("island bundle checksum mismatch: " + islandId);
         }
+    }
+
+    private void validateExtractedManifest(UUID islandId, Path manifestPath) throws IOException {
+        if (!Files.isRegularFile(manifestPath)) {
+            throw new IOException("extracted island bundle is missing manifest.json: " + islandId);
+        }
+        IslandBundleManifest embeddedManifest = IslandManifestJson.read(Files.readString(manifestPath, StandardCharsets.UTF_8));
+        if (!islandId.equals(embeddedManifest.islandId())) {
+            throw new IOException("extracted island bundle manifest island mismatch: " + islandId);
+        }
+        validateRestoreManifest(islandId, embeddedManifest);
     }
 
     private void validateRestoreManifest(UUID islandId, IslandBundleManifest manifest) throws IOException {
