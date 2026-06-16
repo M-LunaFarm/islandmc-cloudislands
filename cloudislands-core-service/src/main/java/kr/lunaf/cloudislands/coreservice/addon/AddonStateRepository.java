@@ -126,10 +126,14 @@ public interface AddonStateRepository {
         if (values == null || values.isEmpty()) {
             return Map.of();
         }
-        String safeTable = safeTableName(table);
+        String safeTable = safeTableNameOrBlank(table);
+        if (safeTable.isBlank()) {
+            return Map.of();
+        }
         values.forEach((key, value) -> {
-            if (key != null && !key.isBlank()) {
-                state.put(tableStateKey(safeTable, key), safeValue(value));
+            String safeKey = safeTableKeyOrBlank(key);
+            if (!safeKey.isBlank() && tableStateKeyLength(safeTable, safeKey) <= MAX_KEY_LENGTH) {
+                state.put(tableStateKey(safeTable, safeKey), safeValue(value));
             }
         });
         return Map.copyOf(state);
@@ -145,6 +149,35 @@ public interface AddonStateRepository {
             throw new IllegalArgumentException("Addon state table cannot contain /");
         }
         return value;
+    }
+
+    static String safeTableNameOrBlank(String table) {
+        String value = table == null ? "" : table.trim();
+        if (value.startsWith(TABLE_STATE_KEY_PREFIX)) {
+            value = value.substring(TABLE_STATE_KEY_PREFIX.length());
+        }
+        while (value.startsWith("/")) {
+            value = value.substring(1);
+        }
+        while (value.endsWith("/")) {
+            value = value.substring(0, value.length() - 1);
+        }
+        if (value.isBlank() || value.contains("/") || value.length() > MAX_KEY_LENGTH) {
+            return "";
+        }
+        return value;
+    }
+
+    static String safeTableKeyOrBlank(String key) {
+        String value = key == null ? "" : key.trim();
+        if (value.isBlank() || value.contains("/")) {
+            return "";
+        }
+        return value;
+    }
+
+    static int tableStateKeyLength(String table, String key) {
+        return TABLE_STATE_KEY_PREFIX.length() + table.length() + 1 + key.length();
     }
 
     static void requireKeyCapacity(Map<String, String> state, String key) {
