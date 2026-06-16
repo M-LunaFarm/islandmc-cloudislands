@@ -40,15 +40,15 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
     @Override
     public Optional<IslandMissionSnapshot> complete(UUID islandId, UUID actorUuid, String missionKey, String kind) {
         ensureDefaults(islandId);
+        String safeKey = missionKey.toLowerCase();
+        String safeKind = MissionCatalog.normalizeKind(kind);
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE island_missions SET progress = goal, completed = true, updated_by = ?, updated_at = now() WHERE island_id = ? AND mission_key = ? AND kind = ? RETURNING island_id, mission_key, kind, title, progress, goal, completed, reward, updated_at")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE island_missions SET progress = goal, completed = true, updated_by = ?, updated_at = now() WHERE island_id = ? AND mission_key = ? AND kind = ?")) {
             statement.setObject(1, actorUuid);
             statement.setObject(2, islandId);
-            statement.setString(3, missionKey.toLowerCase());
-            statement.setString(4, MissionCatalog.normalizeKind(kind));
-            try (ResultSet rs = statement.executeQuery()) {
-                return rs.next() ? Optional.of(snapshot(rs)) : Optional.empty();
-            }
+            statement.setString(3, safeKey);
+            statement.setString(4, safeKind);
+            return statement.executeUpdate() > 0 ? find(islandId, safeKey, safeKind) : Optional.empty();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to complete island mission", exception);
         }
@@ -58,17 +58,17 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
     public Optional<IslandMissionSnapshot> progress(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) {
         ensureDefaults(islandId);
         long safeAmount = Math.max(0L, amount);
+        String safeKey = missionKey.toLowerCase();
+        String safeKind = MissionCatalog.normalizeKind(kind);
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE island_missions SET progress = LEAST(goal, progress + ?), completed = completed OR LEAST(goal, progress + ?) >= goal, updated_by = ?, updated_at = now() WHERE island_id = ? AND mission_key = ? AND kind = ? RETURNING island_id, mission_key, kind, title, progress, goal, completed, reward, updated_at")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE island_missions SET progress = LEAST(goal, progress + ?), completed = completed OR LEAST(goal, progress + ?) >= goal, updated_by = ?, updated_at = now() WHERE island_id = ? AND mission_key = ? AND kind = ?")) {
             statement.setLong(1, safeAmount);
             statement.setLong(2, safeAmount);
             statement.setObject(3, actorUuid);
             statement.setObject(4, islandId);
-            statement.setString(5, missionKey.toLowerCase());
-            statement.setString(6, MissionCatalog.normalizeKind(kind));
-            try (ResultSet rs = statement.executeQuery()) {
-                return rs.next() ? Optional.of(snapshot(rs)) : Optional.empty();
-            }
+            statement.setString(5, safeKey);
+            statement.setString(6, safeKind);
+            return statement.executeUpdate() > 0 ? find(islandId, safeKey, safeKind) : Optional.empty();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to progress island mission", exception);
         }
@@ -78,19 +78,16 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
     public IslandMissionSnapshot importCompleted(UUID islandId, UUID actorUuid, String missionKey, String kind) {
         ensureDefaults(islandId);
         String key = missionKey.toLowerCase();
+        String safeKind = MissionCatalog.normalizeKind(kind);
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_missions(island_id, mission_key, kind, title, progress, goal, completed, reward, updated_by) VALUES (?, ?, ?, ?, 1, 1, true, '', ?) ON CONFLICT (island_id, mission_key) DO UPDATE SET progress = island_missions.goal, completed = true, updated_by = EXCLUDED.updated_by, updated_at = now() RETURNING island_id, mission_key, kind, title, progress, goal, completed, reward, updated_at")) {
+             PreparedStatement statement = connection.prepareStatement(importCompletedSql(connection))) {
             statement.setObject(1, islandId);
             statement.setString(2, key);
-            statement.setString(3, MissionCatalog.normalizeKind(kind));
+            statement.setString(3, safeKind);
             statement.setString(4, key);
             statement.setObject(5, actorUuid);
-            try (ResultSet rs = statement.executeQuery()) {
-                if (rs.next()) {
-                    return snapshot(rs);
-                }
-                throw new IllegalStateException("mission import did not return a row");
-            }
+            statement.executeUpdate();
+            return find(islandId, key, safeKind).orElseThrow(() -> new IllegalStateException("mission import did not update a row"));
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to import completed island mission", exception);
         }
@@ -98,7 +95,7 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
 
     private void ensureDefaults(UUID islandId) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_missions(island_id, mission_key, kind, title, progress, goal, completed, reward) VALUES (?, ?, ?, ?, 0, ?, false, ?) ON CONFLICT (island_id, mission_key) DO NOTHING")) {
+             PreparedStatement statement = connection.prepareStatement(ensureDefaultSql(connection))) {
             for (MissionDefinition definition : MissionCatalog.all()) {
                 statement.setObject(1, islandId);
                 statement.setString(2, definition.missionKey());
@@ -112,6 +109,40 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to seed island missions", exception);
         }
+    }
+
+    private Optional<IslandMissionSnapshot> find(UUID islandId, String missionKey, String kind) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT island_id, mission_key, kind, title, progress, goal, completed, reward, updated_at FROM island_missions WHERE island_id = ? AND mission_key = ? AND kind = ?")) {
+            statement.setObject(1, islandId);
+            statement.setString(2, missionKey);
+            statement.setString(3, kind);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? Optional.of(snapshot(rs)) : Optional.empty();
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read island mission", exception);
+        }
+    }
+
+    private String importCompletedSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_missions(island_id, mission_key, kind, title, progress, goal, completed, reward, updated_by) VALUES (?, ?, ?, ?, 1, 1, true, '', ?) ON DUPLICATE KEY UPDATE progress = goal, completed = true, updated_by = VALUES(updated_by), updated_at = now()";
+        }
+        return "INSERT INTO island_missions(island_id, mission_key, kind, title, progress, goal, completed, reward, updated_by) VALUES (?, ?, ?, ?, 1, 1, true, '', ?) ON CONFLICT (island_id, mission_key) DO UPDATE SET progress = island_missions.goal, completed = true, updated_by = EXCLUDED.updated_by, updated_at = now()";
+    }
+
+    private String ensureDefaultSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT IGNORE INTO island_missions(island_id, mission_key, kind, title, progress, goal, completed, reward) VALUES (?, ?, ?, ?, 0, ?, false, ?)";
+        }
+        return "INSERT INTO island_missions(island_id, mission_key, kind, title, progress, goal, completed, reward) VALUES (?, ?, ?, ?, 0, ?, false, ?) ON CONFLICT (island_id, mission_key) DO NOTHING";
+    }
+
+    private boolean mysqlLike(Connection connection) throws SQLException {
+        String product = connection.getMetaData().getDatabaseProductName();
+        String normalized = product == null ? "" : product.toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains("mysql") || normalized.contains("mariadb");
     }
 
     private IslandMissionSnapshot snapshot(ResultSet rs) throws SQLException {
