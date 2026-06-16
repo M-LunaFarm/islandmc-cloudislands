@@ -1010,6 +1010,9 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         for (String command : commands.subList(from, to)) {
             player.sendMessage("> /" + command.replaceFirst("^섬", label));
         }
+        if (safePage > 1) {
+            player.sendMessage("> /" + label + " command list " + (safePage - 1));
+        }
         if (safePage < maxPage) {
             player.sendMessage("> /" + label + " command list " + (safePage + 1));
         }

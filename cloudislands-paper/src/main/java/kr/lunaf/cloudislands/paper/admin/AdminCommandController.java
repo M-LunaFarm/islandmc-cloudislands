@@ -2678,6 +2678,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         for (String command : helpCommands().subList(from, to)) {
             sender.sendMessage("> /" + command.replaceFirst("^ciadmin", label));
         }
+        if (safePage > 1) {
+            sender.sendMessage("> /" + label + " command list " + (safePage - 1));
+        }
         if (safePage < maxPage) {
             sender.sendMessage("> /" + label + " command list " + (safePage + 1));
         }

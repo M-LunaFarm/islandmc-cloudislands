@@ -1202,6 +1202,9 @@ public final class CloudIslandsVelocityPlugin {
         for (String command : commands.subList(from, to)) {
             player.sendMessage(Component.text("> /" + command));
         }
+        if (safePage > 1) {
+            player.sendMessage(Component.text("> /" + nextCommand + " " + (safePage - 1)));
+        }
         if (safePage < maxPage) {
             player.sendMessage(Component.text("> /" + nextCommand + " " + (safePage + 1)));
         }
