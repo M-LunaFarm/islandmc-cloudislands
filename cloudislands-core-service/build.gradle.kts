@@ -41,6 +41,11 @@ tasks.jar {
             "CloudIslands-Node-State-Policy" to "READY,SOFT_FULL,HARD_FULL,DRAINING,SHUTTING_DOWN,DOWN,WARMING",
             "CloudIslands-Node-Routing-Hard-Rules" to "pool-match,ready-or-soft-full,fresh-heartbeat,hard-cap-open,activation-queue-open,object-storage-available,template-supported,min-node-version,not-default-identity",
             "CloudIslands-Node-Routing-Score-Weights" to "players=0.25,activeIslands=0.15,mspt=0.25,activationQueue=0.15,chunkLoad=0.10,memory=0.05,recentFailure=0.05",
+            "CloudIslands-Core-Security-Policy" to "mtls-or-api-token-ip-allowlist-admin-permission-audit-rate-limit",
+            "CloudIslands-Core-Control-Plane" to "http-api-and-redis-streams-no-critical-plugin-messaging-dependency",
+            "CloudIslands-Core-Migration-Policy" to "drain-save-snapshot-unload-restore-ticket-based-rejoin",
+            "CloudIslands-Core-Active-Full-Policy" to "active-island-stays-single-node-members-use-reserved-slots-visitors-denied-or-queued",
+            "CloudIslands-Core-Global-Event-Policy" to "redis-stream-backed-event-log-with-local-paper-event-bridging",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
         )

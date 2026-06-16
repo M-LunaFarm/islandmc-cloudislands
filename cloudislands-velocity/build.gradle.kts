@@ -20,6 +20,7 @@ tasks.jar {
             "CloudIslands-Node-Full-Policy" to "hard-full-deny-or-queue-soft-full-avoid-new-activations",
             "CloudIslands-Network-Forwarding-Policy" to "velocity-modern-forwarding-required",
             "CloudIslands-Network-Forwarding-Secret-Path" to "security.forwarding-secret",
+            "CloudIslands-Plugin-Messaging-Policy" to "block-cloudislands-plugin-messages-by-default-do-not-use-for-core-control-plane",
             "CloudIslands-Route-Ticket-Policy" to "velocity-issues-paper-consumes-ttl-bound-route-tickets",
             "CloudIslands-Logical-Island-View" to "hide-physical-island-node-names-from-players",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",

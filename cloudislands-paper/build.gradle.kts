@@ -28,6 +28,9 @@ tasks.jar {
             "CloudIslands-Network-Forwarding-Secret-Path" to "security.forwarding-secret",
             "CloudIslands-Route-Ticket-Policy" to "velocity-issues-paper-consumes-ttl-bound-route-tickets",
             "CloudIslands-Logical-Island-View" to "hide-physical-island-node-names-from-players",
+            "CloudIslands-Paper-Event-Bridge" to "global-events-to-bukkit-events-and-cache-invalidation",
+            "CloudIslands-Paper-Direct-Write-Policy" to "no-direct-core-db-writes-use-core-api-client",
+            "CloudIslands-Paper-Migration-Join-Policy" to "ticket-validated-teleport-after-restore-or-migrate",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
         )
