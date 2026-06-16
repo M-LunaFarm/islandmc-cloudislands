@@ -48,6 +48,7 @@ public final class VelocityRoutingController {
     private final AtomicLong routeAttempts = new AtomicLong();
     private final AtomicLong routeSuccesses = new AtomicLong();
     private final AtomicLong routeFailures = new AtomicLong();
+    private final Map<String, AtomicLong> routeFailureCodes = new ConcurrentHashMap<>();
     private final AtomicLong fallbackTransfers = new AtomicLong();
     private final AtomicLong fallbackMissing = new AtomicLong();
     private final AtomicLong fallbackFailures = new AtomicLong();
@@ -136,6 +137,7 @@ public final class VelocityRoutingController {
             + ", routeAttempts=" + routeAttempts.get()
             + ", routeSuccesses=" + routeSuccesses.get()
             + ", routeFailures=" + routeFailures.get()
+            + ", routeFailureCodes=" + routeFailureCodesSummary()
             + ", fallbackTransfers=" + fallbackTransfers.get()
             + ", fallbackMissing=" + fallbackMissing.get()
             + ", fallbackFailures=" + fallbackFailures.get();
@@ -147,6 +149,7 @@ public final class VelocityRoutingController {
             + "cloudislands_velocity_route_attempts_total " + routeAttempts.get() + "\n"
             + "cloudislands_velocity_route_success_total " + routeSuccesses.get() + "\n"
             + "cloudislands_velocity_route_failed_total " + routeFailures.get() + "\n"
+            + routeFailureCodeMetrics()
             + "cloudislands_velocity_fallback_transfers_total " + fallbackTransfers.get() + "\n"
             + "cloudislands_velocity_fallback_missing_total " + fallbackMissing.get() + "\n"
             + "cloudislands_velocity_fallback_failed_total " + fallbackFailures.get() + "\n";
@@ -3334,7 +3337,7 @@ public final class VelocityRoutingController {
 
     private void routeFuture(Player player, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {
         ticketFuture.thenAccept(ticket -> route(player, ticket, failureMessage)).exceptionally(error -> {
-            fallback(player, routeFailureMessage(error, failureMessage));
+            fallback(player, routeFailureMessage(error, failureMessage), routeFailureCode(error, "ROUTE_FAILED"));
             return null;
         });
     }
@@ -3397,14 +3400,14 @@ public final class VelocityRoutingController {
             if (attempt >= routeWaitSeconds) {
                 hideBossBar(player, bossBar);
                 clearFailedRoute(ticket, "ROUTE_READY_TIMEOUT");
-                fallback(player, failureMessage);
+                fallback(player, failureMessage, "ROUTE_READY_TIMEOUT");
                 return;
             }
             CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() -> waitForReadyTicket(player, ticket, failureMessage, bossBar, attempt + 1));
         }).exceptionally(error -> {
             hideBossBar(player, bossBar);
             clearFailedRoute(ticket, "ROUTE_STATUS_FAILED");
-            fallback(player, routeFailureMessage(error, failureMessage));
+            fallback(player, routeFailureMessage(error, failureMessage), routeFailureCode(error, "ROUTE_STATUS_FAILED"));
             return null;
         });
     }
@@ -3478,7 +3481,7 @@ public final class VelocityRoutingController {
         RegisteredServer server = findServer(targetServerName);
         if (server == null) {
             clearFailedRoute(ticket, "TARGET_SERVER_NOT_FOUND");
-            fallback(player, "섬 이동 경로를 찾을 수 없습니다.");
+            fallback(player, "섬 이동 경로를 찾을 수 없습니다.", "TARGET_SERVER_NOT_FOUND");
             return;
         }
         connect(player, ticket, server);
@@ -3492,14 +3495,14 @@ public final class VelocityRoutingController {
         player.createConnectionRequest(server).connectWithIndication().thenAccept(success -> {
             if (!success) {
                 clearFailedRoute(ticket, "CONNECT_FAILED");
-                fallback(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.");
+                fallback(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.", "CONNECT_FAILED");
                 return;
             }
             routeSuccesses.incrementAndGet();
             actionBar(player, arrivalMessage(ticket));
         }).exceptionally(error -> {
             clearFailedRoute(ticket, "CONNECT_EXCEPTION");
-            fallback(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.");
+            fallback(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.", "CONNECT_EXCEPTION");
             return null;
         });
     }
@@ -3516,7 +3519,12 @@ public final class VelocityRoutingController {
     }
 
     private void fallback(Player player, String message) {
+        fallback(player, message, "ROUTE_FAILED");
+    }
+
+    private void fallback(Player player, String message, String code) {
         routeFailures.incrementAndGet();
+        recordRouteFailureCode(code);
         player.sendMessage(Component.text(message));
         RegisteredServer server = findServer(fallbackServer);
         if (server == null) {
@@ -3533,6 +3541,56 @@ public final class VelocityRoutingController {
             fallbackFailures.incrementAndGet();
             return null;
         });
+    }
+
+    private String routeFailureCode(Throwable error, String fallback) {
+        Throwable current = error;
+        while (current != null) {
+            if (current instanceof CoreApiException coreError) {
+                return safeRouteFailureCode(coreError.code(), fallback);
+            }
+            if (current instanceof java.io.IOException) {
+                return "CORE_API_IO";
+            }
+            current = current.getCause();
+        }
+        return safeRouteFailureCode(fallback, "ROUTE_FAILED");
+    }
+
+    private void recordRouteFailureCode(String code) {
+        routeFailureCodes.computeIfAbsent(safeRouteFailureCode(code, "ROUTE_FAILED"), ignored -> new AtomicLong()).incrementAndGet();
+    }
+
+    private String routeFailureCodesSummary() {
+        if (routeFailureCodes.isEmpty()) {
+            return "none";
+        }
+        return routeFailureCodes.entrySet().stream()
+            .sorted(Map.Entry.comparingByKey())
+            .map(entry -> entry.getKey() + "=" + entry.getValue().get())
+            .reduce((left, right) -> left + "," + right)
+            .orElse("none");
+    }
+
+    private String routeFailureCodeMetrics() {
+        StringBuilder builder = new StringBuilder();
+        routeFailureCodes.entrySet().stream()
+            .sorted(Map.Entry.comparingByKey())
+            .forEach(entry -> builder.append("cloudislands_velocity_route_failed_total{code=\"")
+                .append(metricLabel(entry.getKey()))
+                .append("\"} ")
+                .append(entry.getValue().get())
+                .append('\n'));
+        return builder.toString();
+    }
+
+    private String safeRouteFailureCode(String code, String fallback) {
+        String value = code == null || code.isBlank() ? fallback : code;
+        return value == null || value.isBlank() ? "ROUTE_FAILED" : value.trim().replaceAll("[^A-Za-z0-9_.:-]", "_");
+    }
+
+    private String metricLabel(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private String routeTargetName(RouteTicket ticket) {
