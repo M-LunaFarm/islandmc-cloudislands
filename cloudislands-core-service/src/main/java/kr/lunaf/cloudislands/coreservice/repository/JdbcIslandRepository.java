@@ -172,11 +172,9 @@ public final class JdbcIslandRepository implements IslandRepository {
     @Override
     public Optional<IslandSnapshot> restoreDeleted(UUID islandId) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE islands SET state = 'INACTIVE_READY', deleted_at = NULL, updated_at = now() WHERE id = ? AND deleted_at IS NOT NULL RETURNING id, owner_uuid, name, state, size, level, worth, public_access, created_at, updated_at")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE islands SET state = 'INACTIVE_READY', deleted_at = NULL, updated_at = now() WHERE id = ? AND deleted_at IS NOT NULL")) {
             statement.setObject(1, islandId);
-            try (ResultSet rs = statement.executeQuery()) {
-                return rs.next() ? Optional.of(map(rs)) : Optional.empty();
-            }
+            return statement.executeUpdate() > 0 ? findById(islandId) : Optional.empty();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to restore deleted island", exception);
         }
@@ -194,7 +192,7 @@ public final class JdbcIslandRepository implements IslandRepository {
             }
             try (PreparedStatement island = connection.prepareStatement("UPDATE islands SET owner_uuid = ?, updated_at = now() WHERE id = ? AND owner_uuid = ? AND deleted_at IS NULL");
                  PreparedStatement oldOwner = connection.prepareStatement("UPDATE island_members SET role = 'CO_OWNER' WHERE island_id = ? AND player_uuid = ? AND role = 'OWNER'");
-                 PreparedStatement newOwner = connection.prepareStatement("INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, 'OWNER') ON CONFLICT (island_id, player_uuid) DO UPDATE SET role = 'OWNER'")) {
+                 PreparedStatement newOwner = connection.prepareStatement(ownerMemberUpsertSql(connection))) {
                 island.setObject(1, newOwnerUuid);
                 island.setObject(2, islandId);
                 island.setObject(3, currentOwnerUuid);
@@ -235,7 +233,7 @@ public final class JdbcIslandRepository implements IslandRepository {
     }
 
     private void lockPlayerProfile(Connection connection, UUID ownerUuid) throws SQLException {
-        try (PreparedStatement upsert = connection.prepareStatement("INSERT INTO player_profiles(uuid) VALUES (?) ON CONFLICT (uuid) DO NOTHING")) {
+        try (PreparedStatement upsert = connection.prepareStatement(ensurePlayerProfileSql(connection))) {
             upsert.setObject(1, ownerUuid);
             upsert.executeUpdate();
         }
@@ -255,11 +253,31 @@ public final class JdbcIslandRepository implements IslandRepository {
     }
 
     private void createOwnerMember(Connection connection, UUID islandId, UUID ownerUuid) throws SQLException {
-        try (PreparedStatement member = connection.prepareStatement("INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, 'OWNER') ON CONFLICT (island_id, player_uuid) DO UPDATE SET role = 'OWNER'")) {
+        try (PreparedStatement member = connection.prepareStatement(ownerMemberUpsertSql(connection))) {
             member.setObject(1, islandId);
             member.setObject(2, ownerUuid);
             member.executeUpdate();
         }
+    }
+
+    private String ensurePlayerProfileSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT IGNORE INTO player_profiles(uuid) VALUES (?)";
+        }
+        return "INSERT INTO player_profiles(uuid) VALUES (?) ON CONFLICT (uuid) DO NOTHING";
+    }
+
+    private String ownerMemberUpsertSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, 'OWNER') ON DUPLICATE KEY UPDATE role = 'OWNER'";
+        }
+        return "INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, 'OWNER') ON CONFLICT (island_id, player_uuid) DO UPDATE SET role = 'OWNER'";
+    }
+
+    private boolean mysqlLike(Connection connection) throws SQLException {
+        String product = connection.getMetaData().getDatabaseProductName();
+        String normalized = product == null ? "" : product.toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains("mysql") || normalized.contains("mariadb");
     }
 
     private void createRuntime(Connection connection, UUID islandId, String state) throws SQLException {
