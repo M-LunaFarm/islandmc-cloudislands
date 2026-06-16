@@ -2860,12 +2860,15 @@ public final class CloudIslandsCoreApplication {
             + "\"islandPool\":\"" + escape(config.islandPool()) + "\","
             + "\"islandPoolNodeCount\":" + islandPoolNodeCount(config, nodes) + ","
             + "\"islandPoolRouteCandidateCount\":" + islandPoolRouteCandidateCount(config, nodes) + ","
+            + "\"islandPoolRouteCandidateRecommendedMinimum\":" + islandPoolRouteCandidateRecommendedMinimum(config, nodes) + ","
+            + "\"islandPoolRouteCandidateMinimumStatus\":\"" + escape(islandPoolRouteCandidateMinimumStatus(config, nodes)) + "\","
             + "\"islandPoolRouteCandidateNodeIds\":\"" + escape(islandPoolRouteCandidateNodeIds(config, nodes)) + "\","
             + "\"islandPoolScaleStatus\":\"" + escape(islandPoolScaleStatus(config, nodes)) + "\","
             + "\"islandPoolScaleModel\":\"dynamic-node-pool-by-node-id\","
             + "\"islandPoolScaleGuidance\":\"add-island-nodes-with-unique-node-id-unique-velocity-server-name-shared-storage\","
             + "\"islandPoolHorizontalScalePolicy\":\"no-hardcoded-island-node-count-unique-node-id-unique-velocity-server-name-shared-storage-required\","
             + "\"islandPoolFiveSixNodePolicy\":\"supported-when-each-node-is-a-route-candidate-and-identity-risk-counts-stay-zero\","
+            + "\"islandPoolFiveSixNodeHealthy\":" + islandPoolFiveSixNodeHealthy(config, nodes) + ","
             + "\"islandPoolFiveSixNodeStatus\":\"" + escape(islandPoolFiveSixNodeStatus(config, nodes)) + "\","
             + "\"islandPlacementPolicy\":\"deterministic-uuid-shard-cell\","
             + "\"islandPlacementShardCount\":" + IslandPlacement.SHARD_COUNT + ","
@@ -3110,6 +3113,46 @@ public final class CloudIslandsCoreApplication {
     private static boolean islandPoolMultiNodeReady(CoreServiceConfig config, NodeRegistry nodes) {
         return islandPoolNodeCount(config, nodes) > 1L
             && islandPoolRouteCandidateCount(config, nodes) > 1L
+            && islandPoolDuplicateVelocityServerNameNodeCount(config, nodes) == 0L
+            && islandPoolDefaultNodeIdentityRiskCount(config, nodes) == 0L;
+    }
+
+    private static long islandPoolRouteCandidateRecommendedMinimum(CoreServiceConfig config, NodeRegistry nodes) {
+        long nodeCount = islandPoolNodeCount(config, nodes);
+        if (nodeCount <= 0L) {
+            return 0L;
+        }
+        if (nodeCount == 1L) {
+            return 1L;
+        }
+        if (nodeCount < 5L) {
+            return 2L;
+        }
+        if (nodeCount <= 6L) {
+            return nodeCount;
+        }
+        return Math.min(nodeCount, 6L);
+    }
+
+    private static String islandPoolRouteCandidateMinimumStatus(CoreServiceConfig config, NodeRegistry nodes) {
+        long minimum = islandPoolRouteCandidateRecommendedMinimum(config, nodes);
+        long candidates = islandPoolRouteCandidateCount(config, nodes);
+        if (minimum <= 0L) {
+            return "NO_POOL_NODES";
+        }
+        if (candidates >= minimum) {
+            return "OK candidates=" + candidates + "/" + minimum;
+        }
+        return "SHORTFALL candidates=" + candidates + "/" + minimum
+            + " blocked=" + islandPoolBlockedNodeIds(config, nodes);
+    }
+
+    private static boolean islandPoolFiveSixNodeHealthy(CoreServiceConfig config, NodeRegistry nodes) {
+        long nodeCount = islandPoolNodeCount(config, nodes);
+        if (nodeCount < 5L || nodeCount > 6L) {
+            return false;
+        }
+        return islandPoolRouteCandidateCount(config, nodes) >= islandPoolRouteCandidateRecommendedMinimum(config, nodes)
             && islandPoolDuplicateVelocityServerNameNodeCount(config, nodes) == 0L
             && islandPoolDefaultNodeIdentityRiskCount(config, nodes) == 0L;
     }
