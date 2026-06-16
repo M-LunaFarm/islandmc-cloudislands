@@ -56,6 +56,9 @@ tasks.jar {
             "CloudIslands-Core-Upgrade-Policy" to "config-driven-upgrade-rules-with-economy-abstracted-purchase-flow",
             "CloudIslands-Core-Failure-Policy" to "node-down-recovery-required-core-down-degraded-active-play-redis-down-db-source-object-storage-down-local-active-play-retry-save",
             "CloudIslands-Core-Cache-Invalidation-Policy" to "writes-publish-global-events-for-local-cache-and-redis-invalidation",
+            "CloudIslands-Core-Snapshot-Retention" to "hourly=24,daily=7,weekly=4,manual=50,compress=true,checksum=SHA-256",
+            "CloudIslands-Core-Observability-Metrics" to "nodes,node-players,node-mspt,node-active-islands,activation-queue,activation-seconds,save-seconds,snapshot-seconds,route-tickets,permission-checks,jobs,storage,database,redis",
+            "CloudIslands-Core-Admin-Dashboard-Inputs" to "node-load,mspt,active-islands,activation-latency,save-failures,route-failures,redis-latency,db-pool,object-storage-failures",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
         )
