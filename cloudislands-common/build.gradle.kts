@@ -13,6 +13,7 @@ tasks.jar {
             "CloudIslands-Redis-TTL-Policy" to "heartbeat=5s,route-ticket=30s,player=300s,island-summary=60s,island-runtime=30s,permissions=30s,lock=10-60s",
             "CloudIslands-Fencing-Token-Key" to "ci:island:{islandId}:fencing-token",
             "CloudIslands-Runtime-State-Policy" to "IslandRuntimeStatePolicy-single-active-transition-owner-fencing-token-stale-write-guard",
+            "CloudIslands-Protection-Decision-Policy" to "ProtectionDecisionPolicy-region-index-local-cache-only-no-sync-io",
             "CloudIslands-Cache-Invalidation-Targets" to "player,island-summary,runtime,members,permissions,flags,warps,node-heartbeat",
             "CloudIslands-Cache-Invalidation-Redis-Key-Mapper" to "CacheInvalidationPlan.redisKeysFor-event-to-RedisKeys",
             "CloudIslands-Package-Modules" to "api,common,protocol,core-client,core-service,velocity,paper,satis,storage,migration,testkit,bom",

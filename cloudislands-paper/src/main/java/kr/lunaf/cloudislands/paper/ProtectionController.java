@@ -8,6 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
+import kr.lunaf.cloudislands.common.protection.ProtectionDecisionPolicy;
 import kr.lunaf.cloudislands.common.protection.RegionIndex;
 import kr.lunaf.cloudislands.paper.cache.LocalIslandPermissionCache;
 import org.bukkit.block.Block;
@@ -78,7 +79,7 @@ public final class ProtectionController {
     }
 
     public String synchronousDecisionPolicy() {
-        return "region-index-and-local-permission-cache-only";
+        return ProtectionDecisionPolicy.HOT_PATH_POLICY;
     }
 
     public IslandRole role(UUID islandId, UUID playerUuid) {
