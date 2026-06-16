@@ -228,7 +228,7 @@ public final class IslandProtectionListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onCreatureSpawn(CreatureSpawnEvent event) {
         if (protection.migrating(event.getLocation().getBlock())) {
             event.setCancelled(true);
