@@ -153,7 +153,7 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
             if (ticket.expiresAt().isBefore(now)) {
                 return new RouteTicket(ticket.ticketId(), ticket.playerUuid(), ticket.action(), ticket.islandId(), ticket.targetNode(), ticket.targetWorld(), RouteTicketState.EXPIRED, ticket.expiresAt(), ticket.nonce(), ticket.payload());
             }
-            if (!ticket.playerUuid().equals(playerUuid) || !ticket.targetNode().equals(nodeId) || !ticket.nonce().equals(nonce)) {
+            if (!kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.consumable(ticket, playerUuid, nodeId, nonce, now)) {
                 return ticket;
             }
             RouteTicket updated = new RouteTicket(ticket.ticketId(), ticket.playerUuid(), ticket.action(), ticket.islandId(), ticket.targetNode(), ticket.targetWorld(), RouteTicketState.CONSUMED, ticket.expiresAt(), ticket.nonce(), ticket.payload());

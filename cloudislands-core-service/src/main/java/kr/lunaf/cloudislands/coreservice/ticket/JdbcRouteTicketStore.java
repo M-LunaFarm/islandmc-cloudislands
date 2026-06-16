@@ -205,7 +205,7 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
                 throw new IllegalStateException("failed to expire route ticket", exception);
             }
         }
-        if (!ticket.playerUuid().equals(playerUuid) || !ticket.targetNode().equals(nodeId) || !ticket.nonce().equals(nonce)) {
+        if (!kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.consumable(ticket, playerUuid, nodeId, nonce, clock.instant())) {
             return Optional.empty();
         }
         RouteTicket consumed = new RouteTicket(ticket.ticketId(), ticket.playerUuid(), ticket.action(), ticket.islandId(), ticket.targetNode(), ticket.targetWorld(), RouteTicketState.CONSUMED, ticket.expiresAt(), ticket.nonce(), ticket.payload());
