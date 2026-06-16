@@ -1,6 +1,6 @@
 id: cloudislands-satis
 display-name: "CloudIslands Satis"
-packaging: external-plugin
+packaging: external-plugin-or-built-in-compatible
 requires:
   cloudislands-api: true
   runtime-plugin: CloudIslands
@@ -16,6 +16,7 @@ runtime:
     - BUILT_IN_COMPATIBLE
     - DISABLED
   mode-policy: external-addon-and-built-in-compatible-modes-share-cloudislands-addon-feature-gates
+  packaging-policy: integration.mode selects external-plugin, built-in-compatible, or disabled-stub registry metadata
   owns-islands: false
   storage-key: cloudislands-island-uuid
   default-database-mode: CORE_API
