@@ -645,6 +645,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> drainNodePath(String nodeId) {
+        return postWithResultBody("/v1/admin/nodes/" + pathNodeId(nodeId) + "/drain", "{}");
+    }
+
+    @Override
     public CompletableFuture<String> undrainNode(String nodeId) {
         return undrainNodeResult(nodeId);
     }
@@ -655,6 +660,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> undrainNodePath(String nodeId) {
+        return postWithResultBody("/v1/admin/nodes/" + pathNodeId(nodeId) + "/undrain", "{}");
+    }
+
+    @Override
     public CompletableFuture<String> sweepNode(String nodeId) {
         return sweepNodeResult(nodeId);
     }
@@ -662,6 +672,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<String> sweepNodeResult(String nodeId) {
         return postWithResultBody("/v1/admin/nodes/sweep", "{\"nodeId\":\"" + escape(nodeId) + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> sweepNodePath(String nodeId) {
+        return postWithResultBody("/v1/admin/nodes/" + pathNodeId(nodeId) + "/sweep", "{}");
     }
 
     @Override
@@ -682,6 +697,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<String> shutdownNodeSafelyResult(String nodeId, String reason) {
         return postWithResultBody("/v1/admin/nodes/shutdown-safe", "{\"nodeId\":\"" + escape(nodeId) + "\",\"reason\":\"" + escape(reason) + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> shutdownNodeSafelyPath(String nodeId, String reason) {
+        return postWithResultBody("/v1/admin/nodes/" + pathNodeId(nodeId) + "/shutdown-safe", "{\"reason\":\"" + escape(reason) + "\"}");
     }
 
     @Override
@@ -1631,6 +1651,17 @@ public final class JdkCoreApiClient implements CoreApiClient {
             }
         }
         return builder.toString();
+    }
+
+    private static String pathNodeId(String nodeId) {
+        String value = nodeId == null ? "" : nodeId.trim();
+        if (value.isBlank()) {
+            throw new IllegalArgumentException("nodeId is required");
+        }
+        if (value.contains("/") || value.contains("\\") || value.contains("?") || value.contains("#")) {
+            throw new IllegalArgumentException("nodeId must be a single path segment");
+        }
+        return value;
     }
 
     private static String countsPayload(Map<String, Long> counts) {

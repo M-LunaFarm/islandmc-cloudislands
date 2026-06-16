@@ -139,14 +139,26 @@ public interface CoreApiClient {
     CompletableFuture<String> nodeIslands(String nodeId, int limit);
     CompletableFuture<String> drainNode(String nodeId);
     CompletableFuture<String> drainNodeResult(String nodeId);
+    default CompletableFuture<String> drainNodePath(String nodeId) {
+        return drainNodeResult(nodeId);
+    }
     CompletableFuture<String> undrainNode(String nodeId);
     CompletableFuture<String> undrainNodeResult(String nodeId);
+    default CompletableFuture<String> undrainNodePath(String nodeId) {
+        return undrainNodeResult(nodeId);
+    }
     CompletableFuture<String> sweepNode(String nodeId);
     CompletableFuture<String> sweepNodeResult(String nodeId);
+    default CompletableFuture<String> sweepNodePath(String nodeId) {
+        return sweepNodeResult(nodeId);
+    }
     CompletableFuture<String> kickAllNode(String nodeId, String reason);
     CompletableFuture<String> kickAllNodeResult(String nodeId, String reason);
     CompletableFuture<String> shutdownNodeSafely(String nodeId, String reason);
     CompletableFuture<String> shutdownNodeSafelyResult(String nodeId, String reason);
+    default CompletableFuture<String> shutdownNodeSafelyPath(String nodeId, String reason) {
+        return shutdownNodeSafelyResult(nodeId, reason);
+    }
     CompletableFuture<String> activateIsland(UUID islandId);
     CompletableFuture<String> activateIslandResult(UUID islandId);
     CompletableFuture<String> deactivateIsland(UUID islandId);
