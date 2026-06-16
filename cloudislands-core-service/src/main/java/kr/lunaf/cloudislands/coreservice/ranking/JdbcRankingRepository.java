@@ -54,7 +54,7 @@ public final class JdbcRankingRepository implements RankingRepository {
     @Override
     public void save(IslandRankSnapshot snapshot) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_rank_snapshots(island_id, level, worth, member_count, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT (island_id) DO UPDATE SET level = EXCLUDED.level, worth = EXCLUDED.worth, member_count = EXCLUDED.member_count, updated_at = EXCLUDED.updated_at")) {
+             PreparedStatement statement = connection.prepareStatement(saveSql(connection))) {
             statement.setObject(1, snapshot.islandId());
             statement.setLong(2, snapshot.level());
             statement.setBigDecimal(3, snapshot.worth());
@@ -64,6 +64,19 @@ public final class JdbcRankingRepository implements RankingRepository {
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to save island ranking", exception);
         }
+    }
+
+    private String saveSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_rank_snapshots(island_id, level, worth, member_count, updated_at) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE level = VALUES(level), worth = VALUES(worth), member_count = VALUES(member_count), updated_at = VALUES(updated_at)";
+        }
+        return "INSERT INTO island_rank_snapshots(island_id, level, worth, member_count, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT (island_id) DO UPDATE SET level = EXCLUDED.level, worth = EXCLUDED.worth, member_count = EXCLUDED.member_count, updated_at = EXCLUDED.updated_at";
+    }
+
+    private boolean mysqlLike(Connection connection) throws SQLException {
+        String product = connection.getMetaData().getDatabaseProductName();
+        String normalized = product == null ? "" : product.toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains("mysql") || normalized.contains("mariadb");
     }
 
     @Override
