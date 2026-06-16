@@ -3483,24 +3483,67 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             backend = DatabaseService.StorageBackend.SQLITE;
             appendPendingDatabaseConfigFallbackReason("invalid-database-backend:" + safeReasonToken(configuredType) + "->SQLITE");
         }
-        return new DatabaseService.Settings(
+        String sqliteFileName = resolveDatabaseFileName();
+        String jdbcUrl = firstNonBlank(System.getenv("CLOUDISLANDS_SATIS_JDBC_URL"),
+                firstNonBlank(configs.main().getString("setup.database.jdbc.url", ""), configs.main().getString("database.jdbc.url", "")));
+        String postgresqlJdbcUrl = jdbcUrl("postgresql", "jdbc:postgresql", 5432);
+        String mysqlJdbcUrl = jdbcUrl("mysql", "jdbc:mysql", 3306);
+        String mariadbJdbcUrl = jdbcUrl("mariadb", "jdbc:mariadb", 3306);
+        String username = databaseUsername();
+        String password = databasePassword();
+        int maxPoolSize = Math.max(1, databaseMaxPoolSize(8));
+        long connectionTimeoutMillis = Math.max(1000L, databaseConnectionTimeoutMillis(5000L));
+        DatabaseService.BackendSettings postgresqlSettings = databaseBackendSettings("postgresql");
+        DatabaseService.BackendSettings mysqlSettings = databaseBackendSettings("mysql");
+        DatabaseService.BackendSettings mariadbSettings = databaseBackendSettings("mariadb");
+        boolean fallbackEnabled = envBoolean("CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED", setupBoolean("database.fallback.enabled", true));
+        List<DatabaseService.StorageBackend> fallbackOrder = databaseFallbackOrder(true);
+        DatabaseService.Settings settings = new DatabaseService.Settings(
                 backend,
-                resolveDatabaseFileName(),
-                firstNonBlank(System.getenv("CLOUDISLANDS_SATIS_JDBC_URL"),
-                        firstNonBlank(configs.main().getString("setup.database.jdbc.url", ""), configs.main().getString("database.jdbc.url", ""))),
-                jdbcUrl("postgresql", "jdbc:postgresql", 5432),
-                jdbcUrl("mysql", "jdbc:mysql", 3306),
-                jdbcUrl("mariadb", "jdbc:mariadb", 3306),
-                databaseUsername(),
-                databasePassword(),
-                Math.max(1, databaseMaxPoolSize(8)),
-                Math.max(1000L, databaseConnectionTimeoutMillis(5000L)),
-                databaseBackendSettings("postgresql"),
-                databaseBackendSettings("mysql"),
-                databaseBackendSettings("mariadb"),
-                envBoolean("CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED", setupBoolean("database.fallback.enabled", true)),
-                databaseFallbackOrder(true)
+                sqliteFileName,
+                jdbcUrl,
+                postgresqlJdbcUrl,
+                mysqlJdbcUrl,
+                mariadbJdbcUrl,
+                username,
+                password,
+                maxPoolSize,
+                connectionTimeoutMillis,
+                postgresqlSettings,
+                mysqlSettings,
+                mariadbSettings,
+                fallbackEnabled,
+                fallbackOrder
         );
+        if (backend == DatabaseService.StorageBackend.CORE_API && !coreApiAddonStateAvailable() && fallbackEnabled) {
+            DatabaseService.StorageBackend fallbackBackend = selectCoreApiFallbackBackend(settings);
+            if (fallbackBackend != null && fallbackBackend != DatabaseService.StorageBackend.CORE_API) {
+                String reason = (cloudIslandsApi == null ? "core-api-cloudislands-api-missing" : "core-api-addon-state-disabled")
+                        + "->primary-" + fallbackBackend.name();
+                appendPendingDatabaseConfigFallbackReason(reason);
+                return new DatabaseService.Settings(
+                        fallbackBackend,
+                        sqliteFileName,
+                        jdbcUrl,
+                        postgresqlJdbcUrl,
+                        mysqlJdbcUrl,
+                        mariadbJdbcUrl,
+                        username,
+                        password,
+                        maxPoolSize,
+                        connectionTimeoutMillis,
+                        postgresqlSettings,
+                        mysqlSettings,
+                        mariadbSettings,
+                        true,
+                        fallbackOrder.stream()
+                                .filter(candidate -> candidate != DatabaseService.StorageBackend.CORE_API)
+                                .toList()
+                );
+            }
+            appendPendingDatabaseConfigFallbackReason(cloudIslandsApi == null ? "core-api-cloudislands-api-missing:no-ready-fallback" : "core-api-addon-state-disabled:no-ready-fallback");
+        }
+        return settings;
     }
 
     private String databaseSettingsFingerprint(DatabaseService.Settings settings) {
