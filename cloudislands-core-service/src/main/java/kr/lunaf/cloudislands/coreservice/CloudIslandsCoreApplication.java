@@ -47,6 +47,7 @@ import kr.lunaf.cloudislands.coreservice.cache.RedisCacheAdmin;
 import kr.lunaf.cloudislands.coreservice.config.CoreServiceConfig;
 import kr.lunaf.cloudislands.coreservice.db.BoundedDataSource;
 import kr.lunaf.cloudislands.coreservice.db.DriverManagerDataSource;
+import kr.lunaf.cloudislands.coreservice.db.JdbcDialectDataSource;
 import kr.lunaf.cloudislands.coreservice.db.MeteredDataSource;
 import kr.lunaf.cloudislands.coreservice.event.CompositeGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
@@ -194,7 +195,7 @@ public final class CloudIslandsCoreApplication {
         logSecurityPosture(config);
         this.deleteStorage = migrationRollbackStorage(config);
         MeteredDataSource meteredDataSource = new MeteredDataSource(new BoundedDataSource(new DriverManagerDataSource(config.jdbcUrl(), config.databaseUsername(), config.databasePassword()), config.databasePoolSize()));
-        DataSource dataSource = meteredDataSource;
+        DataSource dataSource = new JdbcDialectDataSource(meteredDataSource);
         boolean coreJdbcActive = config.jdbcRepositories() || config.jdbcJobs();
         NodeRegistry baseNodes = config.jdbcRepositories() ? new JdbcNodeRegistry(dataSource) : new InMemoryNodeRegistry();
         NodeRegistry nodes = config.redisEvents() || config.redisJobs()
