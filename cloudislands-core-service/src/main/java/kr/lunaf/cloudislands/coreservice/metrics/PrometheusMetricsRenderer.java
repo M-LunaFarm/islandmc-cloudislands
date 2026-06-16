@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
 import kr.lunaf.cloudislands.coreservice.NodeRegistry;
@@ -35,6 +36,9 @@ public final class PrometheusMetricsRenderer {
     private final LongSupplier redisCacheFailures;
     private final BooleanSupplier coreJdbcFallbackActive;
     private final BooleanSupplier coreSetupDatabaseDurable;
+    private final Supplier<String> coreSetupDatabaseRequestedBackend;
+    private final Supplier<String> coreSetupDatabaseEffectiveAuthority;
+    private final Supplier<String> coreSetupDatabaseFallbackTarget;
     private final BooleanSupplier coreTokenConfigured;
     private final BooleanSupplier adminTokenConfigured;
     private final BooleanSupplier adminApiEnabled;
@@ -59,14 +63,14 @@ public final class PrometheusMetricsRenderer {
     private final LongSupplier securityRejectsAdminPermissionDenied;
 
     public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures) {
-        this(nodes, jobs, tickets, runtimes, events, heartbeatTimeout, databaseQuerySeconds, databaseActiveConnections, databaseOpenedConnections, databaseConnectionFailures, databaseQueryFailures, redisEventFailures, redisCacheFailures, () -> 0L, () -> false, () -> true, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L);
+        this(nodes, jobs, tickets, runtimes, events, heartbeatTimeout, databaseQuerySeconds, databaseActiveConnections, databaseOpenedConnections, databaseConnectionFailures, databaseQueryFailures, redisEventFailures, redisCacheFailures, () -> 0L, () -> false, () -> true, () -> "UNKNOWN", () -> "UNKNOWN", () -> "NONE", () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> false, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L);
     }
 
     public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures, BooleanSupplier coreTokenConfigured, BooleanSupplier adminTokenConfigured, BooleanSupplier adminApiEnabled, BooleanSupplier mtlsRequired, BooleanSupplier ipAllowlistEnabled, BooleanSupplier publicBindWithoutIpAllowlist, BooleanSupplier redisPublicHost, BooleanSupplier postgresqlPublicHost, BooleanSupplier objectStoragePublicHost, BooleanSupplier objectStoragePlainHttpPublicHost) {
-        this(nodes, jobs, tickets, runtimes, events, heartbeatTimeout, databaseQuerySeconds, databaseActiveConnections, databaseOpenedConnections, databaseConnectionFailures, databaseQueryFailures, redisEventFailures, redisCacheFailures, () -> 0L, () -> false, () -> true, coreTokenConfigured, adminTokenConfigured, adminApiEnabled, mtlsRequired, ipAllowlistEnabled, publicBindWithoutIpAllowlist, redisPublicHost, postgresqlPublicHost, objectStoragePublicHost, objectStoragePlainHttpPublicHost, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L);
+        this(nodes, jobs, tickets, runtimes, events, heartbeatTimeout, databaseQuerySeconds, databaseActiveConnections, databaseOpenedConnections, databaseConnectionFailures, databaseQueryFailures, redisEventFailures, redisCacheFailures, () -> 0L, () -> false, () -> true, () -> "UNKNOWN", () -> "UNKNOWN", () -> "NONE", coreTokenConfigured, adminTokenConfigured, adminApiEnabled, mtlsRequired, ipAllowlistEnabled, publicBindWithoutIpAllowlist, redisPublicHost, postgresqlPublicHost, objectStoragePublicHost, objectStoragePlainHttpPublicHost, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L);
     }
 
-    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures, LongSupplier databaseMaxConnections, BooleanSupplier coreJdbcFallbackActive, BooleanSupplier coreSetupDatabaseDurable, BooleanSupplier coreTokenConfigured, BooleanSupplier adminTokenConfigured, BooleanSupplier adminApiEnabled, BooleanSupplier mtlsRequired, BooleanSupplier ipAllowlistEnabled, BooleanSupplier publicBindWithoutIpAllowlist, BooleanSupplier redisPublicHost, BooleanSupplier postgresqlPublicHost, BooleanSupplier objectStoragePublicHost, BooleanSupplier objectStoragePlainHttpPublicHost, LongSupplier rateLimitRequests, LongSupplier rateLimitWindowSeconds, LongSupplier rankingDirtyDrainedTotal, LongSupplier rankingRecalculatedTotal, LongSupplier rankingRecalculationFailuresTotal, LongSupplier rankingRecalculationLastBatchSize, LongSupplier securityRejectsTotal, LongSupplier securityRejectsRateLimited, LongSupplier securityRejectsUnauthorized, LongSupplier securityRejectsMtlsRequired, LongSupplier securityRejectsIpNotAllowed, LongSupplier securityRejectsAdminPermissionDenied) {
+    public PrometheusMetricsRenderer(NodeRegistry nodes, IslandJobQueue jobs, RouteTicketStore tickets, IslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, Duration heartbeatTimeout, DoubleSupplier databaseQuerySeconds, LongSupplier databaseActiveConnections, LongSupplier databaseOpenedConnections, LongSupplier databaseConnectionFailures, LongSupplier databaseQueryFailures, LongSupplier redisEventFailures, LongSupplier redisCacheFailures, LongSupplier databaseMaxConnections, BooleanSupplier coreJdbcFallbackActive, BooleanSupplier coreSetupDatabaseDurable, Supplier<String> coreSetupDatabaseRequestedBackend, Supplier<String> coreSetupDatabaseEffectiveAuthority, Supplier<String> coreSetupDatabaseFallbackTarget, BooleanSupplier coreTokenConfigured, BooleanSupplier adminTokenConfigured, BooleanSupplier adminApiEnabled, BooleanSupplier mtlsRequired, BooleanSupplier ipAllowlistEnabled, BooleanSupplier publicBindWithoutIpAllowlist, BooleanSupplier redisPublicHost, BooleanSupplier postgresqlPublicHost, BooleanSupplier objectStoragePublicHost, BooleanSupplier objectStoragePlainHttpPublicHost, LongSupplier rateLimitRequests, LongSupplier rateLimitWindowSeconds, LongSupplier rankingDirtyDrainedTotal, LongSupplier rankingRecalculatedTotal, LongSupplier rankingRecalculationFailuresTotal, LongSupplier rankingRecalculationLastBatchSize, LongSupplier securityRejectsTotal, LongSupplier securityRejectsRateLimited, LongSupplier securityRejectsUnauthorized, LongSupplier securityRejectsMtlsRequired, LongSupplier securityRejectsIpNotAllowed, LongSupplier securityRejectsAdminPermissionDenied) {
         this.nodes = nodes;
         this.jobs = jobs;
         this.tickets = tickets;
@@ -83,6 +87,9 @@ public final class PrometheusMetricsRenderer {
         this.redisCacheFailures = redisCacheFailures;
         this.coreJdbcFallbackActive = coreJdbcFallbackActive;
         this.coreSetupDatabaseDurable = coreSetupDatabaseDurable;
+        this.coreSetupDatabaseRequestedBackend = coreSetupDatabaseRequestedBackend;
+        this.coreSetupDatabaseEffectiveAuthority = coreSetupDatabaseEffectiveAuthority;
+        this.coreSetupDatabaseFallbackTarget = coreSetupDatabaseFallbackTarget;
         this.coreTokenConfigured = coreTokenConfigured;
         this.adminTokenConfigured = adminTokenConfigured;
         this.adminApiEnabled = adminApiEnabled;
@@ -535,6 +542,11 @@ public final class PrometheusMetricsRenderer {
         help(out, "cloudislands_core_setup_database_non_durable_fallback", "Whether Core setup fell back to non-durable in-memory state");
         type(out, "cloudislands_core_setup_database_non_durable_fallback", "gauge");
         out.append("cloudislands_core_setup_database_non_durable_fallback ").append(setupDatabaseDurable ? 0 : 1).append('\n');
+        help(out, "cloudislands_core_setup_database_backend", "Core setup database backend selection labels");
+        type(out, "cloudislands_core_setup_database_backend", "gauge");
+        out.append("cloudislands_core_setup_database_backend{role=\"requested\",backend=\"").append(escape(supplied(coreSetupDatabaseRequestedBackend))).append("\"} 1\n");
+        out.append("cloudislands_core_setup_database_backend{role=\"effective_authority\",backend=\"").append(escape(supplied(coreSetupDatabaseEffectiveAuthority))).append("\"} 1\n");
+        out.append("cloudislands_core_setup_database_backend{role=\"fallback_target\",backend=\"").append(escape(supplied(coreSetupDatabaseFallbackTarget))).append("\"} 1\n");
         help(out, "cloudislands_database_connections_opened_total", "JDBC connections opened by Core API");
         type(out, "cloudislands_database_connections_opened_total", "counter");
         out.append("cloudislands_database_connections_opened_total ").append(databaseOpenedConnections.getAsLong()).append('\n');
@@ -744,6 +756,14 @@ public final class PrometheusMetricsRenderer {
         if (value != null && !value.isBlank()) {
             labels(out, name, node, null).append(Boolean.parseBoolean(value) ? 1 : 0).append('\n');
         }
+    }
+
+    private static String supplied(Supplier<String> supplier) {
+        if (supplier == null) {
+            return "";
+        }
+        String value = supplier.get();
+        return value == null ? "" : value;
     }
 
     private static double memoryPressure(NodeLoad node) {
