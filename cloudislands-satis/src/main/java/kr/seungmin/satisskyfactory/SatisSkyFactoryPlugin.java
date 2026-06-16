@@ -2179,11 +2179,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         boolean machinesEnabled = operational.getOrDefault("machines", true);
         boolean storageEnabled = operational.getOrDefault("storage", true);
         boolean factoriesEnabled = operational.getOrDefault("factories", machinesEnabled);
+        boolean researchEnabled = operational.getOrDefault("research", true);
+        boolean guiEnabled = operational.getOrDefault("gui", true);
         operational.computeIfPresent("resource-nodes", (_key, enabled) -> enabled && machinesEnabled);
         operational.computeIfPresent("market", (_key, enabled) -> enabled && storageEnabled);
         operational.computeIfPresent("contracts", (_key, enabled) -> enabled && storageEnabled);
         operational.computeIfPresent("generators", (_key, enabled) -> enabled && factoriesEnabled);
         operational.computeIfPresent("missions", (_key, enabled) -> enabled && storageEnabled);
+        operational.computeIfPresent("upgrades", (_key, enabled) -> enabled && researchEnabled);
+        operational.computeIfPresent("menus", (_key, enabled) -> enabled && guiEnabled);
         FEATURE_ALIASES.forEach((alias, canonical) -> {
             if (operational.containsKey(alias) || operational.containsKey(canonical)) {
                 boolean enabled = operational.getOrDefault(alias, true) && operational.getOrDefault(canonical, true);
@@ -3462,6 +3466,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return false;
         }
         if (raw.equals("missions") && !featureEnabled("storage")) {
+            return false;
+        }
+        if (raw.equals("upgrades") && !featureEnabled("research")) {
+            return false;
+        }
+        if (raw.equals("menus") && !featureEnabled("gui")) {
             return false;
         }
         String canonical = canonicalFeature(key);
