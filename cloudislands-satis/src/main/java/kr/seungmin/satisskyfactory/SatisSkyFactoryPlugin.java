@@ -2243,13 +2243,21 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandRestoreRequested(kr.lunaf.cloudislands.api.event.IslandRestoreRequestEvent event) {
-        String operation = "restore-requested:" + lifecycleNode(event.targetNode()) + ":snapshot-" + event.snapshotNo();
+        String operation = "restore-requested:" + lifecycleNode(event.targetNode())
+                + lifecycleWorldToken(event.worldName())
+                + lifecycleCellToken(event.cellX(), event.cellZ())
+                + lifecyclePlacementToken(event.placementSource())
+                + ":snapshot-" + event.snapshotNo();
         runSatisLifecycle(event.islandId(), operation, () -> flushSatisIsland(event.islandId(), operation));
     }
 
     @Override
     public void onIslandRestored(kr.lunaf.cloudislands.api.event.IslandRestoredEvent event) {
-        runSatisLifecycle(event.islandId(), "restored", () -> synchronizeSatisIsland(event.islandId(), "restored"));
+        String operation = "restored:" + lifecycleNode(event.targetNode())
+                + lifecycleWorldToken(event.worldName())
+                + lifecycleCellToken(event.cellX(), event.cellZ())
+                + lifecyclePlacementToken(event.placementSource());
+        runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
     }
 
     @Override

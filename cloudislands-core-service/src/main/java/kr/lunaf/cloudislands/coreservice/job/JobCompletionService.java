@@ -155,7 +155,17 @@ public final class JobCompletionService {
             recordPreMutationSnapshot(job);
             restoreDeletedIslandRecord(job);
             setIslandState(job.islandId(), IslandState.ACTIVE);
-            events.publish(CloudIslandEventType.ISLAND_RESTORED.name(), Map.of("islandId", job.islandId().toString(), "state", "RESTORED", "snapshotNo", job.payload().getOrDefault("snapshotNo", ""), "placementSource", job.payload().getOrDefault("placementSource", "")));
+            events.publish(CloudIslandEventType.ISLAND_RESTORED.name(), Map.of(
+                "islandId", job.islandId().toString(),
+                "state", "RESTORED",
+                "snapshotNo", job.payload().getOrDefault("snapshotNo", ""),
+                "targetNode", job.targetNode() == null ? "" : job.targetNode(),
+                "worldName", job.payload().getOrDefault("worldName", "ci_shard_001"),
+                "cellX", job.payload().getOrDefault("cellX", "0"),
+                "cellZ", job.payload().getOrDefault("cellZ", "0"),
+                "fencingToken", job.payload().getOrDefault("fencingToken", "0"),
+                "placementSource", job.payload().getOrDefault("placementSource", "")
+            ));
             releaseRestoreLock(job);
             return;
         }
