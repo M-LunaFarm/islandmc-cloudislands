@@ -418,28 +418,73 @@ public final class RoutingOrchestrator {
 
     private Map<String, String> routingFailureDetails(String debugReason) {
         List<NodeLoad> snapshot = nodes.snapshot();
-        long poolNodes = snapshot.stream().filter(node -> node.inPool(islandPool)).count();
-        long readyOrSoftFull = snapshot.stream()
-            .filter(node -> node.inPool(islandPool))
+        List<NodeLoad> poolSnapshot = snapshot.stream().filter(node -> node.inPool(islandPool)).toList();
+        long poolNodes = poolSnapshot.size();
+        long readyOrSoftFull = poolSnapshot.stream()
             .filter(node -> node.state() == NodeState.READY || node.state() == NodeState.SOFT_FULL)
             .count();
-        long storageReady = snapshot.stream()
-            .filter(node -> node.inPool(islandPool))
+        long storageReady = poolSnapshot.stream()
             .filter(NodeLoad::storageAvailable)
             .count();
-        long queueOpen = snapshot.stream()
-            .filter(node -> node.inPool(islandPool))
+        long queueOpen = poolSnapshot.stream()
             .filter(node -> node.maxActivationQueue() <= 0 || node.activationQueue() < node.maxActivationQueue())
             .count();
-        return Map.of(
-            "pool", islandPool,
-            "nodeCount", Long.toString(poolNodes),
-            "readyOrSoftFullNodeCount", Long.toString(readyOrSoftFull),
-            "storageReadyNodeCount", Long.toString(storageReady),
-            "queueOpenNodeCount", Long.toString(queueOpen),
-            "blockReason", publicBlockReason(debugReason),
-            "physicalNodeNamesExposed", "false"
-        );
+        long hardCapOpen = poolSnapshot.stream()
+            .filter(node -> node.hardPlayerCap() <= 0 || node.players() < node.hardPlayerCap())
+            .count();
+        long activeIslandOpen = poolSnapshot.stream()
+            .filter(node -> node.maxActiveIslands() <= 0 || node.activeIslands() < node.maxActiveIslands())
+            .count();
+        long primaryStorageHealthy = poolSnapshot.stream()
+            .filter(node -> !node.storagePrimaryDegraded())
+            .count();
+        long defaultIdentityRisk = poolSnapshot.stream()
+            .filter(NodeLoad::defaultNodeIdentityRisk)
+            .count();
+        long duplicateVelocityServerNames = duplicateVelocityServerNameCount(poolSnapshot);
+        long routeCandidateEstimate = poolSnapshot.stream()
+            .filter(node -> node.state() == NodeState.READY || node.state() == NodeState.SOFT_FULL)
+            .filter(NodeLoad::storageAvailable)
+            .filter(node -> !node.storagePrimaryDegraded())
+            .filter(node -> !node.defaultNodeIdentityRisk())
+            .filter(node -> node.hardPlayerCap() <= 0 || node.players() < node.hardPlayerCap())
+            .filter(node -> node.maxActiveIslands() <= 0 || node.activeIslands() < node.maxActiveIslands())
+            .filter(node -> node.maxActivationQueue() <= 0 || node.activationQueue() < node.maxActivationQueue())
+            .count();
+        Map<String, String> details = new LinkedHashMap<>();
+        details.put("pool", islandPool);
+        details.put("nodeCount", Long.toString(poolNodes));
+        details.put("readyOrSoftFullNodeCount", Long.toString(readyOrSoftFull));
+        details.put("storageReadyNodeCount", Long.toString(storageReady));
+        details.put("primaryStorageHealthyNodeCount", Long.toString(primaryStorageHealthy));
+        details.put("hardCapOpenNodeCount", Long.toString(hardCapOpen));
+        details.put("activeIslandOpenNodeCount", Long.toString(activeIslandOpen));
+        details.put("queueOpenNodeCount", Long.toString(queueOpen));
+        details.put("defaultIdentityRiskNodeCount", Long.toString(defaultIdentityRisk));
+        details.put("duplicateVelocityServerNameNodeCount", Long.toString(duplicateVelocityServerNames));
+        details.put("routeCandidateEstimateNodeCount", Long.toString(routeCandidateEstimate));
+        details.put("blockReason", publicBlockReason(debugReason));
+        details.put("physicalNodeNamesExposed", "false");
+        return Map.copyOf(details);
+    }
+
+    private long duplicateVelocityServerNameCount(List<NodeLoad> poolSnapshot) {
+        Map<String, Integer> names = new LinkedHashMap<>();
+        for (NodeLoad node : poolSnapshot) {
+            String serverName = node.velocityServerName() == null ? "" : node.velocityServerName().trim().toLowerCase();
+            if (serverName.isBlank()) {
+                continue;
+            }
+            names.put(serverName, names.getOrDefault(serverName, 0) + 1);
+        }
+        long count = 0L;
+        for (NodeLoad node : poolSnapshot) {
+            String serverName = node.velocityServerName() == null ? "" : node.velocityServerName().trim().toLowerCase();
+            if (!serverName.isBlank() && names.getOrDefault(serverName, 0) > 1) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private String publicBlockReason(String reason) {
