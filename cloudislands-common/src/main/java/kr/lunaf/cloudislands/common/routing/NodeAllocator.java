@@ -48,8 +48,10 @@ public final class NodeAllocator {
     }
 
     public Optional<NodeLoad> selectBestNode(List<NodeLoad> nodes, Instant now, String templateId, String minNodeVersion, String pool) {
+        Map<String, Integer> velocityServerCounts = velocityServerCounts(nodes);
         List<NodeLoad> eligible = nodes.stream()
             .filter(node -> node.inPool(pool))
+            .filter(node -> !duplicateVelocityServerName(node, velocityServerCounts))
             .filter(node -> node.eligible(now, heartbeatTimeout))
             .filter(node -> node.supportsTemplate(templateId))
             .filter(node -> node.satisfiesMinVersion(minNodeVersion))
@@ -253,6 +255,10 @@ public final class NodeAllocator {
         return node.inPool(pool) && node.acceptsExistingRoute(now, heartbeatTimeout, templateId, minNodeVersion);
     }
 
+    public boolean acceptsExistingRoute(List<NodeLoad> nodes, NodeLoad node, Instant now, String templateId, String minNodeVersion, String pool) {
+        return existingRouteBlockReason(nodes, node, now, templateId, minNodeVersion, pool).isBlank();
+    }
+
     public String existingRouteBlockReason(NodeLoad node, Instant now, String templateId, String minNodeVersion, String pool) {
         if (node == null) {
             return "NODE_NOT_FOUND";
@@ -261,6 +267,17 @@ public final class NodeAllocator {
             return "POOL_MISMATCH";
         }
         return node.existingRouteBlockReason(now, heartbeatTimeout, templateId, minNodeVersion);
+    }
+
+    public String existingRouteBlockReason(List<NodeLoad> nodes, NodeLoad node, Instant now, String templateId, String minNodeVersion, String pool) {
+        if (node == null) {
+            return "NODE_NOT_FOUND";
+        }
+        Map<String, Integer> velocityServerCounts = velocityServerCounts(nodes == null ? List.of() : nodes);
+        if (duplicateVelocityServerName(node, velocityServerCounts)) {
+            return "DUPLICATE_VELOCITY_SERVER_NAME";
+        }
+        return existingRouteBlockReason(node, now, templateId, minNodeVersion, pool);
     }
 
     private Map<String, Integer> velocityServerCounts(List<NodeLoad> nodes) {
