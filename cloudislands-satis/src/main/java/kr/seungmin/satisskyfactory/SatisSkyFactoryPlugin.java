@@ -3343,6 +3343,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (Boolean.TRUE.equals(features.get("missions")) && !Boolean.TRUE.equals(features.get("storage"))) {
             warnings.add("missions-without-storage");
         }
+        if (Boolean.TRUE.equals(features.get("upgrades")) && !Boolean.TRUE.equals(features.get("research"))) {
+            warnings.add("upgrades-without-research");
+        }
+        if (Boolean.TRUE.equals(features.get("menus")) && !Boolean.TRUE.equals(features.get("gui"))) {
+            warnings.add("menus-without-gui");
+        }
         if (Boolean.TRUE.equals(features.get("contracts")) && !Boolean.TRUE.equals(features.get("maintenance"))) {
             warnings.add("contracts-without-maintenance-status");
         }
