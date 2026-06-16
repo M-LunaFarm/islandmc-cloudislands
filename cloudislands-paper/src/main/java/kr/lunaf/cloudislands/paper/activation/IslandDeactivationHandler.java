@@ -39,6 +39,9 @@ public final class IslandDeactivationHandler {
             if (deleteBackup && saveService == null) {
                 return new DeactivationResult(false, islandId, 0L, "", 0L, "SAVE_UNAVAILABLE");
             }
+            if (active != null && saveService == null) {
+                return new DeactivationResult(false, islandId, 0L, "", 0L, "SAVE_UNAVAILABLE");
+            }
             if (active != null && saveService != null) {
                 saveResult = deleteBackup ? saveService.backupBeforeDelete(islandId, active) : saveService.save(islandId, active, null, reason);
             }
