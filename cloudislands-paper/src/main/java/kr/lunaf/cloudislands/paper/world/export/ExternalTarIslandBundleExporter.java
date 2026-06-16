@@ -1,11 +1,15 @@
 package kr.lunaf.cloudislands.paper.world.export;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
@@ -13,6 +17,7 @@ import kr.lunaf.cloudislands.paper.world.cell.CellExtractionPlan;
 import kr.lunaf.cloudislands.paper.world.cell.FileBackedCellTransfer;
 import kr.lunaf.cloudislands.paper.world.cell.ShardCellTransferPlanner;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
+import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
 import kr.lunaf.cloudislands.storage.manifest.IslandManifestJson;
 
 public final class ExternalTarIslandBundleExporter implements IslandBundleExporter {
@@ -39,10 +44,14 @@ public final class ExternalTarIslandBundleExporter implements IslandBundleExport
         Path staging = targetDirectory.resolve("cell-stage");
         deleteDirectory(staging);
         Files.createDirectories(staging);
+        Files.createDirectories(staging.resolve("chunks"));
+        Files.createDirectories(staging.resolve("entities"));
+        Files.createDirectories(staging.resolve("block-entities"));
         CellExtractionPlan extraction = new ShardCellTransferPlanner(activeIsland.islandSize())
             .extraction(islandId, activeIsland.worldName(), activeIsland.originX(), activeIsland.originZ(), staging.resolve("chunks"));
         new FileBackedCellTransfer(worldContainer).extract(extraction);
         writeStagedManifest(islandId, activeIsland, staging.resolve("manifest.json"), manifest);
+        writeStagedChecksums(staging);
         ProcessBuilder processBuilder = new ProcessBuilder("tar", "--zstd", "-cf", bundle.toAbsolutePath().toString(), "-C", staging.toAbsolutePath().toString(), ".");
         processBuilder.redirectErrorStream(true);
         try {
@@ -73,6 +82,34 @@ public final class ExternalTarIslandBundleExporter implements IslandBundleExport
             ""
         ).withSnapshotReason(source == null ? "" : source.snapshotReason());
         Files.writeString(manifestPath, IslandManifestJson.write(manifest), StandardCharsets.UTF_8);
+    }
+
+    private void writeStagedChecksums(Path staging) throws IOException {
+        Path checksums = staging.resolve("checksums.sha256");
+        List<Path> files = new ArrayList<>();
+        try (java.util.stream.Stream<Path> paths = Files.walk(staging)) {
+            for (Path path : paths.filter(candidate -> Files.isRegularFile(candidate, LinkOption.NOFOLLOW_LINKS)).toList()) {
+                if (Files.isSymbolicLink(path)) {
+                    throw new IOException("symbolic links are not allowed in island bundles: " + staging.relativize(path));
+                }
+                if (!path.equals(checksums)) {
+                    files.add(path);
+                }
+            }
+        }
+        files.sort(Comparator.comparing(path -> staging.relativize(path).toString().replace('\\', '/')));
+        StringBuilder builder = new StringBuilder();
+        for (Path file : files) {
+            String checksum;
+            try (InputStream input = Files.newInputStream(file)) {
+                checksum = Sha256Checksums.of(input);
+            }
+            builder.append(checksum)
+                .append("  ")
+                .append(staging.relativize(file).toString().replace('\\', '/'))
+                .append('\n');
+        }
+        Files.writeString(checksums, builder.toString(), StandardCharsets.UTF_8);
     }
 
     private void deleteDirectory(Path directory) throws IOException {
