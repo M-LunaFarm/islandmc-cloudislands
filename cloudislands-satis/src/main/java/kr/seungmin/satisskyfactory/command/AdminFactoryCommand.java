@@ -1183,6 +1183,7 @@ public final class AdminFactoryCommand {
                         "runtime-alias-policy",
                         "runtime-machine-ticker-running",
                         "runtime-maintenance-ticker-running",
+                        "dirty-save-state-keys",
                         "runtime-dirty-save-running",
                         "runtime-dirty-save-pending-writes",
                         "runtime-dirty-save-pending-machines",
