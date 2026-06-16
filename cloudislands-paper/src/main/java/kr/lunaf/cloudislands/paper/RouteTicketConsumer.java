@@ -102,7 +102,7 @@ public final class RouteTicketConsumer {
             Bukkit.getPluginManager().callEvent(preVisit);
             if (preVisit.isCancelled()) {
                 hideLoading(player);
-                player.sendActionBar(Component.text(message("route-visit-cancelled", "섬 방문이 취소되었습니다.")));
+                player.sendActionBar(Component.text(playerMessage("route-visit-cancelled", "섬 방문이 취소되었습니다.")));
                 return;
             }
         }
@@ -169,20 +169,20 @@ public final class RouteTicketConsumer {
 
     private String arrivalMessage(kr.lunaf.cloudislands.api.model.RouteAction action) {
         return switch (action) {
-            case VISIT -> message("route-arrived-visit", "방문한 섬에 도착했습니다.");
-            case WARP -> message("route-arrived-warp", "섬 워프에 도착했습니다.");
-            case ADMIN_TELEPORT -> message("route-arrived-admin", "관리자 이동이 완료되었습니다.");
-            default -> message("route-arrived-home", "내 섬에 도착했습니다.");
+            case VISIT -> playerMessage("route-arrived-visit", "방문한 섬에 도착했습니다.");
+            case WARP -> playerMessage("route-arrived-warp", "섬 워프에 도착했습니다.");
+            case ADMIN_TELEPORT -> playerMessage("route-arrived-admin", "관리자 이동이 완료되었습니다.");
+            default -> playerMessage("route-arrived-home", "내 섬에 도착했습니다.");
         };
     }
 
     private void notifyPreparing(UUID playerUuid, int attempt) {
         Player player = Bukkit.getPlayer(playerUuid);
         if (player != null) {
-            BossBar bar = loadingBars.computeIfAbsent(playerUuid, ignored -> BossBar.bossBar(Component.text(message("route-consume-loading", "섬 로딩 중")), 0.1F, BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS));
+            BossBar bar = loadingBars.computeIfAbsent(playerUuid, ignored -> BossBar.bossBar(Component.text(playerMessage("route-consume-loading", "섬 로딩 중")), 0.1F, BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS));
             bar.progress(Math.min(0.95F, 0.1F + (attempt / 20.0F) * 0.85F));
             player.showBossBar(bar);
-            player.sendActionBar(Component.text(message("route-consume-preparing", "섬을 준비하는 중입니다...")));
+            player.sendActionBar(Component.text(playerMessage("route-consume-preparing", "섬을 준비하는 중입니다...")));
         }
     }
 
@@ -193,7 +193,11 @@ public final class RouteTicketConsumer {
             return;
         }
         hideLoading(player);
-        player.sendActionBar(Component.text(message("route-consume-failed", "섬 이동 준비가 완료되지 않았습니다. 다시 시도해주세요.")));
+        player.sendActionBar(Component.text(playerMessage("route-consume-failed", "섬 이동 준비가 완료되지 않았습니다. 다시 시도해주세요.")));
+    }
+
+    private String playerMessage(String key, String fallback) {
+        return sanitizePlayerMessage(message(key, fallback));
     }
 
     private String message(String key, String fallback) {
@@ -203,6 +207,18 @@ public final class RouteTicketConsumer {
         }
         String rendered = renderer.plain(key);
         return rendered.isBlank() ? fallback : rendered;
+    }
+
+    private String sanitizePlayerMessage(String message) {
+        String value = message == null || message.isBlank() ? "섬 이동을 처리하지 못했습니다." : message;
+        return value
+            .replaceAll("(?i)\\btargetNode\\s*[=:]\\s*[^\\s,|]+", "targetNode=숨김")
+            .replaceAll("(?i)\\brequestedNode\\s*[=:]\\s*[^\\s,|]+", "requestedNode=숨김")
+            .replaceAll("(?i)\\btargetServerName\\s*[=:]\\s*[^\\s,|]+", "targetServerName=숨김")
+            .replaceAll("(?i)\\bserver\\s*[=:]\\s*[^\\s,|]+", "server=숨김")
+            .replaceAll("(?i)\\bnode\\s*[=:]\\s*[^\\s,|]+", "node=숨김")
+            .replaceAll("(?i)\\b[A-Za-z0-9_.-]*island[-_ ]?\\d+[A-Za-z0-9_.-]*\\b", "섬 서버")
+            .replaceAll("(?i)\\b[A-Za-z0-9_.-]*node[-_ ]?\\d+[A-Za-z0-9_.-]*\\b", "섬 서버");
     }
 
     private void hideLoading(Player player) {
