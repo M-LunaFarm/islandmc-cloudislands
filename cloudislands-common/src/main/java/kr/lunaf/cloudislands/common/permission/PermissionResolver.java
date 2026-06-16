@@ -20,6 +20,9 @@ public final class PermissionResolver {
             return PermissionResult.allow(IslandRole.OWNER);
         }
         IslandRole role = cachedRoles.getOrDefault(playerUuid, IslandRole.VISITOR);
+        if (role == IslandRole.OWNER) {
+            return PermissionResult.allow(IslandRole.OWNER);
+        }
         if (permissionSet.allowed(role, permission)) {
             return PermissionResult.allow(role);
         }
