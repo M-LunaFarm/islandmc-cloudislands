@@ -47,7 +47,7 @@ public final class IslandWorldRestorer {
     private void verifyStagedBundle(UUID islandId, Path bundle, long snapshotNo, String storagePath) throws IOException {
         Optional<IslandBundleManifest> manifest = restoreManifest(islandId, snapshotNo, storagePath);
         if (manifest.isEmpty()) {
-            return;
+            throw new IOException("missing island bundle manifest for restore: " + islandId);
         }
         IslandBundleManifest restoreManifest = manifest.get();
         validateRestoreManifest(islandId, restoreManifest);
