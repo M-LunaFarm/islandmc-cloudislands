@@ -1,5 +1,6 @@
 id: cloudislands-satis
 display-name: "CloudIslands Satis"
+product-role: official-feature-pack
 packaging: external-plugin-or-built-in-compatible
 requires:
   cloudislands-api: true
@@ -7,6 +8,7 @@ requires:
 api:
   lookup-policy: CloudIslandsProvider-first-Bukkit-ServicesManager-fallback
   bootstrap-policy: register-if-cloudislands-api-available-disable-runtime-components-when-missing
+  core-isolation-policy: core-lifecycle-never-depends-on-satis-jar-or-state
 removal:
   safe: true
   data-retention: preserve-addon-state-by-island-uuid
@@ -87,6 +89,9 @@ database:
 state:
   authority: core-api-table-key-value-or-shared-database
   move-policy: remap-state-to-current-active-world-and-cell
+  ab-node-scenario: save-on-source-node-remap-active-world-and-cell-on-target-node-restore-state-by-island-uuid
+  recovery-scenario: heartbeat-expiry-fencing-token-guards-last-confirmed-state-no-duplicate-tick-or-write
+  addon-removal-scenario: missing-addon-state-never-blocks-cloudislands-base-island-load
   migration-preflush-policy: flush-dirty-state-before-source-node-deactivation-then-remap-on-target-activation
   fallback-policy: local-cache-on-core-api-failure-with-configurable-database-fallback
   fallback-safety-policy: production-safe-when-shared-backend-precedes-local-sqlite

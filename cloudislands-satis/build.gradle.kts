@@ -25,9 +25,11 @@ tasks.jar {
     manifest {
         attributes(
             "CloudIslands-Addon" to "cloudislands-satis",
+            "CloudIslands-Addon-Product-Role" to "official-feature-pack",
             "CloudIslands-Addon-Packaging" to "external-plugin-or-built-in-compatible",
             "CloudIslands-Addon-Integration-Modes" to "EXTERNAL_ADDON,BUILT_IN_COMPATIBLE,DISABLED",
             "CloudIslands-Core-Depends-On-Addon" to "false",
+            "CloudIslands-Core-Isolation-Policy" to "core-lifecycle-never-depends-on-satis-jar-or-state",
             "CloudIslands-Addon-Removal-Safe" to "true",
             "CloudIslands-Addon-Data-Retention" to "preserve-addon-state-by-island-uuid",
             "CloudIslands-Addon-State-Authority" to "core-api-table-key-value-or-shared-database",
@@ -42,6 +44,8 @@ tasks.jar {
             "CloudIslands-Addon-Database-Fallback-Safety-Policy" to "production-safe-when-shared-backend-precedes-local-sqlite",
             "CloudIslands-Addon-Database-Env-Keys" to "CLOUDISLANDS_SATIS_DATABASE_TYPE,CLOUDISLANDS_SATIS_JDBC_URL,CLOUDISLANDS_SATIS_DB_USERNAME,CLOUDISLANDS_SATIS_DB_PASSWORD,CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED,CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER",
             "CloudIslands-Satis-Placement-Source-Policy" to "record-core-payload-or-paper-allocator-on-activate-and-migrate",
+            "CloudIslands-Satis-AB-Node-Scenario" to "save-on-source-node-remap-active-world-and-cell-on-target-node-restore-state-by-island-uuid",
+            "CloudIslands-Satis-Recovery-Scenario" to "heartbeat-expiry-fencing-token-guards-last-confirmed-state-no-duplicate-tick-or-write",
             "CloudIslands-Satis-Core-API-Bulk-Endpoints" to "table/bulk,table-key-value/bulk-save,table/key-value/bulk-save,table/key-value/bulk/save,table/key-value/bulk",
             "CloudIslands-Satis-Core-API-Bulk-Fallback" to "flattened-addon-state-when-enabled",
             "CloudIslands-Addon-Feature-Gates" to "commands,machines,storage,factories,generators,upgrades,missions,menus,gui,lifecycle,resource-nodes,market,contracts,research,maintenance,placeholders,migration,addon-state,route-events",

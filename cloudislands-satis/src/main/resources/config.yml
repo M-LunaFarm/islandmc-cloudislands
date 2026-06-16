@@ -61,11 +61,13 @@ integration:
   # EXTERNAL_ADDON: normal removable plugin/addon mode.
   # BUILT_IN_COMPATIBLE: use the same CloudIslands addon API gates for builds that package Satis together.
   # DISABLED: keep the plugin installed but register no active Satis runtime components.
+  # Treat Satis as an official feature pack: CloudIslands Core must keep working when this jar is absent or disabled.
   mode: EXTERNAL_ADDON
   skyblock-provider: CLOUDISLANDS
   cloudislands-adapter: true
   # Used only when CloudIslands region lookup is temporarily unavailable during lifecycle sync.
   # Must match the Paper island-node.cell-size value so Satis can remap state from event cellX/cellZ.
+  # A/B node move rule: state is keyed by CloudIslands island UUID, then remapped to the target active world/cell after activation.
   cloudislands-cell-size: 1024
 setup:
   database:
