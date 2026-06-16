@@ -15,7 +15,9 @@ import kr.seungmin.satisskyfactory.task.DirtySaveService;
 import org.bukkit.block.BlockFace;
 
 import java.time.Instant;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.LinkedHashMap;
@@ -27,6 +29,7 @@ import java.util.function.Predicate;
 import java.util.logging.Logger;
 
 public final class CoreApiSatisStateService {
+    private static final int MAX_PENDING_BULK_RETRIES = 64;
     private static final String GLOBAL_TABLE_KEY_VALUE_BULK_ENDPOINT = "/v1/addons/state/table/key-value/bulk-save";
     private static final String GLOBAL_FLATTENED_FALLBACK_ENDPOINT = "/v1/addons/state/bulk";
     private static final String ISLAND_TABLE_KEY_VALUE_BULK_ENDPOINT = "/v1/addons/islands/state/table/key-value/bulk-save";
@@ -38,6 +41,9 @@ public final class CoreApiSatisStateService {
     private final String addonId;
     private final boolean flattenedFallbackEnabled;
     private final Predicate<String> featureEnabled;
+    private final Object pendingRetryLock = new Object();
+    private final Deque<PendingIslandBulk> pendingIslandBulkRetries = new ArrayDeque<>();
+    private final Deque<PendingGlobalBulk> pendingGlobalBulkRetries = new ArrayDeque<>();
     private volatile String lastBulkStatusFingerprint = "";
     private volatile String lastGlobalBulkStatusFingerprint = "";
     private volatile String lastTableStatusFingerprint = "";
@@ -48,11 +54,19 @@ public final class CoreApiSatisStateService {
     private final AtomicLong globalBulkSuccesses = new AtomicLong();
     private final AtomicLong globalBulkFallbacks = new AtomicLong();
     private final AtomicLong globalBulkFailures = new AtomicLong();
+    private final AtomicLong islandBulkRetriesQueued = new AtomicLong();
+    private final AtomicLong globalBulkRetriesQueued = new AtomicLong();
     private final AtomicLong tableSuccesses = new AtomicLong();
     private final AtomicLong tableFailures = new AtomicLong();
     private final AtomicLong coreStateFailures = new AtomicLong();
     private volatile String lastFailure = "";
     private volatile String lastFailureAt = "";
+
+    private record PendingIslandBulk(UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+    }
+
+    private record PendingGlobalBulk(Map<String, String> values, Map<String, Map<String, String>> tables) {
+    }
 
     public CoreApiSatisStateService(Logger logger, CloudIslandsApi cloudIslandsApi, String addonId) {
         this(logger, cloudIslandsApi, addonId, true);
@@ -92,6 +106,14 @@ public final class CoreApiSatisStateService {
 
     public long globalBulkFailures() {
         return globalBulkFailures.get();
+    }
+
+    public long islandBulkRetriesQueued() {
+        return islandBulkRetriesQueued.get();
+    }
+
+    public long globalBulkRetriesQueued() {
+        return globalBulkRetriesQueued.get();
     }
 
     public long tableSuccesses() {
@@ -306,11 +328,21 @@ public final class CoreApiSatisStateService {
         if (cloudIslandsApi == null || islandId == null) {
             return;
         }
-        Map<String, String> safeValues = values == null ? Map.of() : values;
-        Map<String, Map<String, String>> safeTables = enabledTables(tables);
-        if (safeValues.isEmpty() && safeTables.isEmpty()) {
+        Map<String, String> mergedValues = copyValues(values);
+        Map<String, Map<String, String>> mergedTables = copyTables(enabledTables(tables));
+        PendingIslandBulk pending = takePendingIslandBulkRetry(islandId);
+        String safeDescription = description;
+        if (pending != null) {
+            mergedValues = mergeValues(pending.values(), mergedValues);
+            mergedTables = mergeTables(pending.tables(), mergedTables);
+            safeDescription = description + " with queued retry";
+        }
+        if (mergedValues.isEmpty() && mergedTables.isEmpty()) {
             return;
         }
+        Map<String, String> safeValues = mergedValues;
+        Map<String, Map<String, String>> safeTables = mergedTables;
+        String finalDescription = safeDescription;
         cloudIslandsApi.addons().tableKeyValueBulkSaveIslandState(addonId, islandId, safeValues, safeTables)
                 .handle((state, error) -> {
                     if (error == null) {
@@ -318,13 +350,15 @@ public final class CoreApiSatisStateService {
                         return java.util.concurrent.CompletableFuture.completedFuture(state);
                     }
                     if (!flattenedFallbackEnabled) {
-                        logger.warning("Failed to publish " + description + " and flattened addon state fallback is disabled: " + error.getMessage());
+                        logger.warning("Failed to publish " + finalDescription + " and flattened addon state fallback is disabled: " + error.getMessage());
+                        queueIslandBulkRetry(islandId, safeValues, safeTables);
                         publishBulkStatus(islandId, safeValues, safeTables, "failed", "bulk-fallback-disabled", error.getMessage());
                         return java.util.concurrent.CompletableFuture.completedFuture(Map.<String, String>of());
                     }
                     Map<String, String> fallback = flattenedState(safeValues, safeTables);
-                    logger.warning("Failed to publish " + description + ", retrying with flattened addon state: " + error.getMessage());
+                    logger.warning("Failed to publish " + finalDescription + ", retrying with flattened addon state: " + error.getMessage());
                     if (fallback.isEmpty()) {
+                        queueIslandBulkRetry(islandId, safeValues, safeTables);
                         publishBulkStatus(islandId, safeValues, safeTables, "fallback-empty", "flattened", error.getMessage());
                         return java.util.concurrent.CompletableFuture.completedFuture(Map.<String, String>of());
                     }
@@ -336,7 +370,8 @@ public final class CoreApiSatisStateService {
                 })
                 .thenCompose(result -> result)
                 .exceptionally(error -> {
-                    logger.warning("Failed to publish " + description + " with flattened addon state fallback: " + error.getMessage());
+                    logger.warning("Failed to publish " + finalDescription + " with flattened addon state fallback: " + error.getMessage());
+                    queueIslandBulkRetry(islandId, safeValues, safeTables);
                     publishBulkStatus(islandId, safeValues, safeTables, "failed", "flattened", error.getMessage());
                     return Map.of();
                 });
@@ -346,11 +381,21 @@ public final class CoreApiSatisStateService {
         if (cloudIslandsApi == null) {
             return;
         }
-        Map<String, String> safeValues = values == null ? Map.of() : values;
-        Map<String, Map<String, String>> safeTables = enabledTables(tables);
-        if (safeValues.isEmpty() && safeTables.isEmpty()) {
+        Map<String, String> mergedValues = copyValues(values);
+        Map<String, Map<String, String>> mergedTables = copyTables(enabledTables(tables));
+        PendingGlobalBulk pending = takePendingGlobalBulkRetry();
+        String safeDescription = description;
+        if (pending != null) {
+            mergedValues = mergeValues(pending.values(), mergedValues);
+            mergedTables = mergeTables(pending.tables(), mergedTables);
+            safeDescription = description + " with queued retry";
+        }
+        if (mergedValues.isEmpty() && mergedTables.isEmpty()) {
             return;
         }
+        Map<String, String> safeValues = mergedValues;
+        Map<String, Map<String, String>> safeTables = mergedTables;
+        String finalDescription = safeDescription;
         cloudIslandsApi.addons().tableKeyValueBulkSaveState(addonId, safeValues, safeTables)
                 .handle((state, error) -> {
                     if (error == null) {
@@ -358,13 +403,15 @@ public final class CoreApiSatisStateService {
                         return java.util.concurrent.CompletableFuture.completedFuture(state);
                     }
                     if (!flattenedFallbackEnabled) {
-                        logger.warning("Failed to publish " + description + " and flattened addon state fallback is disabled: " + error.getMessage());
+                        logger.warning("Failed to publish " + finalDescription + " and flattened addon state fallback is disabled: " + error.getMessage());
+                        queueGlobalBulkRetry(safeValues, safeTables);
                         publishGlobalBulkStatus(safeValues, safeTables, "failed", "bulk-fallback-disabled", error.getMessage());
                         return java.util.concurrent.CompletableFuture.completedFuture(Map.<String, String>of());
                     }
                     Map<String, String> fallback = flattenedState(safeValues, safeTables);
-                    logger.warning("Failed to publish " + description + ", retrying with flattened addon state: " + error.getMessage());
+                    logger.warning("Failed to publish " + finalDescription + ", retrying with flattened addon state: " + error.getMessage());
                     if (fallback.isEmpty()) {
+                        queueGlobalBulkRetry(safeValues, safeTables);
                         publishGlobalBulkStatus(safeValues, safeTables, "fallback-empty", "flattened", error.getMessage());
                         return java.util.concurrent.CompletableFuture.completedFuture(Map.<String, String>of());
                     }
@@ -376,7 +423,8 @@ public final class CoreApiSatisStateService {
                 })
                 .thenCompose(result -> result)
                 .exceptionally(error -> {
-                    logger.warning("Failed to publish " + description + " with flattened addon state fallback: " + error.getMessage());
+                    logger.warning("Failed to publish " + finalDescription + " with flattened addon state fallback: " + error.getMessage());
+                    queueGlobalBulkRetry(safeValues, safeTables);
                     publishGlobalBulkStatus(safeValues, safeTables, "failed", "flattened", error.getMessage());
                     return Map.of();
                 });
@@ -412,6 +460,7 @@ public final class CoreApiSatisStateService {
         state.put("last-core-bulk-publish-fallback-endpoint", ISLAND_FLATTENED_FALLBACK_ENDPOINT);
         state.put("last-core-bulk-publish-write-path", bulkWritePath(safeStatus, safeMode, true));
         state.put("last-core-bulk-publish-fallback-policy", flattenedFallbackEnabled ? "flattened-state-retry" : "disabled");
+        state.put("last-core-bulk-publish-pending-retries", Integer.toString(pendingIslandBulkRetryCount()));
         cloudIslandsApi.addons().putState(addonId, state).exceptionally(publishError -> {
             logger.warning("Failed to publish Satis core-api bulk status: " + publishError.getMessage());
             recordCoreStateFailure("island-bulk-status", publishError);
@@ -448,6 +497,7 @@ public final class CoreApiSatisStateService {
         state.put("last-core-global-bulk-publish-fallback-endpoint", GLOBAL_FLATTENED_FALLBACK_ENDPOINT);
         state.put("last-core-global-bulk-publish-write-path", bulkWritePath(safeStatus, safeMode, false));
         state.put("last-core-global-bulk-publish-fallback-policy", flattenedFallbackEnabled ? "flattened-state-retry" : "disabled");
+        state.put("last-core-global-bulk-publish-pending-retries", Integer.toString(pendingGlobalBulkRetryCount()));
         cloudIslandsApi.addons().putState(addonId, state).exceptionally(publishError -> {
             logger.warning("Failed to publish Satis core-api global bulk status: " + publishError.getMessage());
             recordCoreStateFailure("global-bulk-status", publishError);
@@ -548,6 +598,117 @@ public final class CoreApiSatisStateService {
         }
         String value = error.replace('\n', ' ').replace('\r', ' ').trim();
         return value.length() <= 160 ? value : value.substring(0, 160);
+    }
+
+    private void queueIslandBulkRetry(UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        if (islandId == null || (values.isEmpty() && tables.isEmpty())) {
+            return;
+        }
+        synchronized (pendingRetryLock) {
+            while (pendingIslandBulkRetries.size() >= MAX_PENDING_BULK_RETRIES) {
+                pendingIslandBulkRetries.removeFirst();
+            }
+            pendingIslandBulkRetries.addLast(new PendingIslandBulk(islandId, copyValues(values), copyTables(tables)));
+        }
+        islandBulkRetriesQueued.incrementAndGet();
+    }
+
+    private PendingIslandBulk takePendingIslandBulkRetry(UUID islandId) {
+        synchronized (pendingRetryLock) {
+            java.util.Iterator<PendingIslandBulk> iterator = pendingIslandBulkRetries.iterator();
+            while (iterator.hasNext()) {
+                PendingIslandBulk pending = iterator.next();
+                if (pending.islandId().equals(islandId)) {
+                    iterator.remove();
+                    return pending;
+                }
+            }
+            return null;
+        }
+    }
+
+    private int pendingIslandBulkRetryCount() {
+        synchronized (pendingRetryLock) {
+            return pendingIslandBulkRetries.size();
+        }
+    }
+
+    private void queueGlobalBulkRetry(Map<String, String> values, Map<String, Map<String, String>> tables) {
+        if (values.isEmpty() && tables.isEmpty()) {
+            return;
+        }
+        synchronized (pendingRetryLock) {
+            while (pendingGlobalBulkRetries.size() >= MAX_PENDING_BULK_RETRIES) {
+                pendingGlobalBulkRetries.removeFirst();
+            }
+            pendingGlobalBulkRetries.addLast(new PendingGlobalBulk(copyValues(values), copyTables(tables)));
+        }
+        globalBulkRetriesQueued.incrementAndGet();
+    }
+
+    private PendingGlobalBulk takePendingGlobalBulkRetry() {
+        synchronized (pendingRetryLock) {
+            return pendingGlobalBulkRetries.pollFirst();
+        }
+    }
+
+    private int pendingGlobalBulkRetryCount() {
+        synchronized (pendingRetryLock) {
+            return pendingGlobalBulkRetries.size();
+        }
+    }
+
+    private Map<String, String> copyValues(Map<String, String> values) {
+        if (values == null || values.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> copy = new LinkedHashMap<>();
+        values.forEach((key, value) -> {
+            if (key != null && !key.isBlank() && value != null) {
+                copy.put(key.trim(), value);
+            }
+        });
+        return copy.isEmpty() ? Map.of() : Map.copyOf(copy);
+    }
+
+    private Map<String, String> mergeValues(Map<String, String> pending, Map<String, String> current) {
+        Map<String, String> merged = new LinkedHashMap<>();
+        merged.putAll(copyValues(pending));
+        merged.putAll(copyValues(current));
+        return merged.isEmpty() ? Map.of() : Map.copyOf(merged);
+    }
+
+    private Map<String, Map<String, String>> copyTables(Map<String, Map<String, String>> tables) {
+        if (tables == null || tables.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Map<String, String>> copy = new LinkedHashMap<>();
+        tables.forEach((table, values) -> {
+            String safeTable = tableName(table);
+            if (safeTable.isBlank()) {
+                return;
+            }
+            Map<String, String> safeValues = copyValues(values);
+            if (!safeValues.isEmpty()) {
+                copy.put(safeTable, safeValues);
+            }
+        });
+        return copy.isEmpty() ? Map.of() : Map.copyOf(copy);
+    }
+
+    private Map<String, Map<String, String>> mergeTables(Map<String, Map<String, String>> pending, Map<String, Map<String, String>> current) {
+        Map<String, Map<String, String>> merged = new LinkedHashMap<>();
+        putTables(merged, pending);
+        putTables(merged, current);
+        return copyTables(merged);
+    }
+
+    private void putTables(Map<String, Map<String, String>> target, Map<String, Map<String, String>> source) {
+        copyTables(source).forEach((table, values) -> {
+            Map<String, String> rows = new LinkedHashMap<>(target.getOrDefault(table, Map.of()));
+            rows.putAll(values);
+            target.put(table, rows);
+        });
     }
 
     private Map<String, String> flattenedState(Map<String, String> values, Map<String, Map<String, String>> tables) {
