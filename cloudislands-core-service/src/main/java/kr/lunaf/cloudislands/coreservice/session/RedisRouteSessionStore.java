@@ -60,6 +60,11 @@ public final class RedisRouteSessionStore implements RouteSessionStore {
 
     @Override
     public Optional<PlayerRouteSession> consume(UUID playerUuid, String nodeId) {
+        return consume(playerUuid, nodeId, null, null);
+    }
+
+    @Override
+    public Optional<PlayerRouteSession> consume(UUID playerUuid, String nodeId, UUID ticketId, String nonce) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             String sessionKey = key(playerUuid);
             String value = redis.command("GETDEL", sessionKey);
@@ -81,10 +86,20 @@ public final class RedisRouteSessionStore implements RouteSessionStore {
                 redis.command("SET", sessionKey, encode(session), "PX", Long.toString(ttlMillis));
                 return Optional.empty();
             }
+            if (ticketId != null && !session.ticketId().equals(ticketId)) {
+                long ttlMillis = Math.max(1L, session.expiresAt().toEpochMilli() - System.currentTimeMillis());
+                redis.command("SET", sessionKey, encode(session), "PX", Long.toString(ttlMillis));
+                return Optional.empty();
+            }
+            if (nonce != null && !session.nonce().equals(nonce)) {
+                long ttlMillis = Math.max(1L, session.expiresAt().toEpochMilli() - System.currentTimeMillis());
+                redis.command("SET", sessionKey, encode(session), "PX", Long.toString(ttlMillis));
+                return Optional.empty();
+            }
             return Optional.of(session);
         } catch (IOException | RuntimeException exception) {
             failures.incrementAndGet();
-            return fallback.consume(playerUuid, nodeId);
+            return fallback.consume(playerUuid, nodeId, ticketId, nonce);
         }
     }
 

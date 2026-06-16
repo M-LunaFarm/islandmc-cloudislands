@@ -121,15 +121,15 @@ public final class PaperRouteSessionListener implements Listener {
         PlayerRouteSession verified = verifiedSessions.remove(playerUuid);
         if (verified != null) {
             if (verified.expiresAt().isAfter(java.time.Instant.now())) {
-                consumeSession(playerUuid, 0);
+                consumeSession(playerUuid, 0, verified);
             } else if (requireRouteSession) {
                 rejectDirectJoin(playerUuid);
             } else {
-                consumeSession(playerUuid, 0);
+                consumeSession(playerUuid, 0, null);
             }
             return;
         }
-        consumeSession(playerUuid, 0);
+        consumeSession(playerUuid, 0, null);
     }
 
     @EventHandler
@@ -145,24 +145,33 @@ public final class PaperRouteSessionListener implements Listener {
         Bukkit.getScheduler().runTaskLater(plugin, () -> verifiedSessions.remove(playerUuid, session), delayTicks);
     }
 
-    private void consumeSession(java.util.UUID playerUuid, int attempt) {
+    private void consumeSession(java.util.UUID playerUuid, int attempt, PlayerRouteSession expectedSession) {
         if (attempt == 0 || attempt == 3) {
             showPreparing(playerUuid);
         }
-        coreApiClient.consumeRouteSession(playerUuid, nodeId, attempt >= 6).thenAccept(session -> {
+        java.util.concurrent.CompletableFuture<java.util.Optional<PlayerRouteSession>> consume = expectedSession == null
+            ? coreApiClient.consumeRouteSession(playerUuid, nodeId, attempt >= 6)
+            : coreApiClient.consumeRouteSession(playerUuid, nodeId, expectedSession.ticketId(), expectedSession.nonce(), attempt >= 6);
+        consume.thenAccept(session -> {
             if (session.isPresent()) {
                 var value = session.get();
+                if (expectedSession != null && !sameVerifiedSession(value, expectedSession)) {
+                    if (requireRouteSession) {
+                        rejectDirectJoin(playerUuid);
+                    }
+                    return;
+                }
                 ticketConsumer.consumeAndTeleport(value.ticketId(), value.playerUuid(), value.nonce());
                 return;
             }
             if (attempt < 6) {
-                Bukkit.getScheduler().runTaskLater(plugin, () -> consumeSession(playerUuid, attempt + 1), 10L);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> consumeSession(playerUuid, attempt + 1, expectedSession), 10L);
             } else if (requireRouteSession) {
                 rejectDirectJoin(playerUuid);
             }
         }).exceptionally(error -> {
             if (attempt < 6) {
-                Bukkit.getScheduler().runTaskLater(plugin, () -> consumeSession(playerUuid, attempt + 1), 10L);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> consumeSession(playerUuid, attempt + 1, expectedSession), 10L);
             } else if (requireRouteSession) {
                 rejectDirectJoin(playerUuid);
             } else {
@@ -175,6 +184,13 @@ public final class PaperRouteSessionListener implements Listener {
             }
             return null;
         });
+    }
+
+    private boolean sameVerifiedSession(PlayerRouteSession consumed, PlayerRouteSession expected) {
+        return consumed.playerUuid().equals(expected.playerUuid())
+            && consumed.ticketId().equals(expected.ticketId())
+            && consumed.targetNode().equals(expected.targetNode())
+            && consumed.nonce().equals(expected.nonce());
     }
 
     private void showPreparing(java.util.UUID playerUuid) {

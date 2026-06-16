@@ -1448,8 +1448,12 @@ public final class CloudIslandsCoreApplication {
             String body = readBody(exchange);
             UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
             String nodeId = JsonFields.text(body, "nodeId", "");
+            String ticketIdText = JsonFields.text(body, "ticketId", "");
+            String nonce = JsonFields.text(body, "nonce", "");
             boolean reportMissing = JsonFields.bool(body, "reportMissing", true);
-            PlayerRouteSession session = sessions.consume(playerUuid, nodeId).orElse(null);
+            PlayerRouteSession session = ticketIdText.isBlank() && nonce.isBlank()
+                ? sessions.consume(playerUuid, nodeId).orElse(null)
+                : sessions.consume(playerUuid, nodeId, JsonFields.uuid(body, "ticketId", new UUID(0L, 0L)), nonce).orElse(null);
             if (session != null) {
                 audit.log(session.playerUuid(), "PLAYER", "ROUTE_SESSION_CONSUME", "ROUTE", session.ticketId().toString(), Map.of(
                     "targetNode", session.targetNode(),
@@ -1469,11 +1473,11 @@ public final class CloudIslandsCoreApplication {
                         "ticketId", existing.ticketId().toString(),
                         "targetNode", existing.targetNode(),
                         "requestedNode", nodeId,
-                        "reason", "SESSION_NODE_MISMATCH"
+                        "reason", ticketIdText.isBlank() && nonce.isBlank() ? "SESSION_NODE_MISMATCH" : "SESSION_EXACT_MISMATCH"
                     ));
                 audit.log(playerUuid, "PLAYER", "ROUTE_SESSION_CONSUME_FAILED", "ROUTE", existing == null ? "" : existing.ticketId().toString(), existing == null
                     ? Map.of("targetNode", nodeId, "reason", "SESSION_NOT_FOUND")
-                    : Map.of("targetNode", existing.targetNode(), "requestedNode", nodeId, "reason", "SESSION_NODE_MISMATCH"));
+                    : Map.of("targetNode", existing.targetNode(), "requestedNode", nodeId, "reason", ticketIdText.isBlank() && nonce.isBlank() ? "SESSION_NODE_MISMATCH" : "SESSION_EXACT_MISMATCH"));
             }
             write(exchange, session == null ? 404 : 200, session == null ? "" : sessionJson(session));
         });
