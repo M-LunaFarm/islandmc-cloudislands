@@ -83,6 +83,26 @@ public final class DirtySaveService {
         return task != null;
     }
 
+    public int pendingMachines() {
+        return machines.size();
+    }
+
+    public int pendingInventories() {
+        return inventories.size();
+    }
+
+    public int pendingNodes() {
+        return nodes.size();
+    }
+
+    public int pendingIslands() {
+        return islands.size();
+    }
+
+    public int pendingWrites() {
+        return pendingMachines() + pendingInventories() + pendingNodes() + pendingIslands();
+    }
+
     public void discard() {
         if (task != null) {
             task.cancel();

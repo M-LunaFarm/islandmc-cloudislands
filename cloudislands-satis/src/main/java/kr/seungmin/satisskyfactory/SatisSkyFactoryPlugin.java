@@ -438,6 +438,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-machine-ticker-running", Boolean.toString(ticker != null && ticker.running()));
         state.put("runtime-maintenance-ticker-running", Boolean.toString(maintenanceTicker != null && maintenanceTicker.running()));
         state.put("runtime-dirty-save-running", Boolean.toString(dirtySaves != null && dirtySaves.running()));
+        state.put("runtime-dirty-save-pending-writes", dirtySaves == null ? "0" : Integer.toString(dirtySaves.pendingWrites()));
+        state.put("runtime-dirty-save-pending-machines", dirtySaves == null ? "0" : Integer.toString(dirtySaves.pendingMachines()));
+        state.put("runtime-dirty-save-pending-inventories", dirtySaves == null ? "0" : Integer.toString(dirtySaves.pendingInventories()));
+        state.put("runtime-dirty-save-pending-nodes", dirtySaves == null ? "0" : Integer.toString(dirtySaves.pendingNodes()));
+        state.put("runtime-dirty-save-pending-islands", dirtySaves == null ? "0" : Integer.toString(dirtySaves.pendingIslands()));
         state.put("runtime-machine-ticker-gate", "addonRuntimeEnabled&&features.machines");
         state.put("runtime-maintenance-ticker-gate", "addonRuntimeEnabled&&features.maintenance");
         state.put("runtime-dirty-save-gate", "addonRuntimeEnabled&&any-write-feature-enabled");
