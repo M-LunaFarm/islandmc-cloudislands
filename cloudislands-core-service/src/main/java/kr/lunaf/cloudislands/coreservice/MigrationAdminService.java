@@ -518,7 +518,18 @@ public final class MigrationAdminService {
         MigrationRunState state = passed ? MigrationRunState.VERIFIED : MigrationRunState.VERIFYING;
         Path reportPath = migrationReportPath("verify");
         try {
-            writeMigrationReportFile(state.name(), reportPath, MigrationReportBuilder.build(lastScan.manifests(), issues));
+            writeMigrationReportFile(state.name(), reportPath, MigrationReportBuilder.build(lastScan.manifests(), issues),
+                ",\"path\":\"" + escape(verifyBundleRoot.toString()) + "\""
+                + ",\"passed\":" + passed
+                + ",\"expected\":" + lastScan.manifests().size()
+                + ",\"imported\":" + imported.size()
+                + ",\"extractedBundles\":" + extractedBundles
+                + ",\"extractedFiles\":" + extractedFiles
+                + ",\"extractedBytes\":" + extractedBytes
+                + ",\"activationTested\":" + activationTested
+                + ",\"activationTestPassed\":" + activationTestPassed
+                + ",\"migrationChecksumPolicy\":\"sha256-every-extracted-world-bundle-and-verify-against-imported-snapshot\""
+                + ",\"migrationActivationTestPolicy\":\"verify-can-run-cloudislands-activation-test-without-superiorskyblock2-runtime-dependency\"");
         } catch (java.io.IOException exception) {
             issues.add(new MigrationIssue("MIGRATION_REPORT_WRITE_FAILED", exception.getMessage(), true));
             passed = false;
@@ -726,11 +737,19 @@ public final class MigrationAdminService {
     }
 
     private void writeMigrationReportFile(String state, Path reportPath, MigrationReport report) throws java.io.IOException {
+        writeMigrationReportFile(state, reportPath, report, "");
+    }
+
+    private void writeMigrationReportFile(String state, Path reportPath, MigrationReport report, String extraFields) throws java.io.IOException {
         Files.createDirectories(reportPath.getParent());
-        Files.writeString(reportPath, migrationReportJson(state, report), StandardCharsets.UTF_8);
+        Files.writeString(reportPath, migrationReportJson(state, report, extraFields), StandardCharsets.UTF_8);
     }
 
     private String migrationReportJson(String state, MigrationReport report) {
+        return migrationReportJson(state, report, "");
+    }
+
+    private String migrationReportJson(String state, MigrationReport report, String extraFields) {
         return "{\"state\":\"" + escape(state) + "\","
             + "\"generatedAt\":\"" + Instant.now() + "\","
             + "\"manifests\":" + report.manifests() + ','
@@ -759,7 +778,9 @@ public final class MigrationAdminService {
             + "\"conflictStatus\":\"" + escape(report.conflictStatus()) + "\","
             + "\"blockingIssues\":" + report.blockingIssues() + ','
             + "\"warningIssues\":" + report.warningIssues() + ','
-            + "\"canImport\":" + report.canImport() + ','
+            + "\"canImport\":" + report.canImport()
+            + (extraFields == null ? "" : extraFields)
+            + ','
             + "\"issues\":" + issuesJson(report.issues())
             + "}";
     }
