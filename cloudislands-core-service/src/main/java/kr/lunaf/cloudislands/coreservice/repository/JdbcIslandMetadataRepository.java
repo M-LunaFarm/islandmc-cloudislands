@@ -106,16 +106,23 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     @Override
     public IslandInviteSnapshot createInvite(UUID islandId, UUID inviterUuid, UUID targetUuid) {
         UUID inviteId = UUID.randomUUID();
-        Instant expiresAt = Instant.now().plusSeconds(86400);
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_invites(id, island_id, inviter_uuid, target_uuid, state, expires_at) VALUES (?, ?, ?, ?, 'PENDING', ?)")) {
-            statement.setObject(1, inviteId);
-            statement.setObject(2, islandId);
-            statement.setObject(3, inviterUuid);
-            statement.setObject(4, targetUuid);
-            statement.setObject(5, expiresAt);
-            statement.executeUpdate();
-            return new IslandInviteSnapshot(inviteId, islandId, inviterUuid, targetUuid, "PENDING", Instant.now(), expiresAt);
+        Instant now = Instant.now();
+        Instant expiresAt = now.plusSeconds(86400);
+        try (Connection connection = dataSource.getConnection()) {
+            try (PreparedStatement expire = connection.prepareStatement("UPDATE island_invites SET state = 'EXPIRED' WHERE island_id = ? AND target_uuid = ? AND state = 'PENDING'")) {
+                expire.setObject(1, islandId);
+                expire.setObject(2, targetUuid);
+                expire.executeUpdate();
+            }
+            try (PreparedStatement statement = connection.prepareStatement("INSERT INTO island_invites(id, island_id, inviter_uuid, target_uuid, state, expires_at) VALUES (?, ?, ?, ?, 'PENDING', ?)")) {
+                statement.setObject(1, inviteId);
+                statement.setObject(2, islandId);
+                statement.setObject(3, inviterUuid);
+                statement.setObject(4, targetUuid);
+                statement.setObject(5, expiresAt);
+                statement.executeUpdate();
+                return new IslandInviteSnapshot(inviteId, islandId, inviterUuid, targetUuid, "PENDING", now, expiresAt);
+            }
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to create island invite", exception);
         }
