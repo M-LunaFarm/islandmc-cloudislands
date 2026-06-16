@@ -99,6 +99,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIslandsAddon {
     private static final String ADDON_ID = "cloudislands-satis";
+    private static final List<String> FORBIDDEN_SKYBLOCK_RUNTIME_PROVIDERS = List.of("SuperiorSkyblock2", "BentoBox", "ASkyBlock");
     private static final Map<String, String> FEATURE_ALIASES = Map.of(
             "factories", "machines",
             "generators", "resource-nodes",
@@ -177,6 +178,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return;
         }
         configureSkyblockHook();
+        warnIfForbiddenSkyblockRuntimeProvidersPresent();
 
         databaseFallbackReason = "none";
         DatabaseService.Settings settings = databaseSettings();
@@ -359,6 +361,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-superior-runtime-dependency", "false");
         state.put("runtime-superior-runtime-policy", "migration-input-only-no-runtime-hooks");
         state.put("runtime-forbidden-skyblock-providers", "SuperiorSkyblock2,BentoBox,ASkyBlock");
+        state.put("runtime-forbidden-skyblock-providers-present", forbiddenSkyblockRuntimeProvidersPresent());
+        state.put("runtime-forbidden-skyblock-provider-policy", "ignored-for-runtime-migration-input-only");
         state.put("runtime-legacy-provider-lookup", "disabled");
         state.put("runtime-migration-source-policy", "read-only-snapshot-or-sqlite-import-no-live-provider-hooks");
         state.put("runtime-addon-state-gate", "addonRuntimeEnabled&&features.addon-state&&CloudIslandsApi");
@@ -4573,6 +4577,22 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 + " (sections=" + databaseSetupSectionsMetadata()
                 + ", warning=" + warning
                 + "). Set setup.database.type to POSTGRESQL, MYSQL, MARIADB, or CORE_API.");
+    }
+
+    private void warnIfForbiddenSkyblockRuntimeProvidersPresent() {
+        String providers = forbiddenSkyblockRuntimeProvidersPresent();
+        if (providers.equals("none")) {
+            return;
+        }
+        getLogger().warning("CloudIslands Satis detected legacy skyblock plugins (" + providers
+                + ") but will not hook them at runtime. They are allowed only as offline migration input.");
+    }
+
+    private String forbiddenSkyblockRuntimeProvidersPresent() {
+        List<String> present = FORBIDDEN_SKYBLOCK_RUNTIME_PROVIDERS.stream()
+                .filter(provider -> getServer().getPluginManager().isPluginEnabled(provider))
+                .toList();
+        return present.isEmpty() ? "none" : String.join(",", present);
     }
 
     private void warnIfUnsafeDatabaseFallbackChain() {
