@@ -31,7 +31,7 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
     @Override
     public void publish(IslandJob job) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_jobs(id, job_type, island_id, target_node, state, priority, request_id, payload, created_at, updated_at) VALUES (?, ?, ?, ?, 'PENDING', ?, ?, CAST(? AS jsonb), ?, now()) ON CONFLICT (request_id) DO NOTHING")) {
+             PreparedStatement statement = connection.prepareStatement(publishSql(connection))) {
             statement.setObject(1, job.jobId());
             statement.setString(2, job.type().name());
             statement.setObject(3, job.islandId());
@@ -54,10 +54,13 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
             List<IslandJob> claimed = new ArrayList<>();
-            try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM island_jobs WHERE state = 'PENDING' AND (target_node IS NULL OR target_node = '' OR target_node = ?) AND job_type = ANY (?) ORDER BY priority DESC, created_at ASC LIMIT ? FOR UPDATE SKIP LOCKED")) {
+            try (PreparedStatement statement = connection.prepareStatement(claimSql(supportedTypes))) {
                 statement.setString(1, nodeId);
-                statement.setArray(2, connection.createArrayOf("varchar", supportedTypes.stream().map(Enum::name).toArray(String[]::new)));
-                statement.setInt(3, maxJobs);
+                int index = 2;
+                for (IslandJobType type : supportedTypes) {
+                    statement.setString(index++, type.name());
+                }
+                statement.setInt(index, maxJobs);
                 try (ResultSet rs = statement.executeQuery()) {
                     while (rs.next()) {
                         IslandJob job = map(rs);
@@ -112,7 +115,7 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
         List<String> recovered = new ArrayList<>();
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
-            try (PreparedStatement statement = connection.prepareStatement("SELECT id FROM island_jobs WHERE state = 'CLAIMED' AND locked_until IS NOT NULL AND locked_until < now() AND updated_at <= ? ORDER BY updated_at ASC LIMIT ? FOR UPDATE SKIP LOCKED")) {
+            try (PreparedStatement statement = connection.prepareStatement("SELECT id FROM island_jobs WHERE state = 'CLAIMED' AND locked_until IS NOT NULL AND locked_until < now() AND updated_at <= ? ORDER BY updated_at ASC LIMIT ? FOR UPDATE")) {
                 statement.setObject(1, java.sql.Timestamp.from(staleBefore));
                 statement.setInt(2, maxJobs);
                 try (ResultSet rs = statement.executeQuery()) {
@@ -219,6 +222,26 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
             statement.setObject(3, jobId);
             statement.executeUpdate();
         }
+    }
+
+    private String publishSql(Connection connection) throws SQLException {
+        String payloadValue = mysqlLike(connection) ? "?" : "CAST(? AS jsonb)";
+        String insert = "INSERT INTO island_jobs(id, job_type, island_id, target_node, state, priority, request_id, payload, created_at, updated_at) VALUES (?, ?, ?, ?, 'PENDING', ?, ?, " + payloadValue + ", ?, now())";
+        if (mysqlLike(connection)) {
+            return insert + " ON DUPLICATE KEY UPDATE request_id = request_id";
+        }
+        return insert + " ON CONFLICT (request_id) DO NOTHING";
+    }
+
+    private String claimSql(List<IslandJobType> supportedTypes) {
+        String placeholders = supportedTypes.stream().map(_type -> "?").collect(java.util.stream.Collectors.joining(","));
+        return "SELECT * FROM island_jobs WHERE state = 'PENDING' AND (target_node IS NULL OR target_node = '' OR target_node = ?) AND job_type IN (" + placeholders + ") ORDER BY priority DESC, created_at ASC LIMIT ? FOR UPDATE";
+    }
+
+    private boolean mysqlLike(Connection connection) throws SQLException {
+        String product = connection.getMetaData().getDatabaseProductName();
+        String normalized = product == null ? "" : product.toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains("mysql") || normalized.contains("mariadb");
     }
 
     private boolean updateState(String nodeId, UUID jobId, String state, String errorMessage) {
