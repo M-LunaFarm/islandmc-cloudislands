@@ -371,6 +371,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-forbidden-skyblock-providers", "SuperiorSkyblock2,BentoBox,ASkyBlock");
         state.put("runtime-forbidden-skyblock-providers-present", forbiddenSkyblockRuntimeProvidersPresent());
         state.put("runtime-forbidden-skyblock-provider-policy", "ignored-for-runtime-migration-input-only");
+        state.put("runtime-forbidden-skyblock-provider-action", "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes");
         state.put("runtime-legacy-provider-lookup", "disabled");
         state.put("runtime-migration-source-policy", "read-only-snapshot-or-sqlite-import-no-live-provider-hooks");
         state.put("runtime-addon-state-gate", "addonRuntimeEnabled&&features.addon-state&&CloudIslandsApi");
@@ -1525,6 +1526,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("superior-migration-input-only", "true"),
                 Map.entry("superior-runtime-dependency", "false"),
                 Map.entry("forbidden-skyblock-runtime-dependencies", "SuperiorSkyblock2,BentoBox,ASkyBlock"),
+                Map.entry("forbidden-skyblock-runtime-action", "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes"),
                 Map.entry("legacy-provider-lookup", "disabled"),
                 Map.entry("migration-source-policy", "read-only-snapshot-or-sqlite-import-no-live-provider-hooks"),
                 Map.entry("cloudislands-api-only", "true"),

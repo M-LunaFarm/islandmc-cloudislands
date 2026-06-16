@@ -50,7 +50,9 @@ tasks.jar {
             "CloudIslands-Satis-Legacy-Migration-Rollback" to "sqlite-snapshot-restore-or-manual-shared-backend-restore",
             "CloudIslands-Addon-API-Only" to "true",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
-            "SuperiorSkyblock2-Runtime-Dependency" to "false"
+            "SuperiorSkyblock2-Runtime-Dependency" to "false",
+            "CloudIslands-Satis-Forbidden-Skyblock-Runtime-Providers" to "SuperiorSkyblock2,BentoBox,ASkyBlock",
+            "CloudIslands-Satis-Forbidden-Skyblock-Runtime-Action" to "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes"
         )
     }
     from(configurations.runtimeClasspath.get().map {

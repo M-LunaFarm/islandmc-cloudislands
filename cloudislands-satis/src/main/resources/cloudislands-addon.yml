@@ -135,6 +135,7 @@ superiorskyblock2:
     - SuperiorSkyblock2
     - BentoBox
     - ASkyBlock
+  forbidden-runtime-action: warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes
   provider-lookup-policy: disabled-at-runtime
   migration-source-policy: read-only-snapshot-or-sqlite-import-no-live-provider-hooks
   replacement-api: CloudIslands API
