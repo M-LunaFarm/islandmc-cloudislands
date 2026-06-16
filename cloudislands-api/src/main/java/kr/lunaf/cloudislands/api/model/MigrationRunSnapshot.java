@@ -83,4 +83,32 @@ public record MigrationRunSnapshot(
     ) {
         this(state, path, "", "", "", "", manifests, canImport, imported, importedIslands, passed, expected, rolledBack, removedIslands, false, false, 0, 0L, 0L, 0, 0, members, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, blockValues, blockCounts, blockingIssues, warningIssues, issues);
     }
+
+    public boolean hasBlockingIssues() {
+        return blockingIssues > 0 || (issues != null && issues.stream().anyMatch(MigrationIssueSnapshot::blocking));
+    }
+
+    public boolean activationTestComplete() {
+        return activationTested > 0 && activationTested == activationTestPassed;
+    }
+
+    public boolean extractionComplete() {
+        return manifests > 0 && extractedBundles >= manifests;
+    }
+
+    public boolean importComplete() {
+        return imported && importedIslands >= manifests && !hasBlockingIssues();
+    }
+
+    public boolean verifyComplete() {
+        return passed && expected > 0 && activationTestComplete() && !hasBlockingIssues();
+    }
+
+    public boolean rollbackReady() {
+        return rollbackPlanAvailable && !rollbackPlanConsumed;
+    }
+
+    public boolean rollbackComplete() {
+        return rolledBack && removedIslands > 0 && rollbackPlanConsumed;
+    }
 }
