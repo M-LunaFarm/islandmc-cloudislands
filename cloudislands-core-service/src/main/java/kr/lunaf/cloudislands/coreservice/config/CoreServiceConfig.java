@@ -120,6 +120,68 @@ public record CoreServiceConfig(
         return "JDBC".equalsIgnoreCase(repositoryMode) && coreJdbcSupported(jdbcUrl);
     }
 
+    public boolean setupDatabaseDurable() {
+        return coreJdbcSupported(jdbcUrl);
+    }
+
+    public boolean setupDatabaseFallbackActive() {
+        String requested = normalizeDatabaseType(configuredDatabaseType);
+        String effective = jdbcUrlDatabaseType(jdbcUrl);
+        if (coreJdbcSupported(jdbcUrl)) {
+            return !requested.equals(effective) && !"UNKNOWN".equals(requested);
+        }
+        return !coreJdbcTypeSupported(requested);
+    }
+
+    public String setupDatabaseRequestedBackend() {
+        return normalizeDatabaseType(configuredDatabaseType);
+    }
+
+    public String setupDatabaseEffectiveAuthority() {
+        String requested = normalizeDatabaseType(configuredDatabaseType);
+        String effective = jdbcUrlDatabaseType(jdbcUrl);
+        if (coreJdbcSupported(jdbcUrl)) {
+            if (!requested.equals(effective) && !"UNKNOWN".equals(requested)) {
+                return effective + "_JDBC_FALLBACK_FOR_" + requested;
+            }
+            return effective + "_JDBC";
+        }
+        if ("CORE_API".equals(requested)) {
+            return "CORE_API_CLIENT_MODE_NO_CORE_SELF_STORAGE";
+        }
+        return "SAFE_IN_MEMORY_CORE_FALLBACK";
+    }
+
+    public String setupDatabaseFallbackTarget() {
+        String requested = normalizeDatabaseType(configuredDatabaseType);
+        String effective = jdbcUrlDatabaseType(jdbcUrl);
+        if (coreJdbcSupported(jdbcUrl) && !requested.equals(effective) && !"UNKNOWN".equals(requested)) {
+            return effective;
+        }
+        if (!coreJdbcTypeSupported(requested)) {
+            return "IN_MEMORY";
+        }
+        return "NONE";
+    }
+
+    public String setupDatabaseFallbackReason() {
+        String requested = normalizeDatabaseType(configuredDatabaseType);
+        if (coreJdbcSupported(jdbcUrl)) {
+            String effective = jdbcUrlDatabaseType(jdbcUrl);
+            if (!requested.equals(effective) && !"UNKNOWN".equals(requested)) {
+                return "requested-" + requested.toLowerCase(Locale.ROOT) + "-uses-" + effective.toLowerCase(Locale.ROOT) + "-core-jdbc-fallback";
+            }
+            return "native-postgresql-core-jdbc";
+        }
+        if ("CORE_API".equals(requested)) {
+            return "core-api-is-client-facing-selection-not-core-service-self-storage";
+        }
+        if ("MYSQL".equals(requested) || "MARIADB".equals(requested)) {
+            return "core-service-jdbc-repositories-are-postgresql-only";
+        }
+        return "unsupported-or-missing-database-setup";
+    }
+
     public boolean redisJobs() {
         return "REDIS".equalsIgnoreCase(jobQueueMode);
     }
