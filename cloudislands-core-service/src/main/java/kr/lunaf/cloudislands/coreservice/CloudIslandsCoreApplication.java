@@ -2778,7 +2778,7 @@ public final class CloudIslandsCoreApplication {
             + "\"coreSetupDatabasePrimaryAuthority\":\"POSTGRESQL_MYSQL_MARIADB_FOR_CORE_STATE_CORE_API_FOR_CLIENT_ADDON_STATE\","
             + "\"coreSetupDatabaseMysqlPolicy\":\"native-core-jdbc-through-setup.database.mysql-or-jdbc-url\","
             + "\"coreSetupDatabaseMariadbPolicy\":\"native-core-jdbc-through-setup.database.mariadb-or-jdbc-url\","
-            + "\"coreSetupDatabaseCoreApiPolicy\":\"client-addon-state-mode-no-core-service-self-storage-loop\","
+            + "\"coreSetupDatabaseCoreApiPolicy\":\"client-addon-state-marker-core-self-storage-requires-durable-jdbc-or-safe-in-memory-fallback\","
             + "\"coreSetupDatabaseSafeFallbackWarning\":\"IN_MEMORY_CORE_FALLBACK_IS_STARTUP_SAFE_BUT_NOT_PRODUCTION_DURABLE\","
             + "\"coreSetupDatabaseConfigLoader\":\"yaml-nested-dotted-path\","
             + "\"coreSetupDatabaseResolvedPathExamples\":\"setup.database.type,setup.database.postgresql.jdbc-url,setup.database.postgresql.username,setup.database.mysql.host,setup.database.mysql.password,setup.database.mariadb.pool-size,setup.database.core-api.enabled\","
