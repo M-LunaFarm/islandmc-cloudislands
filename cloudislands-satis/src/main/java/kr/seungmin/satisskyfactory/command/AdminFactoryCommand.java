@@ -641,6 +641,9 @@ public final class AdminFactoryCommand {
         state.put("satis-storage-key", "cloudislands-island-uuid");
         state.put("superior-migration-input-only", "true");
         state.put("superior-runtime-dependency", "false");
+        state.put("superior-forbidden-runtime-dependencies", "SuperiorSkyblock2,BentoBox,ASkyBlock");
+        state.put("superior-provider-lookup", "disabled-at-runtime");
+        state.put("superior-migration-source-policy", "read-only-snapshot-or-sqlite-import-no-live-provider-hooks");
         state.put("superior-import-scan", "/ciadmin migrate-superiorskyblock2 scan [path]");
         state.put("superior-import-dryrun", "/ciadmin migrate-superiorskyblock2 dryrun [path]");
         state.put("superior-import-import", "/ciadmin migrate-superiorskyblock2 import <approvalToken>");
@@ -1047,6 +1050,9 @@ public final class AdminFactoryCommand {
                         "runtime-superior-migration-input-only",
                         "runtime-superior-runtime-dependency",
                         "runtime-superior-runtime-policy",
+                        "runtime-forbidden-skyblock-providers",
+                        "runtime-legacy-provider-lookup",
+                        "runtime-migration-source-policy",
                         "runtime-addon-state-gate",
                         "runtime-addon-state-status",
                         "runtime-addon-state-policy",

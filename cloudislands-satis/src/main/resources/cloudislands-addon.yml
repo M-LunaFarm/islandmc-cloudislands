@@ -120,6 +120,13 @@ superiorskyblock2:
   migration-input-only: true
   runtime-dependency: false
   runtime-policy: migration-input-only-no-runtime-hooks
+  forbidden-runtime-dependencies:
+    - SuperiorSkyblock2
+    - BentoBox
+    - ASkyBlock
+  provider-lookup-policy: disabled-at-runtime
+  migration-source-policy: read-only-snapshot-or-sqlite-import-no-live-provider-hooks
+  replacement-api: CloudIslands API
 migration:
   legacy-satismc:
     source: sqlite
