@@ -13,6 +13,7 @@ public record AddonStateBulkSaveRequest(
 ) {
     private static final String TABLE_STATE_KEY_PREFIX = "table/";
     private static final int MAX_KEY_LENGTH = 128;
+    private static final int MAX_VALUE_LENGTH = 65535;
 
     public AddonStateBulkSaveRequest {
         addonId = addonId == null ? "" : addonId.trim();
@@ -61,7 +62,7 @@ public record AddonStateBulkSaveRequest(
         source.forEach((key, value) -> {
             String safeKey = safeRootKey(key);
             if (!safeKey.isBlank()) {
-                copy.put(safeKey, value == null ? "" : value);
+                copy.put(safeKey, safeValue(value));
             }
         });
         return Map.copyOf(copy);
@@ -75,7 +76,7 @@ public record AddonStateBulkSaveRequest(
         source.forEach((key, value) -> {
             String safeKey = safeTableKey(key);
             if (!safeKey.isBlank() && tableKeyLength(table, safeKey) <= MAX_KEY_LENGTH) {
-                copy.put(safeKey, value == null ? "" : value);
+                copy.put(safeKey, safeValue(value));
             }
         });
         return Map.copyOf(copy);
@@ -124,5 +125,10 @@ public record AddonStateBulkSaveRequest(
 
     private static int tableKeyLength(String table, String key) {
         return TABLE_STATE_KEY_PREFIX.length() + table.length() + 1 + key.length();
+    }
+
+    private static String safeValue(String value) {
+        String safe = value == null ? "" : value;
+        return safe.length() > MAX_VALUE_LENGTH ? safe.substring(0, MAX_VALUE_LENGTH) : safe;
     }
 }
