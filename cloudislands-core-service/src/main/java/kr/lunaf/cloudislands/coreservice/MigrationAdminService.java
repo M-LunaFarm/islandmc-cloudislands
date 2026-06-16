@@ -474,6 +474,7 @@ public final class MigrationAdminService {
         long extractedBytes = 0L;
         int activationTested = 0;
         int activationTestPassed = 0;
+        String activationTestMode = activationTester == null ? "unavailable" : "cloudislands-lifecycle-preflight";
         for (MigrationManifest manifest : lastScan.manifests()) {
             IslandSnapshot island = islands.findById(manifest.islandId()).orElse(null);
             if (island == null) {
@@ -519,11 +520,7 @@ public final class MigrationAdminService {
             }
             if (activationTester == null) {
                 activationTested++;
-                if (matched && worldBundleVerified) {
-                    activationTestPassed++;
-                } else {
-                    matched &= expect(issues, false, "ACTIVATION_PREFLIGHT_FAILED", "activation preflight failed " + manifest.islandId());
-                }
+                matched &= expect(issues, false, "ACTIVATION_TEST_UNAVAILABLE", "CloudIslands activation tester is unavailable for " + manifest.islandId());
             } else {
                 activationTested++;
                 IslandLifecycleWorkflow.Result activation = activationTester.activationPreflight(manifest.islandId());
@@ -553,6 +550,8 @@ public final class MigrationAdminService {
                 + ",\"extractedBytes\":" + extractedBytes
                 + ",\"activationTested\":" + activationTested
                 + ",\"activationTestPassed\":" + activationTestPassed
+                + ",\"activationTestMode\":\"" + activationTestMode + "\""
+                + ",\"activationLifecycleTesterAvailable\":" + (activationTester != null)
                 + ",\"migrationChecksumPolicy\":\"sha256-every-extracted-world-bundle-and-verify-against-imported-snapshot\""
                 + ",\"migrationActivationTestPolicy\":\"verify-can-run-cloudislands-activation-test-without-superiorskyblock2-runtime-dependency\"");
         } catch (java.io.IOException exception) {
@@ -560,7 +559,7 @@ public final class MigrationAdminService {
             passed = false;
             state = MigrationRunState.VERIFYING;
         }
-        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"path\":\"" + escape(verifyBundleRoot.toString()) + "\",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"passed\":" + passed + ",\"expected\":" + lastScan.manifests().size() + ",\"imported\":" + imported.size() + ",\"extractedBundles\":" + extractedBundles + ",\"extractedFiles\":" + extractedFiles + ",\"extractedBytes\":" + extractedBytes + ",\"activationTested\":" + activationTested + ",\"activationTestPassed\":" + activationTestPassed + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"path\":\"" + escape(verifyBundleRoot.toString()) + "\",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"passed\":" + passed + ",\"expected\":" + lastScan.manifests().size() + ",\"imported\":" + imported.size() + ",\"extractedBundles\":" + extractedBundles + ",\"extractedFiles\":" + extractedFiles + ",\"extractedBytes\":" + extractedBytes + ",\"activationTested\":" + activationTested + ",\"activationTestPassed\":" + activationTestPassed + ",\"activationTestMode\":\"" + activationTestMode + "\",\"activationLifecycleTesterAvailable\":" + (activationTester != null) + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
     }
 
     public synchronized String rollbackLastImport() {
