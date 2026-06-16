@@ -31,7 +31,7 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
         ticket = sanitizeTicket(ticket);
         try (Connection connection = dataSource.getConnection()) {
             expireActiveTicketsForPlayer(connection, ticket);
-            try (PreparedStatement statement = connection.prepareStatement("INSERT INTO route_tickets(id, player_uuid, island_id, action, target_node, target_world, state, nonce, payload, expires_at, consumed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb), ?, ?) ON CONFLICT (id) DO UPDATE SET player_uuid = EXCLUDED.player_uuid, island_id = EXCLUDED.island_id, action = EXCLUDED.action, target_node = EXCLUDED.target_node, target_world = EXCLUDED.target_world, state = EXCLUDED.state, nonce = EXCLUDED.nonce, payload = EXCLUDED.payload, expires_at = EXCLUDED.expires_at, consumed_at = EXCLUDED.consumed_at")) {
+            try (PreparedStatement statement = connection.prepareStatement(saveSql(connection))) {
                 bind(statement, ticket, ticket.state() == RouteTicketState.CONSUMED ? clock.instant() : null);
                 statement.executeUpdate();
                 return ticket;
@@ -39,6 +39,21 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to save route ticket", exception);
         }
+    }
+
+    private String saveSql(Connection connection) throws SQLException {
+        String payloadValue = mysqlLike(connection) ? "?" : "CAST(? AS jsonb)";
+        String insert = "INSERT INTO route_tickets(id, player_uuid, island_id, action, target_node, target_world, state, nonce, payload, expires_at, consumed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, " + payloadValue + ", ?, ?)";
+        if (mysqlLike(connection)) {
+            return insert + " ON DUPLICATE KEY UPDATE player_uuid = VALUES(player_uuid), island_id = VALUES(island_id), action = VALUES(action), target_node = VALUES(target_node), target_world = VALUES(target_world), state = VALUES(state), nonce = VALUES(nonce), payload = VALUES(payload), expires_at = VALUES(expires_at), consumed_at = VALUES(consumed_at)";
+        }
+        return insert + " ON CONFLICT (id) DO UPDATE SET player_uuid = EXCLUDED.player_uuid, island_id = EXCLUDED.island_id, action = EXCLUDED.action, target_node = EXCLUDED.target_node, target_world = EXCLUDED.target_world, state = EXCLUDED.state, nonce = EXCLUDED.nonce, payload = EXCLUDED.payload, expires_at = EXCLUDED.expires_at, consumed_at = EXCLUDED.consumed_at";
+    }
+
+    private boolean mysqlLike(Connection connection) throws SQLException {
+        String product = connection.getMetaData().getDatabaseProductName();
+        String normalized = product == null ? "" : product.toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains("mysql") || normalized.contains("mariadb");
     }
 
     private void expireActiveTicketsForPlayer(Connection connection, RouteTicket ticket) throws SQLException {
