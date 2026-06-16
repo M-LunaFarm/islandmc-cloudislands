@@ -446,6 +446,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-machine-ticker-gate", "addonRuntimeEnabled&&features.machines");
         state.put("runtime-maintenance-ticker-gate", "addonRuntimeEnabled&&features.maintenance");
         state.put("runtime-dirty-save-gate", "addonRuntimeEnabled&&any-write-feature-enabled");
+        state.put("runtime-dirty-save-stop-policy", "runtime-stop-discards-queued-dirty-state-after-explicit-preflush-paths");
         state.put("runtime-duplicate-tick-guard", "ticker-stops-when-addon-or-machine-feature-disabled");
         state.put("runtime-core-api-state-writer", Boolean.toString(coreApiState != null));
         state.put("runtime-core-api-state-failures", coreApiState == null ? "0" : Long.toString(coreApiState.coreStateFailures()));

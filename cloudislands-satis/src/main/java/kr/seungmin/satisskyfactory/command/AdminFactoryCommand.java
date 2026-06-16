@@ -1193,6 +1193,7 @@ public final class AdminFactoryCommand {
                         "runtime-machine-ticker-gate",
                         "runtime-maintenance-ticker-gate",
                         "runtime-dirty-save-gate",
+                        "runtime-dirty-save-stop-policy",
                         "runtime-duplicate-tick-guard",
                         "runtime-core-api-state-writer",
                         "runtime-core-api-state-failures",
