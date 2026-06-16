@@ -946,6 +946,10 @@ public final class AdminFactoryCommand {
             state.put("next-step", result.nextStep());
             state.put("automatic-delete", "false");
             state.put("reason", rollbackReason(result));
+            state.put("target-backend", database.activeBackend().name());
+            state.put("core-api-rollback-policy", database.activeBackend() == DatabaseService.StorageBackend.CORE_API
+                    ? "restore-local-cache-then-publish-addon-state"
+                    : "not-required-for-" + database.activeBackend().name());
         } catch (RuntimeException exception) {
             state.put("mode", "rollback-failed");
             state.put("restored", "false");
@@ -967,6 +971,9 @@ public final class AdminFactoryCommand {
         if ("restored-shared-backend".equals(result.status())) {
             return "shared-backend-snapshot-restore";
         }
+        if ("restored-core-api-local-cache-published".equals(result.status())) {
+            return "core-api-local-cache-snapshot-publish";
+        }
         return "sqlite-snapshot-restore";
     }
 
@@ -976,6 +983,9 @@ public final class AdminFactoryCommand {
         }
         if ("restored-shared-backend".equals(result.status())) {
             return "restored last pre-import snapshot into active shared backend";
+        }
+        if ("restored-core-api-local-cache-published".equals(result.status())) {
+            return "restored local CORE_API cache snapshot and published addon-state rows";
         }
         return "restored last SQLite pre-import snapshot";
     }

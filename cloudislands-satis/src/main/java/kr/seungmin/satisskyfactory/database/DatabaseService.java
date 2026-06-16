@@ -499,7 +499,8 @@ public final class DatabaseService {
                 java.nio.file.Files.copy(backup.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 open();
                 publishAllCoreState();
-                return new LegacyRollbackResult(true, "restored", backup.getAbsolutePath(), "run verify against the legacy source before accepting rollback");
+                String status = activeBackend == StorageBackend.CORE_API ? "restored-core-api-local-cache-published" : "restored";
+                return new LegacyRollbackResult(true, status, backup.getAbsolutePath(), "run verify against the legacy source before accepting rollback");
             } catch (java.io.IOException exception) {
                 throw new IllegalStateException("Failed to restore legacy import rollback snapshot", exception);
             }
