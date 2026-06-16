@@ -1949,6 +1949,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String safeOperation = operation == null || operation.isBlank() ? "unknown" : operation;
         String eventNode = lifecycleEventNode(safeOperation);
         String activeNode = lifecycleActiveNode(safeOperation);
+        String sourceNode = lifecycleSourceNode(safeOperation);
+        String targetNode = lifecycleTargetNode(safeOperation);
         String eventWorld = lifecycleEventWorld(safeOperation);
         String eventCell = lifecycleEventCell(safeOperation);
         String placementSource = lifecycleEventPlacementSource(safeOperation);
@@ -1968,6 +1970,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (!activeNode.isBlank()) {
             state.put("last-lifecycle-active-node", activeNode);
         }
+        if (!sourceNode.isBlank()) {
+            state.put("last-lifecycle-source-node", sourceNode);
+        }
+        if (!targetNode.isBlank()) {
+            state.put("last-lifecycle-target-node", targetNode);
+        }
+        if (!sourceNode.isBlank() && !targetNode.isBlank() && !sourceNode.equals(targetNode)) {
+            state.put("last-lifecycle-node-move", sourceNode + "->" + targetNode);
+        }
+        state.put("last-lifecycle-node-move-policy", "preflush-source-remap-target-by-island-uuid");
         if (!eventWorld.isBlank()) {
             state.put("last-lifecycle-active-world", eventWorld);
         }
@@ -2004,6 +2016,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String safeOperation = operation == null || operation.isBlank() ? "unknown" : operation;
         String eventNode = lifecycleEventNode(safeOperation);
         String activeNode = lifecycleActiveNode(safeOperation);
+        String sourceNode = lifecycleSourceNode(safeOperation);
+        String targetNode = lifecycleTargetNode(safeOperation);
         String eventWorld = lifecycleEventWorld(safeOperation);
         String eventCell = lifecycleEventCell(safeOperation);
         String placementSource = lifecycleEventPlacementSource(safeOperation);
@@ -2023,6 +2037,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (!activeNode.isBlank()) {
             state.put("last-lifecycle-active-node", activeNode);
         }
+        if (!sourceNode.isBlank()) {
+            state.put("last-lifecycle-source-node", sourceNode);
+        }
+        if (!targetNode.isBlank()) {
+            state.put("last-lifecycle-target-node", targetNode);
+        }
+        if (!sourceNode.isBlank() && !targetNode.isBlank() && !sourceNode.equals(targetNode)) {
+            state.put("last-lifecycle-node-move", sourceNode + "->" + targetNode);
+        }
+        state.put("last-lifecycle-node-move-policy", "preflush-source-remap-target-by-island-uuid");
         if (!eventWorld.isBlank()) {
             state.put("last-lifecycle-active-world", eventWorld);
         }
@@ -2054,6 +2078,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String safeOperation = operation == null || operation.isBlank() ? "unknown" : operation;
         String eventNode = lifecycleEventNode(safeOperation);
         String activeNode = lifecycleActiveNode(safeOperation);
+        String sourceNode = lifecycleSourceNode(safeOperation);
+        String targetNode = lifecycleTargetNode(safeOperation);
         String eventWorld = lifecycleEventWorld(safeOperation);
         String eventCell = lifecycleEventCell(safeOperation);
         String placementSource = lifecycleEventPlacementSource(safeOperation);
@@ -2078,6 +2104,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (!activeNode.isBlank()) {
             state.put("active-node", activeNode);
         }
+        if (!sourceNode.isBlank()) {
+            state.put("source-node", sourceNode);
+        }
+        if (!targetNode.isBlank()) {
+            state.put("target-node", targetNode);
+        }
+        if (!sourceNode.isBlank() && !targetNode.isBlank() && !sourceNode.equals(targetNode)) {
+            state.put("node-move", sourceNode + "->" + targetNode);
+        }
+        state.put("node-move-policy", "preflush-source-remap-target-by-island-uuid");
         if (!eventWorld.isBlank()) {
             state.put("active-world", eventWorld);
         }
@@ -2575,8 +2611,17 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (operation == null) {
             return "";
         }
+        if (operation.startsWith("pre-activate:")) {
+            return lifecycleNodePart(operation.substring("pre-activate:".length()));
+        }
         if (operation.startsWith("activated:")) {
             return lifecycleNodePart(operation.substring("activated:".length()));
+        }
+        if (operation.startsWith("restore-requested:")) {
+            return lifecycleNodePart(operation.substring("restore-requested:".length()));
+        }
+        if (operation.startsWith("restored:")) {
+            return lifecycleNodePart(operation.substring("restored:".length()));
         }
         if (operation.startsWith("migrated:")) {
             int arrow = operation.indexOf("->");
@@ -2592,7 +2637,44 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             }
             return lifecycleNodePart(operation.substring(arrow + 2));
         }
+        if (operation.startsWith("runtime:")) {
+            int nodeSeparator = operation.lastIndexOf(':');
+            if (nodeSeparator > "runtime:".length() && nodeSeparator + 1 < operation.length()) {
+                return lifecycleNodePart(operation.substring(nodeSeparator + 1));
+            }
+        }
         return "";
+    }
+
+    private String lifecycleSourceNode(String operation) {
+        if (operation == null) {
+            return "";
+        }
+        if (operation.startsWith("migration-requested:")) {
+            int arrow = operation.indexOf("->");
+            if (arrow > "migration-requested:".length()) {
+                return lifecycleNodePart(operation.substring("migration-requested:".length(), arrow));
+            }
+        }
+        if (operation.startsWith("migrated:")) {
+            int arrow = operation.indexOf("->");
+            if (arrow > "migrated:".length()) {
+                return lifecycleNodePart(operation.substring("migrated:".length(), arrow));
+            }
+        }
+        if (operation.startsWith("deactivated:")) {
+            return lifecycleNodePart(operation.substring("deactivated:".length()));
+        }
+        return "";
+    }
+
+    private String lifecycleTargetNode(String operation) {
+        String activeNode = lifecycleActiveNode(operation);
+        if (!activeNode.isBlank()) {
+            return activeNode;
+        }
+        String eventNode = lifecycleEventNode(operation);
+        return eventNode == null ? "" : eventNode;
     }
 
     private String lifecycleEventNode(String operation) {

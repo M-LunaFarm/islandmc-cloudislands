@@ -90,6 +90,7 @@ state:
   fallback-safety-policy: production-safe-when-shared-backend-precedes-local-sqlite
   placement-source-policy: record-core-payload-or-paper-allocator-on-activate-and-migrate
   placement-source-state-key: last-lifecycle-operation
+  node-move-state-keys: source-node,target-node,node-move,node-move-policy
 events:
   source: CloudIslandsAddon.onCloudEvent
   delivery: core-global-events-to-paper-poller-to-cloudislands-addon-and-bukkit-events
