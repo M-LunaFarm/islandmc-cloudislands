@@ -358,6 +358,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private void putRuntimeActivityState(Map<String, String> state) {
         state.put("runtime-addon-gate", "addons.cloudislands-satis.enabled&&satis.enabled");
+        state.put("runtime-root-switch-enabled", Boolean.toString(enabledByDefault()));
+        state.put("runtime-root-switch-policy", "when-disabled-all-satis-features-are-forced-off-even-if-child-feature-configs-are-true");
         state.put("runtime-addon-status", addonRuntimeEnabled ? "enabled" : "addon-disabled-by-config-or-registry");
         state.put("runtime-addon-policy", "disabled-addon-registers-no-active-components-preserves-satis-data-and-cloudislands-core");
         state.put("runtime-cloudislands-api-required", Boolean.toString(requiresCloudIslandsApi()));
@@ -1344,6 +1346,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("standalone-island-management", "false");
         metadata.put("missing-cloudislands-behavior", "disable-plugin");
         metadata.put("satis-enabled-configured", Boolean.toString(enabledByDefault()));
+        metadata.put("satis-root-switch-policy", "satis.enabled-and-addons.cloudislands-satis.enabled-disable-all-runtime-features-before-child-feature-gates");
+        metadata.put("satis-disabled-child-feature-policy", "child-features-remain-configured-but-operationalFeatureEnabled-always-returns-false");
         metadata.put("addon-runtime-enabled", Boolean.toString(addonRuntimeEnabled));
         putRuntimeActivityState(metadata);
         metadata.put("database-scope", scope);
