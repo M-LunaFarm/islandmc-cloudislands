@@ -3283,6 +3283,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return false;
         }
         String raw = key == null ? "" : key;
+        if (!featureEnabled(raw)) {
+            return false;
+        }
         if (raw.equals("generators") && !featureEnabled("factories")) {
             return false;
         }
@@ -3290,9 +3293,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return false;
         }
         String canonical = canonicalFeature(key);
-        if (!featureEnabled(canonical)) {
-            return false;
-        }
         return switch (canonical) {
             case "resource-nodes" -> featureEnabled("machines");
             case "market", "contracts" -> featureEnabled("storage");
