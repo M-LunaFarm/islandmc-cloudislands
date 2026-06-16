@@ -18,7 +18,7 @@ public record AddonStateBulkSaveRequest(
     public AddonStateBulkSaveRequest {
         addonId = addonId == null ? "" : addonId.trim();
         table = safeTableName(table);
-        values = copyValues(values);
+        values = table.isBlank() ? copyValues(values) : copyTableValues(table, values);
         tables = copyTables(tables);
     }
 
