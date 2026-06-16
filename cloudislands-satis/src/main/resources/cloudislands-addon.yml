@@ -1,6 +1,12 @@
 id: cloudislands-satis
 display-name: "CloudIslands Satis"
 product-role: official-feature-pack
+origin:
+  repository: M-LunaFarm/satismc
+  dependency-policy: replace-superiorskyblock2-depend-and-api-with-cloudislands-depend-and-api
+  legacy-command-roots:
+    - factory
+    - sfactory
 packaging: external-plugin-or-built-in-compatible
 requires:
   cloudislands-api: true
