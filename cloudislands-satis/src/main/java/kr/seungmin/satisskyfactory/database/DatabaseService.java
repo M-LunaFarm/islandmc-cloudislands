@@ -340,6 +340,14 @@ public final class DatabaseService {
         return fallbackReason == null || fallbackReason.isBlank() ? "none" : fallbackReason;
     }
 
+    public boolean coreApiAuthorityReady() {
+        return activeBackend != StorageBackend.CORE_API || coreStateWritersAvailable();
+    }
+
+    public boolean usesNodeLocalCache() {
+        return activeBackend == StorageBackend.CORE_API || activeBackend == StorageBackend.SQLITE;
+    }
+
     public List<StorageBackend> attemptedBackends() {
         return attemptedBackends == null ? List.of() : List.copyOf(attemptedBackends);
     }

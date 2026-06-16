@@ -1388,6 +1388,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-config-source", databaseConfigSource());
         metadata.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         metadata.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
+        metadata.put("database-core-api-authority-ready", Boolean.toString(database == null || database.coreApiAuthorityReady()));
+        metadata.put("database-node-local-cache-active", Boolean.toString(database != null && database.usesNodeLocalCache()));
         metadata.put("database-core-api-requires", "cloudislands-api,addon-state");
         metadata.put("database-core-api-mode", databaseCoreApiMode());
         metadata.put("database-core-api-endpoint", "table/key-value/bulk-save,table/key-value/bulk");
@@ -1730,6 +1732,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-multi-node-warning", "keep-shared-backend-before-sqlite-for-a-b-island-node-pools");
         state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         state.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
+        state.put("database-core-api-authority-ready", Boolean.toString(database == null || database.coreApiAuthorityReady()));
+        state.put("database-node-local-cache-active", Boolean.toString(database != null && database.usesNodeLocalCache()));
         state.put("database-core-api-requires", "cloudislands-api,addon-state");
         state.put("database-core-api-mode", databaseCoreApiMode());
         state.put("database-core-api-endpoint", "table/key-value/bulk-save,table/key-value/bulk");
@@ -1858,6 +1862,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-multi-node-warning", "keep-shared-backend-before-sqlite-for-a-b-island-node-pools");
         state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         state.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
+        state.put("database-core-api-authority-ready", Boolean.toString(database == null || database.coreApiAuthorityReady()));
+        state.put("database-node-local-cache-active", Boolean.toString(database != null && database.usesNodeLocalCache()));
         state.put("database-core-api-requires", "cloudislands-api,addon-state");
         state.put("database-core-api-mode", databaseCoreApiMode());
         state.put("database-core-api-endpoint", "table/key-value/bulk-save,table/key-value/bulk");
