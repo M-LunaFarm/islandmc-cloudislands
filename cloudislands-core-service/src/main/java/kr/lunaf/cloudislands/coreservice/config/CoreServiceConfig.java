@@ -201,6 +201,20 @@ public record CoreServiceConfig(
         return "unsupported-or-missing-database-setup";
     }
 
+    public String setupDatabaseFallbackSummary() {
+        return "requested=" + setupDatabaseRequestedBackend()
+            + ",effective=" + setupDatabaseEffectiveBackend()
+            + ",target=" + setupDatabaseFallbackTarget()
+            + ",fallbackActive=" + setupDatabaseFallbackActive()
+            + ",fallbackEnabled=" + setupDatabaseFallbackEnabled
+            + ",durable=" + setupDatabaseDurable()
+            + ",reason=" + setupDatabaseFallbackReason();
+    }
+
+    public boolean setupDatabaseProductionDurable() {
+        return jdbcRepositories() && setupDatabaseDurable();
+    }
+
     public boolean redisJobs() {
         return "REDIS".equalsIgnoreCase(jobQueueMode);
     }

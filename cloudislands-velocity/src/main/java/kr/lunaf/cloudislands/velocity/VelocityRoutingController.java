@@ -1940,6 +1940,8 @@ public final class VelocityRoutingController {
             + " setupFallbackEnabled=" + boolValue(body, "coreSetupFallbackEnabled")
             + " setupFallbackOrder=" + jsonValue(body, "coreSetupFallbackOrder")
             + " setupFallbackMode=" + jsonValue(body, "coreSetupFallbackMode")
+            + " setupDbFallbackSummary=" + jsonValue(body, "coreSetupDatabaseFallbackSummary")
+            + " setupDbProductionDurable=" + boolValue(body, "coreSetupDatabaseProductionDurable")
             + " setupDbRequested=" + jsonValue(body, "coreSetupDatabaseRequestedBackend")
             + " setupDbAuthority=" + jsonValue(body, "coreSetupDatabaseEffectiveAuthority")
             + " setupDbEffectiveBackend=" + jsonValue(body, "coreSetupDatabaseEffectiveBackend")
