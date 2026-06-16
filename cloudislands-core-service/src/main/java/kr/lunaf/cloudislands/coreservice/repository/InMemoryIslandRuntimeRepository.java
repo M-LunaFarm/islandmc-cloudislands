@@ -23,7 +23,7 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
         int cappedLimit = limit == Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.max(1, Math.min(limit, 200));
         return runtimes.values().stream()
             .filter(runtime -> nodeId != null && nodeId.equals(runtime.activeNode()))
-            .filter(this::runningOnNode)
+            .filter(this::listedByNode)
             .limit(cappedLimit)
             .toList();
     }
@@ -31,7 +31,7 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
     @Override
     public boolean placementOccupied(String worldName, int cellX, int cellZ, UUID exceptIslandId) {
         return runtimes.values().stream()
-            .filter(this::runningOnNode)
+            .filter(this::occupiesPlacement)
             .filter(runtime -> exceptIslandId == null || !exceptIslandId.equals(runtime.islandId()))
             .anyMatch(runtime -> worldName != null
                 && worldName.equals(runtime.activeWorld())
@@ -134,6 +134,14 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
             || runtime.state() == IslandState.RESTORING
             || runtime.state() == IslandState.SAVING
             || runtime.state() == IslandState.DEACTIVATING;
+    }
+
+    private boolean listedByNode(IslandRuntimeSnapshot runtime) {
+        return runningOnNode(runtime) || runtime.state() == IslandState.RECOVERY_REQUIRED;
+    }
+
+    private boolean occupiesPlacement(IslandRuntimeSnapshot runtime) {
+        return runningOnNode(runtime);
     }
 
     private IslandRuntimeSnapshot defaultRuntime(UUID islandId) {

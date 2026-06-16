@@ -130,6 +130,7 @@ public final class CachingIslandRuntimeRepository implements IslandRuntimeReposi
                 ));
             }
             invalidateRuntimeCounts();
+            invalidateNodeRuntimes();
         }
         return changed;
     }
