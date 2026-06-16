@@ -171,6 +171,12 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_storage_download_seconds", "gauge");
         help(out, "cloudislands_storage_failures_total", "Island object storage failures reported by Paper heartbeat");
         type(out, "cloudislands_storage_failures_total", "counter");
+        help(out, "cloudislands_storage_fallback_operations_total", "Island storage fallback operations reported by Paper heartbeat");
+        type(out, "cloudislands_storage_fallback_operations_total", "counter");
+        help(out, "cloudislands_storage_primary_degraded", "Whether the primary island storage backend is degraded on a Paper node");
+        type(out, "cloudislands_storage_primary_degraded", "gauge");
+        help(out, "cloudislands_storage_primary_failures_total", "Primary island storage backend failures reported by Paper heartbeat");
+        type(out, "cloudislands_storage_primary_failures_total", "counter");
         help(out, "cloudislands_island_save_seconds", "Last island save bundle upload duration reported by Paper heartbeat");
         type(out, "cloudislands_island_save_seconds", "gauge");
         help(out, "cloudislands_island_activation_seconds", "Last island activation bundle download duration reported by Paper heartbeat");
@@ -368,6 +374,12 @@ public final class PrometheusMetricsRenderer {
             appendMetadataGauge(out, "cloudislands_storage_failures_total", node, "storageUploadFailures", "operation=\"upload\"");
             appendMetadataGauge(out, "cloudislands_storage_failures_total", node, "storageDownloadFailures", "operation=\"download\"");
             appendMetadataGauge(out, "cloudislands_storage_failures_total", node, "storageOperationFailures", "operation=\"maintenance\"");
+            appendMetadataBooleanGauge(out, "cloudislands_storage_primary_degraded", node, "storagePrimaryDegraded");
+            appendMetadataGauge(out, "cloudislands_storage_primary_failures_total", node, "storagePrimaryFailures");
+            appendMetadataGauge(out, "cloudislands_storage_fallback_operations_total", node, "storageFallbackReads", "operation=\"read\"");
+            appendMetadataGauge(out, "cloudislands_storage_fallback_operations_total", node, "storageFallbackWrites", "operation=\"write\"");
+            appendMetadataGauge(out, "cloudislands_storage_fallback_operations_total", node, "storageFallbackDeletes", "operation=\"delete\"");
+            appendMetadataGauge(out, "cloudislands_storage_fallback_operations_total", node, "storageFallbackOperations", "operation=\"maintenance\"");
             appendMetadataGauge(out, "cloudislands_island_save_seconds", node, "storageUploadSeconds");
             appendMetadataGauge(out, "cloudislands_island_activation_seconds", node, "storageDownloadSeconds");
             appendMetadataGauge(out, "cloudislands_island_snapshot_seconds", node, "storageUploadSeconds");
@@ -682,6 +694,13 @@ public final class PrometheusMetricsRenderer {
         String value = node.heartbeatMetadata().get(metadataKey);
         if (value != null && !value.isBlank()) {
             labels(out, name, node, extraLabel).append(value).append('\n');
+        }
+    }
+
+    private void appendMetadataBooleanGauge(StringBuilder out, String name, NodeLoad node, String metadataKey) {
+        String value = node.heartbeatMetadata().get(metadataKey);
+        if (value != null && !value.isBlank()) {
+            labels(out, name, node, null).append(Boolean.parseBoolean(value) ? 1 : 0).append('\n');
         }
     }
 
