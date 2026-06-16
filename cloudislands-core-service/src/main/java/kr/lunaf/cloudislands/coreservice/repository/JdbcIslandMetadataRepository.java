@@ -81,7 +81,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     @Override
     public void upsertMember(UUID islandId, UUID playerUuid, IslandRole role) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, ?) ON CONFLICT (island_id, player_uuid) DO UPDATE SET role = EXCLUDED.role")) {
+             PreparedStatement statement = connection.prepareStatement(upsertMemberSql(connection))) {
             statement.setObject(1, islandId);
             statement.setObject(2, playerUuid);
             statement.setString(3, role.name());
@@ -155,7 +155,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
                 return false;
             }
             try (PreparedStatement update = connection.prepareStatement("UPDATE island_invites SET state = 'ACCEPTED' WHERE id = ?");
-                 PreparedStatement member = connection.prepareStatement("INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, 'MEMBER') ON CONFLICT (island_id, player_uuid) DO UPDATE SET role = EXCLUDED.role")) {
+                 PreparedStatement member = connection.prepareStatement(acceptInviteMemberSql(connection))) {
                 update.setObject(1, inviteId);
                 update.executeUpdate();
                 member.setObject(1, invite.islandId());
@@ -230,7 +230,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     @Override
     public void banVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_bans(island_id, banned_uuid, actor_uuid, reason) VALUES (?, ?, ?, ?) ON CONFLICT (island_id, banned_uuid) DO UPDATE SET actor_uuid = EXCLUDED.actor_uuid, reason = EXCLUDED.reason, created_at = now(), expires_at = NULL")) {
+             PreparedStatement statement = connection.prepareStatement(banVisitorSql(connection))) {
             statement.setObject(1, islandId);
             statement.setObject(2, playerUuid);
             statement.setObject(3, actorUuid);
@@ -298,7 +298,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     @Override
     public void setFlag(UUID islandId, IslandFlag flag, String value) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_flags(island_id, flag_key, flag_value) VALUES (?, ?, ?) ON CONFLICT (island_id, flag_key) DO UPDATE SET flag_value = EXCLUDED.flag_value, updated_at = now()")) {
+             PreparedStatement statement = connection.prepareStatement(setFlagSql(connection))) {
             statement.setObject(1, islandId);
             statement.setString(2, flag.name());
             statement.setString(3, value);
@@ -327,7 +327,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     @Override
     public void setBiome(UUID islandId, String biomeKey, UUID updatedBy) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_biomes(island_id, biome_key, updated_by) VALUES (?, ?, ?) ON CONFLICT (island_id) DO UPDATE SET biome_key = EXCLUDED.biome_key, updated_by = EXCLUDED.updated_by, updated_at = now()")) {
+             PreparedStatement statement = connection.prepareStatement(setBiomeSql(connection))) {
             statement.setObject(1, islandId);
             statement.setString(2, biomeKey);
             statement.setObject(3, updatedBy);
@@ -371,7 +371,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     @Override
     public void upsertHome(UUID islandId, String name, IslandLocation location, UUID createdBy) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_homes(island_id, name, world_name, local_x, local_y, local_z, yaw, pitch, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (island_id, name) DO UPDATE SET world_name = EXCLUDED.world_name, local_x = EXCLUDED.local_x, local_y = EXCLUDED.local_y, local_z = EXCLUDED.local_z, yaw = EXCLUDED.yaw, pitch = EXCLUDED.pitch, created_by = EXCLUDED.created_by, created_at = now()")) {
+             PreparedStatement statement = connection.prepareStatement(upsertHomeSql(connection))) {
             statement.setObject(1, islandId);
             statement.setString(2, name.toLowerCase());
             statement.setString(3, location.worldName());
@@ -444,7 +444,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     @Override
     public void upsertWarp(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO island_warps(island_id, name, local_x, local_y, local_z, yaw, pitch, public_access, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (island_id, name) DO UPDATE SET local_x = EXCLUDED.local_x, local_y = EXCLUDED.local_y, local_z = EXCLUDED.local_z, yaw = EXCLUDED.yaw, pitch = EXCLUDED.pitch, public_access = EXCLUDED.public_access")) {
+             PreparedStatement statement = connection.prepareStatement(upsertWarpSql(connection))) {
             statement.setObject(1, islandId);
             statement.setString(2, name.toLowerCase());
             statement.setDouble(3, location.localX());
@@ -513,7 +513,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     @Override
     public List<UUID> publicIslandIds(int limit) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT id FROM islands WHERE public_access = true AND locked = false AND deleted_at IS NULL ORDER BY random() LIMIT ?")) {
+             PreparedStatement statement = connection.prepareStatement(publicIslandIdsSql(connection))) {
             statement.setInt(1, Math.max(0, limit));
             try (ResultSet rs = statement.executeQuery()) {
                 List<UUID> result = new ArrayList<>();
@@ -525,6 +525,66 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to read public islands", exception);
         }
+    }
+
+    private String upsertMemberSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE role = VALUES(role)";
+        }
+        return "INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, ?) ON CONFLICT (island_id, player_uuid) DO UPDATE SET role = EXCLUDED.role";
+    }
+
+    private String acceptInviteMemberSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, 'MEMBER') ON DUPLICATE KEY UPDATE role = VALUES(role)";
+        }
+        return "INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, 'MEMBER') ON CONFLICT (island_id, player_uuid) DO UPDATE SET role = EXCLUDED.role";
+    }
+
+    private String banVisitorSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_bans(island_id, banned_uuid, actor_uuid, reason) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE actor_uuid = VALUES(actor_uuid), reason = VALUES(reason), created_at = now(), expires_at = NULL";
+        }
+        return "INSERT INTO island_bans(island_id, banned_uuid, actor_uuid, reason) VALUES (?, ?, ?, ?) ON CONFLICT (island_id, banned_uuid) DO UPDATE SET actor_uuid = EXCLUDED.actor_uuid, reason = EXCLUDED.reason, created_at = now(), expires_at = NULL";
+    }
+
+    private String setFlagSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_flags(island_id, flag_key, flag_value) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE flag_value = VALUES(flag_value), updated_at = now()";
+        }
+        return "INSERT INTO island_flags(island_id, flag_key, flag_value) VALUES (?, ?, ?) ON CONFLICT (island_id, flag_key) DO UPDATE SET flag_value = EXCLUDED.flag_value, updated_at = now()";
+    }
+
+    private String setBiomeSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_biomes(island_id, biome_key, updated_by) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE biome_key = VALUES(biome_key), updated_by = VALUES(updated_by), updated_at = now()";
+        }
+        return "INSERT INTO island_biomes(island_id, biome_key, updated_by) VALUES (?, ?, ?) ON CONFLICT (island_id) DO UPDATE SET biome_key = EXCLUDED.biome_key, updated_by = EXCLUDED.updated_by, updated_at = now()";
+    }
+
+    private String upsertHomeSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_homes(island_id, name, world_name, local_x, local_y, local_z, yaw, pitch, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE world_name = VALUES(world_name), local_x = VALUES(local_x), local_y = VALUES(local_y), local_z = VALUES(local_z), yaw = VALUES(yaw), pitch = VALUES(pitch), created_by = VALUES(created_by), created_at = now()";
+        }
+        return "INSERT INTO island_homes(island_id, name, world_name, local_x, local_y, local_z, yaw, pitch, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (island_id, name) DO UPDATE SET world_name = EXCLUDED.world_name, local_x = EXCLUDED.local_x, local_y = EXCLUDED.local_y, local_z = EXCLUDED.local_z, yaw = EXCLUDED.yaw, pitch = EXCLUDED.pitch, created_by = EXCLUDED.created_by, created_at = now()";
+    }
+
+    private String upsertWarpSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_warps(island_id, name, local_x, local_y, local_z, yaw, pitch, public_access, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE local_x = VALUES(local_x), local_y = VALUES(local_y), local_z = VALUES(local_z), yaw = VALUES(yaw), pitch = VALUES(pitch), public_access = VALUES(public_access)";
+        }
+        return "INSERT INTO island_warps(island_id, name, local_x, local_y, local_z, yaw, pitch, public_access, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (island_id, name) DO UPDATE SET local_x = EXCLUDED.local_x, local_y = EXCLUDED.local_y, local_z = EXCLUDED.local_z, yaw = EXCLUDED.yaw, pitch = EXCLUDED.pitch, public_access = EXCLUDED.public_access";
+    }
+
+    private String publicIslandIdsSql(Connection connection) throws SQLException {
+        String randomFunction = mysqlLike(connection) ? "RAND()" : "random()";
+        return "SELECT id FROM islands WHERE public_access = true AND locked = false AND deleted_at IS NULL ORDER BY " + randomFunction + " LIMIT ?";
+    }
+
+    private boolean mysqlLike(Connection connection) throws SQLException {
+        String product = connection.getMetaData().getDatabaseProductName();
+        String normalized = product == null ? "" : product.toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains("mysql") || normalized.contains("mariadb");
     }
 
     private IslandInviteSnapshot lockInvite(Connection connection, UUID inviteId) throws SQLException {
