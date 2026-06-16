@@ -243,14 +243,14 @@ public final class CoreApiSatisStateService {
                     });
             return;
         }
-        cloudIslandsApi.addons().clearIslandTableState(addonId, table.islandUuid(), table.table())
-                .thenCompose(_cleared -> cloudIslandsApi.addons().tableKeyValueBulkSaveIslandState(addonId, table.islandUuid(), table.table(), table.values()))
+        cloudIslandsApi.addons().replaceIslandTableState(addonId, table.islandUuid(), table.table(), table.values())
                 .handle((state, error) -> {
                     if (error == null) {
                         return java.util.concurrent.CompletableFuture.completedFuture(state);
                     }
-                    logger.warning("Failed to bulk save Satis core-api table " + table.table() + " for island " + table.islandUuid() + ", retrying with replace: " + error.getMessage());
-                    return cloudIslandsApi.addons().replaceIslandTableState(addonId, table.islandUuid(), table.table(), table.values());
+                    logger.warning("Failed to replace Satis core-api table " + table.table() + " for island " + table.islandUuid() + ", retrying with clear and bulk save: " + error.getMessage());
+                    return cloudIslandsApi.addons().clearIslandTableState(addonId, table.islandUuid(), table.table())
+                            .thenCompose(_cleared -> cloudIslandsApi.addons().tableKeyValueBulkSaveIslandState(addonId, table.islandUuid(), table.table(), table.values()));
                 })
                 .thenCompose(result -> result)
                 .thenApply(state -> {
@@ -289,7 +289,7 @@ public final class CoreApiSatisStateService {
         state.put("last-core-table-publish-authority", "cloudislands-addon-state");
         state.put("last-core-table-publish-primary-endpoint", ISLAND_TABLE_KEY_VALUE_BULK_ENDPOINT);
         state.put("last-core-table-publish-fallback-endpoint", ISLAND_TABLE_REPLACE_FALLBACK_ENDPOINT);
-        state.put("last-core-table-publish-write-path", "clear-table->table-key-value-bulk-save->replace-table-on-failure");
+        state.put("last-core-table-publish-write-path", "replace-table->clear-table-and-table-key-value-bulk-save-on-failure");
         state.put("last-core-table-publish-node-bound", "false");
         state.put("last-core-table-publish-write-fence", "active-island-runtime-owner-only");
         state.put("last-core-table-publish-duplicate-tick-policy", "single-active-runtime-owner");
