@@ -1326,7 +1326,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public String addonPackaging() {
-        return "external-plugin";
+        return switch (configuredIntegrationMode()) {
+            case "BUILT_IN_COMPATIBLE" -> "built-in-compatible";
+            case "DISABLED" -> "disabled-stub";
+            default -> "external-plugin";
+        };
     }
 
     @Override
@@ -1345,6 +1349,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("integration-mode-supported", "EXTERNAL_ADDON,BUILT_IN_COMPATIBLE,DISABLED");
         metadata.put("integration-mode-effective", "DISABLED".equals(integrationMode) ? "disabled-no-runtime-components" : "cloudislands-addon-registry");
         metadata.put("integration-mode-policy", "external-addon-and-built-in-compatible-modes-share-the-same-cloudislands-addon-feature-gates");
+        metadata.put("integration-packaging", addonPackaging());
+        metadata.put("integration-runtime-shape", integrationRuntimeShape(integrationMode));
         metadata.putAll(cloudIslandsIntegrationMetadata());
         metadata.put("skyblock-provider", "CLOUDISLANDS");
         metadata.put("cloudislands-adapter", Boolean.toString(configs.main().getBoolean("integration.cloudislands-adapter", true)));
@@ -1538,6 +1544,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             case "BUILTIN", "BUILT_IN", "BUILT_IN_ADDON", "BUILTIN_ADDON", "BUILT_IN_COMPATIBLE" -> "BUILT_IN_COMPATIBLE";
             case "EXTERNAL", "EXTERNAL_PLUGIN", "PLUGIN", "ADDON", "EXTERNAL_ADDON" -> "EXTERNAL_ADDON";
             default -> "EXTERNAL_ADDON";
+        };
+    }
+
+    private String integrationRuntimeShape(String integrationMode) {
+        return switch (integrationMode) {
+            case "BUILT_IN_COMPATIBLE" -> "built-in-feature-layer-using-cloudislands-addon-gates";
+            case "DISABLED" -> "disabled-command-stub-no-listeners-no-tickers-no-writers";
+            default -> "external-addon-plugin-using-cloudislands-addon-gates";
         };
     }
 
