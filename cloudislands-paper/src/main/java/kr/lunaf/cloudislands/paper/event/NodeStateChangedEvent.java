@@ -12,15 +12,23 @@ public final class NodeStateChangedEvent extends Event {
     private final String operation;
     private final String reason;
     private final int recoveryRequired;
+    private final int clearedSessions;
+    private final int clearedTickets;
     private final Map<String, String> fields;
 
     public NodeStateChangedEvent(String nodeId, String state, String operation, String reason, int recoveryRequired, Map<String, String> fields) {
+        this(nodeId, state, operation, reason, recoveryRequired, count(fields, "clearedSessions"), count(fields, "clearedTickets"), fields);
+    }
+
+    public NodeStateChangedEvent(String nodeId, String state, String operation, String reason, int recoveryRequired, int clearedSessions, int clearedTickets, Map<String, String> fields) {
         super(true);
         this.nodeId = nodeId == null ? "" : nodeId;
         this.state = state == null ? "" : state;
         this.operation = operation == null ? "" : operation;
         this.reason = reason == null ? "" : reason;
         this.recoveryRequired = recoveryRequired;
+        this.clearedSessions = Math.max(0, clearedSessions);
+        this.clearedTickets = Math.max(0, clearedTickets);
         this.fields = Map.copyOf(fields);
     }
 
@@ -44,6 +52,14 @@ public final class NodeStateChangedEvent extends Event {
         return recoveryRequired;
     }
 
+    public int clearedSessions() {
+        return clearedSessions;
+    }
+
+    public int clearedTickets() {
+        return clearedTickets;
+    }
+
     public Map<String, String> fields() {
         return fields;
     }
@@ -55,5 +71,16 @@ public final class NodeStateChangedEvent extends Event {
 
     public static HandlerList getHandlerList() {
         return HANDLERS;
+    }
+
+    private static int count(Map<String, String> fields, String key) {
+        if (fields == null) {
+            return 0;
+        }
+        try {
+            return Math.max(0, Integer.parseInt(fields.getOrDefault(key, "0")));
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
     }
 }
