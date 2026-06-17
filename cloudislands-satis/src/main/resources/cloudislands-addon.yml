@@ -96,6 +96,9 @@ database:
       - MARIADB
       - CORE_API
       - SQLITE
+    require-shared-before-local: true
+    local-fallback-last: true
+    production-safe-order: POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE
     split-brain-warning: keep-a-shared-backend-before-sqlite-for-multi-island-node-pools
   core-api:
     setup-path: setup.database.core-api.enabled

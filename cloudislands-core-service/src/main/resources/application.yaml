@@ -85,6 +85,9 @@ setup:
       # If disabled, Core still refuses unsafe unsupported JDBC startup and reports setupFallbackSafetyForced=true.
       # Env overrides: CI_DB_FALLBACK_ENABLED, CI_DB_FALLBACK_ORDER.
       enabled: true
+      require-shared-before-local: true
+      local-fallback-last: true
+      production-safe-order: "POSTGRESQL,MYSQL,MARIADB,CORE_API,IN_MEMORY"
       order:
         - POSTGRESQL
         - MYSQL

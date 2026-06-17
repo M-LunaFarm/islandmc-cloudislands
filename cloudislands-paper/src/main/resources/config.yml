@@ -1112,6 +1112,9 @@ setup:
       # Evaluated by the Core setup loader when the selected backend is incomplete or unsafe.
       # POSTGRESQL/MYSQL/MARIADB keep state shared across A/B Island nodes; CORE_API keeps addon clients pointed at Core.
       enabled: true
+      require-shared-before-local: true
+      local-fallback-last: true
+      production-safe-order: "POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC"
       order: "POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC"
   storage:
     # Optional first-install island bundle storage block. Empty values fall back to storage below.
