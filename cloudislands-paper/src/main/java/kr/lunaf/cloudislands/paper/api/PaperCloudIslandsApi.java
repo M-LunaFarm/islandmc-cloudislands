@@ -1667,9 +1667,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (eventName.equals("NodeStateChangedEvent") || eventName.startsWith("Core")) {
                 return "maintenance";
             }
-            if (eventName.startsWith("Island")) {
-                return "lifecycle";
-            }
             if (eventName.equals("IslandPreCreateEvent")
                 || eventName.equals("IslandCreatedEvent")
                 || eventName.equals("IslandPreActivateEvent")
@@ -1680,6 +1677,48 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 || eventName.equals("IslandDeleteRequestEvent")
                 || eventName.equals("IslandDeletedEvent")
                 || eventName.equals("IslandRuntimeChangeEvent")) {
+                return "lifecycle";
+            }
+            if (eventName.startsWith("IslandMember")
+                || eventName.equals("IslandInviteChangeEvent")
+                || eventName.equals("IslandOwnershipChangeEvent")) {
+                return "members";
+            }
+            if (eventName.startsWith("IslandPermission")
+                || eventName.startsWith("IslandRole")
+                || eventName.equals("IslandAccessChangeEvent")
+                || eventName.startsWith("IslandVisitor")
+                || eventName.equals("IslandFlagChangeEvent")) {
+                return "permissions";
+            }
+            if (eventName.startsWith("IslandMission")) {
+                return "missions";
+            }
+            if (eventName.startsWith("IslandUpgrade") || eventName.equals("IslandLimitChangeEvent")) {
+                return "upgrades";
+            }
+            if (eventName.equals("IslandLevelRecalculateEvent")
+                || eventName.equals("IslandWorthChangeEvent")
+                || eventName.equals("IslandBlocksChangeEvent")
+                || eventName.equals("IslandBlockValueChangeEvent")) {
+                return "level-values";
+            }
+            if (eventName.equals("IslandBankChangeEvent")) {
+                return "storage";
+            }
+            if (eventName.startsWith("IslandWarp") || eventName.equals("IslandHomeChangeEvent")) {
+                return "warps";
+            }
+            if (eventName.equals("IslandBiomeChangeEvent")) {
+                return "biomes";
+            }
+            if (eventName.equals("IslandChatSentEvent")) {
+                return "chat";
+            }
+            if (eventName.equals("IslandTemplateChangeEvent")) {
+                return "templates";
+            }
+            if (eventName.startsWith("Island")) {
                 return "lifecycle";
             }
             return "";
