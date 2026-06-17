@@ -1234,8 +1234,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             }
         } catch (RuntimeException exception) {
             getLogger().warning("Failed to register CloudIslands Satis addon: " + exception.getMessage());
+            cloudIslandsApi = null;
             addonRuntimeEnabled = false;
             effectiveFeatures = Map.of();
+            addonStateReportingWasEnabled = false;
             return false;
         }
         return true;
@@ -1254,15 +1256,19 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void unregisterCloudIslandsAddon() {
-        if (cloudIslandsApi == null) {
+        CloudIslandsApi api = cloudIslandsApi;
+        cloudIslandsApi = null;
+        addonRuntimeEnabled = false;
+        effectiveFeatures = Map.of();
+        addonStateReportingWasEnabled = false;
+        if (api == null) {
             return;
         }
         try {
-            unregister(cloudIslandsApi).join();
+            unregister(api).join();
         } catch (RuntimeException exception) {
             getLogger().warning("Failed to unregister CloudIslands Satis addon: " + exception.getMessage());
         }
-        cloudIslandsApi = null;
     }
 
     @Override
