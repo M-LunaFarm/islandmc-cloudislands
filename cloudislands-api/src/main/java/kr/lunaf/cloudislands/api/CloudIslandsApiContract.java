@@ -13,6 +13,7 @@ public final class CloudIslandsApiContract {
     public static final String CORE_AUTH_POLICY = "core-api-requires-api-token-or-mtls-for-non-health-requests";
     public static final String ADMIN_ENDPOINT_POLICY = "admin-endpoints-use-separate-admin-token-and-per-command-permissions";
     public static final String NETWORK_EXPOSURE_POLICY = "bind-public-only-with-ip-allowlist-mtls-and-token-controls";
+    public static final String SECURITY_POSTURE_SUMMARY = "token-or-mtls-core-api,separate-admin-token,per-command-permission,ip-allowlist-for-public-bind";
 
     private CloudIslandsApiContract() {
     }
@@ -28,7 +29,8 @@ public final class CloudIslandsApiContract {
             "event-api-policy", EVENT_API_POLICY,
             "core-auth-policy", CORE_AUTH_POLICY,
             "admin-endpoint-policy", ADMIN_ENDPOINT_POLICY,
-            "network-exposure-policy", NETWORK_EXPOSURE_POLICY
+            "network-exposure-policy", NETWORK_EXPOSURE_POLICY,
+            "security-posture-summary", SECURITY_POSTURE_SUMMARY
         );
     }
 }

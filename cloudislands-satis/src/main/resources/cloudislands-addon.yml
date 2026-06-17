@@ -27,6 +27,7 @@ api:
     core-auth-policy: core-api-requires-api-token-or-mtls-for-non-health-requests
     admin-endpoint-policy: admin-endpoints-use-separate-admin-token-and-per-command-permissions
     network-exposure-policy: bind-public-only-with-ip-allowlist-mtls-and-token-controls
+    security-posture-summary: token-or-mtls-core-api,separate-admin-token,per-command-permission,ip-allowlist-for-public-bind
     source-class: kr.lunaf.cloudislands.api.CloudIslandsApiContract
 removal:
   safe: true

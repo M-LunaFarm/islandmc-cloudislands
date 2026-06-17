@@ -3018,6 +3018,7 @@ public final class CloudIslandsCoreApplication {
             + "\"addonCoreAuthPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.CORE_AUTH_POLICY) + "\","
             + "\"addonAdminEndpointPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.ADMIN_ENDPOINT_POLICY) + "\","
             + "\"addonNetworkExposurePolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.NETWORK_EXPOSURE_POLICY) + "\","
+            + "\"addonSecurityPostureSummary\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.SECURITY_POSTURE_SUMMARY) + "\","
             + "\"addonEventDeliveryPolicy\":\"core-global-events-to-paper-poller-to-cloudislands-addon-and-bukkit-events\","
             + "\"addonEventCoverage\":\"pre-create,create,pre-activate,activate,deactivate,migrate,delete,delete-backup-failed,restore,reset,recovery,runtime,pre-visit,visit,invite,member-join,member-left,member-role,member-change,ownership,rename,access,visitor-ban,visitor-kick,flag,permission-check,permission-change,role-catalog,biome,home,warp-create,warp-delete,warp-change,bank,chat,mission,blocks,block-value,level,worth,upgrade,limit,snapshot,template,addon-state,node,core-cache,core-reload,route-ticket\","
             + "\"addonEventBackfillPolicy\":\"paper-poller-uses-listEventsSince-with-sequence-gap-cache-invalidation\","
