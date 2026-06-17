@@ -7,6 +7,9 @@ public final class CloudIslandsApiContract {
     public static final String WRITE_AUTHORITY = "all-island-writes-go-through-core-api-transaction-endpoints";
     public static final String SYNC_EVENT_POLICY = "synchronous-paper-events-must-use-local-protection-permission-caches";
     public static final String ADDON_STORAGE_POLICY = "addons-use-addon-state-api-or-their-own-shared-database-never-cloudislands-internals";
+    public static final String JAVA_PLUGIN_API_POLICY = "paper-plugins-use-cloudislands-api-services-and-never-core-internals";
+    public static final String INTERNAL_API_POLICY = "http-admin-and-runtime-endpoints-are-token-or-mtls-protected-core-boundaries";
+    public static final String EVENT_API_POLICY = "global-events-are-append-only-cache-invalidation-and-addon-lifecycle-contract";
 
     private CloudIslandsApiContract() {
     }
@@ -16,7 +19,10 @@ public final class CloudIslandsApiContract {
             "read-policy", READ_POLICY,
             "write-authority", WRITE_AUTHORITY,
             "sync-event-policy", SYNC_EVENT_POLICY,
-            "addon-storage-policy", ADDON_STORAGE_POLICY
+            "addon-storage-policy", ADDON_STORAGE_POLICY,
+            "java-plugin-api-policy", JAVA_PLUGIN_API_POLICY,
+            "internal-api-policy", INTERNAL_API_POLICY,
+            "event-api-policy", EVENT_API_POLICY
         );
     }
 }

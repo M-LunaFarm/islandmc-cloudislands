@@ -21,6 +21,9 @@ api:
     write-authority: all-island-writes-go-through-core-api-transaction-endpoints
     sync-event-policy: synchronous-paper-events-must-use-local-protection-permission-caches
     addon-storage-policy: addons-use-addon-state-api-or-their-own-shared-database-never-cloudislands-internals
+    java-plugin-api-policy: paper-plugins-use-cloudislands-api-services-and-never-core-internals
+    internal-api-policy: http-admin-and-runtime-endpoints-are-token-or-mtls-protected-core-boundaries
+    event-api-policy: global-events-are-append-only-cache-invalidation-and-addon-lifecycle-contract
     source-class: kr.lunaf.cloudislands.api.CloudIslandsApiContract
 removal:
   safe: true
