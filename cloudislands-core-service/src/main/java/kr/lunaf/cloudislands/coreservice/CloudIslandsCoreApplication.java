@@ -3113,6 +3113,7 @@ public final class CloudIslandsCoreApplication {
             + "\"redisKeyPolicy\":\"ci:server:{nodeId}:*,ci:player:{uuid}:*,ci:island:{islandId}:*,ci:lock:*,ci:stream:*\","
             + "\"cacheInvalidationSource\":\"core-write-transaction-then-global-event\","
             + "\"cacheInvalidationEvents\":\"IslandMemberChanged,IslandFlagChanged,IslandPermissionChanged,IslandWarpChanged,IslandRuntimeChanged,IslandDeleted\","
+            + "\"cacheInvalidationEventFields\":\"cacheTargets,cacheKeys,cachePolicy\","
             + "\"cacheInvalidationFanout\":\"core-event-stream>paper-event-poller>velocity-route-cache-if-affected>local-cache-delete\","
             + "\"cacheInvalidationTargets\":\"player_uuid->island_id,island_id->summary,island_id->runtime,island_id->members,island_id->permissions,island_id->flags,island_id->warps,node_id->heartbeat\","
             + "\"cacheInvalidationRedisPatterns\":\"ci:player:*:island,ci:player:*:profile,ci:player-name:*:profile,ci:addon:*:state,ci:island:*:summary,ci:island:*:runtime,ci:island:*:members,ci:island:*:permissions,ci:island:*:flags,ci:island:*:warps,ci:island:*:addon-state,ci:island:*:route-tickets,ci:rankings:*\","

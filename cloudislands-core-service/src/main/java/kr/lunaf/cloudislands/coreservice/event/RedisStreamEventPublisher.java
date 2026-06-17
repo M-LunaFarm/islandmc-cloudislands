@@ -26,6 +26,11 @@ public final class RedisStreamEventPublisher implements GlobalEventPublisher {
             values.add("cacheTargets");
             values.add(cacheTargets);
         }
+        String cacheKeys = cacheKeys(eventType, fields);
+        if (!cacheKeys.isBlank()) {
+            values.add("cacheKeys");
+            values.add(cacheKeys);
+        }
         for (Map.Entry<String, String> entry : fields.entrySet()) {
             values.add(entry.getKey());
             values.add(entry.getValue());
@@ -46,6 +51,28 @@ public final class RedisStreamEventPublisher implements GlobalEventPublisher {
             return builder.toString();
         } catch (RuntimeException ignored) {
             return "";
+        }
+    }
+
+    private String cacheKeys(String eventType, Map<String, String> fields) {
+        try {
+            CloudIslandEventType type = CloudIslandEventType.valueOf(eventType);
+            java.util.UUID islandId = uuid(fields.get("islandId"));
+            String addonId = fields.getOrDefault("addonId", "");
+            return String.join(",", CacheInvalidationPlan.redisKeysFor(type, islandId, addonId));
+        } catch (RuntimeException ignored) {
+            return "";
+        }
+    }
+
+    private java.util.UUID uuid(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return java.util.UUID.fromString(value);
+        } catch (IllegalArgumentException ignored) {
+            return null;
         }
     }
 }

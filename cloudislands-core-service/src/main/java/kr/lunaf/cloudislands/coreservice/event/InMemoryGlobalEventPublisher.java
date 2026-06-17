@@ -97,6 +97,10 @@ public final class InMemoryGlobalEventPublisher implements GlobalEventPublisher 
         if (!cacheTargets.isBlank()) {
             enriched.put("cacheTargets", cacheTargets);
         }
+        String cacheKeys = cacheKeys(eventType, fields);
+        if (!cacheKeys.isBlank()) {
+            enriched.put("cacheKeys", cacheKeys);
+        }
         return Map.copyOf(enriched);
     }
 
@@ -113,6 +117,28 @@ public final class InMemoryGlobalEventPublisher implements GlobalEventPublisher 
             return builder.toString();
         } catch (RuntimeException ignored) {
             return "";
+        }
+    }
+
+    private String cacheKeys(String eventType, Map<String, String> fields) {
+        try {
+            CloudIslandEventType type = CloudIslandEventType.valueOf(eventType);
+            java.util.UUID islandId = uuid(fields.get("islandId"));
+            String addonId = fields.getOrDefault("addonId", "");
+            return String.join(",", CacheInvalidationPlan.redisKeysFor(type, islandId, addonId));
+        } catch (RuntimeException ignored) {
+            return "";
+        }
+    }
+
+    private java.util.UUID uuid(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return java.util.UUID.fromString(value);
+        } catch (IllegalArgumentException ignored) {
+            return null;
         }
     }
 
