@@ -3018,6 +3018,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 resourceNodesRemapped = relocation.resourceNodesRemapped();
                 machineRemapDeferred = relocation.machineRemapDeferred();
                 resourceNodeRemapDeferred = relocation.resourceNodeRemapDeferred();
+                publishRelocationAuditState(islandId, operation, relocation, remapSource);
                 if (!lifecycleEventWorld(operation).isBlank() && !lifecycleEventWorld(operation).equals(activeWorld)) {
                     getLogger().warning("CloudIslands Satis lifecycle event world " + lifecycleEventWorld(operation)
                             + " differed from resolved active world " + activeWorld + " for " + islandId);
@@ -3032,6 +3033,59 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             }
             islands.save(island);
             publishLifecycleState(islandId, operation, island, remapDelta, machinesRemapped, resourceNodesRemapped, remapSource, machineRemapDeferred, resourceNodeRemapDeferred);
+        });
+    }
+
+    private void publishRelocationAuditState(UUID islandId, String operation, SatisIslandRelocationService.RelocationResult relocation, String remapSource) {
+        if (cloudIslandsApi == null || islandId == null || relocation == null || !operationalFeatureEnabled("addon-state")) {
+            return;
+        }
+        String safeOperation = operation == null || operation.isBlank() ? "unknown" : operation;
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("last-relocation-island", islandId.toString());
+        state.put("last-relocation-operation", safeOperation);
+        state.put("last-relocation-source-node", lifecycleSourceNode(safeOperation));
+        state.put("last-relocation-target-node", lifecycleTargetNode(safeOperation));
+        state.put("last-relocation-previous-world", relocation.previousWorld() == null ? "" : relocation.previousWorld());
+        state.put("last-relocation-previous-center", relocation.previousCenter());
+        state.put("last-relocation-target-world", relocation.targetWorld());
+        state.put("last-relocation-target-center", relocation.targetCenter());
+        state.put("last-relocation-delta", relocation.delta());
+        state.put("last-relocation-machine-delta", relocation.machineDelta());
+        state.put("last-relocation-resource-node-delta", relocation.resourceNodeDelta());
+        state.put("last-relocation-placement-changed", Boolean.toString(relocation.placementChanged()));
+        state.put("last-relocation-machines-remapped", Boolean.toString(relocation.machinesRemapped()));
+        state.put("last-relocation-resource-nodes-remapped", Boolean.toString(relocation.resourceNodesRemapped()));
+        state.put("last-relocation-machine-remap-deferred", Boolean.toString(relocation.machineRemapDeferred()));
+        state.put("last-relocation-resource-node-remap-deferred", Boolean.toString(relocation.resourceNodeRemapDeferred()));
+        state.put("last-relocation-remap-source", remapSource == null || remapSource.isBlank() ? "active-world-center" : remapSource);
+        state.put("last-relocation-policy", "island-uuid-stable-remap-volatile-world-cell");
+        state.put("last-relocation-at", Instant.now().toString());
+        cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
+            getLogger().warning("Failed to publish CloudIslands Satis relocation audit state: " + error.getMessage());
+            return Map.of();
+        });
+        Map<String, String> islandState = new LinkedHashMap<>();
+        islandState.put("relocation-operation", safeOperation);
+        islandState.put("relocation-source-node", lifecycleSourceNode(safeOperation));
+        islandState.put("relocation-target-node", lifecycleTargetNode(safeOperation));
+        islandState.put("relocation-previous-world", relocation.previousWorld() == null ? "" : relocation.previousWorld());
+        islandState.put("relocation-previous-center", relocation.previousCenter());
+        islandState.put("relocation-target-world", relocation.targetWorld());
+        islandState.put("relocation-target-center", relocation.targetCenter());
+        islandState.put("relocation-delta", relocation.delta());
+        islandState.put("relocation-machine-delta", relocation.machineDelta());
+        islandState.put("relocation-resource-node-delta", relocation.resourceNodeDelta());
+        islandState.put("relocation-placement-changed", Boolean.toString(relocation.placementChanged()));
+        islandState.put("relocation-machines-remapped", Boolean.toString(relocation.machinesRemapped()));
+        islandState.put("relocation-resource-nodes-remapped", Boolean.toString(relocation.resourceNodesRemapped()));
+        islandState.put("relocation-machine-remap-deferred", Boolean.toString(relocation.machineRemapDeferred()));
+        islandState.put("relocation-resource-node-remap-deferred", Boolean.toString(relocation.resourceNodeRemapDeferred()));
+        islandState.put("relocation-policy", "island-uuid-stable-remap-volatile-world-cell");
+        islandState.put("relocation-at", Instant.now().toString());
+        cloudIslandsApi.addons().putIslandState(ADDON_ID, islandId, islandState).exceptionally(error -> {
+            getLogger().warning("Failed to publish CloudIslands Satis island relocation audit state: " + error.getMessage());
+            return Map.of();
         });
     }
 

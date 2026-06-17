@@ -26,8 +26,13 @@ public final class SatisIslandRelocationService {
             boolean resourceNodesEnabled
     ) {
         if (islandId == null || island == null || activeWorld == null || activeWorld.isBlank()) {
-            return new RelocationResult(false, false, false, false, "0,0,0", "0,0,0", "0,0,0", SatisStatePortabilityPolicy.DEFERRED_REMAP_POLICY);
+            return new RelocationResult(false, false, false, false, false, "", "0,0,0", "", "0,0,0", "0,0,0", "0,0,0", "0,0,0", SatisStatePortabilityPolicy.DEFERRED_REMAP_POLICY);
         }
+        String previousWorld = island.activeWorld();
+        String previousCenter = island.hasActiveCenter()
+                ? island.activeCenterX() + "," + island.activeCenterY() + "," + island.activeCenterZ()
+                : "unplaced";
+        String targetCenter = activeCenterX + "," + activeCenterY + "," + activeCenterZ;
         int deltaX = island.hasActiveCenter() ? activeCenterX - island.activeCenterX() : 0;
         int deltaY = island.hasActiveCenter() ? activeCenterY - island.activeCenterY() : 0;
         int deltaZ = island.hasActiveCenter() ? activeCenterZ - island.activeCenterZ() : 0;
@@ -70,6 +75,11 @@ public final class SatisIslandRelocationService {
                 resourceNodesRemapped,
                 machineRemapDeferred,
                 resourceNodeRemapDeferred,
+                placementChanged,
+                previousWorld,
+                previousCenter,
+                activeWorld,
+                targetCenter,
                 movementDelta,
                 machineDeltaX + "," + machineDeltaY + "," + machineDeltaZ,
                 nodeDeltaX + "," + nodeDeltaY + "," + nodeDeltaZ,
@@ -84,6 +94,6 @@ public final class SatisIslandRelocationService {
                 || deltaZ != 0;
     }
 
-    public record RelocationResult(boolean machinesRemapped, boolean resourceNodesRemapped, boolean machineRemapDeferred, boolean resourceNodeRemapDeferred, String delta, String machineDelta, String resourceNodeDelta, String deferredRemapPolicy) {
+    public record RelocationResult(boolean machinesRemapped, boolean resourceNodesRemapped, boolean machineRemapDeferred, boolean resourceNodeRemapDeferred, boolean placementChanged, String previousWorld, String previousCenter, String targetWorld, String targetCenter, String delta, String machineDelta, String resourceNodeDelta, String deferredRemapPolicy) {
     }
 }
