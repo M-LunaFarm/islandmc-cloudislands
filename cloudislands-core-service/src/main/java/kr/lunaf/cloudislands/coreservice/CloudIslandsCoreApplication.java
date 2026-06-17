@@ -3019,6 +3019,8 @@ public final class CloudIslandsCoreApplication {
             + "\"satisIslandMovePolicy\":\"when-island-moves-between-island-nodes-addon-remaps-state-to-current-active-world-and-cell\","
             + "\"satisFeatureDisablePolicy\":\"disabled-features-register-no-commands-gui-listeners-tasks-or-data-writes-and-preserve-existing-data\","
             + "\"satisSuperiorSkyblock2Policy\":\"no-runtime-dependency-use-cloudislands-public-api-and-addon-spi-only\","
+            + "\"satisOperationScenarios\":\"" + escape(kr.seungmin.satisskyfactory.integration.SatisAddonIntegrationPolicy.operationScenarioSummary()) + "\","
+            + "\"satisCompletionCriteria\":\"" + escape(kr.seungmin.satisskyfactory.integration.SatisAddonIntegrationPolicy.completionCriteriaSummary()) + "\","
             + "\"satisRecoveryPolicy\":\"use-last-confirmed-addon-state-after-node-failure-and-avoid-duplicate-ticks-with-core-fencing\","
             + "\"satisAddonAbsentPolicy\":\"cloudislands-core-and-island-lifecycle-do-not-require-cloudislands-satis-installed\","
             + "\"satisDisabledRuntimePolicy\":\"disabled-satis-keeps-core-create-route-protect-save-restore-working-without-registering-satis-runtime-components\","

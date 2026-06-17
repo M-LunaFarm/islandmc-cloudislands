@@ -93,6 +93,25 @@ public final class SatisAddonIntegrationPolicy {
             "island-worth-changed"
     );
 
+    private static final Map<String, String> OPERATION_SCENARIOS = Map.of(
+            "built-in-mode", "cloudislands-installs-one-plugin-satis-features-start-only-when-root-and-child-feature-gates-enable-them",
+            "addon-plugin-mode", "cloudislands-plus-cloudislands-satis-jar-registers-through-addon-registry-and-uses-cloudislands-api-only",
+            "partial-feature-mode", "enabled-features-register-runtime-components-disabled-features-register-no-commands-gui-listeners-placeholders-tasks-or-writes",
+            "legacy-migration-mode", "superiorskyblock2-backed-satis-data-is-rebound-to-cloudislands-api-island-member-permission-location-upgrade-state",
+            "a-b-island-node-move", "satis-state-follows-cloudislands-island-uuid-through-shared-state-when-island-moves-from-node-a-to-node-b",
+            "addon-removed-mode", "cloudislands-core-boots-and-base-island-lifecycle-continues-when-satis-addon-jar-is-absent"
+    );
+
+    private static final List<String> COMPLETION_CRITERIA = List.of(
+            "satis-features-run-with-cloudislands-island-lifecycle",
+            "root-config-can-disable-all-satis-runtime-components",
+            "major-features-have-independent-feature-gates",
+            "chosen-built-in-or-addon-structure-is-visible-in-code",
+            "no-superiorskyblock2-runtime-dependency",
+            "state-survives-a-node-to-b-node-island-move",
+            "base-cloudislands-functions-survive-satis-disable-or-addon-removal"
+    );
+
     private static final Map<String, String> REQUIRED_SCENARIOS = Map.of(
             "a-b-node-move", "factory-upgrade-menu-progress-state-restores-on-target-node-from-shared-state",
             "satis-disabled", "base-cloudislands-create-visit-protect-save-restore-continues-without-satis-runtime-components",
@@ -135,6 +154,22 @@ public final class SatisAddonIntegrationPolicy {
         return REQUIRED_SCENARIOS;
     }
 
+    public static Map<String, String> operationScenarios() {
+        return OPERATION_SCENARIOS;
+    }
+
+    public static List<String> completionCriteria() {
+        return COMPLETION_CRITERIA;
+    }
+
+    public static String operationScenarioSummary() {
+        return summary(OPERATION_SCENARIOS);
+    }
+
+    public static String completionCriteriaSummary() {
+        return String.join(",", COMPLETION_CRITERIA);
+    }
+
     public static boolean modeSupported(String mode) {
         return SUPPORTED_MODES.contains(mode);
     }
@@ -153,5 +188,16 @@ public final class SatisAddonIntegrationPolicy {
 
     public static boolean lifecycleEventRequired(String event) {
         return LIFECYCLE_EVENTS.contains(event);
+    }
+
+    private static String summary(Map<String, String> values) {
+        StringBuilder builder = new StringBuilder();
+        values.forEach((key, value) -> {
+            if (!builder.isEmpty()) {
+                builder.append(';');
+            }
+            builder.append(key).append('=').append(value);
+        });
+        return builder.toString();
     }
 }
