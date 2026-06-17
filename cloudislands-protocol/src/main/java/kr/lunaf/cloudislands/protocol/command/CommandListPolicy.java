@@ -31,7 +31,7 @@ public final class CommandListPolicy {
         String base = oneLine(navigationCommand);
         String previous = safePage > 1 ? base + " " + (safePage - 1) : null;
         String next = safePage < maxPage ? base + " " + (safePage + 1) : null;
-        return new Page(safePage, maxPage, List.copyOf(entries), previous, next);
+        return new Page(safePage, maxPage, from + 1, to, commands.size(), List.copyOf(entries), previous, next);
     }
 
     public static String oneLine(String command) {
@@ -45,8 +45,11 @@ public final class CommandListPolicy {
                 .trim();
     }
 
-    public record Page(int page, int pages, List<String> entries, String previousCommand, String nextCommand) {
+    public record Page(int page, int pages, int fromCommand, int toCommand, int totalCommands, List<String> entries, String previousCommand, String nextCommand) {
         public Page {
+            fromCommand = Math.max(0, fromCommand);
+            toCommand = Math.max(fromCommand, toCommand);
+            totalCommands = Math.max(0, totalCommands);
             entries = List.copyOf(entries);
         }
     }
