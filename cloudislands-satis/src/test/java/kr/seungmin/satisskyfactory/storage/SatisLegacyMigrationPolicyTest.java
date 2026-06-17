@@ -14,6 +14,9 @@ class SatisLegacyMigrationPolicyTest {
         assertEquals("read-only-snapshot-or-sqlite-scan-no-live-provider-hooks", SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY);
         assertEquals("legacy-provider-is-migration-input-only-never-runtime-dependency", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
         assertEquals("admin-confirmation-required-before-import", SatisLegacyMigrationPolicy.APPROVAL_POLICY);
+        assertEquals("CONFIRM_IMPORT", SatisLegacyMigrationPolicy.APPROVAL_TOKEN);
+        assertEquals("CONFIRM_IMPORT:<dryrun-sha256>", SatisLegacyMigrationPolicy.FINGERPRINT_APPROVAL_TOKEN);
+        assertEquals("plain-confirm-or-dryrun-sha256-bound-confirm", SatisLegacyMigrationPolicy.APPROVAL_TOKEN_POLICY);
         assertEquals("rollback-manifest-only-no-automatic-live-data-delete", SatisLegacyMigrationPolicy.ROLLBACK_POLICY);
         assertEquals("cloudislands-island-uuid", SatisLegacyMigrationPolicy.OUTPUT_ID_POLICY);
         assertEquals("create-cloudislands-migration-manifest-before-import", SatisLegacyMigrationPolicy.MANIFEST_POLICY);
@@ -60,7 +63,7 @@ class SatisLegacyMigrationPolicyTest {
         assertTrue(SatisLegacyMigrationPolicy.adminCommands().contains("factory admin migration scan <sqlitePath>"));
         assertTrue(SatisLegacyMigrationPolicy.adminCommands().contains("factory admin migration dryrun <sqlitePath>"));
         assertTrue(SatisLegacyMigrationPolicy.adminCommands().contains("factory admin migration verify <sqlitePath>"));
-        assertTrue(SatisLegacyMigrationPolicy.adminCommands().contains("factory admin migration import <sqlitePath> CONFIRM_IMPORT"));
+        assertTrue(SatisLegacyMigrationPolicy.adminCommands().contains("factory admin migration import <sqlitePath> CONFIRM_IMPORT|CONFIRM_IMPORT:<dryrun-sha256>"));
         assertTrue(SatisLegacyMigrationPolicy.adminCommands().contains("factory admin migration rollback"));
     }
 

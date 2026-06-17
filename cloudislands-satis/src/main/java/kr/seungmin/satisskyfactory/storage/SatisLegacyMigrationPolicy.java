@@ -8,6 +8,9 @@ public final class SatisLegacyMigrationPolicy {
     public static final String SOURCE_ACCESS_POLICY = "read-only-snapshot-or-sqlite-scan-no-live-provider-hooks";
     public static final String RUNTIME_DEPENDENCY_POLICY = "legacy-provider-is-migration-input-only-never-runtime-dependency";
     public static final String APPROVAL_POLICY = "admin-confirmation-required-before-import";
+    public static final String APPROVAL_TOKEN = "CONFIRM_IMPORT";
+    public static final String FINGERPRINT_APPROVAL_TOKEN = "CONFIRM_IMPORT:<dryrun-sha256>";
+    public static final String APPROVAL_TOKEN_POLICY = "plain-confirm-or-dryrun-sha256-bound-confirm";
     public static final String ROLLBACK_POLICY = "rollback-manifest-only-no-automatic-live-data-delete";
     public static final String OUTPUT_ID_POLICY = "cloudislands-island-uuid";
     public static final String MANIFEST_POLICY = "create-cloudislands-migration-manifest-before-import";
@@ -54,7 +57,7 @@ public final class SatisLegacyMigrationPolicy {
             "factory admin migration scan <sqlitePath>",
             "factory admin migration dryrun <sqlitePath>",
             "factory admin migration verify <sqlitePath>",
-            "factory admin migration import <sqlitePath> CONFIRM_IMPORT",
+            "factory admin migration import <sqlitePath> CONFIRM_IMPORT|CONFIRM_IMPORT:<dryrun-sha256>",
             "factory admin migration rollback"
     );
 
