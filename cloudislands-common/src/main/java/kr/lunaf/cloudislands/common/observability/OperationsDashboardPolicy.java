@@ -25,6 +25,8 @@ public final class OperationsDashboardPolicy {
     private static Map<String, String> requiredMetrics() {
         LinkedHashMap<String, String> metrics = new LinkedHashMap<>();
         metrics.put("node-players-by-node", "cloudislands_node_players");
+        metrics.put("node-player-usage-by-node", "cloudislands_node_player_usage_ratio");
+        metrics.put("node-player-usage-cluster", "cloudislands_cluster_player_usage_ratio");
         metrics.put("node-mspt-by-node", "cloudislands_node_mspt");
         metrics.put("node-mspt-over-budget", "cloudislands_node_mspt_over_budget");
         metrics.put("active-islands", "cloudislands_node_active_islands");

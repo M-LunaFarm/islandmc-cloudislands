@@ -122,6 +122,8 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_node_players", "gauge");
         help(out, "cloudislands_node_soft_player_cap", "Soft player capacity before visitor routing is avoided");
         type(out, "cloudislands_node_soft_player_cap", "gauge");
+        help(out, "cloudislands_node_player_usage_ratio", "Players divided by hard player capacity reported by a node");
+        type(out, "cloudislands_node_player_usage_ratio", "gauge");
         help(out, "cloudislands_node_hard_player_cap", "Maximum player capacity reported by a node");
         type(out, "cloudislands_node_hard_player_cap", "gauge");
         help(out, "cloudislands_node_reserved_slots", "Reserved player slots reported by a node");
@@ -162,6 +164,8 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_cluster_nodes_online", "gauge");
         help(out, "cloudislands_cluster_players", "Total players across fresh CloudIslands nodes");
         type(out, "cloudislands_cluster_players", "gauge");
+        help(out, "cloudislands_cluster_player_usage_ratio", "Total players divided by total hard player capacity across fresh nodes");
+        type(out, "cloudislands_cluster_player_usage_ratio", "gauge");
         help(out, "cloudislands_cluster_active_islands", "Total active islands across fresh CloudIslands nodes");
         type(out, "cloudislands_cluster_active_islands", "gauge");
         help(out, "cloudislands_cluster_active_island_usage_ratio", "Total active islands divided by total maximum active islands across fresh nodes");
@@ -303,6 +307,7 @@ public final class PrometheusMetricsRenderer {
         Instant now = Instant.now();
         long onlineNodes = 0L;
         long totalPlayers = 0L;
+        long totalHardPlayerCap = 0L;
         long totalActiveIslands = 0L;
         long totalMaxActiveIslands = 0L;
         long totalActivationQueue = 0L;
@@ -358,6 +363,7 @@ public final class PrometheusMetricsRenderer {
                 onlineNodes++;
                 poolCounters[1]++;
                 totalPlayers += node.players();
+                totalHardPlayerCap += node.hardPlayerCap();
                 totalActiveIslands += node.activeIslands();
                 totalMaxActiveIslands += node.maxActiveIslands();
                 totalActivationQueue += node.activationQueue();
@@ -377,6 +383,7 @@ public final class PrometheusMetricsRenderer {
             labels(out, "cloudislands_node_players", node, null).append(node.players()).append('\n');
             labels(out, "cloudislands_node_soft_player_cap", node, null).append(node.softPlayerCap()).append('\n');
             labels(out, "cloudislands_node_hard_player_cap", node, null).append(node.hardPlayerCap()).append('\n');
+            labels(out, "cloudislands_node_player_usage_ratio", node, null).append(node.hardPlayerCap() <= 0 ? 0.0D : (double) node.players() / node.hardPlayerCap()).append('\n');
             labels(out, "cloudislands_node_reserved_slots", node, null).append(node.reservedSlots()).append('\n');
             labels(out, "cloudislands_node_mspt", node, null).append(node.mspt()).append('\n');
             labels(out, "cloudislands_node_mspt_over_budget", node, null).append(node.mspt() >= 50.0D ? 1 : 0).append('\n');
@@ -451,6 +458,7 @@ public final class PrometheusMetricsRenderer {
         }
         out.append("cloudislands_cluster_nodes_online ").append(onlineNodes).append('\n');
         out.append("cloudislands_cluster_players ").append(totalPlayers).append('\n');
+        out.append("cloudislands_cluster_player_usage_ratio ").append(totalHardPlayerCap <= 0L ? 0.0D : (double) totalPlayers / totalHardPlayerCap).append('\n');
         out.append("cloudislands_cluster_active_islands ").append(totalActiveIslands).append('\n');
         out.append("cloudislands_cluster_active_island_usage_ratio ").append(totalMaxActiveIslands <= 0L ? 0.0D : (double) totalActiveIslands / totalMaxActiveIslands).append('\n');
         out.append("cloudislands_cluster_activation_queue ").append(totalActivationQueue).append('\n');
