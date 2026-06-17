@@ -14,6 +14,18 @@ public interface AddonStateRepository {
     Map<String, Integer> globalStateCounts();
     Map<String, Integer> islandStateCounts();
     Map<String, String> list(String addonId);
+    default Map<String, String> table(String addonId, String table) {
+        return tableValues(list(addonId), table);
+    }
+    default Map<String, String> tableState(String addonId, String table) {
+        return table(addonId, table);
+    }
+    default Map<String, String> tableKeyValueBulkLoad(String addonId, String table) {
+        return table(addonId, table);
+    }
+    default Map<String, String> bulkLoadTableKeyValue(String addonId, String table) {
+        return tableKeyValueBulkLoad(addonId, table);
+    }
     Map<String, String> put(String addonId, String key, String value);
     Map<String, String> put(String addonId, Map<String, String> values);
     default Map<String, String> bulkSave(String addonId, Map<String, String> values) {
@@ -45,6 +57,18 @@ public interface AddonStateRepository {
     Map<String, String> replacePrefix(String addonId, String keyPrefix, Map<String, String> values);
     void clear(String addonId);
     Map<String, String> listIsland(String addonId, UUID islandId);
+    default Map<String, String> tableIsland(String addonId, UUID islandId, String table) {
+        return tableValues(listIsland(addonId, islandId), table);
+    }
+    default Map<String, String> tableStateIsland(String addonId, UUID islandId, String table) {
+        return tableIsland(addonId, islandId, table);
+    }
+    default Map<String, String> tableKeyValueBulkLoadIsland(String addonId, UUID islandId, String table) {
+        return tableIsland(addonId, islandId, table);
+    }
+    default Map<String, String> bulkLoadTableKeyValueIsland(String addonId, UUID islandId, String table) {
+        return tableKeyValueBulkLoadIsland(addonId, islandId, table);
+    }
     Map<String, String> putIsland(String addonId, UUID islandId, String key, String value);
     Map<String, String> putIsland(String addonId, UUID islandId, Map<String, String> values);
     default Map<String, String> bulkSaveIsland(String addonId, UUID islandId, Map<String, String> values) {
@@ -139,8 +163,26 @@ public interface AddonStateRepository {
         return Map.copyOf(state);
     }
 
+    static Map<String, String> tableValues(Map<String, String> state, String table) {
+        if (state == null || state.isEmpty()) {
+            return Map.of();
+        }
+        String prefix = tableStateKeyPrefix(table);
+        java.util.HashMap<String, String> values = new java.util.HashMap<>();
+        state.forEach((key, value) -> {
+            if (key != null && value != null && key.startsWith(prefix) && key.length() > prefix.length()) {
+                values.put(key.substring(prefix.length()), value);
+            }
+        });
+        return Map.copyOf(values);
+    }
+
     static String tableStateKey(String table, String key) {
         return TABLE_STATE_KEY_PREFIX + safeTableName(table) + "/" + safeKey(key);
+    }
+
+    static String tableStateKeyPrefix(String table) {
+        return TABLE_STATE_KEY_PREFIX + safeTableName(table) + "/";
     }
 
     static String safeTableName(String table) {

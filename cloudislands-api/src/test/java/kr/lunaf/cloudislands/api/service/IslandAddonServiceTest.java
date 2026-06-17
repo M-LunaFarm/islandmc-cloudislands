@@ -68,6 +68,21 @@ class IslandAddonServiceTest {
     }
 
     @Test
+    void tableKeyValueBulkLoadProjectsGlobalTableValues() {
+        CapturingAddonService service = new CapturingAddonService();
+
+        service.tableKeyValueBulkSaveState(
+                "cloudislands-satis",
+                Map.of("runtime-status", "ok"),
+                Map.of("machines", Map.of("island/0001/machine/0002", "active"))).join();
+
+        assertEquals(Map.of("island/0001/machine/0002", "active"),
+                service.tableKeyValueBulkLoadState("cloudislands-satis", "machines").join());
+        assertEquals(Map.of("island/0001/machine/0002", "active"),
+                service.bulkLoadTableKeyValueState("cloudislands-satis", "machines").join());
+    }
+
+    @Test
     void tableKeyValueBulkSaveFlattensIslandTablesWithSlashKeys() {
         CapturingAddonService service = new CapturingAddonService();
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000702");
@@ -82,6 +97,23 @@ class IslandAddonServiceTest {
         assertEquals("12000", state.get(IslandAddonService.tableStateKey("resource_nodes", "node/ore/0/0")));
         assertEquals(state, service.lastIslandValues);
         assertEquals(islandId, service.lastIslandId);
+    }
+
+    @Test
+    void tableKeyValueBulkLoadProjectsIslandTableValues() {
+        CapturingAddonService service = new CapturingAddonService();
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000703");
+
+        service.tableKeyValueBulkSaveIslandState(
+                "cloudislands-satis",
+                islandId,
+                Map.of("active-node", "island-2"),
+                Map.of("resource_nodes", Map.of("node/ore/0/0", "12000"))).join();
+
+        assertEquals(Map.of("node/ore/0/0", "12000"),
+                service.tableKeyValueBulkLoadIslandState("cloudislands-satis", islandId, "resource_nodes").join());
+        assertEquals(Map.of("node/ore/0/0", "12000"),
+                service.bulkLoadTableKeyValueIslandState("cloudislands-satis", islandId, "resource_nodes").join());
     }
 
     @Test
@@ -221,9 +253,19 @@ class IslandAddonServiceTest {
         }
 
         @Override
+        public CompletableFuture<Map<String, String>> state(String id) {
+            return CompletableFuture.completedFuture(lastGlobalValues);
+        }
+
+        @Override
         public CompletableFuture<Map<String, String>> putState(String id, Map<String, String> values) {
             lastGlobalValues = values == null ? Map.of() : Map.copyOf(values);
             return CompletableFuture.completedFuture(lastGlobalValues);
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> islandState(String id, UUID islandId) {
+            return CompletableFuture.completedFuture(lastIslandValues);
         }
 
         @Override

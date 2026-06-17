@@ -291,6 +291,18 @@ public interface IslandAddonService {
         return tableBulkState(id, tables);
     }
 
+    default CompletableFuture<Map<String, String>> tableState(String id, String table) {
+        return state(id).thenApply(values -> tableStateValuesFromState(values, table));
+    }
+
+    default CompletableFuture<Map<String, String>> tableKeyValueBulkLoadState(String id, String table) {
+        return tableState(id, table);
+    }
+
+    default CompletableFuture<Map<String, String>> bulkLoadTableKeyValueState(String id, String table) {
+        return tableKeyValueBulkLoadState(id, table);
+    }
+
     default CompletableFuture<Map<String, String>> tableKeyValueBulkSaveState(String id, String table, Map<String, String> values) {
         return tableKeyValueBulkSaveState(id, Map.of(), table == null ? Map.of() : Map.of(table, values == null ? Map.of() : values));
     }
@@ -439,6 +451,18 @@ public interface IslandAddonService {
         return tableBulkIslandState(id, islandId, tables);
     }
 
+    default CompletableFuture<Map<String, String>> tableIslandState(String id, UUID islandId, String table) {
+        return islandState(id, islandId).thenApply(values -> tableStateValuesFromState(values, table));
+    }
+
+    default CompletableFuture<Map<String, String>> tableKeyValueBulkLoadIslandState(String id, UUID islandId, String table) {
+        return tableIslandState(id, islandId, table);
+    }
+
+    default CompletableFuture<Map<String, String>> bulkLoadTableKeyValueIslandState(String id, UUID islandId, String table) {
+        return tableKeyValueBulkLoadIslandState(id, islandId, table);
+    }
+
     default CompletableFuture<Map<String, String>> tableKeyValueBulkSaveIslandState(String id, UUID islandId, String table, Map<String, String> values) {
         return tableKeyValueBulkSaveIslandState(id, islandId, Map.of(), table == null ? Map.of() : Map.of(table, values == null ? Map.of() : values));
     }
@@ -529,6 +553,20 @@ public interface IslandAddonService {
         Map<String, String> state = new HashMap<>();
         tables.forEach((table, values) -> state.putAll(tableStateValues(table, values)));
         return Map.copyOf(state);
+    }
+
+    private static Map<String, String> tableStateValuesFromState(Map<String, String> state, String table) {
+        if (state == null || state.isEmpty() || table == null || table.isBlank()) {
+            return Map.of();
+        }
+        String prefix = tableStatePrefix(table);
+        Map<String, String> values = new HashMap<>();
+        state.forEach((key, value) -> {
+            if (key != null && value != null && key.startsWith(prefix) && key.length() > prefix.length()) {
+                values.put(key.substring(prefix.length()), value);
+            }
+        });
+        return Map.copyOf(values);
     }
 
     private static String tableStatePrefix(String table) {
