@@ -3697,7 +3697,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                         mysqlSettings,
                         mariadbSettings,
                         true,
-                        fallbackOrder.stream()
+                        settings.fallbackOrder().stream()
                                 .filter(candidate -> candidate != DatabaseService.StorageBackend.CORE_API)
                                 .toList()
                 );
