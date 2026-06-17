@@ -263,9 +263,13 @@ public final class PrometheusMetricsRenderer {
         help(out, "cloudislands_redis_public_host", "Whether Redis is configured with a non-internal host");
         type(out, "cloudislands_redis_public_host", "gauge");
         out.append("cloudislands_redis_public_host ").append(redisPublicHost.getAsBoolean() ? 1 : 0).append('\n');
-        help(out, "cloudislands_postgresql_public_host", "Whether PostgreSQL is configured with a non-internal host");
+        help(out, "cloudislands_core_jdbc_public_host", "Whether the configured Core JDBC backend host is non-internal");
+        type(out, "cloudislands_core_jdbc_public_host", "gauge");
+        boolean coreJdbcPublicHost = postgresqlPublicHost.getAsBoolean();
+        out.append("cloudislands_core_jdbc_public_host ").append(coreJdbcPublicHost ? 1 : 0).append('\n');
+        help(out, "cloudislands_postgresql_public_host", "Legacy alias for cloudislands_core_jdbc_public_host");
         type(out, "cloudislands_postgresql_public_host", "gauge");
-        out.append("cloudislands_postgresql_public_host ").append(postgresqlPublicHost.getAsBoolean() ? 1 : 0).append('\n');
+        out.append("cloudislands_postgresql_public_host ").append(coreJdbcPublicHost ? 1 : 0).append('\n');
         help(out, "cloudislands_object_storage_public_host", "Whether object storage endpoint is configured with a non-internal host");
         type(out, "cloudislands_object_storage_public_host", "gauge");
         out.append("cloudislands_object_storage_public_host ").append(objectStoragePublicHost.getAsBoolean() ? 1 : 0).append('\n');
@@ -535,7 +539,7 @@ public final class PrometheusMetricsRenderer {
         help(out, "cloudislands_core_jdbc_fallback_active", "Whether Core API is using the safe non-JDBC fallback for the configured database setup");
         type(out, "cloudislands_core_jdbc_fallback_active", "gauge");
         out.append("cloudislands_core_jdbc_fallback_active ").append(coreJdbcFallbackActive.getAsBoolean() ? 1 : 0).append('\n');
-        help(out, "cloudislands_core_setup_database_durable", "Whether the effective Core setup database authority is durable PostgreSQL JDBC");
+        help(out, "cloudislands_core_setup_database_durable", "Whether the effective Core setup database authority is durable shared JDBC");
         type(out, "cloudislands_core_setup_database_durable", "gauge");
         boolean setupDatabaseDurable = coreSetupDatabaseDurable.getAsBoolean();
         out.append("cloudislands_core_setup_database_durable ").append(setupDatabaseDurable ? 1 : 0).append('\n');
