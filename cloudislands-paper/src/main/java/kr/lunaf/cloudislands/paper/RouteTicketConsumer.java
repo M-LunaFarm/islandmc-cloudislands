@@ -311,7 +311,8 @@ public final class RouteTicketConsumer {
 
     private double decimal(java.util.Map<String, String> payload, String key, double fallback) {
         try {
-            return Double.parseDouble(payload.getOrDefault(key, Double.toString(fallback)));
+            double value = Double.parseDouble(payload.getOrDefault(key, Double.toString(fallback)));
+            return Double.isFinite(value) ? value : fallback;
         } catch (NumberFormatException ignored) {
             return fallback;
         }
