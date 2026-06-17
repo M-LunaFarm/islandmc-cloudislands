@@ -79,7 +79,7 @@ public final class AdminFactoryCommand {
             "factory admin migration scan <sqlitePath>",
             "factory admin migration dryrun <sqlitePath>",
             "factory admin migration verify <sqlitePath>",
-            "factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL,
+            "factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL + "|" + MIGRATION_IMPORT_APPROVAL + ":<dryrun-sha256>",
             "factory admin migration rollback",
             "factory admin state",
             "factory admin give <player> <machineType> [amount]",
@@ -689,7 +689,7 @@ public final class AdminFactoryCommand {
         state.put("satismc-import-scan", "/factory admin migration scan <sqlitePath>");
         state.put("satismc-import-dryrun", "/factory admin migration dryrun <sqlitePath>");
         state.put("satismc-import-verify", "/factory admin migration verify <sqlitePath>");
-        state.put("satismc-import-import", "/factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL);
+        state.put("satismc-import-import", "/factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL + "|" + MIGRATION_IMPORT_APPROVAL + ":<dryrun-sha256>");
         state.put("satismc-import-approval", MIGRATION_IMPORT_APPROVAL);
         state.put("satismc-import-mode", "cross-backend-sqlite-copy");
         state.put("satismc-import-prerequisite", "same-source-dryrun-or-verify-before-import");
@@ -803,7 +803,7 @@ public final class AdminFactoryCommand {
         if (args.length < 4) {
             sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
                     "key", "usage",
-                    "value", "/factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL
+                    "value", "/factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL + "|" + MIGRATION_IMPORT_APPROVAL + ":<dryrun-sha256>"
             )));
             return;
         }
