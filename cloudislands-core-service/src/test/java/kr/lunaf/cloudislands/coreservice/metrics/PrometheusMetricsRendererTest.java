@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreservice.metrics;
 
 import kr.lunaf.cloudislands.coreservice.InMemoryNodeRegistry;
+import kr.lunaf.cloudislands.common.observability.OperationsDashboardPolicy;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRuntimeRepository;
@@ -54,6 +55,9 @@ class PrometheusMetricsRendererTest {
         assertMetric(metrics, "cloudislands_storage_download_seconds");
         assertMetric(metrics, "cloudislands_database_query_seconds");
         assertMetric(metrics, "cloudislands_redis_latency_seconds");
+        for (String dashboardMetric : OperationsDashboardPolicy.requiredDashboardMetrics().values()) {
+            assertMetric(metrics, dashboardMetric);
+        }
     }
 
     private void assertMetric(String metrics, String name) {
