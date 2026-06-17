@@ -201,6 +201,13 @@ features:
     upgrades: research
     menus: gui
     route-events: addon-state
+    members: lifecycle
+    permissions: lifecycle
+    level-values: lifecycle
+    warps: lifecycle
+    biomes: lifecycle
+    chat: lifecycle
+    templates: lifecycle
   detailed-switches:
     - commands
     - machines

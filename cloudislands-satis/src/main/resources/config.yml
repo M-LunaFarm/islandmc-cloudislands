@@ -5,6 +5,7 @@ satis:
     # resource-nodes requires machines, market/contracts require storage.
     # missions requires contracts, upgrades requires research, menus requires gui.
     # route-events requires addon-state because it only writes CloudIslands route diagnostics.
+    # Event sub-gates such as members, permissions, level-values and warps require lifecycle.
     # Disabled features do not register active commands, GUI listeners, event listeners, tickers,
     # or write paths for that feature. Existing Satis data is preserved for later re-enable.
     # Legacy satismc names are aliases:
@@ -57,6 +58,7 @@ addons:
       # This block can be used by host-level addon config. It follows the same disable policy as satis.features.
       # Parent/root disabled forces every Satis runtime feature off, even when a child value is true.
       # Alias and dependency rules are the same as satis.features.
+      # Event sub-gates such as members, permissions, level-values and warps require lifecycle.
       commands: true
       machines: true
       storage: true

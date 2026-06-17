@@ -18,11 +18,18 @@ public final class SatisFeatureGateResolver {
             "missions", "contracts",
             "menus", "gui"
     );
-    private static final Map<String, String> DEPENDENCIES = Map.of(
-            "resource-nodes", "machines",
-            "market", "storage",
-            "contracts", "storage",
-            "route-events", "addon-state"
+    private static final Map<String, String> DEPENDENCIES = Map.ofEntries(
+            Map.entry("resource-nodes", "machines"),
+            Map.entry("market", "storage"),
+            Map.entry("contracts", "storage"),
+            Map.entry("route-events", "addon-state"),
+            Map.entry("members", "lifecycle"),
+            Map.entry("permissions", "lifecycle"),
+            Map.entry("level-values", "lifecycle"),
+            Map.entry("warps", "lifecycle"),
+            Map.entry("biomes", "lifecycle"),
+            Map.entry("chat", "lifecycle"),
+            Map.entry("templates", "lifecycle")
     );
 
     private SatisFeatureGateResolver() {
