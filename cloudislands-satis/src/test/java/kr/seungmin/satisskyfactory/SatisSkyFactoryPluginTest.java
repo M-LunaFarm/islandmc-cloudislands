@@ -56,5 +56,9 @@ class SatisSkyFactoryPluginTest {
         assertEquals("CloudIslands", metadata.get("runtime-hard-depend-plugin"));
         assertEquals("false", metadata.get("standalone-island-management"));
         assertEquals("disable-plugin-clear-features-register-no-components", metadata.get("missing-cloudislands-behavior"));
+        assertEquals("read-only-snapshot-or-sqlite-scan-no-live-provider-hooks", metadata.get("migration-source-policy"));
+        assertEquals("legacy-provider-is-migration-input-only-never-runtime-dependency", metadata.get("migration-runtime-dependency-policy"));
+        assertEquals("create-cloudislands-migration-manifest-before-import", metadata.get("migration-manifest-policy"));
+        assertEquals("cloudislands-island-uuid", metadata.get("migration-output-id-policy"));
     }
 }

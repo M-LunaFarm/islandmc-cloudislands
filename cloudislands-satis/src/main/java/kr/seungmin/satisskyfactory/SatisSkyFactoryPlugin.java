@@ -80,6 +80,7 @@ import kr.seungmin.satisskyfactory.research.ResearchService;
 import kr.seungmin.satisskyfactory.runtime.SatisRuntimeComponentPlan;
 import kr.seungmin.satisskyfactory.storage.CoreApiSatisStateService;
 import kr.seungmin.satisskyfactory.storage.SatisStatePortabilityPolicy;
+import kr.seungmin.satisskyfactory.storage.SatisLegacyMigrationPolicy;
 import kr.seungmin.satisskyfactory.storage.StorageService;
 import kr.seungmin.satisskyfactory.storage.VirtualInventory;
 import kr.seungmin.satisskyfactory.task.DirtySaveService;
@@ -377,13 +378,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-skyblock-provider-policy", "cloudislands-api-only-ignore-legacy-provider-config");
         state.put("runtime-superior-migration-input-only", "true");
         state.put("runtime-superior-runtime-dependency", "false");
-        state.put("runtime-superior-runtime-policy", "migration-input-only-no-runtime-hooks");
+        state.put("runtime-superior-runtime-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
         state.put("runtime-forbidden-skyblock-providers", "SuperiorSkyblock2,BentoBox,ASkyBlock");
         state.put("runtime-forbidden-skyblock-providers-present", forbiddenSkyblockRuntimeProvidersPresent());
         state.put("runtime-forbidden-skyblock-provider-policy", "ignored-for-runtime-migration-input-only");
         state.put("runtime-forbidden-skyblock-provider-action", "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes");
         state.put("runtime-legacy-provider-lookup", "disabled");
-        state.put("runtime-migration-source-policy", "read-only-snapshot-or-sqlite-import-no-live-provider-hooks");
+        state.put("runtime-migration-source-policy", SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY);
         state.put("runtime-addon-state-gate", "addonRuntimeEnabled&&features.addon-state&&CloudIslandsApi");
         state.put("runtime-addon-state-status", coreApiAddonStateAvailable() ? "available" : (operationalFeatureEnabled("addon-state") ? "cloudislands-api-unavailable" : "addon-state-feature-disabled"));
         state.put("runtime-addon-state-policy", "disabled-or-unavailable-core-api-uses-configured-database-fallback-and-preserves-local-state");
@@ -1432,6 +1433,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("legacy-satismc-import-approval-fingerprint-token", "CONFIRM_IMPORT:<dryrun-sha256>");
         metadata.put("legacy-satismc-import-read-only-actions", "scan,dryrun,verify");
         metadata.put("legacy-satismc-import-write-actions", "import");
+        metadata.put("legacy-satismc-source-project", SatisLegacyMigrationPolicy.SOURCE_PROJECT);
+        metadata.put("legacy-satismc-legacy-skyblock-source", SatisLegacyMigrationPolicy.LEGACY_SKYBLOCK_SOURCE);
+        metadata.put("legacy-satismc-source-policy", SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY);
+        metadata.put("legacy-satismc-runtime-dependency-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
+        metadata.put("legacy-satismc-manifest-policy", SatisLegacyMigrationPolicy.MANIFEST_POLICY);
+        metadata.put("legacy-satismc-output-id-policy", SatisLegacyMigrationPolicy.OUTPUT_ID_POLICY);
+        metadata.put("legacy-satismc-approval-policy", SatisLegacyMigrationPolicy.APPROVAL_POLICY);
+        metadata.put("legacy-satismc-rollback-policy", SatisLegacyMigrationPolicy.ROLLBACK_POLICY);
         metadata.put("legacy-satismc-scan-mode", "scan-dryrun-verify-read-only");
         metadata.put("legacy-satismc-import-mode", "cross-backend-sqlite-copy");
         metadata.put("legacy-satismc-import-conflict-policy", "insert-ignore-existing-rows");
@@ -1517,7 +1526,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("forbidden-skyblock-runtime-dependencies", "SuperiorSkyblock2,BentoBox,ASkyBlock"),
                 Map.entry("forbidden-skyblock-runtime-action", "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes"),
                 Map.entry("legacy-provider-lookup", "disabled"),
-                Map.entry("migration-source-policy", "read-only-snapshot-or-sqlite-import-no-live-provider-hooks"),
+                Map.entry("migration-source-policy", SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY),
+                Map.entry("migration-runtime-dependency-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY),
+                Map.entry("migration-manifest-policy", SatisLegacyMigrationPolicy.MANIFEST_POLICY),
+                Map.entry("migration-output-id-policy", SatisLegacyMigrationPolicy.OUTPUT_ID_POLICY),
                 Map.entry("cloudislands-api-only", "true"),
                 Map.entry("cloudislands-required-policy", SatisAddonIntegrationPolicy.CLOUDISLANDS_REQUIRED_POLICY),
                 Map.entry("cloudislands-api-resolution", SatisAddonIntegrationPolicy.API_RESOLUTION_POLICY),
