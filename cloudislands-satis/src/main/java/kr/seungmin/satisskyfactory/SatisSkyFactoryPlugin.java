@@ -1608,6 +1608,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("placeholder-internal-placement-exposure", "false");
         metadata.put("configured-features", featureState(featureSnapshot()));
         metadata.put("effective-features", operationalFeatureState(featureSnapshot()));
+        metadata.put("configured-feature-count", Integer.toString(featureSnapshot().size()));
+        metadata.put("operational-feature-count", Long.toString(operationalFeatureSnapshot(featureSnapshot()).values().stream().filter(Boolean.TRUE::equals).count()));
+        metadata.put("disabled-feature-count", Long.toString(operationalFeatureSnapshot(featureSnapshot()).values().stream().filter(enabled -> !Boolean.TRUE.equals(enabled)).count()));
         metadata.put("feature-warnings", featureWarnings());
         metadata.put("operational-features", operationalFeatureState(featureSnapshot()));
         return metadata;
