@@ -17,6 +17,7 @@ public final class MeteredIslandStorage implements IslandStorage {
     private final AtomicLong uploadFailures = new AtomicLong();
     private final AtomicLong downloadFailures = new AtomicLong();
     private final AtomicLong operationFailures = new AtomicLong();
+    private final AtomicLong operationAttempts = new AtomicLong();
 
     public MeteredIslandStorage(IslandStorage delegate) {
         this(delegate, delegate == null ? "UNKNOWN" : delegate.getClass().getSimpleName());
@@ -53,6 +54,15 @@ public final class MeteredIslandStorage implements IslandStorage {
 
     public long operationFailures() {
         return operationFailures.get();
+    }
+
+    public long operationAttempts() {
+        return operationAttempts.get();
+    }
+
+    public double operationFailureRatio() {
+        long attempts = operationAttempts.get();
+        return attempts <= 0L ? 0.0D : Math.min(1.0D, (double) operationFailures.get() / attempts);
     }
 
     public boolean primaryStorageDegraded() {
@@ -196,6 +206,7 @@ public final class MeteredIslandStorage implements IslandStorage {
     @Override
     public void promoteSnapshot(UUID islandId, long snapshotNo) throws IOException {
         try {
+            recordOperationAttempt();
             delegate.promoteSnapshot(islandId, snapshotNo);
         } catch (IOException exception) {
             recordOperationFailure();
@@ -207,6 +218,7 @@ public final class MeteredIslandStorage implements IslandStorage {
     public void promoteBundle(UUID islandId, long snapshotNo, String storagePath) throws IOException {
         long started = System.nanoTime();
         try {
+            recordOperationAttempt();
             delegate.promoteBundle(islandId, snapshotNo, storagePath);
         } catch (IOException exception) {
             recordUploadFailure();
@@ -239,6 +251,7 @@ public final class MeteredIslandStorage implements IslandStorage {
     @Override
     public void deleteLiveState(UUID islandId) throws IOException {
         try {
+            recordOperationAttempt();
             delegate.deleteLiveState(islandId);
         } catch (IOException exception) {
             recordOperationFailure();
@@ -249,6 +262,7 @@ public final class MeteredIslandStorage implements IslandStorage {
     @Override
     public void deleteIsland(UUID islandId) throws IOException {
         try {
+            recordOperationAttempt();
             delegate.deleteIsland(islandId);
         } catch (IOException exception) {
             recordOperationFailure();
@@ -274,6 +288,10 @@ public final class MeteredIslandStorage implements IslandStorage {
 
     private void recordOperationFailure() {
         operationFailures.incrementAndGet();
+    }
+
+    private void recordOperationAttempt() {
+        operationAttempts.incrementAndGet();
     }
 
     private double elapsedSeconds(long startedNanos) {

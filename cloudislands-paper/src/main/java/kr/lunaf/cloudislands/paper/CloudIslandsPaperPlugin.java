@@ -478,6 +478,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         double storageUploadSeconds = storage == null ? 0.0D : storage.lastUploadSeconds();
         double storageDownloadSeconds = storage == null ? 0.0D : storage.lastDownloadSeconds();
         long storageFailures = storage == null ? 0L : storage.operationFailures();
+        long storageAttempts = storage == null ? 0L : storage.operationAttempts();
+        double storageFailureRatio = storage == null ? 0.0D : storage.operationFailureRatio();
         String storageBackend = storage == null ? "NONE" : storage.backend();
         boolean primaryStorageDegraded = storage != null && storage.primaryStorageDegraded();
         long primaryStorageFailures = storage == null ? 0L : storage.primaryStorageFailures();
@@ -517,7 +519,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_paper_recent_failure_penalty{node=\"" + nodeId + "\"} " + failures + "\n"
             + "cloudislands_storage_upload_seconds{node=\"" + nodeId + "\"} " + storageUploadSeconds + "\n"
             + "cloudislands_storage_download_seconds{node=\"" + nodeId + "\"} " + storageDownloadSeconds + "\n"
+            + "cloudislands_storage_operations_total{node=\"" + nodeId + "\"} " + storageAttempts + "\n"
             + "cloudislands_storage_operation_failures_total{node=\"" + nodeId + "\"} " + storageFailures + "\n"
+            + "cloudislands_storage_failure_ratio{node=\"" + nodeId + "\"} " + storageFailureRatio + "\n"
             + "cloudislands_storage_backend{node=\"" + nodeId + "\",backend=\"" + storageBackend + "\"} " + (storage == null ? 0 : 1) + "\n"
             + "cloudislands_storage_primary_degraded{node=\"" + nodeId + "\"} " + (primaryStorageDegraded ? 1 : 0) + "\n"
             + "cloudislands_storage_primary_failures_total{node=\"" + nodeId + "\"} " + primaryStorageFailures + "\n"
@@ -706,7 +710,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";storageHealthCheckFailures=" + (storage == null ? 0L : storage.healthCheckFailures())
             + ";storageUploadFailures=" + (storage == null ? 0L : storage.uploadFailures())
             + ";storageDownloadFailures=" + (storage == null ? 0L : storage.downloadFailures())
+            + ";storageOperations=" + (storage == null ? 0L : storage.operationAttempts())
             + ";storageOperationFailures=" + (storage == null ? 0L : storage.operationFailures())
+            + ";storageFailureRatio=" + (storage == null ? 0.0D : storage.operationFailureRatio())
             + ";storagePrimaryDegraded=" + (storage != null && storage.primaryStorageDegraded())
             + ";storagePrimaryFailures=" + (storage == null ? 0L : storage.primaryStorageFailures())
             + ";storageFallbackReads=" + (storage == null ? 0L : storage.fallbackReads())

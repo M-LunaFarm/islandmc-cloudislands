@@ -33,6 +33,7 @@ public final class OperationsDashboardPolicy {
         metrics.put("redis-latency", "cloudislands_redis_latency_seconds");
         metrics.put("database-connection-pool-usage", "cloudislands_database_connection_pool_usage_ratio");
         metrics.put("object-storage-failure-ratio", "cloudislands_cluster_storage_failure_ratio");
+        metrics.put("object-storage-node-failure-ratio", "cloudislands_storage_failure_ratio");
         return Collections.unmodifiableMap(metrics);
     }
 }
