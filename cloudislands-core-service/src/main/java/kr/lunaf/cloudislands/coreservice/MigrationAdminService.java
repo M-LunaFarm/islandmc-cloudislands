@@ -274,7 +274,7 @@ public final class MigrationAdminService {
     public synchronized String extractWorldBundles(String outputPath) {
         if (lastScan.manifests().isEmpty()) {
             List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_SCAN_REQUIRED", "run scan before extracting SuperiorSkyblock2 worlds", true));
-            return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\"" + migrationBoundaryFields() + ",\"path\":\"\",\"manifests\":0,\"extractedBundles\":0,\"extractedFiles\":0,\"extractedBytes\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+            return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\"" + migrationBoundaryFields() + ",\"path\":\"\",\"manifests\":0,\"extractedBundles\":0,\"extractedManifests\":0,\"bundleManifestPolicy\":\"cloudislands-portable-manifest-json-required\",\"extractedFiles\":0,\"extractedBytes\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
         }
         Path targetRoot = resolveMigrationBundleRoot(outputPath);
         lastExtractionRoot = targetRoot;
@@ -343,7 +343,7 @@ public final class MigrationAdminService {
         long[] extractedStats = new long[] {0L, 0L, 0L, 0L};
         BundlePreflight preflight = preflightMigrationBundles(lastPlan.manifests());
         if (!preflight.issues().isEmpty()) {
-            return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\"" + migrationBoundaryFields() + ",\"imported\":false,\"importedIslands\":0,\"extractedBundles\":0,\"extractedFiles\":0,\"extractedBytes\":0" + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), preflight.issues())) + ",\"issues\":" + issuesJson(preflight.issues()) + "}";
+            return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\"" + migrationBoundaryFields() + ",\"imported\":false,\"importedIslands\":0,\"extractedBundles\":0,\"extractedManifests\":0,\"bundleManifestPolicy\":\"cloudislands-portable-manifest-json-required\",\"extractedFiles\":0,\"extractedBytes\":0" + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), preflight.issues())) + ",\"issues\":" + issuesJson(preflight.issues()) + "}";
         }
         Map<java.util.UUID, MigrationWorldBundle> preflightBundles = preflight.bundles();
         CloudIslandsMigrationImporter.ImportResult result = importer.importPlan(lastPlan, manifest -> {
@@ -479,7 +479,7 @@ public final class MigrationAdminService {
     public synchronized String verify(String bundleRootPath) {
         if (lastScan.manifests().isEmpty()) {
             List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_SCAN_REQUIRED", "run scan before verifying SuperiorSkyblock2 migration", true));
-            return "{\"state\":\"" + MigrationRunState.VERIFYING + "\"" + migrationBoundaryFields() + ",\"path\":\"\",\"reportPath\":\"\",\"passed\":false,\"expected\":0,\"imported\":0,\"extractedBundles\":0,\"extractedFiles\":0,\"extractedBytes\":0,\"activationTested\":0,\"activationTestPassed\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+            return "{\"state\":\"" + MigrationRunState.VERIFYING + "\"" + migrationBoundaryFields() + ",\"path\":\"\",\"reportPath\":\"\",\"passed\":false,\"expected\":0,\"imported\":0,\"extractedBundles\":0,\"verifiedManifests\":0,\"bundleManifestPolicy\":\"cloudislands-portable-manifest-json-required\",\"extractedFiles\":0,\"extractedBytes\":0,\"activationTested\":0,\"activationTestPassed\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
         }
         List<MigrationManifest> imported = new ArrayList<>();
         List<MigrationIssue> issues = new ArrayList<>();
