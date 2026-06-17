@@ -301,11 +301,7 @@ public final class CoreApiSatisStateService {
             publishIslandTableKeyValueBulk(row.islandUuid(), Map.of(), tablePayload, "Satis core-api row " + row.key() + " for island " + row.islandUuid());
             return;
         }
-        cloudIslandsApi.addons().putIslandState(addonId, row.islandUuid(), Map.of(row.key(), row.value())).exceptionally(error -> {
-            logger.warning("Failed to publish Satis core-api row " + row.key() + " for island " + row.islandUuid() + ": " + error.getMessage());
-            recordCoreStateFailure("island-row", error);
-            return Map.of();
-        });
+        publishIslandTableKeyValueBulk(row.islandUuid(), Map.of(row.key(), row.value()), Map.of(), "Satis core-api key-value row " + row.key() + " for island " + row.islandUuid());
     }
 
     public void publishTable(DatabaseService.CoreTableWrite table) {
@@ -400,11 +396,7 @@ public final class CoreApiSatisStateService {
             publishGlobalTableKeyValueBulk(Map.of(), tablePayload, "Satis core-api global row " + row.key());
             return;
         }
-        cloudIslandsApi.addons().putState(addonId, Map.of(row.key(), row.value())).exceptionally(error -> {
-            logger.warning("Failed to publish Satis core-api global row " + row.key() + ": " + error.getMessage());
-            recordCoreStateFailure("global-row", error);
-            return Map.of();
-        });
+        publishGlobalTableKeyValueBulk(Map.of(row.key(), row.value()), Map.of(), "Satis core-api global key-value row " + row.key());
     }
 
     private Map<String, Map<String, String>> tablePayload(String key, String value) {
