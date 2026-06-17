@@ -1,6 +1,7 @@
 package kr.seungmin.satisskyfactory.storage;
 
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
+import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.api.service.IslandAddonService;
 import kr.seungmin.satisskyfactory.database.DatabaseService;
 import kr.seungmin.satisskyfactory.model.BlockKey;
@@ -440,7 +441,9 @@ public final class CoreApiSatisStateService {
         Map<String, String> safeValues = mergedValues;
         Map<String, Map<String, String>> safeTables = mergedTables;
         String finalDescription = safeDescription;
-        cloudIslandsApi.addons().tableKeyValueBulkSaveIslandState(addonId, islandId, safeValues, safeTables)
+        AddonStateBulkSaveRequest request = AddonStateBulkSaveRequest.islandTables(addonId, islandId, safeTables);
+        request = new AddonStateBulkSaveRequest(addonId, islandId, "", safeValues, request.tables());
+        cloudIslandsApi.addons().tableKeyValueBulkSaveIslandState(request)
                 .handle((state, error) -> {
                     if (error == null) {
                         publishBulkStatus(islandId, safeValues, safeTables, "success", "bulk", "");
@@ -493,7 +496,9 @@ public final class CoreApiSatisStateService {
         Map<String, String> safeValues = mergedValues;
         Map<String, Map<String, String>> safeTables = mergedTables;
         String finalDescription = safeDescription;
-        cloudIslandsApi.addons().tableKeyValueBulkSaveState(addonId, safeValues, safeTables)
+        AddonStateBulkSaveRequest request = AddonStateBulkSaveRequest.globalTables(addonId, safeTables);
+        request = new AddonStateBulkSaveRequest(addonId, null, "", safeValues, request.tables());
+        cloudIslandsApi.addons().tableKeyValueBulkSaveState(request)
                 .handle((state, error) -> {
                     if (error == null) {
                         publishGlobalBulkStatus(safeValues, safeTables, "success", "bulk", "");

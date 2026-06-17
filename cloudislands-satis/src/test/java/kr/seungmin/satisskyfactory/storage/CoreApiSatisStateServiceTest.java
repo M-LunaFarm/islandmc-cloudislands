@@ -1,6 +1,7 @@
 package kr.seungmin.satisskyfactory.storage;
 
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
+import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.lunaf.cloudislands.api.service.IslandAddonService;
 import kr.lunaf.cloudislands.api.service.IslandAdminService;
@@ -95,6 +96,47 @@ class CoreApiSatisStateServiceTest {
         assertEquals(0L, service.islandTableLoadFailures());
     }
 
+    @Test
+    void publishesIslandRowThroughBulkSaveRequest() {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000823");
+        CapturingAddonService addons = new CapturingAddonService();
+        CoreApiSatisStateService service = new CoreApiSatisStateService(
+                Logger.getLogger("test"),
+                new AddonOnlyCloudIslandsApi(addons),
+                "cloudislands-satis"
+        );
+
+        service.publishRow(new kr.seungmin.satisskyfactory.database.DatabaseService.CoreRowWrite(
+                islandId,
+                IslandAddonService.tableStateKey("machines", "machine/one"),
+                "{\"status\":\"RUNNING\"}"
+        ));
+
+        assertEquals("cloudislands-satis", addons.lastIslandSaveRequest.addonId());
+        assertEquals(islandId, addons.lastIslandSaveRequest.islandId());
+        assertEquals(Map.of("machine/one", "{\"status\":\"RUNNING\"}"),
+                addons.lastIslandSaveRequest.tables().get("machines"));
+    }
+
+    @Test
+    void publishesGlobalRowThroughBulkSaveRequest() {
+        CapturingAddonService addons = new CapturingAddonService();
+        CoreApiSatisStateService service = new CoreApiSatisStateService(
+                Logger.getLogger("test"),
+                new AddonOnlyCloudIslandsApi(addons),
+                "cloudislands-satis"
+        );
+
+        service.publishGlobalRow(new kr.seungmin.satisskyfactory.database.DatabaseService.CoreGlobalRowWrite(
+                IslandAddonService.tableStateKey("market_daily", "iron_ingot/2026-06-17"),
+                "{\"soldAmount\":42}"
+        ));
+
+        assertEquals("cloudislands-satis", addons.lastGlobalSaveRequest.addonId());
+        assertEquals(Map.of("iron_ingot/2026-06-17", "{\"soldAmount\":42}"),
+                addons.lastGlobalSaveRequest.tables().get("market_daily"));
+    }
+
     private record AddonOnlyCloudIslandsApi(IslandAddonService addons) implements CloudIslandsApi {
         @Override
         public IslandQueryService islands() {
@@ -150,6 +192,8 @@ class CoreApiSatisStateServiceTest {
         private String lastIslandAddonId;
         private UUID lastIslandId;
         private String lastIslandLoadTable;
+        private AddonStateBulkSaveRequest lastGlobalSaveRequest;
+        private AddonStateBulkSaveRequest lastIslandSaveRequest;
 
         @Override
         public CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled, Map<String, Boolean> features, Map<String, String> metadata) {
@@ -189,6 +233,19 @@ class CoreApiSatisStateServiceTest {
             lastIslandId = islandId;
             lastIslandLoadTable = table;
             return CompletableFuture.completedFuture(islandTables.getOrDefault(table, Map.of()));
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> tableKeyValueBulkSaveState(AddonStateBulkSaveRequest request) {
+            lastGlobalSaveRequest = request;
+            return CompletableFuture.completedFuture(request.flattenedStateValues());
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> tableKeyValueBulkSaveIslandState(AddonStateBulkSaveRequest request) {
+            lastIslandSaveRequest = request;
+            lastIslandId = request.islandId();
+            return CompletableFuture.completedFuture(request.flattenedStateValues());
         }
     }
 }
