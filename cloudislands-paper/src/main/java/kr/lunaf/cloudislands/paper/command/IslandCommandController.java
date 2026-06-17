@@ -2266,11 +2266,11 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 coreApiClient.banIslandVisitorResult(islandId, player.getUniqueId(), targetUuid, reason)
                     .thenAccept(body -> plugin.getServer().getScheduler().runTask(plugin, () -> {
                         if (resultRejected(body)) {
-                            player.sendMessage(actionResultMessage("섬 방문자 밴", targetUuid, body));
+                            player.sendMessage(playerMessage(actionResultMessage("섬 방문자 밴", targetUuid, body)));
                             return;
                         }
                         moveVisitorToFallback(islandId, targetUuid, "섬에서 밴되어 로비로 이동합니다.", "섬에서 밴되어 로비로 이동하지 못했습니다.");
-                        player.sendMessage(actionResultMessage("섬 방문자 밴", targetUuid, body));
+                        player.sendMessage(playerMessage(actionResultMessage("섬 방문자 밴", targetUuid, body)));
                     }))
                     .exceptionally(error -> {
                         message(player, "섬 방문자를 밴하지 못했습니다.");
@@ -2307,7 +2307,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 coreApiClient.kickIslandVisitorResult(islandId, player.getUniqueId(), targetUuid)
                     .thenAccept(body -> plugin.getServer().getScheduler().runTask(plugin, () -> {
                         if (resultRejected(body)) {
-                            player.sendMessage(actionResultMessage("섬 방문자 추방", targetUuid, body));
+                            player.sendMessage(playerMessage(actionResultMessage("섬 방문자 추방", targetUuid, body)));
                             return;
                         }
                         if (plugin.getServer().getPlayer(targetUuid) == null) {
@@ -2318,7 +2318,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                             message(player, routeMessage("visitor-kick-target-not-on-island", "방문자 추방을 기록했습니다. 대상 플레이어는 현재 이 섬에 없습니다."));
                             return;
                         }
-                        player.sendMessage(actionResultMessage("섬 방문자 추방", targetUuid, body));
+                        player.sendMessage(playerMessage(actionResultMessage("섬 방문자 추방", targetUuid, body)));
                     }))
                     .exceptionally(error -> {
                         message(player, "섬 방문자를 추방하지 못했습니다.");
