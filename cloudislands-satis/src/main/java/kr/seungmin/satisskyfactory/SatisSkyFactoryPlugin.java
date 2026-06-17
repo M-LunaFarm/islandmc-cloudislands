@@ -354,14 +354,17 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean dataWritesEnabled() {
-        return storageWriteAuthorityReady()
-                && (operationalFeatureEnabled("machines")
+        return storageWriteAuthorityReady() && runtimeWriteFeatureEnabled();
+    }
+
+    private boolean runtimeWriteFeatureEnabled() {
+        return operationalFeatureEnabled("machines")
                 || operationalFeatureEnabled("storage")
                 || operationalFeatureEnabled("resource-nodes")
                 || operationalFeatureEnabled("market")
                 || operationalFeatureEnabled("contracts")
                 || operationalFeatureEnabled("research")
-                || operationalFeatureEnabled("maintenance"));
+                || operationalFeatureEnabled("maintenance");
     }
 
     private boolean storageWriteAuthorityReady() {
@@ -450,6 +453,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-alias-policy", "legacy-satismc-feature-names-map-to-cloudislands-satis-canonical-gates");
         state.put("runtime-data-writes-enabled", Boolean.toString(dataWritesEnabled()));
         state.put("runtime-data-write-authority-ready", Boolean.toString(storageWriteAuthorityReady()));
+        state.put("runtime-write-feature-enabled", Boolean.toString(runtimeWriteFeatureEnabled()));
         state.put("runtime-lifecycle-state-enabled", Boolean.toString(lifecycleStateEnabled()));
         state.put("runtime-machine-ticker-running", Boolean.toString(ticker != null && ticker.running()));
         state.put("runtime-maintenance-ticker-running", Boolean.toString(maintenanceTicker != null && maintenanceTicker.running()));
@@ -466,7 +470,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-dirty-save-flush-attempts", dirtySaves == null ? "0" : Long.toString(dirtySaves.flushAttempts()));
         state.put("runtime-machine-ticker-gate", "addonRuntimeEnabled&&features.machines");
         state.put("runtime-maintenance-ticker-gate", "addonRuntimeEnabled&&features.maintenance");
-        state.put("runtime-dirty-save-gate", "addonRuntimeEnabled&&any-write-feature-enabled");
+        state.put("runtime-dirty-save-gate", "addonRuntimeEnabled&&storage-write-authority&&any-runtime-write-feature-enabled");
         state.put("runtime-dirty-save-stop-policy", "runtime-stop-preflushes-queued-dirty-state-before-task-cancel-and-addon-unregister");
         state.put("runtime-duplicate-tick-guard", "ticker-stops-when-addon-or-machine-feature-disabled");
         state.put("runtime-core-api-state-writer", Boolean.toString(coreApiState != null));
@@ -507,6 +511,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("data-write-mode", dataWritesEnabled() ? "enabled" : "disabled");
         state.put("data-write-authority-ready", Boolean.toString(storageWriteAuthorityReady()));
         state.put("data-write-authority-policy", "CORE_API backend requires addon-state writers before local cache writes are accepted");
+        state.put("data-write-feature-ready", Boolean.toString(runtimeWriteFeatureEnabled()));
         state.put("write-gate-machines", Boolean.toString(operationalFeatureEnabled("machines")));
         state.put("write-gate-machines-direct", Boolean.toString(operationalFeatureEnabled("machines")));
         state.put("write-gate-machine-ticker", Boolean.toString(operationalFeatureEnabled("machines")));
@@ -525,9 +530,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("write-gate-contracts", Boolean.toString(operationalFeatureEnabled("contracts")));
         state.put("write-gate-contracts-direct", Boolean.toString(operationalFeatureEnabled("contracts") && storageDataEnabled()));
         state.put("write-gate-research", Boolean.toString(operationalFeatureEnabled("research")));
-        state.put("write-gate-research-direct", Boolean.toString(operationalFeatureEnabled("research") && dataWritesEnabled()));
+        state.put("write-gate-research-direct", Boolean.toString(storageWriteAuthorityReady() && operationalFeatureEnabled("research")));
         state.put("write-gate-maintenance", Boolean.toString(operationalFeatureEnabled("maintenance")));
-        state.put("write-gate-maintenance-direct", Boolean.toString(operationalFeatureEnabled("maintenance") && dataWritesEnabled()));
+        state.put("write-gate-maintenance-direct", Boolean.toString(storageWriteAuthorityReady() && operationalFeatureEnabled("maintenance")));
         state.put("write-gate-lifecycle-state", Boolean.toString(lifecycleStateEnabled()));
         state.put("write-gate-lifecycle-listener", Boolean.toString(lifecycleListenerNeeded()));
         state.put("write-gate-lifecycle-direct", Boolean.toString(lifecycleListenerNeeded() && dataWritesEnabled()));
@@ -2251,6 +2256,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         boolean contractsEnabled = operational.getOrDefault("contracts", storageEnabled);
         boolean researchEnabled = operational.getOrDefault("research", true);
         boolean guiEnabled = operational.getOrDefault("gui", true);
+        boolean lifecycleEnabled = operational.getOrDefault("lifecycle", true);
         operational.computeIfPresent("resource-nodes", (_key, enabled) -> enabled && machinesEnabled);
         operational.computeIfPresent("market", (_key, enabled) -> enabled && storageEnabled);
         operational.computeIfPresent("contracts", (_key, enabled) -> enabled && storageEnabled);
@@ -2258,6 +2264,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         operational.computeIfPresent("missions", (_key, enabled) -> enabled && contractsEnabled && storageEnabled);
         operational.computeIfPresent("upgrades", (_key, enabled) -> enabled && researchEnabled);
         operational.computeIfPresent("menus", (_key, enabled) -> enabled && guiEnabled);
+        operational.computeIfPresent("members", (_key, enabled) -> enabled && lifecycleEnabled);
+        operational.computeIfPresent("permissions", (_key, enabled) -> enabled && lifecycleEnabled);
+        operational.computeIfPresent("level-values", (_key, enabled) -> enabled && lifecycleEnabled);
+        operational.computeIfPresent("warps", (_key, enabled) -> enabled && lifecycleEnabled);
+        operational.computeIfPresent("biomes", (_key, enabled) -> enabled && lifecycleEnabled);
+        operational.computeIfPresent("chat", (_key, enabled) -> enabled && lifecycleEnabled);
+        operational.computeIfPresent("templates", (_key, enabled) -> enabled && lifecycleEnabled);
         FEATURE_ALIASES.forEach((alias, canonical) -> {
             if (operational.containsKey(alias) || operational.containsKey(canonical)) {
                 boolean enabled = operational.getOrDefault(alias, true) && operational.getOrDefault(canonical, true);
