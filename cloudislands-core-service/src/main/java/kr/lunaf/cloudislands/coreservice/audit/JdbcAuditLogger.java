@@ -20,7 +20,7 @@ public final class JdbcAuditLogger implements AuditLogger {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(insertAuditSql(connection))) {
             statement.setObject(1, UUID.randomUUID());
-            statement.setObject(2, actorUuid.getMostSignificantBits() == 0L && actorUuid.getLeastSignificantBits() == 0L ? null : actorUuid);
+            statement.setObject(2, actorUuid == null || (actorUuid.getMostSignificantBits() == 0L && actorUuid.getLeastSignificantBits() == 0L) ? null : actorUuid);
             statement.setString(3, actorType);
             statement.setString(4, action);
             statement.setString(5, targetType);
@@ -67,7 +67,7 @@ public final class JdbcAuditLogger implements AuditLogger {
     private String toJson(Map<String, String> payload) {
         StringBuilder builder = new StringBuilder("{");
         boolean first = true;
-        for (Map.Entry<String, String> entry : payload.entrySet()) {
+        for (Map.Entry<String, String> entry : (payload == null ? Map.<String, String>of() : payload).entrySet()) {
             if (!first) {
                 builder.append(',');
             }
@@ -78,7 +78,28 @@ public final class JdbcAuditLogger implements AuditLogger {
     }
 
     private String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+        if (value == null) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder(value.length());
+        for (int index = 0; index < value.length(); index++) {
+            char current = value.charAt(index);
+            switch (current) {
+                case '\\' -> builder.append("\\\\");
+                case '"' -> builder.append("\\\"");
+                case '\n' -> builder.append("\\n");
+                case '\r' -> builder.append("\\r");
+                case '\t' -> builder.append("\\t");
+                default -> {
+                    if (current < 0x20) {
+                        builder.append(String.format("\\u%04x", (int) current));
+                    } else {
+                        builder.append(current);
+                    }
+                }
+            }
+        }
+        return builder.toString();
     }
 
     private String insertAuditSql(Connection connection) throws SQLException {

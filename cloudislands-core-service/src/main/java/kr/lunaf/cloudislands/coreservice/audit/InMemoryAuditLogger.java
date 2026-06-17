@@ -11,7 +11,7 @@ public final class InMemoryAuditLogger implements AuditLogger {
 
     @Override
     public synchronized void log(UUID actorUuid, String actorType, String action, String targetType, String targetId, Map<String, String> payload) {
-        records.add(new AuditRecord(UUID.randomUUID(), actorUuid, actorType, action, targetType, targetId, Map.copyOf(payload), Instant.now()));
+        records.add(new AuditRecord(UUID.randomUUID(), actorUuid, actorType, action, targetType, targetId, payload == null ? Map.of() : Map.copyOf(payload), Instant.now()));
     }
 
     public synchronized String toJson() {
@@ -59,7 +59,28 @@ public final class InMemoryAuditLogger implements AuditLogger {
     }
 
     private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+        if (value == null) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder(value.length());
+        for (int index = 0; index < value.length(); index++) {
+            char current = value.charAt(index);
+            switch (current) {
+                case '\\' -> builder.append("\\\\");
+                case '"' -> builder.append("\\\"");
+                case '\n' -> builder.append("\\n");
+                case '\r' -> builder.append("\\r");
+                case '\t' -> builder.append("\\t");
+                default -> {
+                    if (current < 0x20) {
+                        builder.append(String.format("\\u%04x", (int) current));
+                    } else {
+                        builder.append(current);
+                    }
+                }
+            }
+        }
+        return builder.toString();
     }
 
     public record AuditRecord(UUID id, UUID actorUuid, String actorType, String action, String targetType, String targetId, Map<String, String> payload, Instant createdAt) {}
