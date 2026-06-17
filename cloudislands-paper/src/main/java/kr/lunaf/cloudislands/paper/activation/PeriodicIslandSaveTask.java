@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import kr.lunaf.cloudislands.common.storage.StorageOutagePolicy;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
@@ -55,7 +56,7 @@ public final class PeriodicIslandSaveTask {
             } catch (java.io.IOException exception) {
                 failuresTotal.incrementAndGet();
                 int attempts = retryQueue.merge(activeIsland.islandId(), 1, Integer::sum);
-                plugin.getLogger().warning("Periodic island save failed for " + activeIsland.islandId() + " retry=" + attempts + " queued=" + retryQueue.size() + ": " + exception.getMessage());
+                plugin.getLogger().warning("Periodic island save failed for " + activeIsland.islandId() + " retry=" + attempts + " queued=" + retryQueue.size() + " policy=" + StorageOutagePolicy.SAVE_RETRY_POLICY + ": " + exception.getMessage());
             }
         }
     }

@@ -404,9 +404,13 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"storageFallbackType\":\"" + jsonText(getConfig().getString("storage.fallback.type", "LOCAL")) + "\","
             + "\"storageLastFallbackReason\":\"" + jsonText(storageLastFallbackReason) + "\","
             + "\"storageSaveRetryQueueTotal\":" + storageSaveRetryQueueTotal + ","
-            + "\"objectStorageOutagePolicy\":\"active-islands-stay-local-new-activation-save-snapshot-restore-degraded-until-storage-recovers\","
+            + "\"objectStorageOutagePolicy\":\"" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.CONTRACT + "\","
+            + "\"objectStorageActiveIslandPolicy\":\"" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.ACTIVE_ISLAND_POLICY + "\","
+            + "\"objectStorageNewActivationPolicy\":\"" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.NEW_ACTIVATION_POLICY + "\","
             + "\"objectStorageActiveIslandLocalPlayAllowed\":" + (islandNodeRole && activeIslands != null) + ","
-            + "\"objectStorageSaveRetryPolicy\":\"periodic-and-empty-island-save-failures-remain-queued-for-retry\","
+            + "\"objectStorageSaveRetryPolicy\":\"" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.SAVE_RETRY_POLICY + "\","
+            + "\"objectStorageDeactivationPolicy\":\"" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.DEACTIVATION_POLICY + "\","
+            + "\"objectStorageObservabilityKeys\":\"" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.OBSERVABILITY_KEYS + "\","
             + "\"islandBundlePortablePolicy\":\"portable-node-agnostic-shard-cell-remap\","
             + "\"islandBundleManifestPolicy\":\"manifest-json-plus-checksums-sha256-sidecar\","
             + "\"islandBundleRestoreVerifyPolicy\":\"verify-manifest-checksum-for-latest-snapshot-and-storage-path-when-present\","
@@ -701,6 +705,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";storageFallbackWrites=" + (storage == null ? 0L : storage.fallbackWrites())
             + ";storageFallbackDeletes=" + (storage == null ? 0L : storage.fallbackDeletes())
             + ";storageFallbackOperations=" + (storage == null ? 0L : storage.fallbackOperations())
+            + ";objectStorageOutagePolicy=" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.CONTRACT
+            + ";objectStorageSaveRetryPolicy=" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.SAVE_RETRY_POLICY
             + ";redisAvailable=" + redis.available()
             + ";redisLatencySeconds=" + redis.latencySeconds()
             + ";redisFailures=" + redis.failuresTotal()

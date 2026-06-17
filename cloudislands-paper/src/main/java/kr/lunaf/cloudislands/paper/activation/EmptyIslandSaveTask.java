@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import kr.lunaf.cloudislands.common.storage.StorageOutagePolicy;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import org.bukkit.Bukkit;
@@ -95,7 +96,7 @@ public final class EmptyIslandSaveTask {
         } catch (java.io.IOException exception) {
             failuresTotal.incrementAndGet();
             int attempts = retryQueue.merge(activeIsland.islandId(), 1, Integer::sum);
-            plugin.getLogger().warning("Empty island save failed for " + activeIsland.islandId() + " retry=" + attempts + " queued=" + retryQueue.size() + ": " + exception.getMessage());
+            plugin.getLogger().warning("Empty island save failed for " + activeIsland.islandId() + " retry=" + attempts + " queued=" + retryQueue.size() + " policy=" + StorageOutagePolicy.DEACTIVATION_POLICY + ": " + exception.getMessage());
             Bukkit.getScheduler().runTask(plugin, () -> savedWhileEmpty.remove(activeIsland.islandId()));
         }
     }
