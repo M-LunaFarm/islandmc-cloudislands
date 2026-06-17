@@ -129,7 +129,14 @@ class DefaultConfigIntegrityTest {
                 "placeholders",
                 "migration",
                 "addon-state",
-                "route-events"
+                "route-events",
+                "members",
+                "permissions",
+                "level-values",
+                "warps",
+                "biomes",
+                "chat",
+                "templates"
         );
 
         assertEquals("satis.enabled", addon.getString("features.root-switch"));
@@ -156,6 +163,13 @@ class DefaultConfigIntegrityTest {
         assertEquals("storage", addon.getString("features.dependencies.market"));
         assertEquals("storage", addon.getString("features.dependencies.contracts"));
         assertEquals("addon-state", addon.getString("features.dependencies.route-events"));
+        assertEquals("lifecycle", addon.getString("features.dependencies.members"));
+        assertEquals("lifecycle", addon.getString("features.dependencies.permissions"));
+        assertEquals("lifecycle", addon.getString("features.dependencies.level-values"));
+        assertEquals("lifecycle", addon.getString("features.dependencies.warps"));
+        assertEquals("lifecycle", addon.getString("features.dependencies.biomes"));
+        assertEquals("lifecycle", addon.getString("features.dependencies.chat"));
+        assertEquals("lifecycle", addon.getString("features.dependencies.templates"));
     }
 
     @Test

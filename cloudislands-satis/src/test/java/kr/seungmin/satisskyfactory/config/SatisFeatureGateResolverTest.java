@@ -69,6 +69,29 @@ class SatisFeatureGateResolverTest {
         assertTrue(SatisFeatureGateResolver.featureEnabled(config, "research"));
     }
 
+    @Test
+    void routeEventsRequireAddonState() {
+        YamlConfiguration config = defaults();
+        config.set("satis.features.addon-state", false);
+        config.set("satis.features.route-events", true);
+
+        assertFalse(SatisFeatureGateResolver.featureEnabled(config, "route-events"));
+    }
+
+    @Test
+    void lifecycleSubFeaturesRequireLifecycleFeature() {
+        YamlConfiguration config = defaults();
+        config.set("satis.features.lifecycle", false);
+
+        assertFalse(SatisFeatureGateResolver.featureEnabled(config, "members"));
+        assertFalse(SatisFeatureGateResolver.featureEnabled(config, "permissions"));
+        assertFalse(SatisFeatureGateResolver.featureEnabled(config, "level-values"));
+        assertFalse(SatisFeatureGateResolver.featureEnabled(config, "warps"));
+        assertFalse(SatisFeatureGateResolver.featureEnabled(config, "biomes"));
+        assertFalse(SatisFeatureGateResolver.featureEnabled(config, "chat"));
+        assertFalse(SatisFeatureGateResolver.featureEnabled(config, "templates"));
+    }
+
     private YamlConfiguration defaults() {
         YamlConfiguration config = new YamlConfiguration();
         config.set("satis.enabled", true);
