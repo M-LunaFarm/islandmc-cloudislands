@@ -38,6 +38,31 @@ class InMemoryIslandRuntimeRepositoryTest {
     }
 
     @Test
+    void staleSaveAttemptCannotMoveNewerRuntimeIntoSaving() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        runtimes.markActive(ISLAND, "island-2", "ci_shard_002", 5, 3, 102L);
+
+        IslandRuntimeSnapshot stale = runtimes.markSaving(ISLAND, 101L);
+
+        assertEquals(IslandState.ACTIVE, stale.state());
+        assertEquals("island-2", stale.activeNode());
+        assertEquals("ci_shard_002", stale.activeWorld());
+        assertEquals(102L, stale.fencingToken());
+    }
+
+    @Test
+    void currentSaveAttemptMovesRuntimeIntoSavingWithSameToken() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        runtimes.markActive(ISLAND, "island-2", "ci_shard_002", 5, 3, 102L);
+
+        IslandRuntimeSnapshot saving = runtimes.markSaving(ISLAND, 102L);
+
+        assertEquals(IslandState.SAVING, saving.state());
+        assertEquals("island-2", saving.activeNode());
+        assertEquals(102L, saving.fencingToken());
+    }
+
+    @Test
     void runningIslandCannotBeActivatedOnDifferentNode() {
         InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
         runtimes.markActive(ISLAND, "island-4", "ci_shard_004", 3, 5, 20L);

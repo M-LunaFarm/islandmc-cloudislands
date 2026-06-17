@@ -14,6 +14,7 @@ public interface IslandRuntimeRepository {
     IslandRuntimeSnapshot markActivating(UUID islandId, String targetNode, String targetWorld, int cellX, int cellZ);
     IslandRuntimeSnapshot markActive(UUID islandId, String nodeId, String worldName, int cellX, int cellZ, long fencingToken);
     IslandRuntimeSnapshot markSaving(UUID islandId);
+    IslandRuntimeSnapshot markSaving(UUID islandId, long fencingToken);
     IslandRuntimeSnapshot markInactive(UUID islandId);
     IslandRuntimeSnapshot markInactive(UUID islandId, long fencingToken);
     IslandRuntimeSnapshot markMigrating(UUID islandId, String targetNode);

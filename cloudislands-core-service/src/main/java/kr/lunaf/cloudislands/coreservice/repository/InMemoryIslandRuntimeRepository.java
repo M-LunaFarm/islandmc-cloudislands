@@ -67,6 +67,15 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
     }
 
     @Override
+    public synchronized IslandRuntimeSnapshot markSaving(UUID islandId, long fencingToken) {
+        IslandRuntimeSnapshot current = find(islandId).orElse(defaultRuntime(islandId));
+        if (IslandRuntimeStatePolicy.staleFencingToken(current, fencingToken)) {
+            return current;
+        }
+        return put(new IslandRuntimeSnapshot(islandId, IslandState.SAVING, current.activeNode(), current.activeWorld(), current.cellX(), current.cellZ(), current.leaseOwner(), fencingToken, current.activatedAt(), Instant.now()));
+    }
+
+    @Override
     public IslandRuntimeSnapshot markInactive(UUID islandId) {
         IslandRuntimeSnapshot current = find(islandId).orElse(defaultRuntime(islandId));
         return put(new IslandRuntimeSnapshot(islandId, IslandState.INACTIVE_READY, null, null, null, null, null, current.fencingToken(), null, Instant.now()));

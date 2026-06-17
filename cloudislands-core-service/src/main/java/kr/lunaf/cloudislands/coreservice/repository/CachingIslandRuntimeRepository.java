@@ -75,6 +75,11 @@ public final class CachingIslandRuntimeRepository implements IslandRuntimeReposi
     }
 
     @Override
+    public IslandRuntimeSnapshot markSaving(UUID islandId, long fencingToken) {
+        return cacheChanged(delegate.markSaving(islandId, fencingToken));
+    }
+
+    @Override
     public IslandRuntimeSnapshot markInactive(UUID islandId) {
         return cacheChanged(delegate.markInactive(islandId));
     }
