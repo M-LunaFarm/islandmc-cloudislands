@@ -26,7 +26,12 @@ tasks.jar {
             "CloudIslands-Cache-Invalidation-Redis-Key-Mapper" to "CacheInvalidationPlan.redisKeysFor-event-to-RedisKeys",
             "CloudIslands-Package-Modules" to "api,common,protocol,core-client,core-service,velocity,paper,satis,storage,migration,testkit,bom",
             "CloudIslands-Package-External-Addon" to "cloudislands-satis",
-            "CloudIslands-Package-Primary-Services" to "velocity-router,paper-agent,core-api,storage,migration"
+            "CloudIslands-Package-Primary-Services" to "velocity-router,paper-agent,core-api,storage,migration",
+            "CloudIslands-Satis-Policy-Owner" to "cloudislands-common",
+            "CloudIslands-Satis-Recommended-Mode" to "external-addon-built-in-compatible",
+            "CloudIslands-Satis-Core-Dependency-Policy" to "core-never-depends-on-cloudislands-satis-jar",
+            "CloudIslands-Satis-Feature-Pack-Policy" to "optional-content-layer-feature-gated-by-root-and-child-config",
+            "CloudIslands-Satis-State-Policy" to "shared-state-by-island-uuid-survives-node-move-addon-disable-and-addon-reinstall"
         )
     }
 }
