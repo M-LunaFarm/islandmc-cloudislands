@@ -112,6 +112,25 @@ class NodeAllocatorTest {
         assertEquals("STATE_SOFT_FULL", allocator.readyNodeBlockReason(nodes, NOW, "default", "1.0.0", "island"));
     }
 
+    @Test
+    void appliesStorageTemplateAndVersionHardFiltersBeforeScoring() {
+        NodeAllocator allocator = new NodeAllocator(Duration.ofSeconds(5));
+        List<NodeLoad> nodes = List.of(
+                nodeWithCapabilities("storage-down", "server-a", "1.3.0", true, 1, 10, 18.0, 0, false, "default"),
+                nodeWithCapabilities("template-only", "server-b", "1.3.0", true, 1, 10, 18.0, 0, true, "classic"),
+                nodeWithCapabilities("old-version", "server-c", "1.0.0", true, 1, 10, 18.0, 0, true, "default"),
+                nodeWithCapabilities("eligible", "server-d", "1.3.0", true, 70, 420, 35.0, 8, true, "default")
+        );
+
+        NodeLoad selected = allocator.selectReadyNode(nodes, NOW, "default", "1.2.0", "island").orElseThrow();
+
+        assertEquals("eligible", selected.nodeId());
+        assertEquals(1L, allocator.readyNodeCandidateCount(nodes, NOW, "default", "1.2.0", "island"));
+        assertEquals("STORAGE_UNAVAILABLE", allocator.targetNodeBlockReason(nodes, NOW, "storage-down", "default", "1.2.0", "island"));
+        assertEquals("TEMPLATE_UNSUPPORTED", allocator.targetNodeBlockReason(nodes, NOW, "template-only", "default", "1.2.0", "island"));
+        assertEquals("NODE_VERSION_TOO_OLD", allocator.targetNodeBlockReason(nodes, NOW, "old-version", "default", "1.2.0", "island"));
+    }
+
     private NodeLoad node(String nodeId, String velocityServerName, NodeState state, int players, int activeIslands, double mspt, int activationQueue) {
         return nodeInPool(nodeId, velocityServerName, "island", state, players, activeIslands, mspt, activationQueue);
     }
@@ -139,6 +158,32 @@ class NodeAllocatorTest {
                 NOW.minusSeconds(1),
                 true,
                 "*"
+        );
+    }
+
+    private NodeLoad nodeWithCapabilities(String nodeId, String velocityServerName, String nodeVersion, boolean ready, int players, int activeIslands, double mspt, int activationQueue, boolean storageAvailable, String supportedTemplates) {
+        return new NodeLoad(
+                nodeId,
+                "island",
+                velocityServerName,
+                nodeVersion,
+                ready ? NodeState.READY : NodeState.WARMING,
+                players,
+                90,
+                110,
+                15,
+                activeIslands,
+                600,
+                mspt,
+                activationQueue,
+                20,
+                0.10,
+                2048,
+                8192,
+                0,
+                NOW.minusSeconds(1),
+                storageAvailable,
+                supportedTemplates
         );
     }
 }
