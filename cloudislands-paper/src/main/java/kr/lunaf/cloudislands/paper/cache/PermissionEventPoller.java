@@ -368,7 +368,10 @@ public final class PermissionEventPoller {
         if (islandIdValue.isBlank() || actorUuidValue.isBlank() || message.isBlank()) {
             return true;
         }
-        UUID islandId = UUID.fromString(islandIdValue);
+        UUID islandId = uuidField(fields, "islandId");
+        if (islandId == null) {
+            return true;
+        }
         String channel = fields.getOrDefault("channel", "ISLAND");
         String actorName = fields.getOrDefault("actorName", actorUuidValue);
         String recipients = fields.getOrDefault("recipients", "");
