@@ -151,6 +151,20 @@ public final class NodeFailureMonitor {
                 continue;
             }
             IslandSnapshotRecord snapshot = latest.get(0);
+            if (!validRecoverySnapshot(snapshot)) {
+                lifecycle.quarantine(runtime.islandId(), "INVALID_RECOVERY_SNAPSHOT");
+                quarantined++;
+                events.publish(CloudIslandEventType.ISLAND_RECOVERY_REQUIRED.name(), Map.of(
+                    "islandId", runtime.islandId().toString(),
+                    "nodeId", nodeId,
+                    "reason", "RECOVERY_QUARANTINED_INVALID_SNAPSHOT",
+                    "snapshotNo", Long.toString(snapshot.snapshotNo()),
+                    "storagePathPresent", Boolean.toString(snapshot.storagePath() != null && !snapshot.storagePath().isBlank()),
+                    "checksumPresent", Boolean.toString(snapshot.checksum() != null && !snapshot.checksum().isBlank()),
+                    "sizeBytes", Long.toString(snapshot.sizeBytes())
+                ));
+                continue;
+            }
             IslandLifecycleWorkflow.Result result = lifecycle.recover(runtime.islandId(), snapshot.snapshotNo(), snapshot.storagePath());
             if (result.accepted()) {
                 queued++;
@@ -176,6 +190,15 @@ public final class NodeFailureMonitor {
             }
         }
         return new RecoverySweepResult(queued, quarantined, deferred);
+    }
+
+    private boolean validRecoverySnapshot(IslandSnapshotRecord snapshot) {
+        return snapshot != null
+            && snapshot.storagePath() != null
+            && !snapshot.storagePath().isBlank()
+            && snapshot.checksum() != null
+            && !snapshot.checksum().isBlank()
+            && snapshot.sizeBytes() > 0L;
     }
 
     private int failRoutesForNode(String nodeId) {

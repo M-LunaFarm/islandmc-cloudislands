@@ -103,6 +103,29 @@ class NodeFailureMonitorTest {
         assertTrue(events.countsByField(CloudIslandEventType.ISLAND_RECOVERY_REQUIRED.name(), "reason").containsKey("RECOVERY_QUARANTINED_MISSING_SNAPSHOT"));
     }
 
+    @Test
+    void quarantinesRecoveryIslandWhenSnapshotCannotBeVerified() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        InMemoryIslandSnapshotRepository snapshots = new InMemoryIslandSnapshotRepository();
+        islands.createOwnedIsland(ISLAND_A, OWNER_A, "default", "alpha");
+        runtimes.markActive(ISLAND_A, "failed-node", "ci_shard_001", 2, 3, 9L);
+        snapshots.record(ISLAND_A, 43L, "islands/" + ISLAND_A + "/snapshots/000043/bundle.tar.zst", "PERIODIC", OWNER_A, "", 2048L);
+        IslandLifecycleWorkflow lifecycle = lifecycle(runtimes, islands, jobs, events);
+        NodeFailureMonitor monitor = new NodeFailureMonitor(new InMemoryNodeRegistry(3), runtimes, islands, events, Duration.ofSeconds(5), null, null, snapshots, lifecycle);
+
+        monitor.markRecoveryRequiredForNode("failed-node");
+        int queued = monitor.recoverOrQuarantineNodeIslands("failed-node");
+
+        assertEquals(0, queued);
+        assertEquals(IslandState.QUARANTINED, runtimes.find(ISLAND_A).orElseThrow().state());
+        assertEquals(IslandState.QUARANTINED, islands.findById(ISLAND_A).map(IslandSnapshot::state).orElseThrow());
+        assertTrue(jobs.snapshot().isEmpty());
+        assertTrue(events.countsByField(CloudIslandEventType.ISLAND_RECOVERY_REQUIRED.name(), "reason").containsKey("RECOVERY_QUARANTINED_INVALID_SNAPSHOT"));
+    }
+
     private static IslandLifecycleWorkflow lifecycle(
             InMemoryIslandRuntimeRepository runtimes,
             InMemoryIslandRepository islands,
