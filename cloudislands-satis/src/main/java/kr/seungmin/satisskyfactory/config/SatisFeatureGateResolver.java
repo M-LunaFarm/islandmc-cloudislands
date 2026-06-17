@@ -6,6 +6,34 @@ import java.util.Map;
 import org.bukkit.configuration.ConfigurationSection;
 
 public final class SatisFeatureGateResolver {
+    private static final List<String> FEATURE_KEYS = List.of(
+            "commands",
+            "machines",
+            "storage",
+            "factories",
+            "generators",
+            "upgrades",
+            "missions",
+            "menus",
+            "gui",
+            "lifecycle",
+            "resource-nodes",
+            "market",
+            "contracts",
+            "research",
+            "maintenance",
+            "placeholders",
+            "migration",
+            "addon-state",
+            "route-events",
+            "members",
+            "permissions",
+            "level-values",
+            "warps",
+            "biomes",
+            "chat",
+            "templates"
+    );
     private static final List<String> FEATURE_ROOTS = List.of(
             "satis.features.",
             "addons.cloudislands-satis.features.",
@@ -36,6 +64,34 @@ public final class SatisFeatureGateResolver {
     );
 
     private SatisFeatureGateResolver() {
+    }
+
+    public static List<String> featureKeys() {
+        return FEATURE_KEYS;
+    }
+
+    public static String featureKeysMetadata() {
+        return String.join(",", FEATURE_KEYS);
+    }
+
+    public static String dependencyMetadata() {
+        java.util.List<String> values = new java.util.ArrayList<>();
+        DEPENDENCIES.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> values.add(entry.getKey() + ":" + String.join("+", entry.getValue())));
+        return String.join(",", values);
+    }
+
+    public static String aliasMetadata() {
+        java.util.List<String> values = new java.util.ArrayList<>();
+        ALIASES.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> values.add(entry.getKey() + "->" + entry.getValue()));
+        return String.join(",", values);
+    }
+
+    public static String disablePolicy() {
+        return "disabled-features-hide-commands-skip-runtime-components-preserve-data-and-block-writes";
     }
 
     public static boolean rootEnabled(ConfigurationSection config) {

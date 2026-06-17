@@ -2,6 +2,7 @@ package kr.seungmin.satisskyfactory.command;
 
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import kr.seungmin.satisskyfactory.config.MessageService;
+import kr.seungmin.satisskyfactory.config.SatisFeatureGateResolver;
 import kr.seungmin.satisskyfactory.database.DatabaseService;
 import kr.seungmin.satisskyfactory.storage.SatisLegacyMigrationPolicy;
 import kr.seungmin.satisskyfactory.hook.SkyblockProvider;
@@ -46,27 +47,7 @@ public final class AdminFactoryCommand {
     private static final String MIGRATION_IMPORT_APPROVAL = SatisLegacyMigrationPolicy.APPROVAL_TOKEN;
     private static final String MIGRATION_SOURCE_POLICY = SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY;
     private static final String MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS = "SuperiorSkyblock2,BentoBox,ASkyBlock";
-    private static final List<String> FEATURE_KEYS = List.of(
-            "commands",
-            "machines",
-            "storage",
-            "factories",
-            "generators",
-            "upgrades",
-            "missions",
-            "menus",
-            "gui",
-            "lifecycle",
-            "resource-nodes",
-            "market",
-            "contracts",
-            "research",
-            "maintenance",
-            "placeholders",
-            "migration",
-            "addon-state",
-            "route-events"
-    );
+    private static final List<String> FEATURE_KEYS = SatisFeatureGateResolver.featureKeys();
     private static final List<String> HELP_COMMANDS = helpCommands();
 
     private static List<String> helpCommands() {
@@ -587,6 +568,10 @@ public final class AdminFactoryCommand {
 
     private void showFeatures(CommandSender sender) {
         sender.sendMessage(messages.raw("admin-features-title"));
+        sender.sendMessage(messages.raw("admin-integration-entry", Map.of("key", "feature-catalog", "value", SatisFeatureGateResolver.featureKeysMetadata())));
+        sender.sendMessage(messages.raw("admin-integration-entry", Map.of("key", "feature-aliases", "value", SatisFeatureGateResolver.aliasMetadata())));
+        sender.sendMessage(messages.raw("admin-integration-entry", Map.of("key", "feature-dependencies", "value", SatisFeatureGateResolver.dependencyMetadata())));
+        sender.sendMessage(messages.raw("admin-integration-entry", Map.of("key", "feature-disable-policy", "value", SatisFeatureGateResolver.disablePolicy())));
         for (String feature : FEATURE_KEYS) {
             sender.sendMessage(messages.raw("admin-features-entry", Map.of(
                     "feature", feature,
