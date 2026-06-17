@@ -3120,6 +3120,9 @@ public final class CloudIslandsCoreApplication {
             + "\"cacheCoreApiDownPolicy\":\"active-island-local-protection-continues-new-route-and-writes-limited\","
             + "\"redisStreamPolicy\":\"jobs,events,audit-append-only-observability\","
             + "\"globalEventTypes\":\"IslandCreated,IslandDeleted,IslandActivated,IslandDeactivated,IslandMigrated,IslandMemberChanged,IslandFlagChanged,IslandLevelUpdated,IslandSnapshotCreated,NodeStateChanged,RouteTicketCreated,RouteSessionPublished,RouteTicketConsumed,RouteTicketFailed,RouteTicketCleared\","
+            + "\"globalEventTypeKeys\":\"" + escape(globalEventTypeKeys()) + "\","
+            + "\"globalEventRecoveryKeys\":\"ISLAND_RUNTIME_CHANGED,ISLAND_RECOVERY_REQUIRED,ISLAND_REPAIRED,NODE_STATE_CHANGED\","
+            + "\"globalEventAddonKeys\":\"ADDON_STATE_CHANGED\","
             + "\"routeMetricsTargetServerName\":true,"
             + "\"routeMetricsTargetServerNameEvents\":\"RouteTicketCreated,RouteSessionPublished,RouteTicketConsumed,RouteTicketFailed\","
             + "\"routeMetricsRequestedNode\":true,"
@@ -3534,6 +3537,12 @@ public final class CloudIslandsCoreApplication {
         }
         return blocked.entrySet().stream()
             .map(entry -> entry.getKey() + "=" + entry.getValue())
+            .collect(java.util.stream.Collectors.joining(","));
+    }
+
+    private static String globalEventTypeKeys() {
+        return java.util.Arrays.stream(CloudIslandEventType.values())
+            .map(Enum::name)
             .collect(java.util.stream.Collectors.joining(","));
     }
 
