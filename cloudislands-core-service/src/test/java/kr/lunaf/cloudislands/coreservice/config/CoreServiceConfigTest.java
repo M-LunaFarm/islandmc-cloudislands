@@ -68,6 +68,26 @@ class CoreServiceConfigTest {
     }
 
     @Test
+    void coreApiSetupCanUsePostgresqlForCoreSelfStorageFallback() {
+        CoreServiceConfig config = config("JDBC", "jdbc:postgresql://postgres.internal:5432/cloudislands", "CORE_API", true);
+
+        assertTrue(config.jdbcRepositories());
+        assertTrue(config.setupDatabaseDurable());
+        assertTrue(config.setupDatabaseProductionDurable());
+        assertTrue(config.setupDatabaseFallbackActive());
+        assertEquals("CORE_API", config.setupDatabaseRequestedBackend());
+        assertEquals("POSTGRESQL_JDBC", config.setupDatabaseEffectiveBackend());
+        assertEquals("POSTGRESQL_JDBC_FALLBACK_FOR_CORE_API", config.setupDatabaseEffectiveAuthority());
+        assertEquals("POSTGRESQL", config.setupDatabaseFallbackTarget());
+        assertEquals("requested-core_api-uses-postgresql-core-jdbc-fallback", config.setupDatabaseFallbackReason());
+        assertTrue(config.setupDatabaseCoreApiClientMode());
+        assertTrue(config.setupDatabaseCoreApiClientReady());
+        assertEquals("production-durable", config.setupDatabaseFallbackReadiness());
+        assertTrue(config.setupDatabaseFallbackSummary().contains("target=POSTGRESQL"));
+        assertTrue(config.setupDatabaseFallbackSummary().contains("coreApiReady=true"));
+    }
+
+    @Test
     void disabledFallbackStillUsesSafeInMemoryForUnsupportedSetup() {
         CoreServiceConfig config = config("JDBC", "jdbc:sqlserver://mssql.internal:1433/cloudislands", "UNSUPPORTED_JDBC", false);
 
