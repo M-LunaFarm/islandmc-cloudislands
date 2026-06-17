@@ -13,12 +13,18 @@ public final class CloudIslandsMigrationImporter {
     private final SuperiorSkyblock2DryRunValidator validator = new SuperiorSkyblock2DryRunValidator();
 
     public MigrationImportPlan dryRun(List<MigrationManifest> manifests) {
-        return new MigrationImportPlan(List.copyOf(manifests), validator.validate(manifests));
+        return new MigrationImportPlan(manifests == null ? List.of() : List.copyOf(manifests), validator.validate(manifests));
     }
 
     public ImportResult importPlan(MigrationImportPlan plan, MigrationTarget target) {
-        if (!plan.canImport()) {
-            return new ImportResult(false, 0, plan.issues(), null);
+        List<MigrationIssue> preflightIssues = preflightIssues(plan);
+        if (plan == null) {
+            return new ImportResult(false, 0, preflightIssues, null);
+        }
+        if (!plan.report().canImport() || !preflightIssues.isEmpty()) {
+            List<MigrationIssue> issues = new ArrayList<>(plan.issues());
+            issues.addAll(preflightIssues);
+            return new ImportResult(false, 0, List.copyOf(issues), null);
         }
         List<MigrationIssue> issues = new ArrayList<>();
         List<UUID> importedIds = new ArrayList<>();
@@ -38,6 +44,21 @@ public final class CloudIslandsMigrationImporter {
 
     public ImportResult importPlan(MigrationImportPlan plan) {
         return importPlan(plan, ignored -> {});
+    }
+
+    private List<MigrationIssue> preflightIssues(MigrationImportPlan plan) {
+        List<MigrationIssue> issues = new ArrayList<>();
+        if (plan == null) {
+            issues.add(new MigrationIssue("MIGRATION_PLAN_REQUIRED", "migration import requires a dry-run plan", true));
+            return issues;
+        }
+        if (!plan.sourceFingerprintMatches()) {
+            issues.add(new MigrationIssue("MIGRATION_SOURCE_CHANGED", "source fingerprint changed after dry-run; run dry-run again", true));
+        }
+        if (!plan.approved()) {
+            issues.add(new MigrationIssue("MIGRATION_APPROVAL_REQUIRED", "approve import with token " + plan.requiredApprovalToken(), true));
+        }
+        return issues;
     }
 
     public interface MigrationTarget {
