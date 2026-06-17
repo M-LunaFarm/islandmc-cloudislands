@@ -692,6 +692,10 @@ public final class PrometheusMetricsRenderer {
         eventCounter(out, "cloudislands_island_chat_sent_total", "Island chat messages accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_CHAT_SENT);
         appendEventFieldCounters(out, "cloudislands_island_chat_sent_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_CHAT_SENT, "channel");
         eventCounter(out, "cloudislands_island_template_changed_total", "Island template changes accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ISLAND_TEMPLATE_CHANGED);
+        eventCounter(out, "cloudislands_addon_state_changed_total", "Addon global and island state mutations accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ADDON_STATE_CHANGED);
+        appendEventFieldCounters(out, "cloudislands_addon_state_changed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ADDON_STATE_CHANGED, "addonId");
+        appendEventFieldCounters(out, "cloudislands_addon_state_changed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ADDON_STATE_CHANGED, "operation");
+        appendEventFieldCounters(out, "cloudislands_addon_state_changed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ADDON_STATE_CHANGED, "table");
         eventCounter(out, "cloudislands_node_state_changed_total", "Node state changes accepted by Core API", kr.lunaf.cloudislands.common.event.CloudIslandEventType.NODE_STATE_CHANGED);
         return out.toString();
     }
