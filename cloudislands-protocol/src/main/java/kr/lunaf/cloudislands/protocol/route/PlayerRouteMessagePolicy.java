@@ -13,7 +13,16 @@ public final class PlayerRouteMessagePolicy {
         "activeNode",
         "node",
         "targetServerName",
+        "requestedServer",
+        "serverName",
+        "backend",
+        "backendServer",
         "server",
+        "target",
+        "routeTarget",
+        "host",
+        "address",
+        "port",
         "targetWorld",
         "activeWorld",
         "world",
@@ -30,9 +39,11 @@ public final class PlayerRouteMessagePolicy {
         String value = message == null || message.isBlank() ? FALLBACK_MESSAGE : message;
         for (String key : TOPOLOGY_ASSIGNMENT_KEYS) {
             value = value.replaceAll("(?i)\\b" + key + "\\s*[=:]\\s*[^\\s,|}]+", key + "=" + HIDDEN_LABEL);
+            value = value.replaceAll("(?i)([\"'])" + key + "\\1\\s*:\\s*([\"'])?[^\"',}|\\s]+([\"'])?", "$1" + key + "$1:$2" + HIDDEN_LABEL + "$2");
         }
         return value
             .replaceAll("(?i)\\bcell\\s+-?\\d+\\s*,\\s*-?\\d+\\b", "cell " + HIDDEN_LABEL)
+            .replaceAll("(?i)\\b(?:localhost|127\\.0\\.0\\.1|\\d{1,3}(?:\\.\\d{1,3}){3}):\\d{2,5}\\b", PUBLIC_TARGET_LABEL)
             .replaceAll("(?i)\\b[A-Za-z0-9_.-]*ci[-_ ]?shard[-_ ]?\\d+[A-Za-z0-9_.-]*\\b", PUBLIC_TARGET_LABEL)
             .replaceAll("(?i)\\b[A-Za-z0-9_.-]*island[-_ ]?\\d+[A-Za-z0-9_.-]*\\b", PUBLIC_TARGET_LABEL)
             .replaceAll("(?i)\\b[A-Za-z0-9_.-]*node[-_ ]?\\d+[A-Za-z0-9_.-]*\\b", PUBLIC_TARGET_LABEL);

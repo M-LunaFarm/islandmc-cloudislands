@@ -30,4 +30,23 @@ class PlayerRouteMessagePolicyTest {
         assertFalse(PlayerRouteMessagePolicy.containsPhysicalTopology("Island is preparing. Please try again."));
         assertTrue(PlayerRouteMessagePolicy.containsPhysicalTopology("server=Island-1"));
     }
+
+    @Test
+    void hidesJsonAndEndpointStyleRouteTargets() {
+        String raw = "{\"targetNode\":\"Island-2\",\"backendServer\":\"island-5\",\"host\":\"10.0.0.7\",\"port\":25566} routeTarget=ci_shard_003 127.0.0.1:25570";
+
+        String sanitized = PlayerRouteMessagePolicy.sanitize(raw);
+
+        assertFalse(sanitized.contains("Island-2"));
+        assertFalse(sanitized.contains("island-5"));
+        assertFalse(sanitized.contains("10.0.0.7"));
+        assertFalse(sanitized.contains("25566"));
+        assertFalse(sanitized.contains("ci_shard_003"));
+        assertFalse(sanitized.contains("127.0.0.1:25570"));
+        assertTrue(sanitized.contains("\"targetNode\":\"hidden\""));
+        assertTrue(sanitized.contains("\"backendServer\":\"hidden\""));
+        assertTrue(sanitized.contains("\"host\":\"hidden\""));
+        assertTrue(sanitized.contains("\"port\":hidden"));
+        assertTrue(sanitized.contains("routeTarget=hidden"));
+    }
 }
