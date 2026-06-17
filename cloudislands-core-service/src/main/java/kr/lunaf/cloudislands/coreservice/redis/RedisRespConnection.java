@@ -54,16 +54,24 @@ public final class RedisRespConnection implements Closeable {
             throw new IOException("redis error: " + line);
         }
         if (prefix == '$') {
-            int length = Integer.parseInt(line);
+            int length = parseRedisInteger(line, "bulk length");
             if (length < 0) {
                 return "";
             }
             byte[] data = input.readNBytes(length);
-            input.readNBytes(2);
+            if (data.length != length) {
+                throw new IOException("redis closed bulk string");
+            }
+            if (input.read() != '\r' || input.read() != '\n') {
+                throw new IOException("invalid redis bulk terminator");
+            }
             return new String(data, StandardCharsets.UTF_8);
         }
         if (prefix == '*') {
-            int count = Integer.parseInt(line);
+            int count = parseRedisInteger(line, "array length");
+            if (count < 0) {
+                return "";
+            }
             List<String> values = new ArrayList<>();
             for (int i = 0; i < count; i++) {
                 values.add(readReply());
@@ -71,6 +79,14 @@ public final class RedisRespConnection implements Closeable {
             return String.join("\n", values);
         }
         return line;
+    }
+
+    private int parseRedisInteger(String value, String field) throws IOException {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException exception) {
+            throw new IOException("invalid redis " + field + ": " + value, exception);
+        }
     }
 
     private String readLine() throws IOException {
@@ -81,7 +97,9 @@ public final class RedisRespConnection implements Closeable {
                 throw new IOException("redis closed connection");
             }
             if (c == '\r') {
-                input.read();
+                if (input.read() != '\n') {
+                    throw new IOException("invalid redis line terminator");
+                }
                 return builder.toString();
             }
             builder.append((char) c);
