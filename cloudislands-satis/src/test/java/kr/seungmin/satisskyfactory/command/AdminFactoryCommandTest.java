@@ -3,10 +3,15 @@ package kr.seungmin.satisskyfactory.command;
 import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AdminFactoryCommandTest {
@@ -19,5 +24,60 @@ class AdminFactoryCommandTest {
         assertEquals(List.class, AdminFactoryCommand.class
                 .getMethod("complete", CommandSender.class, String[].class)
                 .getReturnType());
+    }
+
+    @Test
+    void listsMigrationCommandsAsOneLineEntriesWhenFeatureIsEnabled() throws Exception {
+        List<String> commands = visibleHelpCommands(command(feature -> true), "ci");
+
+        assertTrue(commands.stream().allMatch(command -> command.startsWith("ci ")));
+        assertTrue(commands.stream().allMatch(command -> !command.contains("\n") && !command.contains("\r")));
+        assertEquals(commands.size(), commands.stream().distinct().count());
+        assertTrue(commands.contains("ci admin migration"));
+        assertTrue(commands.contains("ci admin migration status"));
+        assertTrue(commands.contains("ci admin migration scan <sqlitePath>"));
+        assertTrue(commands.contains("ci admin migration dryrun <sqlitePath>"));
+        assertTrue(commands.contains("ci admin migration verify <sqlitePath>"));
+        assertTrue(commands.contains("ci admin migration import <sqlitePath> CONFIRM_IMPORT|CONFIRM_IMPORT:<dryrun-sha256>"));
+        assertTrue(commands.contains("ci admin migration rollback"));
+    }
+
+    @Test
+    void hidesMigrationCommandsWhenMigrationFeatureIsDisabled() throws Exception {
+        List<String> commands = visibleHelpCommands(command(feature -> !"migration".equals(feature)), "factory");
+
+        assertFalse(commands.stream().anyMatch(command -> command.contains(" migration")));
+        assertTrue(commands.contains("factory admin state"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> visibleHelpCommands(AdminFactoryCommand command, String label) throws Exception {
+        Method method = AdminFactoryCommand.class.getDeclaredMethod("visibleHelpCommands", String.class);
+        method.setAccessible(true);
+        return (List<String>) method.invoke(command, label);
+    }
+
+    private AdminFactoryCommand command(Predicate<String> featureEnabled) {
+        return new AdminFactoryCommand(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                featureEnabled,
+                Map::of,
+                Map::of,
+                _islandId -> Map.of(),
+                () -> {
+                }
+        );
     }
 }
