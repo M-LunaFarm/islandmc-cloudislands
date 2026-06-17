@@ -4671,11 +4671,15 @@ public final class CloudIslandsCoreApplication {
         if (values == null || values.isEmpty()) {
             return Map.of();
         }
-        String safeTable = safeTableName(table);
+        String safeTable = safeBulkTableName(table);
+        if (safeTable.isBlank()) {
+            return Map.of();
+        }
         java.util.HashMap<String, String> state = new java.util.HashMap<>();
         values.forEach((key, value) -> {
-            if (key != null && !key.isBlank()) {
-                state.put(tableStateKey(safeTable, key), AddonStateRepository.safeValue(value));
+            String safeKey = safeBulkTableKey(key);
+            if (!safeKey.isBlank() && tableStateKeyLength(safeTable, safeKey) <= AddonStateRepository.MAX_KEY_LENGTH) {
+                state.put(tableStateKey(safeTable, safeKey), safeBulkValue(value));
             }
         });
         return Map.copyOf(state);
@@ -4686,8 +4690,9 @@ public final class CloudIslandsCoreApplication {
         if (valuesTable == null || valuesTable.isBlank()) {
             if (values != null) {
                 values.forEach((key, value) -> {
-                    if (key != null && !key.isBlank()) {
-                        state.put(AddonStateRepository.safeKey(key), AddonStateRepository.safeValue(value));
+                    String safeKey = safeBulkRootKey(key);
+                    if (!safeKey.isBlank()) {
+                        state.put(safeKey, safeBulkValue(value));
                     }
                 });
             }
@@ -4757,6 +4762,18 @@ public final class CloudIslandsCoreApplication {
         return value;
     }
 
+    private static int tableStateKeyLength(String table, String key) {
+        return AddonStateRepository.TABLE_STATE_KEY_PREFIX.length() + table.length() + 1 + key.length();
+    }
+
+    private static String safeBulkTableName(String table) {
+        try {
+            return safeTableName(table);
+        } catch (IllegalArgumentException exception) {
+            return "";
+        }
+    }
+
     private static String safeTableName(String table) {
         String value = table == null ? "" : table.trim();
         if (value.startsWith(AddonStateRepository.TABLE_STATE_KEY_PREFIX)) {
@@ -4786,6 +4803,24 @@ public final class CloudIslandsCoreApplication {
             throw new IllegalArgumentException("Addon state table key is required");
         }
         return value;
+    }
+
+    private static String safeBulkTableKey(String key) {
+        return key == null ? "" : key.trim();
+    }
+
+    private static String safeBulkRootKey(String key) {
+        String value = key == null ? "" : key.trim();
+        return value.length() > AddonStateRepository.MAX_KEY_LENGTH
+            ? value.substring(0, AddonStateRepository.MAX_KEY_LENGTH)
+            : value;
+    }
+
+    private static String safeBulkValue(String value) {
+        String safe = value == null ? "" : value;
+        return safe.length() > AddonStateRepository.MAX_VALUE_LENGTH
+            ? safe.substring(0, AddonStateRepository.MAX_VALUE_LENGTH)
+            : safe;
     }
 
     private static String permissionsJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot> rules) {
