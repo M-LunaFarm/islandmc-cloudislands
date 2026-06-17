@@ -147,7 +147,7 @@ public final class SatisIntegrationPolicy {
 
     private static String summary(Map<String, String> values) {
         StringBuilder builder = new StringBuilder();
-        values.forEach((key, value) -> {
+        new java.util.TreeMap<>(values).forEach((key, value) -> {
             if (!builder.isEmpty()) {
                 builder.append(';');
             }
