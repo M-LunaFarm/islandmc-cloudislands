@@ -443,6 +443,8 @@ public final class RoutingOrchestrator {
             .count();
         long duplicateVelocityServerNames = duplicateVelocityServerNameCount(poolSnapshot);
         long routeCandidateEstimate = allocator.readyNodeCandidateCount(snapshot, Instant.now(), "", "", islandPool);
+        long recommendedCandidates = Math.max(1L, Math.min(poolNodes, 3L));
+        long candidateShortfall = Math.max(0L, recommendedCandidates - routeCandidateEstimate);
         Map<String, String> details = new LinkedHashMap<>();
         details.put("pool", islandPool);
         details.put("nodeCount", Long.toString(poolNodes));
@@ -455,6 +457,8 @@ public final class RoutingOrchestrator {
         details.put("defaultIdentityRiskNodeCount", Long.toString(defaultIdentityRisk));
         details.put("duplicateVelocityServerNameNodeCount", Long.toString(duplicateVelocityServerNames));
         details.put("routeCandidateEstimateNodeCount", Long.toString(routeCandidateEstimate));
+        details.put("routeCandidateRecommendedMinimum", Long.toString(recommendedCandidates));
+        details.put("routeCandidateShortfall", Long.toString(candidateShortfall));
         details.put("routeCandidateEstimatePolicy", "allocator-ready-node-candidates-no-fixed-node-limit");
         details.put("elasticLimitPolicy", "no-fixed-island-node-count-limit-route-candidates-derive-from-live-heartbeats");
         details.put("blockReason", publicBlockReason(debugReason));
