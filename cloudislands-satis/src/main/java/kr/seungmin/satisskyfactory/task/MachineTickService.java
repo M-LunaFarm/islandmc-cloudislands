@@ -136,7 +136,7 @@ public final class MachineTickService {
     }
 
     public void tick() {
-        if (!active.getAsBoolean()) {
+        if (!activeEnabled()) {
             activeMachineQueue.clear();
             queuedMachines.clear();
             return;
@@ -918,6 +918,14 @@ public final class MachineTickService {
     private boolean publicStorageEnabled() {
         try {
             return storageWritesEnabled.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private boolean activeEnabled() {
+        try {
+            return active.getAsBoolean();
         } catch (RuntimeException ignored) {
             return false;
         }

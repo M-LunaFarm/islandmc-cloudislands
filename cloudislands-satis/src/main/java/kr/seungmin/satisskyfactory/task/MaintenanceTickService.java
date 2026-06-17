@@ -47,7 +47,7 @@ public final class MaintenanceTickService {
     }
 
     private void tick() {
-        if (!active.getAsBoolean()) {
+        if (!activeEnabled()) {
             return;
         }
         for (FactoryIsland island : islands.cached()) {
@@ -57,6 +57,14 @@ public final class MaintenanceTickService {
                     .orElse(null);
             maintenance.chargeIfDue(island, owner, rawIsland);
             islands.save(island);
+        }
+    }
+
+    private boolean activeEnabled() {
+        try {
+            return active.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
         }
     }
 }
