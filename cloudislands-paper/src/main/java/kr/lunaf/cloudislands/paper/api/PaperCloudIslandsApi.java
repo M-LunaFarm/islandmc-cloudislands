@@ -3285,8 +3285,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
     private static GlobalEventBatchSnapshot eventBatch(String json) {
         return new GlobalEventBatchSnapshot(
-            number(json, "oldestSeq"),
-            number(json, "latestSeq"),
+            longValue(json, "oldestSeq", 0L),
+            longValue(json, "latestSeq", 0L),
             events(json)
         );
     }
