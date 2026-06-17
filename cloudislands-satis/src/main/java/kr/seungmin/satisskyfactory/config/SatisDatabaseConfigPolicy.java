@@ -1,6 +1,7 @@
 package kr.seungmin.satisskyfactory.config;
 
 import java.util.List;
+import java.util.Locale;
 
 public final class SatisDatabaseConfigPolicy {
     public static final String ENV_TYPE = "CLOUDISLANDS_SATIS_DATABASE_TYPE";
@@ -11,6 +12,12 @@ public final class SatisDatabaseConfigPolicy {
     public static final String ADDON_ROOT = "addons.cloudislands-satis.database";
     public static final String LEGACY_ROOT = "database";
     public static final String FALLBACK_PRECEDENCE = "env,setup.database,addons.cloudislands-satis.database,database";
+    public static final String FALLBACK_RISK_NO_ORDER = "no-fallback-order";
+    public static final String FALLBACK_RISK_NO_READY_BACKEND = "no-ready-backend";
+    public static final String FALLBACK_RISK_LOCAL_ONLY = "local-only";
+    public static final String FALLBACK_RISK_LOCAL_BEFORE_SHARED = "local-before-shared";
+    public static final String FALLBACK_RISK_SHARED_BEFORE_LOCAL = "shared-before-local";
+    public static final String FALLBACK_RISK_SHARED_ONLY = "shared-only";
 
     private static final List<String> TYPE_PRIORITY = List.of(
             ENV_TYPE,
@@ -53,6 +60,9 @@ public final class SatisDatabaseConfigPolicy {
             "database.jdbc.password"
     );
 
+    private static final List<String> SHARED_BACKENDS = List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API");
+    private static final List<String> LOCAL_BACKENDS = List.of("SQLITE");
+
     private SatisDatabaseConfigPolicy() {
     }
 
@@ -74,5 +84,87 @@ public final class SatisDatabaseConfigPolicy {
 
     public static String commonJdbcAliasMetadata() {
         return "setup.database.jdbc.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,addons.cloudislands-satis.database.jdbc.url,database.jdbc.url,database.<backend>.url";
+    }
+
+    public static List<String> sharedBackends() {
+        return SHARED_BACKENDS;
+    }
+
+    public static List<String> localBackends() {
+        return LOCAL_BACKENDS;
+    }
+
+    public static String normalizeBackend(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        String normalized = value.trim().replace('-', '_').toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "POSTGRES", "PG" -> "POSTGRESQL";
+            case "MARIA" -> "MARIADB";
+            case "CORE", "COREAPI", "CLOUDISLANDS", "CLOUDISLANDS_API" -> "CORE_API";
+            case "IN_MEMORY", "MEMORY", "LOCAL", "LOCAL_SQLITE" -> "SQLITE";
+            default -> normalized;
+        };
+    }
+
+    public static boolean sharedBackend(String value) {
+        return SHARED_BACKENDS.contains(normalizeBackend(value));
+    }
+
+    public static boolean localBackend(String value) {
+        return LOCAL_BACKENDS.contains(normalizeBackend(value));
+    }
+
+    public static String firstSharedFallback(List<String> order) {
+        if (order == null) {
+            return "";
+        }
+        for (String backend : order) {
+            String normalized = normalizeBackend(backend);
+            if (SHARED_BACKENDS.contains(normalized)) {
+                return normalized;
+            }
+        }
+        return "";
+    }
+
+    public static int localFallbackPosition(List<String> order) {
+        if (order == null) {
+            return -1;
+        }
+        for (int index = 0; index < order.size(); index++) {
+            if (localBackend(order.get(index))) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    public static String fallbackRisk(List<String> order) {
+        if (order == null || order.isEmpty()) {
+            return FALLBACK_RISK_NO_ORDER;
+        }
+        int firstShared = -1;
+        int firstLocal = -1;
+        for (int index = 0; index < order.size(); index++) {
+            String normalized = normalizeBackend(order.get(index));
+            if (firstShared < 0 && SHARED_BACKENDS.contains(normalized)) {
+                firstShared = index;
+            }
+            if (firstLocal < 0 && LOCAL_BACKENDS.contains(normalized)) {
+                firstLocal = index;
+            }
+        }
+        if (firstShared < 0 && firstLocal < 0) {
+            return FALLBACK_RISK_NO_READY_BACKEND;
+        }
+        if (firstShared < 0) {
+            return FALLBACK_RISK_LOCAL_ONLY;
+        }
+        if (firstLocal < 0) {
+            return FALLBACK_RISK_SHARED_ONLY;
+        }
+        return firstShared < firstLocal ? FALLBACK_RISK_SHARED_BEFORE_LOCAL : FALLBACK_RISK_LOCAL_BEFORE_SHARED;
     }
 }

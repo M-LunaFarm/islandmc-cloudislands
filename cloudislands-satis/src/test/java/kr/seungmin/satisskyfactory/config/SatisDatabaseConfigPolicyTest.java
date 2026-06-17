@@ -2,6 +2,8 @@ package kr.seungmin.satisskyfactory.config;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -37,10 +39,56 @@ class SatisDatabaseConfigPolicyTest {
     }
 
     @Test
+    void classifiesSharedAndLocalFallbackBackends() {
+        assertEquals(List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API"), SatisDatabaseConfigPolicy.sharedBackends());
+        assertEquals(List.of("SQLITE"), SatisDatabaseConfigPolicy.localBackends());
+        assertEquals("POSTGRESQL", SatisDatabaseConfigPolicy.normalizeBackend("pg"));
+        assertEquals("MARIADB", SatisDatabaseConfigPolicy.normalizeBackend("maria"));
+        assertEquals("CORE_API", SatisDatabaseConfigPolicy.normalizeBackend("cloudislands-api"));
+        assertEquals("SQLITE", SatisDatabaseConfigPolicy.normalizeBackend("local-sqlite"));
+        assertTrue(SatisDatabaseConfigPolicy.sharedBackend("postgres"));
+        assertTrue(SatisDatabaseConfigPolicy.sharedBackend("mysql"));
+        assertTrue(SatisDatabaseConfigPolicy.sharedBackend("coreapi"));
+        assertTrue(SatisDatabaseConfigPolicy.localBackend("memory"));
+    }
+
+    @Test
+    void reportsFallbackOrderRiskForMultiNodeSetups() {
+        assertEquals(
+                SatisDatabaseConfigPolicy.FALLBACK_RISK_SHARED_BEFORE_LOCAL,
+                SatisDatabaseConfigPolicy.fallbackRisk(List.of("postgresql", "mysql", "sqlite"))
+        );
+        assertEquals(
+                SatisDatabaseConfigPolicy.FALLBACK_RISK_LOCAL_BEFORE_SHARED,
+                SatisDatabaseConfigPolicy.fallbackRisk(List.of("sqlite", "core-api"))
+        );
+        assertEquals(
+                SatisDatabaseConfigPolicy.FALLBACK_RISK_LOCAL_ONLY,
+                SatisDatabaseConfigPolicy.fallbackRisk(List.of("sqlite"))
+        );
+        assertEquals(
+                SatisDatabaseConfigPolicy.FALLBACK_RISK_SHARED_ONLY,
+                SatisDatabaseConfigPolicy.fallbackRisk(List.of("coreapi", "mariadb"))
+        );
+        assertEquals(
+                SatisDatabaseConfigPolicy.FALLBACK_RISK_NO_READY_BACKEND,
+                SatisDatabaseConfigPolicy.fallbackRisk(List.of("unknown"))
+        );
+        assertEquals(
+                SatisDatabaseConfigPolicy.FALLBACK_RISK_NO_ORDER,
+                SatisDatabaseConfigPolicy.fallbackRisk(List.of())
+        );
+        assertEquals("POSTGRESQL", SatisDatabaseConfigPolicy.firstSharedFallback(List.of("sqlite", "postgres")));
+        assertEquals(0, SatisDatabaseConfigPolicy.localFallbackPosition(List.of("sqlite", "postgres")));
+    }
+
+    @Test
     void policyListsAreImmutable() {
         assertThrows(UnsupportedOperationException.class, () -> SatisDatabaseConfigPolicy.typePriority().add("legacy"));
         assertThrows(UnsupportedOperationException.class, () -> SatisDatabaseConfigPolicy.pathPriority().add("legacy"));
         assertThrows(UnsupportedOperationException.class, () -> SatisDatabaseConfigPolicy.commonJdbcAliases().add("legacy"));
         assertThrows(UnsupportedOperationException.class, () -> SatisDatabaseConfigPolicy.credentialAliases().add("legacy"));
+        assertThrows(UnsupportedOperationException.class, () -> SatisDatabaseConfigPolicy.sharedBackends().add("legacy"));
+        assertThrows(UnsupportedOperationException.class, () -> SatisDatabaseConfigPolicy.localBackends().add("legacy"));
     }
 }
