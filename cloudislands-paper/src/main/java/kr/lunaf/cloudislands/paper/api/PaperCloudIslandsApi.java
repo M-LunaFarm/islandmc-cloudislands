@@ -133,6 +133,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         this.admin = new AdminService(client, agent.plugin());
         this.commands = new CommandService(client);
         this.addons = new AddonService(client, agent.plugin(), events);
+        agent.cacheInvalidator().setAddonStateInvalidator(invalidation -> addons.invalidateAddonStateCache(invalidation.addonId(), invalidation.islandId()));
     }
 
     @Override
@@ -1531,6 +1532,27 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 addonIslandStates.computeIfAbsent(safeId, _key -> new ConcurrentHashMap<>()).put(islandId, Map.copyOf(state));
             } catch (IOException exception) {
                 plugin.getLogger().warning("CloudIslands addon island state write failed for " + safeId + "/" + islandId + ": " + exception.getMessage());
+            }
+        }
+
+        private void invalidateAddonStateCache(String id, UUID islandId) {
+            String safeId = safeRegistrationId(id);
+            if (id == null || id.isBlank()) {
+                addonStates.clear();
+                addonIslandStates.clear();
+                return;
+            }
+            if (islandId == null) {
+                addonStates.remove(safeId);
+                Map<UUID, Map<String, String>> islandStates = addonIslandStates.get(safeId);
+                if (islandStates != null) {
+                    islandStates.clear();
+                }
+                return;
+            }
+            Map<UUID, Map<String, String>> islandStates = addonIslandStates.get(safeId);
+            if (islandStates != null) {
+                islandStates.remove(islandId);
             }
         }
 

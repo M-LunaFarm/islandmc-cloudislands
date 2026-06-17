@@ -101,6 +101,7 @@ public final class PermissionEventPoller {
     private final CropGrowthLevelCache cropGrowthLevels;
     private final IslandLimitCache limits;
     private final ProtectionController protection;
+    private final GlobalEventCacheInvalidator cacheInvalidator;
     private final MessageRenderer messages;
     private final String nodeId;
     private final String fallbackServerName;
@@ -123,6 +124,10 @@ public final class PermissionEventPoller {
     }
 
     public PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, GeneratorLevelCache generatorLevels, CropGrowthLevelCache cropGrowthLevels, IslandLimitCache limits, ProtectionController protection, String nodeId, String fallbackServerName, MessageRenderer messages) {
+        this(plugin, client, permissionSync, generatorLevels, cropGrowthLevels, limits, protection, nodeId, fallbackServerName, messages, null);
+    }
+
+    public PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, GeneratorLevelCache generatorLevels, CropGrowthLevelCache cropGrowthLevels, IslandLimitCache limits, ProtectionController protection, String nodeId, String fallbackServerName, MessageRenderer messages, GlobalEventCacheInvalidator cacheInvalidator) {
         this.plugin = plugin;
         this.client = client;
         this.permissionSync = permissionSync;
@@ -130,6 +135,7 @@ public final class PermissionEventPoller {
         this.cropGrowthLevels = cropGrowthLevels;
         this.limits = limits;
         this.protection = protection;
+        this.cacheInvalidator = cacheInvalidator;
         this.messages = messages;
         this.nodeId = nodeId;
         this.fallbackServerName = fallbackServerName == null || fallbackServerName.isBlank() ? "Lobby" : fallbackServerName;
@@ -223,6 +229,9 @@ public final class PermissionEventPoller {
         if (!markSeen(key)) {
             return;
         }
+        if (cacheInvalidator != null) {
+            cacheInvalidator.acceptAddonState(type, fields);
+        }
         publishLocalEvents(event.sequence(), type, fields, event.occurredAt());
         handleMigrationLockState(type, fields);
         handleMigrationNotice(type, fields);
@@ -300,6 +309,9 @@ public final class PermissionEventPoller {
         generatorLevels.invalidateAll();
         cropGrowthLevels.invalidateAll();
         limits.invalidateAll();
+        if (cacheInvalidator != null) {
+            cacheInvalidator.invalidateAllAddonState();
+        }
     }
 
     private String eventKey(String type, Map<String, String> fields, String occurredAt) {

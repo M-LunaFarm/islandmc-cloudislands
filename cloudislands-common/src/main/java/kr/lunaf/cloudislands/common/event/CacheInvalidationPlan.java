@@ -34,6 +34,7 @@ public final class CacheInvalidationPlan {
             case ISLAND_UPGRADE -> EnumSet.of(CacheTarget.SUMMARY, CacheTarget.LEVEL, CacheTarget.LIMITS, CacheTarget.BANK, CacheTarget.FLAGS, CacheTarget.GENERATOR, CacheTarget.CROP);
             case ISLAND_SNAPSHOT_REQUESTED, ISLAND_SNAPSHOT_CREATED -> EnumSet.of(CacheTarget.SUMMARY, CacheTarget.SNAPSHOTS);
             case ISLAND_TEMPLATE_CHANGED -> EnumSet.of(CacheTarget.TEMPLATES, CacheTarget.ROUTE, CacheTarget.SUMMARY);
+            case ADDON_STATE_CHANGED -> EnumSet.of(CacheTarget.ADDON_STATE, CacheTarget.SUMMARY);
             case CORE_CACHE_CLEARED, CORE_RELOADED -> EnumSet.allOf(CacheTarget.class);
             case ISLAND_PRE_VISIT, ROUTE_TICKET_CREATED, ROUTE_SESSION_PUBLISHED, ROUTE_TICKET_CONSUMED, ROUTE_TICKET_FAILED, ROUTE_TICKET_CLEARED -> EnumSet.of(CacheTarget.ROUTE, CacheTarget.ROUTE_TICKETS, CacheTarget.SUMMARY);
             case ISLAND_DELETED -> EnumSet.allOf(CacheTarget.class);
@@ -77,6 +78,7 @@ public final class CacheInvalidationPlan {
             case ROUTE, ROUTE_TICKETS -> RedisKeys.islandRouteTickets(islandId);
             case TEMPLATES -> RedisKeys.templates();
             case LEVEL -> RedisKeys.rankingVersion();
+            case ADDON_STATE -> "";
             default -> "";
         };
     }
@@ -102,6 +104,7 @@ public final class CacheInvalidationPlan {
         GENERATOR,
         CROP,
         TEMPLATES,
+        ADDON_STATE,
         ROUTE,
         ROUTE_TICKETS
     }
