@@ -129,6 +129,35 @@ public final class SatisAddonIntegrationPolicy {
             "storage", "satis-state-write-paths"
     );
 
+    private static final List<String> NODE_MOVE_REMAP_STEPS = List.of(
+            "source-node-save-addon-state-by-island-uuid",
+            "cloudislands-deactivate-and-store-portable-island-bundle",
+            "core-selects-target-island-node",
+            "target-node-activates-island",
+            "addon-reads-active-world-center-from-cloudislands-api",
+            "addon-remaps-volatile-world-and-cell-references",
+            "addon-resumes-from-shared-state-without-player-visible-node-change"
+    );
+
+    private static final List<String> FAILURE_RECOVERY_STEPS = List.of(
+            "heartbeat-expired",
+            "fencing-token-checked",
+            "island-marked-recovery-required-or-quarantined",
+            "last-confirmed-addon-state-selected",
+            "target-node-reactivates-after-storage-verification",
+            "satis-ticker-starts-once",
+            "duplicate-writes-rejected-by-current-island-uuid-and-fencing-context"
+    );
+
+    private static final List<String> ADDON_RECONNECT_STEPS = List.of(
+            "addon-jar-removed-core-still-boots",
+            "addon-metadata-missing-does-not-block-island-load",
+            "addon-state-preserved-in-shared-storage",
+            "addon-jar-reinstalled",
+            "addon-registers-through-cloudislands-addon-service",
+            "state-reconnected-by-island-uuid"
+    );
+
     private static final List<String> COMPLETION_CRITERIA = List.of(
             "satis-features-run-with-cloudislands-island-lifecycle",
             "root-config-can-disable-all-satis-runtime-components",
@@ -215,6 +244,30 @@ public final class SatisAddonIntegrationPolicy {
 
     public static String featureOffRuntimeBlockSummary() {
         return summary(FEATURE_OFF_RUNTIME_BLOCKS);
+    }
+
+    public static List<String> nodeMoveRemapSteps() {
+        return NODE_MOVE_REMAP_STEPS;
+    }
+
+    public static String nodeMoveRemapStepSummary() {
+        return String.join(">", NODE_MOVE_REMAP_STEPS);
+    }
+
+    public static List<String> failureRecoverySteps() {
+        return FAILURE_RECOVERY_STEPS;
+    }
+
+    public static String failureRecoveryStepSummary() {
+        return String.join(">", FAILURE_RECOVERY_STEPS);
+    }
+
+    public static List<String> addonReconnectSteps() {
+        return ADDON_RECONNECT_STEPS;
+    }
+
+    public static String addonReconnectStepSummary() {
+        return String.join(">", ADDON_RECONNECT_STEPS);
     }
 
     public static String completionCriteriaSummary() {
