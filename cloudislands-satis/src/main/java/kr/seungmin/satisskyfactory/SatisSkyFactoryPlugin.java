@@ -579,6 +579,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("write-gate-lifecycle-state", Boolean.toString(lifecycleStateEnabled()));
         state.put("write-gate-lifecycle-listener", Boolean.toString(lifecycleListenerNeeded()));
         state.put("write-gate-lifecycle-direct", Boolean.toString(lifecycleListenerNeeded() && dataWritesEnabled()));
+        state.put("write-gate-members", Boolean.toString(operationalFeatureEnabled("members")));
+        state.put("write-gate-permissions", Boolean.toString(operationalFeatureEnabled("permissions")));
+        state.put("write-gate-level-values", Boolean.toString(operationalFeatureEnabled("level-values")));
+        state.put("write-gate-warps", Boolean.toString(operationalFeatureEnabled("warps")));
+        state.put("write-gate-biomes", Boolean.toString(operationalFeatureEnabled("biomes")));
+        state.put("write-gate-chat", Boolean.toString(operationalFeatureEnabled("chat")));
+        state.put("write-gate-templates", Boolean.toString(operationalFeatureEnabled("templates")));
+        state.put("write-gate-lifecycle-subfeatures", "members,permissions,level-values,warps,biomes,chat,templates");
         state.put("write-gate-addon-state", Boolean.toString(operationalFeatureEnabled("addon-state") && coreApiAddonStateAvailable()));
         state.put("write-gate-route-events", Boolean.toString(routeEventStateEnabled()));
         state.put("write-gate-dirty-save", Boolean.toString(dataWritesEnabled()));
