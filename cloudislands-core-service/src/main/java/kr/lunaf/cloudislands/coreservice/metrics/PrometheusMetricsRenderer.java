@@ -522,6 +522,11 @@ public final class PrometheusMetricsRenderer {
         help(out, "cloudislands_jobs_retry_total", "Island job retry attempts recorded by the queue");
         type(out, "cloudislands_jobs_retry_total", "counter");
         out.append("cloudislands_jobs_retry_total{backend=\"").append(jobBackend).append("\"} ").append(jobRetries).append('\n');
+        help(out, "cloudislands_jobs_retryable_total", "Island jobs currently eligible for manual retry");
+        type(out, "cloudislands_jobs_retryable_total", "gauge");
+        out.append("cloudislands_jobs_retryable_total{backend=\"").append(jobBackend).append("\"} ")
+            .append(jobCounts.getOrDefault("FAILED", 0L) + jobCounts.getOrDefault("CLAIMED", 0L))
+            .append('\n');
         help(out, "cloudislands_database_query_seconds", "Last JDBC query duration observed by Core API");
         type(out, "cloudislands_database_query_seconds", "gauge");
         out.append("cloudislands_database_query_seconds ").append(databaseQuerySeconds.getAsDouble()).append('\n');
