@@ -31,7 +31,12 @@ public final class AdminNodeMenu implements Listener {
     }
 
     public static void open(Player player, String nodeId, MessageRenderer messages) {
+        open(player, nodeId, "", messages);
+    }
+
+    public static void open(Player player, String nodeId, String nodeInfoBody, MessageRenderer messages) {
         Inventory inventory = Bukkit.createInventory(null, 27, message(messages, TITLE_KEY, TITLE));
+        inventory.setItem(4, nodeSummaryItem(nodeId, nodeInfoBody, messages));
         inventory.setItem(10, item(Material.COMPASS, message(messages, "admin-node-menu-list-name", "노드 목록"), message(messages, "admin-node-menu-list-command", "/ciadmin node list"), message(messages, "admin-node-menu-list-description", "신규 활성화 배정 가능 여부와 차단 사유를 함께 확인합니다.")));
         inventory.setItem(11, item(Material.ENDER_EYE, message(messages, "admin-node-menu-info-name", "현재 노드 정보"), message(messages, "admin-node-menu-info-command", "/ciadmin node info ") + nodeId, message(messages, "admin-node-menu-info-description", "선택한 노드의 활성화 배정 상태를 확인합니다.")));
         inventory.setItem(12, item(Material.GRASS_BLOCK, message(messages, "admin-node-menu-islands-name", "현재 노드 섬 현황"), message(messages, "admin-node-menu-islands-command", "/ciadmin node islands ") + nodeId + " 50", message(messages, "admin-node-menu-islands-description", "활성 섬 UUID와 상태를 확인합니다."), message(messages, "admin-node-menu-islands-block-reason", "배정 차단 사유는 노드 정보에서 확인합니다.")));
@@ -46,6 +51,28 @@ public final class AdminNodeMenu implements Listener {
         inventory.setItem(24, item(Material.CLOCK, message(messages, "admin-node-menu-status-name", "관리 상태"), message(messages, "admin-node-menu-status-command", "/ciadmin status")));
         inventory.setItem(26, item(Material.OAK_DOOR, message(messages, "admin-node-menu-close-name", "닫기"), message(messages, "admin-node-menu-close", "메뉴를 닫습니다.")));
         player.openInventory(inventory);
+    }
+
+    private static ItemStack nodeSummaryItem(String nodeId, String body, MessageRenderer messages) {
+        String state = textValue(body, "state");
+        String pool = textValue(body, "pool");
+        long players = longValue(body, "players");
+        long softCap = longValue(body, "softPlayerCap");
+        long hardCap = longValue(body, "hardPlayerCap");
+        long activeIslands = longValue(body, "activeIslands");
+        long maxActiveIslands = longValue(body, "maxActiveIslands");
+        long queue = longValue(body, "activationQueue");
+        long maxQueue = longValue(body, "maxActivationQueue");
+        String mspt = decimalValue(body, "mspt");
+        return item(Material.NETHER_STAR,
+            message(messages, "admin-node-menu-summary-name", "노드 요약: ") + nodeId,
+            message(messages, "admin-node-menu-summary-state", "state: ") + fallback(state, "unknown"),
+            message(messages, "admin-node-menu-summary-pool", "pool: ") + fallback(pool, "island"),
+            message(messages, "admin-node-menu-summary-players", "players: ") + players + "/" + softCap + "/" + hardCap,
+            message(messages, "admin-node-menu-summary-mspt", "mspt: ") + fallback(mspt, "0"),
+            message(messages, "admin-node-menu-summary-active-islands", "active islands: ") + activeIslands + "/" + maxActiveIslands,
+            message(messages, "admin-node-menu-summary-queue", "queue: ") + queue + "/" + maxQueue,
+            message(messages, "admin-node-menu-summary-policy", "작업 순서: Drain -> View Islands -> Move Load -> Shutdown Safe"));
     }
 
     @EventHandler
@@ -143,5 +170,61 @@ public final class AdminNodeMenu implements Listener {
         }
         String rendered = messages.plain(key);
         return rendered.isBlank() ? fallback : rendered;
+    }
+
+    private static String fallback(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private static String textValue(String body, String key) {
+        if (body == null || body.isBlank()) {
+            return "";
+        }
+        String needle = "\"" + key + "\":\"";
+        int start = body.indexOf(needle);
+        if (start < 0) {
+            return "";
+        }
+        start += needle.length();
+        int end = body.indexOf('"', start);
+        return end < start ? "" : body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
+    }
+
+    private static long longValue(String body, String key) {
+        if (body == null || body.isBlank()) {
+            return 0L;
+        }
+        String needle = "\"" + key + "\":";
+        int start = body.indexOf(needle);
+        if (start < 0) {
+            return 0L;
+        }
+        start += needle.length();
+        int end = start;
+        while (end < body.length() && (Character.isDigit(body.charAt(end)) || body.charAt(end) == '-')) {
+            end++;
+        }
+        try {
+            return Long.parseLong(body.substring(start, end));
+        } catch (NumberFormatException exception) {
+            return 0L;
+        }
+    }
+
+    private static String decimalValue(String body, String key) {
+        if (body == null || body.isBlank()) {
+            return "";
+        }
+        String needle = "\"" + key + "\":";
+        int start = body.indexOf(needle);
+        if (start < 0) {
+            return "";
+        }
+        start += needle.length();
+        int end = start;
+        while (end < body.length() && (Character.isDigit(body.charAt(end)) || body.charAt(end) == '-' || body.charAt(end) == '.')) {
+            end++;
+        }
+        return body.substring(start, end);
     }
 }

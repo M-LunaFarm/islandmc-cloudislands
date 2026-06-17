@@ -453,7 +453,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private boolean handleNode(CommandSender sender, String[] args) {
         if (args.length > 1 && args[1].equalsIgnoreCase("menu")) {
             if (sender instanceof Player player) {
-                AdminNodeMenu.open(player, nodeId, messages);
+                coreApiClient.nodeInfo(nodeId)
+                    .thenAccept(body -> agent.plugin().getServer().getScheduler().runTask(agent.plugin(), () -> AdminNodeMenu.open(player, nodeId, body, messages)))
+                    .exceptionally(error -> {
+                        agent.plugin().getServer().getScheduler().runTask(agent.plugin(), () -> AdminNodeMenu.open(player, nodeId, messages));
+                        return null;
+                    });
             } else {
                 sender.sendMessage(adminText("admin-command-node-menu-player-only", "플레이어만 노드 관리 메뉴를 열 수 있습니다."));
             }
