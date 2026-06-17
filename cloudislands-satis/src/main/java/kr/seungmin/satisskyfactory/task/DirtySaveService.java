@@ -64,7 +64,7 @@ public final class DirtySaveService {
         this.machineWritesEnabled = machineWritesEnabled == null ? () -> true : machineWritesEnabled;
         BooleanSupplier inventoryGate = inventoryWritesEnabled == null ? () -> true : inventoryWritesEnabled;
         this.inventoryWritesAvailable = inventoryGate;
-        this.inventoryWritesEnabled = _inventory -> inventoryGate.getAsBoolean();
+        this.inventoryWritesEnabled = _inventory -> enabled(inventoryGate);
         this.nodeWritesEnabled = nodeWritesEnabled == null ? () -> true : nodeWritesEnabled;
         this.islandWritesEnabled = islandWritesEnabled == null ? () -> true : islandWritesEnabled;
     }
@@ -144,7 +144,7 @@ public final class DirtySaveService {
     }
 
     public void markMachine(MachineInstance machine) {
-        if (!machineWritesEnabled.getAsBoolean()) {
+        if (!enabled(machineWritesEnabled)) {
             return;
         }
         if (machine == null || machine.machineId() == null) {
@@ -165,7 +165,7 @@ public final class DirtySaveService {
             return;
         }
         forgetMachine(machineId);
-        if (!machineWritesEnabled.getAsBoolean()) {
+        if (!enabled(machineWritesEnabled)) {
             return;
         }
         publishCoreDelete(islandUuid, IslandAddonService.tableStateKey("machines", machineId.toString()));
@@ -197,7 +197,7 @@ public final class DirtySaveService {
             return;
         }
         forgetInventory(inventoryId);
-        if (!inventoryWritesAvailable.getAsBoolean()) {
+        if (!enabled(inventoryWritesAvailable)) {
             return;
         }
         publishCoreDelete(islandUuid, IslandAddonService.tableStateKey("virtual_inventories", inventoryId.toString()));
@@ -225,7 +225,7 @@ public final class DirtySaveService {
     }
 
     public void markNode(ResourceNode node) {
-        if (!nodeWritesEnabled.getAsBoolean()) {
+        if (!enabled(nodeWritesEnabled)) {
             return;
         }
         if (node == null || node.nodeId() == null) {
@@ -239,7 +239,7 @@ public final class DirtySaveService {
     }
 
     public void markIsland(FactoryIsland island) {
-        if (!islandWritesEnabled.getAsBoolean()) {
+        if (!enabled(islandWritesEnabled)) {
             return;
         }
         if (island == null || island.islandUuid() == null) {
@@ -295,8 +295,9 @@ public final class DirtySaveService {
             Map<UUID, VirtualInventory> inventoryBatch = drainIslandInventoriesIfEnabled(inventories, islandUuid);
             Map<UUID, MachineInstance> machineBatch = drainIslandIfEnabled(machines, islandUuid, machineWritesEnabled);
             Map<UUID, ResourceNode> nodeBatch = drainIslandIfEnabled(nodes, islandUuid, nodeWritesEnabled);
-            FactoryIsland island = islandWritesEnabled.getAsBoolean() ? islands.remove(islandUuid) : null;
-            if (!islandWritesEnabled.getAsBoolean()) {
+            boolean islandWritesAllowed = enabled(islandWritesEnabled);
+            FactoryIsland island = islandWritesAllowed ? islands.remove(islandUuid) : null;
+            if (!islandWritesAllowed) {
                 islands.remove(islandUuid);
             }
             Map<UUID, FactoryIsland> islandBatch = island == null ? Map.of() : Map.of(islandUuid, island);
@@ -379,7 +380,7 @@ public final class DirtySaveService {
     }
 
     private <T> Map<UUID, T> drainIfEnabled(Map<UUID, T> source, BooleanSupplier enabled) {
-        if (!enabled.getAsBoolean()) {
+        if (!enabled(enabled)) {
             source.clear();
             return Map.of();
         }
@@ -395,7 +396,7 @@ public final class DirtySaveService {
     }
 
     private <T> Map<UUID, T> drainIslandIfEnabled(Map<UUID, T> source, UUID islandUuid, BooleanSupplier enabled) {
-        if (!enabled.getAsBoolean()) {
+        if (!enabled(enabled)) {
             drainIsland(source, islandUuid);
             return Map.of();
         }
@@ -422,6 +423,14 @@ public final class DirtySaveService {
     private boolean inventoryWritesEnabled(VirtualInventory inventory) {
         try {
             return inventoryWritesEnabled.test(inventory);
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private boolean enabled(BooleanSupplier supplier) {
+        try {
+            return supplier != null && supplier.getAsBoolean();
         } catch (RuntimeException ignored) {
             return false;
         }
