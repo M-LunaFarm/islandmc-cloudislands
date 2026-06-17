@@ -1202,6 +1202,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         dirtySaves.coreStatePublisher(null);
         dirtySaves.coreStateDeletePublisher(null);
         coreApiState = null;
+        if (!operationalFeatureEnabled("addon-state")) {
+            return;
+        }
         if (database.activeBackend() != DatabaseService.StorageBackend.CORE_API || !coreApiAddonStateAvailable()) {
             return;
         }
