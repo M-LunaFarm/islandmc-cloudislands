@@ -453,6 +453,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-dirty-save-stop-policy", "runtime-stop-discards-queued-dirty-state-after-explicit-preflush-paths");
         state.put("runtime-duplicate-tick-guard", "ticker-stops-when-addon-or-machine-feature-disabled");
         state.put("runtime-core-api-state-writer", Boolean.toString(coreApiState != null));
+        state.put("runtime-core-api-state-readiness", coreApiState == null ? "not-configured" : coreApiState.writerReadiness());
+        state.put("runtime-core-api-state-transport", coreApiState == null ? "none" : coreApiState.writerTransportMode());
+        state.put("runtime-core-api-state-fallback-policy", coreApiState == null ? "none" : coreApiState.writerFallbackPolicy());
+        state.put("runtime-core-api-state-flattened-fallback-enabled", Boolean.toString(coreApiState != null && coreApiState.flattenedFallbackEnabled()));
+        state.put("runtime-core-api-state-pending-retries", coreApiState == null ? "0" : Integer.toString(coreApiState.pendingBulkRetries()));
         state.put("runtime-core-api-state-failures", coreApiState == null ? "0" : Long.toString(coreApiState.coreStateFailures()));
         state.put("runtime-core-api-state-last-failure", coreApiState == null ? "" : coreApiState.lastFailure());
         state.put("runtime-core-api-state-last-failure-at", coreApiState == null ? "" : coreApiState.lastFailureAt());

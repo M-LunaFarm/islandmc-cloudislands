@@ -170,6 +170,46 @@ public final class CoreApiSatisStateService {
         return lastFailureAt;
     }
 
+    public boolean flattenedFallbackEnabled() {
+        return flattenedFallbackEnabled;
+    }
+
+    public String writerTransportMode() {
+        return flattenedFallbackEnabled
+                ? "table-key-value-bulk-save-primary-with-flattened-state-fallback"
+                : "table-key-value-bulk-save-primary-no-flattened-fallback";
+    }
+
+    public String writerFallbackPolicy() {
+        return flattenedFallbackEnabled
+                ? "queue-retry-then-flattened-addon-state"
+                : "queue-retry-only";
+    }
+
+    public String writerReadiness() {
+        if (cloudIslandsApi == null) {
+            return "cloudislands-api-unavailable";
+        }
+        if (!stateFeatureEnabled("addon-state")) {
+            return "addon-state-feature-disabled";
+        }
+        int pendingRetries = pendingIslandBulkRetryCount() + pendingGlobalBulkRetryCount();
+        if (pendingRetries > 0 && coreStateFailures.get() > 0L) {
+            return "degraded-with-pending-retries";
+        }
+        if (pendingRetries > 0) {
+            return "pending-retries";
+        }
+        if (coreStateFailures.get() > 0L) {
+            return "ready-with-prior-failures";
+        }
+        return "ready";
+    }
+
+    public int pendingBulkRetries() {
+        return pendingIslandBulkRetryCount() + pendingGlobalBulkRetryCount();
+    }
+
     public void publishDirtyBatch(DirtySaveService.DirtySaveBatch batch) {
         if (cloudIslandsApi == null || batch == null) {
             return;
