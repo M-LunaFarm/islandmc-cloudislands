@@ -102,6 +102,33 @@ public final class SatisAddonIntegrationPolicy {
             "addon-removed-mode", "cloudislands-core-boots-and-base-island-lifecycle-continues-when-satis-addon-jar-is-absent"
     );
 
+    private static final List<String> RECOMMENDED_MODE_REASONS = List.of(
+            "core-focuses-on-distributed-island-platform",
+            "servers-that-do-not-want-satis-do-not-install-the-addon",
+            "satis-failures-are-isolated-from-create-route-protect-save",
+            "other-addons-can-use-the-same-extension-shape",
+            "satis-can-have-its-own-release-cycle"
+    );
+
+    private static final Map<String, String> COMPONENT_BOUNDARIES = Map.of(
+            "velocity-plugin", "no-direct-satis-handler-global-command-routing-only-when-needed",
+            "paper-agent-plugin", "cloudislands-api-addon-lifecycle-current-island-world-center-member-permission-query",
+            "cloudislands-satis-addon", "machines-resource-nodes-storage-gui-placeholders-cloudislands-api-only",
+            "core-api-service", "stores-addon-metadata-and-state-without-knowing-satis-business-logic"
+    );
+
+    private static final Map<String, String> FEATURE_OFF_RUNTIME_BLOCKS = Map.of(
+            "machines", "machine-place-machine-tick-machine-gui-machine-placeholder",
+            "resource-nodes", "resource-node-spawn-resource-node-tick-resource-node-gui",
+            "contracts", "contract-command-contract-gui-contract-event-writes",
+            "market", "market-command-market-gui-market-storage-writes",
+            "missions", "mission-command-mission-gui-mission-event-handlers",
+            "placeholders", "placeholder-registration-placeholder-refresh",
+            "gui", "satis-menu-registration-and-open-handlers",
+            "lifecycle", "satis-lifecycle-event-consumers",
+            "storage", "satis-state-write-paths"
+    );
+
     private static final List<String> COMPLETION_CRITERIA = List.of(
             "satis-features-run-with-cloudislands-island-lifecycle",
             "root-config-can-disable-all-satis-runtime-components",
@@ -164,6 +191,30 @@ public final class SatisAddonIntegrationPolicy {
 
     public static String operationScenarioSummary() {
         return summary(OPERATION_SCENARIOS);
+    }
+
+    public static List<String> recommendedModeReasons() {
+        return RECOMMENDED_MODE_REASONS;
+    }
+
+    public static String recommendedModeReasonSummary() {
+        return String.join(",", RECOMMENDED_MODE_REASONS);
+    }
+
+    public static Map<String, String> componentBoundaries() {
+        return COMPONENT_BOUNDARIES;
+    }
+
+    public static String componentBoundarySummary() {
+        return summary(COMPONENT_BOUNDARIES);
+    }
+
+    public static Map<String, String> featureOffRuntimeBlocks() {
+        return FEATURE_OFF_RUNTIME_BLOCKS;
+    }
+
+    public static String featureOffRuntimeBlockSummary() {
+        return summary(FEATURE_OFF_RUNTIME_BLOCKS);
     }
 
     public static String completionCriteriaSummary() {
