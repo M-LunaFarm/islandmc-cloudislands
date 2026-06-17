@@ -67,32 +67,34 @@ public final class AdminFactoryCommand {
             "addon-state",
             "route-events"
     );
-    private static final List<String> HELP_COMMANDS = List.of(
-            "factory admin help [page]",
-            "factory admin list [page]",
-            "factory admin command list [page]",
-            "factory admin reload",
-            "factory admin features",
-            "factory admin integration",
-            "factory admin migration",
-            "factory admin migration status",
-            "factory admin migration scan <sqlitePath>",
-            "factory admin migration dryrun <sqlitePath>",
-            "factory admin migration verify <sqlitePath>",
-            SatisLegacyMigrationPolicy.IMPORT_COMMAND,
-            "factory admin migration rollback",
-            "factory admin state",
-            "factory admin give <player> <machineType> [amount]",
-            "factory admin giveitem <player> <itemId> <amount>",
-            "factory admin addresearch <player> <amount>",
-            "factory admin setdebt <player> <amount>",
-            "factory admin charge <player>",
-            "factory admin gennodes <player>",
-            "factory admin debug island",
-            "factory admin debug networks",
-            "factory admin removehere",
-            "factory admin repairhere"
-    );
+    private static final List<String> HELP_COMMANDS = helpCommands();
+
+    private static List<String> helpCommands() {
+        List<String> commands = new ArrayList<>(List.of(
+                "factory admin help [page]",
+                "factory admin list [page]",
+                "factory admin command list [page]",
+                "factory admin reload",
+                "factory admin features",
+                "factory admin integration",
+                "factory admin migration"
+        ));
+        commands.addAll(SatisLegacyMigrationPolicy.adminCommands());
+        commands.addAll(List.of(
+                "factory admin state",
+                "factory admin give <player> <machineType> [amount]",
+                "factory admin giveitem <player> <itemId> <amount>",
+                "factory admin addresearch <player> <amount>",
+                "factory admin setdebt <player> <amount>",
+                "factory admin charge <player>",
+                "factory admin gennodes <player>",
+                "factory admin debug island",
+                "factory admin debug networks",
+                "factory admin removehere",
+                "factory admin repairhere"
+        ));
+        return List.copyOf(commands);
+    }
     private final FactoryIslandService islands;
     private final MachineService machines;
     private final MachineDefinitionService definitions;
