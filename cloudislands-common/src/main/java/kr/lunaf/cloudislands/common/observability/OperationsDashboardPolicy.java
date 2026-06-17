@@ -28,6 +28,8 @@ public final class OperationsDashboardPolicy {
         metrics.put("node-mspt-by-node", "cloudislands_node_mspt");
         metrics.put("node-mspt-over-budget", "cloudislands_node_mspt_over_budget");
         metrics.put("active-islands", "cloudislands_node_active_islands");
+        metrics.put("active-island-usage-by-node", "cloudislands_node_active_island_usage_ratio");
+        metrics.put("active-island-usage-cluster", "cloudislands_cluster_active_island_usage_ratio");
         metrics.put("average-island-activation-seconds", "cloudislands_island_activation_seconds");
         metrics.put("island-save-failures", "cloudislands_island_save_failures_total");
         metrics.put("route-failures", "cloudislands_route_ticket_failed_total");

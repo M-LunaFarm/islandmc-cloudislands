@@ -134,6 +134,8 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_node_active_islands", "gauge");
         help(out, "cloudislands_node_max_active_islands", "Maximum active islands supported by a node");
         type(out, "cloudislands_node_max_active_islands", "gauge");
+        help(out, "cloudislands_node_active_island_usage_ratio", "Active islands divided by node maximum active islands");
+        type(out, "cloudislands_node_active_island_usage_ratio", "gauge");
         help(out, "cloudislands_node_activation_queue", "Activation queue depth currently reported by a node");
         type(out, "cloudislands_node_activation_queue", "gauge");
         help(out, "cloudislands_node_max_activation_queue", "Maximum activation queue depth supported by a node");
@@ -162,6 +164,8 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_cluster_players", "gauge");
         help(out, "cloudislands_cluster_active_islands", "Total active islands across fresh CloudIslands nodes");
         type(out, "cloudislands_cluster_active_islands", "gauge");
+        help(out, "cloudislands_cluster_active_island_usage_ratio", "Total active islands divided by total maximum active islands across fresh nodes");
+        type(out, "cloudislands_cluster_active_island_usage_ratio", "gauge");
         help(out, "cloudislands_cluster_activation_queue", "Total activation queue depth across fresh CloudIslands nodes");
         type(out, "cloudislands_cluster_activation_queue", "gauge");
         help(out, "cloudislands_cluster_storage_available_nodes", "Fresh nodes reporting object storage availability");
@@ -300,6 +304,7 @@ public final class PrometheusMetricsRenderer {
         long onlineNodes = 0L;
         long totalPlayers = 0L;
         long totalActiveIslands = 0L;
+        long totalMaxActiveIslands = 0L;
         long totalActivationQueue = 0L;
         long storageAvailableNodes = 0L;
         long activationEligibleNodes = 0L;
@@ -354,6 +359,7 @@ public final class PrometheusMetricsRenderer {
                 poolCounters[1]++;
                 totalPlayers += node.players();
                 totalActiveIslands += node.activeIslands();
+                totalMaxActiveIslands += node.maxActiveIslands();
                 totalActivationQueue += node.activationQueue();
                 if (node.storageAvailable()) {
                     storageAvailableNodes++;
@@ -376,6 +382,7 @@ public final class PrometheusMetricsRenderer {
             labels(out, "cloudislands_node_mspt_over_budget", node, null).append(node.mspt() >= 50.0D ? 1 : 0).append('\n');
             labels(out, "cloudislands_node_active_islands", node, null).append(node.activeIslands()).append('\n');
             labels(out, "cloudislands_node_max_active_islands", node, null).append(node.maxActiveIslands()).append('\n');
+            labels(out, "cloudislands_node_active_island_usage_ratio", node, null).append(node.maxActiveIslands() <= 0 ? 0.0D : (double) node.activeIslands() / node.maxActiveIslands()).append('\n');
             labels(out, "cloudislands_node_activation_queue", node, null).append(node.activationQueue()).append('\n');
             labels(out, "cloudislands_node_max_activation_queue", node, null).append(node.maxActivationQueue()).append('\n');
             labels(out, "cloudislands_node_chunk_load_pressure", node, null).append(node.chunkLoadPressure()).append('\n');
@@ -445,6 +452,7 @@ public final class PrometheusMetricsRenderer {
         out.append("cloudislands_cluster_nodes_online ").append(onlineNodes).append('\n');
         out.append("cloudislands_cluster_players ").append(totalPlayers).append('\n');
         out.append("cloudislands_cluster_active_islands ").append(totalActiveIslands).append('\n');
+        out.append("cloudislands_cluster_active_island_usage_ratio ").append(totalMaxActiveIslands <= 0L ? 0.0D : (double) totalActiveIslands / totalMaxActiveIslands).append('\n');
         out.append("cloudislands_cluster_activation_queue ").append(totalActivationQueue).append('\n');
         out.append("cloudislands_cluster_storage_available_nodes ").append(storageAvailableNodes).append('\n');
         out.append("cloudislands_cluster_storage_failure_ratio ").append(onlineNodes <= 0L ? 0.0D : (double) (onlineNodes - storageAvailableNodes) / onlineNodes).append('\n');
