@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.api.model;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import kr.lunaf.cloudislands.api.CloudIslandsApiContract;
 
@@ -193,5 +194,13 @@ public record CloudIslandsStatusSnapshot(
 
     private static String safe(String value) {
         return value == null ? "" : value;
+    }
+
+    public String contractCompatibilityStatus() {
+        return CloudIslandsApiContract.metadataCompatibilityStatus(contractMetadata());
+    }
+
+    public List<String> missingContractMetadataKeys() {
+        return CloudIslandsApiContract.missingMetadataKeys(contractMetadata());
     }
 }
