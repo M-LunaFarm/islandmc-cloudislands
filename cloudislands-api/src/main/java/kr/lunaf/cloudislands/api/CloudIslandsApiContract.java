@@ -25,6 +25,7 @@ public final class CloudIslandsApiContract {
     public static List<String> requiredMetadataKeys() {
         return List.of(
             "contract-version",
+            "required-metadata-keys",
             "read-policy",
             "write-authority",
             "sync-event-policy",
