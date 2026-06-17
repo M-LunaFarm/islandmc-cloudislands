@@ -3093,6 +3093,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String activeNode = lifecycleActiveNode(safeOperation);
         String eventWorld = lifecycleEventWorld(safeOperation);
         String eventCell = lifecycleEventCell(safeOperation);
+        String placementSource = lifecycleEventPlacementSource(safeOperation);
         Map<String, String> state = new LinkedHashMap<>();
         state.put("last-lifecycle-island", islandId.toString());
         state.put("last-lifecycle-operation", safeOperation);
@@ -3843,21 +3844,21 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private String jdbcUrl(String section, String prefix, int defaultPort) {
         String configured = firstNonBlank(backendEnv(section, "JDBC_URL"),
                 firstNonBlank(backendEnv(section, "URL"),
-                firstNonBlank(configs.main().getString("setup.database." + section + ".jdbc-url", ""),
-                firstNonBlank(configs.main().getString("setup.database." + section + ".url", ""),
-                        firstNonBlank(configs.main().getString("database." + section + ".jdbc-url", ""),
-                                configs.main().getString("database." + section + ".url", "")))));
+                        firstNonBlank(configs.main().getString("setup.database." + section + ".jdbc-url", ""),
+                                firstNonBlank(configs.main().getString("setup.database." + section + ".url", ""),
+                                        firstNonBlank(configs.main().getString("database." + section + ".jdbc-url", ""),
+                                                configs.main().getString("database." + section + ".url", ""))))));
         if (configured != null && !configured.isBlank()) {
             return configured.trim();
         }
         String host = firstNonBlank(backendEnv(section, "HOST"), firstNonBlank(configs.main().getString("setup.database." + section + ".host", ""), configs.main().getString("database." + section + ".host", "127.0.0.1")));
         String databaseName = firstNonBlank(backendEnv(section, "NAME"),
                 firstNonBlank(backendEnv(section, "DB_NAME"),
-                firstNonBlank(backendEnv(section, "DATABASE"),
-                firstNonBlank(configs.main().getString("setup.database." + section + ".name", ""),
-                firstNonBlank(configs.main().getString("setup.database." + section + ".database", ""),
-                        firstNonBlank(configs.main().getString("database." + section + ".name", ""),
-                                configs.main().getString("database." + section + ".database", ""))))));
+                        firstNonBlank(backendEnv(section, "DATABASE"),
+                                firstNonBlank(configs.main().getString("setup.database." + section + ".name", ""),
+                                        firstNonBlank(configs.main().getString("setup.database." + section + ".database", ""),
+                                                firstNonBlank(configs.main().getString("database." + section + ".name", ""),
+                                                        configs.main().getString("database." + section + ".database", "")))))));
         if (host == null || host.isBlank() || databaseName == null || databaseName.isBlank()) {
             return "";
         }

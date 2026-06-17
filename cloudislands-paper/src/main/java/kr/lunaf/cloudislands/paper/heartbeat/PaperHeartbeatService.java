@@ -77,7 +77,7 @@ public final class PaperHeartbeatService {
     public void start(long intervalTicks) {
         stop();
         publish(NodeState.STARTING);
-        task = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::publish, intervalTicks, intervalTicks);
+        task = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, (Runnable) this::publish, intervalTicks, intervalTicks);
     }
 
     public void stop() {

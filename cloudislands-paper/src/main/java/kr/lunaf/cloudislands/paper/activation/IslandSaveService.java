@@ -84,7 +84,7 @@ public final class IslandSaveService {
             previous.ownerUuid(),
             previous.formatVersion(),
             previous.minecraftVersion(),
-            activeIsland.schemaVersion(),
+            (int) activeIsland.schemaVersion(),
             activeIsland.islandSize(),
             new IslandLocation(activeIsland.worldName(), 0.5D, 100.0D, 0.5D, 180.0F, 0.0F),
             previous.homes(),

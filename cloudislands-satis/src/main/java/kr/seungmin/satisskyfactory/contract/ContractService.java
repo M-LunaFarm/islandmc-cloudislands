@@ -48,6 +48,10 @@ public final class ContractService {
     private boolean active;
     private Set<String> boostedSlotTypes = Set.of("DAILY", "WEEKLY", "STORY", "MARKET");
 
+    public ContractService(StorageService storage, EconomyService economy, DatabaseService database, IslandBoostService boosts) {
+        this(storage, economy, database, boosts, () -> true);
+    }
+
     public ContractService(StorageService storage, EconomyService economy, DatabaseService database, IslandBoostService boosts,
                            BooleanSupplier maintenanceEnabled) {
         this.storage = storage;

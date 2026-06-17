@@ -179,11 +179,11 @@ public final class CoreApiSatisStateService {
         batch.islands().values().forEach(island -> table(tablesByIsland, island.islandUuid(), "factory_islands")
                 .put(island.islandUuid().toString(), islandJson(island)));
         batch.machines().values().forEach(machine -> table(tablesByIsland, machine.islandUuid(), "machines")
-                .put(machine.machineId(), machineJson(machine)));
+                .put(machine.machineId().toString(), machineJson(machine)));
         batch.inventories().values().forEach(inventory -> table(tablesByIsland, inventory.islandUuid(), "virtual_inventories")
-                .put(inventory.inventoryId(), inventoryJson(inventory)));
+                .put(inventory.inventoryId().toString(), inventoryJson(inventory)));
         batch.nodes().values().forEach(node -> table(tablesByIsland, node.islandUuid(), "resource_nodes")
-                .put(node.nodeId(), nodeJson(node)));
+                .put(node.nodeId().toString(), nodeJson(node)));
         tablesByIsland.forEach((islandId, tables) -> {
             Map<String, String> values = state(valuesByIsland, islandId);
             int tableKeys = tables.values().stream().mapToInt(Map::size).sum();

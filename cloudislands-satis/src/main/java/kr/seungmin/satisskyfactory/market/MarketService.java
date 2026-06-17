@@ -48,6 +48,10 @@ public final class MarketService {
     private boolean lockedMarketSalesBlocked;
     private boolean active;
 
+    public MarketService(StorageService storage, EconomyService economy, DatabaseService database, ItemRegistry items) {
+        this(storage, economy, database, items, () -> true);
+    }
+
     public MarketService(StorageService storage, EconomyService economy, DatabaseService database, ItemRegistry items,
                          BooleanSupplier maintenanceEnabled) {
         this.storage = storage;

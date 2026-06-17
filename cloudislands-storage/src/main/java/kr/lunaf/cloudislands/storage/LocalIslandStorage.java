@@ -290,9 +290,9 @@ public final class LocalIslandStorage implements IslandStorage {
         Path manifest = snapshotDir.resolve("manifest.json");
         if (Files.exists(manifest)) {
             try {
-                String savedAt = IslandManifestJson.read(Files.readString(manifest, StandardCharsets.UTF_8)).savedAt();
-                if (savedAt != null && !savedAt.isBlank()) {
-                    return Instant.parse(savedAt);
+                Instant savedAt = IslandManifestJson.read(Files.readString(manifest, StandardCharsets.UTF_8)).savedAt();
+                if (savedAt != null) {
+                    return savedAt;
                 }
             } catch (RuntimeException | IOException ignored) {
                 // Fall back to the directory timestamp below.

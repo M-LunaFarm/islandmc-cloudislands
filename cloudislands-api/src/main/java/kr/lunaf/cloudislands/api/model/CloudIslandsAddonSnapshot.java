@@ -140,6 +140,11 @@ public record CloudIslandsAddonSnapshot(
         if (!canonical.equals(requested) && source.containsKey(requested)) {
             enabled = enabled && source.get(requested);
         }
+        for (Map.Entry<String, String> alias : featureAliases().entrySet()) {
+            if (canonical.equals(alias.getValue()) && source.containsKey(alias.getKey())) {
+                enabled = enabled && source.get(alias.getKey());
+            }
+        }
         if (!includeDependencies) {
             return enabled;
         }

@@ -27,6 +27,7 @@ public final class FactoryIslandService {
     public FactoryIslandService(SkyblockProvider skyblockHook, DatabaseService database) {
         this.skyblockHook = skyblockHook;
         this.database = database;
+        load();
     }
 
     public Optional<FactoryContext> context(Player player) {

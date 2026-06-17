@@ -126,16 +126,10 @@ public interface IslandAddonService {
         if (addon == null) {
             return Map.of("metadata-error", "NullAddon");
         }
-        Map<String, String> metadata = new HashMap<>();
         try {
-            metadata.putAll(copyStringMap(addon.addonStandardMetadata()));
+            return copyStringMap(addon.addonMetadata());
         } catch (RuntimeException exception) {
-            metadata.put("metadata-standard-error", exception.getClass().getSimpleName());
-        }
-        try {
-            metadata.putAll(copyStringMap(addon.addonMetadata()));
-            return Map.copyOf(metadata);
-        } catch (RuntimeException exception) {
+            Map<String, String> metadata = new HashMap<>();
             metadata.put("metadata-error", exception.getClass().getSimpleName());
             return Map.copyOf(metadata);
         }
@@ -574,9 +568,6 @@ public interface IslandAddonService {
         String value = key == null ? "" : key.trim();
         if (value.isBlank()) {
             throw new IllegalArgumentException("Addon state table key is required");
-        }
-        if (value.contains("/")) {
-            throw new IllegalArgumentException("Addon state table key must not contain '/'");
         }
         if (value.length() > MAX_STATE_KEY_LENGTH - TABLE_STATE_KEY_PREFIX.length() - 2) {
             throw new IllegalArgumentException("Addon state table key is too long: " + value.length());

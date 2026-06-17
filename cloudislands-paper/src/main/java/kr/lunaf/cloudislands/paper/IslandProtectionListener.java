@@ -39,6 +39,7 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.EntityPlaceEvent;
+import org.bukkit.event.entity.PlayerLeashEntityEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
@@ -53,7 +54,6 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerLeashEntityEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerShearEntityEvent;
 import org.bukkit.event.player.PlayerUnleashEntityEvent;
@@ -503,7 +503,7 @@ public final class IslandProtectionListener implements Listener {
         if (type == EntityType.CREEPER) {
             return IslandFlag.CREEPER_DAMAGE;
         }
-        if (type == EntityType.PRIMED_TNT || type == EntityType.MINECART_TNT) {
+        if (type == EntityType.TNT || type == EntityType.TNT_MINECART) {
             return IslandFlag.TNT_DAMAGE;
         }
         if (type == EntityType.WITHER || type == EntityType.WITHER_SKULL) {

@@ -4,6 +4,14 @@ fun embeddedOutput(projectName: String) =
     (project(projectName).extensions.getByName("sourceSets") as org.gradle.api.tasks.SourceSetContainer)
         .named("main").get().output
 
+val embeddedProjects = listOf(
+    ":cloudislands-api",
+    ":cloudislands-protocol",
+    ":cloudislands-common",
+    ":cloudislands-core-client",
+    ":cloudislands-storage"
+)
+
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     compileOnly("me.clip:placeholderapi:2.11.6")
@@ -22,13 +30,8 @@ tasks.test {
 tasks.jar {
     archiveBaseName.set("CloudIslands-Paper")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    listOf(
-        ":cloudislands-api",
-        ":cloudislands-protocol",
-        ":cloudislands-common",
-        ":cloudislands-core-client",
-        ":cloudislands-storage"
-    ).forEach { embeddedProject ->
+    dependsOn(embeddedProjects.map { project(it).tasks.named("jar") })
+    embeddedProjects.forEach { embeddedProject ->
         from(embeddedOutput(embeddedProject))
     }
     manifest {

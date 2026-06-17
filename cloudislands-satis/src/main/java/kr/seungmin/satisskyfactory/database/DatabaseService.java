@@ -135,7 +135,7 @@ public final class DatabaseService {
         this(plugin.getDataFolder(), settings);
     }
 
-    DatabaseService(File dataFolder) {
+    public DatabaseService(File dataFolder) {
         this(dataFolder, "data.db");
     }
 
@@ -811,7 +811,7 @@ public final class DatabaseService {
             return "1";
         }
         if (column.equals("capacity")) {
-            return Long.toString(defaultCapacity);
+            return "0";
         }
         if (column.equals("holder_type")) {
             return "'ISLAND'";

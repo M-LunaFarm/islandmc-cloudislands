@@ -90,7 +90,7 @@ public record IslandBundleManifest(
         Instant savedAt,
         String checksum
     ) {
-        this(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, createdAt, savedAt, checksum, BundleRestorePolicy.CHECKSUM_ALGORITHM, BundleRestorePolicy.COMPRESSION, "", 0L, "");
+        this(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, List.of(), List.of(), List.of(), createdAt, savedAt, checksum, BundleRestorePolicy.CHECKSUM_ALGORITHM, BundleRestorePolicy.COMPRESSION, "", 0L, "");
     }
 
     public IslandBundleManifest withSnapshotReason(String reason) {

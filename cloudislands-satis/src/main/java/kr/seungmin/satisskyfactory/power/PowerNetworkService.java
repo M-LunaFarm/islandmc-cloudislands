@@ -43,6 +43,7 @@ public final class PowerNetworkService {
         this.definitions = definitions;
         this.recipes = recipes;
         this.storage = storage;
+        activate();
     }
 
     public void writeGate(BooleanSupplier writesEnabled) {

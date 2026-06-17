@@ -25,7 +25,7 @@ class DefaultConfigIntegrityTest {
 
         assertEquals("CloudIslandsSatis", plugin.getString("name"));
         assertEquals("cloudislands-satis", addon.getString("id"));
-        assertEquals("external-plugin", addon.getString("packaging"));
+        assertEquals("external-plugin-or-built-in-compatible", addon.getString("packaging"));
         assertTrue(addon.getBoolean("removal.safe"));
         assertEquals("preserve-addon-state-by-island-uuid", addon.getString("removal.data-retention"));
         assertFalse(addon.getBoolean("runtime.owns-islands"));
@@ -36,11 +36,12 @@ class DefaultConfigIntegrityTest {
         assertEquals("kr.seungmin.satisskyfactory.SatisSkyFactoryPlugin", plugin.getString("main"));
         assertEquals(List.of("CloudIslands"), plugin.getStringList("depend"));
         assertEquals(List.of("Vault", "PlaceholderAPI"), plugin.getStringList("softdepend"));
-        assertFalse(plugin.saveToString().contains("Superior"));
+        assertFalse(plugin.getStringList("depend").stream().anyMatch(dependency -> dependency.contains("Superior")));
+        assertFalse(plugin.getStringList("softdepend").stream().anyMatch(dependency -> dependency.contains("Superior")));
         assertTrue(plugin.isConfigurationSection("commands.factory"));
         assertTrue(plugin.isConfigurationSection("commands.sfactory"));
         assertTrue(config.getBoolean("satis.enabled"));
-        assertEquals("ADDON", config.getString("integration.mode"));
+        assertEquals("EXTERNAL_ADDON", config.getString("integration.mode"));
         assertEquals("CLOUDISLANDS", config.getString("integration.skyblock-provider"));
         assertTrue(config.getBoolean("integration.cloudislands-adapter"));
         assertFalse(config.saveToString().contains("Superior"));

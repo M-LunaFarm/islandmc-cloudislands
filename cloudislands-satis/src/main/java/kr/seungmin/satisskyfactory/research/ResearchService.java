@@ -35,6 +35,10 @@ public final class ResearchService {
     private boolean blockTierUpgradesWhenLimited;
     private boolean active;
 
+    public ResearchService(DatabaseService database, EconomyService economy) {
+        this(database, economy, () -> true);
+    }
+
     public ResearchService(DatabaseService database, EconomyService economy, BooleanSupplier maintenanceEnabled) {
         this.database = database;
         this.economy = economy;

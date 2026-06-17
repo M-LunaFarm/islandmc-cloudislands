@@ -43,6 +43,7 @@ public final class MachineService {
         this.database = database;
         this.definitions = definitions;
         this.storage = storage;
+        load();
     }
 
     public void load() {

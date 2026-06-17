@@ -74,7 +74,7 @@ public final class ExternalTarIslandBundleExporter implements IslandBundleExport
             source == null ? new UUID(0L, 0L) : source.ownerUuid(),
             source == null ? 3 : source.formatVersion(),
             source == null ? "unknown" : source.minecraftVersion(),
-            source == null ? activeIsland.schemaVersion() : source.schemaVersion(),
+            source == null ? (int) activeIsland.schemaVersion() : source.schemaVersion(),
             source == null ? activeIsland.islandSize() : source.size(),
             new IslandLocation(activeIsland.worldName(), 0.5D, 100.0D, 0.5D, 180.0F, 0.0F),
             source == null ? List.of() : source.homes(),

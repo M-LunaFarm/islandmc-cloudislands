@@ -215,6 +215,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             ? Math.max(1, Math.min(reservedSoftCap, getConfig().getInt("node.soft-player-cap", reservedSoftCap)))
             : reservedSoftCap;
         int maxActiveIslands = Math.max(1, getConfig().getInt("node.max-active-islands", 600));
+        String heartbeatSupportedTemplates = supportedTemplates;
         this.heartbeatService = new PaperHeartbeatService(
             this,
             client,
@@ -223,7 +224,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             velocityServerName,
             getDescription().getVersion(),
             supportedTemplates,
-            () -> heartbeatMetadata(supportedTemplates, storage),
+            () -> heartbeatMetadata(heartbeatSupportedTemplates, storage),
             () -> storageAvailable(storage),
             () -> softPlayerCap,
             () -> hardPlayerCap,
@@ -745,6 +746,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     }
 
     private void startIslandNodeWorker(CoreApiClient client, String nodeId, IslandStorage storage, IslandLimitCache limitCache) {
+        CropGrowthLevelCache cropGrowthLevels = new CropGrowthLevelCache(client);
+        String fallbackServerName = getConfig().getString("routing.fallback-on-failure", "Lobby");
         ShardWorldManager shardWorldManager = new ShardWorldManager(
             getConfig().getString("island-node.shard-world-prefix", "ci_shard_"),
             getConfig().getInt("island-node.shard-count", 16),

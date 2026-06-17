@@ -15,6 +15,10 @@ public final class MigrationService {
         MARIADB
     }
 
+    public void migrate(Connection connection) throws SQLException {
+        migrate(connection, Dialect.SQLITE);
+    }
+
     public void migrate(Connection connection, Dialect dialect) throws SQLException {
         try (Statement statement = connection.createStatement()) {
             statement.executeUpdate(ddl("CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)", dialect));

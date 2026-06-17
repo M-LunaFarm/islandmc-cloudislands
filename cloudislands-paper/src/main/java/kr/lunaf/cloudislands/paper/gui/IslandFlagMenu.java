@@ -109,6 +109,17 @@ public final class IslandFlagMenu implements Listener {
         return item;
     }
 
+    private static ItemStack item(Material material, String name, String lore) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            meta.setLore(java.util.List.of(lore));
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
     private static String message(MessageRenderer messages, String key, String fallback) {
         if (messages == null) {
             return fallback;

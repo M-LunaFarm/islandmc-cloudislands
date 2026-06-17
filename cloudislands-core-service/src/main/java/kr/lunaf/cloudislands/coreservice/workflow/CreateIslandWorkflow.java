@@ -21,8 +21,10 @@ import kr.lunaf.cloudislands.coreservice.RedisPlayerCreationLock;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
+import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
+import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.template.IslandTemplateRepository;
 import kr.lunaf.cloudislands.coreservice.template.IslandTemplateSnapshot;
 import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
@@ -36,6 +38,7 @@ public final class CreateIslandWorkflow {
     private final IslandTemplateRepository templates;
     private final NodeRegistry nodes;
     private final NodeAllocator allocator;
+    private final IslandRuntimeRepository runtimes;
     private final IslandJobPublisher jobs;
     private final GlobalEventPublisher events;
     private final RouteTicketStore tickets;
@@ -44,24 +47,29 @@ public final class CreateIslandWorkflow {
     private final RedisPlayerCreationLock playerCreationLock;
 
     public CreateIslandWorkflow(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events, RouteTicketStore tickets) {
-        this(islands, metadata, playerProfiles, templates, nodes, allocator, jobs, events, tickets, "island");
+        this(islands, metadata, playerProfiles, templates, nodes, allocator, new InMemoryIslandRuntimeRepository(), jobs, events, tickets, "island", Duration.ofSeconds(120), null);
     }
 
     public CreateIslandWorkflow(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events, RouteTicketStore tickets, String islandPool) {
-        this(islands, metadata, playerProfiles, templates, nodes, allocator, jobs, events, tickets, islandPool, Duration.ofSeconds(120));
+        this(islands, metadata, playerProfiles, templates, nodes, allocator, new InMemoryIslandRuntimeRepository(), jobs, events, tickets, islandPool, Duration.ofSeconds(120), null);
     }
 
     public CreateIslandWorkflow(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events, RouteTicketStore tickets, String islandPool, Duration routePreparingTicketTtl) {
-        this(islands, metadata, playerProfiles, templates, nodes, allocator, jobs, events, tickets, islandPool, routePreparingTicketTtl, null);
+        this(islands, metadata, playerProfiles, templates, nodes, allocator, new InMemoryIslandRuntimeRepository(), jobs, events, tickets, islandPool, routePreparingTicketTtl, null);
     }
 
     public CreateIslandWorkflow(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandJobPublisher jobs, GlobalEventPublisher events, RouteTicketStore tickets, String islandPool, Duration routePreparingTicketTtl, RedisPlayerCreationLock playerCreationLock) {
+        this(islands, metadata, playerProfiles, templates, nodes, allocator, new InMemoryIslandRuntimeRepository(), jobs, events, tickets, islandPool, routePreparingTicketTtl, playerCreationLock);
+    }
+
+    public CreateIslandWorkflow(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandTemplateRepository templates, NodeRegistry nodes, NodeAllocator allocator, IslandRuntimeRepository runtimes, IslandJobPublisher jobs, GlobalEventPublisher events, RouteTicketStore tickets, String islandPool, Duration routePreparingTicketTtl, RedisPlayerCreationLock playerCreationLock) {
         this.islands = islands;
         this.metadata = metadata;
         this.playerProfiles = playerProfiles;
         this.templates = templates;
         this.nodes = nodes;
         this.allocator = allocator;
+        this.runtimes = runtimes;
         this.jobs = jobs;
         this.events = events;
         this.tickets = tickets;

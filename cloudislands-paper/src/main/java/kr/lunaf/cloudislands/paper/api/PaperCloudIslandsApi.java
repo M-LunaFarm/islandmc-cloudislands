@@ -1001,7 +1001,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             } catch (IOException exception) {
                 plugin.getLogger().warning("CloudIslands addon state clear failed for " + safeId + ": " + exception.getMessage());
             }
-            return coreClient.clearAddonState(safeId).thenApply(_body -> null).exceptionally(_error -> null);
+            return coreClient.clearAddonState(safeId).thenApply(_body -> (Void) null).exceptionally(_error -> null);
         }
 
         @Override
@@ -1346,7 +1346,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             } catch (IOException exception) {
                 plugin.getLogger().warning("CloudIslands addon island state clear failed for " + safeId + "/" + islandId + ": " + exception.getMessage());
             }
-            return coreClient.clearAddonIslandState(safeId, islandId).thenApply(_body -> null).exceptionally(_error -> null);
+            return coreClient.clearAddonIslandState(safeId, islandId).thenApply(_body -> (Void) null).exceptionally(_error -> null);
         }
 
         private boolean addonAcceptsIslandStateWrites(String id) {
@@ -3487,6 +3487,10 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         int valueStart = start + needle.length();
         int end = json.indexOf('"', valueStart);
         return end < 0 ? fallback : json.substring(valueStart, end);
+    }
+
+    private static long number(String json, String field) {
+        return Long.parseLong(number(json, field, "0"));
     }
 
     private static String nullableText(String json, String field) {

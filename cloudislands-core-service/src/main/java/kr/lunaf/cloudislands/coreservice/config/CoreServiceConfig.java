@@ -196,7 +196,7 @@ public record CoreServiceConfig(
     }
 
     public boolean setupDatabasePostgresqlFallbackConfigured() {
-        return !setupPostgresqlFallbackJdbcUrl(applicationConfig()).isBlank();
+        return "POSTGRESQL".equals(setupDatabaseFallbackTarget()) || "POSTGRESQL".equals(jdbcUrlDatabaseType(jdbcUrl));
     }
 
     public boolean setupDatabaseCoreApiFallbackConfigured() {

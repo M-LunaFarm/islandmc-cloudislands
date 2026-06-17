@@ -10,6 +10,7 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -32,6 +33,7 @@ import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.permission.CachedPermissionSet;
 import kr.lunaf.cloudislands.common.permission.defaults.DefaultIslandPermissions;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
+import kr.lunaf.cloudislands.common.routing.NodeLoad;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
@@ -167,6 +169,8 @@ public final class CloudIslandsCoreApplication {
     private final RouteTicketExpiryMonitor routeTicketExpiryMonitor;
     private final JobRecoveryMonitor jobRecoveryMonitor;
     private final IslandStorage deleteStorage;
+    private final IslandRepository islandRepository;
+    private final PlayerProfileRepository playerProfiles;
     private final IslandRuntimeRepository runtimeRepository;
     private final IslandJobQueue jobs;
     private final GlobalEventPublisher events;
@@ -226,6 +230,7 @@ public final class CloudIslandsCoreApplication {
         IslandRepository islandRepository = config.redisEvents() || config.redisJobs()
             ? new CachingIslandRepository(baseIslandRepository, config.redisUri())
             : baseIslandRepository;
+        this.islandRepository = islandRepository;
         IslandMetadataRepository baseMetadataRepository = config.jdbcRepositories() ? new JdbcIslandMetadataRepository(dataSource) : new InMemoryIslandMetadataRepository();
         IslandMetadataRepository metadataRepository = config.redisEvents() || config.redisJobs()
             ? new CachingIslandMetadataRepository(baseMetadataRepository, config.redisUri())
@@ -234,6 +239,7 @@ public final class CloudIslandsCoreApplication {
         PlayerProfileRepository playerProfiles = config.redisEvents() || config.redisJobs()
             ? new CachingPlayerProfileRepository(basePlayerProfiles, config.redisUri())
             : basePlayerProfiles;
+        this.playerProfiles = playerProfiles;
         IslandPermissionRuleRepository basePermissionRules = config.jdbcRepositories() ? new JdbcIslandPermissionRuleRepository(dataSource) : new InMemoryIslandPermissionRuleRepository();
         IslandPermissionRuleRepository permissionRules = config.redisEvents() || config.redisJobs()
             ? new CachingIslandPermissionRuleRepository(basePermissionRules, config.redisUri())
@@ -299,7 +305,7 @@ public final class CloudIslandsCoreApplication {
             : baseIslandLogs;
         java.util.function.IntFunction<String> auditJson = audit::toJson;
         RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets, islandRepository, metadataRepository, runtimeRepository, templateRepository, jobs, events, config.islandPool(), config.routeTicketTtl(), config.routePreparingTicketTtl(), activationLock);
-        CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, metadataRepository, playerProfiles, templateRepository, nodes, allocator, jobs, events, tickets, config.islandPool(), config.routePreparingTicketTtl(), playerCreationLock);
+        CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, metadataRepository, playerProfiles, templateRepository, nodes, allocator, runtimeRepository, jobs, events, tickets, config.islandPool(), config.routePreparingTicketTtl(), playerCreationLock);
         IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(runtimeRepository, islandRepository, templateRepository, nodes, allocator, jobs, events, config.islandPool(), config.migrationPolicy(), activationLock);
         MigrationAdminService migrationAdmin = new MigrationAdminService(
             islandRepository,
@@ -2318,7 +2324,7 @@ public final class CloudIslandsCoreApplication {
             var invite = metadataRepository.createInvite(islandId, inviterUuid, targetUuid);
             audit.log(inviterUuid, "PLAYER", "ISLAND_INVITE_CREATE", "ISLAND", islandId.toString(), Map.of("targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString()));
             islandLogs.append(islandId, inviterUuid, "ISLAND_INVITE_CREATE", Map.of("targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString()));
-            events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("islandId", islandId.toString(), "targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString(), "state", invite.state().name()));
+            events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("islandId", islandId.toString(), "targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString(), "state", invite.state()));
             write(exchange, 202, "{\"accepted\":true,\"inviteId\":\"" + invite.inviteId() + "\",\"islandId\":\"" + invite.islandId() + "\",\"inviterUuid\":\"" + invite.inviterUuid() + "\",\"targetUuid\":\"" + invite.targetUuid() + "\",\"state\":\"" + invite.state() + "\",\"createdAt\":\"" + invite.createdAt() + "\",\"expiresAt\":\"" + invite.expiresAt() + "\"}");
         });
         route("/v1/players/invites", exchange -> {
@@ -4400,9 +4406,6 @@ public final class CloudIslandsCoreApplication {
         String value = key == null ? "" : key.trim();
         if (value.isBlank()) {
             throw new IllegalArgumentException("Addon state table key is required");
-        }
-        if (value.contains("/")) {
-            throw new IllegalArgumentException("Addon state table key must not contain '/'");
         }
         return value;
     }

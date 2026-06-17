@@ -4,9 +4,14 @@ fun embeddedOutput(projectName: String) =
     (project(projectName).extensions.getByName("sourceSets") as org.gradle.api.tasks.SourceSetContainer)
         .named("main").get().output
 
+val embeddedProjects = listOf(":cloudislands-protocol")
+val jarDependencyProjects = embeddedProjects + listOf(":cloudislands-api")
+
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    compileOnly("com.github.MilkBowl:VaultAPI:1.7")
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7") {
+        exclude(group = "org.bukkit", module = "bukkit")
+    }
     compileOnly("me.clip:placeholderapi:2.11.6")
     implementation("org.xerial:sqlite-jdbc:3.46.1.0")
     implementation("org.postgresql:postgresql:42.7.4")
@@ -15,6 +20,15 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.1.0")
     implementation(project(":cloudislands-protocol"))
     compileOnly(project(":cloudislands-api"))
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")
+    testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    testImplementation("com.github.MilkBowl:VaultAPI:1.7") {
+        exclude(group = "org.bukkit", module = "bukkit")
+    }
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 tasks.processResources {
@@ -27,7 +41,10 @@ tasks.processResources {
 tasks.jar {
     archiveBaseName.set("CloudIslands-Satis")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from(embeddedOutput(":cloudislands-protocol"))
+    dependsOn(jarDependencyProjects.map { project(it).tasks.named("jar") })
+    embeddedProjects.forEach { embeddedProject ->
+        from(embeddedOutput(embeddedProject))
+    }
     manifest {
         attributes(
             "CloudIslands-Addon" to "cloudislands-satis",

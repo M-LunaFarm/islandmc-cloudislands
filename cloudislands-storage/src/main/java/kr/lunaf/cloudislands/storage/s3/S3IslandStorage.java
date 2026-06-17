@@ -307,9 +307,9 @@ public final class S3IslandStorage implements IslandStorage {
     private Instant snapshotTime(UUID islandId, String snapshot) {
         try {
             String manifest = request("GET", key(islandId, "snapshots/" + snapshot + "/manifest.json"), null);
-            String savedAt = IslandManifestJson.read(manifest).savedAt();
-            if (savedAt != null && !savedAt.isBlank()) {
-                return Instant.parse(savedAt);
+            Instant savedAt = IslandManifestJson.read(manifest).savedAt();
+            if (savedAt != null) {
+                return savedAt;
             }
         } catch (RuntimeException | IOException ignored) {
             // Fall back to the snapshot id below.

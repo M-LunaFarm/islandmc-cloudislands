@@ -2956,6 +2956,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         }
     }
 
+    private long number(String value, long fallback) {
+        return longValue(value, fallback);
+    }
+
     private UUID uuid(String value) {
         try {
             return UUID.fromString(value);
