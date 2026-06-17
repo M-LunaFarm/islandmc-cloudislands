@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper.generator;
 
 import java.util.Locale;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
@@ -19,8 +20,11 @@ public final class IslandGeneratorListener implements Listener {
     private final GeneratorLevelCache levels;
     private final BlockDeltaReporter blockDeltas;
     private final Random random = new Random();
+    private final AtomicLong formEvents = new AtomicLong();
+    private final AtomicLong fluidCollisionEvents = new AtomicLong();
     private final AtomicLong formReplacements = new AtomicLong();
     private final AtomicLong fluidReplacements = new AtomicLong();
+    private final AtomicLong islandMisses = new AtomicLong();
     private final AtomicLong materialResolveFailures = new AtomicLong();
 
     public IslandGeneratorListener(ProtectionController protection, GeneratorRegistry registry, GeneratorLevelCache levels, BlockDeltaReporter blockDeltas) {
@@ -36,16 +40,20 @@ public final class IslandGeneratorListener implements Listener {
         if (formed != Material.COBBLESTONE && formed != Material.STONE && formed != Material.BASALT) {
             return;
         }
+        formEvents.incrementAndGet();
         Block block = event.getBlock();
         Material previous = block.getType();
-        protection.islandAt(block).ifPresent(islandId -> {
-            Material material = generatedMaterial(levels.profile(islandId));
-            if (validGeneratedMaterial(material)) {
-                event.getNewState().setType(material);
-                formReplacements.incrementAndGet();
-                reportReplacement(islandId, previous, material);
-            }
-        });
+        UUID islandId = protection.islandAt(block).orElse(null);
+        if (islandId == null) {
+            islandMisses.incrementAndGet();
+            return;
+        }
+        Material material = generatedMaterial(levels.profile(islandId));
+        if (validGeneratedMaterial(material)) {
+            event.getNewState().setType(material);
+            formReplacements.incrementAndGet();
+            reportReplacement(islandId, previous, material);
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -58,16 +66,20 @@ public final class IslandGeneratorListener implements Listener {
         if (!touchesOppositeFluid(target, source)) {
             return;
         }
+        fluidCollisionEvents.incrementAndGet();
         Material previous = target.getType();
-        protection.islandAt(target).ifPresent(islandId -> {
-            Material material = generatedMaterial(levels.profile(islandId));
-            if (validGeneratedMaterial(material)) {
-                event.setCancelled(true);
-                target.setType(material);
-                fluidReplacements.incrementAndGet();
-                reportReplacement(islandId, previous, material);
-            }
-        });
+        UUID islandId = protection.islandAt(target).orElse(null);
+        if (islandId == null) {
+            islandMisses.incrementAndGet();
+            return;
+        }
+        Material material = generatedMaterial(levels.profile(islandId));
+        if (validGeneratedMaterial(material)) {
+            event.setCancelled(true);
+            target.setType(material);
+            fluidReplacements.incrementAndGet();
+            reportReplacement(islandId, previous, material);
+        }
     }
 
     private boolean validGeneratedMaterial(Material material) {
@@ -108,12 +120,28 @@ public final class IslandGeneratorListener implements Listener {
         return formReplacements.get();
     }
 
+    public long formEvents() {
+        return formEvents.get();
+    }
+
+    public long fluidCollisionEvents() {
+        return fluidCollisionEvents.get();
+    }
+
     public long fluidReplacements() {
         return fluidReplacements.get();
     }
 
+    public long islandMisses() {
+        return islandMisses.get();
+    }
+
     public long materialResolveFailures() {
         return materialResolveFailures.get();
+    }
+
+    public String eventPolicy() {
+        return "BlockFormEvent=cobblestone-stone-basalt,BlockFromToEvent=water-lava-fluid-collision";
     }
 
     public int generatorKeyCount() {

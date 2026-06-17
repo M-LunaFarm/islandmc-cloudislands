@@ -558,8 +558,11 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_paper_level_scan_last_started_at{node=\"" + nodeId + "\"} " + (scanner == null ? 0L : scanner.lastScanStartedAt()) + "\n"
             + "cloudislands_paper_level_scan_last_finished_at{node=\"" + nodeId + "\"} " + (scanner == null ? 0L : scanner.lastScanFinishedAt()) + "\n"
             + "cloudislands_paper_level_scan_last_failed_at{node=\"" + nodeId + "\"} " + (scanner == null ? 0L : scanner.lastScanFailedAt()) + "\n"
+            + "cloudislands_paper_generator_events_total{node=\"" + nodeId + "\",source=\"block_form\"} " + (generator == null ? 0L : generator.formEvents()) + "\n"
+            + "cloudislands_paper_generator_events_total{node=\"" + nodeId + "\",source=\"fluid_collision\"} " + (generator == null ? 0L : generator.fluidCollisionEvents()) + "\n"
             + "cloudislands_paper_generator_replacements_total{node=\"" + nodeId + "\",source=\"block_form\"} " + (generator == null ? 0L : generator.formReplacements()) + "\n"
             + "cloudislands_paper_generator_replacements_total{node=\"" + nodeId + "\",source=\"fluid_collision\"} " + (generator == null ? 0L : generator.fluidReplacements()) + "\n"
+            + "cloudislands_paper_generator_island_misses_total{node=\"" + nodeId + "\"} " + (generator == null ? 0L : generator.islandMisses()) + "\n"
             + "cloudislands_paper_generator_material_failures_total{node=\"" + nodeId + "\"} " + (generator == null ? 0L : generator.materialResolveFailures()) + "\n"
             + "cloudislands_paper_generator_keys{node=\"" + nodeId + "\"} " + (generator == null ? 0 : generator.generatorKeyCount()) + "\n"
             + "cloudislands_paper_generator_rule_levels{node=\"" + nodeId + "\"} " + (generator == null ? 0 : generator.ruleLevelCount()) + "\n"
@@ -752,6 +755,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";generatorKeys=" + (generatorListener == null ? 0 : generatorListener.generatorKeyCount())
             + ";generatorRuleLevels=" + (generatorListener == null ? 0 : generatorListener.ruleLevelCount())
             + ";generatorCacheTtlSeconds=" + (generatorListener == null ? 0L : generatorListener.cacheTtlSeconds())
+            + ";generatorEventPolicy=" + (generatorListener == null ? "not-registered" : generatorListener.eventPolicy())
+            + ";generatorFormEvents=" + (generatorListener == null ? 0L : generatorListener.formEvents())
+            + ";generatorFluidCollisionEvents=" + (generatorListener == null ? 0L : generatorListener.fluidCollisionEvents())
+            + ";generatorIslandMisses=" + (generatorListener == null ? 0L : generatorListener.islandMisses())
             + ";proxySourceRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.proxySourceRejections())
             + ";forwardingRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.forwardingRejections())
             + ";routeSessionRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.routeSessionRejections())
