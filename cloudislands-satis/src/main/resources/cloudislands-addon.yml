@@ -42,6 +42,7 @@ runtime:
     active-key: runtime-active-components
     skipped-key: runtime-skipped-components
     blocked-key: runtime-blocked-components
+    feature-block-key: runtime-feature-block-reasons
     policy-key: runtime-component-audit
     policy: disabled-features-unregister-commands-and-skip-listeners-tickers-placeholders-core-api-writers-and-dirty-save
 database:

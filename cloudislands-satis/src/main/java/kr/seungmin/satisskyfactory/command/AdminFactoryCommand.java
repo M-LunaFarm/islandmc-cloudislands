@@ -1388,6 +1388,7 @@ public final class AdminFactoryCommand {
                         "runtime-active-components",
                         "runtime-skipped-components",
                         "runtime-blocked-components",
+                        "runtime-feature-block-reasons",
                         "runtime-component-audit",
                         "runtime-disabled-component-policy",
                         "runtime-readonly-command-write-policy",

@@ -504,6 +504,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-active-components", activeRuntimeComponentsMetadata());
         state.put("runtime-skipped-components", skippedRuntimeComponentsMetadata());
         state.put("runtime-blocked-components", runtimeBlockedComponents());
+        state.put("runtime-feature-block-reasons", runtimeFeatureBlockReasons());
         state.put("runtime-component-audit", "commands,listeners,tickers,placeholders,direct-storage-writers,and-core-api-writers-are-config-gated");
         state.put("runtime-disabled-component-policy", "preserve-data-and-return-empty-tabs-or-unregister-listeners");
         state.put("runtime-readonly-command-write-policy", "status-and-machines-skip-node-generation-maintenance-charge-and-save");
@@ -594,6 +595,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private String runtimeBlockedComponents() {
         return runtimeComponentPlan().blockedComponentsMetadata();
+    }
+
+    private String runtimeFeatureBlockReasons() {
+        return runtimeComponentPlan().featureBlockReasonsMetadata();
     }
 
     private String activeRuntimeComponentsMetadata() {

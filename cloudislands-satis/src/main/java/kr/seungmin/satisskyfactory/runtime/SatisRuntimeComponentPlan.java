@@ -143,6 +143,42 @@ public record SatisRuntimeComponentPlan(
         return blocked.isEmpty() ? "none" : String.join(",", blocked);
     }
 
+    public String featureBlockReasonsMetadata() {
+        if (!addonRuntimeEnabled) {
+            return "all:addon-disabled";
+        }
+        List<String> reasons = new ArrayList<>();
+        if (!commandsEnabled) {
+            reasons.add("commands:commands-feature-disabled");
+        }
+        if (!machinesEnabled) {
+            reasons.add("machines:machines-feature-disabled");
+        }
+        if (!guiEnabled) {
+            reasons.add("gui:gui-feature-disabled");
+        }
+        if (!lifecycleListenerNeeded) {
+            reasons.add("lifecycle:lifecycle-feature-or-state-disabled");
+        }
+        if (!maintenanceEnabled) {
+            reasons.add("maintenance:maintenance-feature-disabled");
+        }
+        if (!placeholdersEnabled) {
+            reasons.add("placeholders:placeholders-feature-disabled");
+        } else if (!placeholderApiInstalled) {
+            reasons.add("placeholders:placeholderapi-not-installed");
+        }
+        if (!dataWritesEnabled) {
+            reasons.add("writes:data-write-authority-or-write-feature-disabled");
+        }
+        if (!addonStateEnabled) {
+            reasons.add("addon-state:addon-state-feature-disabled");
+        } else if (!coreApiAvailable) {
+            reasons.add("addon-state:cloudislands-api-unavailable");
+        }
+        return reasons.isEmpty() ? "none" : String.join(",", reasons);
+    }
+
     private String placeholderBlockReason() {
         if (placeholderRegistered) {
             return "none";

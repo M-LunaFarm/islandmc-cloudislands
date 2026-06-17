@@ -87,7 +87,7 @@ tasks.jar {
             "CloudIslands-Addon-Feature-Dependencies" to "resource-nodes:machines,market:storage,contracts:storage,missions:contracts+storage,upgrades:research,menus:gui,route-events:addon-state,members:lifecycle,permissions:lifecycle,level-values:lifecycle,warps:lifecycle,biomes:lifecycle,chat:lifecycle,templates:lifecycle",
             "CloudIslands-Addon-Compound-Dependency-Separator" to "+",
             "CloudIslands-Addon-Feature-Disable-Policy" to "disabled-features-preserve-data-and-skip-runtime-components",
-            "CloudIslands-Addon-Component-Audit-Keys" to "runtime-active-components,runtime-skipped-components,runtime-blocked-components,runtime-component-audit",
+            "CloudIslands-Addon-Component-Audit-Keys" to "runtime-active-components,runtime-skipped-components,runtime-blocked-components,runtime-feature-block-reasons,runtime-component-audit",
             "CloudIslands-Satis-Command-List-Format" to "one-line-per-command",
             "CloudIslands-Satis-Command-List-Paging" to "factory command list [page],factory admin command list [page]",
             "CloudIslands-Satis-Command-List-Page-Size" to "12",
