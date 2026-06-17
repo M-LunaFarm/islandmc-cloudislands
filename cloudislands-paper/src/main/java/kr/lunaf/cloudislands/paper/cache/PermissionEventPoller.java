@@ -684,6 +684,7 @@ public final class PermissionEventPoller {
         }
         target.sendMessage("섬에서 추방되어 로비로 이동합니다.");
         if (!canUseBungeeConnect()) {
+            target.kickPlayer("섬에서 추방되었습니다.");
             return;
         }
         try {
@@ -694,6 +695,7 @@ public final class PermissionEventPoller {
             target.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
         } catch (IOException | RuntimeException exception) {
             plugin.getLogger().warning("Failed to move kicked visitor to fallback: " + exception.getMessage());
+            target.kickPlayer("섬에서 추방되었습니다.");
         }
     }
 
