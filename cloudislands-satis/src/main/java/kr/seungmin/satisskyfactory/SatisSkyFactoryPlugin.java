@@ -570,7 +570,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private void putLifecycleCoverageState(Map<String, String> state) {
         state.put("lifecycle-event-source", "CloudIslandsAddon.onCloudEvent");
-        state.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,delete-backup-failed,restore,reset,recovery,repair,runtime,pre-visit,visit,member-join,member-left,member-role,member,role,ownership,flag,permission-check,permission,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot");
+        state.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,delete-backup-failed,restore,reset,recovery,repair,runtime,pre-visit,visit,member-join,member-left,member-role,member,role,ownership,flag,permission-check,permission,chat,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot,template");
         state.put("lifecycle-event-actions", "migration-request=preflush,activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete=purge,delete-backup-failed=flush-and-mark-failed,reset=purge,recovery=suspend,member-role-ownership-permission-bank-biome-home-warp-level-worth=synchronize");
         state.put("lifecycle-event-storage-policy", "cloudislands-island-uuid-stable-state-remap-active-world");
     }
@@ -1587,7 +1587,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("core-api-hydrate-status-keys", "last-core-hydrate-island,last-core-hydrate-status,last-core-hydrate-key,last-core-hydrate-at,core-hydrated-activation-count");
         metadata.put("core-api-bulk-fallback-visibility", "addon-state-records-success-fallback-and-failed-bulk-publish-status");
         metadata.put("lifecycle-event-source", "CloudIslandsAddon.onCloudEvent");
-        metadata.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,delete-backup-failed,restore,reset,recovery,repair,runtime,pre-visit,visit,member-join,member-left,member-role,member,role,ownership,flag,permission-check,permission,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot");
+        metadata.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,delete-backup-failed,restore,reset,recovery,repair,runtime,pre-visit,visit,member-join,member-left,member-role,member,role,ownership,flag,permission-check,permission,chat,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot,template");
         metadata.put("lifecycle-event-actions", "pre-create=diagnostic,migration-request=preflush,activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete=purge,delete-backup-failed=flush-and-mark-failed,reset=purge,recovery=suspend,member-role-ownership-permission-bank-biome-home-warp-level-worth=synchronize,permission-check-and-pre-visit=diagnostic");
         metadata.put("lifecycle-event-storage-policy", "cloudislands-island-uuid-stable-state-remap-active-world");
         metadata.put("lifecycle-placement-source-policy", "record-core-payload-or-paper-allocator-on-activate-and-migrate");
@@ -1980,7 +1980,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("core-api-hydrate-status-keys", "last-core-hydrate-island,last-core-hydrate-status,last-core-hydrate-key,last-core-hydrate-at,core-hydrated-activation-count");
         state.put("core-hydrated-activation-count", Integer.toString(coreHydratedIslandActivations.size()));
         state.put("lifecycle-event-source", "CloudIslandsAddon.onCloudEvent");
-        state.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,delete-backup-failed,restore,reset,recovery,repair,runtime,pre-visit,visit,member-join,member-left,member-role,member,role,ownership,flag,permission-check,permission,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot");
+        state.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,delete-backup-failed,restore,reset,recovery,repair,runtime,pre-visit,visit,member-join,member-left,member-role,member,role,ownership,flag,permission-check,permission,chat,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot,template");
         state.put("lifecycle-event-actions", "pre-create=diagnostic,migration-request=preflush,activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete=purge,delete-backup-failed=flush-and-mark-failed,reset=purge,recovery=suspend,member-role-ownership-permission-bank-biome-home-warp-level-worth=synchronize,permission-check-and-pre-visit=diagnostic");
         state.put("lifecycle-event-storage-policy", "cloudislands-island-uuid-stable-state-remap-active-world");
         state.put("lifecycle-placement-source-policy", "record-core-payload-or-paper-allocator-on-activate-and-migrate");
