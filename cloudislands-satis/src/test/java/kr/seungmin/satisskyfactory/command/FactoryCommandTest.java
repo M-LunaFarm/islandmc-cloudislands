@@ -9,10 +9,36 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Predicate;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FactoryCommandTest {
+    @Test
+    void listsPlayerCommandsAsOneLineEntriesWhenFeatureIsEnabled() throws Exception {
+        FactoryCommand command = command(feature -> true);
+
+        List<String> commands = visibleHelpCommands(command, "ci", null);
+
+        assertTrue(commands.stream().allMatch(commandLine -> commandLine.startsWith("ci ")));
+        assertTrue(commands.stream().allMatch(commandLine -> !commandLine.contains("\n") && !commandLine.contains("\r")));
+        assertEquals(commands.size(), commands.stream().distinct().count());
+        assertTrue(commands.contains("ci help [page]"));
+        assertTrue(commands.contains("ci command list [page]"));
+        assertTrue(commands.contains("ci status"));
+        assertTrue(commands.contains("ci withdraw <itemId> <amount>"));
+        assertTrue(commands.contains("ci research unlock <researchId>"));
+    }
+
+    @Test
+    void exposesPagedPlayerCommandSuggestions() throws Exception {
+        List<String> suggestions = helpPageSuggestions(command(feature -> true), null);
+
+        assertTrue(suggestions.size() > 1);
+        assertEquals("1", suggestions.get(0));
+        assertEquals(String.valueOf(suggestions.size()), suggestions.get(suggestions.size() - 1));
+    }
+
     @Test
     void hidesOnlyGuiEntrypointsWhenGuiFeatureIsDisabled() throws Exception {
         FactoryCommand command = command(feature -> !"gui".equals(feature));
@@ -83,6 +109,13 @@ class FactoryCommandTest {
         Method method = FactoryCommand.class.getDeclaredMethod("visibleHelpCommands", String.class, CommandSender.class);
         method.setAccessible(true);
         return (List<String>) method.invoke(command, label, viewer);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> helpPageSuggestions(FactoryCommand command, CommandSender sender) throws Exception {
+        Method method = FactoryCommand.class.getDeclaredMethod("helpPageSuggestions", CommandSender.class);
+        method.setAccessible(true);
+        return (List<String>) method.invoke(command, sender);
     }
 
     private FactoryCommand command(Predicate<String> featureEnabled) {
