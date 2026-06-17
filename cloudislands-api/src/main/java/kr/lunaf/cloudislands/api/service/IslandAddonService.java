@@ -261,10 +261,7 @@ public interface IslandAddonService {
         if (request.islandScoped()) {
             return tableKeyValueBulkSaveIslandState(request);
         }
-        if (request.tableScoped()) {
-            return tableKeyValueBulkSaveState(request.addonId(), Map.of(), request.tablesWithScopedTable());
-        }
-        return tableKeyValueBulkSaveState(request.addonId(), request.values(), request.tables());
+        return putState(request.addonId(), request.flattenedStateValues());
     }
 
     default CompletableFuture<Map<String, String>> bulkSaveTableKeyValueState(String id, Map<String, String> values, Map<String, Map<String, String>> tables) {
@@ -412,10 +409,7 @@ public interface IslandAddonService {
         if (request == null || !request.islandScoped()) {
             return CompletableFuture.completedFuture(Map.of());
         }
-        if (request.tableScoped()) {
-            return tableKeyValueBulkSaveIslandState(request.addonId(), request.islandId(), Map.of(), request.tablesWithScopedTable());
-        }
-        return tableKeyValueBulkSaveIslandState(request.addonId(), request.islandId(), request.values(), request.tables());
+        return putIslandState(request.addonId(), request.islandId(), request.flattenedStateValues());
     }
 
     default CompletableFuture<Map<String, String>> bulkSaveIslandTableKeyValueState(String id, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {

@@ -89,6 +89,16 @@ public record AddonStateBulkSaveRequest(
         return Map.copyOf(copy);
     }
 
+    public Map<String, String> flattenedStateValues() {
+        LinkedHashMap<String, String> state = new LinkedHashMap<>();
+        if (!tableScoped()) {
+            state.putAll(values);
+        }
+        tablesWithScopedTable().forEach((tableName, tableValues) ->
+            tableValues.forEach((key, value) -> state.put(tableStateKey(tableName, key), value)));
+        return Map.copyOf(state);
+    }
+
     private static Map<String, String> copyValues(Map<String, String> source) {
         if (source == null || source.isEmpty()) {
             return Map.of();
@@ -158,6 +168,10 @@ public record AddonStateBulkSaveRequest(
             return "";
         }
         return value;
+    }
+
+    private static String tableStateKey(String table, String key) {
+        return TABLE_STATE_KEY_PREFIX + table + "/" + key;
     }
 
     private static int tableKeyLength(String table, String key) {

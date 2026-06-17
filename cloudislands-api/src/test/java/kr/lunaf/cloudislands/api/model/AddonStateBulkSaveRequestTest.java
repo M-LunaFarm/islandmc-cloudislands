@@ -16,6 +16,8 @@ class AddonStateBulkSaveRequestTest {
 
         assertEquals(Map.of("island/0001/machine/0002", "{\"status\":\"active\"}"),
                 request.tables().get("machines"));
+        assertEquals(Map.of("table/machines/island/0001/machine/0002", "{\"status\":\"active\"}"),
+                request.flattenedStateValues());
         assertEquals(1, request.tableKeyCount());
         assertEquals(1, request.tableCount());
     }
@@ -32,6 +34,8 @@ class AddonStateBulkSaveRequestTest {
         assertEquals(Map.of("node/ore/0/0", "{\"remaining\":12000}"), request.values());
         assertEquals(Map.of("node/ore/0/0", "{\"remaining\":12000}"),
                 request.tablesWithScopedTable().get("resource_nodes"));
+        assertEquals(Map.of("table/resource_nodes/node/ore/0/0", "{\"remaining\":12000}"),
+                request.flattenedStateValues());
         assertEquals(1, request.tableKeyCount());
     }
 

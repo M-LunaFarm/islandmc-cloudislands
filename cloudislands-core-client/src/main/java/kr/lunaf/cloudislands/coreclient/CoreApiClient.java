@@ -222,10 +222,7 @@ public interface CoreApiClient {
         if (request.islandScoped()) {
             return tableKeyValueBulkSaveAddonIslandState(request);
         }
-        if (request.tableScoped()) {
-            return tableKeyValueBulkSaveAddonState(request.addonId(), Map.of(), request.tablesWithScopedTable());
-        }
-        return tableKeyValueBulkSaveAddonState(request.addonId(), request.values(), request.tables());
+        return putAddonState(request.addonId(), request.flattenedStateValues());
     }
     default CompletableFuture<String> bulkSaveAddonTableKeyValueState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         return tableKeyValueBulkSaveAddonState(addonId, values, tables);
@@ -297,10 +294,7 @@ public interface CoreApiClient {
         if (!request.islandScoped()) {
             return tableKeyValueBulkSaveAddonState(request);
         }
-        if (request.tableScoped()) {
-            return tableKeyValueBulkSaveAddonIslandState(request.addonId(), request.islandId(), Map.of(), request.tablesWithScopedTable());
-        }
-        return tableKeyValueBulkSaveAddonIslandState(request.addonId(), request.islandId(), request.values(), request.tables());
+        return putAddonIslandState(request.addonId(), request.islandId(), request.flattenedStateValues());
     }
     default CompletableFuture<String> bulkSaveAddonIslandTableKeyValueState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         return tableKeyValueBulkSaveAddonIslandState(addonId, islandId, values, tables);
