@@ -74,6 +74,27 @@ class JobCompletionServiceTest {
     }
 
     @Test
+    void fencedCompletionWithoutRuntimeIsIgnored() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        InMemoryIslandSnapshotRepository snapshots = new InMemoryIslandSnapshotRepository();
+        JobCompletionService service = service(runtimes, events, snapshots);
+
+        service.completed(job(IslandJobType.SAVE_ISLAND, "island-1", Map.of(
+            "fencingToken", "5",
+            "snapshotNo", "12",
+            "storagePath", "islands/" + ISLAND + "/snapshots/000012/bundle.tar.zst",
+            "checksum", "missing-runtime",
+            "sizeBytes", "4096"
+        )));
+
+        assertTrue(runtimes.find(ISLAND).isEmpty());
+        assertTrue(snapshots.list(ISLAND, 10).isEmpty());
+        assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name()));
+        assertTrue(events.toJson().contains("RUNTIME_MISSING"));
+    }
+
+    @Test
     void restoreCompletionRecordsPreRestoreSnapshotAndReleasesRestoreLock() {
         InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
         InMemoryIslandRepository islands = new InMemoryIslandRepository();

@@ -498,8 +498,11 @@ public final class JobCompletionService {
     }
 
     private String staleCompletionReason(IslandJob job, kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot current, long fencingToken) {
-        if (current == null || fencingToken <= 0L) {
+        if (fencingToken <= 0L) {
             return "";
+        }
+        if (current == null) {
+            return "RUNTIME_MISSING";
         }
         if (current.fencingToken() > fencingToken) {
             return "STALE_FENCING_TOKEN";
