@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
@@ -24,6 +25,14 @@ public final class RouteTicketConsumer {
     private final CoreApiClient coreApiClient;
     private final String nodeId;
     private final java.util.Map<UUID, BossBar> loadingBars = new ConcurrentHashMap<>();
+    private final AtomicLong consumeRetries = new AtomicLong();
+    private final AtomicLong consumeFailures = new AtomicLong();
+    private final AtomicLong worldWaitRetries = new AtomicLong();
+    private final AtomicLong teleportAttempts = new AtomicLong();
+    private final AtomicLong teleportSuccesses = new AtomicLong();
+    private final AtomicLong teleportFailures = new AtomicLong();
+    private volatile String lastFailureReason = "";
+    private volatile String lastTargetType = "";
     private volatile ActiveIslandRegistry activeIslands;
     private volatile MessageRenderer messages;
 
@@ -51,6 +60,7 @@ public final class RouteTicketConsumer {
 
     private void consumeAndTeleport(UUID ticketId, UUID playerUuid, String nonce, int attempt) {
         if (Bukkit.getPlayer(playerUuid) == null) {
+            recordFailure("PLAYER_DISCONNECTED");
             clearRoute(playerUuid, ticketId, "PLAYER_DISCONNECTED");
             return;
         }
@@ -63,14 +73,18 @@ public final class RouteTicketConsumer {
                 return;
             }
             if (attempt < 20) {
+                consumeRetries.incrementAndGet();
                 Bukkit.getScheduler().runTaskLater(plugin, () -> consumeAndTeleport(ticketId, playerUuid, nonce, attempt + 1), 20L);
             } else {
+                recordConsumeFailure("TICKET_NOT_READY");
                 Bukkit.getScheduler().runTask(plugin, () -> notifyRouteFailed(playerUuid));
             }
         }).exceptionally(error -> {
             if (attempt < 20) {
+                consumeRetries.incrementAndGet();
                 Bukkit.getScheduler().runTaskLater(plugin, () -> consumeAndTeleport(ticketId, playerUuid, nonce, attempt + 1), 20L);
             } else {
+                recordConsumeFailure("CONSUME_EXCEPTION");
                 Bukkit.getScheduler().runTask(plugin, () -> notifyRouteFailed(playerUuid));
             }
             return null;
@@ -82,6 +96,7 @@ public final class RouteTicketConsumer {
         String worldName = ticket.targetWorld();
         World world = worldName == null ? null : Bukkit.getWorld(worldName);
         if (player == null) {
+            recordFailure("PLAYER_DISCONNECTED");
             clearRoute(playerUuid, ticket.ticketId(), "PLAYER_DISCONNECTED");
             return;
         }
@@ -90,8 +105,10 @@ public final class RouteTicketConsumer {
                 notifyPreparing(playerUuid, attempt);
             }
             if (attempt < 20) {
+                worldWaitRetries.incrementAndGet();
                 Bukkit.getScheduler().runTaskLater(plugin, () -> teleport(playerUuid, ticket, attempt + 1), 20L);
             } else {
+                recordTeleportFailure("WORLD_NOT_READY");
                 notifyRouteFailed(playerUuid);
             }
             return;
@@ -102,13 +119,17 @@ public final class RouteTicketConsumer {
             IslandPreVisitEvent preVisit = new IslandPreVisitEvent(ticket.islandId(), playerUuid, player, worldName, placementSource);
             Bukkit.getPluginManager().callEvent(preVisit);
             if (preVisit.isCancelled()) {
+                recordTeleportFailure("VISIT_CANCELLED");
                 hideLoading(player);
                 player.sendActionBar(Component.text(playerMessage("route-visit-cancelled", "섬 방문이 취소되었습니다.")));
                 return;
             }
         }
         Location target = targetLocation(world, ticket, payload);
+        teleportAttempts.incrementAndGet();
+        lastTargetType = payload.getOrDefault("targetType", ticket.action().name());
         if (player.teleport(target)) {
+            teleportSuccesses.incrementAndGet();
             hideLoading(player);
             player.sendActionBar(Component.text(arrivalMessage(ticket.action())));
             Bukkit.getPluginManager().callEvent(new RouteTicketConsumedEvent(
@@ -123,6 +144,7 @@ public final class RouteTicketConsumer {
                 Bukkit.getPluginManager().callEvent(new IslandVisitEvent(ticket.islandId(), playerUuid, player, worldName, placementSource));
             }
         } else {
+            recordTeleportFailure("BUKKIT_TELEPORT_REJECTED");
             notifyRouteFailed(playerUuid);
         }
     }
@@ -143,6 +165,8 @@ public final class RouteTicketConsumer {
         fields.put("targetWorld", ticket.targetWorld() == null ? "" : ticket.targetWorld());
         fields.put("targetNode", ticket.targetNode() == null ? "" : ticket.targetNode());
         fields.put("targetType", payload.getOrDefault("targetType", ticket.action().name()));
+        fields.put("targetResolution", targetResolution(ticket));
+        fields.put("teleportDestinationPolicy", "active-island-origin-plus-ticket-local-offset");
         fields.put("homeName", payload.getOrDefault("homeName", ""));
         fields.put("warpName", payload.getOrDefault("warpName", ""));
         fields.put("localX", Double.toString(decimal(payload, "localX", defaultLocalX(ticket.action()))));
@@ -154,6 +178,57 @@ public final class RouteTicketConsumer {
         fields.put("yaw", Float.toString(target.getYaw()));
         fields.put("pitch", Float.toString(target.getPitch()));
         return fields;
+    }
+
+    private String targetResolution(RouteTicket ticket) {
+        ActiveIslandRegistry registry = activeIslands;
+        return registry != null && registry.find(ticket.islandId()).isPresent() ? "active-island-origin" : "ticket-local-absolute-fallback";
+    }
+
+    private void recordConsumeFailure(String reason) {
+        consumeFailures.incrementAndGet();
+        recordFailure(reason);
+    }
+
+    private void recordTeleportFailure(String reason) {
+        teleportFailures.incrementAndGet();
+        recordFailure(reason);
+    }
+
+    private void recordFailure(String reason) {
+        lastFailureReason = reason == null ? "" : reason;
+    }
+
+    public long consumeRetries() {
+        return consumeRetries.get();
+    }
+
+    public long consumeFailures() {
+        return consumeFailures.get();
+    }
+
+    public long worldWaitRetries() {
+        return worldWaitRetries.get();
+    }
+
+    public long teleportAttempts() {
+        return teleportAttempts.get();
+    }
+
+    public long teleportSuccesses() {
+        return teleportSuccesses.get();
+    }
+
+    public long teleportFailures() {
+        return teleportFailures.get();
+    }
+
+    public String lastFailureReason() {
+        return lastFailureReason;
+    }
+
+    public String lastTargetType() {
+        return lastTargetType;
     }
 
     private double defaultLocalX(RouteAction action) {

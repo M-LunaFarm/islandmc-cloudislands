@@ -362,6 +362,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean islandSaveTasksEnabled = islandNodeRole && (periodicSaveTask != null || emptyIslandSaveTask != null);
         boolean guiMenusEnabled = guiEnabledForRole(role);
         PaperRouteSessionListener routeSessions = routeSessionListener;
+        RouteTicketConsumer routeTickets = agent == null ? null : agent.routeTickets();
         PermissionEventPoller events = permissionEventPoller;
         PeriodicIslandSaveTask saver = periodicSaveTask;
         EmptyIslandSaveTask emptySaver = emptyIslandSaveTask;
@@ -452,6 +453,15 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"forwardingRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.forwardingRejections()) + ","
             + "\"routeSessionRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.routeSessionRejections()) + ","
             + "\"routeSessionCheckFailuresTotal\":" + (routeSessions == null ? 0L : routeSessions.routeSessionCheckFailures()) + ","
+            + "\"routeTicketConsumeRetriesTotal\":" + (routeTickets == null ? 0L : routeTickets.consumeRetries()) + ","
+            + "\"routeTicketConsumeFailuresTotal\":" + (routeTickets == null ? 0L : routeTickets.consumeFailures()) + ","
+            + "\"routeTicketWorldWaitRetriesTotal\":" + (routeTickets == null ? 0L : routeTickets.worldWaitRetries()) + ","
+            + "\"routeTicketTeleportAttemptsTotal\":" + (routeTickets == null ? 0L : routeTickets.teleportAttempts()) + ","
+            + "\"routeTicketTeleportSuccessesTotal\":" + (routeTickets == null ? 0L : routeTickets.teleportSuccesses()) + ","
+            + "\"routeTicketTeleportFailuresTotal\":" + (routeTickets == null ? 0L : routeTickets.teleportFailures()) + ","
+            + "\"routeTicketLastFailureReason\":\"" + jsonText(routeTickets == null ? "" : routeTickets.lastFailureReason()) + "\","
+            + "\"routeTicketLastTargetType\":\"" + jsonText(routeTickets == null ? "" : routeTickets.lastTargetType()) + "\","
+            + "\"routeTicketTeleportPolicy\":\"consume-ready-ticket-then-teleport-active-island-origin-plus-local-offset\","
             + "\"chatBroadcastsTotal\":" + (events == null ? 0L : events.chatBroadcasts()) + ","
             + "\"chatDeliveriesTotal\":" + (events == null ? 0L : events.chatDeliveries()) + ","
             + "\"chatNoRecipientBroadcastsTotal\":" + (events == null ? 0L : events.chatNoRecipientBroadcasts()) + ","
@@ -507,6 +517,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         int storageSaveRetryQueueTotal = (saver == null ? 0 : saver.retryQueueSize()) + (emptySaver == null ? 0 : emptySaver.retryQueueSize());
         IslandGeneratorListener generator = generatorListener;
         PaperRouteSessionListener routeSessions = routeSessionListener;
+        RouteTicketConsumer routeTickets = agent.routeTickets();
         PermissionEventPoller events = permissionEventPoller;
         ProtectionController protection = agent.protection();
         IslandBoundaryListener boundary = boundaryListener;
@@ -582,6 +593,12 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_paper_forwarding_rejections_total{node=\"" + nodeId + "\"} " + (routeSessions == null ? 0L : routeSessions.forwardingRejections()) + "\n"
             + "cloudislands_paper_route_session_rejections_total{node=\"" + nodeId + "\"} " + (routeSessions == null ? 0L : routeSessions.routeSessionRejections()) + "\n"
             + "cloudislands_paper_route_session_check_failures_total{node=\"" + nodeId + "\"} " + (routeSessions == null ? 0L : routeSessions.routeSessionCheckFailures()) + "\n"
+            + "cloudislands_paper_route_ticket_consume_retries_total{node=\"" + nodeId + "\"} " + routeTickets.consumeRetries() + "\n"
+            + "cloudislands_paper_route_ticket_consume_failures_total{node=\"" + nodeId + "\"} " + routeTickets.consumeFailures() + "\n"
+            + "cloudislands_paper_route_ticket_world_wait_retries_total{node=\"" + nodeId + "\"} " + routeTickets.worldWaitRetries() + "\n"
+            + "cloudislands_paper_route_ticket_teleport_attempts_total{node=\"" + nodeId + "\"} " + routeTickets.teleportAttempts() + "\n"
+            + "cloudislands_paper_route_ticket_teleport_successes_total{node=\"" + nodeId + "\"} " + routeTickets.teleportSuccesses() + "\n"
+            + "cloudislands_paper_route_ticket_teleport_failures_total{node=\"" + nodeId + "\"} " + routeTickets.teleportFailures() + "\n"
             + "cloudislands_paper_chat_broadcasts_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.chatBroadcasts()) + "\n"
             + "cloudislands_paper_chat_deliveries_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.chatDeliveries()) + "\n"
             + "cloudislands_paper_chat_no_recipient_broadcasts_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.chatNoRecipientBroadcasts()) + "\n"
