@@ -248,14 +248,7 @@ public final class PaperRouteSessionListener implements Listener {
 
     private String sanitizePlayerMessage(String message) {
         String value = message == null || message.isBlank() ? "섬 입장 요청을 처리하지 못했습니다." : message;
-        return value
-            .replaceAll("(?i)\\btargetNode\\s*[=:]\\s*[^\\s,|]+", "targetNode=숨김")
-            .replaceAll("(?i)\\brequestedNode\\s*[=:]\\s*[^\\s,|]+", "requestedNode=숨김")
-            .replaceAll("(?i)\\btargetServerName\\s*[=:]\\s*[^\\s,|]+", "targetServerName=숨김")
-            .replaceAll("(?i)\\bserver\\s*[=:]\\s*[^\\s,|]+", "server=숨김")
-            .replaceAll("(?i)\\bnode\\s*[=:]\\s*[^\\s,|]+", "node=숨김")
-            .replaceAll("(?i)\\b[A-Za-z0-9_.-]*island[-_ ]?\\d+[A-Za-z0-9_.-]*\\b", "섬 서버")
-            .replaceAll("(?i)\\b[A-Za-z0-9_.-]*node[-_ ]?\\d+[A-Za-z0-9_.-]*\\b", "섬 서버");
+        return kr.lunaf.cloudislands.protocol.route.PlayerRouteMessagePolicy.sanitize(value);
     }
 
     public long proxySourceRejections() {

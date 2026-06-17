@@ -488,9 +488,9 @@ public final class RoutingOrchestrator {
             return reason.substring("NO_READY_NODE_".length());
         }
         if (reason.startsWith("ACTIVE_NODE_")) {
-            return reason.substring("ACTIVE_NODE_".length());
+            return kr.lunaf.cloudislands.protocol.route.PlayerRouteMessagePolicy.sanitize(reason.substring("ACTIVE_NODE_".length()));
         }
-        return reason;
+        return kr.lunaf.cloudislands.protocol.route.PlayerRouteMessagePolicy.sanitize(reason);
     }
 
     private void publishTicketFailure(UUID playerUuid, UUID islandId, RouteAction action, String reason) {
