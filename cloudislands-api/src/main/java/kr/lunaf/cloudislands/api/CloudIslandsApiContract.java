@@ -74,7 +74,14 @@ public final class CloudIslandsApiContract {
             return "version-mismatch";
         }
         List<String> missing = missingMetadataKeys(metadata);
-        return missing.isEmpty() ? "compatible" : "missing-required-keys:" + String.join(",", missing);
+        if (!missing.isEmpty()) {
+            return "missing-required-keys:" + String.join(",", missing);
+        }
+        String requiredKeys = metadata.get("required-metadata-keys");
+        if (!requiredMetadataKeysCsv().equals(requiredKeys)) {
+            return "required-keys-mismatch";
+        }
+        return "compatible";
     }
 
     public static Map<String, String> metadata() {
