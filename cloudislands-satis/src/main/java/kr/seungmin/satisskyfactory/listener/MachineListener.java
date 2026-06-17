@@ -91,7 +91,7 @@ public final class MachineListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent event) {
-        if (!active.getAsBoolean()) {
+        if (!activeEnabled()) {
             return;
         }
         Player player = event.getPlayer();
@@ -107,7 +107,7 @@ public final class MachineListener implements Listener {
 
     private boolean installMachine(Player player, String typeId, Block targetBlock, BlockFace direction,
                                    boolean consumeItem, EquipmentSlot hand, boolean replacePlacedBlock) {
-        if (!active.getAsBoolean()) {
+        if (!activeEnabled()) {
             return false;
         }
         MachineDefinition definition = definitions.get(typeId).orElse(null);
@@ -138,15 +138,15 @@ public final class MachineListener implements Listener {
         }
         FactoryIsland island = islands.getOrCreate(islandRef);
         if (definition.tier() > island.tier()
-                || (researchEnabled.getAsBoolean() && !research.unlocked(island).containsAll(definition.requiredUnlocks()))) {
+                || (researchEnabled() && !research.unlocked(island).containsAll(definition.requiredUnlocks()))) {
             messages.send(player, "place-denied");
             return false;
         }
-        if (maintenanceEnabled.getAsBoolean() && island.maintenanceStatus() == MaintenanceStatus.LIMITED && limitedBlocksNewMachines()) {
+        if (maintenanceEnabled() && island.maintenanceStatus() == MaintenanceStatus.LIMITED && limitedBlocksNewMachines()) {
             messages.send(player, "place-denied");
             return false;
         }
-        if (maintenanceEnabled.getAsBoolean() && island.maintenanceStatus() == MaintenanceStatus.LOCKED
+        if (maintenanceEnabled() && island.maintenanceStatus() == MaintenanceStatus.LOCKED
                 && (!lockedAllowsRecoveryMachines() || !recoveryTypes().contains(typeId))) {
             messages.send(player, "place-denied");
             return false;
@@ -197,7 +197,7 @@ public final class MachineListener implements Listener {
     }
 
     private void linkResourceNode(MachineInstance machine, MachineDefinition definition) {
-        if (definition.nodeType() == null || !resourceNodesEnabled.getAsBoolean()) {
+        if (definition.nodeType() == null || !resourceNodesEnabled()) {
             return;
         }
         nodes.nearest(machine.islandUuid(), machine.location(), nodeLinkRadius(), definition.nodeType())
@@ -232,9 +232,37 @@ public final class MachineListener implements Listener {
         return maintenanceConfig.getBoolean("maintenance.locked.allow-basic-recovery-machines", true);
     }
 
+    private boolean activeEnabled() {
+        return enabled(active);
+    }
+
+    private boolean resourceNodesEnabled() {
+        return enabled(resourceNodesEnabled);
+    }
+
+    private boolean maintenanceEnabled() {
+        return enabled(maintenanceEnabled);
+    }
+
+    private boolean researchEnabled() {
+        return enabled(researchEnabled);
+    }
+
+    private boolean guiEnabled() {
+        return enabled(guiEnabled);
+    }
+
+    private boolean enabled(BooleanSupplier supplier) {
+        try {
+            return supplier != null && supplier.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBreak(BlockBreakEvent event) {
-        if (!active.getAsBoolean()) {
+        if (!activeEnabled()) {
             return;
         }
         machines.at(event.getBlock().getLocation()).ifPresent(machine -> {
@@ -265,7 +293,7 @@ public final class MachineListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent event) {
-        if (!active.getAsBoolean()) {
+        if (!activeEnabled()) {
             return;
         }
         if (event.getClickedBlock() == null || event.getHand() != EquipmentSlot.HAND) {
@@ -290,7 +318,7 @@ public final class MachineListener implements Listener {
                 return;
             }
             event.setCancelled(true);
-            if (!guiEnabled.getAsBoolean()) {
+            if (!guiEnabled()) {
                 messages.send(player, "feature-disabled", Map.of("feature", "gui"));
                 return;
             }

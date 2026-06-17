@@ -56,22 +56,22 @@ public final class FactoryLifecycleListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        if (!active.getAsBoolean() || !lifecycleDataWritesEnabled()) {
+        if (!activeEnabled() || !lifecycleDataWritesEnabled()) {
             return;
         }
         skyblock.getIslandOf(event.getPlayer()).ifPresent(islandRef -> {
             FactoryIsland island = islands.getOrCreate(islandRef);
             island.lastTickAt(System.currentTimeMillis());
             Location origin = skyblock.getIslandCenter(islandRef).orElse(event.getPlayer().getLocation());
-            if (resourceNodesEnabled.getAsBoolean()) {
+            if (resourceNodesEnabled()) {
                 nodes.generateIfMissing(island.islandUuid(), origin, location -> skyblock.getIslandAt(location)
                         .map(ref -> ref.islandUuid().equals(island.islandUuid()))
                         .orElse(false));
             }
-            if (maintenanceEnabled.getAsBoolean()) {
+            if (maintenanceEnabled()) {
                 maintenance.updateStatus(island);
             }
-            if (machinesEnabled.getAsBoolean()) {
+            if (machinesEnabled()) {
                 itemNetworks.rebuildIsland(island.islandUuid());
                 power.rebuildIsland(island.islandUuid());
             }
@@ -81,7 +81,7 @@ public final class FactoryLifecycleListener implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        if (!active.getAsBoolean() || !lifecycleDataWritesEnabled()) {
+        if (!activeEnabled() || !lifecycleDataWritesEnabled()) {
             return;
         }
         islands.existingContext(event.getPlayer()).ifPresent(context -> {
@@ -92,7 +92,7 @@ public final class FactoryLifecycleListener implements Listener {
 
     @EventHandler
     public void onChunkUnload(ChunkUnloadEvent event) {
-        if (!active.getAsBoolean() || !machinesEnabled.getAsBoolean() || !lifecycleDataWritesEnabled()) {
+        if (!activeEnabled() || !machinesEnabled() || !lifecycleDataWritesEnabled()) {
             return;
         }
         machines.markChunkStatus(event.getChunk(), MachineStatus.CHUNK_UNLOADED);
@@ -100,7 +100,7 @@ public final class FactoryLifecycleListener implements Listener {
 
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
-        if (!active.getAsBoolean() || !machinesEnabled.getAsBoolean() || !lifecycleDataWritesEnabled()) {
+        if (!activeEnabled() || !machinesEnabled() || !lifecycleDataWritesEnabled()) {
             return;
         }
         for (MachineInstance machine : machines.byChunk(event.getChunk())) {
@@ -114,6 +114,34 @@ public final class FactoryLifecycleListener implements Listener {
     }
 
     private boolean lifecycleDataWritesEnabled() {
-        return active.getAsBoolean() && dataWritesEnabled.getAsBoolean();
+        return activeEnabled() && dataWritesEnabled();
+    }
+
+    private boolean activeEnabled() {
+        return enabled(active);
+    }
+
+    private boolean resourceNodesEnabled() {
+        return enabled(resourceNodesEnabled);
+    }
+
+    private boolean machinesEnabled() {
+        return enabled(machinesEnabled);
+    }
+
+    private boolean maintenanceEnabled() {
+        return enabled(maintenanceEnabled);
+    }
+
+    private boolean dataWritesEnabled() {
+        return enabled(dataWritesEnabled);
+    }
+
+    private boolean enabled(BooleanSupplier supplier) {
+        try {
+            return supplier != null && supplier.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 }
