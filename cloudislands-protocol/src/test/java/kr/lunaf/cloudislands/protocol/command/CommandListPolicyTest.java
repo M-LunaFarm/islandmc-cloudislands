@@ -39,6 +39,24 @@ class CommandListPolicyTest {
     }
 
     @Test
+    void clampsInvalidPageRequestsToAvailableRange() {
+        List<String> commands = IntStream.rangeClosed(1, 25)
+            .mapToObj(index -> "factory command-" + index)
+            .toList();
+
+        CommandListPolicy.Page beforeFirst = CommandListPolicy.page(commands, -10, "factory command list");
+        CommandListPolicy.Page afterLast = CommandListPolicy.page(commands, 99, "factory command list");
+
+        assertEquals(1, beforeFirst.page());
+        assertNull(beforeFirst.previousCommand());
+        assertEquals("factory command list 2", beforeFirst.nextCommand());
+        assertEquals(3, afterLast.page());
+        assertEquals(List.of("factory command-25"), afterLast.entries());
+        assertEquals("factory command list 2", afterLast.previousCommand());
+        assertNull(afterLast.nextCommand());
+    }
+
+    @Test
     void exposesOneLineCommandPrefixContract() {
         assertEquals(" - 1 line > 1 command", CommandListPolicy.HEADER_SUFFIX);
         assertEquals("> /", CommandListPolicy.ENTRY_PREFIX);
