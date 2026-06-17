@@ -136,6 +136,7 @@ public final class VelocityRoutingController {
     public String statusSummary() {
         return "CloudIslands Velocity router online, fallback=" + displayServerName(fallbackServer)
             + ", fallbackAvailable=" + fallbackServerAvailable()
+            + ", routingPolicy=" + routingPolicyName()
             + ", islandPool=" + islandPool
             + ", islandPoolServers=" + islandPoolServerCount()
             + ", islandPoolServerNames=" + islandPoolServerNames()
@@ -165,6 +166,12 @@ public final class VelocityRoutingController {
 
     public String routingMetricsText() {
         return ""
+            + "cloudislands_velocity_routing_policy{policy=\"" + routingPolicyName() + "\"} 1\n"
+            + "cloudislands_velocity_route_wait_seconds " + routeWaitSeconds + "\n"
+            + "cloudislands_velocity_route_ticket_ttl_seconds " + routeTicketTtlSeconds + "\n"
+            + "cloudislands_velocity_hide_node_names " + (hideNodeNames ? 1 : 0) + "\n"
+            + "cloudislands_velocity_actionbar_enabled " + (useActionBar ? 1 : 0) + "\n"
+            + "cloudislands_velocity_bossbar_loading_enabled " + (useBossBarLoading ? 1 : 0) + "\n"
             + "cloudislands_velocity_island_pool_servers " + islandPoolServerCount() + "\n"
             + "cloudislands_velocity_route_attempts_total " + routeAttempts.get() + "\n"
             + "cloudislands_velocity_route_success_total " + routeSuccesses.get() + "\n"
@@ -180,6 +187,10 @@ public final class VelocityRoutingController {
             + "cloudislands_velocity_pending_route_missing_total " + pendingRouteMissing.get() + "\n"
             + "cloudislands_velocity_pending_route_failures_total " + pendingRouteFailures.get() + "\n"
             + "cloudislands_velocity_last_fallback_at_epoch_seconds " + (lastFallbackAtEpochMillis / 1000L) + "\n";
+    }
+
+    private String routingPolicyName() {
+        return "core-ticket-wait-fallback";
     }
 
     private int islandPoolServerCount() {
