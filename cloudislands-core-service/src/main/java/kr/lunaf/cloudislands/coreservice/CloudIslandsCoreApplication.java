@@ -3015,6 +3015,7 @@ public final class CloudIslandsCoreApplication {
             + "\"islandPoolRouteCandidateNodeIds\":\"" + escape(islandPoolRouteCandidateNodeIds(config, nodes)) + "\","
             + "\"islandPoolScaleStatus\":\"" + escape(islandPoolScaleStatus(config, nodes)) + "\","
             + "\"islandPoolScaleModel\":\"dynamic-node-pool-by-node-id\","
+            + "\"islandPoolElasticLimitPolicy\":\"no-fixed-island-node-count-limit-route-candidates-derive-from-live-heartbeats\","
             + "\"islandPoolScaleGuidance\":\"add-island-nodes-with-unique-node-id-unique-velocity-server-name-shared-storage\","
             + "\"islandPoolHorizontalScalePolicy\":\"no-hardcoded-island-node-count-unique-node-id-unique-velocity-server-name-shared-storage-required\","
             + "\"islandPoolFiveSixNodePolicy\":\"supported-when-each-node-is-a-route-candidate-and-identity-risk-counts-stay-zero\","

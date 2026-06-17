@@ -1998,6 +1998,7 @@ public final class VelocityRoutingController {
             + " poolRouteCandidateMinStatus=" + jsonValue(body, "islandPoolRouteCandidateMinimumStatus")
             + " poolScale=" + jsonValue(body, "islandPoolScaleStatus")
             + " poolScaleModel=" + jsonValue(body, "islandPoolScaleModel")
+            + " poolElasticLimit=" + jsonValue(body, "islandPoolElasticLimitPolicy")
             + " poolMultiNodeReady=" + boolValue(body, "islandPoolMultiNodeReady")
             + " poolScaleGuidance=" + jsonValue(body, "islandPoolScaleGuidance")
             + " poolHorizontalScale=" + jsonValue(body, "islandPoolHorizontalScalePolicy")

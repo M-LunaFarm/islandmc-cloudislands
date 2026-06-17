@@ -2078,6 +2078,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " poolRouteCandidateMinStatus=" + textValue(body, "islandPoolRouteCandidateMinimumStatus")
             + adminText("admin-command-core-config-pool-scale-status-prefix", " poolScale=") + textValue(body, "islandPoolScaleStatus")
             + " poolScaleModel=" + textValue(body, "islandPoolScaleModel")
+            + " poolElasticLimit=" + textValue(body, "islandPoolElasticLimitPolicy")
             + " poolMultiNodeReady=" + boolValue(body, "islandPoolMultiNodeReady")
             + " poolScaleGuidance=" + textValue(body, "islandPoolScaleGuidance")
             + " poolHorizontalScale=" + textValue(body, "islandPoolHorizontalScalePolicy")
