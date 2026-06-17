@@ -108,12 +108,16 @@ public final class CachingIslandTemplateRepository implements IslandTemplateRepo
             if (parts.length != 4) {
                 continue;
             }
-            templates.add(new IslandTemplateSnapshot(
-                decodeText(parts[0]),
-                decodeText(parts[1]),
-                Boolean.parseBoolean(parts[2]),
-                decodeText(parts[3])
-            ));
+            try {
+                templates.add(new IslandTemplateSnapshot(
+                    decodeText(parts[0]),
+                    decodeText(parts[1]),
+                    Boolean.parseBoolean(parts[2]),
+                    decodeText(parts[3])
+                ));
+            } catch (RuntimeException ignored) {
+                // Skip corrupt Redis cache rows without discarding every cached template.
+            }
         }
         return List.copyOf(templates);
     }
