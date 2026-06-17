@@ -2174,10 +2174,21 @@ public final class VelocityRoutingController {
     }
 
     private void sendBodyResult(Player player, CompletableFuture<String> future, String emptyMessage) {
-        future.thenAccept(body -> player.sendMessage(Component.text(body == null || body.isBlank() ? emptyMessage : body))).exceptionally(error -> {
+        future.thenAccept(body -> player.sendMessage(Component.text(bodyResultMessage(body, emptyMessage)))).exceptionally(error -> {
             player.sendMessage(Component.text(emptyMessage));
             return null;
         });
+    }
+
+    private String bodyResultMessage(String body, String emptyMessage) {
+        if (body == null || body.isBlank()) {
+            return emptyMessage;
+        }
+        String trimmed = body.trim();
+        if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+            return playerPayloadMessage(trimmed, emptyMessage, emptyMessage);
+        }
+        return trimmed;
     }
 
     private void pollCoreEvents() {
