@@ -16,5 +16,9 @@ public record CloudIslandsStatusSnapshot(
     int onlinePlayers,
     int activeIslands,
     int activationQueue,
-    Instant sampledAt
+    Instant sampledAt,
+    String readPolicy,
+    String writeAuthority,
+    String syncEventPolicy,
+    String addonStoragePolicy
 ) {}

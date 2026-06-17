@@ -1959,7 +1959,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 plugin.getServer().getOnlinePlayers().size(),
                 activeIslands,
                 activationQueue,
-                Instant.now()
+                Instant.now(),
+                "query-services-use-core-api-or-local-cache-snapshots-no-direct-storage-access",
+                "all-island-writes-go-through-core-api-transaction-endpoints",
+                "synchronous-paper-events-must-use-local-protection-permission-caches",
+                "addons-use-addon-state-api-or-their-own-shared-database-never-cloudislands-internals"
             ));
         }
 
