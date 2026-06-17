@@ -203,6 +203,10 @@ public record CloudIslandsStatusSnapshot(
         return CloudIslandsApiContract.metadataCompatibilityStatus(contractMetadata());
     }
 
+    public boolean contractCompatible() {
+        return CloudIslandsApiContract.compatibleMetadata(contractMetadata());
+    }
+
     public List<String> missingContractMetadataKeys() {
         return CloudIslandsApiContract.missingMetadataKeys(contractMetadata());
     }
