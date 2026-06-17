@@ -26,6 +26,7 @@ public final class CloudIslandsApiContract {
     public static List<String> requiredMetadataKeys() {
         return List.of(
             "contract-version",
+            "compatibility-status",
             "required-metadata-keys",
             "read-policy",
             "write-authority",
@@ -87,6 +88,7 @@ public final class CloudIslandsApiContract {
     public static Map<String, String> metadata() {
         return Map.ofEntries(
             Map.entry("contract-version", CONTRACT_VERSION),
+            Map.entry("compatibility-status", "compatible"),
             Map.entry("required-metadata-keys", requiredMetadataKeysCsv()),
             Map.entry("read-policy", READ_POLICY),
             Map.entry("write-authority", WRITE_AUTHORITY),
