@@ -80,7 +80,7 @@ public final class CacheInvalidationPlan {
             case ROUTE, ROUTE_TICKETS -> RedisKeys.islandRouteTickets(islandId);
             case TEMPLATES -> RedisKeys.templates();
             case LEVEL -> RedisKeys.rankingVersion();
-            case ADDON_STATE -> "";
+            case ADDON_STATE -> RedisKeys.islandAddonState(islandId);
             default -> "";
         };
     }

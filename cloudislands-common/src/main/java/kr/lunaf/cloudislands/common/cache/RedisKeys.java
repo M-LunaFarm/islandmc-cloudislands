@@ -34,6 +34,7 @@ public final class RedisKeys {
     public static String islandUpgrades(UUID islandId) { return "ci:island:" + islandId + ":upgrades"; }
     public static String islandSnapshots(UUID islandId) { return "ci:island:" + islandId + ":snapshots"; }
     public static String islandLogs(UUID islandId) { return "ci:island:" + islandId + ":logs"; }
+    public static String islandAddonState(UUID islandId) { return "ci:island:" + islandId + ":addon-state"; }
     public static String islandRouteTickets(UUID islandId) { return "ci:island:" + islandId + ":route-tickets"; }
     public static String islandBlockCounts(UUID islandId) { return "ci:island:" + islandId + ":block-counts"; }
     public static String blockValues() { return "ci:block-values"; }

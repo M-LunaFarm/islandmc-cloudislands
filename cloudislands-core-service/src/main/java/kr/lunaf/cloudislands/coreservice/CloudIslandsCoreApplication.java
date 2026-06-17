@@ -3115,7 +3115,7 @@ public final class CloudIslandsCoreApplication {
             + "\"cacheInvalidationEvents\":\"IslandMemberChanged,IslandFlagChanged,IslandPermissionChanged,IslandWarpChanged,IslandRuntimeChanged,IslandDeleted\","
             + "\"cacheInvalidationFanout\":\"core-event-stream>paper-event-poller>velocity-route-cache-if-affected>local-cache-delete\","
             + "\"cacheInvalidationTargets\":\"player_uuid->island_id,island_id->summary,island_id->runtime,island_id->members,island_id->permissions,island_id->flags,island_id->warps,node_id->heartbeat\","
-            + "\"cacheInvalidationRedisPatterns\":\"ci:player:*:island,ci:player:*:profile,ci:player-name:*:profile,ci:island:*:summary,ci:island:*:runtime,ci:island:*:members,ci:island:*:permissions,ci:island:*:flags,ci:island:*:warps,ci:island:*:route-tickets,ci:rankings:*\","
+            + "\"cacheInvalidationRedisPatterns\":\"ci:player:*:island,ci:player:*:profile,ci:player-name:*:profile,ci:island:*:summary,ci:island:*:runtime,ci:island:*:members,ci:island:*:permissions,ci:island:*:flags,ci:island:*:warps,ci:island:*:addon-state,ci:island:*:route-tickets,ci:rankings:*\","
             + "\"cacheRedisDownPolicy\":\"degraded-db-direct-read-no-data-loss-event-propagation-delayed-jobs-and-heartbeats-limited\","
             + "\"cacheCoreApiDownPolicy\":\"active-island-local-protection-continues-new-route-and-writes-limited\","
             + "\"redisStreamPolicy\":\"jobs,events,audit-append-only-observability\","
