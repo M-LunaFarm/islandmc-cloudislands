@@ -42,7 +42,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private static final List<String> BLOCK_VALUE_COMMANDS = List.of("list", "set");
     private static final List<String> BLOCK_VALUE_MATERIALS = List.of("minecraft:stone", "minecraft:diamond_block", "minecraft:emerald_block", "minecraft:spawner");
     private static final List<String> TEMPLATE_COMMANDS = List.of("list", "upsert", "enable", "disable");
-    private static final List<String> MIGRATION_COMMANDS = List.of("scan", "status", "dryrun", "dry-run", "extract", "extract-worlds", "world-extract", "import", "verify", "rollback");
+    private static final List<String> MIGRATION_COMMANDS = List.of("scan", "status", "dryrun", "dry-run", "extract", "extract-worlds", "world-extract", "import", "verify", "verify-no-legacy-provider", "rollback");
+    private static final List<String> FORBIDDEN_LEGACY_SKYBLOCK_PROVIDERS = List.of("SuperiorSkyblock2", "BentoBox", "ASkyBlock");
     private static final List<String> NODE_DANGER_REASONS = List.of("maintenance", "restart", "drain");
     private static final List<String> HELP_COMMANDS = List.of(
         "ciadmin status",
@@ -120,6 +121,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         "ciadmin migrate-superiorskyblock2 extract [outputPath]",
         "ciadmin migrate-superiorskyblock2 import <approvalToken>",
         "ciadmin migrate-superiorskyblock2 verify [path]",
+        "ciadmin migrate-superiorskyblock2 verify-no-legacy-provider",
         "ciadmin migrate-superiorskyblock2 rollback"
     );
     private final CloudIslandsPaperAgent agent;
@@ -847,8 +849,13 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 "/ciadmin migrate-superiorskyblock2 extract [path]",
                 "/ciadmin migrate-superiorskyblock2 import <approvalToken>",
                 "/ciadmin migrate-superiorskyblock2 verify [path]",
+                "/ciadmin migrate-superiorskyblock2 verify-no-legacy-provider",
                 "/ciadmin migrate-superiorskyblock2 rollback"
             ));
+            return true;
+        }
+        if (action.equalsIgnoreCase("verify-no-legacy-provider")) {
+            sender.sendMessage(legacyProviderRuntimeMessage());
             return true;
         }
         if (action.equalsIgnoreCase("import") && args.length < 3) {
@@ -866,6 +873,23 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             enabled = enabled && agent.getConfig().getBoolean("migration.superiorskyblock2-enabled", true);
         }
         return enabled;
+    }
+
+    private String legacyProviderRuntimeMessage() {
+        List<String> loadedProviders = FORBIDDEN_LEGACY_SKYBLOCK_PROVIDERS.stream()
+            .map(provider -> {
+                org.bukkit.plugin.Plugin plugin = agent.plugin().getServer().getPluginManager().getPlugin(provider);
+                return plugin == null ? "" : provider + "(enabled=" + plugin.isEnabled() + ")";
+            })
+            .filter(value -> !value.isBlank())
+            .toList();
+        if (loadedProviders.isEmpty()) {
+            return adminText("admin-command-migration-no-legacy-provider", "Legacy skyblock providers: none. Migration input only policy is clean for ")
+                + String.join(",", FORBIDDEN_LEGACY_SKYBLOCK_PROVIDERS);
+        }
+        return adminText("admin-command-migration-legacy-provider-detected", "Legacy skyblock providers detected: ")
+            + String.join(",", loadedProviders)
+            + adminText("admin-command-migration-legacy-provider-policy", ". CloudIslands must not use them as runtime island providers.");
     }
 
     private void sendIslandCommandUsage(CommandSender sender) {
