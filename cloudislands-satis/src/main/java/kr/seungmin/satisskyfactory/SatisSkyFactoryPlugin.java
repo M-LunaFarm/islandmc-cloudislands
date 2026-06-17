@@ -1531,6 +1531,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-core-api-mode", databaseCoreApiMode());
         metadata.put("database-core-api-endpoint", "table/key-value/bulk-save,table/key-value/bulk,table/key-value/bulk-load,table/load,table/bulk,table/bulk-set");
         metadata.put("database-core-api-bulk-request-models", "AddonStateBulkSaveRequest,AddonStateBulkLoadRequest");
+        metadata.put("addon-state-table-key-value-bulk-load-global-endpoint", "/v1/addons/state/table/key-value/bulk-load");
+        metadata.put("addon-state-table-key-value-bulk-load-island-endpoint", "/v1/addons/islands/state/table/key-value/bulk-load");
+        metadata.put("addon-state-table-key-value-bulk-load-methods", "IslandAddonService.tableKeyValueBulkLoadState,IslandAddonService.tableKeyValueBulkLoadIslandState,CoreApiClient.tableKeyValueBulkLoadAddonState,CoreApiClient.tableKeyValueBulkLoadAddonIslandState");
         metadata.put("database-core-api-bulk-load-policy", "typed-request-core-api-first-local-cache-fallback");
         metadata.put("database-core-api-local-cache", databaseCoreApiLocalCachePolicy());
         metadata.put("database-core-api-fallback-target", databaseCoreApiFallbackTarget());
