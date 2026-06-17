@@ -2847,6 +2847,19 @@ public final class CloudIslandsCoreApplication {
         return null;
     }
 
+    private static String storageBackendSafety(CoreServiceConfig config) {
+        if (config == null || config.storageType() == null || config.storageType().isBlank()) {
+            return "unknown-storage-backend";
+        }
+        if ("S3".equalsIgnoreCase(config.storageType())) {
+            return "shared-object-storage-safe-for-multi-node-island-pools";
+        }
+        if ("LOCAL".equalsIgnoreCase(config.storageType())) {
+            return "local-storage-requires-shared-filesystem-mount-for-multi-node-island-pools";
+        }
+        return "unsupported-storage-backend";
+    }
+
     private static String configSummaryJson(CoreServiceConfig config, NodeRegistry nodes) {
         kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotPolicy = config.snapshotRetentionPolicy().normalized();
         return "{"
@@ -2960,6 +2973,11 @@ public final class CloudIslandsCoreApplication {
             + "\"addonStateTableKeyValueBulkLoadFallback\":\"local-cache-or-empty-table-on-core-api-failure\","
             + "\"databasePoolSize\":" + config.databasePoolSize() + ","
             + "\"storageType\":\"" + escape(config.storageType()) + "\","
+            + "\"storageSharedBackend\":" + ("S3".equalsIgnoreCase(config.storageType())) + ","
+            + "\"storageMultiNodeSafe\":" + ("S3".equalsIgnoreCase(config.storageType())) + ","
+            + "\"storageBackendSafety\":\"" + escape(storageBackendSafety(config)) + "\","
+            + "\"storageLocalMultiNodePolicy\":\"LOCAL requires the same shared filesystem mount on every Island node; otherwise use S3 or MinIO\","
+            + "\"storageS3MultiNodePolicy\":\"S3 or MinIO is the recommended shared object storage for 5/6 Island node pools\","
             + "\"storageLayout\":\"islands/{islandUuid}/manifest.json,latest,snapshots/{snapshotNo}/bundle.tar.zst,checksums.sha256,backups,recovery\","
             + "\"storageLatestPointer\":\"islands/{islandUuid}/latest\","
             + "\"storageSnapshotManifest\":\"islands/{islandUuid}/snapshots/{snapshotNo}/manifest.json\","
