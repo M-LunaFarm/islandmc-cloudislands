@@ -3016,14 +3016,21 @@ public final class CloudIslandsCoreApplication {
     }
 
     private static boolean coreJdbcSupported(String jdbcUrl) {
-        return jdbcUrl != null && jdbcUrl.toLowerCase(Locale.ROOT).startsWith("jdbc:postgresql:");
+        if (jdbcUrl == null) {
+            return false;
+        }
+        String value = jdbcUrl.toLowerCase(Locale.ROOT);
+        return value.startsWith("jdbc:postgresql:")
+            || value.startsWith("jdbc:mysql:")
+            || value.startsWith("jdbc:mariadb:");
     }
 
     private static String coreJdbcFallbackReason(CoreServiceConfig config) {
         String configuredType = config.configuredDatabaseType() == null ? "" : config.configuredDatabaseType();
-        if (!configuredType.isBlank() && !configuredType.equals("POSTGRESQL") && !configuredType.equals("UNKNOWN")) {
+        String effectiveBackend = jdbcBackend(config.jdbcUrl());
+        if (!configuredType.isBlank() && !configuredType.equals(effectiveBackend) && !configuredType.equals("UNKNOWN")) {
             if (coreJdbcSupported(config.jdbcUrl())) {
-                return "CORE_JDBC_POSTGRESQL_FALLBACK_FOR_" + configuredType;
+                return "CORE_JDBC_" + effectiveBackend + "_FALLBACK_FOR_" + configuredType;
             }
             return "CORE_JDBC_DISABLED_FOR_" + configuredType;
         }
@@ -3031,9 +3038,9 @@ public final class CloudIslandsCoreApplication {
             return "";
         }
         if ("JDBC".equalsIgnoreCase(config.repositoryMode()) || "JDBC".equalsIgnoreCase(config.jobQueueMode())) {
-            return "CORE_JDBC_POSTGRESQL_ONLY";
+            return "CORE_JDBC_SUPPORTED_BACKEND_REQUIRED";
         }
-        return "CORE_JDBC_DISABLED_FOR_" + jdbcBackend(config.jdbcUrl());
+        return "CORE_JDBC_DISABLED_FOR_" + effectiveBackend;
     }
 
     private static boolean coreJdbcFallbackActive(CoreServiceConfig config) {
@@ -3047,13 +3054,15 @@ public final class CloudIslandsCoreApplication {
 
     private static String coreSetupFallbackPolicy(CoreServiceConfig config) {
         if (!coreJdbcFallbackActive(config)) {
-            return "native-postgresql-jdbc";
+            return "native-" + jdbcBackend(config.jdbcUrl()).toLowerCase(Locale.ROOT) + "-jdbc";
         }
         if (coreSetupFallbackSafetyForced(config)) {
             return "configured-disabled-but-forced-for-startup-safety";
         }
-        if (coreJdbcFallbackReason(config).startsWith("CORE_JDBC_POSTGRESQL_FALLBACK_FOR_")) {
-            return "configured-postgresql-jdbc-fallback";
+        String reason = coreJdbcFallbackReason(config);
+        if (reason.startsWith("CORE_JDBC_") && reason.contains("_FALLBACK_FOR_")) {
+            String backend = reason.substring("CORE_JDBC_".length(), reason.indexOf("_FALLBACK_FOR_"));
+            return "configured-" + backend.toLowerCase(Locale.ROOT) + "-jdbc-fallback";
         }
         return "configured-safe-fallback";
     }
@@ -3065,15 +3074,16 @@ public final class CloudIslandsCoreApplication {
         if (coreSetupFallbackSafetyForced(config)) {
             return "SAFETY_FORCED_IN_MEMORY_REPOSITORIES_AND_JOBS";
         }
-        if (coreJdbcFallbackReason(config).startsWith("CORE_JDBC_POSTGRESQL_FALLBACK_FOR_")) {
-            return "POSTGRESQL_JDBC_FALLBACK";
+        String reason = coreJdbcFallbackReason(config);
+        if (reason.startsWith("CORE_JDBC_") && reason.contains("_FALLBACK_FOR_")) {
+            return reason.substring("CORE_JDBC_".length(), reason.indexOf("_FALLBACK_FOR_")) + "_JDBC_FALLBACK";
         }
         return "IN_MEMORY_REPOSITORIES_AND_JOBS";
     }
 
     private static String coreJdbcFallbackStatus(CoreServiceConfig config) {
         if (!coreJdbcFallbackActive(config)) {
-            return "native-postgresql-jdbc";
+            return "native-" + jdbcBackend(config.jdbcUrl()).toLowerCase(Locale.ROOT) + "-jdbc";
         }
         return coreSetupFallbackPolicy(config)
             + ":repo=" + (config.jdbcRepositories() ? "JDBC" : "IN_MEMORY")
@@ -3334,7 +3344,7 @@ public final class CloudIslandsCoreApplication {
         }
         warnIfPublicHost("Redis", config.redisUri() == null ? "" : config.redisUri().getHost());
         if (config.jdbcRepositories() || config.jdbcJobs()) {
-            warnIfPublicHost("PostgreSQL", jdbcHost(config.jdbcUrl()));
+            warnIfPublicHost(jdbcBackend(config.jdbcUrl()), jdbcHost(config.jdbcUrl()));
         }
         if ("S3".equalsIgnoreCase(config.storageType())) {
             String storageHost = config.storageEndpoint() == null ? "" : config.storageEndpoint().getHost();
