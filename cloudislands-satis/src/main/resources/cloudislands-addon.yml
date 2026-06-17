@@ -78,9 +78,13 @@ database:
       - /v1/addons/state/table/bulk
       - /v1/addons/state/table-key-value/bulk-save
       - /v1/addons/state/table/key-value/bulk-save
+      - /v1/addons/state/table/key-value/bulk/save
+      - /v1/addons/state/table/key-value/bulk
       - /v1/addons/islands/state/table/bulk
       - /v1/addons/islands/state/table-key-value/bulk-save
       - /v1/addons/islands/state/table/key-value/bulk-save
+      - /v1/addons/islands/state/table/key-value/bulk/save
+      - /v1/addons/islands/state/table/key-value/bulk
     flattened-fallback-path: setup.database.core-api.flattened-fallback.enabled
   env:
     type: CLOUDISLANDS_SATIS_DATABASE_TYPE
@@ -173,7 +177,7 @@ migration:
     import-approval-token: CONFIRM_IMPORT
     import-mode: cross-backend-sqlite-copy
     conflict-policy: insert-ignore-existing-rows
-    rollback-mode: sqlite-snapshot-restore-or-manual-shared-backend-restore
+    rollback-mode: sqlite-snapshot-restore-or-shared-backend-table-restore
     core-api-import-guard: reject-core-api-import-when-addon-state-writer-unavailable
     data-retention: preserve-existing-cloudislands-and-satis-state
 features:
