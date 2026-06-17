@@ -219,8 +219,8 @@ public record CoreServiceConfig(
         if ("IN_MEMORY".equals(fallbackTarget) && !setupDatabaseFallbackEnabled) {
             return "database-fallback-disabled-for-" + requested.toLowerCase(Locale.ROOT) + "-setup";
         }
-        if ("POSTGRESQL".equals(fallbackTarget)) {
-            return "requested-" + requested.toLowerCase(Locale.ROOT) + "-uses-postgresql-setup-fallback";
+        if ("POSTGRESQL".equals(fallbackTarget) || "MYSQL".equals(fallbackTarget) || "MARIADB".equals(fallbackTarget)) {
+            return "requested-" + requested.toLowerCase(Locale.ROOT) + "-uses-" + fallbackTarget.toLowerCase(Locale.ROOT) + "-setup-fallback";
         }
         if ("CORE_API".equals(fallbackTarget)) {
             return "requested-" + requested.toLowerCase(Locale.ROOT) + "-uses-core-api-client-fallback";
@@ -305,47 +305,48 @@ public record CoreServiceConfig(
             return "CI_JDBC_URL";
         }
         String type = configuredDatabaseType(config);
+        String fallbackSource = setupDurableFallbackJdbcUrlSource(config);
         if ("CORE_API".equals(type)) {
-            if (!setupPostgresqlFallbackJdbcUrl(config).isBlank()) {
-                return "setup.database.postgresql.fallback";
+            if (!fallbackSource.isBlank()) {
+                return fallbackSource;
             }
             return "none:setup.database.core-api.enabled";
         }
         String typedSource = typedSetupDatabaseSettingSource(config, type, "jdbc-url");
         if (!typedSource.isBlank()) {
-            if (!coreJdbcTypeSupported(type) && !setupPostgresqlFallbackJdbcUrl(config).isBlank()) {
-                return "setup.database.postgresql.fallback";
+            if (!coreJdbcTypeSupported(type) && !fallbackSource.isBlank()) {
+                return fallbackSource;
             }
             return typedSource;
         }
         if (presentConfig(config, "setup.database.jdbc-url")) {
-            if (!coreJdbcTypeSupported(type) && !setupPostgresqlFallbackJdbcUrl(config).isBlank()) {
-                return "setup.database.postgresql.fallback";
+            if (!coreJdbcTypeSupported(type) && !fallbackSource.isBlank()) {
+                return fallbackSource;
             }
             return "setup.database.jdbc-url";
         }
         if (presentConfig(config, "setup.jdbc-url")) {
-            if (!coreJdbcTypeSupported(type) && !setupPostgresqlFallbackJdbcUrl(config).isBlank()) {
-                return "setup.database.postgresql.fallback";
+            if (!coreJdbcTypeSupported(type) && !fallbackSource.isBlank()) {
+                return fallbackSource;
             }
             return "setup.jdbc-url";
         }
         typedSource = typedSetupDatabaseSettingSource(config, type, "url");
         if (!typedSource.isBlank()) {
-            if (!coreJdbcTypeSupported(type) && !setupPostgresqlFallbackJdbcUrl(config).isBlank()) {
-                return "setup.database.postgresql.fallback";
+            if (!coreJdbcTypeSupported(type) && !fallbackSource.isBlank()) {
+                return fallbackSource;
             }
             return typedSource;
         }
         String hostSource = typedSetupHostDatabaseTypeSource(config);
         if (!hostSource.isBlank()) {
-            if (!coreJdbcTypeSupported(type) && !setupPostgresqlFallbackJdbcUrl(config).isBlank()) {
-                return "setup.database.postgresql.fallback";
+            if (!coreJdbcTypeSupported(type) && !fallbackSource.isBlank()) {
+                return fallbackSource;
             }
             return hostSource;
         }
-        if (!coreJdbcTypeSupported(type) && !setupPostgresqlFallbackJdbcUrl(config).isBlank()) {
-            return "setup.database.postgresql.fallback";
+        if (!coreJdbcTypeSupported(type) && !fallbackSource.isBlank()) {
+            return fallbackSource;
         }
         if (presentConfig(config, "database.jdbc-url")) {
             return "database.jdbc-url";
@@ -628,6 +629,23 @@ public record CoreServiceConfig(
         return "";
     }
 
+    private static String setupDurableFallbackJdbcUrlSource(Map<String, String> config) {
+        if (!configBoolean(config, "setup.database.fallback.enabled", configBoolean(config, "setup.database-fallback-enabled", true))) {
+            return "";
+        }
+        for (String entry : setupDatabaseFallbackOrder(config).split(",")) {
+            String normalized = normalizeDatabaseType(entry);
+            if (!coreJdbcTypeSupported(normalized) || !durableFallbackConfigured(config, normalized)) {
+                continue;
+            }
+            String jdbcUrl = setupJdbcUrlForType(config, normalized, "", false);
+            if (coreJdbcSupported(jdbcUrl)) {
+                return "setup.database." + databaseSetupScope(normalized) + ".fallback";
+            }
+        }
+        return "";
+    }
+
     private String setupDatabaseFallbackTargetForUnsupported(String requested) {
         Map<String, String> config = applicationConfig();
         if (!setupDatabaseFallbackEnabled) {
@@ -732,7 +750,7 @@ public record CoreServiceConfig(
         if (coreJdbcTypeSupported(databaseType)) {
             return "JDBC";
         }
-        return setupPostgresqlFallbackJdbcUrl(config).isBlank() ? "IN_MEMORY" : "JDBC";
+        return setupDurableFallbackJdbcUrl(config).isBlank() ? "IN_MEMORY" : "JDBC";
     }
 
     private static String configuredDatabaseType(Map<String, String> config) {
