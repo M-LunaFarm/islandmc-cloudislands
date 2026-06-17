@@ -1970,6 +1970,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 kr.lunaf.cloudislands.api.CloudIslandsApiContract.CORE_AUTH_POLICY,
                 kr.lunaf.cloudislands.api.CloudIslandsApiContract.ADMIN_ENDPOINT_POLICY,
                 kr.lunaf.cloudislands.api.CloudIslandsApiContract.NETWORK_EXPOSURE_POLICY,
+                kr.lunaf.cloudislands.api.CloudIslandsApiContract.SECURITY_POSTURE_SUMMARY,
                 kr.lunaf.cloudislands.api.CloudIslandsApiContract.TOPOLOGY_PRIVACY_POLICY,
                 kr.lunaf.cloudislands.api.CloudIslandsApiContract.CONSISTENCY_AUTHORITY_POLICY,
                 kr.lunaf.cloudislands.api.CloudIslandsApiContract.CONTRACT_VERSION

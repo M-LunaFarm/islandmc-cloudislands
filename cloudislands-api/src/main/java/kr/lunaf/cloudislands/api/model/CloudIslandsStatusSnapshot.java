@@ -31,6 +31,7 @@ public record CloudIslandsStatusSnapshot(
     String coreAuthPolicy,
     String adminEndpointPolicy,
     String networkExposurePolicy,
+    String securityPostureSummary,
     String topologyPrivacyPolicy,
     String consistencyAuthorityPolicy,
     String contractVersion
@@ -166,6 +167,7 @@ public record CloudIslandsStatusSnapshot(
             CloudIslandsApiContract.CORE_AUTH_POLICY,
             CloudIslandsApiContract.ADMIN_ENDPOINT_POLICY,
             CloudIslandsApiContract.NETWORK_EXPOSURE_POLICY,
+            CloudIslandsApiContract.SECURITY_POSTURE_SUMMARY,
             CloudIslandsApiContract.TOPOLOGY_PRIVACY_POLICY,
             CloudIslandsApiContract.CONSISTENCY_AUTHORITY_POLICY,
             CloudIslandsApiContract.CONTRACT_VERSION
@@ -187,6 +189,7 @@ public record CloudIslandsStatusSnapshot(
         metadata.put("core-auth-policy", safe(coreAuthPolicy));
         metadata.put("admin-endpoint-policy", safe(adminEndpointPolicy));
         metadata.put("network-exposure-policy", safe(networkExposurePolicy));
+        metadata.put("security-posture-summary", safe(securityPostureSummary));
         metadata.put("topology-privacy-policy", safe(topologyPrivacyPolicy));
         metadata.put("consistency-authority-policy", safe(consistencyAuthorityPolicy));
         return Map.copyOf(metadata);
