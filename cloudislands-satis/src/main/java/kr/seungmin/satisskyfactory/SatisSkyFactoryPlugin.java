@@ -1343,7 +1343,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-setup-auto-selected", Boolean.toString(databaseSetupAutoSelected()));
         metadata.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
         metadata.put("database-setup-warning", databaseSetupWarningMetadata());
-        metadata.put("database-setup-jdbc-aliases", "setup.database.jdbc.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,database.jdbc.url,database.<backend>.url");
+        metadata.put("database-setup-jdbc-aliases", "setup.database.jdbc.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,addons.cloudislands-satis.database.jdbc.url,database.jdbc.url,database.<backend>.url");
         metadata.put("database-setup-selection-policy", SatisStatePortabilityPolicy.SETUP_SELECTION_POLICY);
         metadata.put("database-setup-backend-priority", SatisStatePortabilityPolicy.SETUP_BACKEND_PRIORITY);
         metadata.put("database-setup-fallback-precedence", "env,setup.database.fallback,database.fallback");
@@ -1719,7 +1719,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-setup-auto-selected", Boolean.toString(databaseSetupAutoSelected()));
         state.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
         state.put("database-setup-warning", databaseSetupWarningMetadata());
-        state.put("database-setup-jdbc-aliases", "setup.database.jdbc.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,database.jdbc.url,database.<backend>.url");
+        state.put("database-setup-jdbc-aliases", "setup.database.jdbc.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,addons.cloudislands-satis.database.jdbc.url,database.jdbc.url,database.<backend>.url");
         state.put("database-setup-selection-policy", SatisStatePortabilityPolicy.SETUP_SELECTION_POLICY);
         state.put("database-setup-backend-priority", SatisStatePortabilityPolicy.SETUP_BACKEND_PRIORITY);
         state.put("database-setup-fallback-precedence", "env,setup.database.fallback,database.fallback");
@@ -1858,7 +1858,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-setup-auto-selected", Boolean.toString(databaseSetupAutoSelected()));
         state.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
         state.put("database-setup-warning", databaseSetupWarningMetadata());
-        state.put("database-setup-jdbc-aliases", "setup.database.jdbc.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,database.jdbc.url,database.<backend>.url");
+        state.put("database-setup-jdbc-aliases", "setup.database.jdbc.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,addons.cloudislands-satis.database.jdbc.url,database.jdbc.url,database.<backend>.url");
         state.put("database-setup-selection-policy", SatisStatePortabilityPolicy.SETUP_SELECTION_POLICY);
         state.put("database-setup-backend-priority", SatisStatePortabilityPolicy.SETUP_BACKEND_PRIORITY);
         state.put("database-setup-fallback-precedence", "env,setup.database.fallback,database.fallback");
@@ -3556,12 +3556,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (envPath != null && !envPath.isBlank()) {
             return envPath.trim();
         }
-        String configuredPath = firstNonBlank(configs.main().getString("setup.database.path", ""), configs.main().getString("database.path", ""));
+        String configuredPath = firstNonBlank(configs.main().getString("setup.database.path", ""),
+                firstNonBlank(configs.main().getString("addons.cloudislands-satis.database.path", ""),
+                        configs.main().getString("database.path", "")));
         if (configuredPath != null && !configuredPath.isBlank()) {
             return configuredPath.trim();
         }
         String sqliteFile = configuredDatabaseFileName();
-        String sharedDirectory = firstNonBlank(configs.main().getString("setup.database.shared-directory", ""), configs.main().getString("database.shared-directory", ""));
+        String sharedDirectory = firstNonBlank(configs.main().getString("setup.database.shared-directory", ""),
+                firstNonBlank(configs.main().getString("addons.cloudislands-satis.database.shared-directory", ""),
+                        configs.main().getString("database.shared-directory", "")));
         if (sharedDirectory != null && !sharedDirectory.isBlank()) {
             return new File(sharedDirectory.trim(), sqliteFile).getPath();
         }
@@ -3578,7 +3582,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         String sqliteFileName = resolveDatabaseFileName();
         String jdbcUrl = firstNonBlank(System.getenv("CLOUDISLANDS_SATIS_JDBC_URL"),
-                firstNonBlank(configs.main().getString("setup.database.jdbc.url", ""), configs.main().getString("database.jdbc.url", "")));
+                firstNonBlank(configs.main().getString("setup.database.jdbc.url", ""),
+                        firstNonBlank(configs.main().getString("addons.cloudislands-satis.database.jdbc.url", ""),
+                                configs.main().getString("database.jdbc.url", ""))));
         String postgresqlJdbcUrl = jdbcUrl("postgresql", "jdbc:postgresql", 5432);
         String mysqlJdbcUrl = jdbcUrl("mysql", "jdbc:mysql", 3306);
         String mariadbJdbcUrl = jdbcUrl("mariadb", "jdbc:mariadb", 3306);
@@ -3901,7 +3907,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return env.trim();
         }
         return firstNonBlank(typedDatabaseSetting("username"),
-                firstNonBlank(configs.main().getString("setup.database.jdbc.username", ""), configs.main().getString("database.jdbc.username", "")));
+                firstNonBlank(configs.main().getString("setup.database.jdbc.username", ""),
+                        firstNonBlank(configs.main().getString("addons.cloudislands-satis.database.jdbc.username", ""),
+                                configs.main().getString("database.jdbc.username", ""))));
     }
 
     private String databasePassword() {
@@ -3910,7 +3918,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return env.trim();
         }
         return firstNonBlank(typedDatabaseSetting("password"),
-                firstNonBlank(configs.main().getString("setup.database.jdbc.password", ""), configs.main().getString("database.jdbc.password", "")));
+                firstNonBlank(configs.main().getString("setup.database.jdbc.password", ""),
+                        firstNonBlank(configs.main().getString("addons.cloudislands-satis.database.jdbc.password", ""),
+                                configs.main().getString("database.jdbc.password", ""))));
     }
 
     private int databaseMaxPoolSize(int fallback) {
@@ -4008,7 +4018,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String configuredDatabaseFileName() {
-        String sqliteFile = firstNonBlank(configs.main().getString("setup.database.sqlite-file", ""), configs.main().getString("database.sqlite-file", "data.db"));
+        String sqliteFile = firstNonBlank(configs.main().getString("setup.database.sqlite-file", ""),
+                firstNonBlank(configs.main().getString("addons.cloudislands-satis.database.sqlite-file", ""),
+                        configs.main().getString("database.sqlite-file", "data.db")));
         return sqliteFile == null || sqliteFile.isBlank() ? "data.db" : sqliteFile.trim();
     }
 
@@ -4020,6 +4032,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String setupType = configs.main().getString("setup.database.type", "");
         if (setupType != null && !setupType.isBlank()) {
             return setupType;
+        }
+        String addonType = configs.main().getString("addons.cloudislands-satis.database.type", "");
+        if (addonType != null && !addonType.isBlank()) {
+            return addonType;
         }
         if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
             return "CORE_API";
@@ -4145,7 +4161,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private String configuredCommonJdbcUrl() {
         return firstNonBlank(System.getenv("CLOUDISLANDS_SATIS_JDBC_URL"),
-                firstNonBlank(configs.main().getString("setup.database.jdbc.url", ""), configs.main().getString("database.jdbc.url", "")));
+                firstNonBlank(configs.main().getString("setup.database.jdbc.url", ""),
+                        firstNonBlank(configs.main().getString("addons.cloudislands-satis.database.jdbc.url", ""),
+                                configs.main().getString("database.jdbc.url", ""))));
     }
 
     private boolean setupDatabaseSectionConfigured(String section) {

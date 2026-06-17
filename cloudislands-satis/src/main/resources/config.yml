@@ -34,6 +34,18 @@ addons:
     # both sides must allow a feature before it runs.
     # Set enabled=false to remove the Satis content layer without breaking base CloudIslands islands.
     enabled: true
+    database:
+      # Host-level addon storage alias. setup.database.* still wins when present.
+      # This keeps the addon config shape close to CloudIslands Paper's addon block while
+      # preserving the older database.* fallback keys for existing installs.
+      type: ""
+      path: ""
+      shared-directory: ../CloudIslands/satis-state
+      sqlite-file: data.db
+      jdbc:
+        url: ""
+        username: ""
+        password: ""
     features:
       # This block can be used by host-level addon config. It follows the same disable policy as satis.features.
       # Parent/root disabled forces every Satis runtime feature off, even when a child value is true.

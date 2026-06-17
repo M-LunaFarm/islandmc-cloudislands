@@ -61,6 +61,11 @@ class DefaultConfigIntegrityTest {
         assertTrue(config.isConfigurationSection("setup.database.postgresql"));
         assertTrue(config.isConfigurationSection("setup.database.mysql"));
         assertTrue(config.isConfigurationSection("setup.database.mariadb"));
+        assertTrue(config.isConfigurationSection("addons.cloudislands-satis.database"));
+        assertEquals("", config.getString("addons.cloudislands-satis.database.type"));
+        assertEquals("../CloudIslands/satis-state", config.getString("addons.cloudislands-satis.database.shared-directory"));
+        assertEquals("data.db", config.getString("addons.cloudislands-satis.database.sqlite-file"));
+        assertTrue(config.isConfigurationSection("addons.cloudislands-satis.database.jdbc"));
         assertTrue(config.getBoolean("database.fallback.enabled"));
         assertTrue(config.getBoolean("setup.database.fallback.enabled"));
         assertEquals(List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API", "SQLITE"),
