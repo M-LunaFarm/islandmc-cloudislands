@@ -24,6 +24,10 @@ import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.manifest.IslandManifestJson;
 
 public final class MigrationWorldExtractor {
+    public MigrationWorldExtractionReport report(List<MigrationWorldBundle> bundles) {
+        return MigrationWorldExtractionReport.of(bundles);
+    }
+
     public MigrationWorldExtractionPlan plan(MigrationManifest manifest, Path targetRoot) {
         if (manifest.sourceWorldPath() == null || manifest.sourceWorldPath().isBlank()) {
             throw new IllegalArgumentException("manifest has no source world path: " + manifest.islandId());
@@ -46,7 +50,7 @@ public final class MigrationWorldExtractor {
         long sizeBytes = Files.size(plan.targetBundlePath());
         Files.writeString(plan.targetBundlePath().resolveSibling("checksums.sha256"), checksum + "  " + plan.targetBundlePath().getFileName() + "\n");
         Path manifestPath = writeManifest(plan, checksum, sizeBytes);
-        return new MigrationWorldBundle(plan.islandId(), plan.sourcePath(), plan.targetBundlePath(), manifestPath, checksum, sizeBytes, fileCount);
+        return new MigrationWorldBundle(plan.islandId(), plan.sourcePath(), plan.targetBundlePath(), manifestPath, checksum, sizeBytes, fileCount, "zip", false);
     }
 
     public MigrationWorldBundle verify(MigrationWorldExtractionPlan plan) throws IOException {
@@ -74,7 +78,7 @@ public final class MigrationWorldExtractor {
             throw new IOException("migration manifest is not portable for " + plan.islandId());
         }
         verifyManifestIdentity(plan, manifest);
-        return new MigrationWorldBundle(plan.islandId(), plan.sourcePath(), plan.targetBundlePath(), manifestPath, actual, Files.size(plan.targetBundlePath()), countZipEntries(plan.targetBundlePath()));
+        return new MigrationWorldBundle(plan.islandId(), plan.sourcePath(), plan.targetBundlePath(), manifestPath, actual, Files.size(plan.targetBundlePath()), countZipEntries(plan.targetBundlePath()), manifest.compression(), false);
     }
 
     private long writeZip(Path source, Path target) throws IOException {
