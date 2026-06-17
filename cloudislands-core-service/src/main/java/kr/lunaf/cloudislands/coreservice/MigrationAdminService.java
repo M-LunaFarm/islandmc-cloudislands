@@ -47,6 +47,7 @@ import kr.lunaf.cloudislands.migration.rollback.MigrationRollbackPlan;
 import kr.lunaf.cloudislands.migration.rollback.MigrationRollbackService;
 import kr.lunaf.cloudislands.migration.rollback.MigrationRollbackService.RollbackTarget;
 import kr.lunaf.cloudislands.migration.superior.MigrationRunState;
+import kr.lunaf.cloudislands.migration.superior.MigrationSafetyPolicy;
 import kr.lunaf.cloudislands.migration.verify.MigrationVerifier;
 import kr.lunaf.cloudislands.migration.world.MigrationWorldBundle;
 import kr.lunaf.cloudislands.migration.world.MigrationWorldExtractor;
@@ -157,14 +158,7 @@ public final class MigrationAdminService {
         return "{\"state\":\"STATUS\""
             + migrationBoundaryFields()
             + rollbackSafetyFields(rollbackPlanAvailable)
-            + ",\"sourcePlugin\":\"SuperiorSkyblock2\""
-            + ",\"migrationInputOnly\":true"
-            + ",\"runtimeDependency\":false"
-            + ",\"operations\":\"scan,dryrun,extract,import,verify,rollback,status\""
-            + ",\"migrationPipeline\":\"read-only-scan,manifest,dry-run,conflict-report,approval,db-import,world-cell-extract,bundle-checksum,cloudislands-activate-test,rollback-plan\""
-            + ",\"migrationChecksumPolicy\":\"sha256-every-extracted-world-bundle-and-verify-against-imported-snapshot\""
-            + ",\"migrationActivationTestPolicy\":\"verify-can-run-cloudislands-activation-test-without-superiorskyblock2-runtime-dependency\""
-            + ",\"migrationImportPolicy\":\"approval-token-and-unchanged-source-fingerprint-required-after-successful-dryrun\""
+            + migrationSafetyStatusFields()
             + ",\"scanManifests\":" + lastScan.manifests().size()
             + ",\"planManifests\":" + lastPlan.manifests().size()
             + ",\"canImport\":" + lastPlan.canImport()
@@ -305,7 +299,21 @@ public final class MigrationAdminService {
     }
 
     private String migrationBoundaryFields() {
-        return ",\"sourcePlugin\":\"SuperiorSkyblock2\",\"migrationInputOnly\":true,\"runtimeDependency\":false,\"targetRuntime\":\"CloudIslands\"";
+        return ",\"sourcePlugin\":\"" + MigrationSafetyPolicy.SOURCE_PLUGIN
+            + "\",\"migrationInputOnly\":" + MigrationSafetyPolicy.MIGRATION_INPUT_ONLY
+            + ",\"runtimeDependency\":" + MigrationSafetyPolicy.RUNTIME_DEPENDENCY_ALLOWED
+            + ",\"targetRuntime\":\"" + MigrationSafetyPolicy.TARGET_RUNTIME + "\"";
+    }
+
+    private String migrationSafetyStatusFields() {
+        return ",\"runtimePolicy\":\"" + MigrationSafetyPolicy.RUNTIME_POLICY + "\""
+            + ",\"forbiddenRuntimeProviders\":\"" + MigrationSafetyPolicy.forbiddenRuntimeProvidersCsv() + "\""
+            + ",\"forbiddenRuntimeAction\":\"" + MigrationSafetyPolicy.FORBIDDEN_RUNTIME_ACTION + "\""
+            + ",\"operations\":\"" + MigrationSafetyPolicy.OPERATIONS + "\""
+            + ",\"migrationPipeline\":\"" + MigrationSafetyPolicy.PIPELINE + "\""
+            + ",\"migrationChecksumPolicy\":\"" + MigrationSafetyPolicy.CHECKSUM_POLICY + "\""
+            + ",\"migrationActivationTestPolicy\":\"" + MigrationSafetyPolicy.ACTIVATION_TEST_POLICY + "\""
+            + ",\"migrationImportPolicy\":\"" + MigrationSafetyPolicy.APPROVAL_POLICY + "\"";
     }
 
     public synchronized String importLastPlan() {
