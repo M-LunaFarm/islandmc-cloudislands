@@ -1270,6 +1270,7 @@ public final class AdminFactoryCommand {
                         "legacy-satismc-import-verify",
                         "legacy-satismc-import-import",
                         "legacy-satismc-import-approval-token",
+                        "legacy-satismc-import-approval-fingerprint-token",
                         "legacy-satismc-import-read-only-actions",
                         "legacy-satismc-import-write-actions",
                         "legacy-satismc-import-mode",
