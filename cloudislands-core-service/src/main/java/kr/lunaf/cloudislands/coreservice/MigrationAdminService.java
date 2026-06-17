@@ -280,6 +280,7 @@ public final class MigrationAdminService {
         lastExtractionRoot = targetRoot;
         List<MigrationIssue> issues = new ArrayList<>();
         int extractedBundles = 0;
+        int extractedManifests = 0;
         long extractedFiles = 0L;
         long extractedBytes = 0L;
         for (MigrationManifest manifest : lastScan.manifests()) {
@@ -290,6 +291,9 @@ public final class MigrationAdminService {
             try {
                 MigrationWorldBundle bundle = worldExtractor.extract(worldExtractor.plan(manifest, targetRoot));
                 extractedBundles++;
+                if (Files.isRegularFile(bundle.manifestPath())) {
+                    extractedManifests++;
+                }
                 extractedFiles += bundle.fileCount();
                 extractedBytes += bundle.sizeBytes();
             } catch (RuntimeException | java.io.IOException exception) {
@@ -297,7 +301,7 @@ public final class MigrationAdminService {
             }
         }
         MigrationRunState state = issues.stream().anyMatch(MigrationIssue::blocking) ? MigrationRunState.EXTRACT_FAILED : MigrationRunState.EXTRACTED;
-        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"path\":\"" + escape(targetRoot.toString()) + "\",\"manifests\":" + lastScan.manifests().size() + ",\"extractedBundles\":" + extractedBundles + ",\"extractedFiles\":" + extractedFiles + ",\"extractedBytes\":" + extractedBytes + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"path\":\"" + escape(targetRoot.toString()) + "\",\"manifests\":" + lastScan.manifests().size() + ",\"extractedBundles\":" + extractedBundles + ",\"extractedManifests\":" + extractedManifests + ",\"bundleManifestPolicy\":\"cloudislands-portable-manifest-json-required\",\"extractedFiles\":" + extractedFiles + ",\"extractedBytes\":" + extractedBytes + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
     }
 
     private String migrationBoundaryFields() {
@@ -336,7 +340,7 @@ public final class MigrationAdminService {
             List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_SOURCE_CHANGED_AFTER_DRYRUN", "rerun scan and dryrun before import", true));
             return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\"" + migrationBoundaryFields() + ",\"imported\":false,\"importedIslands\":0,\"sourceFingerprint\":\"" + escape(currentFingerprint) + "\",\"dryRunFingerprint\":\"" + escape(lastDryRunFingerprint) + "\"" + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
         }
-        long[] extractedStats = new long[] {0L, 0L, 0L};
+        long[] extractedStats = new long[] {0L, 0L, 0L, 0L};
         BundlePreflight preflight = preflightMigrationBundles(lastPlan.manifests());
         if (!preflight.issues().isEmpty()) {
             return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\"" + migrationBoundaryFields() + ",\"imported\":false,\"importedIslands\":0,\"extractedBundles\":0,\"extractedFiles\":0,\"extractedBytes\":0" + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), preflight.issues())) + ",\"issues\":" + issuesJson(preflight.issues()) + "}";
@@ -411,12 +415,15 @@ public final class MigrationAdminService {
             extractedStats[0]++;
             extractedStats[1] += bundle.fileCount();
             extractedStats[2] += bundle.sizeBytes();
+            if (Files.isRegularFile(bundle.manifestPath())) {
+                extractedStats[3]++;
+            }
             playerProfiles.setPrimaryIsland(manifest.ownerUuid(), manifest.islandId());
         });
         lastApprovalToken = "";
         lastRollbackPlan = result.rollbackPlan();
         MigrationRunState state = result.imported() ? MigrationRunState.IMPORTED : MigrationRunState.DRY_RUN_FAILED;
-        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"imported\":" + result.imported() + ",\"importedIslands\":" + result.importedIslands() + ",\"sourceFingerprint\":\"" + escape(currentFingerprint) + "\",\"extractedBundles\":" + extractedStats[0] + ",\"extractedFiles\":" + extractedStats[1] + ",\"extractedBytes\":" + extractedStats[2] + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), result.issues())) + ",\"issues\":" + issuesJson(result.issues()) + ",\"rollbackPlan\":" + rollbackPlanJson(result.rollbackPlan()) + "}";
+        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"imported\":" + result.imported() + ",\"importedIslands\":" + result.importedIslands() + ",\"sourceFingerprint\":\"" + escape(currentFingerprint) + "\",\"extractedBundles\":" + extractedStats[0] + ",\"extractedManifests\":" + extractedStats[3] + ",\"bundleManifestPolicy\":\"cloudislands-portable-manifest-json-required\",\"extractedFiles\":" + extractedStats[1] + ",\"extractedBytes\":" + extractedStats[2] + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), result.issues())) + ",\"issues\":" + issuesJson(result.issues()) + ",\"rollbackPlan\":" + rollbackPlanJson(result.rollbackPlan()) + "}";
     }
 
     private String sourceFingerprint(Path source) {
@@ -480,6 +487,7 @@ public final class MigrationAdminService {
             ? (lastExtractionRoot == null ? migrationBundleRoot : lastExtractionRoot)
             : resolveMigrationBundleRoot(bundleRootPath);
         int extractedBundles = 0;
+        int verifiedManifests = 0;
         long extractedFiles = 0L;
         long extractedBytes = 0L;
         int activationTested = 0;
@@ -521,6 +529,9 @@ public final class MigrationAdminService {
                     MigrationWorldBundle bundle = worldExtractor.verify(worldExtractor.plan(manifest, verifyBundleRoot));
                     matched &= snapshotRecordMatches(issues, manifest, bundle, verifyBundleRoot);
                     extractedBundles++;
+                    if (Files.isRegularFile(bundle.manifestPath())) {
+                        verifiedManifests++;
+                    }
                     extractedFiles += bundle.fileCount();
                     extractedBytes += bundle.sizeBytes();
                     worldBundleVerified = true;
@@ -556,6 +567,8 @@ public final class MigrationAdminService {
                 + ",\"expected\":" + lastScan.manifests().size()
                 + ",\"imported\":" + imported.size()
                 + ",\"extractedBundles\":" + extractedBundles
+                + ",\"verifiedManifests\":" + verifiedManifests
+                + ",\"bundleManifestPolicy\":\"cloudislands-portable-manifest-json-required\""
                 + ",\"extractedFiles\":" + extractedFiles
                 + ",\"extractedBytes\":" + extractedBytes
                 + ",\"activationTested\":" + activationTested
@@ -570,7 +583,7 @@ public final class MigrationAdminService {
             passed = false;
             state = MigrationRunState.VERIFYING;
         }
-        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"path\":\"" + escape(verifyBundleRoot.toString()) + "\",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"passed\":" + passed + ",\"expected\":" + lastScan.manifests().size() + ",\"imported\":" + imported.size() + ",\"extractedBundles\":" + extractedBundles + ",\"extractedFiles\":" + extractedFiles + ",\"extractedBytes\":" + extractedBytes + ",\"activationTested\":" + activationTested + ",\"activationTestPassed\":" + activationTestPassed + ",\"activationTestMode\":\"" + activationTestMode + "\",\"activationLifecycleTesterAvailable\":" + (activationTester != null) + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"path\":\"" + escape(verifyBundleRoot.toString()) + "\",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"passed\":" + passed + ",\"expected\":" + lastScan.manifests().size() + ",\"imported\":" + imported.size() + ",\"extractedBundles\":" + extractedBundles + ",\"verifiedManifests\":" + verifiedManifests + ",\"bundleManifestPolicy\":\"cloudislands-portable-manifest-json-required\",\"extractedFiles\":" + extractedFiles + ",\"extractedBytes\":" + extractedBytes + ",\"activationTested\":" + activationTested + ",\"activationTestPassed\":" + activationTestPassed + ",\"activationTestMode\":\"" + activationTestMode + "\",\"activationLifecycleTesterAvailable\":" + (activationTester != null) + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
     }
 
     public synchronized String rollbackLastImport() {
