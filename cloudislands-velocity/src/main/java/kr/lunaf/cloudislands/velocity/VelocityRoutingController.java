@@ -54,6 +54,10 @@ public final class VelocityRoutingController {
     private final AtomicLong fallbackMissing = new AtomicLong();
     private final AtomicLong fallbackFailures = new AtomicLong();
     private final AtomicLong fallbackSkippedOffline = new AtomicLong();
+    private final AtomicLong pendingRouteLookups = new AtomicLong();
+    private final AtomicLong pendingRouteResumes = new AtomicLong();
+    private final AtomicLong pendingRouteMissing = new AtomicLong();
+    private final AtomicLong pendingRouteFailures = new AtomicLong();
     private volatile String lastFallbackCode = "none";
     private volatile String lastFallbackCategory = "none";
     private volatile String lastFallbackResult = "none";
@@ -149,6 +153,10 @@ public final class VelocityRoutingController {
             + ", fallbackMissing=" + fallbackMissing.get()
             + ", fallbackFailures=" + fallbackFailures.get()
             + ", fallbackSkippedOffline=" + fallbackSkippedOffline.get()
+            + ", pendingRouteLookups=" + pendingRouteLookups.get()
+            + ", pendingRouteResumes=" + pendingRouteResumes.get()
+            + ", pendingRouteMissing=" + pendingRouteMissing.get()
+            + ", pendingRouteFailures=" + pendingRouteFailures.get()
             + ", lastFallbackCode=" + lastFallbackCode
             + ", lastFallbackCategory=" + lastFallbackCategory
             + ", lastFallbackResult=" + lastFallbackResult
@@ -167,6 +175,10 @@ public final class VelocityRoutingController {
             + "cloudislands_velocity_fallback_missing_total " + fallbackMissing.get() + "\n"
             + "cloudislands_velocity_fallback_failed_total " + fallbackFailures.get() + "\n"
             + "cloudislands_velocity_fallback_skipped_offline_total " + fallbackSkippedOffline.get() + "\n"
+            + "cloudislands_velocity_pending_route_lookups_total " + pendingRouteLookups.get() + "\n"
+            + "cloudislands_velocity_pending_route_resumes_total " + pendingRouteResumes.get() + "\n"
+            + "cloudislands_velocity_pending_route_missing_total " + pendingRouteMissing.get() + "\n"
+            + "cloudislands_velocity_pending_route_failures_total " + pendingRouteFailures.get() + "\n"
             + "cloudislands_velocity_last_fallback_at_epoch_seconds " + (lastFallbackAtEpochMillis / 1000L) + "\n";
     }
 
@@ -326,9 +338,17 @@ public final class VelocityRoutingController {
     }
 
     public void routePendingSession(Player player) {
-        coreApiClient.findAnyRouteSession(player.getUniqueId()).thenAccept(session ->
-            session.ifPresent(value -> connectPendingSession(player, value))
-        ).exceptionally(error -> null);
+        pendingRouteLookups.incrementAndGet();
+        coreApiClient.findAnyRouteSession(player.getUniqueId()).thenAccept(session -> {
+            if (session.isPresent()) {
+                connectPendingSession(player, session.get());
+            } else {
+                pendingRouteMissing.incrementAndGet();
+            }
+        }).exceptionally(error -> {
+            pendingRouteFailures.incrementAndGet();
+            return null;
+        });
     }
 
     public void clearPlayerState(UUID playerUuid) {
@@ -341,6 +361,7 @@ public final class VelocityRoutingController {
         String targetServerName = session.targetServerName() == null || session.targetServerName().isBlank() ? session.targetNode() : session.targetServerName();
         RegisteredServer server = findServer(targetServerName);
         if (server == null) {
+            pendingRouteFailures.incrementAndGet();
             coreApiClient.clearRoute(session.playerUuid(), session.ticketId(), "PENDING_TARGET_NOT_FOUND").exceptionally(error -> null);
             fallback(player, "이전 섬 이동 경로를 찾을 수 없어 로비로 이동합니다.");
             return;
@@ -348,10 +369,14 @@ public final class VelocityRoutingController {
         actionBar(player, "이전 섬 이동을 이어갑니다.");
         player.createConnectionRequest(server).connectWithIndication().thenAccept(success -> {
             if (!success) {
+                pendingRouteFailures.incrementAndGet();
                 coreApiClient.clearRoute(session.playerUuid(), session.ticketId(), "PENDING_CONNECT_FAILED").exceptionally(error -> null);
                 fallback(player, "이전 섬 이동을 이어가지 못해 로비로 이동합니다.");
+                return;
             }
+            pendingRouteResumes.incrementAndGet();
         }).exceptionally(error -> {
+            pendingRouteFailures.incrementAndGet();
             coreApiClient.clearRoute(session.playerUuid(), session.ticketId(), "PENDING_CONNECT_EXCEPTION").exceptionally(ignored -> null);
             fallback(player, "이전 섬 이동을 이어가지 못해 로비로 이동합니다.");
             return null;
