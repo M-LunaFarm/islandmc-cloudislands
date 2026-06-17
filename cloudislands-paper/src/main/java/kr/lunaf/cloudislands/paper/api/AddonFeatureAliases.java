@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper.api;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 final class AddonFeatureAliases {
     private AddonFeatureAliases() {
@@ -38,10 +39,36 @@ final class AddonFeatureAliases {
             String feature = parts[0].trim();
             String required = normalize(metadata, parts[1].trim());
             if (!feature.isBlank() && !required.isBlank()) {
-                values.put(feature, required);
+                String canonicalFeature = normalize(metadata, feature);
+                if (!canonicalFeature.equals(required)) {
+                    values.putIfAbsent(canonicalFeature, required);
+                }
             }
         }
         return Map.copyOf(values);
+    }
+
+    static boolean featureEnabled(Map<String, String> metadata, Map<String, Boolean> features, String feature) {
+        return featureEnabled(metadata, features == null ? Map.of() : features, feature, new java.util.HashSet<>());
+    }
+
+    private static boolean featureEnabled(Map<String, String> metadata, Map<String, Boolean> features, String feature, Set<String> visited) {
+        String canonical = normalize(metadata, feature);
+        if (canonical.isBlank() || !visited.add(canonical)) {
+            return true;
+        }
+        boolean enabled = features.getOrDefault(canonical, true);
+        String requested = feature == null ? "" : feature.trim();
+        if (!requested.isBlank() && features.containsKey(requested)) {
+            enabled = enabled && features.get(requested);
+        }
+        for (String alias : aliasesFor(metadata, canonical)) {
+            if (features.containsKey(alias)) {
+                enabled = enabled && features.get(alias);
+            }
+        }
+        String required = dependencies(metadata).get(canonical);
+        return required == null ? enabled : enabled && featureEnabled(metadata, features, required, visited);
     }
 
     private static List<Alias> aliases(Map<String, String> metadata) {

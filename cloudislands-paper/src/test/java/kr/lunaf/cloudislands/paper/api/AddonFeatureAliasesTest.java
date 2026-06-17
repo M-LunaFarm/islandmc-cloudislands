@@ -22,4 +22,28 @@ class AddonFeatureAliasesTest {
 
         assertEquals(java.util.List.of("factories"), AddonFeatureAliases.aliasesFor(metadata, "machines"));
     }
+
+    @Test
+    void resolvesTransitiveFeatureDependencies() {
+        Map<String, String> metadata = Map.of(
+                "feature-aliases", "missions:contracts",
+                "feature-dependencies", "contracts:storage,missions:contracts"
+        );
+        Map<String, Boolean> features = Map.of(
+                "storage", false,
+                "contracts", true,
+                "missions", true
+        );
+
+        assertEquals(false, AddonFeatureAliases.featureEnabled(metadata, features, "contracts"));
+        assertEquals(false, AddonFeatureAliases.featureEnabled(metadata, features, "missions"));
+    }
+
+    @Test
+    void aliasFalseStillDisablesCanonicalFeature() {
+        Map<String, String> metadata = Map.of("feature-aliases", "generators:resource-nodes");
+        Map<String, Boolean> features = Map.of("resource-nodes", true, "generators", false);
+
+        assertEquals(false, AddonFeatureAliases.featureEnabled(metadata, features, "resource-nodes"));
+    }
 }
