@@ -36,6 +36,7 @@ routing:
   wait-for-activation-timeout-seconds: 20
   fallback-on-failure: "Lobby"
   # Keep true for production so players see logical islands, not Island-1/Island-2 node names.
+  # This also hides backend server names from route summaries, debug output, and failure messages.
   hide-node-names: true
 
 security:
