@@ -32,9 +32,11 @@ public final class CoreApiSatisStateService {
     private static final int MAX_PENDING_BULK_RETRIES = 64;
     private static final String GLOBAL_TABLE_BULK_ENDPOINT = "/v1/addons/state/table/bulk";
     private static final String GLOBAL_TABLE_KEY_VALUE_BULK_ENDPOINT = "/v1/addons/state/table/key-value/bulk-save";
+    private static final String GLOBAL_TABLE_KEY_VALUE_BULK_LOAD_ENDPOINT = "/v1/addons/state/table/key-value/bulk-load";
     private static final String GLOBAL_FLATTENED_FALLBACK_ENDPOINT = "/v1/addons/state/bulk";
     private static final String ISLAND_TABLE_BULK_ENDPOINT = "/v1/addons/islands/state/table/bulk";
     private static final String ISLAND_TABLE_KEY_VALUE_BULK_ENDPOINT = "/v1/addons/islands/state/table/key-value/bulk-save";
+    private static final String ISLAND_TABLE_KEY_VALUE_BULK_LOAD_ENDPOINT = "/v1/addons/islands/state/table/key-value/bulk-load";
     private static final String ISLAND_FLATTENED_FALLBACK_ENDPOINT = "/v1/addons/islands/state/bulk";
     private static final String ISLAND_TABLE_REPLACE_FALLBACK_ENDPOINT = "/v1/addons/islands/state/table/replace";
 
@@ -184,6 +186,10 @@ public final class CoreApiSatisStateService {
         return flattenedFallbackEnabled
                 ? "queue-retry-then-flattened-addon-state"
                 : "queue-retry-only";
+    }
+
+    public String readerTransportMode() {
+        return "table-key-value-bulk-load-primary-with-flattened-state-fallback";
     }
 
     public String writerReadiness() {
@@ -934,19 +940,17 @@ public final class CoreApiSatisStateService {
         if (!stateFeatureEnabled("market")) {
             return false;
         }
-        Map<String, String> state;
-        try {
-            state = cloudIslandsApi.addons().state(addonId).join();
-        } catch (RuntimeException exception) {
-            logger.warning("Failed to read Satis core-api global table state: " + exception.getMessage());
-            return false;
+        Map<String, String> state = loadGlobalTablesForHydration(List.of("market_daily"));
+        if (state.isEmpty()) {
+            state = loadGlobalFlattenedStateFallback();
         }
         if (state == null || state.isEmpty()) {
             return false;
         }
         boolean[] restored = {false};
+        Map<String, String> hydrationState = state;
         database.withCoreStatePublishingSuspended(() -> {
-            for (Map.Entry<String, String> entry : state.entrySet()) {
+            for (Map.Entry<String, String> entry : hydrationState.entrySet()) {
                 String key = entry.getKey();
                 String value = entry.getValue();
                 if (key == null || value == null || !key.startsWith(IslandAddonService.tableStateKeyPrefix("market_daily"))) {
@@ -977,16 +981,25 @@ public final class CoreApiSatisStateService {
         if (cloudIslandsApi == null || islandId == null || database == null) {
             return false;
         }
-        Map<String, String> state;
-        try {
-            state = cloudIslandsApi.addons().islandState(addonId, islandId).join();
-        } catch (RuntimeException exception) {
-            logger.warning("Failed to read Satis core-api table state for island " + islandId + ": " + exception.getMessage());
-            return false;
+        Map<String, String> state = loadIslandTablesForHydration(islandId, List.of(
+                "factory_islands",
+                "virtual_inventories",
+                "machines",
+                "resource_nodes",
+                "contracts",
+                "island_unlocks",
+                "market_personal_daily",
+                "ledger",
+                "item_networks",
+                "power_networks"
+        ));
+        if (state.isEmpty()) {
+            state = loadIslandFlattenedStateFallback(islandId);
         }
         if (state == null || state.isEmpty()) {
             return false;
         }
+        Map<String, String> hydrationState = state;
         boolean[] restored = {false};
         List<ItemNetwork> itemNetworks = new ArrayList<>();
         List<PowerNetwork> powerNetworks = new ArrayList<>();
@@ -995,7 +1008,7 @@ public final class CoreApiSatisStateService {
         Set<UUID> itemNetworkIndex = networkIndex(state.get(itemNetworkIndexKey));
         Set<UUID> powerNetworkIndex = networkIndex(state.get(powerNetworkIndexKey));
         database.withCoreStatePublishingSuspended(() -> {
-            for (Map.Entry<String, String> entry : state.entrySet()) {
+            for (Map.Entry<String, String> entry : hydrationState.entrySet()) {
                 String key = entry.getKey();
                 String value = entry.getValue();
                 if (key == null || value == null) {
@@ -1074,6 +1087,100 @@ public final class CoreApiSatisStateService {
             }
         });
         return restored[0];
+    }
+
+    public Map<String, String> loadGlobalTable(String table) {
+        if (cloudIslandsApi == null || table == null || table.isBlank()) {
+            return Map.of();
+        }
+        if (!stateFeatureEnabled("addon-state") || !tableNameFeatureEnabled(table)) {
+            return Map.of();
+        }
+        try {
+            return safeState(cloudIslandsApi.addons().tableKeyValueBulkLoadState(addonId, table).join());
+        } catch (RuntimeException exception) {
+            logger.warning("Failed to bulk-load Satis core-api global table " + table + " through " + GLOBAL_TABLE_KEY_VALUE_BULK_LOAD_ENDPOINT + ": " + exception.getMessage());
+            recordCoreStateFailure("global-table-load", exception);
+            return Map.of();
+        }
+    }
+
+    public Map<String, String> loadIslandTable(UUID islandId, String table) {
+        if (cloudIslandsApi == null || islandId == null || table == null || table.isBlank()) {
+            return Map.of();
+        }
+        if (!stateFeatureEnabled("addon-state") || !tableNameFeatureEnabled(table)) {
+            return Map.of();
+        }
+        try {
+            return safeState(cloudIslandsApi.addons().tableKeyValueBulkLoadIslandState(addonId, islandId, table).join());
+        } catch (RuntimeException exception) {
+            logger.warning("Failed to bulk-load Satis core-api island table " + table + " for island " + islandId + " through " + ISLAND_TABLE_KEY_VALUE_BULK_LOAD_ENDPOINT + ": " + exception.getMessage());
+            recordCoreStateFailure("island-table-load", exception);
+            return Map.of();
+        }
+    }
+
+    private Map<String, String> loadGlobalTablesForHydration(List<String> tables) {
+        Map<String, String> state = new LinkedHashMap<>();
+        for (String table : tables) {
+            state.putAll(flattenTable(table, loadGlobalTable(table)));
+        }
+        return Map.copyOf(state);
+    }
+
+    private Map<String, String> loadIslandTablesForHydration(UUID islandId, List<String> tables) {
+        Map<String, String> state = new LinkedHashMap<>();
+        for (String table : tables) {
+            state.putAll(flattenTable(table, loadIslandTable(islandId, table)));
+        }
+        return Map.copyOf(state);
+    }
+
+    private Map<String, String> flattenTable(String table, Map<String, String> values) {
+        if (table == null || table.isBlank() || values == null || values.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> state = new LinkedHashMap<>();
+        values.forEach((key, value) -> {
+            if (key != null && !key.isBlank() && value != null) {
+                state.put(IslandAddonService.tableStateKey(table, key), value);
+            }
+        });
+        return Map.copyOf(state);
+    }
+
+    private Map<String, String> loadGlobalFlattenedStateFallback() {
+        try {
+            return safeState(cloudIslandsApi.addons().state(addonId).join());
+        } catch (RuntimeException exception) {
+            logger.warning("Failed to read Satis core-api global table state: " + exception.getMessage());
+            recordCoreStateFailure("global-state-load-fallback", exception);
+            return Map.of();
+        }
+    }
+
+    private Map<String, String> loadIslandFlattenedStateFallback(UUID islandId) {
+        try {
+            return safeState(cloudIslandsApi.addons().islandState(addonId, islandId).join());
+        } catch (RuntimeException exception) {
+            logger.warning("Failed to read Satis core-api table state for island " + islandId + ": " + exception.getMessage());
+            recordCoreStateFailure("island-state-load-fallback", exception);
+            return Map.of();
+        }
+    }
+
+    private Map<String, String> safeState(Map<String, String> state) {
+        if (state == null || state.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> copy = new LinkedHashMap<>();
+        state.forEach((key, value) -> {
+            if (key != null && value != null) {
+                copy.put(key, value);
+            }
+        });
+        return Map.copyOf(copy);
     }
 
     private boolean tableFeatureEnabled(String key) {
