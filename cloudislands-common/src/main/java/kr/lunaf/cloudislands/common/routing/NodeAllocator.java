@@ -63,14 +63,24 @@ public final class NodeAllocator {
     }
 
     public Optional<NodeLoad> selectReadyNode(List<NodeLoad> nodes, Instant now, String templateId, String minNodeVersion, String pool) {
-        Map<String, Integer> velocityServerCounts = velocityServerCounts(nodes);
-        return nodes.stream()
+        return readyNodeCandidates(nodes, now, templateId, minNodeVersion, pool).stream()
+            .min(allocationComparator());
+    }
+
+    public long readyNodeCandidateCount(List<NodeLoad> nodes, Instant now, String templateId, String minNodeVersion, String pool) {
+        return readyNodeCandidates(nodes, now, templateId, minNodeVersion, pool).size();
+    }
+
+    private List<NodeLoad> readyNodeCandidates(List<NodeLoad> nodes, Instant now, String templateId, String minNodeVersion, String pool) {
+        List<NodeLoad> safeNodes = nodes == null ? List.of() : nodes;
+        Map<String, Integer> velocityServerCounts = velocityServerCounts(safeNodes);
+        return safeNodes.stream()
             .filter(node -> node.inPool(pool))
             .filter(node -> !duplicateVelocityServerName(node, velocityServerCounts))
             .filter(node -> newActivationBlockReason(node, now).isBlank())
             .filter(node -> node.supportsTemplate(templateId))
             .filter(node -> node.satisfiesMinVersion(minNodeVersion))
-            .min(allocationComparator());
+            .toList();
     }
 
     public Optional<NodeLoad> selectTargetNode(List<NodeLoad> nodes, Instant now, String targetNodeId, String templateId, String minNodeVersion, String pool) {

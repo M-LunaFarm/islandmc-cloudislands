@@ -442,15 +442,7 @@ public final class RoutingOrchestrator {
             .filter(NodeLoad::defaultNodeIdentityRisk)
             .count();
         long duplicateVelocityServerNames = duplicateVelocityServerNameCount(poolSnapshot);
-        long routeCandidateEstimate = poolSnapshot.stream()
-            .filter(node -> node.state() == NodeState.READY || node.state() == NodeState.SOFT_FULL)
-            .filter(NodeLoad::storageAvailable)
-            .filter(node -> !node.storagePrimaryDegraded())
-            .filter(node -> !node.defaultNodeIdentityRisk())
-            .filter(node -> node.hardPlayerCap() <= 0 || node.players() < node.hardPlayerCap())
-            .filter(node -> node.maxActiveIslands() <= 0 || node.activeIslands() < node.maxActiveIslands())
-            .filter(node -> node.maxActivationQueue() <= 0 || node.activationQueue() < node.maxActivationQueue())
-            .count();
+        long routeCandidateEstimate = allocator.readyNodeCandidateCount(snapshot, Instant.now(), "", "", islandPool);
         Map<String, String> details = new LinkedHashMap<>();
         details.put("pool", islandPool);
         details.put("nodeCount", Long.toString(poolNodes));
@@ -463,6 +455,7 @@ public final class RoutingOrchestrator {
         details.put("defaultIdentityRiskNodeCount", Long.toString(defaultIdentityRisk));
         details.put("duplicateVelocityServerNameNodeCount", Long.toString(duplicateVelocityServerNames));
         details.put("routeCandidateEstimateNodeCount", Long.toString(routeCandidateEstimate));
+        details.put("routeCandidateEstimatePolicy", "allocator-ready-node-candidates-no-fixed-node-limit");
         details.put("blockReason", publicBlockReason(debugReason));
         details.put("physicalNodeNamesExposed", "false");
         return Map.copyOf(details);

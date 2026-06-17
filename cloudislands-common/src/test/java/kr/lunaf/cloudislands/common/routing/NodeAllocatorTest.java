@@ -29,6 +29,7 @@ class NodeAllocatorTest {
 
         assertEquals("node-e", selected.nodeId());
         assertEquals("server-e", selected.velocityServerName());
+        assertEquals(3L, allocator.readyNodeCandidateCount(nodes, NOW, "default", "1.0.0", "island"));
     }
 
     @Test
@@ -46,6 +47,7 @@ class NodeAllocatorTest {
         NodeLoad selected = allocator.selectReadyNode(nodes, NOW, "default", "1.0.0", "island").orElseThrow();
 
         assertEquals("node-c", selected.nodeId());
+        assertEquals(1L, allocator.readyNodeCandidateCount(nodes, NOW, "default", "1.0.0", "island"));
         assertEquals("DUPLICATE_VELOCITY_SERVER_NAME",
                 allocator.targetNodeBlockReason(nodes, NOW, "node-a", "default", "1.0.0", "island"));
         assertEquals("DUPLICATE_VELOCITY_SERVER_NAME",
@@ -65,6 +67,7 @@ class NodeAllocatorTest {
         );
 
         assertTrue(allocator.selectReadyNode(nodes, NOW, "default", "1.0.0", "island").isEmpty());
+        assertEquals(0L, allocator.readyNodeCandidateCount(nodes, NOW, "default", "1.0.0", "island"));
         assertEquals("STATE_SOFT_FULL", allocator.readyNodeBlockReason(nodes, NOW, "default", "1.0.0", "island"));
     }
 
