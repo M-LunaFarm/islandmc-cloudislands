@@ -225,6 +225,18 @@ public final class RoutingOrchestrator {
         if (ticket == null) {
             return "TICKET_NOT_FOUND";
         }
+        if (ticket.state() == RouteTicketState.CONSUMED) {
+            return "TICKET_ALREADY_CONSUMED";
+        }
+        if (ticket.state() == RouteTicketState.EXPIRED) {
+            return "TICKET_EXPIRED";
+        }
+        if (ticket.state() == RouteTicketState.CANCELLED) {
+            return "TICKET_CANCELLED";
+        }
+        if (ticket.state() == RouteTicketState.FAILED) {
+            return "TICKET_FAILED";
+        }
         if (ticket.expiresAt().isBefore(Instant.now())) {
             return "TICKET_EXPIRED";
         }
@@ -236,6 +248,9 @@ public final class RoutingOrchestrator {
         }
         if (!ticket.targetNode().equals(nodeId)) {
             return "NODE_MISMATCH";
+        }
+        if (nonce == null || nonce.isBlank()) {
+            return "NONCE_MISSING";
         }
         if (!ticket.nonce().equals(nonce)) {
             return "NONCE_MISMATCH";
