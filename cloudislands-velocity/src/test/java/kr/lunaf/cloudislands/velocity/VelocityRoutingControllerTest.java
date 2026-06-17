@@ -51,6 +51,47 @@ class VelocityRoutingControllerTest {
         assertEquals("island-6", displayServerName(controller, "island-6"));
     }
 
+    @Test
+    void hidesRouteDiagnosticNodeFieldsWhenConfigured() throws Exception {
+        VelocityRoutingController controller = new VelocityRoutingController(
+                null,
+                null,
+                "Lobby",
+                20,
+                true,
+                true,
+                true,
+                "island",
+                30
+        );
+
+        assertEquals("", privateString(controller, "routeNodeSuffix", "island-2"));
+        assertEquals("", privateString(controller, "routeRequestedNodeSuffix", "island-3"));
+        assertEquals("", privateString(controller, "routeServerSuffix", "island-4"));
+        assertEquals("", privateString(controller, "runtimeWorldSuffix", "ci_island_shard_03"));
+        assertEquals("", privateString(controller, "runtimeCellSuffix", "{\"cellX\":12,\"cellZ\":7}"));
+    }
+
+    @Test
+    void sanitizesPhysicalNodeNamesFromPlayerMessages() throws Exception {
+        VelocityRoutingController controller = new VelocityRoutingController(
+                null,
+                null,
+                "Lobby",
+                20,
+                true,
+                true,
+                true,
+                "island",
+                30
+        );
+
+        String message = privateString(controller, "playerMessage", "Island-1 준비 중, island_2 로 이동합니다.");
+
+        assertFalse(message.contains("Island-1"));
+        assertFalse(message.contains("island_2"));
+    }
+
     private String displayServerName(VelocityRoutingController controller, String serverName) throws Exception {
         Method method = VelocityRoutingController.class.getDeclaredMethod("displayServerName", String.class);
         method.setAccessible(true);
@@ -61,5 +102,11 @@ class VelocityRoutingControllerTest {
         Method method = VelocityRoutingController.class.getDeclaredMethod("isIslandPoolServer", String.class);
         method.setAccessible(true);
         return (boolean) method.invoke(controller, serverName);
+    }
+
+    private String privateString(VelocityRoutingController controller, String methodName, String value) throws Exception {
+        Method method = VelocityRoutingController.class.getDeclaredMethod(methodName, String.class);
+        method.setAccessible(true);
+        return (String) method.invoke(controller, value);
     }
 }
