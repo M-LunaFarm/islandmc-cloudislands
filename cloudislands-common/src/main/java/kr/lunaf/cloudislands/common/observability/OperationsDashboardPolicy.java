@@ -32,7 +32,8 @@ public final class OperationsDashboardPolicy {
         metrics.put("active-islands", "cloudislands_node_active_islands");
         metrics.put("active-island-usage-by-node", "cloudislands_node_active_island_usage_ratio");
         metrics.put("active-island-usage-cluster", "cloudislands_cluster_active_island_usage_ratio");
-        metrics.put("average-island-activation-seconds", "cloudislands_island_activation_seconds");
+        metrics.put("average-island-activation-seconds", "cloudislands_cluster_avg_island_activation_seconds");
+        metrics.put("island-activation-seconds-by-node", "cloudislands_island_activation_seconds");
         metrics.put("island-save-failures", "cloudislands_island_save_failures_total");
         metrics.put("route-failures", "cloudislands_route_ticket_failed_total");
         metrics.put("redis-latency", "cloudislands_redis_latency_seconds");

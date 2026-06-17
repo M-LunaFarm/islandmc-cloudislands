@@ -168,6 +168,8 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_cluster_player_usage_ratio", "gauge");
         help(out, "cloudislands_cluster_active_islands", "Total active islands across fresh CloudIslands nodes");
         type(out, "cloudislands_cluster_active_islands", "gauge");
+        help(out, "cloudislands_cluster_avg_island_activation_seconds", "Average latest island activation duration across fresh Paper nodes");
+        type(out, "cloudislands_cluster_avg_island_activation_seconds", "gauge");
         help(out, "cloudislands_cluster_active_island_usage_ratio", "Total active islands divided by total maximum active islands across fresh nodes");
         type(out, "cloudislands_cluster_active_island_usage_ratio", "gauge");
         help(out, "cloudislands_cluster_activation_queue", "Total activation queue depth across fresh CloudIslands nodes");
@@ -310,6 +312,8 @@ public final class PrometheusMetricsRenderer {
         long totalHardPlayerCap = 0L;
         long totalActiveIslands = 0L;
         long totalMaxActiveIslands = 0L;
+        double totalActivationSeconds = 0.0D;
+        long activationReports = 0L;
         long totalActivationQueue = 0L;
         long storageAvailableNodes = 0L;
         long activationEligibleNodes = 0L;
@@ -372,6 +376,17 @@ public final class PrometheusMetricsRenderer {
                     poolCounters[4]++;
                 }
                 maxMspt = Math.max(maxMspt, node.mspt());
+                String activationSeconds = node.heartbeatMetadata().get("storageDownloadSeconds");
+                if (activationSeconds != null && !activationSeconds.isBlank()) {
+                    try {
+                        double parsedActivationSeconds = Double.parseDouble(activationSeconds);
+                        if (parsedActivationSeconds >= 0.0D) {
+                            totalActivationSeconds += parsedActivationSeconds;
+                            activationReports++;
+                        }
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
             }
             labels(out, "cloudislands_nodes_online", node, null).append(fresh && node.state() != NodeState.DOWN ? 1 : 0).append('\n');
             labels(out, "cloudislands_node_heartbeat_age_seconds", node, null).append(heartbeatAgeSeconds).append('\n');
@@ -460,6 +475,7 @@ public final class PrometheusMetricsRenderer {
         out.append("cloudislands_cluster_players ").append(totalPlayers).append('\n');
         out.append("cloudislands_cluster_player_usage_ratio ").append(totalHardPlayerCap <= 0L ? 0.0D : (double) totalPlayers / totalHardPlayerCap).append('\n');
         out.append("cloudislands_cluster_active_islands ").append(totalActiveIslands).append('\n');
+        out.append("cloudislands_cluster_avg_island_activation_seconds ").append(activationReports <= 0L ? 0.0D : totalActivationSeconds / activationReports).append('\n');
         out.append("cloudislands_cluster_active_island_usage_ratio ").append(totalMaxActiveIslands <= 0L ? 0.0D : (double) totalActiveIslands / totalMaxActiveIslands).append('\n');
         out.append("cloudislands_cluster_activation_queue ").append(totalActivationQueue).append('\n');
         out.append("cloudislands_cluster_storage_available_nodes ").append(storageAvailableNodes).append('\n');
