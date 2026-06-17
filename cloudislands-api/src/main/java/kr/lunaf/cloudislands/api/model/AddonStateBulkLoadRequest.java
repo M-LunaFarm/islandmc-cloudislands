@@ -15,7 +15,7 @@ public record AddonStateBulkLoadRequest(
     }
 
     public boolean islandScoped() {
-        return islandId != null;
+        return islandId != null && !islandId.equals(new UUID(0L, 0L));
     }
 
     public static AddonStateBulkLoadRequest global(String addonId, String table) {
