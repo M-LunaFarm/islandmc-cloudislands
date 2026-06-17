@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
 import kr.lunaf.cloudislands.common.event.CacheInvalidationPlan;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
@@ -12,6 +13,7 @@ import kr.lunaf.cloudislands.coreservice.job.RedisStreamJobPublisher.RedisStream
 
 public final class RedisStreamEventPublisher implements GlobalEventPublisher {
     private final RedisStreamWriter writer;
+    private final AtomicLong failures = new AtomicLong();
 
     public RedisStreamEventPublisher(RedisStreamWriter writer) {
         this.writer = writer;
@@ -42,7 +44,15 @@ public final class RedisStreamEventPublisher implements GlobalEventPublisher {
             values.add(entry.getKey());
             values.add(entry.getValue());
         }
-        writer.xadd(RedisKeys.eventsStream(), values.toArray(String[]::new));
+        try {
+            writer.xadd(RedisKeys.eventsStream(), values.toArray(String[]::new));
+        } catch (RuntimeException ignored) {
+            failures.incrementAndGet();
+        }
+    }
+
+    public long failuresTotal() {
+        return failures.get();
     }
 
     private String cacheTargets(String eventType) {
