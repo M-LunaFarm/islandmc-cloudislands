@@ -29,6 +29,7 @@ api:
     network-exposure-policy: bind-public-only-with-ip-allowlist-mtls-and-token-controls
     security-posture-summary: token-or-mtls-core-api,separate-admin-token,per-command-permission,ip-allowlist-for-public-bind
     topology-privacy-policy: player-facing-messages-hide-physical-island-node-and-server-names
+    consistency-authority-policy: database-transactions-and-fencing-tokens-are-authoritative-redis-locks-are-advisory
     source-class: kr.lunaf.cloudislands.api.CloudIslandsApiContract
 removal:
   safe: true

@@ -15,24 +15,26 @@ public final class CloudIslandsApiContract {
     public static final String NETWORK_EXPOSURE_POLICY = "bind-public-only-with-ip-allowlist-mtls-and-token-controls";
     public static final String SECURITY_POSTURE_SUMMARY = "token-or-mtls-core-api,separate-admin-token,per-command-permission,ip-allowlist-for-public-bind";
     public static final String TOPOLOGY_PRIVACY_POLICY = "player-facing-messages-hide-physical-island-node-and-server-names";
+    public static final String CONSISTENCY_AUTHORITY_POLICY = "database-transactions-and-fencing-tokens-are-authoritative-redis-locks-are-advisory";
 
     private CloudIslandsApiContract() {
     }
 
     public static Map<String, String> metadata() {
-        return Map.of(
-            "read-policy", READ_POLICY,
-            "write-authority", WRITE_AUTHORITY,
-            "sync-event-policy", SYNC_EVENT_POLICY,
-            "addon-storage-policy", ADDON_STORAGE_POLICY,
-            "java-plugin-api-policy", JAVA_PLUGIN_API_POLICY,
-            "internal-api-policy", INTERNAL_API_POLICY,
-            "event-api-policy", EVENT_API_POLICY,
-            "core-auth-policy", CORE_AUTH_POLICY,
-            "admin-endpoint-policy", ADMIN_ENDPOINT_POLICY,
-            "network-exposure-policy", NETWORK_EXPOSURE_POLICY,
-            "security-posture-summary", SECURITY_POSTURE_SUMMARY,
-            "topology-privacy-policy", TOPOLOGY_PRIVACY_POLICY
+        return Map.ofEntries(
+            Map.entry("read-policy", READ_POLICY),
+            Map.entry("write-authority", WRITE_AUTHORITY),
+            Map.entry("sync-event-policy", SYNC_EVENT_POLICY),
+            Map.entry("addon-storage-policy", ADDON_STORAGE_POLICY),
+            Map.entry("java-plugin-api-policy", JAVA_PLUGIN_API_POLICY),
+            Map.entry("internal-api-policy", INTERNAL_API_POLICY),
+            Map.entry("event-api-policy", EVENT_API_POLICY),
+            Map.entry("core-auth-policy", CORE_AUTH_POLICY),
+            Map.entry("admin-endpoint-policy", ADMIN_ENDPOINT_POLICY),
+            Map.entry("network-exposure-policy", NETWORK_EXPOSURE_POLICY),
+            Map.entry("security-posture-summary", SECURITY_POSTURE_SUMMARY),
+            Map.entry("topology-privacy-policy", TOPOLOGY_PRIVACY_POLICY),
+            Map.entry("consistency-authority-policy", CONSISTENCY_AUTHORITY_POLICY)
         );
     }
 }
