@@ -143,19 +143,21 @@ public final class SatisAddonIntegrationPolicy {
             "core-reloaded"
     );
 
-    private static final Map<String, String> REQUIRED_SCENARIOS = Map.of(
-            "a-b-node-move", "factory-upgrade-menu-progress-state-restores-on-target-node-from-shared-state",
-            "satis-disabled", "base-cloudislands-create-visit-protect-save-restore-continues-without-satis-runtime-components",
-            "partial-features", "disabled-feature-registers-no-command-gui-listener-task-or-write-path",
-            "feature-off-data-retention", "existing-feature-state-is-preserved-and-not-deleted-while-feature-is-off",
-            "addon-reenable", "previous-addon-state-is-reloaded-from-shared-storage-by-island-uuid",
-            "island-id-storage", "satis-state-uses-cloudislands-island-uuid-as-persistent-owner-key",
-            "volatile-placement", "server-world-and-center-are-remapped-runtime-placement-not-persistent-identity",
-            "api-surface", "island-member-permission-location-upgrade-data-come-from-cloudislands-api-or-addon-spi",
-            "no-direct-internals", "satis-does-not-read-cloudislands-storage-runtime-internals-or-node-ownership-directly",
-            "external-addon", "cloudislands-boots-without-satis-jar-and-discovers-satis-through-addon-api-when-installed",
-            "missing-cloudislands-api", "satis-runtime-does-not-start-and-registers-no-commands-listeners-tickers-or-writers",
-            "no-superiorskyblock2", "legacy-skyblock-calls-are-replaced-by-cloudislands-api-or-addon-spi"
+    private static final Map<String, String> REQUIRED_SCENARIOS = Map.ofEntries(
+            Map.entry("a-b-node-move", "factory-upgrade-menu-progress-state-restores-on-target-node-from-shared-state"),
+            Map.entry("satis-disabled", "base-cloudislands-create-visit-protect-save-restore-continues-without-satis-runtime-components"),
+            Map.entry("partial-features", "disabled-feature-registers-no-command-gui-listener-task-or-write-path"),
+            Map.entry("feature-off-data-retention", "existing-feature-state-is-preserved-and-not-deleted-while-feature-is-off"),
+            Map.entry("addon-reenable", "previous-addon-state-is-reloaded-from-shared-storage-by-island-uuid"),
+            Map.entry("island-id-storage", "satis-state-uses-cloudislands-island-uuid-as-persistent-owner-key"),
+            Map.entry("volatile-placement", "server-world-and-center-are-remapped-runtime-placement-not-persistent-identity"),
+            Map.entry("api-surface", "island-member-permission-location-upgrade-data-come-from-cloudislands-api-or-addon-spi"),
+            Map.entry("no-direct-internals", "satis-does-not-read-cloudislands-storage-runtime-internals-or-node-ownership-directly"),
+            Map.entry("external-addon", "cloudislands-boots-without-satis-jar-and-discovers-satis-through-addon-api-when-installed"),
+            Map.entry("missing-cloudislands-api", "satis-runtime-does-not-start-and-registers-no-commands-listeners-tickers-or-writers"),
+            Map.entry("node-crash-recovery", "expired-heartbeat-or-fencing-mismatch-blocks-duplicate-tick-and-replays-last-confirmed-state-on-target-node"),
+            Map.entry("addon-jar-removed", "cloudislands-base-island-lifecycle-boots-without-addon-metadata-or-runtime-jar-and-reconnects-existing-addon-state-when-reinstalled"),
+            Map.entry("no-superiorskyblock2", "legacy-skyblock-calls-are-replaced-by-cloudislands-api-or-addon-spi")
     );
 
     private SatisAddonIntegrationPolicy() {

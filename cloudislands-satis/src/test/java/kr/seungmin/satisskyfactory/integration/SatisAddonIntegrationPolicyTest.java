@@ -134,6 +134,14 @@ class SatisAddonIntegrationPolicyTest {
                 SatisAddonIntegrationPolicy.requiredScenarios().get("missing-cloudislands-api")
         );
         assertEquals(
+                "expired-heartbeat-or-fencing-mismatch-blocks-duplicate-tick-and-replays-last-confirmed-state-on-target-node",
+                SatisAddonIntegrationPolicy.requiredScenarios().get("node-crash-recovery")
+        );
+        assertEquals(
+                "cloudislands-base-island-lifecycle-boots-without-addon-metadata-or-runtime-jar-and-reconnects-existing-addon-state-when-reinstalled",
+                SatisAddonIntegrationPolicy.requiredScenarios().get("addon-jar-removed")
+        );
+        assertEquals(
                 "legacy-skyblock-calls-are-replaced-by-cloudislands-api-or-addon-spi",
                 SatisAddonIntegrationPolicy.requiredScenarios().get("no-superiorskyblock2")
         );
