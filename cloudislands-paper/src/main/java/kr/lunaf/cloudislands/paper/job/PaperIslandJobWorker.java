@@ -109,9 +109,16 @@ public final class PaperIslandJobWorker {
                 jobSource.fail(nodeId, job.jobId(), "ACTIVATION_CANCELLED");
                 return;
             }
+            if (!activeIslands.acceptsActivation(job.islandId(), IslandJobCompletionPolicy.fencingToken(job.payload()))) {
+                jobSource.fail(nodeId, job.jobId(), IslandJobCompletionPolicy.STALE_FENCING_TOKEN);
+                return;
+            }
             IslandActivationJobHandler.ActivationResult result = activationHandler.handle(job);
             if (result.success()) {
-                activeIslands.activated(result);
+                if (!activeIslands.activated(result)) {
+                    jobSource.fail(nodeId, job.jobId(), IslandJobCompletionPolicy.STALE_FENCING_TOKEN);
+                    return;
+                }
                 if (job.type() == IslandJobType.CREATE_ISLAND) {
                     Bukkit.getPluginManager().callEvent(new IslandCreateEvent(result.islandId(), job.jobId(), nodeId, result.worldName()));
                 }

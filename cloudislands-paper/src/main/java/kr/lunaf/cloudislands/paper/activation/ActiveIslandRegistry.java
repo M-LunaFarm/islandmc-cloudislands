@@ -10,10 +10,18 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class ActiveIslandRegistry {
     private final Map<UUID, ActiveIsland> active = new ConcurrentHashMap<>();
 
-    public void activated(IslandActivationJobHandler.ActivationResult result) {
-        if (result.success() && result.islandId() != null) {
-            active.put(result.islandId(), new ActiveIsland(result.islandId(), result.worldName(), result.cellX(), result.cellZ(), result.originX(), result.originZ(), result.islandSize(), result.schemaVersion(), Instant.now()));
+    public boolean acceptsActivation(UUID islandId, long fencingToken) {
+        ActiveIsland current = active.get(islandId);
+        return current == null || current.fencingToken() <= fencingToken;
+    }
+
+    public boolean activated(IslandActivationJobHandler.ActivationResult result) {
+        if (!result.success() || result.islandId() == null) {
+            return false;
         }
+        ActiveIsland next = new ActiveIsland(result.islandId(), result.worldName(), result.cellX(), result.cellZ(), result.originX(), result.originZ(), result.islandSize(), result.schemaVersion(), result.fencingToken(), Instant.now());
+        ActiveIsland stored = active.compute(result.islandId(), (_islandId, current) -> current != null && current.fencingToken() > result.fencingToken() ? current : next);
+        return stored == next;
     }
 
     public Optional<ActiveIsland> find(UUID islandId) {
@@ -32,5 +40,5 @@ public final class ActiveIslandRegistry {
         return List.copyOf(active.values());
     }
 
-    public record ActiveIsland(UUID islandId, String worldName, int cellX, int cellZ, int originX, int originZ, int islandSize, long schemaVersion, Instant activatedAt) {}
+    public record ActiveIsland(UUID islandId, String worldName, int cellX, int cellZ, int originX, int originZ, int islandSize, long schemaVersion, long fencingToken, Instant activatedAt) {}
 }
