@@ -836,9 +836,14 @@ public final class AdminFactoryCommand {
             if (enabledProvider) {
                 passed = false;
             }
+            boolean registeredService = legacyProviderServiceRegistered(name);
+            state.put("service." + name, registeredService ? "registered" : "absent");
+            if (registeredService) {
+                passed = false;
+            }
         }
         state.put("status", passed ? "passed" : "failed");
-        state.put("live-provider-hooks", passed ? "false" : "legacy-provider-present");
+        state.put("live-provider-hooks", passed ? "false" : "legacy-provider-plugin-or-service-present");
         state.put("next-step", passed ? "migration-runtime-clean" : "remove-legacy-provider-before-accepting-migration");
         state.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
@@ -846,6 +851,24 @@ public final class AdminFactoryCommand {
                         "key", entry.getKey(),
                         "value", entry.getValue()
                 ))));
+    }
+
+    private boolean legacyProviderServiceRegistered(String provider) {
+        if (provider == null || provider.isBlank()) {
+            return false;
+        }
+        String needle = provider.toLowerCase(Locale.ROOT).replace("-", "").replace("_", "");
+        try {
+            for (Class<?> service : Bukkit.getServicesManager().getKnownServices()) {
+                String serviceName = service.getName().toLowerCase(Locale.ROOT).replace("-", "").replace("_", "");
+                if (serviceName.contains(needle)) {
+                    return true;
+                }
+            }
+        } catch (RuntimeException ignored) {
+            return true;
+        }
+        return false;
     }
 
     private void scanLegacyDatabase(CommandSender sender, String[] args, String action) {
