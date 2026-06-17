@@ -3896,74 +3896,90 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean configFeature(String key) {
-        String addonPath = "addons." + ADDON_ID + ".features." + key;
-        String satisPath = "satis.features." + key;
-        String legacyPath = "features." + key;
-        boolean enabled = true;
-        if (configs.main().contains(addonPath)) {
-            enabled = configs.main().getBoolean(addonPath, true);
+        try {
+            String addonPath = "addons." + ADDON_ID + ".features." + key;
+            String satisPath = "satis.features." + key;
+            String legacyPath = "features." + key;
+            boolean enabled = true;
+            if (configs.main().contains(addonPath)) {
+                enabled = configs.main().getBoolean(addonPath, true);
+            }
+            if (configs.main().contains(satisPath)) {
+                enabled = enabled && configs.main().getBoolean(satisPath, true);
+            }
+            if (configs.main().contains(legacyPath)) {
+                enabled = enabled && configs.main().getBoolean(legacyPath, true);
+            }
+            return enabled;
+        } catch (RuntimeException exception) {
+            return false;
         }
-        if (configs.main().contains(satisPath)) {
-            enabled = enabled && configs.main().getBoolean(satisPath, true);
-        }
-        if (configs.main().contains(legacyPath)) {
-            enabled = enabled && configs.main().getBoolean(legacyPath, true);
-        }
-        return enabled;
     }
 
     private boolean configFeatureDefined(String key) {
-        return configs.main().contains("addons." + ADDON_ID + ".features." + key)
-                || configs.main().contains("satis.features." + key)
-                || configs.main().contains("features." + key);
+        try {
+            return configs.main().contains("addons." + ADDON_ID + ".features." + key)
+                    || configs.main().contains("satis.features." + key)
+                    || configs.main().contains("features." + key);
+        } catch (RuntimeException exception) {
+            return false;
+        }
     }
 
     private boolean featureEnabled(String key) {
-        if (!addonRuntimeEnabled) {
+        try {
+            if (!addonRuntimeEnabled) {
+                return false;
+            }
+            String requested = key == null ? "" : key;
+            String canonical = canonicalFeature(key);
+            boolean enabled = effectiveFeatures.getOrDefault(canonical, configuredFeatureEnabled(canonical));
+            if (!requested.equals(canonical)) {
+                Boolean effective = effectiveFeatures.get(requested);
+                if (effective != null) {
+                    enabled = enabled && effective;
+                }
+            }
+            return enabled;
+        } catch (RuntimeException exception) {
             return false;
         }
-        String requested = key == null ? "" : key;
-        String canonical = canonicalFeature(key);
-        boolean enabled = effectiveFeatures.getOrDefault(canonical, configuredFeatureEnabled(canonical));
-        if (!requested.equals(canonical)) {
-            Boolean effective = effectiveFeatures.get(requested);
-            if (effective != null) {
-                enabled = enabled && effective;
-            }
-        }
-        return enabled;
     }
 
     private boolean operationalFeatureEnabled(String key) {
-        if (!addonRuntimeEnabled) {
+        try {
+            if (!addonRuntimeEnabled) {
+                return false;
+            }
+            String raw = key == null ? "" : key;
+            if (!SatisFeatureGateResolver.featureEnabled(configs.main(), raw)) {
+                return false;
+            }
+            if (!featureEnabled(raw)) {
+                return false;
+            }
+            if (raw.equals("generators") && !featureEnabled("factories")) {
+                return false;
+            }
+            if (raw.equals("missions") && (!featureEnabled("contracts") || !featureEnabled("storage"))) {
+                return false;
+            }
+            if (raw.equals("upgrades") && !featureEnabled("research")) {
+                return false;
+            }
+            if (raw.equals("menus") && !featureEnabled("gui")) {
+                return false;
+            }
+            String canonical = canonicalFeature(key);
+            return switch (canonical) {
+                case "resource-nodes" -> featureEnabled("machines");
+                case "market", "contracts" -> featureEnabled("storage");
+                case "route-events" -> featureEnabled("addon-state");
+                default -> true;
+            };
+        } catch (RuntimeException exception) {
             return false;
         }
-        String raw = key == null ? "" : key;
-        if (!SatisFeatureGateResolver.featureEnabled(configs.main(), raw)) {
-            return false;
-        }
-        if (!featureEnabled(raw)) {
-            return false;
-        }
-        if (raw.equals("generators") && !featureEnabled("factories")) {
-            return false;
-        }
-        if (raw.equals("missions") && (!featureEnabled("contracts") || !featureEnabled("storage"))) {
-            return false;
-        }
-        if (raw.equals("upgrades") && !featureEnabled("research")) {
-            return false;
-        }
-        if (raw.equals("menus") && !featureEnabled("gui")) {
-            return false;
-        }
-        String canonical = canonicalFeature(key);
-        return switch (canonical) {
-            case "resource-nodes" -> featureEnabled("machines");
-            case "market", "contracts" -> featureEnabled("storage");
-            case "route-events" -> featureEnabled("addon-state");
-            default -> true;
-        };
     }
 
     private String canonicalFeature(String key) {
