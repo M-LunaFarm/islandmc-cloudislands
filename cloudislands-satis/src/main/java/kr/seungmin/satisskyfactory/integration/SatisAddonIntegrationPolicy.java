@@ -101,6 +101,7 @@ public final class SatisAddonIntegrationPolicy {
             "island-pre-visit",
             "island-visited",
             "island-invite-changed",
+            "island-renamed",
             "island-member-joined",
             "island-member-left",
             "island-member-changed",
