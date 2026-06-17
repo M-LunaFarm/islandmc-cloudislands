@@ -111,11 +111,11 @@ public final class FactoryIslandService {
             return;
         }
         cache.put(island.islandUuid(), island);
-        if (dirtySaves != null) {
-            dirtySaves.markIsland(island);
+        if (!writesEnabled()) {
             return;
         }
-        if (!writesEnabled()) {
+        if (dirtySaves != null) {
+            dirtySaves.markIsland(island);
             return;
         }
         database.saveIsland(island);

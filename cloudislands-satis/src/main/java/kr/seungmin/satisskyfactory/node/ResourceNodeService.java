@@ -102,11 +102,11 @@ public final class ResourceNodeService {
         }
         node.updatedAt(System.currentTimeMillis());
         cache(node);
-        if (dirtySaves != null) {
-            dirtySaves.markNode(node);
+        if (!writesEnabled()) {
             return;
         }
-        if (!writesEnabled()) {
+        if (dirtySaves != null) {
+            dirtySaves.markNode(node);
             return;
         }
         database.saveNode(node);

@@ -97,10 +97,18 @@ public final class NodeGenerationService {
     }
 
     private BlockKey validLocation(BlockKey preferred, BlockKey origin, Predicate<BlockKey> insideIsland) {
-        if (insideIsland.test(preferred)) {
+        if (insideIsland(preferred, insideIsland)) {
             return preferred;
         }
-        return insideIsland.test(origin) ? origin : null;
+        return insideIsland(origin, insideIsland) ? origin : null;
+    }
+
+    private boolean insideIsland(BlockKey location, Predicate<BlockKey> insideIsland) {
+        try {
+            return insideIsland.test(location);
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 
     private double purity(String path) {

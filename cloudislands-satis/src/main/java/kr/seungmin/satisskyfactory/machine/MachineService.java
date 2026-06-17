@@ -169,10 +169,15 @@ public final class MachineService {
         machine.status(MachineStatus.SLEEPING);
         machines.remove(machine.machineId());
         byLocation.remove(LocationKey.from(machine.location()));
+        boolean canWrite = writesEnabled();
         if (dirtySaves != null) {
-            dirtySaves.deleteMachine(machine.islandUuid(), machine.machineId());
+            if (canWrite) {
+                dirtySaves.deleteMachine(machine.islandUuid(), machine.machineId());
+            } else {
+                dirtySaves.forgetMachine(machine.machineId());
+            }
         }
-        if (writesEnabled()) {
+        if (canWrite) {
             database.deleteMachine(machine.machineId());
         }
         deleteInventories(machine);
@@ -398,7 +403,7 @@ public final class MachineService {
             if (machine == null || !machine.islandUuid().equals(start.islandUuid())) {
                 continue;
             }
-            if (!machine.machineId().equals(start.machineId()) && !traversable.test(machine)) {
+            if (!machine.machineId().equals(start.machineId()) && !traversable(machine, traversable)) {
                 continue;
             }
             for (LocationKey neighbor : neighbors(location)) {
@@ -436,6 +441,14 @@ public final class MachineService {
     private boolean writesEnabled() {
         try {
             return writesEnabled.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private boolean traversable(MachineInstance machine, Predicate<MachineInstance> traversable) {
+        try {
+            return traversable.test(machine);
         } catch (RuntimeException ignored) {
             return false;
         }
