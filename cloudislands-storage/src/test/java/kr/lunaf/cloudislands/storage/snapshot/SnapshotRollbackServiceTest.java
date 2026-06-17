@@ -41,6 +41,8 @@ class SnapshotRollbackServiceTest {
         assertEquals(current.checksum(), plan.currentChecksum());
         assertEquals(target.checksum(), plan.targetChecksum());
         assertEquals(SnapshotReason.BEFORE_RESTORE, plan.preRestoreReason());
+        assertEquals(true, plan.preRestoreSnapshotRequired());
+        assertEquals("lock-restoring-lobby-transfer-pre-restore-snapshot-restore-runtime-reset-reactivate", plan.rollbackPolicy());
         assertEquals("snapshot", result.source());
         assertEquals(target.checksum(), result.checksum());
         assertEquals(target.checksum(), storage.readManifest(ISLAND_ID).checksum());

@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.storage.snapshot;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
+import kr.lunaf.cloudislands.storage.BundleRestorePolicy;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
@@ -80,7 +81,15 @@ public final class SnapshotRollbackService {
         boolean targetPortable,
         SnapshotReason preRestoreReason,
         String restorePolicy
-    ) {}
+    ) {
+        public boolean preRestoreSnapshotRequired() {
+            return preRestoreReason == SnapshotReason.BEFORE_RESTORE;
+        }
+
+        public String rollbackPolicy() {
+            return BundleRestorePolicy.ROLLBACK_POLICY;
+        }
+    }
 
     public record RollbackResult(UUID islandId, long promotedSnapshotNo, String source, String checksum, String restorePolicy) {}
 }
