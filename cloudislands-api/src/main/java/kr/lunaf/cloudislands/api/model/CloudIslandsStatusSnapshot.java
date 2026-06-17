@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.api.model;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import kr.lunaf.cloudislands.api.CloudIslandsApiContract;
 
@@ -169,19 +170,23 @@ public record CloudIslandsStatusSnapshot(
     }
 
     public Map<String, String> contractMetadata() {
-        return Map.ofEntries(
-            Map.entry("read-policy", readPolicy),
-            Map.entry("write-authority", writeAuthority),
-            Map.entry("sync-event-policy", syncEventPolicy),
-            Map.entry("addon-storage-policy", addonStoragePolicy),
-            Map.entry("java-plugin-api-policy", javaPluginApiPolicy),
-            Map.entry("internal-api-policy", internalApiPolicy),
-            Map.entry("event-api-policy", eventApiPolicy),
-            Map.entry("core-auth-policy", coreAuthPolicy),
-            Map.entry("admin-endpoint-policy", adminEndpointPolicy),
-            Map.entry("network-exposure-policy", networkExposurePolicy),
-            Map.entry("topology-privacy-policy", topologyPrivacyPolicy),
-            Map.entry("consistency-authority-policy", consistencyAuthorityPolicy)
-        );
+        Map<String, String> metadata = new LinkedHashMap<>();
+        metadata.put("read-policy", safe(readPolicy));
+        metadata.put("write-authority", safe(writeAuthority));
+        metadata.put("sync-event-policy", safe(syncEventPolicy));
+        metadata.put("addon-storage-policy", safe(addonStoragePolicy));
+        metadata.put("java-plugin-api-policy", safe(javaPluginApiPolicy));
+        metadata.put("internal-api-policy", safe(internalApiPolicy));
+        metadata.put("event-api-policy", safe(eventApiPolicy));
+        metadata.put("core-auth-policy", safe(coreAuthPolicy));
+        metadata.put("admin-endpoint-policy", safe(adminEndpointPolicy));
+        metadata.put("network-exposure-policy", safe(networkExposurePolicy));
+        metadata.put("topology-privacy-policy", safe(topologyPrivacyPolicy));
+        metadata.put("consistency-authority-policy", safe(consistencyAuthorityPolicy));
+        return Map.copyOf(metadata);
+    }
+
+    private static String safe(String value) {
+        return value == null ? "" : value;
     }
 }
