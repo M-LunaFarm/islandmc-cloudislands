@@ -81,6 +81,58 @@ class DefaultConfigIntegrityTest {
     }
 
     @Test
+    void addonDescriptorAndConfigExposeRuntimeFeatureGates() {
+        YamlConfiguration config = load("config.yml");
+        YamlConfiguration addon = load("cloudislands-addon.yml");
+        List<String> features = List.of(
+                "commands",
+                "machines",
+                "storage",
+                "factories",
+                "generators",
+                "upgrades",
+                "missions",
+                "menus",
+                "gui",
+                "lifecycle",
+                "resource-nodes",
+                "market",
+                "contracts",
+                "research",
+                "maintenance",
+                "placeholders",
+                "migration",
+                "addon-state",
+                "route-events"
+        );
+
+        assertEquals("satis.enabled", addon.getString("features.root-switch"));
+        assertEquals("addons.cloudislands-satis.enabled", addon.getString("features.parent-switch"));
+        assertEquals("parent-or-root-disabled-forces-all-detailed-switches-off-at-runtime",
+                addon.getString("features.root-switch-policy"));
+        assertEquals("disabled-features-unregister-commands-and-skip-listeners-tickers-placeholders-core-api-writers-and-dirty-save",
+                addon.getString("runtime.component-audit.policy"));
+        assertEquals("unregister-disabled-commands-no-listeners-no-tickers-no-placeholders-no-core-api-writers",
+                addon.getString("runtime.disabled-mode"));
+        assertTrue(addon.getStringList("features.detailed-switches").containsAll(features));
+
+        for (String feature : features) {
+            assertTrue(config.contains("satis.features." + feature), "missing satis feature " + feature);
+            assertTrue(config.contains("addons.cloudislands-satis.features." + feature), "missing addon feature " + feature);
+        }
+
+        assertEquals("machines", addon.getString("features.aliases.factories"));
+        assertEquals("resource-nodes", addon.getString("features.aliases.generators"));
+        assertEquals("research", addon.getString("features.aliases.upgrades"));
+        assertEquals("contracts", addon.getString("features.aliases.missions"));
+        assertEquals("gui", addon.getString("features.aliases.menus"));
+        assertEquals("machines", addon.getString("features.dependencies.resource-nodes"));
+        assertEquals("storage", addon.getString("features.dependencies.market"));
+        assertEquals("storage", addon.getString("features.dependencies.contracts"));
+        assertEquals("addon-state", addon.getString("features.dependencies.route-events"));
+    }
+
+    @Test
     void defaultConfigsReferenceOnlyKnownIds() {
         YamlConfiguration itemsConfig = load("items.yml");
         YamlConfiguration machinesConfig = load("machines.yml");
