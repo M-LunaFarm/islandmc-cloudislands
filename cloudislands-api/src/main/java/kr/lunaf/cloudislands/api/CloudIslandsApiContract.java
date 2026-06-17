@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.api;
 
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 
 public final class CloudIslandsApiContract {
     public static final String CONTRACT_VERSION = "1";
@@ -47,14 +48,33 @@ public final class CloudIslandsApiContract {
     }
 
     public static boolean compatibleMetadata(Map<String, String> metadata) {
+        return "compatible".equals(metadataCompatibilityStatus(metadata));
+    }
+
+    public static List<String> missingMetadataKeys(Map<String, String> metadata) {
+        List<String> missing = new ArrayList<>();
         if (metadata == null) {
-            return false;
+            missing.addAll(requiredMetadataKeys());
+            return List.copyOf(missing);
+        }
+        for (String key : requiredMetadataKeys()) {
+            if (!metadata.containsKey(key)) {
+                missing.add(key);
+            }
+        }
+        return List.copyOf(missing);
+    }
+
+    public static String metadataCompatibilityStatus(Map<String, String> metadata) {
+        if (metadata == null) {
+            return "missing-metadata";
         }
         String version = metadata.get("contract-version");
         if (!CONTRACT_VERSION.equals(version)) {
-            return false;
+            return "version-mismatch";
         }
-        return requiredMetadataKeys().stream().allMatch(metadata::containsKey);
+        List<String> missing = missingMetadataKeys(metadata);
+        return missing.isEmpty() ? "compatible" : "missing-required-keys:" + String.join(",", missing);
     }
 
     public static Map<String, String> metadata() {
