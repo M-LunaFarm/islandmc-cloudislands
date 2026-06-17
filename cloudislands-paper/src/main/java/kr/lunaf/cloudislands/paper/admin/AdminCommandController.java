@@ -1976,6 +1976,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " addonExtension=" + textValue(body, "addonExtensionModel")
             + " addonApiLookup=" + textValue(body, "addonApiLookupPolicy")
             + " addonApiContract=" + textValue(body, "addonApiContractVersion")
+            + " addonApiContractStatus=" + textValue(body, "addonApiContractCompatibility")
             + " addonApiRequiredKeys=" + textValue(body, "addonApiRequiredMetadataKeys")
             + " addonApiRead=" + textValue(body, "addonApiReadPolicy")
             + " addonApiWrite=" + textValue(body, "addonApiWriteAuthority")
