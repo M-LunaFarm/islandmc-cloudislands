@@ -62,7 +62,7 @@ tasks.jar {
             "CloudIslands-Satis-Bulk-Retry-State-Keys" to "addon-state-sync-bulk-max-pending-retries,addon-state-sync-island-bulk-pending-retries,addon-state-sync-island-bulk-retries-queued,addon-state-sync-island-bulk-retries-drained,addon-state-sync-island-bulk-retries-dropped,addon-state-sync-global-bulk-pending-retries,addon-state-sync-global-bulk-retries-queued,addon-state-sync-global-bulk-retries-drained,addon-state-sync-global-bulk-retries-dropped",
             "CloudIslands-Addon-Island-Move-Policy" to "island-uuid-stable-remap-active-world-and-cell",
             "CloudIslands-Satis-Legacy-Migration-Source" to "sqlite",
-            "CloudIslands-Satis-Legacy-Migration-Approval" to "CONFIRM_IMPORT",
+            "CloudIslands-Satis-Legacy-Migration-Approval" to "CONFIRM_IMPORT or CONFIRM_IMPORT:<dryrun-sha256>",
             "CloudIslands-Satis-Legacy-Migration-Read-Only" to "scan,dryrun,verify",
             "CloudIslands-Satis-Legacy-Migration-Import-Policy" to "cross-backend-sqlite-copy-insert-ignore-existing-rows",
             "CloudIslands-Satis-Legacy-Migration-Rollback" to "sqlite-snapshot-restore-or-shared-backend-table-restore",

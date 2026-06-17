@@ -166,7 +166,7 @@ migration:
       scan: factory admin migration scan <sqlitePath>
       dryrun: factory admin migration dryrun <sqlitePath>
       verify: factory admin migration verify <sqlitePath>
-      import: factory admin migration import <sqlitePath> CONFIRM_IMPORT
+      import: factory admin migration import <sqlitePath> CONFIRM_IMPORT|CONFIRM_IMPORT:<dryrun-sha256>
       rollback: factory admin migration rollback
     read-only-actions:
       - scan
@@ -175,6 +175,7 @@ migration:
     write-actions:
       - import
     import-approval-token: CONFIRM_IMPORT
+    import-approval-fingerprint-token: CONFIRM_IMPORT:<dryrun-sha256>
     import-mode: cross-backend-sqlite-copy
     conflict-policy: insert-ignore-existing-rows
     rollback-mode: sqlite-snapshot-restore-or-shared-backend-table-restore
