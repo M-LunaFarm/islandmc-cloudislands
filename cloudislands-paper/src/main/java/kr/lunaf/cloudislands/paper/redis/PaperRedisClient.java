@@ -62,7 +62,7 @@ public final class PaperRedisClient implements Closeable {
             PingResult result = new PingResult(true, latency, pingCount, failuresTotal.get(), "");
             lastResult = result;
             return result;
-        } catch (IOException exception) {
+        } catch (IOException | RuntimeException exception) {
             long failureCount = failuresTotal.incrementAndGet();
             double latency = (System.nanoTime() - started) / 1_000_000_000.0D;
             PingResult result = PingResult.unavailable(latency, pingsTotal.get(), failureCount, exception.getMessage());
