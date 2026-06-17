@@ -536,6 +536,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_island_bundle_manifest_policy{node=\"" + nodeId + "\",policy=\"manifest_json_plus_checksums_sha256_sidecar\"} 1\n"
             + "cloudislands_island_bundle_restore_verify_policy{node=\"" + nodeId + "\",policy=\"verify_manifest_checksum_for_latest_snapshot_and_storage_path_when_present\"} 1\n"
             + "cloudislands_island_save_seconds{node=\"" + nodeId + "\"} " + storageUploadSeconds + "\n"
+            + "cloudislands_island_save_failures_total{node=\"" + nodeId + "\"} " + ((saver == null ? 0L : saver.failuresTotal()) + (emptySaver == null ? 0L : emptySaver.failuresTotal())) + "\n"
             + "cloudislands_island_activation_seconds{node=\"" + nodeId + "\"} " + storageDownloadSeconds + "\n"
             + "cloudislands_island_snapshot_seconds{node=\"" + nodeId + "\"} " + storageUploadSeconds + "\n"
             + "cloudislands_paper_periodic_save_retry_queue{node=\"" + nodeId + "\"} " + (saver == null ? 0 : saver.retryQueueSize()) + "\n"
@@ -728,6 +729,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";periodicSaveFailures=" + (periodicSaveTask == null ? 0L : periodicSaveTask.failuresTotal())
             + ";emptySaveRetryQueue=" + (emptyIslandSaveTask == null ? 0 : emptyIslandSaveTask.retryQueueSize())
             + ";emptySaveFailures=" + (emptyIslandSaveTask == null ? 0L : emptyIslandSaveTask.failuresTotal())
+            + ";islandSaveFailures=" + ((periodicSaveTask == null ? 0L : periodicSaveTask.failuresTotal()) + (emptyIslandSaveTask == null ? 0L : emptyIslandSaveTask.failuresTotal()))
             + ";backendAccessPolicy=" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.CONTRACT
             + ";paperDirectAccessPolicy=" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PAPER_DIRECT_ACCESS_POLICY
             + ";generatorKeys=" + (generatorListener == null ? 0 : generatorListener.generatorKeyCount())
