@@ -23,6 +23,15 @@ public final class FinalRequestFlowPolicy {
         return key != null && FLOWS.containsKey(key);
     }
 
+    public static String flowKeys() {
+        return String.join(",", FLOWS.keySet());
+    }
+
+    public static String flowSummary(String key) {
+        List<String> flow = flow(key);
+        return flow.isEmpty() ? "" : String.join(">", flow);
+    }
+
     private static Map<String, List<String>> buildFlows() {
         LinkedHashMap<String, List<String>> flows = new LinkedHashMap<>();
         flows.put("island-create", List.of(
