@@ -682,8 +682,14 @@ public final class DatabaseService {
         builder.append("  \"sourceProject\": \"M-LunaFarm/satismc\",\n");
         builder.append("  \"sourcePath\": \"").append(jsonEscape(source.getAbsolutePath())).append("\",\n");
         builder.append("  \"targetBackend\": \"").append(activeBackend.name()).append("\",\n");
+        builder.append("  \"targetDescription\": \"").append(jsonEscape(databaseDescription())).append("\",\n");
+        builder.append("  \"targetDialect\": \"").append(sqlDialect.name()).append("\",\n");
+        builder.append("  \"fallbackReason\": \"").append(jsonEscape(fallbackReason())).append("\",\n");
+        builder.append("  \"attemptedBackends\": ").append(storageBackendListJson(attemptedBackends())).append(",\n");
+        builder.append("  \"coreApiStateWritersAvailable\": ").append(coreStateWritersAvailable()).append(",\n");
         builder.append("  \"identityPolicy\": \"cloudislands-island-uuid\",\n");
         builder.append("  \"sourceAccessPolicy\": \"read-only-sqlite-snapshot-no-live-provider-hooks\",\n");
+        builder.append("  \"rollbackPolicy\": \"").append(sqlDialect == SqlDialect.SQLITE ? "sqlite-vacuum-into-snapshot" : "shared-backend-table-snapshot").append("\",\n");
         builder.append("  \"rollbackBackupPath\": \"").append(jsonEscape(rollbackBackupPath)).append("\",\n");
         builder.append("  \"createdAt\": \"").append(Instant.now()).append("\",\n");
         builder.append("  \"tables\": [\n");
@@ -715,6 +721,22 @@ public final class DatabaseService {
             throw new SQLException("failed to write legacy import manifest", exception);
         }
         return manifest.getAbsolutePath();
+    }
+
+    private String storageBackendListJson(List<StorageBackend> backends) {
+        if (backends == null || backends.isEmpty()) {
+            return "[]";
+        }
+        StringBuilder builder = new StringBuilder("[");
+        for (int index = 0; index < backends.size(); index++) {
+            if (index > 0) {
+                builder.append(", ");
+            }
+            StorageBackend backend = backends.get(index);
+            builder.append("\"").append(backend == null ? "UNKNOWN" : backend.name()).append("\"");
+        }
+        builder.append("]");
+        return builder.toString();
     }
 
     private String jsonEscape(String value) {
