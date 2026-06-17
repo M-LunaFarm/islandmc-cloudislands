@@ -1928,10 +1928,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void publishLifecycleState(UUID islandId, String operation, FactoryIsland island, String remapDelta, boolean machinesRemapped, boolean resourceNodesRemapped) {
-        publishLifecycleState(islandId, operation, island, remapDelta, machinesRemapped, resourceNodesRemapped, "active-world-center");
+        publishLifecycleState(islandId, operation, island, remapDelta, machinesRemapped, resourceNodesRemapped, "active-world-center", false, false);
     }
 
     private void publishLifecycleState(UUID islandId, String operation, FactoryIsland island, String remapDelta, boolean machinesRemapped, boolean resourceNodesRemapped, String remapSource) {
+        publishLifecycleState(islandId, operation, island, remapDelta, machinesRemapped, resourceNodesRemapped, remapSource, false, false);
+    }
+
+    private void publishLifecycleState(UUID islandId, String operation, FactoryIsland island, String remapDelta, boolean machinesRemapped, boolean resourceNodesRemapped, String remapSource, boolean machineRemapDeferred, boolean resourceNodeRemapDeferred) {
         if (cloudIslandsApi == null || islandId == null || !operationalFeatureEnabled("addon-state")) {
             return;
         }
@@ -1985,6 +1989,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("last-lifecycle-remap-delta", remapDelta == null || remapDelta.isBlank() ? "0,0,0" : remapDelta);
         state.put("last-lifecycle-machines-remapped", Boolean.toString(machinesRemapped));
         state.put("last-lifecycle-resource-nodes-remapped", Boolean.toString(resourceNodesRemapped));
+        state.put("last-lifecycle-machine-remap-deferred", Boolean.toString(machineRemapDeferred));
+        state.put("last-lifecycle-resource-node-remap-deferred", Boolean.toString(resourceNodeRemapDeferred));
+        state.put("last-lifecycle-deferred-remap-policy", SatisStatePortabilityPolicy.DEFERRED_REMAP_POLICY);
         state.put("last-lifecycle-remap-source", remapSource == null || remapSource.isBlank() ? "active-world-center" : remapSource);
         state.put("last-lifecycle-core-hydrate-key", hydrationKey);
         state.put("last-lifecycle-core-hydrate-tracked", Boolean.toString(hydrationKey.equals(coreHydratedIslandActivations.get(islandId))));
@@ -1994,7 +2001,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return Map.of();
         });
         if (!"purge".equalsIgnoreCase(operation)) {
-            publishIslandLifecycleState(islandId, operation, island, "success", "", remapDelta, machinesRemapped, resourceNodesRemapped, remapSource);
+            publishIslandLifecycleState(islandId, operation, island, "success", "", remapDelta, machinesRemapped, resourceNodesRemapped, remapSource, machineRemapDeferred, resourceNodeRemapDeferred);
         }
     }
 
@@ -2057,10 +2064,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void publishIslandLifecycleState(UUID islandId, String operation, FactoryIsland island, String status, String error, String remapDelta, boolean machinesRemapped, boolean resourceNodesRemapped) {
-        publishIslandLifecycleState(islandId, operation, island, status, error, remapDelta, machinesRemapped, resourceNodesRemapped, "active-world-center");
+        publishIslandLifecycleState(islandId, operation, island, status, error, remapDelta, machinesRemapped, resourceNodesRemapped, "active-world-center", false, false);
     }
 
     private void publishIslandLifecycleState(UUID islandId, String operation, FactoryIsland island, String status, String error, String remapDelta, boolean machinesRemapped, boolean resourceNodesRemapped, String remapSource) {
+        publishIslandLifecycleState(islandId, operation, island, status, error, remapDelta, machinesRemapped, resourceNodesRemapped, remapSource, false, false);
+    }
+
+    private void publishIslandLifecycleState(UUID islandId, String operation, FactoryIsland island, String status, String error, String remapDelta, boolean machinesRemapped, boolean resourceNodesRemapped, String remapSource, boolean machineRemapDeferred, boolean resourceNodeRemapDeferred) {
         if (cloudIslandsApi == null || islandId == null || !operationalFeatureEnabled("addon-state")) {
             return;
         }
@@ -2119,6 +2130,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("remap-delta", remapDelta == null || remapDelta.isBlank() ? "0,0,0" : remapDelta);
         state.put("machines-remapped", Boolean.toString(machinesRemapped));
         state.put("resource-nodes-remapped", Boolean.toString(resourceNodesRemapped));
+        state.put("machine-remap-deferred", Boolean.toString(machineRemapDeferred));
+        state.put("resource-node-remap-deferred", Boolean.toString(resourceNodeRemapDeferred));
+        state.put("deferred-remap-policy", SatisStatePortabilityPolicy.DEFERRED_REMAP_POLICY);
         state.put("remap-source", remapSource == null || remapSource.isBlank() ? "active-world-center" : remapSource);
         state.put("core-hydrate-key", hydrationKey);
         state.put("core-hydrate-tracked", Boolean.toString(hydrationKey.equals(coreHydratedIslandActivations.get(islandId))));
@@ -2796,6 +2810,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             String remapSource = "active-world-center";
             boolean machinesRemapped = false;
             boolean resourceNodesRemapped = false;
+            boolean machineRemapDeferred = false;
+            boolean resourceNodeRemapDeferred = false;
             org.bukkit.Location activeCenter = activeIslandCenter(islandId);
             if (activeCenter == null || activeCenter.getWorld() == null) {
                 activeCenter = lifecycleFallbackCenter(island, operation);
@@ -2818,6 +2834,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 remapDelta = relocation.delta();
                 machinesRemapped = relocation.machinesRemapped();
                 resourceNodesRemapped = relocation.resourceNodesRemapped();
+                machineRemapDeferred = relocation.machineRemapDeferred();
+                resourceNodeRemapDeferred = relocation.resourceNodeRemapDeferred();
                 if (!lifecycleEventWorld(operation).isBlank() && !lifecycleEventWorld(operation).equals(activeWorld)) {
                     getLogger().warning("CloudIslands Satis lifecycle event world " + lifecycleEventWorld(operation)
                             + " differed from resolved active world " + activeWorld + " for " + islandId);
@@ -2831,7 +2849,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 power.rebuildIsland(islandId);
             }
             islands.save(island);
-            publishLifecycleState(islandId, operation, island, remapDelta, machinesRemapped, resourceNodesRemapped, remapSource);
+            publishLifecycleState(islandId, operation, island, remapDelta, machinesRemapped, resourceNodesRemapped, remapSource, machineRemapDeferred, resourceNodeRemapDeferred);
         });
     }
 

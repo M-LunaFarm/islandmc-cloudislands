@@ -2,6 +2,7 @@ package kr.seungmin.satisskyfactory.machine;
 
 import kr.seungmin.satisskyfactory.model.FactoryIsland;
 import kr.seungmin.satisskyfactory.node.ResourceNodeService;
+import kr.seungmin.satisskyfactory.storage.SatisStatePortabilityPolicy;
 
 import java.util.UUID;
 
@@ -25,7 +26,7 @@ public final class SatisIslandRelocationService {
             boolean resourceNodesEnabled
     ) {
         if (islandId == null || island == null || activeWorld == null || activeWorld.isBlank()) {
-            return new RelocationResult(false, false, "0,0,0", "0,0,0", "0,0,0");
+            return new RelocationResult(false, false, false, false, "0,0,0", "0,0,0", "0,0,0", SatisStatePortabilityPolicy.DEFERRED_REMAP_POLICY);
         }
         int deltaX = island.hasActiveCenter() ? activeCenterX - island.activeCenterX() : 0;
         int deltaY = island.hasActiveCenter() ? activeCenterY - island.activeCenterY() : 0;
@@ -39,17 +40,25 @@ public final class SatisIslandRelocationService {
         int nodeDeltaZ = island.hasPendingResourceNodeRemap() ? activeCenterZ - island.pendingResourceNodeRemapCenterZ() : deltaZ;
         boolean machinesRemapped = false;
         boolean resourceNodesRemapped = false;
+        boolean machineRemapDeferred = false;
+        boolean resourceNodeRemapDeferred = false;
         if (machinesEnabled && machines != null) {
             machinesRemapped = machines.remapIslandRegion(islandId, activeWorld, machineDeltaX, machineDeltaY, machineDeltaZ);
             island.clearPendingMachineRemap();
         } else if (!machinesEnabled && island.hasActiveCenter() && !island.hasPendingMachineRemap()) {
             island.pendingMachineRemap(island.activeWorld(), island.activeCenterX(), island.activeCenterY(), island.activeCenterZ());
+            machineRemapDeferred = true;
+        } else if (island.hasPendingMachineRemap()) {
+            machineRemapDeferred = true;
         }
         if (resourceNodesEnabled && resourceNodes != null) {
             resourceNodesRemapped = resourceNodes.remapIslandRegion(islandId, activeWorld, nodeDeltaX, nodeDeltaY, nodeDeltaZ);
             island.clearPendingResourceNodeRemap();
         } else if (!resourceNodesEnabled && island.hasActiveCenter() && !island.hasPendingResourceNodeRemap()) {
             island.pendingResourceNodeRemap(island.activeWorld(), island.activeCenterX(), island.activeCenterY(), island.activeCenterZ());
+            resourceNodeRemapDeferred = true;
+        } else if (island.hasPendingResourceNodeRemap()) {
+            resourceNodeRemapDeferred = true;
         }
         island.activeWorld(activeWorld);
         island.activeCenterX(activeCenterX);
@@ -58,12 +67,15 @@ public final class SatisIslandRelocationService {
         return new RelocationResult(
                 machinesRemapped,
                 resourceNodesRemapped,
+                machineRemapDeferred,
+                resourceNodeRemapDeferred,
                 movementDelta,
                 machineDeltaX + "," + machineDeltaY + "," + machineDeltaZ,
-                nodeDeltaX + "," + nodeDeltaY + "," + nodeDeltaZ
+                nodeDeltaX + "," + nodeDeltaY + "," + nodeDeltaZ,
+                SatisStatePortabilityPolicy.DEFERRED_REMAP_POLICY
         );
     }
 
-    public record RelocationResult(boolean machinesRemapped, boolean resourceNodesRemapped, String delta, String machineDelta, String resourceNodeDelta) {
+    public record RelocationResult(boolean machinesRemapped, boolean resourceNodesRemapped, boolean machineRemapDeferred, boolean resourceNodeRemapDeferred, String delta, String machineDelta, String resourceNodeDelta, String deferredRemapPolicy) {
     }
 }

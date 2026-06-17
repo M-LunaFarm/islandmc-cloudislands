@@ -54,6 +54,8 @@ class SatisIslandRelocationServiceTest {
             assertEquals("2048,16,-1024", result.delta());
             assertTrue(result.machinesRemapped());
             assertTrue(result.resourceNodesRemapped());
+            assertFalse(result.machineRemapDeferred());
+            assertFalse(result.resourceNodeRemapDeferred());
 
             MachineInstance remappedMachine = machines.find(MACHINE_ID).orElseThrow();
             assertEquals("ci_shard_006", remappedMachine.world());
@@ -103,6 +105,9 @@ class SatisIslandRelocationServiceTest {
             assertEquals("2048,16,-1024", result.delta());
             assertFalse(result.machinesRemapped());
             assertFalse(result.resourceNodesRemapped());
+            assertTrue(result.machineRemapDeferred());
+            assertTrue(result.resourceNodeRemapDeferred());
+            assertEquals("when-feature-disabled-store-original-center-and-apply-remap-when-reenabled", result.deferredRemapPolicy());
             assertEquals("ci_shard_001", machines.find(MACHINE_ID).orElseThrow().world());
             assertEquals("ci_shard_001", nodes.nodes(ISLAND_ID).getFirst().world());
             assertEquals("ci_shard_006", island.activeWorld());
@@ -145,6 +150,8 @@ class SatisIslandRelocationServiceTest {
             assertEquals("2048,16,-1024", result.resourceNodeDelta());
             assertTrue(result.machinesRemapped());
             assertTrue(result.resourceNodesRemapped());
+            assertFalse(result.machineRemapDeferred());
+            assertFalse(result.resourceNodeRemapDeferred());
             assertFalse(reloaded.hasPendingMachineRemap());
             assertFalse(reloaded.hasPendingResourceNodeRemap());
             assertEquals("ci_shard_006", machines.find(MACHINE_ID).orElseThrow().world());
