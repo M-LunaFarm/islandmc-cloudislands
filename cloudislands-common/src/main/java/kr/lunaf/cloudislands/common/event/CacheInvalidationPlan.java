@@ -11,6 +11,7 @@ public final class CacheInvalidationPlan {
 
     public static Set<CacheTarget> targetsFor(CloudIslandEventType eventType) {
         return switch (eventType) {
+            case ISLAND_CREATED -> EnumSet.of(CacheTarget.RUNTIME, CacheTarget.MEMBERS, CacheTarget.PERMISSIONS, CacheTarget.ROUTE, CacheTarget.SUMMARY);
             case ISLAND_MEMBER_JOINED, ISLAND_MEMBER_LEFT, ISLAND_MEMBER_CHANGED, ISLAND_MEMBER_ROLE_CHANGED -> EnumSet.of(CacheTarget.MEMBERS, CacheTarget.PERMISSIONS, CacheTarget.SUMMARY);
             case ISLAND_OWNERSHIP_CHANGED -> EnumSet.of(CacheTarget.MEMBERS, CacheTarget.PERMISSIONS, CacheTarget.SUMMARY);
             case ISLAND_RENAMED -> EnumSet.of(CacheTarget.ROUTE, CacheTarget.SUMMARY);
@@ -29,6 +30,7 @@ public final class CacheInvalidationPlan {
             case ISLAND_LIMIT_CHANGED -> EnumSet.of(CacheTarget.LIMITS, CacheTarget.SUMMARY);
             case ISLAND_BLOCKS_CHANGED -> EnumSet.of(CacheTarget.BLOCKS, CacheTarget.LEVEL, CacheTarget.SUMMARY);
             case ISLAND_BLOCK_VALUE_CHANGED -> EnumSet.of(CacheTarget.BLOCKS, CacheTarget.LEVEL, CacheTarget.SUMMARY);
+            case ISLAND_DELETE_BACKUP_FAILED -> EnumSet.of(CacheTarget.RUNTIME, CacheTarget.SNAPSHOTS, CacheTarget.SUMMARY);
             case ISLAND_RUNTIME_CHANGED, ISLAND_RECOVERY_REQUIRED, ISLAND_REPAIRED, ISLAND_PRE_CREATE, ISLAND_PRE_ACTIVATE, ISLAND_ACTIVATE_REQUESTED, ISLAND_ACTIVATED, ISLAND_DEACTIVATE_REQUESTED, ISLAND_DEACTIVATED, ISLAND_MIGRATE_REQUESTED, ISLAND_MIGRATED, ISLAND_RESTORE_REQUESTED, ISLAND_RESTORED, ISLAND_RESET_REQUESTED, ISLAND_RESET, ISLAND_DELETE_REQUESTED, NODE_STATE_CHANGED -> EnumSet.of(CacheTarget.RUNTIME, CacheTarget.ROUTE, CacheTarget.SUMMARY);
             case ISLAND_LEVEL_UPDATED, ISLAND_WORTH_CHANGED -> EnumSet.of(CacheTarget.LEVEL, CacheTarget.SUMMARY);
             case ISLAND_UPGRADE -> EnumSet.of(CacheTarget.SUMMARY, CacheTarget.LEVEL, CacheTarget.LIMITS, CacheTarget.BANK, CacheTarget.FLAGS, CacheTarget.GENERATOR, CacheTarget.CROP);
@@ -36,7 +38,7 @@ public final class CacheInvalidationPlan {
             case ISLAND_TEMPLATE_CHANGED -> EnumSet.of(CacheTarget.TEMPLATES, CacheTarget.ROUTE, CacheTarget.SUMMARY);
             case ADDON_STATE_CHANGED -> EnumSet.of(CacheTarget.ADDON_STATE, CacheTarget.SUMMARY);
             case CORE_CACHE_CLEARED, CORE_RELOADED -> EnumSet.allOf(CacheTarget.class);
-            case ISLAND_PRE_VISIT, ROUTE_TICKET_CREATED, ROUTE_SESSION_PUBLISHED, ROUTE_TICKET_CONSUMED, ROUTE_TICKET_FAILED, ROUTE_TICKET_CLEARED -> EnumSet.of(CacheTarget.ROUTE, CacheTarget.ROUTE_TICKETS, CacheTarget.SUMMARY);
+            case ISLAND_PRE_VISIT, ISLAND_VISITED, ISLAND_VISITOR_KICKED, ROUTE_TICKET_CREATED, ROUTE_SESSION_PUBLISHED, ROUTE_TICKET_CONSUMED, ROUTE_TICKET_FAILED, ROUTE_TICKET_CLEARED -> EnumSet.of(CacheTarget.ROUTE, CacheTarget.ROUTE_TICKETS, CacheTarget.SUMMARY);
             case ISLAND_DELETED -> EnumSet.allOf(CacheTarget.class);
             default -> EnumSet.of(CacheTarget.SUMMARY);
         };
