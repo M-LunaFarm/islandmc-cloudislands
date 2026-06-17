@@ -667,8 +667,11 @@ public final class PermissionEventPoller {
         if (islandIdValue.isBlank() || playerUuidValue.isBlank()) {
             return true;
         }
-        UUID islandId = UUID.fromString(islandIdValue);
-        UUID playerUuid = UUID.fromString(playerUuidValue);
+        UUID islandId = uuidField(fields, "islandId");
+        UUID playerUuid = uuidField(fields, "playerUuid");
+        if (islandId == null || playerUuid == null) {
+            return true;
+        }
         Bukkit.getScheduler().runTask(plugin, () -> moveVisitorToFallback(islandId, playerUuid));
         return true;
     }
