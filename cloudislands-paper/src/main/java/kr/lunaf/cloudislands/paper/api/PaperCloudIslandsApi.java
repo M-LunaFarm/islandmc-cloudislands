@@ -1966,7 +1966,10 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 kr.lunaf.cloudislands.api.CloudIslandsApiContract.ADDON_STORAGE_POLICY,
                 kr.lunaf.cloudislands.api.CloudIslandsApiContract.JAVA_PLUGIN_API_POLICY,
                 kr.lunaf.cloudislands.api.CloudIslandsApiContract.INTERNAL_API_POLICY,
-                kr.lunaf.cloudislands.api.CloudIslandsApiContract.EVENT_API_POLICY
+                kr.lunaf.cloudislands.api.CloudIslandsApiContract.EVENT_API_POLICY,
+                kr.lunaf.cloudislands.api.CloudIslandsApiContract.CORE_AUTH_POLICY,
+                kr.lunaf.cloudislands.api.CloudIslandsApiContract.ADMIN_ENDPOINT_POLICY,
+                kr.lunaf.cloudislands.api.CloudIslandsApiContract.NETWORK_EXPOSURE_POLICY
             ));
         }
 

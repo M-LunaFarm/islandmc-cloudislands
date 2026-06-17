@@ -23,5 +23,8 @@ public record CloudIslandsStatusSnapshot(
     String addonStoragePolicy,
     String javaPluginApiPolicy,
     String internalApiPolicy,
-    String eventApiPolicy
+    String eventApiPolicy,
+    String coreAuthPolicy,
+    String adminEndpointPolicy,
+    String networkExposurePolicy
 ) {}
