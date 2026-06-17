@@ -1486,6 +1486,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("feature-gate-sources", "addons.cloudislands-satis.enabled,satis.enabled,addons.cloudislands-satis.features,satis.features,features(legacy)");
         metadata.put("feature-gate-disabled-by", featureGateDisabledBy());
         metadata.put("feature-gate-runtime-policy", "disabled-features-skip-active-commands-gui-listeners-tasks-and-writes-preserve-data");
+        metadata.put("feature-disable-data-policy", SatisAddonIntegrationPolicy.FEATURE_DISABLE_DATA_POLICY);
+        metadata.put("addon-data-retention-policy", SatisAddonIntegrationPolicy.DATA_RETENTION_POLICY);
+        metadata.put("addon-reenable-policy", SatisAddonIntegrationPolicy.REENABLE_POLICY);
+        metadata.put("addon-no-automatic-delete-policy", SatisAddonIntegrationPolicy.NO_AUTOMATIC_DELETE_POLICY);
         metadata.put("configured-features", featureState(featureSnapshot()));
         metadata.put("effective-features", operationalFeatureState(featureSnapshot()));
         metadata.put("feature-warnings", featureWarnings());
@@ -1842,6 +1846,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("feature-gate-sources", "addons.cloudislands-satis.enabled,satis.enabled,addons.cloudislands-satis.features,satis.features,features(legacy)");
         state.put("feature-gate-disabled-by", featureGateDisabledBy());
         state.put("feature-gate-runtime-policy", "disabled-features-skip-active-commands-gui-listeners-tasks-and-writes-preserve-data");
+        state.put("feature-disable-data-policy", SatisAddonIntegrationPolicy.FEATURE_DISABLE_DATA_POLICY);
+        state.put("addon-data-retention-policy", SatisAddonIntegrationPolicy.DATA_RETENTION_POLICY);
+        state.put("addon-reenable-policy", SatisAddonIntegrationPolicy.REENABLE_POLICY);
+        state.put("addon-no-automatic-delete-policy", SatisAddonIntegrationPolicy.NO_AUTOMATIC_DELETE_POLICY);
         state.put("dependency-disabled-features", dependencyDisabledFeatures(snapshot));
         state.put("feature-warnings", featureWarnings(snapshot));
         state.put("last-sync-reason", reason == null || reason.isBlank() ? "unknown" : reason);

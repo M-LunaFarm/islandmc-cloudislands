@@ -61,6 +61,10 @@ class SatisAddonIntegrationPolicyTest {
         assertEquals("core-api-table-key-value-or-shared-database", SatisAddonIntegrationPolicy.DATA_AUTHORITY);
         assertEquals("save-on-source-node-restore-on-target-node-by-island-uuid", SatisAddonIntegrationPolicy.NODE_MOVE_POLICY);
         assertEquals("addon-removed-or-disabled-never-blocks-cloudislands-base-island-lifecycle", SatisAddonIntegrationPolicy.REMOVAL_POLICY);
+        assertEquals("disabled-or-removed-preserves-addon-state-by-island-uuid", SatisAddonIntegrationPolicy.DATA_RETENTION_POLICY);
+        assertEquals("disabled-feature-preserves-existing-state-and-skips-new-runtime-writes", SatisAddonIntegrationPolicy.FEATURE_DISABLE_DATA_POLICY);
+        assertEquals("reenable-restores-state-from-shared-backend-by-island-uuid", SatisAddonIntegrationPolicy.REENABLE_POLICY);
+        assertEquals("no-automatic-delete-on-disable-remove-or-feature-off", SatisAddonIntegrationPolicy.NO_AUTOMATIC_DELETE_POLICY);
         assertEquals("island-uuid-stable-node-world-cell-volatile", SatisAddonIntegrationPolicy.STATE_KEY_POLICY);
         assertEquals(
                 "factory-upgrade-menu-progress-state-restores-on-target-node-from-shared-state",
@@ -73,6 +77,14 @@ class SatisAddonIntegrationPolicyTest {
         assertEquals(
                 "disabled-feature-registers-no-command-gui-listener-task-or-write-path",
                 SatisAddonIntegrationPolicy.requiredScenarios().get("partial-features")
+        );
+        assertEquals(
+                "existing-feature-state-is-preserved-and-not-deleted-while-feature-is-off",
+                SatisAddonIntegrationPolicy.requiredScenarios().get("feature-off-data-retention")
+        );
+        assertEquals(
+                "previous-addon-state-is-reloaded-from-shared-storage-by-island-uuid",
+                SatisAddonIntegrationPolicy.requiredScenarios().get("addon-reenable")
         );
         assertEquals(
                 "cloudislands-boots-without-satis-jar-and-discovers-satis-through-addon-api-when-installed",

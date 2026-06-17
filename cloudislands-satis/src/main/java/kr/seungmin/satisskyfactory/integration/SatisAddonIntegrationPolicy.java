@@ -19,6 +19,10 @@ public final class SatisAddonIntegrationPolicy {
     public static final String DATA_AUTHORITY = "core-api-table-key-value-or-shared-database";
     public static final String NODE_MOVE_POLICY = "save-on-source-node-restore-on-target-node-by-island-uuid";
     public static final String REMOVAL_POLICY = "addon-removed-or-disabled-never-blocks-cloudislands-base-island-lifecycle";
+    public static final String DATA_RETENTION_POLICY = "disabled-or-removed-preserves-addon-state-by-island-uuid";
+    public static final String FEATURE_DISABLE_DATA_POLICY = "disabled-feature-preserves-existing-state-and-skips-new-runtime-writes";
+    public static final String REENABLE_POLICY = "reenable-restores-state-from-shared-backend-by-island-uuid";
+    public static final String NO_AUTOMATIC_DELETE_POLICY = "no-automatic-delete-on-disable-remove-or-feature-off";
     public static final String STATE_KEY_POLICY = "island-uuid-stable-node-world-cell-volatile";
 
     private static final List<String> SUPPORTED_MODES = List.of(
@@ -61,6 +65,8 @@ public final class SatisAddonIntegrationPolicy {
             "a-b-node-move", "factory-upgrade-menu-progress-state-restores-on-target-node-from-shared-state",
             "satis-disabled", "base-cloudislands-create-visit-protect-save-restore-continues-without-satis-runtime-components",
             "partial-features", "disabled-feature-registers-no-command-gui-listener-task-or-write-path",
+            "feature-off-data-retention", "existing-feature-state-is-preserved-and-not-deleted-while-feature-is-off",
+            "addon-reenable", "previous-addon-state-is-reloaded-from-shared-storage-by-island-uuid",
             "external-addon", "cloudislands-boots-without-satis-jar-and-discovers-satis-through-addon-api-when-installed",
             "missing-cloudislands-api", "satis-runtime-does-not-start-and-registers-no-commands-listeners-tickers-or-writers",
             "no-superiorskyblock2", "legacy-skyblock-calls-are-replaced-by-cloudislands-api-or-addon-spi"
