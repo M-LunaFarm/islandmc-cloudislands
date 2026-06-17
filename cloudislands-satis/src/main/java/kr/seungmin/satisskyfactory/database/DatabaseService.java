@@ -599,9 +599,9 @@ public final class DatabaseService {
 
     private boolean coreStateWritersAvailable() {
         return coreStateWriter != null
-                || coreTableWriter != null
-                || coreGlobalStateWriter != null
-                || coreGlobalTableWriter != null;
+                && coreTableWriter != null
+                && coreGlobalStateWriter != null
+                && coreGlobalTableWriter != null;
     }
 
     private File legacySourceDatabase(File sourceDatabase) {
