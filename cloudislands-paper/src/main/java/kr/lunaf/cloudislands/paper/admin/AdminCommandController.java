@@ -2181,6 +2181,13 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " tablePrefix=" + textValue(body, "addonStateTableKeyPrefix")
             + " maxKeys=" + longValue(body, "addonStateMaxKeysPerAddon")
             + " maxValue=" + longValue(body, "addonStateMaxValueLength")
+            + " globalCacheKey=" + textValue(body, "addonStateGlobalCacheKey")
+            + " islandCacheKey=" + textValue(body, "addonStateIslandCacheKey")
+            + " invalidationApi=" + textValue(body, "addonStateCacheInvalidationApi")
+            + " cacheEventFields=" + textValue(body, "cacheInvalidationEventFields")
+            + " eventTypeKeys=" + textValue(body, "globalEventTypeKeys")
+            + " eventRecoveryKeys=" + textValue(body, "globalEventRecoveryKeys")
+            + " eventAddonKeys=" + textValue(body, "globalEventAddonKeys")
             + " fallback=" + textValue(body, "addonStateTableKeyValueBulkSaveFallback");
     }
 
