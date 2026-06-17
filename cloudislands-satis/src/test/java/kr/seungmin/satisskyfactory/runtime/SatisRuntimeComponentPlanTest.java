@@ -44,6 +44,7 @@ class SatisRuntimeComponentPlanTest {
         assertTrue(plan.skippedComponentsMetadata().contains("core-api-state-writer"));
         assertTrue(plan.blockedComponentsMetadata().contains("commands:addon-disabled"));
         assertTrue(plan.blockedComponentsMetadata().contains("dirty-save:data-writes-disabled"));
+        assertTrue(plan.blockedComponentsMetadata().contains("core-api-state-writer:addon-state-feature-disabled"));
     }
 
     @Test
@@ -107,5 +108,34 @@ class SatisRuntimeComponentPlanTest {
 
         assertTrue(plan.skippedComponentsMetadata().contains("placeholder-expansion:placeholderapi-not-installed"));
         assertTrue(plan.blockedComponentsMetadata().contains("placeholders:placeholderapi-not-installed"));
+    }
+
+    @Test
+    void coreApiWriterReportsUnavailableApiSeparatelyFromFeatureGate() {
+        SatisRuntimeComponentPlan plan = new SatisRuntimeComponentPlan(
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                false
+        );
+
+        assertTrue(plan.skippedComponentsMetadata().contains("core-api-state-writer"));
+        assertTrue(plan.blockedComponentsMetadata().contains("core-api-state-writer:cloudislands-api-unavailable"));
     }
 }

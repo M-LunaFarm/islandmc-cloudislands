@@ -128,6 +128,9 @@ public record SatisRuntimeComponentPlan(
         if (!dirtySaveRunning) {
             blocked.add("dirty-save:" + (!dataWritesEnabled ? "data-writes-disabled" : "not-running"));
         }
+        if (!coreApiStateWriterActive) {
+            blocked.add("core-api-state-writer:" + coreApiStateWriterBlockReason());
+        }
         return blocked.isEmpty() ? "none" : String.join(",", blocked);
     }
 
@@ -142,5 +145,18 @@ public record SatisRuntimeComponentPlan(
             return "placeholderapi-not-installed";
         }
         return "not-registered";
+    }
+
+    private String coreApiStateWriterBlockReason() {
+        if (coreApiStateWriterActive) {
+            return "none";
+        }
+        if (!addonStateEnabled) {
+            return "addon-state-feature-disabled";
+        }
+        if (!coreApiAvailable) {
+            return "cloudislands-api-unavailable";
+        }
+        return "not-active";
     }
 }
