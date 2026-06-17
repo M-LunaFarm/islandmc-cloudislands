@@ -377,7 +377,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean coreApiLocalCacheWritesEnabled() {
-        return configBoolean("setup.database.core-api.local-cache-writes.enabled", "database.core-api.local-cache-writes.enabled", false);
+        return configBoolean("setup.database.core-api.local-cache-writes.enabled", "addons.cloudislands-satis.database.core-api.local-cache-writes.enabled", configBoolean("database.core-api.local-cache-writes.enabled", "database.core-api.local-cache-writes.enabled", false));
     }
 
     private void putRuntimeActivityState(Map<String, String> state) {
@@ -4817,6 +4817,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
             return "setup-core-api-marker-only";
         }
+        if (configs.main().getBoolean("addons.cloudislands-satis.database.core-api.enabled", false)) {
+            return "addon-core-api-marker-only";
+        }
         return "not-selected";
     }
 
@@ -4987,7 +4990,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean coreApiFlattenedFallbackEnabled() {
-        return setupBoolean("database.core-api.flattened-fallback.enabled", true);
+        return setupBoolean("database.core-api.flattened-fallback.enabled", configs.main().getBoolean("addons.cloudislands-satis.database.core-api.flattened-fallback.enabled", true));
     }
 
     private String databaseCoreApiWriteFallbackPolicy() {
@@ -5113,6 +5116,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
             return "setup.database.core-api.enabled";
+        }
+        if (configs.main().getBoolean("addons.cloudislands-satis.database.core-api.enabled", false)) {
+            return "addons.cloudislands-satis.database.core-api.enabled";
         }
         if (!inferredJdbcDatabaseType().isBlank()) {
             return databaseJdbcSource();
