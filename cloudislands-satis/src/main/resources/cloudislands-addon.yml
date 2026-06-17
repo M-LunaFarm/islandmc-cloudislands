@@ -145,6 +145,8 @@ state:
   migration-preflush-policy: flush-dirty-state-before-source-node-deactivation-then-remap-on-target-activation
   fallback-policy: local-cache-on-core-api-failure-with-configurable-database-fallback
   fallback-safety-policy: production-safe-when-shared-backend-precedes-local-sqlite
+  bulk-request-models: AddonStateBulkSaveRequest,AddonStateBulkLoadRequest
+  bulk-load-policy: table-key-value-load-uses-typed-request-and-core-api-before-local-cache
   placement-source-policy: record-core-payload-or-paper-allocator-on-activate-and-migrate
   placement-source-state-key: last-lifecycle-operation
   node-move-state-keys: source-node,target-node,node-move,node-move-policy
