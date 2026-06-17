@@ -1960,10 +1960,10 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 activeIslands,
                 activationQueue,
                 Instant.now(),
-                "query-services-use-core-api-or-local-cache-snapshots-no-direct-storage-access",
-                "all-island-writes-go-through-core-api-transaction-endpoints",
-                "synchronous-paper-events-must-use-local-protection-permission-caches",
-                "addons-use-addon-state-api-or-their-own-shared-database-never-cloudislands-internals"
+                kr.lunaf.cloudislands.api.CloudIslandsApiContract.READ_POLICY,
+                kr.lunaf.cloudislands.api.CloudIslandsApiContract.WRITE_AUTHORITY,
+                kr.lunaf.cloudislands.api.CloudIslandsApiContract.SYNC_EVENT_POLICY,
+                kr.lunaf.cloudislands.api.CloudIslandsApiContract.ADDON_STORAGE_POLICY
             ));
         }
 
