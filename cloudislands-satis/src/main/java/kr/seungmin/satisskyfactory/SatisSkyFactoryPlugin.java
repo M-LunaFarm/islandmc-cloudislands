@@ -1394,10 +1394,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("cloudislands-adapter", Boolean.toString(configs.main().getBoolean("integration.cloudislands-adapter", true)));
         metadata.put("requires-cloudislands-api", Boolean.toString(requiresCloudIslandsApi()));
         metadata.put("cloudislands-api-available", Boolean.toString(cloudIslandsApi != null));
-        metadata.put("cloudislands-api-read-policy", cloudIslandsApi == null ? "unavailable" : cloudIslandsApi.readConsistencyPolicy());
-        metadata.put("cloudislands-api-write-authority", cloudIslandsApi == null ? "unavailable" : cloudIslandsApi.writeAuthorityPolicy());
-        metadata.put("cloudislands-api-sync-event-policy", cloudIslandsApi == null ? "unavailable" : cloudIslandsApi.synchronousEventPolicy());
-        metadata.put("cloudislands-api-addon-storage-policy", cloudIslandsApi == null ? "unavailable" : cloudIslandsApi.addonStoragePolicy());
+        if (cloudIslandsApi == null) {
+            metadata.put("cloudislands-api-read-policy", "unavailable");
+            metadata.put("cloudislands-api-write-authority", "unavailable");
+            metadata.put("cloudislands-api-sync-event-policy", "unavailable");
+            metadata.put("cloudislands-api-addon-storage-policy", "unavailable");
+        } else {
+            cloudIslandsApi.contractMetadata().forEach((key, value) -> metadata.put("cloudislands-api-" + key, value));
+        }
         metadata.put("cloudislands-required-policy", SatisAddonIntegrationPolicy.CLOUDISLANDS_REQUIRED_POLICY);
         metadata.put("cloudislands-api-resolution", SatisAddonIntegrationPolicy.API_RESOLUTION_POLICY);
         metadata.put("runtime-hard-depend-plugin", SatisAddonIntegrationPolicy.RUNTIME_HARD_DEPEND_PLUGIN);

@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.api;
 
+import java.util.Map;
 import kr.lunaf.cloudislands.api.service.IslandAdminService;
 import kr.lunaf.cloudislands.api.service.IslandAddonService;
 import kr.lunaf.cloudislands.api.service.IslandCommandService;
@@ -26,6 +27,15 @@ public interface CloudIslandsApi {
 
     default String addonStoragePolicy() {
         return "addons-use-addon-state-api-or-their-own-shared-database-never-cloudislands-internals";
+    }
+
+    default Map<String, String> contractMetadata() {
+        return Map.of(
+            "read-policy", readConsistencyPolicy(),
+            "write-authority", writeAuthorityPolicy(),
+            "sync-event-policy", synchronousEventPolicy(),
+            "addon-storage-policy", addonStoragePolicy()
+        );
     }
 
     IslandQueryService islands();
