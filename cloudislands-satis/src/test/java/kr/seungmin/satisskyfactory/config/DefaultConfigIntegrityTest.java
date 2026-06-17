@@ -55,6 +55,22 @@ class DefaultConfigIntegrityTest {
         assertTrue(config.getBoolean("economy.use-vault"));
         assertEquals("원", config.getString("economy.currency-symbol"));
         assertEquals("CORE_API", config.getString("database.type"));
+        assertTrue(config.getBoolean("database.core-api.flattened-fallback.enabled"));
+        assertTrue(config.getBoolean("setup.database.core-api.flattened-fallback.enabled"));
+        assertTrue(config.getBoolean("database.fallback.enabled"));
+        assertTrue(config.getBoolean("setup.database.fallback.enabled"));
+        assertEquals(List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API", "SQLITE"),
+                config.getStringList("database.fallback.order"));
+        assertEquals(List.of(), config.getStringList("setup.database.fallback.order"));
+        assertTrue(config.getStringList("database.fallback.order").indexOf("POSTGRESQL")
+                < config.getStringList("database.fallback.order").indexOf("SQLITE"));
+        assertEquals("CORE_API", addon.getString("database.default-mode"));
+        assertEquals(List.of("CORE_API", "POSTGRESQL", "MYSQL", "MARIADB", "SQLITE"),
+                addon.getStringList("database.supported"));
+        assertEquals(List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API", "SQLITE"),
+                addon.getStringList("database.fallback.recommended-order"));
+        assertEquals("keep-a-shared-backend-before-sqlite-for-multi-island-node-pools",
+                addon.getString("database.fallback.split-brain-warning"));
         assertEquals("../CloudIslands/satis-state", config.getString("database.shared-directory"));
         assertEquals("data.db", config.getString("database.sqlite-file"));
         assertEquals(60, config.getInt("database.save-interval-seconds"));
