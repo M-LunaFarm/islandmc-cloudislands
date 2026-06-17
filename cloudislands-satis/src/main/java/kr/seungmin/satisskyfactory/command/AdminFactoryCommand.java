@@ -698,11 +698,15 @@ public final class AdminFactoryCommand {
         state.put("superior-import-dryrun", "/ciadmin migrate-superiorskyblock2 dryrun [path]");
         state.put("superior-import-import", "/ciadmin migrate-superiorskyblock2 import <approvalToken>");
         state.put("superior-import-verify", "/ciadmin migrate-superiorskyblock2 verify [path]");
+        state.put("superior-import-verify-addon-state", "/ciadmin migrate-superiorskyblock2 verify-addon-state <islandUuid>");
+        state.put("superior-import-verify-no-legacy-provider", "/ciadmin migrate-superiorskyblock2 verify-no-legacy-provider");
         state.put("superior-import-rollback", "/ciadmin migrate-superiorskyblock2 rollback");
         state.put("satismc-import-status", "/factory admin migration status");
         state.put("satismc-import-scan", "/factory admin migration scan <sqlitePath>");
         state.put("satismc-import-dryrun", "/factory admin migration dryrun <sqlitePath>");
         state.put("satismc-import-verify", "/factory admin migration verify <sqlitePath>");
+        state.put("satismc-import-verify-addon-state", "/factory admin migration verify-addon-state <islandUuid>");
+        state.put("satismc-import-verify-no-legacy-provider", "/factory admin migration verify-no-legacy-provider");
         state.put("satismc-import-import", "/factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL + "|" + MIGRATION_IMPORT_APPROVAL + ":<dryrun-sha256>");
         state.put("satismc-import-approval", MIGRATION_IMPORT_APPROVAL);
         state.put("satismc-import-mode", "cross-backend-sqlite-copy");
@@ -751,6 +755,14 @@ public final class AdminFactoryCommand {
                 scanLegacyDatabase(sender, args, action);
                 return;
             }
+            if (action.equals("verify-addon-state")) {
+                verifyMigrationAddonState(sender, args);
+                return;
+            }
+            if (action.equals("verify-no-legacy-provider")) {
+                verifyNoLegacyProvider(sender);
+                return;
+            }
             if (action.equals("import")) {
                 importLegacyDatabase(sender, args);
                 return;
@@ -761,6 +773,79 @@ public final class AdminFactoryCommand {
             }
         }
         showMigration(sender);
+    }
+
+    private void verifyMigrationAddonState(CommandSender sender, String[] args) {
+        if (args.length < 4) {
+            sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                    "key", "usage",
+                    "value", "/factory admin migration verify-addon-state <islandUuid>"
+            )));
+            return;
+        }
+        sender.sendMessage(messages.raw("admin-migration-title"));
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("mode", "verify-addon-state-roundtrip");
+        state.put("writes", "false");
+        state.put("policy", SatisLegacyMigrationPolicy.ADDON_STATE_VERIFY_POLICY);
+        state.put("requires-feature", "addon-state");
+        state.put("feature-gate", "addon-state=" + enabled("addon-state"));
+        try {
+            UUID islandId = UUID.fromString(args[3]);
+            Map<String, String> values = addonIslandState == null ? Map.of() : addonIslandState.apply(islandId);
+            Map<String, String> safeValues = values == null ? Map.of() : values;
+            state.put("island", islandId.toString());
+            state.put("state-keys", Integer.toString(safeValues.size()));
+            state.put("status", enabled("addon-state") ? (safeValues.isEmpty() ? "empty" : "available") : "addon-state-feature-disabled");
+            state.put("roundtrip", enabled("addon-state") && !safeValues.isEmpty() ? "passed" : "not-proven");
+            state.put("authority", "cloudislands-addon-state");
+            state.put("node-bound", "false");
+            state.put("next-step", safeValues.isEmpty() ? "activate-or-import-island-then-rerun-verify-addon-state" : "run-verify-no-legacy-provider");
+        } catch (IllegalArgumentException exception) {
+            state.put("status", "invalid-island-uuid");
+            state.put("island", args[3]);
+            state.put("roundtrip", "failed");
+        }
+        state.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                        "key", entry.getKey(),
+                        "value", entry.getValue()
+                ))));
+    }
+
+    private void verifyNoLegacyProvider(CommandSender sender) {
+        sender.sendMessage(messages.raw("admin-migration-title"));
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("mode", "verify-no-legacy-provider");
+        state.put("writes", "false");
+        state.put("policy", SatisLegacyMigrationPolicy.RUNTIME_PROVIDER_HOOK_POLICY);
+        state.put("runtime-dependency-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
+        state.put("forbidden-runtime-providers", MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS);
+        boolean passed = true;
+        for (String provider : MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS.split(",")) {
+            String name = provider.trim();
+            boolean enabledProvider;
+            try {
+                enabledProvider = Bukkit.getPluginManager().isPluginEnabled(name);
+            } catch (RuntimeException exception) {
+                enabledProvider = false;
+                state.put("provider-check-error." + name, exception.getClass().getSimpleName());
+            }
+            state.put("provider." + name, enabledProvider ? "enabled" : "absent-or-disabled");
+            if (enabledProvider) {
+                passed = false;
+            }
+        }
+        state.put("status", passed ? "passed" : "failed");
+        state.put("live-provider-hooks", passed ? "false" : "legacy-provider-present");
+        state.put("next-step", passed ? "migration-runtime-clean" : "remove-legacy-provider-before-accepting-migration");
+        state.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                        "key", entry.getKey(),
+                        "value", entry.getValue()
+                ))));
     }
 
     private void scanLegacyDatabase(CommandSender sender, String[] args, String action) {

@@ -25,6 +25,12 @@ class AdminFactoryCommandTest {
         assertEquals(List.class, AdminFactoryCommand.class
                 .getMethod("complete", CommandSender.class, String[].class)
                 .getReturnType());
+        assertEquals(void.class, AdminFactoryCommand.class
+                .getDeclaredMethod("verifyMigrationAddonState", CommandSender.class, String[].class)
+                .getReturnType());
+        assertEquals(void.class, AdminFactoryCommand.class
+                .getDeclaredMethod("verifyNoLegacyProvider", CommandSender.class)
+                .getReturnType());
     }
 
     @Test
