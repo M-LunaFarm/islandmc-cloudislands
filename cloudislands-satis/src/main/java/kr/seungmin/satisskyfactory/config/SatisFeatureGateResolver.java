@@ -8,7 +8,8 @@ import org.bukkit.configuration.ConfigurationSection;
 public final class SatisFeatureGateResolver {
     private static final List<String> FEATURE_ROOTS = List.of(
             "satis.features.",
-            "addons.cloudislands-satis.features."
+            "addons.cloudislands-satis.features.",
+            "features."
     );
     private static final Map<String, String> ALIASES = Map.of(
             "factories", "machines",
@@ -32,6 +33,9 @@ public final class SatisFeatureGateResolver {
             return false;
         }
         if (!config.getBoolean("satis.enabled", true)) {
+            return false;
+        }
+        if (!config.getBoolean("integration.enabled", true)) {
             return false;
         }
         if (!config.getBoolean("addons.cloudislands-satis.enabled", true)) {

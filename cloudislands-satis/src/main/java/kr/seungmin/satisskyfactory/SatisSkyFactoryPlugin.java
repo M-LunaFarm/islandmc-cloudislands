@@ -49,6 +49,7 @@ import kr.seungmin.satisskyfactory.command.FactoryCommand;
 import kr.seungmin.satisskyfactory.config.ConfigService;
 import kr.seungmin.satisskyfactory.config.MessageService;
 import kr.seungmin.satisskyfactory.config.SatisDatabaseConfigPolicy;
+import kr.seungmin.satisskyfactory.config.SatisFeatureGateResolver;
 import kr.seungmin.satisskyfactory.contract.ContractService;
 import kr.seungmin.satisskyfactory.database.DatabaseService;
 import kr.seungmin.satisskyfactory.economy.EconomyModeFactory;
@@ -1288,16 +1289,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public boolean enabledByDefault() {
-        boolean enabled = configs.main().contains("satis.enabled")
-                ? configs.main().getBoolean("satis.enabled", true)
-                : configs.main().getBoolean("integration.enabled", true);
-        if (configs.main().contains("addons." + ADDON_ID + ".enabled")) {
-            enabled = enabled && configs.main().getBoolean("addons." + ADDON_ID + ".enabled", true);
-        }
-        if ("DISABLED".equals(configuredIntegrationMode())) {
-            enabled = false;
-        }
-        return enabled;
+        return SatisFeatureGateResolver.rootEnabled(configs.main());
     }
 
     @Override
@@ -3570,6 +3562,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return false;
         }
         String raw = key == null ? "" : key;
+        if (!SatisFeatureGateResolver.featureEnabled(configs.main(), raw)) {
+            return false;
+        }
         if (!featureEnabled(raw)) {
             return false;
         }
@@ -3595,7 +3590,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String canonicalFeature(String key) {
-        return FEATURE_ALIASES.getOrDefault(key, key);
+        return SatisFeatureGateResolver.canonical(key);
     }
 
     private String resolveDatabaseFileName() {

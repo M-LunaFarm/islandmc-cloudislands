@@ -31,6 +31,15 @@ class SatisFeatureGateResolverTest {
     }
 
     @Test
+    void legacyIntegrationSwitchAlsoDisablesTheRuntimeRoot() {
+        YamlConfiguration config = defaults();
+        config.set("integration.enabled", false);
+
+        assertFalse(SatisFeatureGateResolver.rootEnabled(config));
+        assertFalse(SatisFeatureGateResolver.featureEnabled(config, "machines"));
+    }
+
+    @Test
     void legacyAliasDisablesCanonicalFeature() {
         YamlConfiguration config = defaults();
         config.set("satis.features.generators", false);
@@ -38,6 +47,14 @@ class SatisFeatureGateResolverTest {
         assertEquals("resource-nodes", SatisFeatureGateResolver.canonical("generators"));
         assertFalse(SatisFeatureGateResolver.featureEnabled(config, "resource-nodes"));
         assertFalse(SatisFeatureGateResolver.featureEnabled(config, "generators"));
+    }
+
+    @Test
+    void legacyFeaturePathDisablesModernFeatureGate() {
+        YamlConfiguration config = defaults();
+        config.set("features.placeholders", false);
+
+        assertFalse(SatisFeatureGateResolver.featureEnabled(config, "placeholders"));
     }
 
     @Test
