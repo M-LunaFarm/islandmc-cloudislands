@@ -447,10 +447,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-dirty-save-pending-inventories", dirtySaves == null ? "0" : Integer.toString(dirtySaves.pendingInventories()));
         state.put("runtime-dirty-save-pending-nodes", dirtySaves == null ? "0" : Integer.toString(dirtySaves.pendingNodes()));
         state.put("runtime-dirty-save-pending-islands", dirtySaves == null ? "0" : Integer.toString(dirtySaves.pendingIslands()));
+        state.put("runtime-dirty-save-last-flush-status", dirtySaves == null ? "not-configured" : dirtySaves.lastFlushStatus());
+        state.put("runtime-dirty-save-last-flush-at", dirtySaves == null ? "" : dirtySaves.lastFlushAt());
+        state.put("runtime-dirty-save-last-flush-writes", dirtySaves == null ? "0" : Integer.toString(dirtySaves.lastFlushWrites()));
+        state.put("runtime-dirty-save-last-flush-failures", dirtySaves == null ? "0" : Integer.toString(dirtySaves.lastFlushFailures()));
+        state.put("runtime-dirty-save-flush-attempts", dirtySaves == null ? "0" : Long.toString(dirtySaves.flushAttempts()));
         state.put("runtime-machine-ticker-gate", "addonRuntimeEnabled&&features.machines");
         state.put("runtime-maintenance-ticker-gate", "addonRuntimeEnabled&&features.maintenance");
         state.put("runtime-dirty-save-gate", "addonRuntimeEnabled&&any-write-feature-enabled");
-        state.put("runtime-dirty-save-stop-policy", "runtime-stop-discards-queued-dirty-state-after-explicit-preflush-paths");
+        state.put("runtime-dirty-save-stop-policy", "runtime-stop-preflushes-queued-dirty-state-before-task-cancel-and-addon-unregister");
         state.put("runtime-duplicate-tick-guard", "ticker-stops-when-addon-or-machine-feature-disabled");
         state.put("runtime-core-api-state-writer", Boolean.toString(coreApiState != null));
         state.put("runtime-core-api-state-readiness", coreApiState == null ? "not-configured" : coreApiState.writerReadiness());

@@ -33,6 +33,11 @@ public final class DirtySaveService {
     private BooleanSupplier nodeWritesEnabled = () -> true;
     private BooleanSupplier islandWritesEnabled = () -> true;
     private BukkitTask task;
+    private volatile String lastFlushStatus = "never";
+    private volatile String lastFlushAt = "";
+    private volatile int lastFlushWrites = 0;
+    private volatile int lastFlushFailures = 0;
+    private volatile long flushAttempts = 0L;
 
     public DirtySaveService(JavaPlugin plugin, DatabaseService database) {
         this.plugin = plugin;
@@ -103,6 +108,26 @@ public final class DirtySaveService {
 
     public int pendingWrites() {
         return pendingMachines() + pendingInventories() + pendingNodes() + pendingIslands();
+    }
+
+    public String lastFlushStatus() {
+        return lastFlushStatus;
+    }
+
+    public String lastFlushAt() {
+        return lastFlushAt;
+    }
+
+    public int lastFlushWrites() {
+        return lastFlushWrites;
+    }
+
+    public int lastFlushFailures() {
+        return lastFlushFailures;
+    }
+
+    public long flushAttempts() {
+        return flushAttempts;
     }
 
     public void discard() {
@@ -231,7 +256,8 @@ public final class DirtySaveService {
         try {
             flush();
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("Dirty save flush failed: " + exception.getMessage());
+            recordFlush("failed", 0, 1);
+            warn("Dirty save flush failed: " + exception.getMessage());
         }
     }
 
@@ -239,7 +265,8 @@ public final class DirtySaveService {
         try {
             flushIsland(islandUuid);
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("Dirty save flush failed for island " + islandUuid + ": " + exception.getMessage());
+            recordFlush("failed", 0, 1);
+            warn("Dirty save flush failed for island " + islandUuid + ": " + exception.getMessage());
         }
     }
 
@@ -249,11 +276,14 @@ public final class DirtySaveService {
             Map<UUID, MachineInstance> machineBatch = drainIfEnabled(machines, machineWritesEnabled);
             Map<UUID, ResourceNode> nodeBatch = drainIfEnabled(nodes, nodeWritesEnabled);
             Map<UUID, FactoryIsland> islandBatch = drainIfEnabled(islands, islandWritesEnabled);
-            saveBatch("inventory", inventoryBatch, inventories, database::saveInventory);
-            saveBatch("machine", machineBatch, machines, database::saveMachine);
-            saveBatch("node", nodeBatch, nodes, database::saveNode);
-            saveBatch("island", islandBatch, islands, database::saveIsland);
+            int attempts = inventoryBatch.size() + machineBatch.size() + nodeBatch.size() + islandBatch.size();
+            int failures = 0;
+            failures += saveBatch("inventory", inventoryBatch, inventories, database::saveInventory);
+            failures += saveBatch("machine", machineBatch, machines, database::saveMachine);
+            failures += saveBatch("node", nodeBatch, nodes, database::saveNode);
+            failures += saveBatch("island", islandBatch, islands, database::saveIsland);
             publishCoreState(machineBatch, inventoryBatch, nodeBatch, islandBatch);
+            recordFlush(failures == 0 ? "success" : "partial", attempts, failures);
         }
     }
 
@@ -270,13 +300,16 @@ public final class DirtySaveService {
                 islands.remove(islandUuid);
             }
             Map<UUID, FactoryIsland> islandBatch = island == null ? Map.of() : Map.of(islandUuid, island);
-            saveBatch("inventory", inventoryBatch, inventories, database::saveInventory);
-            saveBatch("machine", machineBatch, machines, database::saveMachine);
-            saveBatch("node", nodeBatch, nodes, database::saveNode);
+            int attempts = inventoryBatch.size() + machineBatch.size() + nodeBatch.size() + islandBatch.size();
+            int failures = 0;
+            failures += saveBatch("inventory", inventoryBatch, inventories, database::saveInventory);
+            failures += saveBatch("machine", machineBatch, machines, database::saveMachine);
+            failures += saveBatch("node", nodeBatch, nodes, database::saveNode);
             if (island != null) {
-                saveBatch("island", islandBatch, islands, database::saveIsland);
+                failures += saveBatch("island", islandBatch, islands, database::saveIsland);
             }
             publishCoreState(machineBatch, inventoryBatch, nodeBatch, islandBatch);
+            recordFlush(failures == 0 ? "success" : "partial", attempts, failures);
         }
     }
 
@@ -296,7 +329,7 @@ public final class DirtySaveService {
                     Map.copyOf(islandBatch)
             ));
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("Core API Satis state publish failed: " + exception.getMessage());
+            warn("Core API Satis state publish failed: " + exception.getMessage());
         }
     }
 
@@ -307,19 +340,36 @@ public final class DirtySaveService {
         try {
             coreStateDeletePublisher.accept(new DirtyRowDelete(islandUuid, key));
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("Core API Satis state delete failed: " + exception.getMessage());
+            warn("Core API Satis state delete failed: " + exception.getMessage());
         }
     }
 
-    private <T> void saveBatch(String label, Map<UUID, T> snapshot, Map<UUID, T> retryQueue, Consumer<T> saver) {
+    private <T> int saveBatch(String label, Map<UUID, T> snapshot, Map<UUID, T> retryQueue, Consumer<T> saver) {
+        int[] failures = {0};
         snapshot.forEach((id, value) -> {
             try {
                 saver.accept(value);
             } catch (RuntimeException exception) {
+                failures[0]++;
                 retryQueue.put(id, value);
-                plugin.getLogger().warning("Dirty save failed for " + label + " " + id + ": " + exception.getMessage());
+                warn("Dirty save failed for " + label + " " + id + ": " + exception.getMessage());
             }
         });
+        return failures[0];
+    }
+
+    private void recordFlush(String status, int writes, int failures) {
+        flushAttempts++;
+        lastFlushStatus = status == null || status.isBlank() ? "unknown" : status;
+        lastFlushAt = java.time.Instant.now().toString();
+        lastFlushWrites = Math.max(0, writes);
+        lastFlushFailures = Math.max(0, failures);
+    }
+
+    private void warn(String message) {
+        if (plugin != null) {
+            plugin.getLogger().warning(message);
+        }
     }
 
     private <T> Map<UUID, T> drain(Map<UUID, T> source) {
