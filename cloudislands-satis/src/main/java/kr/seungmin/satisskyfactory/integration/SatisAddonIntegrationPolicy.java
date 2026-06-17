@@ -2,6 +2,7 @@ package kr.seungmin.satisskyfactory.integration;
 
 import java.util.List;
 import java.util.Map;
+import kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy;
 
 public final class SatisAddonIntegrationPolicy {
     public static final String ADDON_ID = "cloudislands-satis";
@@ -219,7 +220,7 @@ public final class SatisAddonIntegrationPolicy {
     }
 
     public static String operationScenarioSummary() {
-        return summary(OPERATION_SCENARIOS);
+        return SatisIntegrationPolicy.operationScenarioSummary();
     }
 
     public static List<String> recommendedModeReasons() {
@@ -227,7 +228,7 @@ public final class SatisAddonIntegrationPolicy {
     }
 
     public static String recommendedModeReasonSummary() {
-        return String.join(",", RECOMMENDED_MODE_REASONS);
+        return SatisIntegrationPolicy.recommendedModeReasonSummary();
     }
 
     public static Map<String, String> componentBoundaries() {
@@ -235,7 +236,7 @@ public final class SatisAddonIntegrationPolicy {
     }
 
     public static String componentBoundarySummary() {
-        return summary(COMPONENT_BOUNDARIES);
+        return SatisIntegrationPolicy.componentBoundarySummary();
     }
 
     public static Map<String, String> featureOffRuntimeBlocks() {
@@ -243,7 +244,7 @@ public final class SatisAddonIntegrationPolicy {
     }
 
     public static String featureOffRuntimeBlockSummary() {
-        return summary(FEATURE_OFF_RUNTIME_BLOCKS);
+        return SatisIntegrationPolicy.featureOffRuntimeBlockSummary();
     }
 
     public static List<String> nodeMoveRemapSteps() {
@@ -251,7 +252,7 @@ public final class SatisAddonIntegrationPolicy {
     }
 
     public static String nodeMoveRemapStepSummary() {
-        return String.join(">", NODE_MOVE_REMAP_STEPS);
+        return SatisIntegrationPolicy.nodeMoveRemapStepSummary();
     }
 
     public static List<String> failureRecoverySteps() {
@@ -259,7 +260,7 @@ public final class SatisAddonIntegrationPolicy {
     }
 
     public static String failureRecoveryStepSummary() {
-        return String.join(">", FAILURE_RECOVERY_STEPS);
+        return SatisIntegrationPolicy.failureRecoveryStepSummary();
     }
 
     public static List<String> addonReconnectSteps() {
@@ -267,11 +268,11 @@ public final class SatisAddonIntegrationPolicy {
     }
 
     public static String addonReconnectStepSummary() {
-        return String.join(">", ADDON_RECONNECT_STEPS);
+        return SatisIntegrationPolicy.addonReconnectStepSummary();
     }
 
     public static String completionCriteriaSummary() {
-        return String.join(",", COMPLETION_CRITERIA);
+        return SatisIntegrationPolicy.completionCriteriaSummary();
     }
 
     public static boolean modeSupported(String mode) {

@@ -19,6 +19,7 @@ dependencies {
     implementation("org.mariadb.jdbc:mariadb-java-client:3.5.1")
     implementation("com.zaxxer:HikariCP:5.1.0")
     implementation(project(":cloudislands-protocol"))
+    implementation(project(":cloudislands-common"))
     compileOnly(project(":cloudislands-api"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")
     testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
