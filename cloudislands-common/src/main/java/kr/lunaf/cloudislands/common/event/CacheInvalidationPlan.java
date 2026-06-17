@@ -53,7 +53,8 @@ public final class CacheInvalidationPlan {
             return Set.of();
         }
         if (islandId == null) {
-            String addonStateKey = targetsFor(eventType).contains(CacheTarget.ADDON_STATE) ? RedisKeys.addonState(addonId(addonId)) : "";
+            String safeAddonId = addonId(addonId);
+            String addonStateKey = targetsFor(eventType).contains(CacheTarget.ADDON_STATE) && !safeAddonId.isBlank() ? RedisKeys.addonState(safeAddonId) : "";
             return addonStateKey.isBlank() ? Set.of() : Set.of(addonStateKey);
         }
         Set<String> keys = new LinkedHashSet<>();
