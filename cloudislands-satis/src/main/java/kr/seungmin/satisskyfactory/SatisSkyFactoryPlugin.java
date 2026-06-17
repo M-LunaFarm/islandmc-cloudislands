@@ -3867,8 +3867,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         DatabaseService.BackendSettings mysqlSettings = databaseBackendSettings("mysql");
         DatabaseService.BackendSettings mariadbSettings = databaseBackendSettings("mariadb");
         boolean fallbackEnabled = envBoolean("CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED",
-                setupBoolean("database.fallback.enabled",
-                        configs.main().getBoolean("addons.cloudislands-satis.database.fallback.enabled", true)));
+                setupAddonLegacyBoolean("setup.database.fallback.enabled",
+                        "addons.cloudislands-satis.database.fallback.enabled",
+                        "database.fallback.enabled",
+                        true));
         List<DatabaseService.StorageBackend> fallbackOrder = databaseFallbackOrder(true);
         DatabaseService.Settings settings = new DatabaseService.Settings(
                 backend,
@@ -5034,6 +5036,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return configs.main().getBoolean(setupPath, fallback);
         }
         return configs.main().getBoolean(path, fallback);
+    }
+
+    private boolean setupAddonLegacyBoolean(String setupPath, String addonPath, String legacyPath, boolean fallback) {
+        if (configs.main().contains(setupPath)) {
+            return configs.main().getBoolean(setupPath, fallback);
+        }
+        if (configs.main().contains(addonPath)) {
+            return configs.main().getBoolean(addonPath, fallback);
+        }
+        return configs.main().getBoolean(legacyPath, fallback);
     }
 
     private int envInt(String key, int fallback) {
