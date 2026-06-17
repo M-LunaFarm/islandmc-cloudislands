@@ -34,4 +34,18 @@ class AddonStateBulkSaveRequestTest {
                 request.tablesWithScopedTable().get("resource_nodes"));
         assertEquals(1, request.tableKeyCount());
     }
+
+    @Test
+    void rejectsNestedTableNamesButKeepsNestedKeys() {
+        AddonStateBulkSaveRequest request = AddonStateBulkSaveRequest.globalTables(
+                "cloudislands-satis",
+                Map.of(
+                        "machines/live", Map.of("machine/one", "ignored"),
+                        "machines", Map.of("machine/one", "kept")
+                ));
+
+        assertEquals(Map.of("machine/one", "kept"), request.tables().get("machines"));
+        assertEquals(1, request.tableKeyCount());
+        assertEquals(1, request.tableCount());
+    }
 }

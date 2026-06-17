@@ -4399,6 +4399,12 @@ public final class CloudIslandsCoreApplication {
         if (value.isBlank()) {
             throw new IllegalArgumentException("Addon state table is required");
         }
+        if (value.contains("/")) {
+            throw new IllegalArgumentException("Addon state table cannot contain /");
+        }
+        if (value.length() > AddonStateRepository.MAX_KEY_LENGTH) {
+            throw new IllegalArgumentException("Addon state table is too long");
+        }
         return value;
     }
 
