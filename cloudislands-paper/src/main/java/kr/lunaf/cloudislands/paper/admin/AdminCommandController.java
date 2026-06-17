@@ -2677,20 +2677,19 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private void usage(CommandSender sender, String label, int page) {
-        int pageSize = CommandListPolicy.DEFAULT_PAGE_SIZE;
-        int maxPage = Math.max(1, (helpCommands().size() + pageSize - 1) / pageSize);
-        int safePage = Math.max(1, Math.min(page, maxPage));
-        int from = (safePage - 1) * pageSize;
-        int to = Math.min(helpCommands().size(), from + pageSize);
-        sender.sendMessage(adminText("admin-command-list-title", "CloudIslands 관리자 명령어 목록 ") + safePage + "/" + maxPage + adminText("admin-command-list-suffix", CommandListPolicy.HEADER_SUFFIX));
-        for (String command : helpCommands().subList(from, to)) {
-            sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + command.replaceFirst("^ciadmin", label));
+        List<String> labelledCommands = helpCommands().stream()
+            .map(command -> command.replaceFirst("^ciadmin", label))
+            .toList();
+        CommandListPolicy.Page commandPage = CommandListPolicy.page(labelledCommands, page, label + " command list");
+        sender.sendMessage(adminText("admin-command-list-title", "CloudIslands 관리자 명령어 목록 ") + commandPage.page() + "/" + commandPage.pages() + adminText("admin-command-list-suffix", CommandListPolicy.HEADER_SUFFIX));
+        for (String command : commandPage.entries()) {
+            sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + command);
         }
-        if (safePage > 1) {
-            sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + label + " command list " + (safePage - 1));
+        if (commandPage.previousCommand() != null) {
+            sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + commandPage.previousCommand());
         }
-        if (safePage < maxPage) {
-            sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + label + " command list " + (safePage + 1));
+        if (commandPage.nextCommand() != null) {
+            sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + commandPage.nextCommand());
         }
     }
 

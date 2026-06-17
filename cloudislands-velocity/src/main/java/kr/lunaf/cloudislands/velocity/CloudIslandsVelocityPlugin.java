@@ -1195,20 +1195,16 @@ public final class CloudIslandsVelocityPlugin {
     }
 
     private void sendCommandList(Player player, String title, List<String> commands, int page, String nextCommand) {
-        int pageSize = CommandListPolicy.DEFAULT_PAGE_SIZE;
-        int maxPage = Math.max(1, (commands.size() + pageSize - 1) / pageSize);
-        int safePage = Math.max(1, Math.min(page, maxPage));
-        int from = (safePage - 1) * pageSize;
-        int to = Math.min(commands.size(), from + pageSize);
-        player.sendMessage(Component.text(title + " " + safePage + "/" + maxPage + CommandListPolicy.HEADER_SUFFIX));
-        for (String command : commands.subList(from, to)) {
+        CommandListPolicy.Page commandPage = CommandListPolicy.page(commands, page, nextCommand);
+        player.sendMessage(Component.text(title + " " + commandPage.page() + "/" + commandPage.pages() + CommandListPolicy.HEADER_SUFFIX));
+        for (String command : commandPage.entries()) {
             player.sendMessage(Component.text(CommandListPolicy.ENTRY_PREFIX + command));
         }
-        if (safePage > 1) {
-            player.sendMessage(Component.text(CommandListPolicy.ENTRY_PREFIX + nextCommand + " " + (safePage - 1)));
+        if (commandPage.previousCommand() != null) {
+            player.sendMessage(Component.text(CommandListPolicy.ENTRY_PREFIX + commandPage.previousCommand()));
         }
-        if (safePage < maxPage) {
-            player.sendMessage(Component.text(CommandListPolicy.ENTRY_PREFIX + nextCommand + " " + (safePage + 1)));
+        if (commandPage.nextCommand() != null) {
+            player.sendMessage(Component.text(CommandListPolicy.ENTRY_PREFIX + commandPage.nextCommand()));
         }
     }
 

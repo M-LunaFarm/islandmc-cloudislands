@@ -1001,22 +1001,21 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private void sendCommandList(Player player, String label, String title, List<String> commands, int page) {
-        int pageSize = CommandListPolicy.DEFAULT_PAGE_SIZE;
-        int maxPage = Math.max(1, (commands.size() + pageSize - 1) / pageSize);
-        int safePage = Math.max(1, Math.min(page, maxPage));
-        int from = (safePage - 1) * pageSize;
-        int to = Math.min(commands.size(), from + pageSize);
+        List<String> labelledCommands = commands.stream()
+            .map(command -> command.replaceFirst("^섬", label))
+            .toList();
+        CommandListPolicy.Page commandPage = CommandListPolicy.page(labelledCommands, page, label + " command list");
         String headerTitle = routeMessage("command-list-title", title + " ");
         String headerSuffix = routeMessage("command-list-suffix", CommandListPolicy.HEADER_SUFFIX);
-        player.sendMessage(headerTitle + safePage + "/" + maxPage + headerSuffix);
-        for (String command : commands.subList(from, to)) {
-            player.sendMessage(CommandListPolicy.ENTRY_PREFIX + command.replaceFirst("^섬", label));
+        player.sendMessage(headerTitle + commandPage.page() + "/" + commandPage.pages() + headerSuffix);
+        for (String command : commandPage.entries()) {
+            player.sendMessage(CommandListPolicy.ENTRY_PREFIX + command);
         }
-        if (safePage > 1) {
-            player.sendMessage(CommandListPolicy.ENTRY_PREFIX + label + " command list " + (safePage - 1));
+        if (commandPage.previousCommand() != null) {
+            player.sendMessage(CommandListPolicy.ENTRY_PREFIX + commandPage.previousCommand());
         }
-        if (safePage < maxPage) {
-            player.sendMessage(CommandListPolicy.ENTRY_PREFIX + label + " command list " + (safePage + 1));
+        if (commandPage.nextCommand() != null) {
+            player.sendMessage(CommandListPolicy.ENTRY_PREFIX + commandPage.nextCommand());
         }
     }
 
