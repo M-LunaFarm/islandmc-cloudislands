@@ -140,9 +140,6 @@ public record AddonStateBulkSaveRequest(
 
     private static String safeTableKey(String key) {
         String value = key == null ? "" : key.trim();
-        if (value.contains("/")) {
-            return "";
-        }
         return value;
     }
 

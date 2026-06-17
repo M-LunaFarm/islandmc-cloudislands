@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -51,6 +52,36 @@ class IslandAddonServiceTest {
         assertFalse(snapshot.enabled());
         assertEquals(Map.of(), snapshot.features());
         assertEquals("NullAddon", snapshot.metadata().get("metadata-error"));
+    }
+
+    @Test
+    void tableKeyValueBulkSaveFlattensGlobalTablesWithSlashKeys() {
+        CapturingAddonService service = new CapturingAddonService();
+
+        Map<String, String> state = service.tableKeyValueBulkSaveState(
+                "cloudislands-satis",
+                Map.of("runtime-status", "ok"),
+                Map.of("machines", Map.of("island/0001/machine/0002", "active"))).join();
+
+        assertEquals("ok", state.get("runtime-status"));
+        assertEquals("active", state.get(IslandAddonService.tableStateKey("machines", "island/0001/machine/0002")));
+    }
+
+    @Test
+    void tableKeyValueBulkSaveFlattensIslandTablesWithSlashKeys() {
+        CapturingAddonService service = new CapturingAddonService();
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000702");
+
+        Map<String, String> state = service.tableKeyValueBulkSaveIslandState(
+                "cloudislands-satis",
+                islandId,
+                Map.of("active-node", "island-2"),
+                Map.of("resource_nodes", Map.of("node/ore/0/0", "12000"))).join();
+
+        assertEquals("island-2", state.get("active-node"));
+        assertEquals("12000", state.get(IslandAddonService.tableStateKey("resource_nodes", "node/ore/0/0")));
+        assertEquals(state, service.lastIslandValues);
+        assertEquals(islandId, service.lastIslandId);
     }
 
     private static final class BrokenAddon implements CloudIslandsAddon {
@@ -126,6 +157,10 @@ class IslandAddonServiceTest {
     }
 
     private static final class CapturingAddonService implements IslandAddonService {
+        private Map<String, String> lastGlobalValues = Map.of();
+        private Map<String, String> lastIslandValues = Map.of();
+        private UUID lastIslandId;
+
         @Override
         public CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled,
                                                                      Map<String, Boolean> features, Map<String, String> metadata) {
@@ -160,6 +195,19 @@ class IslandAddonServiceTest {
         @Override
         public CompletableFuture<Boolean> isEnabled(String id) {
             return CompletableFuture.completedFuture(false);
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> putState(String id, Map<String, String> values) {
+            lastGlobalValues = values == null ? Map.of() : Map.copyOf(values);
+            return CompletableFuture.completedFuture(lastGlobalValues);
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> putIslandState(String id, UUID islandId, Map<String, String> values) {
+            lastIslandId = islandId;
+            lastIslandValues = values == null ? Map.of() : Map.copyOf(values);
+            return CompletableFuture.completedFuture(lastIslandValues);
         }
     }
 }
