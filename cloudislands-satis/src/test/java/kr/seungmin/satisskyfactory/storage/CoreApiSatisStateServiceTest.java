@@ -69,6 +69,8 @@ class CoreApiSatisStateServiceTest {
         assertEquals(Map.of("iron_ingot/2026-06-17", "{\"soldAmount\":42}"), values);
         assertEquals("market_daily", addons.lastGlobalLoadTable);
         assertEquals("cloudislands-satis", addons.lastGlobalAddonId);
+        assertEquals(1L, service.globalTableLoadSuccesses());
+        assertEquals(0L, service.globalTableLoadFailures());
         assertEquals("table-key-value-bulk-load-primary-with-flattened-state-fallback", service.readerTransportMode());
     }
 
@@ -89,6 +91,8 @@ class CoreApiSatisStateServiceTest {
         assertEquals("machines", addons.lastIslandLoadTable);
         assertEquals(islandId, addons.lastIslandId);
         assertEquals("cloudislands-satis", addons.lastIslandAddonId);
+        assertEquals(1L, service.islandTableLoadSuccesses());
+        assertEquals(0L, service.islandTableLoadFailures());
     }
 
     private record AddonOnlyCloudIslandsApi(IslandAddonService addons) implements CloudIslandsApi {

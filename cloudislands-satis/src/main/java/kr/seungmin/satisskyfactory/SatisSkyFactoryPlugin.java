@@ -468,9 +468,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-core-api-state-writer", Boolean.toString(coreApiState != null));
         state.put("runtime-core-api-state-readiness", coreApiState == null ? "not-configured" : coreApiState.writerReadiness());
         state.put("runtime-core-api-state-transport", coreApiState == null ? "none" : coreApiState.writerTransportMode());
+        state.put("runtime-core-api-state-reader-transport", coreApiState == null ? "none" : coreApiState.readerTransportMode());
         state.put("runtime-core-api-state-fallback-policy", coreApiState == null ? "none" : coreApiState.writerFallbackPolicy());
         state.put("runtime-core-api-state-flattened-fallback-enabled", Boolean.toString(coreApiState != null && coreApiState.flattenedFallbackEnabled()));
         state.put("runtime-core-api-state-pending-retries", coreApiState == null ? "0" : Integer.toString(coreApiState.pendingBulkRetries()));
+        state.put("runtime-core-api-state-global-table-load-successes", coreApiState == null ? "0" : Long.toString(coreApiState.globalTableLoadSuccesses()));
+        state.put("runtime-core-api-state-global-table-load-failures", coreApiState == null ? "0" : Long.toString(coreApiState.globalTableLoadFailures()));
+        state.put("runtime-core-api-state-island-table-load-successes", coreApiState == null ? "0" : Long.toString(coreApiState.islandTableLoadSuccesses()));
+        state.put("runtime-core-api-state-island-table-load-failures", coreApiState == null ? "0" : Long.toString(coreApiState.islandTableLoadFailures()));
+        state.put("runtime-core-api-state-flattened-load-fallbacks", coreApiState == null ? "0" : Long.toString(coreApiState.flattenedLoadFallbacks()));
         state.put("runtime-core-api-state-failures", coreApiState == null ? "0" : Long.toString(coreApiState.coreStateFailures()));
         state.put("runtime-core-api-state-last-failure", coreApiState == null ? "" : coreApiState.lastFailure());
         state.put("runtime-core-api-state-last-failure-at", coreApiState == null ? "" : coreApiState.lastFailureAt());
@@ -3317,6 +3323,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("addon-state-sync-global-bulk-retries-dropped", coreApiState == null ? "0" : Long.toString(coreApiState.globalBulkRetriesDropped()));
         state.put("addon-state-sync-table-successes", coreApiState == null ? "0" : Long.toString(coreApiState.tableSuccesses()));
         state.put("addon-state-sync-table-failures", coreApiState == null ? "0" : Long.toString(coreApiState.tableFailures()));
+        state.put("addon-state-sync-reader-transport", coreApiState == null ? "none" : coreApiState.readerTransportMode());
+        state.put("addon-state-sync-global-table-load-successes", coreApiState == null ? "0" : Long.toString(coreApiState.globalTableLoadSuccesses()));
+        state.put("addon-state-sync-global-table-load-failures", coreApiState == null ? "0" : Long.toString(coreApiState.globalTableLoadFailures()));
+        state.put("addon-state-sync-island-table-load-successes", coreApiState == null ? "0" : Long.toString(coreApiState.islandTableLoadSuccesses()));
+        state.put("addon-state-sync-island-table-load-failures", coreApiState == null ? "0" : Long.toString(coreApiState.islandTableLoadFailures()));
+        state.put("addon-state-sync-flattened-load-fallbacks", coreApiState == null ? "0" : Long.toString(coreApiState.flattenedLoadFallbacks()));
         state.put("addon-state-sync-core-api-failures", coreApiState == null ? "0" : Long.toString(coreApiState.coreStateFailures()));
         state.put("addon-state-sync-last-failure", coreApiState == null ? "" : coreApiState.lastFailure());
         state.put("addon-state-sync-last-failure-at", coreApiState == null ? "" : coreApiState.lastFailureAt());

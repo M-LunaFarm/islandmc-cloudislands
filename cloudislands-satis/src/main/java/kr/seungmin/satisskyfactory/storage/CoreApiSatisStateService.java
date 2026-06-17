@@ -66,6 +66,11 @@ public final class CoreApiSatisStateService {
     private final AtomicLong globalBulkRetriesDropped = new AtomicLong();
     private final AtomicLong tableSuccesses = new AtomicLong();
     private final AtomicLong tableFailures = new AtomicLong();
+    private final AtomicLong globalTableLoadSuccesses = new AtomicLong();
+    private final AtomicLong globalTableLoadFailures = new AtomicLong();
+    private final AtomicLong islandTableLoadSuccesses = new AtomicLong();
+    private final AtomicLong islandTableLoadFailures = new AtomicLong();
+    private final AtomicLong flattenedLoadFallbacks = new AtomicLong();
     private final AtomicLong coreStateFailures = new AtomicLong();
     private volatile String lastFailure = "";
     private volatile String lastFailureAt = "";
@@ -158,6 +163,26 @@ public final class CoreApiSatisStateService {
 
     public long tableFailures() {
         return tableFailures.get();
+    }
+
+    public long globalTableLoadSuccesses() {
+        return globalTableLoadSuccesses.get();
+    }
+
+    public long globalTableLoadFailures() {
+        return globalTableLoadFailures.get();
+    }
+
+    public long islandTableLoadSuccesses() {
+        return islandTableLoadSuccesses.get();
+    }
+
+    public long islandTableLoadFailures() {
+        return islandTableLoadFailures.get();
+    }
+
+    public long flattenedLoadFallbacks() {
+        return flattenedLoadFallbacks.get();
     }
 
     public long coreStateFailures() {
@@ -1097,8 +1122,11 @@ public final class CoreApiSatisStateService {
             return Map.of();
         }
         try {
-            return safeState(cloudIslandsApi.addons().tableKeyValueBulkLoadState(addonId, table).join());
+            Map<String, String> state = safeState(cloudIslandsApi.addons().tableKeyValueBulkLoadState(addonId, table).join());
+            globalTableLoadSuccesses.incrementAndGet();
+            return state;
         } catch (RuntimeException exception) {
+            globalTableLoadFailures.incrementAndGet();
             logger.warning("Failed to bulk-load Satis core-api global table " + table + " through " + GLOBAL_TABLE_KEY_VALUE_BULK_LOAD_ENDPOINT + ": " + exception.getMessage());
             recordCoreStateFailure("global-table-load", exception);
             return Map.of();
@@ -1113,8 +1141,11 @@ public final class CoreApiSatisStateService {
             return Map.of();
         }
         try {
-            return safeState(cloudIslandsApi.addons().tableKeyValueBulkLoadIslandState(addonId, islandId, table).join());
+            Map<String, String> state = safeState(cloudIslandsApi.addons().tableKeyValueBulkLoadIslandState(addonId, islandId, table).join());
+            islandTableLoadSuccesses.incrementAndGet();
+            return state;
         } catch (RuntimeException exception) {
+            islandTableLoadFailures.incrementAndGet();
             logger.warning("Failed to bulk-load Satis core-api island table " + table + " for island " + islandId + " through " + ISLAND_TABLE_KEY_VALUE_BULK_LOAD_ENDPOINT + ": " + exception.getMessage());
             recordCoreStateFailure("island-table-load", exception);
             return Map.of();
@@ -1151,6 +1182,7 @@ public final class CoreApiSatisStateService {
     }
 
     private Map<String, String> loadGlobalFlattenedStateFallback() {
+        flattenedLoadFallbacks.incrementAndGet();
         try {
             return safeState(cloudIslandsApi.addons().state(addonId).join());
         } catch (RuntimeException exception) {
@@ -1161,6 +1193,7 @@ public final class CoreApiSatisStateService {
     }
 
     private Map<String, String> loadIslandFlattenedStateFallback(UUID islandId) {
+        flattenedLoadFallbacks.incrementAndGet();
         try {
             return safeState(cloudIslandsApi.addons().islandState(addonId, islandId).join());
         } catch (RuntimeException exception) {
