@@ -33,4 +33,18 @@ class RouteFailureMessagePolicyTest {
         assertEquals(RouteFailureMessagePolicy.MAINTENANCE_MESSAGE, RouteFailureMessagePolicy.playerMessage("ROUTE_STATUS_TIMEOUT", "fallback"));
         assertEquals(RouteFailureMessagePolicy.MAINTENANCE_MESSAGE, RouteFailureMessagePolicy.playerMessage("DEFAULT_NODE_IDENTITY", "fallback"));
     }
+
+    @Test
+    void exposesPlayerSafeCategoriesForOperationsMetrics() {
+        assertEquals(RouteFailureMessagePolicy.CAPACITY_CATEGORY, RouteFailureMessagePolicy.playerSafeCategory("POOL_EMPTY"));
+        assertEquals(RouteFailureMessagePolicy.CAPACITY_CATEGORY, RouteFailureMessagePolicy.playerSafeCategory("NO_READY_NODE_READY_COUNT_ZERO"));
+        assertEquals(RouteFailureMessagePolicy.MAINTENANCE_CATEGORY, RouteFailureMessagePolicy.playerSafeCategory("HEARTBEAT_STALE"));
+        assertEquals(RouteFailureMessagePolicy.MAINTENANCE_CATEGORY, RouteFailureMessagePolicy.playerSafeCategory("SESSION_PUBLISH_FAILED"));
+        assertEquals(RouteFailureMessagePolicy.DOMAIN_CATEGORY, RouteFailureMessagePolicy.playerSafeCategory("ISLAND_PRIVATE"));
+        assertEquals(RouteFailureMessagePolicy.TRANSIENT_CATEGORY, RouteFailureMessagePolicy.playerSafeCategory("ISLAND_MIGRATING"));
+        assertEquals(RouteFailureMessagePolicy.PERMISSION_CATEGORY, RouteFailureMessagePolicy.playerSafeCategory("ADMIN_PERMISSION_DENIED"));
+        assertEquals(RouteFailureMessagePolicy.RATE_LIMIT_CATEGORY, RouteFailureMessagePolicy.playerSafeCategory("RATE_LIMITED"));
+        assertEquals(RouteFailureMessagePolicy.FALLBACK_CATEGORY, RouteFailureMessagePolicy.playerSafeCategory("SOME_INTERNAL_ALLOCATOR_DETAIL"));
+        assertEquals(RouteFailureMessagePolicy.FALLBACK_CATEGORY, RouteFailureMessagePolicy.playerSafeCategory(""));
+    }
 }

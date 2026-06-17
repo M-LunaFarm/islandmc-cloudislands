@@ -3,6 +3,13 @@ package kr.lunaf.cloudislands.protocol.route;
 public final class RouteFailureMessagePolicy {
     public static final String CAPACITY_MESSAGE = "현재 섬 서비스가 혼잡합니다. 잠시 후 다시 시도해주세요.";
     public static final String MAINTENANCE_MESSAGE = "현재 섬 서비스 일부 기능이 점검 중입니다.";
+    public static final String CAPACITY_CATEGORY = "capacity";
+    public static final String DOMAIN_CATEGORY = "domain";
+    public static final String FALLBACK_CATEGORY = "fallback";
+    public static final String MAINTENANCE_CATEGORY = "maintenance";
+    public static final String PERMISSION_CATEGORY = "permission";
+    public static final String RATE_LIMIT_CATEGORY = "rate-limit";
+    public static final String TRANSIENT_CATEGORY = "transient";
 
     private RouteFailureMessagePolicy() {
     }
@@ -50,6 +57,50 @@ public final class RouteFailureMessagePolicy {
             case "UNAUTHORIZED", "ADMIN_PERMISSION_DENIED" -> "이 명령을 사용할 권한이 없습니다.";
             case "RATE_LIMITED" -> "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.";
             default -> fallback;
+        };
+    }
+
+    public static String playerSafeCategory(String code) {
+        if (code == null || code.isBlank()) {
+            return FALLBACK_CATEGORY;
+        }
+        if (capacityCode(code)) {
+            return CAPACITY_CATEGORY;
+        }
+        if (maintenanceCode(code)) {
+            return MAINTENANCE_CATEGORY;
+        }
+        return switch (code) {
+            case "ALREADY_HAS_ISLAND",
+                "TEMPLATE_UNAVAILABLE",
+                "PLAYER_NOT_FOUND",
+                "ISLAND_NOT_FOUND",
+                "ISLAND_PRIVATE",
+                "ISLAND_LOCKED",
+                "VISITOR_BANNED",
+                "VISITOR_SOFT_FULL",
+                "TARGET_OFFLINE_NO_ISLAND",
+                "PUBLIC_ISLAND_NOT_FOUND",
+                "WARP_NOT_FOUND",
+                "WARP_PRIVATE",
+                "WARP_LIMIT",
+                "ISLAND_PERMISSION_DENIED",
+                "MEMBER_LIMIT",
+                "BANK_LIMIT",
+                "INVALID_AMOUNT",
+                "INSUFFICIENT_FUNDS",
+                "UNKNOWN_UPGRADE",
+                "MAX_LEVEL",
+                "INVITE_UNAVAILABLE",
+                "OWNERSHIP_TRANSFER_DENIED" -> DOMAIN_CATEGORY;
+            case "ACTIVATION_LOCKED",
+                "ISLAND_MIGRATING",
+                "ISLAND_LOADING_FAILED",
+                "ROUTE_TICKET_NOT_FOUND",
+                "ROUTE_ROUTE_NOT_FOUND" -> TRANSIENT_CATEGORY;
+            case "UNAUTHORIZED", "ADMIN_PERMISSION_DENIED" -> PERMISSION_CATEGORY;
+            case "RATE_LIMITED" -> RATE_LIMIT_CATEGORY;
+            default -> FALLBACK_CATEGORY;
         };
     }
 
