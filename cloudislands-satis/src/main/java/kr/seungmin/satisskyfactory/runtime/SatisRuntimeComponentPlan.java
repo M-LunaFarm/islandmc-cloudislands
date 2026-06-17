@@ -16,6 +16,11 @@ public record SatisRuntimeComponentPlan(
         boolean dirtySaveRunning,
         boolean commandsEnabled,
         boolean machinesEnabled,
+        boolean storageEnabled,
+        boolean resourceNodesEnabled,
+        boolean marketEnabled,
+        boolean contractsEnabled,
+        boolean researchEnabled,
         boolean guiEnabled,
         boolean lifecycleListenerNeeded,
         boolean maintenanceEnabled,
@@ -153,6 +158,21 @@ public record SatisRuntimeComponentPlan(
         }
         if (!machinesEnabled) {
             reasons.add("machines:machines-feature-disabled");
+        }
+        if (!storageEnabled) {
+            reasons.add("storage:storage-feature-disabled");
+        }
+        if (!resourceNodesEnabled) {
+            reasons.add("resource-nodes:resource-nodes-or-machines-feature-disabled");
+        }
+        if (!marketEnabled) {
+            reasons.add("market:market-or-storage-feature-disabled");
+        }
+        if (!contractsEnabled) {
+            reasons.add("contracts:contracts-or-storage-feature-disabled");
+        }
+        if (!researchEnabled) {
+            reasons.add("research:research-feature-disabled");
         }
         if (!guiEnabled) {
             reasons.add("gui:gui-feature-disabled");
