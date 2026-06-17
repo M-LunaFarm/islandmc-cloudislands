@@ -479,6 +479,7 @@ public final class DatabaseService {
         try (Connection target = connection();
              Connection sourceConnection = legacyConnection(source)) {
             rollbackBackupPath = createLegacyImportRollbackSnapshot(target);
+            String manifestPath = createLegacyImportManifest(source, sourceConnection, rollbackBackupPath);
             boolean autoCommit = target.getAutoCommit();
             target.setAutoCommit(false);
             try {
@@ -499,7 +500,7 @@ public final class DatabaseService {
                 target.setAutoCommit(autoCommit);
             }
             publishAllCoreState();
-            return new LegacyImportResult(source.getAbsolutePath(), copiedRows, copiedTables, skippedTables, rollbackBackupPath);
+            return new LegacyImportResult(source.getAbsolutePath(), copiedRows, copiedTables, skippedTables, rollbackBackupPath, manifestPath);
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to import legacy Satis database", exception);
         }
@@ -664,6 +665,63 @@ public final class DatabaseService {
 
     private File legacyRollbackBackupFile() {
         return new File(dataFolder, "migration-backups/legacy-import-last.db");
+    }
+
+    private File legacyImportManifestFile() {
+        return new File(dataFolder, "migration-backups/legacy-import-last-manifest.json");
+    }
+
+    private String createLegacyImportManifest(File source, Connection sourceConnection, String rollbackBackupPath) throws SQLException {
+        File manifest = legacyImportManifestFile();
+        File parent = manifest.getParentFile();
+        if (parent != null) {
+            ensureDirectory(parent, "Satis migration manifest folder");
+        }
+        StringBuilder builder = new StringBuilder();
+        builder.append("{\n");
+        builder.append("  \"sourceProject\": \"M-LunaFarm/satismc\",\n");
+        builder.append("  \"sourcePath\": \"").append(jsonEscape(source.getAbsolutePath())).append("\",\n");
+        builder.append("  \"targetBackend\": \"").append(activeBackend.name()).append("\",\n");
+        builder.append("  \"identityPolicy\": \"cloudislands-island-uuid\",\n");
+        builder.append("  \"sourceAccessPolicy\": \"read-only-sqlite-snapshot-no-live-provider-hooks\",\n");
+        builder.append("  \"rollbackBackupPath\": \"").append(jsonEscape(rollbackBackupPath)).append("\",\n");
+        builder.append("  \"createdAt\": \"").append(Instant.now()).append("\",\n");
+        builder.append("  \"tables\": [\n");
+        List<String> tables = legacyImportTables();
+        for (int index = 0; index < tables.size(); index++) {
+            String table = tables.get(index);
+            Set<String> sourceColumns = sqliteTableColumns(sourceConnection, table);
+            Set<String> requiredColumns = legacyRequiredColumns(table);
+            boolean present = !sourceColumns.isEmpty();
+            boolean importable = present && sourceColumns.containsAll(requiredColumns);
+            long rows = present ? tableCount(sourceConnection, table) : 0L;
+            String reason = importable ? "ready" : (present ? "missing-required-columns" : "source-table-missing");
+            builder.append("    {");
+            builder.append("\"table\": \"").append(jsonEscape(table)).append("\", ");
+            builder.append("\"importable\": ").append(importable).append(", ");
+            builder.append("\"sourceRows\": ").append(rows).append(", ");
+            builder.append("\"reason\": \"").append(jsonEscape(reason)).append("\"");
+            builder.append("}");
+            if (index < tables.size() - 1) {
+                builder.append(",");
+            }
+            builder.append("\n");
+        }
+        builder.append("  ]\n");
+        builder.append("}\n");
+        try {
+            java.nio.file.Files.writeString(manifest.toPath(), builder.toString(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (java.io.IOException exception) {
+            throw new SQLException("failed to write legacy import manifest", exception);
+        }
+        return manifest.getAbsolutePath();
+    }
+
+    private String jsonEscape(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private String sqliteLiteral(String value) {
@@ -1067,7 +1125,7 @@ public final class DatabaseService {
         }
     }
 
-    public record LegacyImportResult(String sourcePath, long copiedRows, List<String> copiedTables, List<String> skippedTables, String rollbackBackupPath) {}
+    public record LegacyImportResult(String sourcePath, long copiedRows, List<String> copiedTables, List<String> skippedTables, String rollbackBackupPath, String manifestPath) {}
     public record LegacyImportTablePlan(String table, boolean importable, long sourceRows, String reason) {}
     public record LegacyImportPlan(String sourcePath, long importableRows, int importableTables, int skippedTables, List<LegacyImportTablePlan> tables) {}
     public record LegacyRollbackResult(boolean restored, String status, String backupPath, String nextStep) {}

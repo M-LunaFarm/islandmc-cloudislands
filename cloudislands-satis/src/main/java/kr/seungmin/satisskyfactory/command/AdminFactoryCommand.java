@@ -1037,6 +1037,7 @@ public final class AdminFactoryCommand {
             state.put("copied-rows", String.valueOf(result.copiedRows()));
             state.put("copied-tables", String.join(",", result.copiedTables()));
             state.put("skipped-tables", result.skippedTables().isEmpty() ? "none" : String.join(",", result.skippedTables()));
+            state.put("migration-manifest", result.manifestPath());
             state.put("mode", "cross-backend-sqlite-copy");
             state.put("writes", "true");
             state.put("approval", approvedToken);
