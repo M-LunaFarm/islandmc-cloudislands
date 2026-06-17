@@ -920,10 +920,29 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     private void sendCommandUsage(CommandSender sender, List<String> commands) {
-        sender.sendMessage(adminText("admin-command-subcommand-list-title", "CloudIslands 관리자 명령어 목록 - 1 line > 1 command"));
-        for (String command : commands) {
-            sender.sendMessage("> " + command);
+        List<String> commandNames = commands.stream()
+            .map(AdminCommandController::usageCommandName)
+            .toList();
+        CommandListPolicy.Page commandPage = CommandListPolicy.page(commandNames, 1, "ciadmin command list");
+        String title = adminText("admin-command-subcommand-list-title", "CloudIslands 관리자 명령어 목록");
+        sender.sendMessage(title.replace(CommandListPolicy.HEADER_SUFFIX, "").trim() + " " + commandPage.page() + "/" + commandPage.pages() + CommandListPolicy.HEADER_SUFFIX);
+        for (String command : commandPage.entries()) {
+            sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + command);
         }
+        if (!commandPage.previousCommand().isBlank()) {
+            sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + commandPage.previousCommand());
+        }
+        if (!commandPage.nextCommand().isBlank()) {
+            sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + commandPage.nextCommand());
+        }
+    }
+
+    private static String usageCommandName(String command) {
+        String value = command == null ? "" : command.trim();
+        while (value.startsWith("/")) {
+            value = value.substring(1).trim();
+        }
+        return value;
     }
 
     private List<String> rootCommands() {
