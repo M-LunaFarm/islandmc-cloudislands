@@ -335,6 +335,8 @@ class DatabaseServiceTest {
         File dataFolder = tempDir.resolve("network-db").toFile();
 
         try (DatabaseHandle handle = openDatabase(dataFolder)) {
+            java.util.concurrent.atomic.AtomicReference<DatabaseService.CoreTableWrite> coreTableWrite = new java.util.concurrent.atomic.AtomicReference<>();
+            handle.database().coreTableWriter(coreTableWrite::set);
             MachineInstance conveyor = new MachineInstance(conveyorId, islandUuid, ownerUuid, "conveyor_t1", 1,
                     new BlockKey("world", 0, 64, 0));
             conveyor.inputInventoryId(bufferInventoryId);
@@ -357,6 +359,8 @@ class DatabaseServiceTest {
                             new ItemNetwork.Route(conveyorId, grinderId),
                             new ItemNetwork.Route(conveyorId, storageId))
             )));
+            String published = coreTableWrite.get().values().get(networkId.toString());
+            assertTrue(published.contains("\"routes\":\"" + conveyorId + "->" + grinderId + "," + conveyorId + "->" + storageId + "\""));
         }
 
         try (DatabaseHandle handle = openDatabase(dataFolder)) {

@@ -2307,7 +2307,8 @@ public final class DatabaseService {
                 + field("bufferInventoryId", network.bufferInventoryId() == null ? "" : network.bufferInventoryId().toString()) + ","
                 + field("dirty", Boolean.toString(network.dirty())) + ","
                 + number("updatedAt", network.updatedAt()) + ","
-                + field("connectedMachineIds", uuidSetCsv(network.connectedMachineIds()))
+                + field("connectedMachineIds", uuidSetCsv(network.connectedMachineIds())) + ","
+                + field("routes", routeCsv(network.routes()))
                 + "}";
     }
 
@@ -2349,6 +2350,16 @@ public final class DatabaseService {
         return values.stream()
                 .map(UUID::toString)
                 .sorted()
+                .reduce((left, right) -> left + "," + right)
+                .orElse("");
+    }
+
+    private String routeCsv(List<ItemNetwork.Route> routes) {
+        if (routes == null || routes.isEmpty()) {
+            return "";
+        }
+        return routes.stream()
+                .map(route -> route.fromMachineId() + "->" + route.toMachineId())
                 .reduce((left, right) -> left + "," + right)
                 .orElse("");
     }

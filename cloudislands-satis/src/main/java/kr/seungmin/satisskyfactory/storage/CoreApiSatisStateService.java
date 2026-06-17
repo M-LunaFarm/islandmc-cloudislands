@@ -1478,7 +1478,7 @@ public final class CoreApiSatisStateService {
                 Boolean.parseBoolean(text(json, "dirty", "false")),
                 longValue(json, "updatedAt", System.currentTimeMillis()),
                 uuidSet(text(json, "connectedMachineIds", "")),
-                List.of()
+                routes(text(json, "routes", ""))
         );
     }
 
@@ -1720,6 +1720,25 @@ public final class CoreApiSatisStateService {
             }
         }
         return Set.copyOf(values);
+    }
+
+    private List<ItemNetwork.Route> routes(String csv) {
+        if (csv == null || csv.isBlank()) {
+            return List.of();
+        }
+        List<ItemNetwork.Route> routes = new ArrayList<>();
+        for (String part : csv.split(",")) {
+            String value = part.trim();
+            int separator = value.indexOf("->");
+            if (separator <= 0 || separator >= value.length() - 2) {
+                continue;
+            }
+            routes.add(new ItemNetwork.Route(
+                    uuid(value.substring(0, separator)),
+                    uuid(value.substring(separator + 2))
+            ));
+        }
+        return List.copyOf(routes);
     }
 
     private <E extends Enum<E>> E enumValue(Class<E> type, String value, E fallback) {
