@@ -53,6 +53,18 @@ public final class LocalIslandPermissionCache {
         return lookups.get();
     }
 
+    public long hitCount() {
+        return hits.get();
+    }
+
+    public long missCount() {
+        return Math.max(0L, lookups.get() - hits.get());
+    }
+
+    public int cachedIslandCount() {
+        return islands.size();
+    }
+
     public void invalidate(UUID islandId) {
         islands.remove(islandId);
     }

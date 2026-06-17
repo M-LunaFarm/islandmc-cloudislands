@@ -549,7 +549,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "cloudislands_paper_generator_rule_levels{node=\"" + nodeId + "\"} " + (generator == null ? 0 : generator.ruleLevelCount()) + "\n"
             + "cloudislands_paper_generator_cache_ttl_seconds{node=\"" + nodeId + "\"} " + (generator == null ? 0L : generator.cacheTtlSeconds()) + "\n"
             + "cloudislands_permission_checks_total{node=\"" + nodeId + "\"} " + agent.permissionCache().lookupCount() + "\n"
+            + "cloudislands_permission_cache_hits_total{node=\"" + nodeId + "\"} " + agent.permissionCache().hitCount() + "\n"
+            + "cloudislands_permission_cache_misses_total{node=\"" + nodeId + "\"} " + agent.permissionCache().missCount() + "\n"
             + "cloudislands_permission_cache_hit_ratio{node=\"" + nodeId + "\"} " + agent.permissionCache().hitRatio() + "\n"
+            + "cloudislands_permission_cache_islands{node=\"" + nodeId + "\"} " + agent.permissionCache().cachedIslandCount() + "\n"
             + "cloudislands_protection_indexed_chunks{node=\"" + nodeId + "\"} " + protection.indexedChunkCount() + "\n"
             + "cloudislands_protection_indexed_islands{node=\"" + nodeId + "\"} " + protection.indexedIslandCount() + "\n"
             + "cloudislands_protection_migrating_islands{node=\"" + nodeId + "\"} " + protection.migratingIslandCount() + "\n"
@@ -694,6 +697,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";cacheGapInvalidations=" + (permissionEventPoller == null ? 0L : permissionEventPoller.cacheGapInvalidations())
             + ";permissionCacheHitRatio=" + agent.permissionCache().hitRatio()
             + ";permissionChecks=" + agent.permissionCache().lookupCount()
+            + ";permissionCacheHits=" + agent.permissionCache().hitCount()
+            + ";permissionCacheMisses=" + agent.permissionCache().missCount()
+            + ";permissionCacheIslands=" + agent.permissionCache().cachedIslandCount()
             + ";storageBackend=" + (storage == null ? "NONE" : storage.backend())
             + ";storageUploadSeconds=" + (storage == null ? 0.0D : storage.lastUploadSeconds())
             + ";storageDownloadSeconds=" + (storage == null ? 0.0D : storage.lastDownloadSeconds())
