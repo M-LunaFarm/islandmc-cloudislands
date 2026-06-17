@@ -19,6 +19,11 @@ class SatisAddonIntegrationPolicyTest {
     @Test
     void requiresCloudIslandsApiOnlyAndRootFeatureGates() {
         assertEquals("cloudislands-api-only-no-superiorskyblock2-runtime", SatisAddonIntegrationPolicy.API_POLICY);
+        assertEquals("cloudislands-api-required-no-standalone-island-runtime", SatisAddonIntegrationPolicy.CLOUDISLANDS_REQUIRED_POLICY);
+        assertEquals("bootstrap-or-services-manager", SatisAddonIntegrationPolicy.API_RESOLUTION_POLICY);
+        assertEquals("disable-plugin-clear-features-register-no-components", SatisAddonIntegrationPolicy.MISSING_API_BEHAVIOR);
+        assertEquals("CloudIslands", SatisAddonIntegrationPolicy.RUNTIME_HARD_DEPEND_PLUGIN);
+        assertEquals("false", SatisAddonIntegrationPolicy.STANDALONE_ISLAND_MANAGEMENT);
         assertEquals("addons.cloudislands-satis.enabled&&satis.enabled", SatisAddonIntegrationPolicy.ROOT_GATE_POLICY);
         assertEquals(
                 "root-disabled-forces-every-feature-off-child-disabled-skips-commands-gui-listeners-tickers-writes",
@@ -72,6 +77,10 @@ class SatisAddonIntegrationPolicyTest {
         assertEquals(
                 "cloudislands-boots-without-satis-jar-and-discovers-satis-through-addon-api-when-installed",
                 SatisAddonIntegrationPolicy.requiredScenarios().get("external-addon")
+        );
+        assertEquals(
+                "satis-runtime-does-not-start-and-registers-no-commands-listeners-tickers-or-writers",
+                SatisAddonIntegrationPolicy.requiredScenarios().get("missing-cloudislands-api")
         );
         assertEquals(
                 "legacy-skyblock-calls-are-replaced-by-cloudislands-api-or-addon-spi",

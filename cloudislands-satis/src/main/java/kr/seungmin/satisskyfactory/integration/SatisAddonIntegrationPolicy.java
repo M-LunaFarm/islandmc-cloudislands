@@ -9,6 +9,11 @@ public final class SatisAddonIntegrationPolicy {
     public static final String COMPATIBLE_BUILT_IN_MODE = "BUILT_IN_COMPATIBLE";
     public static final String DISABLED_MODE = "DISABLED";
     public static final String API_POLICY = "cloudislands-api-only-no-superiorskyblock2-runtime";
+    public static final String CLOUDISLANDS_REQUIRED_POLICY = "cloudislands-api-required-no-standalone-island-runtime";
+    public static final String API_RESOLUTION_POLICY = "bootstrap-or-services-manager";
+    public static final String MISSING_API_BEHAVIOR = "disable-plugin-clear-features-register-no-components";
+    public static final String RUNTIME_HARD_DEPEND_PLUGIN = "CloudIslands";
+    public static final String STANDALONE_ISLAND_MANAGEMENT = "false";
     public static final String ROOT_GATE_POLICY = "addons.cloudislands-satis.enabled&&satis.enabled";
     public static final String FEATURE_GATE_POLICY = "root-disabled-forces-every-feature-off-child-disabled-skips-commands-gui-listeners-tickers-writes";
     public static final String DATA_AUTHORITY = "core-api-table-key-value-or-shared-database";
@@ -57,6 +62,7 @@ public final class SatisAddonIntegrationPolicy {
             "satis-disabled", "base-cloudislands-create-visit-protect-save-restore-continues-without-satis-runtime-components",
             "partial-features", "disabled-feature-registers-no-command-gui-listener-task-or-write-path",
             "external-addon", "cloudislands-boots-without-satis-jar-and-discovers-satis-through-addon-api-when-installed",
+            "missing-cloudislands-api", "satis-runtime-does-not-start-and-registers-no-commands-listeners-tickers-or-writers",
             "no-superiorskyblock2", "legacy-skyblock-calls-are-replaced-by-cloudislands-api-or-addon-spi"
     );
 

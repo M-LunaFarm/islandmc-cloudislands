@@ -58,6 +58,7 @@ import kr.seungmin.satisskyfactory.gui.FactoryGuiService;
 import kr.seungmin.satisskyfactory.hook.CloudIslandsSkyblockProvider;
 import kr.seungmin.satisskyfactory.hook.PlaceholderHook;
 import kr.seungmin.satisskyfactory.hook.SkyblockProvider;
+import kr.seungmin.satisskyfactory.integration.SatisAddonIntegrationPolicy;
 import kr.seungmin.satisskyfactory.item.CustomItemFactory;
 import kr.seungmin.satisskyfactory.item.ItemRegistry;
 import kr.seungmin.satisskyfactory.listener.FactoryLifecycleListener;
@@ -372,7 +373,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-addon-status", addonRuntimeEnabled ? "enabled" : "addon-disabled-by-config-or-registry");
         state.put("runtime-addon-policy", "disabled-addon-registers-no-active-components-preserves-satis-data-and-cloudislands-core");
         state.put("runtime-cloudislands-api-required", Boolean.toString(requiresCloudIslandsApi()));
-        state.put("runtime-standalone-island-management", "false");
+        state.put("runtime-standalone-island-management", SatisAddonIntegrationPolicy.STANDALONE_ISLAND_MANAGEMENT);
         state.put("runtime-skyblock-provider-policy", "cloudislands-api-only-ignore-legacy-provider-config");
         state.put("runtime-superior-migration-input-only", "true");
         state.put("runtime-superior-runtime-dependency", "false");
@@ -1327,10 +1328,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("cloudislands-adapter", Boolean.toString(configs.main().getBoolean("integration.cloudislands-adapter", true)));
         metadata.put("requires-cloudislands-api", Boolean.toString(requiresCloudIslandsApi()));
         metadata.put("cloudislands-api-available", Boolean.toString(cloudIslandsApi != null));
-        metadata.put("cloudislands-api-resolution", "bootstrap-or-services-manager");
-        metadata.put("runtime-hard-depend-plugin", "CloudIslands");
-        metadata.put("standalone-island-management", "false");
-        metadata.put("missing-cloudislands-behavior", "disable-plugin");
+        metadata.put("cloudislands-required-policy", SatisAddonIntegrationPolicy.CLOUDISLANDS_REQUIRED_POLICY);
+        metadata.put("cloudislands-api-resolution", SatisAddonIntegrationPolicy.API_RESOLUTION_POLICY);
+        metadata.put("runtime-hard-depend-plugin", SatisAddonIntegrationPolicy.RUNTIME_HARD_DEPEND_PLUGIN);
+        metadata.put("standalone-island-management", SatisAddonIntegrationPolicy.STANDALONE_ISLAND_MANAGEMENT);
+        metadata.put("missing-cloudislands-behavior", SatisAddonIntegrationPolicy.MISSING_API_BEHAVIOR);
         metadata.put("satis-enabled-configured", Boolean.toString(enabledByDefault()));
         metadata.put("satis-root-switch-policy", "satis.enabled-and-addons.cloudislands-satis.enabled-disable-all-runtime-features-before-child-feature-gates");
         metadata.put("satis-disabled-child-feature-policy", "child-features-remain-configured-but-operationalFeatureEnabled-always-returns-false");
@@ -1513,6 +1515,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("legacy-provider-lookup", "disabled"),
                 Map.entry("migration-source-policy", "read-only-snapshot-or-sqlite-import-no-live-provider-hooks"),
                 Map.entry("cloudislands-api-only", "true"),
+                Map.entry("cloudislands-required-policy", SatisAddonIntegrationPolicy.CLOUDISLANDS_REQUIRED_POLICY),
+                Map.entry("cloudislands-api-resolution", SatisAddonIntegrationPolicy.API_RESOLUTION_POLICY),
+                Map.entry("runtime-hard-depend-plugin", SatisAddonIntegrationPolicy.RUNTIME_HARD_DEPEND_PLUGIN),
+                Map.entry("standalone-island-management", SatisAddonIntegrationPolicy.STANDALONE_ISLAND_MANAGEMENT),
+                Map.entry("missing-cloudislands-behavior", SatisAddonIntegrationPolicy.MISSING_API_BEHAVIOR),
                 Map.entry("feature-gate-scope", "global-and-per-feature"),
                 Map.entry("config-gated", "true"),
                 Map.entry("parent-config-aliases", "satis")
