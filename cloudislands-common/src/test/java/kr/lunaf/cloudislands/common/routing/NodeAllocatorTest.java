@@ -33,6 +33,26 @@ class NodeAllocatorTest {
     }
 
     @Test
+    void keepsAllReadyCandidatesWhenPoolScalesPastSixNodes() {
+        NodeAllocator allocator = new NodeAllocator(Duration.ofSeconds(5));
+        List<NodeLoad> nodes = List.of(
+                node("node-a", "server-a", NodeState.READY, 65, 420, 31.0, 4),
+                node("node-b", "server-b", NodeState.READY, 58, 350, 28.0, 3),
+                node("node-c", "server-c", NodeState.READY, 42, 260, 24.0, 2),
+                node("node-d", "server-d", NodeState.READY, 38, 220, 22.0, 2),
+                node("node-e", "server-e", NodeState.READY, 31, 180, 21.0, 1),
+                node("node-f", "server-f", NodeState.READY, 26, 150, 20.0, 1),
+                node("node-g", "server-g", NodeState.READY, 20, 110, 19.5, 0),
+                node("node-h", "server-h", NodeState.READY, 8, 40, 18.5, 0)
+        );
+
+        NodeLoad selected = allocator.selectReadyNode(nodes, NOW, "default", "1.0.0", "island").orElseThrow();
+
+        assertEquals("node-h", selected.nodeId());
+        assertEquals(8L, allocator.readyNodeCandidateCount(nodes, NOW, "default", "1.0.0", "island"));
+    }
+
+    @Test
     void ignoresDuplicateVelocityServerNamesInsidePool() {
         NodeAllocator allocator = new NodeAllocator(Duration.ofSeconds(5));
         List<NodeLoad> nodes = List.of(
