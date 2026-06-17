@@ -3010,6 +3010,7 @@ public final class CloudIslandsCoreApplication {
             + "\"addonApiLookupPolicy\":\"cloudislands-provider-first-bukkit-servicesmanager-fallback\","
             + "\"addonApiContractVersion\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.CONTRACT_VERSION) + "\","
             + "\"addonApiContractCompatibility\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.metadataCompatibilityStatus(kr.lunaf.cloudislands.api.CloudIslandsApiContract.metadata())) + "\","
+            + "\"addonApiContractCompatible\":" + kr.lunaf.cloudislands.api.CloudIslandsApiContract.compatibleMetadata(kr.lunaf.cloudislands.api.CloudIslandsApiContract.metadata()) + ","
             + "\"addonApiRequiredMetadataKeys\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.requiredMetadataKeysCsv()) + "\","
             + "\"addonApiReadPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.READ_POLICY) + "\","
             + "\"addonApiWriteAuthority\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.WRITE_AUTHORITY) + "\","
