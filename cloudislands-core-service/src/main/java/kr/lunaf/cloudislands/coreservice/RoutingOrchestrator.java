@@ -456,6 +456,7 @@ public final class RoutingOrchestrator {
         details.put("duplicateVelocityServerNameNodeCount", Long.toString(duplicateVelocityServerNames));
         details.put("routeCandidateEstimateNodeCount", Long.toString(routeCandidateEstimate));
         details.put("routeCandidateEstimatePolicy", "allocator-ready-node-candidates-no-fixed-node-limit");
+        details.put("elasticLimitPolicy", "no-fixed-island-node-count-limit-route-candidates-derive-from-live-heartbeats");
         details.put("blockReason", publicBlockReason(debugReason));
         details.put("physicalNodeNamesExposed", "false");
         return Map.copyOf(details);
