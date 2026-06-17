@@ -122,6 +122,9 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             messages.send(sender, "feature-disabled", Map.of("feature", "commands"));
             return true;
         }
+        if (label.equalsIgnoreCase("ciadmin")) {
+            return adminCommand.execute(sender, rootAdminArgs(args), label);
+        }
         if (args.length > 0 && args[0].equalsIgnoreCase("admin")) {
             return adminCommand.execute(sender, args, label);
         }
@@ -267,6 +270,13 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             default -> help(player, label, 1);
         }
         return true;
+    }
+
+    private String[] rootAdminArgs(String[] args) {
+        String[] adminArgs = new String[args.length + 1];
+        adminArgs[0] = "admin";
+        System.arraycopy(args, 0, adminArgs, 1, args.length);
+        return adminArgs;
     }
 
     private boolean isInsideIsland(Location location, FactoryIsland island) {

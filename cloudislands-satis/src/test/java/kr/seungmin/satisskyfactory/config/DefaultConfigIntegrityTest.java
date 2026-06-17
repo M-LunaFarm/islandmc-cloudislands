@@ -40,6 +40,7 @@ class DefaultConfigIntegrityTest {
         assertFalse(plugin.getStringList("softdepend").stream().anyMatch(dependency -> dependency.contains("Superior")));
         assertTrue(plugin.isConfigurationSection("commands.factory"));
         assertTrue(plugin.isConfigurationSection("commands.sfactory"));
+        assertTrue(plugin.isConfigurationSection("commands.ciadmin"));
         assertTrue(config.getBoolean("satis.enabled"));
         assertEquals("EXTERNAL_ADDON", config.getString("integration.mode"));
         assertEquals("CLOUDISLANDS", config.getString("integration.skyblock-provider"));

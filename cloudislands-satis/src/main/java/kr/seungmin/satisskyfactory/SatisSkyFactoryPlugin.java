@@ -866,6 +866,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             sfactory.setExecutor(command);
             sfactory.setTabCompleter(command);
         }
+        PluginCommand ciadmin = getCommand("ciadmin");
+        if (ciadmin != null) {
+            ensureCommandRegistered(ciadmin);
+            ciadmin.setExecutor(command);
+            ciadmin.setTabCompleter(command);
+        }
         commandsRegistered = true;
     }
 
@@ -879,6 +885,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private void unregisterAddonCommands() {
         unregisterPluginCommand(getCommand("factory"));
         unregisterPluginCommand(getCommand("sfactory"));
+        unregisterPluginCommand(getCommand("ciadmin"));
         commandsRegistered = false;
     }
 
