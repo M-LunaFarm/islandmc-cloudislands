@@ -1827,13 +1827,15 @@ public final class CloudIslandsCoreApplication {
         });
         route("/v1/nodes/heartbeat", exchange -> {
             NodeHeartbeatRequest heartbeat = heartbeat(readBody(exchange));
-            if (heartbeat.protocolVersion() < MIN_NODE_PROTOCOL_VERSION || heartbeat.protocolVersion() > MAX_NODE_PROTOCOL_VERSION) {
-                write(exchange, 426, ApiResponses.error("PROTOCOL_VERSION_UNSUPPORTED", "Node protocol version is not supported"));
+            kr.lunaf.cloudislands.protocol.ProtocolVersion.NegotiationResult negotiation = kr.lunaf.cloudislands.protocol.ProtocolVersion.negotiate(heartbeat.protocolVersion());
+            if (!negotiation.accepted()) {
+                write(exchange, 426, protocolNegotiationJson(negotiation));
                 return;
             }
             nodes.heartbeat(heartbeat);
             write(exchange, 202, ApiResponses.ok(true));
         });
+        route("/v1/admin/protocol", exchange -> write(exchange, 200, protocolStatusJson()));
         route("/v1/admin/nodes/drain", exchange -> {
             String body = readBody(exchange);
             String nodeId = JsonFields.text(body, "nodeId", "");
@@ -3030,6 +3032,10 @@ public final class CloudIslandsCoreApplication {
             + "\"islandNodeSchemaColumns\":\"id,pool,velocity_server_name,node_version,state,soft_player_cap,hard_player_cap,reserved_slots,max_active_islands,players,active_islands,mspt,heap_used_mb,heap_max_mb,activation_queue,max_activation_queue,chunk_load_pressure,recent_failure_penalty,object_storage_available,supported_templates,last_heartbeat\","
             + "\"islandNodeExistingRoutePolicy\":\"active-island-stays-on-current-node-unless-node-missing-stale-down-or-admin-migration\","
             + "\"islandNodeVisitorSoftFullPolicy\":\"visitors-queue-or-retry-on-soft-full-active-node-members-use-reserved-slots\","
+            + "\"nodeProtocolMinSupported\":" + MIN_NODE_PROTOCOL_VERSION + ","
+            + "\"nodeProtocolCurrent\":" + MAX_NODE_PROTOCOL_VERSION + ","
+            + "\"nodeProtocolNegotiationPolicy\":\"" + kr.lunaf.cloudislands.protocol.ProtocolVersion.NEGOTIATION_POLICY + "\","
+            + "\"nodeProtocolHeartbeatField\":\"" + kr.lunaf.cloudislands.protocol.ProtocolVersion.HEARTBEAT_FIELD + "\","
             + "\"routingFailureDetailKeys\":\"pool,nodeCount,routeCandidateEstimateNodeCount,routeCandidateRecommendedMinimum,routeCandidateShortfall,routeCandidateEstimatePolicy,elasticLimitPolicy,blockReason,physicalNodeNamesExposed\","
             + "\"islandPoolMultiNodeReady\":" + islandPoolMultiNodeReady(config, nodes) + ","
             + "\"islandPoolDegraded\":" + islandPoolDegraded(config, nodes) + ","
@@ -4693,6 +4699,37 @@ public final class CloudIslandsCoreApplication {
                 .append('}');
         }
         return builder.append("]}").toString();
+    }
+
+    private static String protocolNegotiationJson(kr.lunaf.cloudislands.protocol.ProtocolVersion.NegotiationResult negotiation) {
+        return "{"
+            + "\"success\":false,"
+            + "\"code\":\"PROTOCOL_VERSION_UNSUPPORTED\","
+            + "\"message\":\"Node protocol version is not supported\","
+            + "\"clientVersion\":" + negotiation.clientVersion() + ","
+            + "\"minSupported\":" + negotiation.minSupported() + ","
+            + "\"current\":" + negotiation.current() + ","
+            + "\"accepted\":" + negotiation.accepted() + ","
+            + "\"status\":\"" + escape(negotiation.status()) + "\","
+            + "\"field\":\"" + escape(negotiation.field()) + "\","
+            + "\"policy\":\"" + escape(negotiation.policy()) + "\","
+            + "\"upgradeHint\":\"" + escape(negotiation.upgradeHint()) + "\""
+            + "}";
+    }
+
+    private static String protocolStatusJson() {
+        kr.lunaf.cloudislands.protocol.ProtocolVersion.NegotiationResult current = kr.lunaf.cloudislands.protocol.ProtocolVersion.negotiate(NodeHeartbeatRequest.CURRENT_PROTOCOL_VERSION);
+        return "{"
+            + "\"success\":true,"
+            + "\"nodeProtocolMinSupported\":" + current.minSupported() + ","
+            + "\"nodeProtocolCurrent\":" + current.current() + ","
+            + "\"nodeProtocolHeartbeatField\":\"" + escape(current.field()) + "\","
+            + "\"nodeProtocolNegotiationPolicy\":\"" + escape(current.policy()) + "\","
+            + "\"nodeProtocolCurrentAccepted\":" + current.accepted() + ","
+            + "\"nodeProtocolCurrentStatus\":\"" + escape(current.status()) + "\","
+            + "\"nodeProtocolUpgradeHint\":\"" + escape(current.upgradeHint()) + "\","
+            + "\"nodeHeartbeatEndpoint\":\"/v1/nodes/heartbeat\""
+            + "}";
     }
 
     private static NodeHeartbeatRequest heartbeat(String body) {
