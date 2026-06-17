@@ -2748,10 +2748,10 @@ public final class VelocityRoutingController {
         java.util.List<String> ticketEntries = new java.util.ArrayList<>();
         collectSessionSummaries(sessions, sessionEntries, 5);
         collectTicketSummaries(tickets, ticketEntries, 5);
-        return "Routes: sessions=" + countObjects(sessions)
+        return playerMessage("Routes: sessions=" + countObjects(sessions)
             + (sessionEntries.isEmpty() ? "" : " [" + String.join(" | ", sessionEntries) + "]")
             + " tickets=" + countObjects(tickets)
-            + (ticketEntries.isEmpty() ? "" : " [" + String.join(" | ", ticketEntries) + "]");
+            + (ticketEntries.isEmpty() ? "" : " [" + String.join(" | ", ticketEntries) + "]"));
     }
 
     private String routeTicketMessage(String body) {
@@ -2760,9 +2760,9 @@ public final class VelocityRoutingController {
         }
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
-            return "Route ticket: failed code=" + code;
+            return playerMessage("Route ticket: failed code=" + code);
         }
-        return "Route ticket: " + ticketSummary(body);
+        return playerMessage("Route ticket: " + ticketSummary(body));
     }
 
     private String routeClearMessage(String body) {
@@ -2770,7 +2770,7 @@ public final class VelocityRoutingController {
             return "Route clear: no response";
         }
         String reason = jsonValue(body, "reason");
-        return "Route clear: session=" + boolValue(body, "clearedSession") + " ticket=" + boolValue(body, "clearedTicket") + (reason.isBlank() ? "" : " reason=" + reason);
+        return playerMessage("Route clear: session=" + boolValue(body, "clearedSession") + " ticket=" + boolValue(body, "clearedTicket") + (reason.isBlank() ? "" : " reason=" + reason));
     }
 
     private String snapshotListMessage(String body) {

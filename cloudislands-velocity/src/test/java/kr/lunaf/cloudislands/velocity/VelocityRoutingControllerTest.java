@@ -92,6 +92,28 @@ class VelocityRoutingControllerTest {
         assertFalse(message.contains("island_2"));
     }
 
+    @Test
+    void sanitizesRouteSummaryReasonsWhenNodeNamesAreHidden() throws Exception {
+        VelocityRoutingController controller = new VelocityRoutingController(
+                null,
+                null,
+                "Lobby",
+                20,
+                true,
+                true,
+                true,
+                "island",
+                30
+        );
+
+        String message = privateString(controller, "routeClearMessage", "{\"clearedSession\":true,\"clearedTicket\":true,\"reason\":\"targetNode=Island-2 backendServer=island-5\"}");
+
+        assertFalse(message.contains("Island-2"));
+        assertFalse(message.contains("island-5"));
+        assertTrue(message.contains("targetNode=hidden"));
+        assertTrue(message.contains("backendServer=hidden"));
+    }
+
     private String displayServerName(VelocityRoutingController controller, String serverName) throws Exception {
         Method method = VelocityRoutingController.class.getDeclaredMethod("displayServerName", String.class);
         method.setAccessible(true);
