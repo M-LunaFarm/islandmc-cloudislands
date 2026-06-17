@@ -13,6 +13,10 @@ public final class SatisDatabaseConfigPolicy {
     public static final String ADDON_ROOT = "addons.cloudislands-satis.database";
     public static final String LEGACY_ROOT = "database";
     public static final String FALLBACK_PRECEDENCE = "env,setup.database,addons.cloudislands-satis.database,database";
+    public static final String SETUP_CHOICES = "SQLITE,POSTGRESQL,MYSQL,MARIADB,CORE_API";
+    public static final String SETUP_SHARED_CHOICES = "POSTGRESQL,MYSQL,MARIADB,CORE_API";
+    public static final String SETUP_LOCAL_CHOICES = "SQLITE";
+    public static final String SETUP_LOCAL_WARNING = "sqlite-is-node-local-use-shared-backend-for-multi-node-island-pools";
     public static final String FALLBACK_RISK_NO_ORDER = "no-fallback-order";
     public static final String FALLBACK_RISK_NO_READY_BACKEND = "no-ready-backend";
     public static final String FALLBACK_RISK_LOCAL_ONLY = "local-only";

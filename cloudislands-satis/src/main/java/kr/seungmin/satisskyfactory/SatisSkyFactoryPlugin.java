@@ -1465,6 +1465,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-supported-backends", "SQLITE,POSTGRESQL,MYSQL,MARIADB,CORE_API");
         metadata.put("database-configured-backend", configuredDatabaseBackendName());
         metadata.put("database-setup-sections", databaseSetupSectionsMetadata());
+        metadata.put("database-setup-choices", SatisDatabaseConfigPolicy.SETUP_CHOICES);
+        metadata.put("database-setup-shared-choices", SatisDatabaseConfigPolicy.SETUP_SHARED_CHOICES);
+        metadata.put("database-setup-local-choices", SatisDatabaseConfigPolicy.SETUP_LOCAL_CHOICES);
+        metadata.put("database-setup-local-warning", SatisDatabaseConfigPolicy.SETUP_LOCAL_WARNING);
+        metadata.put("database-setup-multi-node-safe", Boolean.toString(databaseShared()));
         metadata.put("database-setup-auto-selected", Boolean.toString(databaseSetupAutoSelected()));
         metadata.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
         metadata.put("database-setup-selected-source", databaseConfigSource());
@@ -1895,6 +1900,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-supported-backends", "SQLITE,POSTGRESQL,MYSQL,MARIADB,CORE_API");
         state.put("database-configured-backend", configuredDatabaseBackendName());
         state.put("database-setup-sections", databaseSetupSectionsMetadata());
+        state.put("database-setup-choices", SatisDatabaseConfigPolicy.SETUP_CHOICES);
+        state.put("database-setup-shared-choices", SatisDatabaseConfigPolicy.SETUP_SHARED_CHOICES);
+        state.put("database-setup-local-choices", SatisDatabaseConfigPolicy.SETUP_LOCAL_CHOICES);
+        state.put("database-setup-local-warning", SatisDatabaseConfigPolicy.SETUP_LOCAL_WARNING);
+        state.put("database-setup-multi-node-safe", Boolean.toString(databaseShared()));
         state.put("database-setup-auto-selected", Boolean.toString(databaseSetupAutoSelected()));
         state.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
         state.put("database-setup-selected-source", databaseConfigSource());
@@ -2069,6 +2079,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-supported-backends", "SQLITE,POSTGRESQL,MYSQL,MARIADB,CORE_API");
         state.put("database-configured-backend", configuredDatabaseBackendName());
         state.put("database-setup-sections", databaseSetupSectionsMetadata());
+        state.put("database-setup-choices", SatisDatabaseConfigPolicy.SETUP_CHOICES);
+        state.put("database-setup-shared-choices", SatisDatabaseConfigPolicy.SETUP_SHARED_CHOICES);
+        state.put("database-setup-local-choices", SatisDatabaseConfigPolicy.SETUP_LOCAL_CHOICES);
+        state.put("database-setup-local-warning", SatisDatabaseConfigPolicy.SETUP_LOCAL_WARNING);
+        state.put("database-setup-multi-node-safe", Boolean.toString(databaseShared()));
         state.put("database-setup-auto-selected", Boolean.toString(databaseSetupAutoSelected()));
         state.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
         state.put("database-setup-selected-source", databaseConfigSource());
