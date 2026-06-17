@@ -1008,7 +1008,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         CommandListPolicy.Page commandPage = CommandListPolicy.page(labelledCommands, page, label + " command list");
         String headerTitle = routeMessage("command-list-title", title + " ");
         String headerSuffix = routeMessage("command-list-suffix", CommandListPolicy.HEADER_SUFFIX);
-        player.sendMessage(headerTitle + commandPage.page() + "/" + commandPage.pages() + " commands=" + commandPage.fromCommand() + "-" + commandPage.toCommand() + "/" + commandPage.totalCommands() + headerSuffix);
+        player.sendMessage(headerTitle + commandPage.page() + "/" + commandPage.pages() + " commands=" + commandPage.rangeSummary() + headerSuffix);
         for (String command : commandPage.entries()) {
             player.sendMessage(CommandListPolicy.ENTRY_PREFIX + command);
         }

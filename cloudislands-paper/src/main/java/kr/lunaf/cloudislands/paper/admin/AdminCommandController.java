@@ -930,7 +930,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             .toList();
         CommandListPolicy.Page commandPage = CommandListPolicy.page(commandNames, 1, "ciadmin command list");
         String title = adminText("admin-command-subcommand-list-title", "CloudIslands 관리자 명령어 목록");
-        sender.sendMessage(title.replace(CommandListPolicy.HEADER_SUFFIX, "").trim() + " " + commandPage.page() + "/" + commandPage.pages() + " commands=" + commandPage.fromCommand() + "-" + commandPage.toCommand() + "/" + commandPage.totalCommands() + CommandListPolicy.HEADER_SUFFIX);
+        sender.sendMessage(title.replace(CommandListPolicy.HEADER_SUFFIX, "").trim() + " " + commandPage.page() + "/" + commandPage.pages() + " commands=" + commandPage.rangeSummary() + CommandListPolicy.HEADER_SUFFIX);
         for (String command : commandPage.entries()) {
             sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + command);
         }
@@ -2731,7 +2731,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             .map(command -> command.replaceFirst("^ciadmin", label))
             .toList();
         CommandListPolicy.Page commandPage = CommandListPolicy.page(labelledCommands, page, label + " command list");
-        sender.sendMessage(adminText("admin-command-list-title", "CloudIslands 관리자 명령어 목록 ") + commandPage.page() + "/" + commandPage.pages() + " commands=" + commandPage.fromCommand() + "-" + commandPage.toCommand() + "/" + commandPage.totalCommands() + adminText("admin-command-list-suffix", CommandListPolicy.HEADER_SUFFIX));
+        sender.sendMessage(adminText("admin-command-list-title", "CloudIslands 관리자 명령어 목록 ") + commandPage.page() + "/" + commandPage.pages() + " commands=" + commandPage.rangeSummary() + adminText("admin-command-list-suffix", CommandListPolicy.HEADER_SUFFIX));
         for (String command : commandPage.entries()) {
             sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + command);
         }

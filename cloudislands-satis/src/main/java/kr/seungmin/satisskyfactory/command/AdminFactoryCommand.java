@@ -1611,7 +1611,7 @@ public final class AdminFactoryCommand {
     private void help(CommandSender sender, String label, int page) {
         List<String> commands = visibleHelpCommands(label);
         CommandListPolicy.Page commandPage = CommandListPolicy.page(commands, page, label + " admin command list");
-        sender.sendMessage(messages.raw("admin-command-list-title", Map.of("page", String.valueOf(commandPage.page()), "pages", String.valueOf(commandPage.pages()))) + " commands=" + commandPage.fromCommand() + "-" + commandPage.toCommand() + "/" + commandPage.totalCommands());
+        sender.sendMessage(messages.raw("admin-command-list-title", Map.of("page", String.valueOf(commandPage.page()), "pages", String.valueOf(commandPage.pages()))) + " commands=" + commandPage.rangeSummary());
         for (String command : commandPage.entries()) {
             sender.sendMessage(messages.raw("command-list-entry", Map.of("command", command)));
         }

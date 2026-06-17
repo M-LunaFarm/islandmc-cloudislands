@@ -54,5 +54,9 @@ public final class CommandListPolicy {
             totalCommands = Math.max(0, totalCommands);
             entries = List.copyOf(entries);
         }
+
+        public String rangeSummary() {
+            return fromCommand + "-" + toCommand + "/" + totalCommands;
+        }
     }
 }

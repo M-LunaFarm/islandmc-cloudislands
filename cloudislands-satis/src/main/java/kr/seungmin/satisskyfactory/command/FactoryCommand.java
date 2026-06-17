@@ -529,7 +529,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     private void help(Player player, String label, int page) {
         List<String> commands = visibleHelpCommands(label, player);
         CommandListPolicy.Page commandPage = CommandListPolicy.page(commands, page, label + " command list");
-        player.sendMessage(messages.raw("command-list-title", Map.of("page", String.valueOf(commandPage.page()), "pages", String.valueOf(commandPage.pages()))) + " commands=" + commandPage.fromCommand() + "-" + commandPage.toCommand() + "/" + commandPage.totalCommands());
+        player.sendMessage(messages.raw("command-list-title", Map.of("page", String.valueOf(commandPage.page()), "pages", String.valueOf(commandPage.pages()))) + " commands=" + commandPage.rangeSummary());
         for (String command : commandPage.entries()) {
             player.sendMessage(messages.raw("command-list-entry", Map.of("command", command)));
         }
