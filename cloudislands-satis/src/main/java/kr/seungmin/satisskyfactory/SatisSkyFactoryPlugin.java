@@ -382,6 +382,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private void putRuntimeActivityState(Map<String, String> state) {
         state.put("runtime-addon-gate", "addons.cloudislands-satis.enabled&&satis.enabled");
         state.put("runtime-root-switch-enabled", Boolean.toString(enabledByDefault()));
+        state.put("runtime-root-block-reason", SatisFeatureGateResolver.rootBlockReason(configs == null ? null : configs.main()));
         state.put("runtime-root-switch-policy", "when-disabled-all-satis-features-are-forced-off-even-if-child-feature-configs-are-true");
         state.put("runtime-addon-status", addonRuntimeEnabled ? "enabled" : "addon-disabled-by-config-or-registry");
         state.put("runtime-addon-policy", "disabled-addon-registers-no-active-components-preserves-satis-data-and-cloudislands-core");
@@ -463,6 +464,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-missions-gate", "addonRuntimeEnabled&&features.missions->features.contracts&&features.storage");
         state.put("runtime-missions-status", operationalFeatureEnabled("missions") ? "enabled" : "missions-contracts-or-storage-feature-disabled");
         state.put("runtime-alias-policy", "legacy-satismc-feature-names-map-to-cloudislands-satis-canonical-gates");
+        state.put("runtime-feature-dependency-policy", SatisAddonIntegrationPolicy.FEATURE_DEPENDENCY_POLICY);
+        state.put("runtime-feature-dependency-blocks", SatisFeatureGateResolver.dependencyBlockSummary(configs == null ? null : configs.main()));
         state.put("runtime-data-writes-enabled", Boolean.toString(dataWritesEnabled()));
         state.put("runtime-data-write-authority-ready", Boolean.toString(storageWriteAuthorityReady()));
         state.put("runtime-write-feature-enabled", Boolean.toString(runtimeWriteFeatureEnabled()));

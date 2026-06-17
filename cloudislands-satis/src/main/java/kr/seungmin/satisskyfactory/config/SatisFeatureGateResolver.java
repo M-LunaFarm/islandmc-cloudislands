@@ -66,6 +66,45 @@ public final class SatisFeatureGateResolver {
         return dependencies == null || dependencies.stream().allMatch(dependency -> featureEnabled(config, dependency));
     }
 
+    public static String rootBlockReason(ConfigurationSection config) {
+        if (config == null) {
+            return "config-unavailable";
+        }
+        if (!config.getBoolean("satis.enabled", true)) {
+            return "satis-root-disabled";
+        }
+        if (!config.getBoolean("integration.enabled", true)) {
+            return "integration-disabled";
+        }
+        if (!config.getBoolean("addons.cloudislands-satis.enabled", true)) {
+            return "addon-root-disabled";
+        }
+        if ("DISABLED".equals(config.getString("integration.mode", "EXTERNAL_ADDON").toUpperCase(Locale.ROOT))) {
+            return "integration-mode-disabled";
+        }
+        return "none";
+    }
+
+    public static String dependencyBlockSummary(ConfigurationSection config) {
+        if (!rootEnabled(config)) {
+            return "all:" + rootBlockReason(config);
+        }
+        java.util.List<String> blocked = new java.util.ArrayList<>();
+        for (Map.Entry<String, List<String>> entry : DEPENDENCIES.entrySet()) {
+            String feature = entry.getKey();
+            if (!directFeatureEnabled(config, feature)) {
+                continue;
+            }
+            java.util.List<String> missing = entry.getValue().stream()
+                    .filter(dependency -> !featureEnabled(config, dependency))
+                    .toList();
+            if (!missing.isEmpty()) {
+                blocked.add(feature + ":requires-" + String.join("+", missing));
+            }
+        }
+        return blocked.isEmpty() ? "none" : String.join(",", blocked);
+    }
+
     public static String canonical(String feature) {
         if (feature == null) {
             return "";

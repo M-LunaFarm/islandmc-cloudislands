@@ -18,6 +18,7 @@ public final class SatisAddonIntegrationPolicy {
     public static final String STANDALONE_ISLAND_MANAGEMENT = "false";
     public static final String ROOT_GATE_POLICY = "addons.cloudislands-satis.enabled&&satis.enabled";
     public static final String FEATURE_GATE_POLICY = "root-disabled-forces-every-feature-off-child-disabled-skips-commands-gui-listeners-tickers-writes";
+    public static final String FEATURE_DEPENDENCY_POLICY = "child-feature-enabled-in-config-still-blocks-when-required-parent-feature-is-disabled";
     public static final String DATA_AUTHORITY = "core-api-table-key-value-or-shared-database";
     public static final String NODE_MOVE_POLICY = "save-on-source-node-restore-on-target-node-by-island-uuid";
     public static final String REMOVAL_POLICY = "addon-removed-or-disabled-never-blocks-cloudislands-base-island-lifecycle";
@@ -49,7 +50,14 @@ public final class SatisAddonIntegrationPolicy {
             "placeholders",
             "migration",
             "addon-state",
-            "route-events"
+            "route-events",
+            "members",
+            "permissions",
+            "level-values",
+            "warps",
+            "biomes",
+            "chat",
+            "templates"
     );
 
     private static final List<String> REQUIRED_API_DOMAINS = List.of(
