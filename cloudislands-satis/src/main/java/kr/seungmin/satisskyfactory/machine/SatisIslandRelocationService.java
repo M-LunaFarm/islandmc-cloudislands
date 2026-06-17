@@ -38,6 +38,7 @@ public final class SatisIslandRelocationService {
         int nodeDeltaX = island.hasPendingResourceNodeRemap() ? activeCenterX - island.pendingResourceNodeRemapCenterX() : deltaX;
         int nodeDeltaY = island.hasPendingResourceNodeRemap() ? activeCenterY - island.pendingResourceNodeRemapCenterY() : deltaY;
         int nodeDeltaZ = island.hasPendingResourceNodeRemap() ? activeCenterZ - island.pendingResourceNodeRemapCenterZ() : deltaZ;
+        boolean placementChanged = placementChanged(island, activeWorld, deltaX, deltaY, deltaZ);
         boolean machinesRemapped = false;
         boolean resourceNodesRemapped = false;
         boolean machineRemapDeferred = false;
@@ -45,7 +46,7 @@ public final class SatisIslandRelocationService {
         if (machinesEnabled && machines != null) {
             machinesRemapped = machines.remapIslandRegion(islandId, activeWorld, machineDeltaX, machineDeltaY, machineDeltaZ);
             island.clearPendingMachineRemap();
-        } else if (!machinesEnabled && island.hasActiveCenter() && !island.hasPendingMachineRemap()) {
+        } else if (!machinesEnabled && placementChanged && island.hasActiveCenter() && !island.hasPendingMachineRemap()) {
             island.pendingMachineRemap(island.activeWorld(), island.activeCenterX(), island.activeCenterY(), island.activeCenterZ());
             machineRemapDeferred = true;
         } else if (island.hasPendingMachineRemap()) {
@@ -54,7 +55,7 @@ public final class SatisIslandRelocationService {
         if (resourceNodesEnabled && resourceNodes != null) {
             resourceNodesRemapped = resourceNodes.remapIslandRegion(islandId, activeWorld, nodeDeltaX, nodeDeltaY, nodeDeltaZ);
             island.clearPendingResourceNodeRemap();
-        } else if (!resourceNodesEnabled && island.hasActiveCenter() && !island.hasPendingResourceNodeRemap()) {
+        } else if (!resourceNodesEnabled && placementChanged && island.hasActiveCenter() && !island.hasPendingResourceNodeRemap()) {
             island.pendingResourceNodeRemap(island.activeWorld(), island.activeCenterX(), island.activeCenterY(), island.activeCenterZ());
             resourceNodeRemapDeferred = true;
         } else if (island.hasPendingResourceNodeRemap()) {
@@ -74,6 +75,13 @@ public final class SatisIslandRelocationService {
                 nodeDeltaX + "," + nodeDeltaY + "," + nodeDeltaZ,
                 SatisStatePortabilityPolicy.DEFERRED_REMAP_POLICY
         );
+    }
+
+    private boolean placementChanged(FactoryIsland island, String activeWorld, int deltaX, int deltaY, int deltaZ) {
+        return !activeWorld.equals(island.activeWorld())
+                || deltaX != 0
+                || deltaY != 0
+                || deltaZ != 0;
     }
 
     public record RelocationResult(boolean machinesRemapped, boolean resourceNodesRemapped, boolean machineRemapDeferred, boolean resourceNodeRemapDeferred, String delta, String machineDelta, String resourceNodeDelta, String deferredRemapPolicy) {

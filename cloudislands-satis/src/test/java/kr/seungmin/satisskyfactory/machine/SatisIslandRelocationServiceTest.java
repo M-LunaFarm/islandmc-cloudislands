@@ -161,6 +161,40 @@ class SatisIslandRelocationServiceTest {
         }
     }
 
+    @Test
+    void disabledFeatureDoesNotCreatePendingRemapWhenPlacementDidNotChange() {
+        try (DatabaseHandle handle = openDatabase("relocation-noop-disabled")) {
+            FactoryIsland island = new FactoryIsland(ISLAND_ID, OWNER_ID);
+            island.activeWorld("ci_shard_006");
+            island.activeCenterX(2048);
+            island.activeCenterY(80);
+            island.activeCenterZ(-1024);
+            handle.database().saveIsland(island);
+
+            StorageService storage = new StorageService(handle.database(), 1000);
+            MachineService machines = new MachineService(handle.database(), new MachineDefinitionService(), storage);
+            MachineInstance machine = new MachineInstance(MACHINE_ID, ISLAND_ID, OWNER_ID, "grinder_t1", 1, new BlockKey("ci_shard_006", 2052, 81, -1016));
+            machines.save(machine);
+            ResourceNode node = new ResourceNode(NODE_ID, ISLAND_ID, "MINERAL", "iron_ore", 1.0D, 100, 250, 60, 1, new BlockKey("ci_shard_006", 2042, 79, -1012), 0, 0);
+            handle.database().saveNode(node);
+            ResourceNodeService nodes = new ResourceNodeService(handle.database());
+            nodes.load(nodeConfig());
+
+            SatisIslandRelocationService relocation = new SatisIslandRelocationService(machines, nodes);
+            SatisIslandRelocationService.RelocationResult result = relocation.relocate(ISLAND_ID, island, "ci_shard_006", 2048, 80, -1024, false, false);
+
+            assertEquals("0,0,0", result.delta());
+            assertFalse(result.machinesRemapped());
+            assertFalse(result.resourceNodesRemapped());
+            assertFalse(result.machineRemapDeferred());
+            assertFalse(result.resourceNodeRemapDeferred());
+            assertFalse(island.hasPendingMachineRemap());
+            assertFalse(island.hasPendingResourceNodeRemap());
+            assertEquals("ci_shard_006", machines.find(MACHINE_ID).orElseThrow().world());
+            assertEquals("ci_shard_006", nodes.nodes(ISLAND_ID).getFirst().world());
+        }
+    }
+
     private DatabaseHandle openDatabase(String name) {
         DatabaseService database = new DatabaseService(tempDir.resolve(name).toFile());
         database.open();
