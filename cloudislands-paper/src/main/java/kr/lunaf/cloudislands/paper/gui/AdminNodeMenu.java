@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper.gui;
 
 import java.util.List;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -73,14 +74,16 @@ public final class AdminNodeMenu implements Listener {
             return;
         }
         if (slot == 22) {
-            player.sendMessage(message(messages, "admin-node-menu-help", "CloudIslands 관리자 명령어 목록 - 1 line > 1 command"));
-            player.sendMessage("> " + message(messages, "admin-node-menu-help-status-command", "/ciadmin status"));
-            player.sendMessage("> " + message(messages, "admin-node-menu-help-node-list-command", "/ciadmin node list"));
-            player.sendMessage("> " + message(messages, "admin-node-menu-help-node-info-command", "/ciadmin node info [node]"));
-            player.sendMessage("> " + message(messages, "admin-node-menu-help-node-islands-command", "/ciadmin node islands [node] [limit]"));
-            player.sendMessage("> " + message(messages, "admin-node-menu-help-node-kickall-command", "/ciadmin node kickall [node]"));
-            player.sendMessage("> " + message(messages, "admin-node-menu-help-node-shutdown-command", "/ciadmin node shutdown-safe [node]"));
-            player.sendMessage("> " + message(messages, "admin-node-menu-help-island-where-command", "/ciadmin island where <uuid>"));
+            CommandListPolicy.Page commandPage = CommandListPolicy.page(adminHelpCommands(messages), 1, "ciadmin command list");
+            String title = message(messages, "admin-node-menu-help", "CloudIslands 관리자 명령어 목록");
+            player.sendMessage(title.replace(CommandListPolicy.HEADER_SUFFIX, "").trim() + " " + commandPage.page() + "/" + commandPage.pages() + CommandListPolicy.HEADER_SUFFIX);
+            commandPage.entries().forEach(command -> player.sendMessage(CommandListPolicy.ENTRY_PREFIX + command));
+            if (!commandPage.previousCommand().isBlank()) {
+                player.sendMessage(CommandListPolicy.ENTRY_PREFIX + commandPage.previousCommand());
+            }
+            if (!commandPage.nextCommand().isBlank()) {
+                player.sendMessage(CommandListPolicy.ENTRY_PREFIX + commandPage.nextCommand());
+            }
             return;
         }
         String command = firstCommand(meta);
@@ -101,6 +104,26 @@ public final class AdminNodeMenu implements Listener {
             .filter(line -> line.startsWith("/"))
             .findFirst()
             .orElse(null);
+    }
+
+    private static List<String> adminHelpCommands(MessageRenderer messages) {
+        return List.of(
+            commandName(message(messages, "admin-node-menu-help-status-command", "/ciadmin status")),
+            commandName(message(messages, "admin-node-menu-help-node-list-command", "/ciadmin node list")),
+            commandName(message(messages, "admin-node-menu-help-node-info-command", "/ciadmin node info [node]")),
+            commandName(message(messages, "admin-node-menu-help-node-islands-command", "/ciadmin node islands [node] [limit]")),
+            commandName(message(messages, "admin-node-menu-help-node-kickall-command", "/ciadmin node kickall [node]")),
+            commandName(message(messages, "admin-node-menu-help-node-shutdown-command", "/ciadmin node shutdown-safe [node]")),
+            commandName(message(messages, "admin-node-menu-help-island-where-command", "/ciadmin island where <uuid>"))
+        );
+    }
+
+    private static String commandName(String command) {
+        String value = command == null ? "" : command.trim();
+        while (value.startsWith("/")) {
+            value = value.substring(1).trim();
+        }
+        return value;
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
