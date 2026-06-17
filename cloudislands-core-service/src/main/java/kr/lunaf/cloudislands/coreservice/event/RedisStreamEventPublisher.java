@@ -22,12 +22,13 @@ public final class RedisStreamEventPublisher implements GlobalEventPublisher {
         List<String> values = new ArrayList<>();
         values.add("type");
         values.add(eventType);
-        Map<String, String> enriched = new LinkedHashMap<>(fields);
+        Map<String, String> safeFields = fields == null ? Map.of() : fields;
+        Map<String, String> enriched = new LinkedHashMap<>(safeFields);
         String cacheTargets = cacheTargets(eventType);
         if (!cacheTargets.isBlank()) {
             enriched.putIfAbsent("cacheTargets", cacheTargets);
         }
-        String cacheKeys = cacheKeys(eventType, fields);
+        String cacheKeys = cacheKeys(eventType, safeFields);
         if (!cacheKeys.isBlank()) {
             enriched.putIfAbsent("cacheKeys", cacheKeys);
         }

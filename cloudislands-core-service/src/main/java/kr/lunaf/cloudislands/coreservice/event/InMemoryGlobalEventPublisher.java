@@ -92,12 +92,13 @@ public final class InMemoryGlobalEventPublisher implements GlobalEventPublisher 
     }
 
     private Map<String, String> enrichedFields(String eventType, Map<String, String> fields) {
-        Map<String, String> enriched = new LinkedHashMap<>(fields);
+        Map<String, String> safeFields = fields == null ? Map.of() : fields;
+        Map<String, String> enriched = new LinkedHashMap<>(safeFields);
         String cacheTargets = cacheTargets(eventType);
         if (!cacheTargets.isBlank()) {
             enriched.putIfAbsent("cacheTargets", cacheTargets);
         }
-        String cacheKeys = cacheKeys(eventType, fields);
+        String cacheKeys = cacheKeys(eventType, safeFields);
         if (!cacheKeys.isBlank()) {
             enriched.putIfAbsent("cacheKeys", cacheKeys);
         }
