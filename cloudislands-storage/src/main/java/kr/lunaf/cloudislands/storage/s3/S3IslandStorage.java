@@ -29,6 +29,7 @@ import javax.crypto.spec.SecretKeySpec;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
+import kr.lunaf.cloudislands.storage.compression.BundleCompressionPolicy;
 import kr.lunaf.cloudislands.storage.manifest.IslandManifestJson;
 import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 
@@ -174,16 +175,18 @@ public final class S3IslandStorage implements IslandStorage {
     private StoredBundle writeBundle(UUID islandId, String prefix, InputStream bundle, IslandBundleManifest manifest, boolean updateLatest, String latestValue) throws IOException {
         byte[] bundleBytes = bundle.readAllBytes();
         String checksum = Sha256Checksums.of(new ByteArrayInputStream(bundleBytes));
-        String storagePath = key(islandId, prefix + "/bundle.tar.zst");
-        IslandBundleManifest savedManifest = manifest.withStoredBundle(checksum, "SHA-256", "zstd", storagePath, bundleBytes.length);
+        String compression = BundleCompressionPolicy.normalize(manifest.compression());
+        String bundleFileName = BundleCompressionPolicy.bundleFileName(compression);
+        String storagePath = key(islandId, prefix + "/" + bundleFileName);
+        IslandBundleManifest savedManifest = manifest.withStoredBundle(checksum, "SHA-256", compression, storagePath, bundleBytes.length);
         requestBytes("PUT", storagePath, bundleBytes);
         requestBytes("PUT", key(islandId, prefix + "/manifest.json"), IslandManifestJson.write(savedManifest).getBytes(StandardCharsets.UTF_8));
-        requestBytes("PUT", key(islandId, prefix + "/checksums.sha256"), (checksum + "  bundle.tar.zst\n").getBytes(StandardCharsets.UTF_8));
+        requestBytes("PUT", key(islandId, prefix + "/checksums.sha256"), (checksum + "  " + bundleFileName + "\n").getBytes(StandardCharsets.UTF_8));
         if (updateLatest) {
             requestBytes("PUT", key(islandId, "manifest.json"), IslandManifestJson.write(savedManifest).getBytes(StandardCharsets.UTF_8));
             requestBytes("PUT", key(islandId, "latest"), latestValue.getBytes(StandardCharsets.UTF_8));
         }
-        return new StoredBundle(checksum, bundleBytes.length, storagePath, "SHA-256", "zstd");
+        return new StoredBundle(checksum, bundleBytes.length, storagePath, "SHA-256", compression);
     }
 
     @Override

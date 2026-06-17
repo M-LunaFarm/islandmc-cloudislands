@@ -7,6 +7,7 @@ import kr.lunaf.cloudislands.storage.BundleRestorePolicy;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
+import kr.lunaf.cloudislands.storage.compression.BundleCompressionPolicy;
 
 public final class SnapshotRollbackService {
     private final IslandStorage storage;
@@ -26,6 +27,7 @@ public final class SnapshotRollbackService {
             target.schemaVersion(),
             current.checksum(),
             target.checksum(),
+            target.compression(),
             target.portable(),
             SnapshotReason.BEFORE_RESTORE,
             target.restorePolicy()
@@ -43,9 +45,10 @@ public final class SnapshotRollbackService {
         if (!plan.targetPortable()) {
             throw new IOException("rollback target is not portable: " + plan.islandId() + " #" + plan.targetSnapshotNo());
         }
+        BundleCompressionPolicy.ensureSupported(plan.targetCompression(), "snapshot " + plan.targetSnapshotNo());
         verifyChecksum(plan.targetChecksum(), storage.openSnapshotBundle(plan.islandId(), plan.targetSnapshotNo()), "snapshot " + plan.targetSnapshotNo());
         storage.promoteSnapshot(plan.islandId(), plan.targetSnapshotNo());
-        return new RollbackResult(plan.islandId(), plan.targetSnapshotNo(), "snapshot", plan.targetChecksum(), plan.restorePolicy());
+        return new RollbackResult(plan.islandId(), plan.targetSnapshotNo(), "snapshot", plan.targetChecksum(), plan.targetCompression(), plan.restorePolicy());
     }
 
     public RollbackResult restoreBundle(UUID islandId, long snapshotNo, String storagePath) throws IOException {
@@ -54,9 +57,10 @@ public final class SnapshotRollbackService {
         if (!target.portable()) {
             throw new IOException("rollback bundle is not portable: " + storagePath);
         }
+        BundleCompressionPolicy.ensureSupported(target.compression(), storagePath);
         verifyChecksum(target.checksum(), storage.openBundle(storagePath), storagePath);
         storage.promoteBundle(islandId, snapshotNo, storagePath);
-        return new RollbackResult(islandId, snapshotNo, "bundle", target.checksum(), target.restorePolicy());
+        return new RollbackResult(islandId, snapshotNo, "bundle", target.checksum(), target.compression(), target.restorePolicy());
     }
 
     private void verifyChecksum(String expectedChecksum, InputStream bundle, String source) throws IOException {
@@ -78,6 +82,7 @@ public final class SnapshotRollbackService {
         int targetSchemaVersion,
         String currentChecksum,
         String targetChecksum,
+        String targetCompression,
         boolean targetPortable,
         SnapshotReason preRestoreReason,
         String restorePolicy
@@ -91,5 +96,5 @@ public final class SnapshotRollbackService {
         }
     }
 
-    public record RollbackResult(UUID islandId, long promotedSnapshotNo, String source, String checksum, String restorePolicy) {}
+    public record RollbackResult(UUID islandId, long promotedSnapshotNo, String source, String checksum, String compression, String restorePolicy) {}
 }

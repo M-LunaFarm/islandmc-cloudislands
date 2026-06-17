@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
+import kr.lunaf.cloudislands.storage.compression.BundleCompressionPolicy;
 import kr.lunaf.cloudislands.storage.manifest.IslandManifestJson;
 import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 
@@ -140,7 +141,9 @@ public final class LocalIslandStorage implements IslandStorage {
 
     private StoredBundle writeBundle(Path islandRoot, Path snapshotDir, InputStream bundle, IslandBundleManifest manifest, boolean updateLatest) throws IOException {
         Files.createDirectories(snapshotDir);
-        Path snapshotBundle = snapshotDir.resolve("bundle.tar.zst");
+        String compression = BundleCompressionPolicy.normalize(manifest.compression());
+        String bundleFileName = BundleCompressionPolicy.bundleFileName(compression);
+        Path snapshotBundle = snapshotDir.resolve(bundleFileName);
         Files.copy(bundle, snapshotBundle, StandardCopyOption.REPLACE_EXISTING);
         long sizeBytes = Files.size(snapshotBundle);
         String actualChecksum;
@@ -148,14 +151,14 @@ public final class LocalIslandStorage implements IslandStorage {
             actualChecksum = Sha256Checksums.of(input);
         }
         String storagePath = normalizedStoragePath(snapshotBundle);
-        IslandBundleManifest savedManifest = manifest.withStoredBundle(actualChecksum, "SHA-256", "zstd", storagePath, sizeBytes);
+        IslandBundleManifest savedManifest = manifest.withStoredBundle(actualChecksum, "SHA-256", compression, storagePath, sizeBytes);
         Files.writeString(snapshotDir.resolve("manifest.json"), IslandManifestJson.write(savedManifest), StandardCharsets.UTF_8);
-        Files.writeString(snapshotDir.resolve("checksums.sha256"), actualChecksum + "  bundle.tar.zst\n", StandardCharsets.UTF_8);
+        Files.writeString(snapshotDir.resolve("checksums.sha256"), actualChecksum + "  " + bundleFileName + "\n", StandardCharsets.UTF_8);
         if (updateLatest) {
             Files.writeString(islandRoot.resolve("manifest.json"), IslandManifestJson.write(savedManifest), StandardCharsets.UTF_8);
             Files.writeString(islandRoot.resolve("latest"), snapshotDir.getFileName().toString(), StandardCharsets.UTF_8);
         }
-        return new StoredBundle(actualChecksum, sizeBytes, storagePath, "SHA-256", "zstd");
+        return new StoredBundle(actualChecksum, sizeBytes, storagePath, "SHA-256", compression);
     }
 
     @Override
