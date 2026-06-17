@@ -1514,6 +1514,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("addon-data-retention-policy", SatisAddonIntegrationPolicy.DATA_RETENTION_POLICY);
         metadata.put("addon-reenable-policy", SatisAddonIntegrationPolicy.REENABLE_POLICY);
         metadata.put("addon-no-automatic-delete-policy", SatisAddonIntegrationPolicy.NO_AUTOMATIC_DELETE_POLICY);
+        metadata.put("addon-removal-core-impact", "none");
+        metadata.put("addon-removal-runtime-action", "unregister-satis-commands-listeners-tickers-placeholders-and-state-writers-only");
+        metadata.put("cloudislands-lifecycle-depends-on-satis", "false");
         metadata.put("configured-features", featureState(featureSnapshot()));
         metadata.put("effective-features", operationalFeatureState(featureSnapshot()));
         metadata.put("feature-warnings", featureWarnings());
@@ -1533,6 +1536,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("extension-model", "superiorskyblock-style-addon"),
                 Map.entry("removable-addon", "true"),
                 Map.entry("addon-removal-safe", "true"),
+                Map.entry("addon-removal-core-impact", "none"),
+                Map.entry("addon-removal-runtime-action", "unregister-satis-runtime-only"),
+                Map.entry("cloudislands-lifecycle-depends-on-satis", "false"),
                 Map.entry("addon-data-retention", "preserve-addon-state-by-island-uuid"),
                 Map.entry("addon-runtime-owns-islands", "false"),
                 Map.entry("addon-default-database-mode", "CORE_API"),
@@ -1882,6 +1888,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("addon-data-retention-policy", SatisAddonIntegrationPolicy.DATA_RETENTION_POLICY);
         state.put("addon-reenable-policy", SatisAddonIntegrationPolicy.REENABLE_POLICY);
         state.put("addon-no-automatic-delete-policy", SatisAddonIntegrationPolicy.NO_AUTOMATIC_DELETE_POLICY);
+        state.put("addon-removal-core-impact", "none");
+        state.put("addon-removal-runtime-action", "unregister-satis-commands-listeners-tickers-placeholders-and-state-writers-only");
+        state.put("cloudislands-lifecycle-depends-on-satis", "false");
         state.put("dependency-disabled-features", dependencyDisabledFeatures(snapshot));
         state.put("feature-warnings", featureWarnings(snapshot));
         state.put("last-sync-reason", reason == null || reason.isBlank() ? "unknown" : reason);
@@ -1898,6 +1907,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         Map<String, String> state = new LinkedHashMap<>();
         state.put("runtime-enabled", "false");
+        state.put("runtime-stop-policy", "satis-runtime-only-cloudislands-core-lifecycle-unaffected");
+        state.put("runtime-commands-registered", "false");
+        state.put("runtime-listeners-registered", "false");
+        state.put("runtime-tickers-running", "false");
+        state.put("runtime-state-writers-attached", "false");
+        state.put("addon-removal-core-impact", "none");
+        state.put("cloudislands-lifecycle-depends-on-satis", "false");
+        state.put("addon-state-retained", "true");
         state.put("database-shared", Boolean.toString(databaseShared()));
         state.put("database-scope", databaseScope());
         state.put("database-supported-backends", "SQLITE,POSTGRESQL,MYSQL,MARIADB,CORE_API");

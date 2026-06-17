@@ -18,6 +18,9 @@ api:
 removal:
   safe: true
   data-retention: preserve-addon-state-by-island-uuid
+  core-impact: none
+  runtime-stop-policy: unregister-satis-commands-listeners-tickers-placeholders-and-state-writers-only
+  cloudislands-lifecycle-dependency: false
 runtime:
   supported-integration-modes:
     - EXTERNAL_ADDON
@@ -102,6 +105,7 @@ state:
   ab-node-scenario: save-on-source-node-remap-active-world-and-cell-on-target-node-restore-state-by-island-uuid
   recovery-scenario: heartbeat-expiry-fencing-token-guards-last-confirmed-state-no-duplicate-tick-or-write
   addon-removal-scenario: missing-addon-state-never-blocks-cloudislands-base-island-load
+  addon-removal-runtime-action: stop-satis-runtime-preserve-addon-state-leave-cloudislands-islands-loadable
   migration-preflush-policy: flush-dirty-state-before-source-node-deactivation-then-remap-on-target-activation
   fallback-policy: local-cache-on-core-api-failure-with-configurable-database-fallback
   fallback-safety-policy: production-safe-when-shared-backend-precedes-local-sqlite
