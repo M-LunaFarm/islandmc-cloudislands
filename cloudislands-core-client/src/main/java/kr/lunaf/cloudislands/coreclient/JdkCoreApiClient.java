@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
@@ -946,6 +947,17 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> tableKeyValueBulkSaveAddonState(AddonStateBulkSaveRequest request) {
+        if (request == null || blank(request.addonId())) {
+            return invalidAddonState("Addon state request and addon id are required");
+        }
+        if (request.islandScoped()) {
+            return tableKeyValueBulkSaveAddonIslandState(request);
+        }
+        return postWithResultBody("/v1/addons/state/table/key-value/bulk-save", "{\"addonId\":\"" + escape(request.addonId()) + "\",\"table\":\"" + escape(request.table()) + "\",\"values\":" + stringMapJson(request.values()) + ",\"tables\":" + tableMapJson(request.tables()) + "}");
+    }
+
+    @Override
     public CompletableFuture<String> bulkSaveAddonTableKeyValueState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         return tableKeyValueBulkSaveAddonState(addonId, values, tables);
     }
@@ -1117,6 +1129,17 @@ public final class JdkCoreApiClient implements CoreApiClient {
             return invalidAddonState("Addon id and island id are required");
         }
         return postWithResultBody("/v1/addons/islands/state/table/key-value/bulk-save", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+    }
+
+    @Override
+    public CompletableFuture<String> tableKeyValueBulkSaveAddonIslandState(AddonStateBulkSaveRequest request) {
+        if (request == null || blank(request.addonId())) {
+            return invalidAddonState("Addon state request and addon id are required");
+        }
+        if (!request.islandScoped()) {
+            return tableKeyValueBulkSaveAddonState(request);
+        }
+        return postWithResultBody("/v1/addons/islands/state/table/key-value/bulk-save", "{\"addonId\":\"" + escape(request.addonId()) + "\",\"islandId\":\"" + request.islandId() + "\",\"table\":\"" + escape(request.table()) + "\",\"values\":" + stringMapJson(request.values()) + ",\"tables\":" + tableMapJson(request.tables()) + "}");
     }
 
     @Override
