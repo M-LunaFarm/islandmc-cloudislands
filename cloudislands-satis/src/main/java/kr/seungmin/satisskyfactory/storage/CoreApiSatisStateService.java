@@ -243,7 +243,7 @@ public final class CoreApiSatisStateService {
     }
 
     public void publishDirtyBatch(DirtySaveService.DirtySaveBatch batch) {
-        if (cloudIslandsApi == null || batch == null) {
+        if (cloudIslandsApi == null || batch == null || !stateFeatureEnabled("addon-state")) {
             return;
         }
         Map<UUID, Map<String, String>> valuesByIsland = new LinkedHashMap<>();
@@ -275,7 +275,7 @@ public final class CoreApiSatisStateService {
     }
 
     public void removeRow(UUID islandId, String key) {
-        if (cloudIslandsApi == null || islandId == null || key == null || key.isBlank()) {
+        if (cloudIslandsApi == null || islandId == null || key == null || key.isBlank() || !stateFeatureEnabled("addon-state")) {
             return;
         }
         if (!tableFeatureEnabled(key)) {
@@ -289,7 +289,7 @@ public final class CoreApiSatisStateService {
     }
 
     public void publishRow(DatabaseService.CoreRowWrite row) {
-        if (cloudIslandsApi == null || row == null || row.islandUuid() == null || row.key() == null || row.key().isBlank() || row.value() == null) {
+        if (cloudIslandsApi == null || row == null || row.islandUuid() == null || row.key() == null || row.key().isBlank() || row.value() == null || !stateFeatureEnabled("addon-state")) {
             return;
         }
         if (!tableFeatureEnabled(row.key())) {
@@ -308,7 +308,7 @@ public final class CoreApiSatisStateService {
     }
 
     public void publishTable(DatabaseService.CoreTableWrite table) {
-        if (cloudIslandsApi == null || table == null || table.islandUuid() == null || table.table() == null || table.table().isBlank()) {
+        if (cloudIslandsApi == null || table == null || table.islandUuid() == null || table.table() == null || table.table().isBlank() || !stateFeatureEnabled("addon-state")) {
             return;
         }
         if (!tableNameFeatureEnabled(table.table())) {
@@ -388,7 +388,7 @@ public final class CoreApiSatisStateService {
     }
 
     public void publishGlobalRow(DatabaseService.CoreGlobalRowWrite row) {
-        if (cloudIslandsApi == null || row == null || row.key() == null || row.key().isBlank() || row.value() == null) {
+        if (cloudIslandsApi == null || row == null || row.key() == null || row.key().isBlank() || row.value() == null || !stateFeatureEnabled("addon-state")) {
             return;
         }
         if (!tableFeatureEnabled(row.key())) {
@@ -423,7 +423,7 @@ public final class CoreApiSatisStateService {
     }
 
     private void publishIslandTableKeyValueBulk(UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables, String description) {
-        if (cloudIslandsApi == null || islandId == null) {
+        if (cloudIslandsApi == null || islandId == null || !stateFeatureEnabled("addon-state")) {
             return;
         }
         Map<String, String> mergedValues = copyValues(values);
@@ -478,7 +478,7 @@ public final class CoreApiSatisStateService {
     }
 
     private void publishGlobalTableKeyValueBulk(Map<String, String> values, Map<String, Map<String, String>> tables, String description) {
-        if (cloudIslandsApi == null) {
+        if (cloudIslandsApi == null || !stateFeatureEnabled("addon-state")) {
             return;
         }
         Map<String, String> mergedValues = copyValues(values);

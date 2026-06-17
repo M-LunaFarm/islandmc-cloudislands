@@ -25,6 +25,7 @@ import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CoreApiSatisStateServiceTest {
@@ -135,6 +136,35 @@ class CoreApiSatisStateServiceTest {
         assertEquals("cloudislands-satis", addons.lastGlobalSaveRequest.addonId());
         assertEquals(Map.of("iron_ingot/2026-06-17", "{\"soldAmount\":42}"),
                 addons.lastGlobalSaveRequest.tables().get("market_daily"));
+    }
+
+    @Test
+    void skipsCoreApiStateWritesWhenAddonStateFeatureIsDisabled() {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000824");
+        CapturingAddonService addons = new CapturingAddonService();
+        CoreApiSatisStateService service = new CoreApiSatisStateService(
+                Logger.getLogger("test"),
+                new AddonOnlyCloudIslandsApi(addons),
+                "cloudislands-satis",
+                true,
+                feature -> !"addon-state".equals(feature)
+        );
+
+        service.publishRow(new kr.seungmin.satisskyfactory.database.DatabaseService.CoreRowWrite(
+                islandId,
+                IslandAddonService.tableStateKey("machines", "machine/one"),
+                "{\"status\":\"RUNNING\"}"
+        ));
+        service.publishGlobalRow(new kr.seungmin.satisskyfactory.database.DatabaseService.CoreGlobalRowWrite(
+                IslandAddonService.tableStateKey("market_daily", "iron_ingot/2026-06-17"),
+                "{\"soldAmount\":42}"
+        ));
+
+        assertNull(addons.lastIslandSaveRequest);
+        assertNull(addons.lastGlobalSaveRequest);
+        assertEquals("addon-state-feature-disabled", service.writerReadiness());
+        assertEquals(0L, service.islandBulkSuccesses());
+        assertEquals(0L, service.globalBulkSuccesses());
     }
 
     private record AddonOnlyCloudIslandsApi(IslandAddonService addons) implements CloudIslandsApi {
