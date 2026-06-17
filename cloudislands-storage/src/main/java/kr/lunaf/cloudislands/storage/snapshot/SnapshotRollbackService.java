@@ -94,6 +94,26 @@ public final class SnapshotRollbackService {
         public String rollbackPolicy() {
             return BundleRestorePolicy.ROLLBACK_POLICY;
         }
+
+        public String operationPolicy() {
+            return SnapshotOperationPolicy.ACTIVE_ROLLBACK_POLICY;
+        }
+
+        public String playerEvacuationPolicy() {
+            return SnapshotOperationPolicy.ACTIVE_ISLAND_PLAYER_POLICY;
+        }
+
+        public String rollbackSteps() {
+            return SnapshotOperationPolicy.rollbackStepSummary();
+        }
+
+        public String checksumPolicy() {
+            return SnapshotOperationPolicy.CHECKSUM_POLICY;
+        }
+
+        public String portabilityPolicy() {
+            return SnapshotOperationPolicy.PORTABILITY_POLICY;
+        }
     }
 
     public record RollbackResult(UUID islandId, long promotedSnapshotNo, String source, String checksum, String compression, String restorePolicy) {}
