@@ -168,5 +168,9 @@ security:
   mtls-verified-value: "SUCCESS"
   admin-api-enabled: true
   ip-allowlist: ""
+  # Fixed-window limit per remote address. Set requests <= 0 or window <= 0 to disable.
+  # Env overrides: CI_RATE_LIMIT_REQUESTS, CI_RATE_LIMIT_WINDOW_SECONDS.
+  rate-limit-requests: 240
+  rate-limit-window-seconds: 60
   core-token: "${CI_CORE_TOKEN}"
   admin-token: "${CI_ADMIN_TOKEN}"
