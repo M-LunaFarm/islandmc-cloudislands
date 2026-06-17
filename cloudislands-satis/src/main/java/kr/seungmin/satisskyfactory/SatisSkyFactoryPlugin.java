@@ -495,6 +495,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-core-api-state-readiness", coreApiState == null ? "not-configured" : coreApiState.writerReadiness());
         state.put("runtime-core-api-state-transport", coreApiState == null ? "none" : coreApiState.writerTransportMode());
         state.put("runtime-core-api-state-reader-transport", coreApiState == null ? "none" : coreApiState.readerTransportMode());
+        state.put("runtime-core-api-state-bulk-request-models", "AddonStateBulkSaveRequest,AddonStateBulkLoadRequest");
+        state.put("runtime-core-api-state-bulk-load-policy", "typed-request-core-api-first-local-cache-fallback");
         state.put("runtime-core-api-state-fallback-policy", coreApiState == null ? "none" : coreApiState.writerFallbackPolicy());
         state.put("runtime-core-api-state-flattened-fallback-enabled", Boolean.toString(coreApiState != null && coreApiState.flattenedFallbackEnabled()));
         state.put("runtime-core-api-state-pending-retries", coreApiState == null ? "0" : Integer.toString(coreApiState.pendingBulkRetries()));
@@ -1495,7 +1497,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-node-local-cache-active", Boolean.toString(database != null && database.usesNodeLocalCache()));
         metadata.put("database-core-api-requires", "cloudislands-api,addon-state");
         metadata.put("database-core-api-mode", databaseCoreApiMode());
-        metadata.put("database-core-api-endpoint", "table/key-value/bulk-save,table/key-value/bulk");
+        metadata.put("database-core-api-endpoint", "table/key-value/bulk-save,table/key-value/bulk,table/key-value/bulk-load");
+        metadata.put("database-core-api-bulk-request-models", "AddonStateBulkSaveRequest,AddonStateBulkLoadRequest");
+        metadata.put("database-core-api-bulk-load-policy", "typed-request-core-api-first-local-cache-fallback");
         metadata.put("database-core-api-local-cache", databaseCoreApiLocalCachePolicy());
         metadata.put("database-core-api-fallback-target", databaseCoreApiFallbackTarget());
         metadata.put("database-core-api-fallback-target-ready", Boolean.toString(databaseCoreApiFallbackTargetReady()));
