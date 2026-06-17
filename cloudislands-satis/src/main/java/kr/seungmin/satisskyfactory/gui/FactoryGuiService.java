@@ -117,7 +117,14 @@ public final class FactoryGuiService {
     }
 
     private boolean enabled(String feature) {
-        return featureEnabled == null || featureEnabled.test(feature);
+        if (featureEnabled == null) {
+            return true;
+        }
+        try {
+            return featureEnabled.test(feature);
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 
     private List<String> economyLore(FactoryIsland island) {

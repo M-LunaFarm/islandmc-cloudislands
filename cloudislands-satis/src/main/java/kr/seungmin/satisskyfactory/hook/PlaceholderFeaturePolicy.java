@@ -88,6 +88,13 @@ public final class PlaceholderFeaturePolicy {
     }
 
     private static boolean enabled(Predicate<String> featureEnabled, String feature) {
-        return featureEnabled == null || featureEnabled.test(feature);
+        if (featureEnabled == null) {
+            return true;
+        }
+        try {
+            return featureEnabled.test(feature);
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 }

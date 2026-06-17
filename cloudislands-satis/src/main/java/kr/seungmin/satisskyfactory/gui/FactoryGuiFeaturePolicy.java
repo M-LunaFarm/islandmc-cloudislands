@@ -12,19 +12,19 @@ public final class FactoryGuiFeaturePolicy {
     }
 
     public static Optional<String> blockedFeature(String actionType, Predicate<String> featureEnabled) {
-        if (!featureEnabled.test("gui")) {
+        if (!enabled(featureEnabled, "gui")) {
             return Optional.of("gui");
         }
         Optional<String> primary = primaryFeature(actionType);
-        if (primary.isPresent() && !featureEnabled.test(primary.get())) {
+        if (primary.isPresent() && !enabled(featureEnabled, primary.get())) {
             return primary;
         }
         Optional<String> secondary = secondaryFeature(actionType);
-        if (secondary.isPresent() && !featureEnabled.test(secondary.get())) {
+        if (secondary.isPresent() && !enabled(featureEnabled, secondary.get())) {
             return secondary;
         }
         Optional<String> tertiary = tertiaryFeature(actionType);
-        if (tertiary.isPresent() && !featureEnabled.test(tertiary.get())) {
+        if (tertiary.isPresent() && !enabled(featureEnabled, tertiary.get())) {
             return tertiary;
         }
         return Optional.empty();
@@ -54,5 +54,16 @@ public final class FactoryGuiFeaturePolicy {
             case "complete_emergency" -> Optional.of("maintenance");
             default -> Optional.empty();
         };
+    }
+
+    private static boolean enabled(Predicate<String> featureEnabled, String feature) {
+        if (featureEnabled == null) {
+            return true;
+        }
+        try {
+            return featureEnabled.test(feature);
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 }
