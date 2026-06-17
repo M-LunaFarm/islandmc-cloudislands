@@ -54,6 +54,51 @@ addons:
         url: ""
         username: ""
         password: ""
+      core-api:
+        enabled: false
+        local-cache-writes:
+          enabled: false
+        flattened-fallback:
+          enabled: true
+      postgresql:
+        jdbc-url: ""
+        url: ""
+        host: ""
+        port: 0
+        name: ""
+        database: ""
+        options: ""
+        username: ""
+        password: ""
+        max-pool-size: 0
+        connection-timeout-ms: 0
+      mysql:
+        jdbc-url: ""
+        url: ""
+        host: ""
+        port: 0
+        name: ""
+        database: ""
+        options: ""
+        username: ""
+        password: ""
+        max-pool-size: 0
+        connection-timeout-ms: 0
+      mariadb:
+        jdbc-url: ""
+        url: ""
+        host: ""
+        port: 0
+        name: ""
+        database: ""
+        options: ""
+        username: ""
+        password: ""
+        max-pool-size: 0
+        connection-timeout-ms: 0
+      fallback:
+        enabled: true
+        order: "POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE"
     features:
       # This block can be used by host-level addon config. It follows the same disable policy as satis.features.
       # Parent/root disabled forces every Satis runtime feature off, even when a child value is true.
