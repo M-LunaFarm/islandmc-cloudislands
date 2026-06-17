@@ -8,13 +8,20 @@ import java.nio.file.Path;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
+import kr.lunaf.cloudislands.api.model.IslandLocation;
+import kr.lunaf.cloudislands.migration.MigrationHome;
 import kr.lunaf.cloudislands.migration.MigrationManifest;
+import kr.lunaf.cloudislands.storage.BundleRestorePolicy;
+import kr.lunaf.cloudislands.storage.IslandBundleManifest;
+import kr.lunaf.cloudislands.storage.manifest.IslandManifestJson;
 
 public final class MigrationWorldExtractor {
     public MigrationWorldExtractionPlan plan(MigrationManifest manifest, Path targetRoot) {
@@ -26,7 +33,7 @@ public final class MigrationWorldExtractor {
             .resolve(manifest.islandId().toString())
             .resolve("migration")
             .resolve("bundle.zip");
-        return new MigrationWorldExtractionPlan(manifest.islandId(), Path.of(manifest.sourceWorldPath()), target);
+        return new MigrationWorldExtractionPlan(manifest.islandId(), Path.of(manifest.sourceWorldPath()), target, manifest);
     }
 
     public MigrationWorldBundle extract(MigrationWorldExtractionPlan plan) throws IOException {
@@ -38,7 +45,8 @@ public final class MigrationWorldExtractor {
         String checksum = sha256(plan.targetBundlePath());
         long sizeBytes = Files.size(plan.targetBundlePath());
         Files.writeString(plan.targetBundlePath().resolveSibling("checksums.sha256"), checksum + "  " + plan.targetBundlePath().getFileName() + "\n");
-        return new MigrationWorldBundle(plan.islandId(), plan.sourcePath(), plan.targetBundlePath(), checksum, sizeBytes, fileCount);
+        Path manifestPath = writeManifest(plan, checksum, sizeBytes);
+        return new MigrationWorldBundle(plan.islandId(), plan.sourcePath(), plan.targetBundlePath(), manifestPath, checksum, sizeBytes, fileCount);
     }
 
     public MigrationWorldBundle verify(MigrationWorldExtractionPlan plan) throws IOException {
@@ -54,7 +62,18 @@ public final class MigrationWorldExtractor {
         if (!expected.equalsIgnoreCase(actual)) {
             throw new IOException("migration bundle checksum mismatch for " + plan.islandId());
         }
-        return new MigrationWorldBundle(plan.islandId(), plan.sourcePath(), plan.targetBundlePath(), actual, Files.size(plan.targetBundlePath()), countZipEntries(plan.targetBundlePath()));
+        Path manifestPath = plan.targetBundlePath().resolveSibling("manifest.json");
+        if (!Files.isRegularFile(manifestPath)) {
+            throw new IOException("migration manifest file does not exist: " + manifestPath);
+        }
+        IslandBundleManifest manifest = IslandManifestJson.read(Files.readString(manifestPath));
+        if (!actual.equalsIgnoreCase(manifest.checksum())) {
+            throw new IOException("migration manifest checksum mismatch for " + plan.islandId());
+        }
+        if (!manifest.portable()) {
+            throw new IOException("migration manifest is not portable for " + plan.islandId());
+        }
+        return new MigrationWorldBundle(plan.islandId(), plan.sourcePath(), plan.targetBundlePath(), manifestPath, actual, Files.size(plan.targetBundlePath()), countZipEntries(plan.targetBundlePath()));
     }
 
     private long writeZip(Path source, Path target) throws IOException {
@@ -116,6 +135,70 @@ public final class MigrationWorldExtractor {
             }
         }
         return count;
+    }
+
+    private Path writeManifest(MigrationWorldExtractionPlan plan, String checksum, long sizeBytes) throws IOException {
+        MigrationManifest source = plan.manifest();
+        UUID ownerUuid = source == null ? new UUID(0L, 0L) : source.ownerUuid();
+        int islandSize = source == null ? 300 : source.size();
+        Instant now = Instant.now();
+        IslandBundleManifest manifest = new IslandBundleManifest(
+                plan.islandId(),
+                ownerUuid,
+                3,
+                "migration",
+                12,
+                islandSize,
+                spawnLocation(plan),
+                homeNames(source),
+                warpNames(source),
+                biomeKeys(source),
+                now,
+                now,
+                checksum,
+                BundleRestorePolicy.CHECKSUM_ALGORITHM,
+                "zip",
+                storagePath(plan),
+                sizeBytes,
+                "SUPERIOR_SKYBLOCK2_MIGRATION"
+        );
+        Path manifestPath = plan.targetBundlePath().resolveSibling("manifest.json");
+        Files.writeString(manifestPath, IslandManifestJson.write(manifest));
+        return manifestPath;
+    }
+
+    private IslandLocation spawnLocation(MigrationWorldExtractionPlan plan) {
+        MigrationManifest source = plan.manifest();
+        if (source != null && source.homes() != null && !source.homes().isEmpty()) {
+            MigrationHome home = source.homes().get(0);
+            return new IslandLocation(home.worldName(), home.x(), home.y(), home.z(), home.yaw(), home.pitch());
+        }
+        return new IslandLocation(plan.sourcePath().getFileName().toString(), 0.5D, 100.0D, 0.5D, 180.0F, 0.0F);
+    }
+
+    private List<String> homeNames(MigrationManifest source) {
+        if (source == null || source.homes() == null) {
+            return List.of();
+        }
+        return source.homes().stream().map(MigrationHome::name).filter(name -> name != null && !name.isBlank()).toList();
+    }
+
+    private List<String> warpNames(MigrationManifest source) {
+        if (source == null || source.warps() == null) {
+            return List.of();
+        }
+        return source.warps().stream().map(warp -> warp.name()).filter(name -> name != null && !name.isBlank()).toList();
+    }
+
+    private List<String> biomeKeys(MigrationManifest source) {
+        if (source == null || source.biomeKey() == null || source.biomeKey().isBlank()) {
+            return List.of();
+        }
+        return List.of(source.biomeKey());
+    }
+
+    private String storagePath(MigrationWorldExtractionPlan plan) {
+        return "islands/" + plan.islandId() + "/migration/" + plan.targetBundlePath().getFileName();
     }
 
     public MigrationWorldBundle extract(UUID islandId, Path sourcePath, Path targetRoot) throws IOException {

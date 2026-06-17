@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
+import kr.lunaf.cloudislands.storage.manifest.IslandManifestJson;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -41,7 +42,10 @@ class MigrationWorldExtractorTest {
         assertEquals(bundle.checksum(), verified.checksum());
         assertEquals(3L, verified.fileCount());
         assertTrue(Files.isRegularFile(bundle.bundlePath()));
+        assertTrue(Files.isRegularFile(bundle.manifestPath()));
         assertEquals(bundle.checksum() + "  bundle.zip\n", Files.readString(bundle.bundlePath().resolveSibling("checksums.sha256"), StandardCharsets.UTF_8));
+        assertEquals(bundle.checksum(), IslandManifestJson.read(Files.readString(bundle.manifestPath())).checksum());
+        assertEquals(OWNER_ID, IslandManifestJson.read(Files.readString(bundle.manifestPath())).ownerUuid());
     }
 
     @Test
