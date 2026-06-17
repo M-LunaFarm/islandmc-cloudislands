@@ -61,6 +61,7 @@ tasks.jar {
             "CloudIslands-Addon-Data-Retention" to "preserve-addon-state-by-island-uuid",
             "CloudIslands-Addon-State-Authority" to "core-api-table-key-value-or-shared-database",
             "CloudIslands-Addon-Database-Setup-Path" to "setup.database",
+            "CloudIslands-Addon-Database-Setup-Source-Policy" to "env-type-explicit-type-core-api-marker-jdbc-url-single-backend-section-legacy-database",
             "CloudIslands-Addon-Database-Supported-Backends" to "CORE_API,POSTGRESQL,MYSQL,MARIADB,SQLITE",
             "CloudIslands-Addon-Database-Shared-State-Safe" to "CORE_API,POSTGRESQL,MYSQL,MARIADB",
             "CloudIslands-Addon-Database-Core-API-Setup-Path" to "setup.database.core-api.enabled",

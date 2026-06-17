@@ -44,6 +44,7 @@ runtime:
     policy: disabled-features-unregister-commands-and-skip-listeners-tickers-placeholders-core-api-writers-and-dirty-save
 database:
   setup-path: setup.database
+  setup-source-policy: env-type-explicit-type-core-api-marker-jdbc-url-single-backend-section-legacy-database
   default-mode: CORE_API
   supported:
     - CORE_API

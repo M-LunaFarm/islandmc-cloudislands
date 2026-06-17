@@ -1356,6 +1356,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-setup-sections", databaseSetupSectionsMetadata());
         metadata.put("database-setup-auto-selected", Boolean.toString(databaseSetupAutoSelected()));
         metadata.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
+        metadata.put("database-setup-selected-source", databaseConfigSource());
         metadata.put("database-setup-warning", databaseSetupWarningMetadata());
         metadata.put("database-setup-jdbc-aliases", SatisDatabaseConfigPolicy.commonJdbcAliasMetadata());
         metadata.put("database-setup-selection-policy", SatisStatePortabilityPolicy.SETUP_SELECTION_POLICY);
@@ -1399,6 +1400,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-fallback-source", databaseFallbackSource());
         metadata.put("database-fallback-env", "CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED,CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER");
         metadata.put("database-setup-path", "setup.database");
+        metadata.put("database-setup-source-policy", "env-type-explicit-type-core-api-marker-jdbc-url-single-backend-section-legacy-database");
         metadata.put("database-supported-backends", "CORE_API,POSTGRESQL,MYSQL,MARIADB,SQLITE");
         metadata.put("database-shared-state-safe-backends", "CORE_API,POSTGRESQL,MYSQL,MARIADB");
         metadata.put("database-local-fallback-backend", "SQLITE");
@@ -1763,6 +1765,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-setup-sections", databaseSetupSectionsMetadata());
         state.put("database-setup-auto-selected", Boolean.toString(databaseSetupAutoSelected()));
         state.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
+        state.put("database-setup-selected-source", databaseConfigSource());
         state.put("database-setup-warning", databaseSetupWarningMetadata());
         state.put("database-setup-jdbc-aliases", SatisDatabaseConfigPolicy.commonJdbcAliasMetadata());
         state.put("database-setup-selection-policy", SatisStatePortabilityPolicy.SETUP_SELECTION_POLICY);
@@ -1805,6 +1808,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-ready-chain-policy", SatisStatePortabilityPolicy.FALLBACK_READY_CHAIN_POLICY);
         state.put("database-config-source", databaseConfigSource());
         state.put("database-setup-path", "setup.database");
+        state.put("database-setup-source-policy", "env-type-explicit-type-core-api-marker-jdbc-url-single-backend-section-legacy-database");
         state.put("database-supported-backends", "CORE_API,POSTGRESQL,MYSQL,MARIADB,SQLITE");
         state.put("database-shared-state-safe-backends", "CORE_API,POSTGRESQL,MYSQL,MARIADB");
         state.put("database-local-fallback-backend", "SQLITE");
@@ -1922,6 +1926,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-setup-sections", databaseSetupSectionsMetadata());
         state.put("database-setup-auto-selected", Boolean.toString(databaseSetupAutoSelected()));
         state.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
+        state.put("database-setup-selected-source", databaseConfigSource());
         state.put("database-setup-warning", databaseSetupWarningMetadata());
         state.put("database-setup-jdbc-aliases", SatisDatabaseConfigPolicy.commonJdbcAliasMetadata());
         state.put("database-setup-selection-policy", SatisStatePortabilityPolicy.SETUP_SELECTION_POLICY);
@@ -1962,6 +1967,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-ready-chain-policy", SatisStatePortabilityPolicy.FALLBACK_READY_CHAIN_POLICY);
         state.put("database-config-source", databaseConfigSource());
         state.put("database-setup-path", "setup.database");
+        state.put("database-setup-source-policy", "env-type-explicit-type-core-api-marker-jdbc-url-single-backend-section-legacy-database");
         state.put("database-supported-backends", "CORE_API,POSTGRESQL,MYSQL,MARIADB,SQLITE");
         state.put("database-shared-state-safe-backends", "CORE_API,POSTGRESQL,MYSQL,MARIADB");
         state.put("database-local-fallback-backend", "SQLITE");
