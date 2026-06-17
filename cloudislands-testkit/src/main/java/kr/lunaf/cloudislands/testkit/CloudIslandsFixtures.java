@@ -2,6 +2,8 @@ package kr.lunaf.cloudislands.testkit;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
@@ -82,6 +84,24 @@ public final class CloudIslandsFixtures {
 
     public static IslandNodeSnapshot node(String nodeId) {
         return node(nodeId, NodeState.READY, 0, 0, 0);
+    }
+
+    public static List<IslandNodeSnapshot> islandNodePool(int count) {
+        return islandNodePool(count, -1);
+    }
+
+    public static List<IslandNodeSnapshot> islandNodePool(int count, int softFullNode) {
+        int safeCount = Math.max(2, Math.min(6, count));
+        List<IslandNodeSnapshot> nodes = new ArrayList<>(safeCount);
+        for (int index = 1; index <= safeCount; index++) {
+            String nodeId = "island-" + index;
+            if (index == softFullNode) {
+                nodes.add(node(nodeId, NodeState.SOFT_FULL, 95, 480, 8));
+            } else {
+                nodes.add(node(nodeId, NodeState.READY, 20 + index, 100 + (index * 10), index - 1));
+            }
+        }
+        return List.copyOf(nodes);
     }
 
     public static IslandNodeSnapshot node(String nodeId, NodeState state, int players, int activeIslands, int activationQueue) {
