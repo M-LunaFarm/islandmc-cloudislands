@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.api.model;
 
 import java.time.Instant;
+import java.util.Map;
 import kr.lunaf.cloudislands.api.CloudIslandsApiContract;
 
 public record CloudIslandsStatusSnapshot(
@@ -164,6 +165,23 @@ public record CloudIslandsStatusSnapshot(
             CloudIslandsApiContract.NETWORK_EXPOSURE_POLICY,
             CloudIslandsApiContract.TOPOLOGY_PRIVACY_POLICY,
             CloudIslandsApiContract.CONSISTENCY_AUTHORITY_POLICY
+        );
+    }
+
+    public Map<String, String> contractMetadata() {
+        return Map.ofEntries(
+            Map.entry("read-policy", readPolicy),
+            Map.entry("write-authority", writeAuthority),
+            Map.entry("sync-event-policy", syncEventPolicy),
+            Map.entry("addon-storage-policy", addonStoragePolicy),
+            Map.entry("java-plugin-api-policy", javaPluginApiPolicy),
+            Map.entry("internal-api-policy", internalApiPolicy),
+            Map.entry("event-api-policy", eventApiPolicy),
+            Map.entry("core-auth-policy", coreAuthPolicy),
+            Map.entry("admin-endpoint-policy", adminEndpointPolicy),
+            Map.entry("network-exposure-policy", networkExposurePolicy),
+            Map.entry("topology-privacy-policy", topologyPrivacyPolicy),
+            Map.entry("consistency-authority-policy", consistencyAuthorityPolicy)
         );
     }
 }
