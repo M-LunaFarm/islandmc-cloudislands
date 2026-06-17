@@ -929,10 +929,10 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         for (String command : commandPage.entries()) {
             sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + command);
         }
-        if (!commandPage.previousCommand().isBlank()) {
+        if (commandPage.previousCommand() != null && !commandPage.previousCommand().isBlank()) {
             sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + commandPage.previousCommand());
         }
-        if (!commandPage.nextCommand().isBlank()) {
+        if (commandPage.nextCommand() != null && !commandPage.nextCommand().isBlank()) {
             sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + commandPage.nextCommand());
         }
     }
