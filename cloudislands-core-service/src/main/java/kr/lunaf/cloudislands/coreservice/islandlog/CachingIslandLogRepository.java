@@ -97,14 +97,18 @@ public final class CachingIslandLogRepository implements IslandLogRepository {
             if (parts.length != 6) {
                 continue;
             }
-            logs.add(new IslandLogRecord(
-                UUID.fromString(parts[0]),
-                UUID.fromString(parts[1]),
-                UUID.fromString(parts[2]),
-                decodeText(parts[3]),
-                decodePayload(parts[4]),
-                instant(parts[5])
-            ));
+            try {
+                logs.add(new IslandLogRecord(
+                    UUID.fromString(parts[0]),
+                    UUID.fromString(parts[1]),
+                    UUID.fromString(parts[2]),
+                    decodeText(parts[3]),
+                    decodePayload(parts[4]),
+                    instant(parts[5])
+                ));
+            } catch (RuntimeException ignored) {
+                // Skip a corrupt Redis cache row instead of discarding the whole cached island log list.
+            }
         }
         return List.copyOf(logs);
     }

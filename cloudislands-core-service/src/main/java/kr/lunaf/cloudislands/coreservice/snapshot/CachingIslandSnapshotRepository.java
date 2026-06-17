@@ -145,17 +145,21 @@ public final class CachingIslandSnapshotRepository implements IslandSnapshotRepo
             if (parts.length != 9) {
                 continue;
             }
-            snapshots.add(new IslandSnapshotRecord(
-                UUID.fromString(parts[0]),
-                UUID.fromString(parts[1]),
-                Long.parseLong(parts[2]),
-                decodeText(parts[3]),
-                decodeText(parts[4]),
-                parts[5].isBlank() ? null : UUID.fromString(parts[5]),
-                decodeText(parts[6]),
-                Long.parseLong(parts[7]),
-                instant(parts[8])
-            ));
+            try {
+                snapshots.add(new IslandSnapshotRecord(
+                    UUID.fromString(parts[0]),
+                    UUID.fromString(parts[1]),
+                    Long.parseLong(parts[2]),
+                    decodeText(parts[3]),
+                    decodeText(parts[4]),
+                    parts[5].isBlank() ? null : UUID.fromString(parts[5]),
+                    decodeText(parts[6]),
+                    Long.parseLong(parts[7]),
+                    instant(parts[8])
+                ));
+            } catch (RuntimeException ignored) {
+                // Skip a corrupt Redis cache row instead of discarding the whole cached snapshot list.
+            }
         }
         return List.copyOf(snapshots);
     }
