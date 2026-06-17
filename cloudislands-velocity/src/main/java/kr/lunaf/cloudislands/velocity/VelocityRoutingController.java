@@ -2265,8 +2265,8 @@ public final class VelocityRoutingController {
     }
 
     private void sendBodyResult(Player player, CompletableFuture<String> future, String emptyMessage) {
-        future.thenAccept(body -> player.sendMessage(Component.text(bodyResultMessage(body, emptyMessage)))).exceptionally(error -> {
-            player.sendMessage(Component.text(emptyMessage));
+        future.thenAccept(body -> player.sendMessage(playerComponent(bodyResultMessage(body, emptyMessage)))).exceptionally(error -> {
+            player.sendMessage(playerComponent(emptyMessage));
             return null;
         });
     }
