@@ -30,7 +30,7 @@ setup:
     username: ""
     password: ""
     pool-size: 0
-    # Explicit opt-in schema bootstrap for first MySQL/MariaDB Core JDBC setup.
+    # Explicit opt-in schema bootstrap for first PostgreSQL/MySQL/MariaDB Core JDBC setup.
     # Env override: CI_DB_AUTO_SCHEMA.
     auto-schema: false
     postgresql:
