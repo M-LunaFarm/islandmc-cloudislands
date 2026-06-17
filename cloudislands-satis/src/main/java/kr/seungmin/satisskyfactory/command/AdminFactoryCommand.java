@@ -46,7 +46,7 @@ import java.util.function.Supplier;
 public final class AdminFactoryCommand {
     private static final String MIGRATION_IMPORT_APPROVAL = SatisLegacyMigrationPolicy.APPROVAL_TOKEN;
     private static final String MIGRATION_SOURCE_POLICY = SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY;
-    private static final String MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS = "SuperiorSkyblock2,BentoBox,ASkyBlock";
+    private static final String MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS = SatisLegacyMigrationPolicy.forbiddenRuntimeProvidersCsv();
     private static final List<String> FEATURE_KEYS = SatisFeatureGateResolver.featureKeys();
     private static final List<String> HELP_COMMANDS = helpCommands();
 
@@ -683,7 +683,7 @@ public final class AdminFactoryCommand {
         state.put("legacy-allowed-input", "read-only-snapshot,sqlite-export");
         state.put("superior-migration-input-only", "true");
         state.put("superior-runtime-dependency", "false");
-        state.put("superior-forbidden-runtime-dependencies", "SuperiorSkyblock2,BentoBox,ASkyBlock");
+        state.put("superior-forbidden-runtime-dependencies", MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS);
         state.put("superior-provider-lookup", "disabled-at-runtime");
         state.put("superior-provider-service-check", "plugin-enabled-only-no-bukkit-service-binding");
         state.put("superior-migration-source-policy", SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY);

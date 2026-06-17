@@ -120,7 +120,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIslandsAddon {
     private static final String ADDON_ID = "cloudislands-satis";
-    private static final List<String> FORBIDDEN_SKYBLOCK_RUNTIME_PROVIDERS = List.of("SuperiorSkyblock2", "BentoBox", "ASkyBlock");
+    private static final List<String> FORBIDDEN_SKYBLOCK_RUNTIME_PROVIDERS = SatisLegacyMigrationPolicy.forbiddenRuntimeProviders();
     private static final Map<String, String> FEATURE_ALIASES = Map.of(
             "factories", "machines",
             "generators", "resource-nodes",
@@ -407,7 +407,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-superior-migration-input-only", "true");
         state.put("runtime-superior-runtime-dependency", "false");
         state.put("runtime-superior-runtime-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
-        state.put("runtime-forbidden-skyblock-providers", "SuperiorSkyblock2,BentoBox,ASkyBlock");
+        state.put("runtime-forbidden-skyblock-providers", SatisLegacyMigrationPolicy.forbiddenRuntimeProvidersCsv());
         state.put("runtime-forbidden-skyblock-providers-present", forbiddenSkyblockRuntimeProvidersPresent());
         state.put("runtime-forbidden-skyblock-provider-check", "plugin-enabled-only-no-bukkit-service-binding");
         state.put("runtime-forbidden-skyblock-provider-policy", "ignored-for-runtime-migration-input-only");
@@ -1657,7 +1657,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("addon-default-database-mode", "CORE_API"),
                 Map.entry("superior-migration-input-only", "true"),
                 Map.entry("superior-runtime-dependency", "false"),
-                Map.entry("forbidden-skyblock-runtime-dependencies", "SuperiorSkyblock2,BentoBox,ASkyBlock"),
+                Map.entry("forbidden-skyblock-runtime-dependencies", SatisLegacyMigrationPolicy.forbiddenRuntimeProvidersCsv()),
                 Map.entry("forbidden-skyblock-runtime-provider-check", "plugin-enabled-only-no-bukkit-service-binding"),
                 Map.entry("forbidden-skyblock-runtime-action", "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes"),
                 Map.entry("legacy-provider-lookup", "disabled"),

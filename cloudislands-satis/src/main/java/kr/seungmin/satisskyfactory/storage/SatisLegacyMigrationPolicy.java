@@ -20,6 +20,14 @@ public final class SatisLegacyMigrationPolicy {
     public static final String OUTPUT_ID_POLICY = "cloudislands-island-uuid";
     public static final String MANIFEST_POLICY = "create-cloudislands-migration-manifest-before-import";
 
+    private static final List<String> FORBIDDEN_RUNTIME_PROVIDERS = List.of(
+            "SuperiorSkyblock2",
+            "BentoBox",
+            "ASkyBlock",
+            "uSkyBlock",
+            "IridiumSkyblock"
+    );
+
     private static final List<String> TARGET_FIELDS = List.of(
             "island-id",
             "owner-uuid",
@@ -90,6 +98,14 @@ public final class SatisLegacyMigrationPolicy {
 
     public static List<String> adminCommands() {
         return ADMIN_COMMANDS;
+    }
+
+    public static List<String> forbiddenRuntimeProviders() {
+        return FORBIDDEN_RUNTIME_PROVIDERS;
+    }
+
+    public static String forbiddenRuntimeProvidersCsv() {
+        return String.join(",", FORBIDDEN_RUNTIME_PROVIDERS);
     }
 
     public static boolean targetFieldRequired(String field) {
