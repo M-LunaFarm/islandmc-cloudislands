@@ -68,6 +68,7 @@ import kr.seungmin.satisskyfactory.machine.IslandBoostService;
 import kr.seungmin.satisskyfactory.machine.MachineDefinitionService;
 import kr.seungmin.satisskyfactory.machine.MachineService;
 import kr.seungmin.satisskyfactory.machine.MaintenanceService;
+import kr.seungmin.satisskyfactory.machine.SatisIslandRelocationService;
 import kr.seungmin.satisskyfactory.market.MarketService;
 import kr.seungmin.satisskyfactory.model.FactoryIsland;
 import kr.seungmin.satisskyfactory.node.ResourceNodeService;
@@ -2851,20 +2852,19 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             }
             if (activeCenter != null && activeCenter.getWorld() != null) {
                 String activeWorld = activeCenter.getWorld().getName();
-                int deltaX = island.hasActiveCenter() ? activeCenter.getBlockX() - island.activeCenterX() : 0;
-                int deltaY = island.hasActiveCenter() ? activeCenter.getBlockY() - island.activeCenterY() : 0;
-                int deltaZ = island.hasActiveCenter() ? activeCenter.getBlockZ() - island.activeCenterZ() : 0;
-                remapDelta = deltaX + "," + deltaY + "," + deltaZ;
-                if (machines != null && operationalFeatureEnabled("machines")) {
-                    machinesRemapped = machines.remapIslandRegion(islandId, activeWorld, deltaX, deltaY, deltaZ);
-                }
-                if (nodes != null && operationalFeatureEnabled("resource-nodes")) {
-                    resourceNodesRemapped = nodes.remapIslandRegion(islandId, activeWorld, deltaX, deltaY, deltaZ);
-                }
-                island.activeWorld(activeWorld);
-                island.activeCenterX(activeCenter.getBlockX());
-                island.activeCenterY(activeCenter.getBlockY());
-                island.activeCenterZ(activeCenter.getBlockZ());
+                SatisIslandRelocationService.RelocationResult relocation = new SatisIslandRelocationService(machines, nodes).relocate(
+                        islandId,
+                        island,
+                        activeWorld,
+                        activeCenter.getBlockX(),
+                        activeCenter.getBlockY(),
+                        activeCenter.getBlockZ(),
+                        operationalFeatureEnabled("machines"),
+                        operationalFeatureEnabled("resource-nodes")
+                );
+                remapDelta = relocation.delta();
+                machinesRemapped = relocation.machinesRemapped();
+                resourceNodesRemapped = relocation.resourceNodesRemapped();
                 if (!lifecycleEventWorld(operation).isBlank() && !lifecycleEventWorld(operation).equals(activeWorld)) {
                     getLogger().warning("CloudIslands Satis lifecycle event world " + lifecycleEventWorld(operation)
                             + " differed from resolved active world " + activeWorld + " for " + islandId);
