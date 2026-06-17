@@ -570,8 +570,8 @@ public record CoreServiceConfig(
         if (coreJdbcSupported(direct) || coreJdbcTypeSupported(type)) {
             return direct;
         }
-        String postgresqlFallback = setupPostgresqlFallbackJdbcUrl(config);
-        return postgresqlFallback.isBlank() ? direct : postgresqlFallback;
+        String durableFallback = setupDurableFallbackJdbcUrl(config);
+        return durableFallback.isBlank() ? direct : durableFallback;
     }
 
     private static String setupJdbcUrlForType(Map<String, String> config, String type, String fallback) {
@@ -611,25 +611,21 @@ public record CoreServiceConfig(
         return url;
     }
 
-    private static String setupPostgresqlFallbackJdbcUrl(Map<String, String> config) {
+    private static String setupDurableFallbackJdbcUrl(Map<String, String> config) {
         if (!configBoolean(config, "setup.database.fallback.enabled", configBoolean(config, "setup.database-fallback-enabled", true))) {
             return "";
         }
-        if (!fallbackOrderContainsPostgresql(config) || !postgresqlFallbackConfigured(config)) {
-            return "";
-        }
-        String jdbcUrl = setupJdbcUrlForType(config, "POSTGRESQL", "", false);
-        return coreJdbcSupported(jdbcUrl) ? jdbcUrl : "";
-    }
-
-    private static boolean fallbackOrderContainsPostgresql(Map<String, String> config) {
         for (String entry : setupDatabaseFallbackOrder(config).split(",")) {
             String normalized = normalizeDatabaseType(entry);
-            if ("POSTGRESQL".equals(normalized)) {
-                return true;
+            if (!coreJdbcTypeSupported(normalized) || !durableFallbackConfigured(config, normalized)) {
+                continue;
+            }
+            String jdbcUrl = setupJdbcUrlForType(config, normalized, "", false);
+            if (coreJdbcSupported(jdbcUrl)) {
+                return jdbcUrl;
             }
         }
-        return false;
+        return "";
     }
 
     private String setupDatabaseFallbackTargetForUnsupported(String requested) {
@@ -639,8 +635,11 @@ public record CoreServiceConfig(
         }
         for (String entry : setupDatabaseFallbackOrder.split(",")) {
             String normalized = normalizeDatabaseType(entry);
-            if ("POSTGRESQL".equals(normalized) && !setupPostgresqlFallbackJdbcUrl(config).isBlank()) {
-                return "POSTGRESQL";
+            if (coreJdbcTypeSupported(normalized) && durableFallbackConfigured(config, normalized)) {
+                String jdbcUrl = setupJdbcUrlForType(config, normalized, "", false);
+                if (coreJdbcSupported(jdbcUrl)) {
+                    return normalized;
+                }
             }
             if ("CORE_API".equals(normalized) && setupDatabaseCoreApiFallbackConfigured(requested)) {
                 return "CORE_API";
@@ -659,11 +658,15 @@ public record CoreServiceConfig(
             || setupDatabaseCoreApiAdminTokenConfigured;
     }
 
-    private static boolean postgresqlFallbackConfigured(Map<String, String> config) {
-        return presentConfig(config, "setup.database.postgresql.jdbc-url")
-            || presentConfig(config, "setup.database.postgresql.url")
-            || (presentConfig(config, "setup.database.postgresql.host")
-            && (presentConfig(config, "setup.database.postgresql.name") || presentConfig(config, "setup.database.postgresql.database")));
+    private static boolean durableFallbackConfigured(Map<String, String> config, String type) {
+        String scope = databaseSetupScope(type);
+        if (scope.isBlank()) {
+            return false;
+        }
+        return presentConfig(config, "setup.database." + scope + ".jdbc-url")
+            || presentConfig(config, "setup.database." + scope + ".url")
+            || (presentConfig(config, "setup.database." + scope + ".host")
+            && (presentConfig(config, "setup.database." + scope + ".name") || presentConfig(config, "setup.database." + scope + ".database")));
     }
 
     private static String typedSetupDatabaseSetting(Map<String, String> config, String type, String key, String fallback) {
