@@ -52,4 +52,20 @@ class AddonStateBulkSaveRequestTest {
         assertEquals(1, request.tableKeyCount());
         assertEquals(1, request.tableCount());
     }
+
+    @Test
+    void dropsEmptyTablesFromBulkCounts() {
+        AddonStateBulkSaveRequest request = AddonStateBulkSaveRequest.globalTables(
+                "cloudislands-satis",
+                Map.of(
+                        "machines", Map.of(),
+                        "resource_nodes", Map.of("node/ore/0/0", "12000")
+                ));
+
+        assertEquals(Map.of("node/ore/0/0", "12000"), request.tables().get("resource_nodes"));
+        assertEquals(false, request.tables().containsKey("machines"));
+        assertEquals(1, request.tableKeyCount());
+        assertEquals(1, request.tableCount());
+        assertEquals(Map.of("table/resource_nodes/node/ore/0/0", "12000"), request.flattenedStateValues());
+    }
 }
