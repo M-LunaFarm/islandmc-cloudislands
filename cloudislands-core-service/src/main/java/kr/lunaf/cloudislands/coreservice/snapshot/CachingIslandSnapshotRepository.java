@@ -13,6 +13,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
+import kr.lunaf.cloudislands.common.failure.RedisOutagePolicy;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 
@@ -85,6 +86,10 @@ public final class CachingIslandSnapshotRepository implements IslandSnapshotRepo
 
     public long failuresTotal() {
         return failures.get();
+    }
+
+    public String degradedModePolicy() {
+        return RedisOutagePolicy.DB_DIRECT_READ_POLICY;
     }
 
     private List<IslandSnapshotRecord> refresh(UUID islandId) {
