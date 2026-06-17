@@ -778,6 +778,7 @@ public final class AdminFactoryCommand {
             state.put("import-prerequisite-recorded", Boolean.toString(action.equals("dryrun") || action.equals("dry-run") || action.equals("verify")));
             if (lastLegacyDryRunSource != null && lastLegacyDryRunSource.equals(plan.sourcePath())) {
                 state.put("source-fingerprint", lastLegacyDryRunFingerprint);
+                state.put("approval-fingerprint-token", legacyApprovalToken(lastLegacyDryRunFingerprint));
             }
             state.put("importable-rows", String.valueOf(plan.importableRows()));
             state.put("importable-tables", String.valueOf(plan.importableTables()));
@@ -813,7 +814,8 @@ public final class AdminFactoryCommand {
             state.put("mode", "approval-required");
             state.put("writes", "false");
             state.put("approval", MIGRATION_IMPORT_APPROVAL);
-            state.put("usage", "/factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL);
+            state.put("approval-fingerprint-form", MIGRATION_IMPORT_APPROVAL + ":<dryrun-sha256>");
+            state.put("usage", "/factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL + "|" + MIGRATION_IMPORT_APPROVAL + ":<dryrun-sha256>");
             state.put("safe-path", "/factory admin migration dryrun <sqlitePath>");
             state.entrySet().stream()
                     .sorted(Map.Entry.comparingByKey())
@@ -879,9 +881,28 @@ public final class AdminFactoryCommand {
                         ))));
                 return;
             }
+            if (!legacyApprovalAccepted(args[approvalIndex], currentFingerprint)) {
+                sender.sendMessage(messages.raw("admin-migration-title"));
+                Map<String, String> state = new LinkedHashMap<>();
+                state.put("mode", "approval-fingerprint-mismatch");
+                state.put("writes", "false");
+                state.put("source", plan.sourcePath());
+                state.put("approval", approvalToken(args[approvalIndex]));
+                state.put("required", legacyApprovalToken(currentFingerprint));
+                state.put("compat-approval", MIGRATION_IMPORT_APPROVAL);
+                state.put("reason", "fingerprint approval token must match the last dryrun source");
+                state.entrySet().stream()
+                        .sorted(Map.Entry.comparingByKey())
+                        .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                                "key", entry.getKey(),
+                                "value", entry.getValue()
+                        ))));
+                return;
+            }
             String approvedDryRunSource = lastLegacyDryRunSource;
             long approvedDryRunRows = lastLegacyDryRunRows;
             String approvedDryRunFingerprint = lastLegacyDryRunFingerprint;
+            String approvedToken = approvalToken(args[approvalIndex]);
             DatabaseService.LegacyImportResult result = database.importLegacyDatabase(new File(sourcePath));
             lastLegacyDryRunSource = null;
             lastLegacyDryRunRows = 0L;
@@ -904,7 +925,8 @@ public final class AdminFactoryCommand {
             state.put("skipped-tables", result.skippedTables().isEmpty() ? "none" : String.join(",", result.skippedTables()));
             state.put("mode", "cross-backend-sqlite-copy");
             state.put("writes", "true");
-            state.put("approval", MIGRATION_IMPORT_APPROVAL);
+            state.put("approval", approvedToken);
+            state.put("approval-policy", approvedToken.equalsIgnoreCase(MIGRATION_IMPORT_APPROVAL) ? "compat-token-with-dryrun-fingerprint-check" : "fingerprint-token");
             state.put("conflict-policy", "insert-ignore-existing-rows");
             state.put("core-api-import-guard", database.activeBackend() == DatabaseService.StorageBackend.CORE_API ? "passed-addon-state-writer-required" : "not-required-for-" + database.activeBackend().name());
             state.put("core-api-writer-required", Boolean.toString(database.activeBackend() == DatabaseService.StorageBackend.CORE_API));
@@ -1022,13 +1044,47 @@ public final class AdminFactoryCommand {
 
     private int approvalIndex(String[] args) {
         for (int i = 3; i < args.length; i++) {
-            if (args[i].equalsIgnoreCase(MIGRATION_IMPORT_APPROVAL)
-                    || args[i].equalsIgnoreCase("approval=" + MIGRATION_IMPORT_APPROVAL)
-                    || args[i].equalsIgnoreCase("--confirm=" + MIGRATION_IMPORT_APPROVAL)) {
+            String token = approvalToken(args[i]);
+            if (token.equalsIgnoreCase(MIGRATION_IMPORT_APPROVAL)
+                    || token.toUpperCase(java.util.Locale.ROOT).startsWith(MIGRATION_IMPORT_APPROVAL + ":")) {
                 return i;
             }
         }
         return -1;
+    }
+
+    private boolean legacyApprovalAccepted(String rawApproval, String fingerprint) {
+        String token = approvalToken(rawApproval);
+        return token.equalsIgnoreCase(MIGRATION_IMPORT_APPROVAL)
+                || token.equalsIgnoreCase(legacyApprovalToken(fingerprint));
+    }
+
+    private String approvalToken(String rawApproval) {
+        if (rawApproval == null) {
+            return "";
+        }
+        String token = rawApproval.trim();
+        if (token.toLowerCase(java.util.Locale.ROOT).startsWith("approval=")) {
+            return token.substring("approval=".length()).trim();
+        }
+        if (token.toLowerCase(java.util.Locale.ROOT).startsWith("--confirm=")) {
+            return token.substring("--confirm=".length()).trim();
+        }
+        return token;
+    }
+
+    private String legacyApprovalToken(String fingerprint) {
+        if (fingerprint == null || fingerprint.isBlank()) {
+            return MIGRATION_IMPORT_APPROVAL + ":unknown";
+        }
+        String marker = "sha256=";
+        int start = fingerprint.indexOf(marker);
+        if (start < 0) {
+            return MIGRATION_IMPORT_APPROVAL + ":" + fingerprint.replaceAll("[^A-Za-z0-9._-]", "_");
+        }
+        int valueStart = start + marker.length();
+        int valueEnd = fingerprint.indexOf(',', valueStart);
+        return MIGRATION_IMPORT_APPROVAL + ":" + fingerprint.substring(valueStart, valueEnd < 0 ? fingerprint.length() : valueEnd);
     }
 
     private void showAddonState(CommandSender sender) {
