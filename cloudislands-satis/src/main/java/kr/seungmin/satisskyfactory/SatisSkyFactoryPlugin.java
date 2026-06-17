@@ -1397,6 +1397,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("cloudislands-api-available", Boolean.toString(cloudIslandsApi != null));
         if (cloudIslandsApi == null) {
             metadata.put("cloudislands-api-contract-compatibility", "unavailable");
+            metadata.put("cloudislands-api-contract-compatible", "false");
             metadata.put("cloudislands-api-contract-missing-keys", CloudIslandsApiContract.requiredMetadataKeysCsv());
             metadata.put("cloudislands-api-read-policy", "unavailable");
             metadata.put("cloudislands-api-write-authority", "unavailable");
@@ -1405,6 +1406,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         } else {
             Map<String, String> contractMetadata = cloudIslandsApi.contractMetadata();
             metadata.put("cloudislands-api-contract-compatibility", CloudIslandsApiContract.metadataCompatibilityStatus(contractMetadata));
+            metadata.put("cloudislands-api-contract-compatible", Boolean.toString(CloudIslandsApiContract.compatibleMetadata(contractMetadata)));
             metadata.put("cloudislands-api-contract-missing-keys", String.join(",", CloudIslandsApiContract.missingMetadataKeys(contractMetadata)));
             contractMetadata.forEach((key, value) -> metadata.put("cloudislands-api-" + key, value));
         }
