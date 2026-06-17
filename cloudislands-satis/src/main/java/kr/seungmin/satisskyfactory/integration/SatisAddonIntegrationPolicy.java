@@ -24,6 +24,9 @@ public final class SatisAddonIntegrationPolicy {
     public static final String REENABLE_POLICY = "reenable-restores-state-from-shared-backend-by-island-uuid";
     public static final String NO_AUTOMATIC_DELETE_POLICY = "no-automatic-delete-on-disable-remove-or-feature-off";
     public static final String STATE_KEY_POLICY = "island-uuid-stable-node-world-cell-volatile";
+    public static final String PERSISTENT_ID_AUTHORITY = "cloudislands-island-uuid";
+    public static final String FORBIDDEN_PERSISTENT_OWNER_KEYS = "server-name,world-name,player-uuid";
+    public static final String VOLATILE_PLACEMENT_POLICY = "active-node-world-center-are-remap-targets-not-state-owners";
 
     private static final List<String> SUPPORTED_MODES = List.of(
             RECOMMENDED_MODE,
@@ -67,6 +70,8 @@ public final class SatisAddonIntegrationPolicy {
             "partial-features", "disabled-feature-registers-no-command-gui-listener-task-or-write-path",
             "feature-off-data-retention", "existing-feature-state-is-preserved-and-not-deleted-while-feature-is-off",
             "addon-reenable", "previous-addon-state-is-reloaded-from-shared-storage-by-island-uuid",
+            "island-id-storage", "satis-state-uses-cloudislands-island-uuid-as-persistent-owner-key",
+            "volatile-placement", "server-world-and-center-are-remapped-runtime-placement-not-persistent-identity",
             "external-addon", "cloudislands-boots-without-satis-jar-and-discovers-satis-through-addon-api-when-installed",
             "missing-cloudislands-api", "satis-runtime-does-not-start-and-registers-no-commands-listeners-tickers-or-writers",
             "no-superiorskyblock2", "legacy-skyblock-calls-are-replaced-by-cloudislands-api-or-addon-spi"

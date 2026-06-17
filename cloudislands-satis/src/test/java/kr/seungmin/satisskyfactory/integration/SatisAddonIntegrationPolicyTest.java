@@ -66,6 +66,9 @@ class SatisAddonIntegrationPolicyTest {
         assertEquals("reenable-restores-state-from-shared-backend-by-island-uuid", SatisAddonIntegrationPolicy.REENABLE_POLICY);
         assertEquals("no-automatic-delete-on-disable-remove-or-feature-off", SatisAddonIntegrationPolicy.NO_AUTOMATIC_DELETE_POLICY);
         assertEquals("island-uuid-stable-node-world-cell-volatile", SatisAddonIntegrationPolicy.STATE_KEY_POLICY);
+        assertEquals("cloudislands-island-uuid", SatisAddonIntegrationPolicy.PERSISTENT_ID_AUTHORITY);
+        assertEquals("server-name,world-name,player-uuid", SatisAddonIntegrationPolicy.FORBIDDEN_PERSISTENT_OWNER_KEYS);
+        assertEquals("active-node-world-center-are-remap-targets-not-state-owners", SatisAddonIntegrationPolicy.VOLATILE_PLACEMENT_POLICY);
         assertEquals(
                 "factory-upgrade-menu-progress-state-restores-on-target-node-from-shared-state",
                 SatisAddonIntegrationPolicy.requiredScenarios().get("a-b-node-move")
@@ -85,6 +88,14 @@ class SatisAddonIntegrationPolicyTest {
         assertEquals(
                 "previous-addon-state-is-reloaded-from-shared-storage-by-island-uuid",
                 SatisAddonIntegrationPolicy.requiredScenarios().get("addon-reenable")
+        );
+        assertEquals(
+                "satis-state-uses-cloudislands-island-uuid-as-persistent-owner-key",
+                SatisAddonIntegrationPolicy.requiredScenarios().get("island-id-storage")
+        );
+        assertEquals(
+                "server-world-and-center-are-remapped-runtime-placement-not-persistent-identity",
+                SatisAddonIntegrationPolicy.requiredScenarios().get("volatile-placement")
         );
         assertEquals(
                 "cloudislands-boots-without-satis-jar-and-discovers-satis-through-addon-api-when-installed",
