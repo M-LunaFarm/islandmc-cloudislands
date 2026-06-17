@@ -57,6 +57,10 @@ class DefaultConfigIntegrityTest {
         assertEquals("CORE_API", config.getString("database.type"));
         assertTrue(config.getBoolean("database.core-api.flattened-fallback.enabled"));
         assertTrue(config.getBoolean("setup.database.core-api.flattened-fallback.enabled"));
+        assertTrue(config.isConfigurationSection("setup.database"));
+        assertTrue(config.isConfigurationSection("setup.database.postgresql"));
+        assertTrue(config.isConfigurationSection("setup.database.mysql"));
+        assertTrue(config.isConfigurationSection("setup.database.mariadb"));
         assertTrue(config.getBoolean("database.fallback.enabled"));
         assertTrue(config.getBoolean("setup.database.fallback.enabled"));
         assertEquals(List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API", "SQLITE"),

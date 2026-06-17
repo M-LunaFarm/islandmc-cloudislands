@@ -77,6 +77,7 @@ import kr.seungmin.satisskyfactory.recipe.RecipeService;
 import kr.seungmin.satisskyfactory.research.ResearchService;
 import kr.seungmin.satisskyfactory.runtime.SatisRuntimeComponentPlan;
 import kr.seungmin.satisskyfactory.storage.CoreApiSatisStateService;
+import kr.seungmin.satisskyfactory.storage.SatisStatePortabilityPolicy;
 import kr.seungmin.satisskyfactory.storage.StorageService;
 import kr.seungmin.satisskyfactory.storage.VirtualInventory;
 import kr.seungmin.satisskyfactory.task.DirtySaveService;
@@ -1319,6 +1320,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
         metadata.put("database-setup-warning", databaseSetupWarningMetadata());
         metadata.put("database-setup-jdbc-aliases", "setup.database.jdbc.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,database.jdbc.url,database.<backend>.url");
+        metadata.put("database-setup-selection-policy", SatisStatePortabilityPolicy.SETUP_SELECTION_POLICY);
+        metadata.put("database-setup-backend-priority", SatisStatePortabilityPolicy.SETUP_BACKEND_PRIORITY);
         metadata.put("database-setup-fallback-precedence", "env,setup.database.fallback,database.fallback");
         metadata.put("database-setup-core-api-fallback", "cloudislands-addon-state-then-configured-shared-backend-then-sqlite");
         metadata.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));
@@ -1348,6 +1351,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-fallback-authority", databaseFallbackAuthorityMetadata());
         metadata.put("database-fallback-split-brain-risk", databaseFallbackSplitBrainRiskMetadata());
         metadata.put("database-fallback-read-write-policy", databaseFallbackReadWritePolicyMetadata());
+        metadata.put("database-fallback-chain-policy", SatisStatePortabilityPolicy.FALLBACK_CHAIN_POLICY);
+        metadata.put("database-fallback-readiness-policy", SatisStatePortabilityPolicy.FALLBACK_READINESS_POLICY);
         metadata.put("database-fallback-source", databaseFallbackSource());
         metadata.put("database-fallback-env", "CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED,CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER");
         metadata.put("database-setup-path", "setup.database");
@@ -1372,6 +1377,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-core-api-fallback-reason", databaseCoreApiFallbackReason());
         metadata.put("database-core-api-flattened-fallback-enabled", Boolean.toString(coreApiFlattenedFallbackEnabled()));
         metadata.put("database-core-api-write-fallback", databaseCoreApiWriteFallbackPolicy());
+        metadata.put("database-core-api-write-fallback-policy", SatisStatePortabilityPolicy.CORE_API_WRITE_FALLBACK_POLICY);
         metadata.put("database-config-env", "CLOUDISLANDS_SATIS_DATABASE_TYPE,CLOUDISLANDS_SATIS_DB");
         metadata.put("database-jdbc-source", databaseJdbcSource());
         metadata.put("database-jdbc-env", "CLOUDISLANDS_SATIS_JDBC_URL,CLOUDISLANDS_SATIS_POSTGRESQL_JDBC_URL,CLOUDISLANDS_SATIS_MYSQL_JDBC_URL,CLOUDISLANDS_SATIS_MARIADB_JDBC_URL");
@@ -1690,6 +1696,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
         state.put("database-setup-warning", databaseSetupWarningMetadata());
         state.put("database-setup-jdbc-aliases", "setup.database.jdbc.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,database.jdbc.url,database.<backend>.url");
+        state.put("database-setup-selection-policy", SatisStatePortabilityPolicy.SETUP_SELECTION_POLICY);
+        state.put("database-setup-backend-priority", SatisStatePortabilityPolicy.SETUP_BACKEND_PRIORITY);
         state.put("database-setup-fallback-precedence", "env,setup.database.fallback,database.fallback");
         state.put("database-setup-core-api-fallback", "cloudislands-addon-state-then-configured-shared-backend-then-sqlite");
         state.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));
@@ -1719,6 +1727,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-authority", databaseFallbackAuthorityMetadata());
         state.put("database-fallback-split-brain-risk", databaseFallbackSplitBrainRiskMetadata());
         state.put("database-fallback-read-write-policy", databaseFallbackReadWritePolicyMetadata());
+        state.put("database-fallback-chain-policy", SatisStatePortabilityPolicy.FALLBACK_CHAIN_POLICY);
+        state.put("database-fallback-readiness-policy", SatisStatePortabilityPolicy.FALLBACK_READINESS_POLICY);
         state.put("database-config-source", databaseConfigSource());
         state.put("database-setup-path", "setup.database");
         state.put("database-supported-backends", "CORE_API,POSTGRESQL,MYSQL,MARIADB,SQLITE");
@@ -1741,6 +1751,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-core-api-fallback-reason", databaseCoreApiFallbackReason());
         state.put("database-core-api-flattened-fallback-enabled", Boolean.toString(coreApiFlattenedFallbackEnabled()));
         state.put("database-core-api-write-fallback", databaseCoreApiWriteFallbackPolicy());
+        state.put("database-core-api-write-fallback-policy", SatisStatePortabilityPolicy.CORE_API_WRITE_FALLBACK_POLICY);
         state.put("database-config-env", "CLOUDISLANDS_SATIS_DATABASE_TYPE,CLOUDISLANDS_SATIS_DB");
         state.put("database-jdbc-source", databaseJdbcSource());
         state.put("database-jdbc-env", "CLOUDISLANDS_SATIS_JDBC_URL,CLOUDISLANDS_SATIS_POSTGRESQL_JDBC_URL,CLOUDISLANDS_SATIS_MYSQL_JDBC_URL,CLOUDISLANDS_SATIS_MARIADB_JDBC_URL");
@@ -1824,6 +1835,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
         state.put("database-setup-warning", databaseSetupWarningMetadata());
         state.put("database-setup-jdbc-aliases", "setup.database.jdbc.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,database.jdbc.url,database.<backend>.url");
+        state.put("database-setup-selection-policy", SatisStatePortabilityPolicy.SETUP_SELECTION_POLICY);
+        state.put("database-setup-backend-priority", SatisStatePortabilityPolicy.SETUP_BACKEND_PRIORITY);
         state.put("database-setup-fallback-precedence", "env,setup.database.fallback,database.fallback");
         state.put("database-setup-core-api-fallback", "cloudislands-addon-state-then-first-non-core-api-backend");
         state.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));
@@ -1851,6 +1864,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-authority", databaseFallbackAuthorityMetadata());
         state.put("database-fallback-split-brain-risk", databaseFallbackSplitBrainRiskMetadata());
         state.put("database-fallback-read-write-policy", databaseFallbackReadWritePolicyMetadata());
+        state.put("database-fallback-chain-policy", SatisStatePortabilityPolicy.FALLBACK_CHAIN_POLICY);
+        state.put("database-fallback-readiness-policy", SatisStatePortabilityPolicy.FALLBACK_READINESS_POLICY);
         state.put("database-config-source", databaseConfigSource());
         state.put("database-setup-path", "setup.database");
         state.put("database-supported-backends", "CORE_API,POSTGRESQL,MYSQL,MARIADB,SQLITE");
@@ -1868,6 +1883,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-core-api-local-cache", databaseCoreApiLocalCachePolicy());
         state.put("database-core-api-fallback-target", databaseCoreApiFallbackTarget());
         state.put("database-core-api-fallback-policy", databaseCoreApiFallbackPolicy());
+        state.put("database-core-api-write-fallback-policy", SatisStatePortabilityPolicy.CORE_API_WRITE_FALLBACK_POLICY);
         putAddonStateSyncState(state);
         state.put("database-config-env", "CLOUDISLANDS_SATIS_DATABASE_TYPE,CLOUDISLANDS_SATIS_DB");
         state.put("database-jdbc-source", databaseJdbcSource());

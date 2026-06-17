@@ -24,6 +24,11 @@ class SatisStatePortabilityPolicyTest {
         assertEquals("save-on-source-restore-on-target-by-island-uuid", state.get("core-api-sync-node-handoff-policy"));
         assertEquals("preserve-cloudislands-island-and-addon-state-by-island-uuid", state.get("core-api-sync-addon-removal-policy"));
         assertEquals("preflush-satis-state-stop-runtime-keep-cloudislands-lifecycle", state.get("core-api-sync-addon-disable-policy"));
+        assertEquals("env-explicit-type-setup-core-api-marker-auto-single-backend-database-default", state.get("core-api-sync-setup-selection-policy"));
+        assertEquals("CLOUDISLANDS_SATIS_DATABASE_TYPE,setup.database.type,setup.database.core-api.enabled,jdbc-url,setup.database.<backend>,database.type", state.get("core-api-sync-setup-backend-priority"));
+        assertEquals("shared-backend-before-local-sqlite-or-warn", state.get("core-api-sync-fallback-chain-policy"));
+        assertEquals("use-only-explicitly-configured-shared-targets-then-explicit-local-sqlite", state.get("core-api-sync-fallback-readiness-policy"));
+        assertEquals("retry-table-key-value-bulk-save-as-flattened-addon-state", state.get("core-api-sync-write-fallback-policy"));
     }
 
     @Test
