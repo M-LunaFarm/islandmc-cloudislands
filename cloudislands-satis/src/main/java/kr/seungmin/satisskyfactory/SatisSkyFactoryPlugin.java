@@ -9,6 +9,7 @@ import kr.lunaf.cloudislands.api.event.CoreReloadEvent;
 import kr.lunaf.cloudislands.api.event.IslandActivatedEvent;
 import kr.lunaf.cloudislands.api.event.IslandBankChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandBiomeChangeEvent;
+import kr.lunaf.cloudislands.api.event.IslandChatSentEvent;
 import kr.lunaf.cloudislands.api.event.IslandCreatedEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeactivationRequestEvent;
 import kr.lunaf.cloudislands.api.event.IslandDeactivatedEvent;
@@ -33,6 +34,7 @@ import kr.lunaf.cloudislands.api.event.IslandRoleChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandRuntimeChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotCreateEvent;
 import kr.lunaf.cloudislands.api.event.IslandSnapshotRequestEvent;
+import kr.lunaf.cloudislands.api.event.IslandTemplateChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandUpgradeEvent;
 import kr.lunaf.cloudislands.api.event.IslandVisitEvent;
 import kr.lunaf.cloudislands.api.event.IslandWarpChangeEvent;
@@ -2618,6 +2620,30 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     @Override
+    public void onIslandChatSent(IslandChatSentEvent event) {
+        String channel = event.channel() == null || event.channel().isBlank() ? "default" : event.channel();
+        String operation = "chat:" + safeRouteValue(channel);
+        runSatisLifecycle("chat", event.islandId(), operation, () -> {
+            publishIslandLifecycleState(event.islandId(), operation, islands.find(event.islandId()).orElse(null), "observed", "");
+            if (cloudIslandsApi == null || !operationalFeatureEnabled("addon-state")) {
+                return;
+            }
+            Map<String, String> state = new LinkedHashMap<>();
+            state.put("last-chat-island", event.islandId() == null ? "" : event.islandId().toString());
+            state.put("last-chat-player", event.playerUuid() == null ? "" : event.playerUuid().toString());
+            state.put("last-chat-channel", safeRouteValue(channel));
+            state.put("last-chat-message-length", Integer.toString(event.message() == null ? 0 : event.message().length()));
+            state.put("last-chat-content-storage", "metadata-only-no-message-body");
+            state.put("last-chat-at", event.occurredAt() == null ? Instant.now().toString() : event.occurredAt().toString());
+            state.put("last-chat-feature-gate", "chat");
+            cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
+                getLogger().warning("Failed to publish CloudIslands Satis chat state: " + error.getMessage());
+                return Map.of();
+            });
+        });
+    }
+
+    @Override
     public void onIslandFlagChanged(IslandFlagChangeEvent event) {
         runSatisLifecycle("permissions", event.islandId(), "flag-change", () -> synchronizeSatisIsland(event.islandId(), "flag-change"));
     }
@@ -2697,6 +2723,25 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     @Override
     public void onIslandSnapshotCreated(IslandSnapshotCreateEvent event) {
         runSatisLifecycle(event.islandId(), "flush", () -> flushSatisIsland(event.islandId()));
+    }
+
+    @Override
+    public void onIslandTemplateChanged(IslandTemplateChangeEvent event) {
+        if (cloudIslandsApi == null || !operationalFeatureEnabled("addon-state") || !operationalFeatureEnabled("templates")) {
+            return;
+        }
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("last-template-id", safeRouteValue(event.templateId()));
+        state.put("last-template-operation", safeRouteValue(event.operation()));
+        state.put("last-template-enabled", event.enabled() == null ? "" : Boolean.toString(event.enabled()));
+        state.put("last-template-min-node-version", safeRouteValue(event.minNodeVersion()));
+        state.put("last-template-at", event.occurredAt() == null ? Instant.now().toString() : event.occurredAt().toString());
+        state.put("last-template-feature-gate", "templates");
+        state.put("last-template-policy", "global-template-metadata-only-satis-does-not-own-island-templates");
+        cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
+            getLogger().warning("Failed to publish CloudIslands Satis template state: " + error.getMessage());
+            return Map.of();
+        });
     }
 
     @Override
