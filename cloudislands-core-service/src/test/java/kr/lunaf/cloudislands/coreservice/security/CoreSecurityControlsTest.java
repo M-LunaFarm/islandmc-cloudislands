@@ -88,6 +88,33 @@ class CoreSecurityControlsTest {
     }
 
     @Test
+    void pathStyleAdminEndpointsKeepSpecificPermissions() {
+        AdminEndpointGuard guard = new AdminEndpointGuard("admin-secret", true);
+        String islandId = "00000000-0000-0000-0000-000000000201";
+
+        assertFalse(guard.allowed("/v1/admin/islands/" + islandId + "/migrate", exchange(
+            "127.0.0.1",
+            "X-CloudIslands-Admin-Token", "admin-secret",
+            "X-CloudIslands-Admin-Permissions", "audit-read"
+        )));
+        assertTrue(guard.allowed("/v1/admin/islands/" + islandId + "/migrate", exchange(
+            "127.0.0.1",
+            "X-CloudIslands-Admin-Token", "admin-secret",
+            "X-CloudIslands-Admin-Permissions", "island-migrate"
+        )));
+        assertFalse(guard.allowed("/v1/admin/nodes/island-2/drain", exchange(
+            "127.0.0.1",
+            "X-CloudIslands-Admin-Token", "admin-secret",
+            "X-CloudIslands-Admin-Permissions", "audit-read"
+        )));
+        assertTrue(guard.allowed("/v1/admin/nodes/island-2/drain", exchange(
+            "127.0.0.1",
+            "X-CloudIslands-Admin-Token", "admin-secret",
+            "X-CloudIslands-Admin-Permissions", "node-drain"
+        )));
+    }
+
+    @Test
     void auditJsonEscapesControlCharactersAndAcceptsEmptyPayload() {
         InMemoryAuditLogger audit = new InMemoryAuditLogger();
 
