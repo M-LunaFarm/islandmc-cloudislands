@@ -75,6 +75,7 @@ import kr.seungmin.satisskyfactory.node.ResourceNodeService;
 import kr.seungmin.satisskyfactory.power.PowerNetworkService;
 import kr.seungmin.satisskyfactory.recipe.RecipeService;
 import kr.seungmin.satisskyfactory.research.ResearchService;
+import kr.seungmin.satisskyfactory.runtime.SatisRuntimeComponentPlan;
 import kr.seungmin.satisskyfactory.storage.CoreApiSatisStateService;
 import kr.seungmin.satisskyfactory.storage.StorageService;
 import kr.seungmin.satisskyfactory.storage.VirtualInventory;
@@ -544,109 +545,44 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String runtimeCommandBlockReason() {
-        if (commandsRegistered) {
-            return "none";
-        }
-        if (!addonRuntimeEnabled) {
-            return "addon-disabled";
-        }
-        if (!operationalFeatureEnabled("commands")) {
-            return "commands-feature-disabled";
-        }
-        return "command-not-registered";
+        return runtimeComponentPlan().commandBlockReason();
     }
 
     private String runtimeBlockedComponents() {
-        java.util.List<String> blocked = new java.util.ArrayList<>();
-        if (!commandsRegistered) {
-            blocked.add("commands:" + runtimeCommandBlockReason());
-        }
-        if (!machineListenerRegistered) {
-            blocked.add("machine-listener:" + (!operationalFeatureEnabled("machines") ? "machines-feature-disabled" : "not-registered"));
-        }
-        if (!guiListenerRegistered) {
-            blocked.add("gui-listener:" + (!operationalFeatureEnabled("gui") ? "gui-feature-disabled" : "not-registered"));
-        }
-        if (!lifecycleListenerRegistered) {
-            blocked.add("lifecycle-listener:" + (!lifecycleListenerNeeded() ? "lifecycle-state-disabled" : "not-registered"));
-        }
-        if (placeholderHook == null) {
-            blocked.add("placeholders:" + placeholderBlockReason());
-        }
-        if (ticker == null || !ticker.running()) {
-            blocked.add("machine-ticker:" + (!operationalFeatureEnabled("machines") ? "machines-feature-disabled" : "not-running"));
-        }
-        if (maintenanceTicker == null || !maintenanceTicker.running()) {
-            blocked.add("maintenance-ticker:" + (!operationalFeatureEnabled("maintenance") ? "maintenance-feature-disabled" : "not-running"));
-        }
-        if (dirtySaves == null || !dirtySaves.running()) {
-            blocked.add("dirty-save:" + (!dataWritesEnabled() ? "data-writes-disabled" : "not-running"));
-        }
-        return blocked.isEmpty() ? "none" : String.join(",", blocked);
+        return runtimeComponentPlan().blockedComponentsMetadata();
     }
 
     private String activeRuntimeComponentsMetadata() {
-        java.util.List<String> active = new java.util.ArrayList<>();
-        if (commandsRegistered) {
-            active.add("commands");
-        }
-        if (machineListenerRegistered) {
-            active.add("machine-listener");
-        }
-        if (guiListenerRegistered) {
-            active.add("gui-listener");
-        }
-        if (lifecycleListenerRegistered) {
-            active.add("lifecycle-listener");
-        }
-        if (ticker != null && ticker.running()) {
-            active.add("machine-ticker");
-        }
-        if (maintenanceTicker != null && maintenanceTicker.running()) {
-            active.add("maintenance-ticker");
-        }
-        if (placeholderHook != null) {
-            active.add("placeholder-expansion");
-        }
-        if (coreApiState != null) {
-            active.add("core-api-state-writer");
-        }
-        if (dirtySaves != null && dirtySaves.running()) {
-            active.add("dirty-save");
-        }
-        return active.isEmpty() ? "none" : String.join(",", active);
+        return runtimeComponentPlan().activeComponentsMetadata();
     }
 
     private String skippedRuntimeComponentsMetadata() {
-        java.util.List<String> skipped = new java.util.ArrayList<>();
-        if (!operationalFeatureEnabled("commands")) {
-            skipped.add("commands");
-        }
-        if (!operationalFeatureEnabled("machines")) {
-            skipped.add("machine-listener");
-            skipped.add("machine-ticker");
-        }
-        if (!operationalFeatureEnabled("gui")) {
-            skipped.add("gui-listener");
-        }
-        if (!lifecycleListenerNeeded()) {
-            skipped.add("lifecycle-listener");
-        }
-        if (!operationalFeatureEnabled("maintenance")) {
-            skipped.add("maintenance-ticker");
-        }
-        if (!operationalFeatureEnabled("placeholders")) {
-            skipped.add("placeholder-expansion");
-        } else if (!getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            skipped.add("placeholder-expansion:placeholderapi-not-installed");
-        }
-        if (!dataWritesEnabled()) {
-            skipped.add("dirty-save");
-        }
-        if (!operationalFeatureEnabled("addon-state") || !coreApiAddonStateAvailable()) {
-            skipped.add("core-api-state-writer");
-        }
-        return skipped.isEmpty() ? "none" : String.join(",", skipped);
+        return runtimeComponentPlan().skippedComponentsMetadata();
+    }
+
+    private SatisRuntimeComponentPlan runtimeComponentPlan() {
+        return new SatisRuntimeComponentPlan(
+                addonRuntimeEnabled,
+                commandsRegistered,
+                machineListenerRegistered,
+                guiListenerRegistered,
+                lifecycleListenerRegistered,
+                ticker != null && ticker.running(),
+                maintenanceTicker != null && maintenanceTicker.running(),
+                placeholderHook != null,
+                coreApiState != null,
+                dirtySaves != null && dirtySaves.running(),
+                operationalFeatureEnabled("commands"),
+                operationalFeatureEnabled("machines"),
+                operationalFeatureEnabled("gui"),
+                lifecycleListenerNeeded(),
+                operationalFeatureEnabled("maintenance"),
+                operationalFeatureEnabled("placeholders"),
+                getServer().getPluginManager().isPluginEnabled("PlaceholderAPI"),
+                dataWritesEnabled(),
+                operationalFeatureEnabled("addon-state"),
+                coreApiAddonStateAvailable()
+        );
     }
 
     private String placeholderBlockReason() {
