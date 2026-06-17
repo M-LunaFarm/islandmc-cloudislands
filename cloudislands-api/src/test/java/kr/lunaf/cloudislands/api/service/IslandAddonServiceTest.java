@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.api.service;
 
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
+import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import org.junit.jupiter.api.Test;
 
@@ -83,6 +84,21 @@ class IslandAddonServiceTest {
     }
 
     @Test
+    void requestObjectAliasesSaveGlobalTableKeyValueState() {
+        CapturingAddonService service = new CapturingAddonService();
+        AddonStateBulkSaveRequest request = AddonStateBulkSaveRequest.globalTables(
+                "cloudislands-satis",
+                Map.of("machines", Map.of("island/0001/machine/0002", "active")));
+
+        Map<String, String> state = service.bulkSaveTableKeyValueState(request).join();
+
+        assertEquals("active", state.get(IslandAddonService.tableStateKey("machines", "island/0001/machine/0002")));
+        assertEquals(state, service.saveTableKeyValueState(request).join());
+        assertEquals(state, service.tableKeyValueBulkState(request).join());
+        assertEquals(state, service.tableBulkState(request).join());
+    }
+
+    @Test
     void tableKeyValueBulkSaveFlattensIslandTablesWithSlashKeys() {
         CapturingAddonService service = new CapturingAddonService();
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000702");
@@ -114,6 +130,24 @@ class IslandAddonServiceTest {
                 service.tableKeyValueBulkLoadIslandState("cloudislands-satis", islandId, "resource_nodes").join());
         assertEquals(Map.of("node/ore/0/0", "12000"),
                 service.bulkLoadTableKeyValueIslandState("cloudislands-satis", islandId, "resource_nodes").join());
+    }
+
+    @Test
+    void requestObjectAliasesSaveIslandTableKeyValueState() {
+        CapturingAddonService service = new CapturingAddonService();
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000704");
+        AddonStateBulkSaveRequest request = AddonStateBulkSaveRequest.islandTables(
+                "cloudislands-satis",
+                islandId,
+                Map.of("resource_nodes", Map.of("node/ore/0/0", "12000")));
+
+        Map<String, String> state = service.bulkSaveIslandTableKeyValueState(request).join();
+
+        assertEquals(islandId, service.lastIslandId);
+        assertEquals("12000", state.get(IslandAddonService.tableStateKey("resource_nodes", "node/ore/0/0")));
+        assertEquals(state, service.saveIslandTableKeyValueState(request).join());
+        assertEquals(state, service.tableKeyValueBulkIslandState(request).join());
+        assertEquals(state, service.tableBulkIslandState(request).join());
     }
 
     @Test
