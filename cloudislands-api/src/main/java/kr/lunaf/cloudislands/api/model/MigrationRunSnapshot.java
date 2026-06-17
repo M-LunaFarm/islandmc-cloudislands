@@ -88,6 +88,32 @@ public record MigrationRunSnapshot(
         return blockingIssues > 0 || (issues != null && issues.stream().anyMatch(MigrationIssueSnapshot::blocking));
     }
 
+    public boolean sourceScanned() {
+        return manifests > 0
+            || stateEquals("SCANNED")
+            || stateEquals("DRY_RUN_FAILED")
+            || stateEquals("DRY_RUN_PASSED")
+            || stateEquals("EXTRACTED")
+            || imported
+            || passed;
+    }
+
+    public boolean dryRunPassed() {
+        return canImport && !hasBlockingIssues();
+    }
+
+    public boolean importReady() {
+        return dryRunPassed()
+            && extractionComplete()
+            && !imported
+            && !blank(approvalToken)
+            && !blank(sourceFingerprint);
+    }
+
+    public boolean verifyReady() {
+        return imported && manifests > 0 && importedIslands >= manifests && !hasBlockingIssues();
+    }
+
     public boolean activationTestComplete() {
         return activationTested > 0 && activationTested == activationTestPassed;
     }
@@ -110,5 +136,47 @@ public record MigrationRunSnapshot(
 
     public boolean rollbackComplete() {
         return rolledBack && removedIslands > 0 && rollbackPlanConsumed;
+    }
+
+    public String nextRequiredOperation() {
+        if (!sourceScanned()) {
+            return "scan";
+        }
+        if (!dryRunPassed()) {
+            return "dryrun";
+        }
+        if (!extractionComplete()) {
+            return "extract";
+        }
+        if (!imported) {
+            return importReady() ? "import" : "approval";
+        }
+        if (!verifyComplete()) {
+            return "verify";
+        }
+        return "complete";
+    }
+
+    public String workflowSummary() {
+        return "state=" + safe(state)
+            + ";next=" + nextRequiredOperation()
+            + ";scan=" + sourceScanned()
+            + ";dryrun=" + dryRunPassed()
+            + ";extract=" + extractionComplete()
+            + ";import=" + importComplete()
+            + ";verify=" + verifyComplete()
+            + ";rollbackReady=" + rollbackReady();
+    }
+
+    private boolean stateEquals(String expected) {
+        return expected != null && expected.equalsIgnoreCase(safe(state));
+    }
+
+    private static boolean blank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private static String safe(String value) {
+        return value == null || value.isBlank() ? "UNKNOWN" : value.trim();
     }
 }
