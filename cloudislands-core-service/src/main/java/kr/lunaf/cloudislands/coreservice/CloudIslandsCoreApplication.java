@@ -550,6 +550,36 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
+        route("/v1/addons/state/table/key-value/bulk-load", exchange -> {
+            String body = readBody(exchange);
+            String addonId = JsonFields.text(body, "addonId", "");
+            String table = JsonFields.text(body, "table", "");
+            if (addonId.isBlank() || table.isBlank()) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id and table are required"));
+                return;
+            }
+            try {
+                Map<String, String> values = addonStates.tableKeyValueBulkLoad(addonId, table);
+                write(exchange, 200, addonStateJson(values));
+            } catch (IllegalArgumentException exception) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
+            }
+        });
+        route("/v1/addons/state/table/load", exchange -> {
+            String body = readBody(exchange);
+            String addonId = JsonFields.text(body, "addonId", "");
+            String table = JsonFields.text(body, "table", "");
+            if (addonId.isBlank() || table.isBlank()) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id and table are required"));
+                return;
+            }
+            try {
+                Map<String, String> values = addonStates.table(addonId, table);
+                write(exchange, 200, addonStateJson(values));
+            } catch (IllegalArgumentException exception) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
+            }
+        });
         route("/v1/addons/state/table/bulk", exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
@@ -813,6 +843,38 @@ public final class CloudIslandsCoreApplication {
                 audit.log(new UUID(0L, 0L), "API", "ADDON_ISLAND_STATE_TABLE_KEY_VALUE_BULK_SAVE", "ADDON", addonId, Map.of("islandId", islandId.toString(), "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(rootValueKeyCount(values, table)), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tableCount)));
                 events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.of("addonId", addonId, "islandId", islandId.toString(), "operation", "TABLE_KEY_VALUE_BULK_SAVE", "keys", Integer.toString(stateValues.size()), "valueKeys", Integer.toString(rootValueKeyCount(values, table)), "tableKeys", Integer.toString(tableKeys), "tables", Integer.toString(tableCount)));
                 write(exchange, 202, addonStateJson(state));
+            } catch (IllegalArgumentException exception) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
+            }
+        });
+        route("/v1/addons/islands/state/table/key-value/bulk-load", exchange -> {
+            String body = readBody(exchange);
+            String addonId = JsonFields.text(body, "addonId", "");
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            String table = JsonFields.text(body, "table", "");
+            if (addonId.isBlank() || islandId.equals(new UUID(0L, 0L)) || table.isBlank()) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id, island id, and table are required"));
+                return;
+            }
+            try {
+                Map<String, String> values = addonStates.tableKeyValueBulkLoadIsland(addonId, islandId, table);
+                write(exchange, 200, addonStateJson(values));
+            } catch (IllegalArgumentException exception) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
+            }
+        });
+        route("/v1/addons/islands/state/table/load", exchange -> {
+            String body = readBody(exchange);
+            String addonId = JsonFields.text(body, "addonId", "");
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            String table = JsonFields.text(body, "table", "");
+            if (addonId.isBlank() || islandId.equals(new UUID(0L, 0L)) || table.isBlank()) {
+                write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", "Addon id, island id, and table are required"));
+                return;
+            }
+            try {
+                Map<String, String> values = addonStates.tableIsland(addonId, islandId, table);
+                write(exchange, 200, addonStateJson(values));
             } catch (IllegalArgumentException exception) {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
@@ -2819,11 +2881,15 @@ public final class CloudIslandsCoreApplication {
             + "\"addonStateTableKeyValueBulkSaveIslandAlias\":\"/v1/addons/islands/state/table/key-value/bulk/save\","
             + "\"addonStateTableKeyValueBulkGlobalEndpoint\":\"/v1/addons/state/table/key-value/bulk\","
             + "\"addonStateTableKeyValueBulkIslandEndpoint\":\"/v1/addons/islands/state/table/key-value/bulk\","
+            + "\"addonStateTableKeyValueBulkLoadGlobalEndpoint\":\"/v1/addons/state/table/key-value/bulk-load\","
+            + "\"addonStateTableKeyValueBulkLoadIslandEndpoint\":\"/v1/addons/islands/state/table/key-value/bulk-load\","
+            + "\"addonStateTableLoadGlobalEndpoint\":\"/v1/addons/state/table/load\","
+            + "\"addonStateTableLoadIslandEndpoint\":\"/v1/addons/islands/state/table/load\","
             + "\"addonStateTableBulkGlobalEndpoint\":\"/v1/addons/state/table/bulk\","
             + "\"addonStateTableBulkIslandEndpoint\":\"/v1/addons/islands/state/table/bulk\","
             + "\"addonStateTableKeyValueBulkSavePayload\":\"addonId,islandId(optional),values,tables\","
             + "\"addonStateTableKeyValueBulkSaveStorageMode\":\"table-prefix-flattened-key-value\","
-                    + "\"addonStateTableKeyValueBulkSaveRepositoryApi\":\"AddonStateRepository.tableKeyValueBulkSave,AddonStateRepository.tableKeyValueBulkSaveIsland,AddonStateRepository.tableBulk,AddonStateRepository.tableBulkIsland,IslandAddonService.tableBulkState,IslandAddonService.tableBulkIslandState,CoreApiClient.tableBulkAddonState,CoreApiClient.tableBulkAddonIslandState\","
+                    + "\"addonStateTableKeyValueBulkSaveRepositoryApi\":\"AddonStateRepository.tableKeyValueBulkSave,AddonStateRepository.tableKeyValueBulkSaveIsland,AddonStateRepository.tableBulk,AddonStateRepository.tableBulkIsland,AddonStateRepository.tableKeyValueBulkLoad,AddonStateRepository.tableKeyValueBulkLoadIsland,IslandAddonService.tableBulkState,IslandAddonService.tableBulkIslandState,CoreApiClient.tableBulkAddonState,CoreApiClient.tableBulkAddonIslandState,CoreApiClient.tableKeyValueBulkLoadAddonState,CoreApiClient.tableKeyValueBulkLoadAddonIslandState\","
             + "\"addonStateTableKeyPrefix\":\"" + AddonStateRepository.TABLE_STATE_KEY_SHAPE + "\","
             + "\"addonStateMaxAddonIdLength\":" + AddonStateRepository.MAX_ADDON_ID_LENGTH + ","
             + "\"addonStateMaxKeyLength\":" + AddonStateRepository.MAX_KEY_LENGTH + ","

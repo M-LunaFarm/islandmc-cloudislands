@@ -998,6 +998,22 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> addonTableState(String addonId, String table) {
+        if (blank(addonId) || blank(table)) {
+            return invalidAddonState("Addon id and table are required");
+        }
+        return post("/v1/addons/state/table/load", "{\"addonId\":\"" + escape(addonId) + "\",\"table\":\"" + escape(table) + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> tableKeyValueBulkLoadAddonState(String addonId, String table) {
+        if (blank(addonId) || blank(table)) {
+            return invalidAddonState("Addon id and table are required");
+        }
+        return post("/v1/addons/state/table/key-value/bulk-load", "{\"addonId\":\"" + escape(addonId) + "\",\"table\":\"" + escape(table) + "\"}");
+    }
+
+    @Override
     public CompletableFuture<String> putAddonTableState(String addonId, String table, Map<String, String> values) {
         if (blank(addonId) || blank(table)) {
             return invalidAddonState("Addon id and table are required");
@@ -1153,6 +1169,22 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<String> bulkAddonIslandTableState(String addonId, UUID islandId, Map<String, Map<String, String>> tables) {
         return tableBulkAddonIslandState(addonId, islandId, tables);
+    }
+
+    @Override
+    public CompletableFuture<String> addonIslandTableState(String addonId, UUID islandId, String table) {
+        if (blank(addonId) || missingIslandId(islandId) || blank(table)) {
+            return invalidAddonState("Addon id, island id, and table are required");
+        }
+        return post("/v1/addons/islands/state/table/load", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"table\":\"" + escape(table) + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> tableKeyValueBulkLoadAddonIslandState(String addonId, UUID islandId, String table) {
+        if (blank(addonId) || missingIslandId(islandId) || blank(table)) {
+            return invalidAddonState("Addon id, island id, and table are required");
+        }
+        return post("/v1/addons/islands/state/table/key-value/bulk-load", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"table\":\"" + escape(table) + "\"}");
     }
 
     @Override
