@@ -11,8 +11,11 @@ class SatisLegacyMigrationPolicyTest {
     void treatsSuperiorSkyblock2AndSatismcAsReadOnlyMigrationInputs() {
         assertEquals("M-LunaFarm/satismc", SatisLegacyMigrationPolicy.SOURCE_PROJECT);
         assertEquals("SuperiorSkyblock2", SatisLegacyMigrationPolicy.LEGACY_SKYBLOCK_SOURCE);
+        assertEquals("satismc", SatisLegacyMigrationPolicy.LEGACY_SATIS_SOURCE);
         assertEquals("read-only-snapshot-or-sqlite-scan-no-live-provider-hooks", SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY);
         assertEquals("legacy-provider-is-migration-input-only-never-runtime-dependency", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
+        assertEquals("forbid-superiorskyblock2-runtime-hooks-after-import", SatisLegacyMigrationPolicy.RUNTIME_PROVIDER_HOOK_POLICY);
+        assertEquals("verify-imported-satis-state-through-cloudislands-addon-state", SatisLegacyMigrationPolicy.ADDON_STATE_VERIFY_POLICY);
         assertEquals("admin-confirmation-required-before-import", SatisLegacyMigrationPolicy.APPROVAL_POLICY);
         assertEquals("CONFIRM_IMPORT", SatisLegacyMigrationPolicy.APPROVAL_TOKEN);
         assertEquals("CONFIRM_IMPORT:<dryrun-sha256>", SatisLegacyMigrationPolicy.FINGERPRINT_APPROVAL_TOKEN);
@@ -61,12 +64,18 @@ class SatisLegacyMigrationPolicyTest {
         assertTrue(SatisLegacyMigrationPolicy.pipelineStepRequired("create-island-bundle"));
         assertTrue(SatisLegacyMigrationPolicy.pipelineStepRequired("verify-checksum"));
         assertTrue(SatisLegacyMigrationPolicy.pipelineStepRequired("cloudislands-activate-test"));
+        assertTrue(SatisLegacyMigrationPolicy.pipelineStepRequired("verify-addon-state-roundtrip"));
+        assertTrue(SatisLegacyMigrationPolicy.pipelineStepRequired("verify-no-legacy-provider-hook"));
 
         assertTrue(SatisLegacyMigrationPolicy.adminCommands().contains("factory admin migration scan <sqlitePath>"));
         assertTrue(SatisLegacyMigrationPolicy.adminCommands().contains("factory admin migration dryrun <sqlitePath>"));
         assertTrue(SatisLegacyMigrationPolicy.adminCommands().contains("factory admin migration verify <sqlitePath>"));
+        assertTrue(SatisLegacyMigrationPolicy.adminCommands().contains("factory admin migration verify-addon-state <islandUuid>"));
+        assertTrue(SatisLegacyMigrationPolicy.adminCommands().contains("factory admin migration verify-no-legacy-provider"));
         assertTrue(SatisLegacyMigrationPolicy.adminCommands().contains("factory admin migration import <sqlitePath> CONFIRM_IMPORT|CONFIRM_IMPORT:<dryrun-sha256>"));
         assertTrue(SatisLegacyMigrationPolicy.adminCommands().contains("factory admin migration rollback"));
+        assertTrue(SatisLegacyMigrationPolicy.adminCommands().contains("factory admin migrate-superiorskyblock2 verify-addon-state <islandUuid>"));
+        assertTrue(SatisLegacyMigrationPolicy.adminCommands().contains("factory admin migrate-superiorskyblock2 verify-no-legacy-provider"));
     }
 
     @Test

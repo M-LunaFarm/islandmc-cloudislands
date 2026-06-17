@@ -5,8 +5,11 @@ import java.util.List;
 public final class SatisLegacyMigrationPolicy {
     public static final String SOURCE_PROJECT = "M-LunaFarm/satismc";
     public static final String LEGACY_SKYBLOCK_SOURCE = "SuperiorSkyblock2";
+    public static final String LEGACY_SATIS_SOURCE = "satismc";
     public static final String SOURCE_ACCESS_POLICY = "read-only-snapshot-or-sqlite-scan-no-live-provider-hooks";
     public static final String RUNTIME_DEPENDENCY_POLICY = "legacy-provider-is-migration-input-only-never-runtime-dependency";
+    public static final String RUNTIME_PROVIDER_HOOK_POLICY = "forbid-superiorskyblock2-runtime-hooks-after-import";
+    public static final String ADDON_STATE_VERIFY_POLICY = "verify-imported-satis-state-through-cloudislands-addon-state";
     public static final String APPROVAL_POLICY = "admin-confirmation-required-before-import";
     public static final String APPROVAL_TOKEN = "CONFIRM_IMPORT";
     public static final String FINGERPRINT_APPROVAL_TOKEN = "CONFIRM_IMPORT:<dryrun-sha256>";
@@ -51,7 +54,9 @@ public final class SatisLegacyMigrationPolicy {
             "extract-world-cell",
             "create-island-bundle",
             "verify-checksum",
-            "cloudislands-activate-test"
+            "cloudislands-activate-test",
+            "verify-addon-state-roundtrip",
+            "verify-no-legacy-provider-hook"
     );
 
     private static final List<String> ADMIN_COMMANDS = List.of(
@@ -59,12 +64,16 @@ public final class SatisLegacyMigrationPolicy {
             "factory admin migration scan <sqlitePath>",
             "factory admin migration dryrun <sqlitePath>",
             "factory admin migration verify <sqlitePath>",
+            "factory admin migration verify-addon-state <islandUuid>",
+            "factory admin migration verify-no-legacy-provider",
             IMPORT_COMMAND,
             "factory admin migration rollback",
             "factory admin migrate-superiorskyblock2 scan <sqlitePath>",
             "factory admin migrate-superiorskyblock2 dryrun <sqlitePath>",
             "factory admin migrate-superiorskyblock2 import <sqlitePath> CONFIRM_IMPORT|CONFIRM_IMPORT:<dryrun-sha256>",
             "factory admin migrate-superiorskyblock2 verify <sqlitePath>",
+            "factory admin migrate-superiorskyblock2 verify-addon-state <islandUuid>",
+            "factory admin migrate-superiorskyblock2 verify-no-legacy-provider",
             "factory admin migrate-superiorskyblock2 rollback"
     );
 
