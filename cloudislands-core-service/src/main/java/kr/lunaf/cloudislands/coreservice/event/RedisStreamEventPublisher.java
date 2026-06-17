@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreservice.event;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -21,17 +22,16 @@ public final class RedisStreamEventPublisher implements GlobalEventPublisher {
         List<String> values = new ArrayList<>();
         values.add("type");
         values.add(eventType);
+        Map<String, String> enriched = new LinkedHashMap<>(fields);
         String cacheTargets = cacheTargets(eventType);
         if (!cacheTargets.isBlank()) {
-            values.add("cacheTargets");
-            values.add(cacheTargets);
+            enriched.putIfAbsent("cacheTargets", cacheTargets);
         }
         String cacheKeys = cacheKeys(eventType, fields);
         if (!cacheKeys.isBlank()) {
-            values.add("cacheKeys");
-            values.add(cacheKeys);
+            enriched.putIfAbsent("cacheKeys", cacheKeys);
         }
-        for (Map.Entry<String, String> entry : fields.entrySet()) {
+        for (Map.Entry<String, String> entry : enriched.entrySet()) {
             values.add(entry.getKey());
             values.add(entry.getValue());
         }
