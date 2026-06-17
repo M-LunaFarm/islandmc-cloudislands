@@ -1512,7 +1512,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-node-local-cache-active", Boolean.toString(database != null && database.usesNodeLocalCache()));
         metadata.put("database-core-api-requires", "cloudislands-api,addon-state");
         metadata.put("database-core-api-mode", databaseCoreApiMode());
-        metadata.put("database-core-api-endpoint", "table/key-value/bulk-save,table/key-value/bulk,table/key-value/bulk-load");
+        metadata.put("database-core-api-endpoint", "table/key-value/bulk-save,table/key-value/bulk,table/key-value/bulk-load,table/load,table/bulk,table/bulk-set");
         metadata.put("database-core-api-bulk-request-models", "AddonStateBulkSaveRequest,AddonStateBulkLoadRequest");
         metadata.put("database-core-api-bulk-load-policy", "typed-request-core-api-first-local-cache-fallback");
         metadata.put("database-core-api-local-cache", databaseCoreApiLocalCachePolicy());
@@ -1939,7 +1939,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-node-local-cache-active", Boolean.toString(database != null && database.usesNodeLocalCache()));
         state.put("database-core-api-requires", "cloudislands-api,addon-state");
         state.put("database-core-api-mode", databaseCoreApiMode());
-        state.put("database-core-api-endpoint", "table/key-value/bulk-save,table/key-value/bulk");
+        state.put("database-core-api-endpoint", "table/key-value/bulk-save,table/key-value/bulk,table/key-value/bulk-load,table/load,table/bulk,table/bulk-set");
         state.put("database-core-api-local-cache", databaseCoreApiLocalCachePolicy());
         state.put("database-core-api-fallback-target", databaseCoreApiFallbackTarget());
         state.put("database-core-api-fallback-target-ready", Boolean.toString(databaseCoreApiFallbackTargetReady()));
@@ -2111,7 +2111,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-node-local-cache-active", Boolean.toString(database != null && database.usesNodeLocalCache()));
         state.put("database-core-api-requires", "cloudislands-api,addon-state");
         state.put("database-core-api-mode", databaseCoreApiMode());
-        state.put("database-core-api-endpoint", "table/key-value/bulk-save,table/key-value/bulk");
+        state.put("database-core-api-endpoint", "table/key-value/bulk-save,table/key-value/bulk,table/key-value/bulk-load,table/load,table/bulk,table/bulk-set");
         state.put("database-core-api-local-cache", databaseCoreApiLocalCachePolicy());
         state.put("database-core-api-fallback-target", databaseCoreApiFallbackTarget());
         state.put("database-core-api-fallback-policy", databaseCoreApiFallbackPolicy());
@@ -3714,7 +3714,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("addon-state-sync-runtime-source", "CloudIslands IslandRuntime");
         state.put("addon-state-sync-remap-policy", "island-uuid-stable-active-world-and-center-volatile");
         state.put("addon-state-sync-node-bound", "false");
-        state.put("addon-state-sync-endpoint", "table/bulk,table/key-value/bulk-save,table/key-value/bulk/save,table/key-value/bulk");
+        state.put("addon-state-sync-endpoint", "table/bulk,table/bulk-set,table/key-value/bulk-save,table/key-value/bulk/save,table/key-value/bulk,table/key-value/bulk-load,table/load");
         state.put("addon-state-sync-core-api-mode", databaseCoreApiMode());
         state.put("addon-state-sync-core-api-fallback-target", databaseCoreApiFallbackTarget());
         state.put("addon-state-sync-flattened-fallback-enabled", Boolean.toString(coreApiFlattenedFallbackEnabled()));

@@ -2960,6 +2960,8 @@ public final class CloudIslandsCoreApplication {
             + "\"addonStateTableLoadIslandEndpoint\":\"/v1/addons/islands/state/table/load\","
             + "\"addonStateTableBulkGlobalEndpoint\":\"/v1/addons/state/table/bulk\","
             + "\"addonStateTableBulkIslandEndpoint\":\"/v1/addons/islands/state/table/bulk\","
+            + "\"addonStateTableBulkSetGlobalEndpoint\":\"/v1/addons/state/table/bulk-set\","
+            + "\"addonStateTableBulkSetIslandEndpoint\":\"/v1/addons/islands/state/table/bulk-set\","
             + "\"addonStateTableKeyValueBulkSavePayload\":\"addonId,islandId(optional),values,tables\","
             + "\"addonStateTableKeyValueBulkLoadPayload\":\"addonId,islandId(optional),table\","
             + "\"addonStateTableKeyValueBulkSaveStorageMode\":\"table-prefix-flattened-key-value\","
