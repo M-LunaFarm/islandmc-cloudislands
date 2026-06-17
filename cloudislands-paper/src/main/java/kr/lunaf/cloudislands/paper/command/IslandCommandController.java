@@ -21,6 +21,7 @@ import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
+import kr.lunaf.cloudislands.common.failure.CoreApiDegradedModePolicy;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
@@ -1318,7 +1319,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private String routeFailureMessage(Throwable error, String fallback) {
         if (coreUnavailable(error)) {
-            return routeMessage("core-service-maintenance", "현재 섬 서비스 일부 기능이 점검 중입니다.");
+            return routeMessage("core-service-maintenance", CoreApiDegradedModePolicy.MAINTENANCE_MESSAGE);
         }
         Throwable current = error;
         while (current != null) {
@@ -1326,7 +1327,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
                 return playerCodeMessage(coreError.code(), fallback);
             }
             if (current instanceof java.io.IOException) {
-                return "현재 섬 서비스 일부 기능이 점검 중입니다.";
+                return CoreApiDegradedModePolicy.MAINTENANCE_MESSAGE;
             }
             current = current.getCause();
         }
@@ -1361,7 +1362,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             case "ISLAND_RESTORING" -> "섬 스냅샷을 복원하는 중입니다. 잠시 후 다시 시도해주세요.";
             case "ISLAND_SAVING" -> "섬을 저장하는 중입니다. 잠시 후 다시 시도해주세요.";
             case "ISLAND_LOADING_FAILED" -> "섬을 준비하지 못했습니다. 잠시 후 다시 시도해주세요.";
-            case "JOB_QUEUE_UNAVAILABLE", "RECOVERY_UNAVAILABLE" -> "현재 섬 서비스 일부 기능이 점검 중입니다.";
+            case "JOB_QUEUE_UNAVAILABLE", "RECOVERY_UNAVAILABLE" -> CoreApiDegradedModePolicy.MAINTENANCE_MESSAGE;
             case "RECOVERY_REQUIRED" -> "섬 복구가 필요한 상태입니다. 관리자에게 문의해주세요.";
             case "ISLAND_PERMISSION_DENIED" -> "섬 권한이 없습니다.";
             case "MEMBER_LIMIT" -> "섬 멤버 한도에 도달했습니다.";
@@ -3090,7 +3091,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             player,
             new Point(current.world(), 0.5D, 100.0D, 0.5D, 180.0F, 0.0F, false),
             routeMessage("route-target-world-missing", "대상 월드를 찾을 수 없습니다."),
-            routeMessage("core-service-home-fallback", "현재 섬 서비스 일부 기능이 점검 중이라 기본 홈 위치로 이동합니다.")
+            routeMessage("core-service-home-fallback", CoreApiDegradedModePolicy.HOME_FALLBACK_MESSAGE)
         );
         return true;
     }
@@ -3255,7 +3256,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     private String coreWriteFailureMessage(Throwable error, String fallback) {
         return coreUnavailable(error)
-            ? routeMessage("core-service-maintenance", "현재 섬 서비스 일부 기능이 점검 중입니다.")
+            ? routeMessage("core-service-maintenance", CoreApiDegradedModePolicy.MAINTENANCE_MESSAGE)
             : fallback;
     }
 
