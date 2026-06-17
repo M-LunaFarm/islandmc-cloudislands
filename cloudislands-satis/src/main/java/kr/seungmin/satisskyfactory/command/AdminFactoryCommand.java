@@ -43,8 +43,8 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public final class AdminFactoryCommand {
-    private static final String MIGRATION_IMPORT_APPROVAL = "CONFIRM_IMPORT";
-    private static final String MIGRATION_SOURCE_POLICY = "read-only-snapshot-or-sqlite-import-no-live-provider-hooks";
+    private static final String MIGRATION_IMPORT_APPROVAL = SatisLegacyMigrationPolicy.APPROVAL_TOKEN;
+    private static final String MIGRATION_SOURCE_POLICY = SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY;
     private static final String MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS = "SuperiorSkyblock2,BentoBox,ASkyBlock";
     private static final List<String> FEATURE_KEYS = List.of(
             "commands",
@@ -79,7 +79,7 @@ public final class AdminFactoryCommand {
             "factory admin migration scan <sqlitePath>",
             "factory admin migration dryrun <sqlitePath>",
             "factory admin migration verify <sqlitePath>",
-            "factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL + "|" + MIGRATION_IMPORT_APPROVAL + ":<dryrun-sha256>",
+            SatisLegacyMigrationPolicy.IMPORT_COMMAND,
             "factory admin migration rollback",
             "factory admin state",
             "factory admin give <player> <machineType> [amount]",
