@@ -128,6 +128,8 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_node_reserved_slots", "gauge");
         help(out, "cloudislands_node_mspt", "Node MSPT reported by Paper heartbeat");
         type(out, "cloudislands_node_mspt", "gauge");
+        help(out, "cloudislands_node_mspt_over_budget", "Whether node MSPT is at or above the 50ms tick budget");
+        type(out, "cloudislands_node_mspt_over_budget", "gauge");
         help(out, "cloudislands_node_active_islands", "Active islands currently reported by a node");
         type(out, "cloudislands_node_active_islands", "gauge");
         help(out, "cloudislands_node_max_active_islands", "Maximum active islands supported by a node");
@@ -371,6 +373,7 @@ public final class PrometheusMetricsRenderer {
             labels(out, "cloudislands_node_hard_player_cap", node, null).append(node.hardPlayerCap()).append('\n');
             labels(out, "cloudislands_node_reserved_slots", node, null).append(node.reservedSlots()).append('\n');
             labels(out, "cloudislands_node_mspt", node, null).append(node.mspt()).append('\n');
+            labels(out, "cloudislands_node_mspt_over_budget", node, null).append(node.mspt() >= 50.0D ? 1 : 0).append('\n');
             labels(out, "cloudislands_node_active_islands", node, null).append(node.activeIslands()).append('\n');
             labels(out, "cloudislands_node_max_active_islands", node, null).append(node.maxActiveIslands()).append('\n');
             labels(out, "cloudislands_node_activation_queue", node, null).append(node.activationQueue()).append('\n');
