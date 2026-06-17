@@ -1967,6 +1967,7 @@ public final class VelocityRoutingController {
             + " addonAdminEndpoint=" + jsonValue(body, "addonAdminEndpointPolicy")
             + " addonNetworkExposure=" + jsonValue(body, "addonNetworkExposurePolicy")
             + " addonSecurityPosture=" + jsonValue(body, "addonSecurityPostureSummary")
+            + " addonTopologyPrivacy=" + jsonValue(body, "addonTopologyPrivacyPolicy")
             + " addonEvents=" + jsonValue(body, "addonEventDeliveryPolicy")
             + " addonEventCoverage=" + jsonValue(body, "addonEventCoverage")
             + " addonEventBackfill=" + jsonValue(body, "addonEventBackfillPolicy")

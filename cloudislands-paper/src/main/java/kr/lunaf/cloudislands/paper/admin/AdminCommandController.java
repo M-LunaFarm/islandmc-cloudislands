@@ -1986,6 +1986,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " addonAdminEndpoint=" + textValue(body, "addonAdminEndpointPolicy")
             + " addonNetworkExposure=" + textValue(body, "addonNetworkExposurePolicy")
             + " addonSecurityPosture=" + textValue(body, "addonSecurityPostureSummary")
+            + " addonTopologyPrivacy=" + textValue(body, "addonTopologyPrivacyPolicy")
             + " addonEvents=" + textValue(body, "addonEventDeliveryPolicy")
             + " addonEventCoverage=" + textValue(body, "addonEventCoverage")
             + " addonEventBackfill=" + textValue(body, "addonEventBackfillPolicy")

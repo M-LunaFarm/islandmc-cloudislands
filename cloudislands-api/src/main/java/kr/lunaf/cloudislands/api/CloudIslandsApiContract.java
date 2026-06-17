@@ -14,6 +14,7 @@ public final class CloudIslandsApiContract {
     public static final String ADMIN_ENDPOINT_POLICY = "admin-endpoints-use-separate-admin-token-and-per-command-permissions";
     public static final String NETWORK_EXPOSURE_POLICY = "bind-public-only-with-ip-allowlist-mtls-and-token-controls";
     public static final String SECURITY_POSTURE_SUMMARY = "token-or-mtls-core-api,separate-admin-token,per-command-permission,ip-allowlist-for-public-bind";
+    public static final String TOPOLOGY_PRIVACY_POLICY = "player-facing-messages-hide-physical-island-node-and-server-names";
 
     private CloudIslandsApiContract() {
     }
@@ -30,7 +31,8 @@ public final class CloudIslandsApiContract {
             "core-auth-policy", CORE_AUTH_POLICY,
             "admin-endpoint-policy", ADMIN_ENDPOINT_POLICY,
             "network-exposure-policy", NETWORK_EXPOSURE_POLICY,
-            "security-posture-summary", SECURITY_POSTURE_SUMMARY
+            "security-posture-summary", SECURITY_POSTURE_SUMMARY,
+            "topology-privacy-policy", TOPOLOGY_PRIVACY_POLICY
         );
     }
 }
