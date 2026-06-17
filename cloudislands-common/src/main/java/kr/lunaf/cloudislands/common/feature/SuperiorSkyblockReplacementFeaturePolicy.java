@@ -2,10 +2,47 @@ package kr.lunaf.cloudislands.common.feature;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public final class SuperiorSkyblockReplacementFeaturePolicy {
     private static final Map<String, String> REQUIRED_FEATURES = buildRequiredFeatures();
+    private static final List<String> MIGRATION_TARGETS = List.of(
+        "island-id",
+        "owner-uuid",
+        "members",
+        "roles",
+        "permissions",
+        "island-location",
+        "island-size",
+        "home-locations",
+        "warps",
+        "bans",
+        "level",
+        "worth",
+        "upgrades",
+        "flags",
+        "block-value-settings"
+    );
+    private static final List<String> MIGRATION_STEPS = List.of(
+        "read-only-scan",
+        "create-cloudislands-migration-manifest",
+        "dry-run-validation",
+        "print-conflicts",
+        "admin-approval",
+        "database-import",
+        "world-cell-extraction",
+        "island-bundle-create",
+        "checksum-verify",
+        "cloudislands-activate-test"
+    );
+    private static final List<String> MIGRATION_COMMANDS = List.of(
+        "/ciadmin migrate-superiorskyblock2 scan",
+        "/ciadmin migrate-superiorskyblock2 dryrun",
+        "/ciadmin migrate-superiorskyblock2 import",
+        "/ciadmin migrate-superiorskyblock2 verify",
+        "/ciadmin migrate-superiorskyblock2 rollback"
+    );
 
     private SuperiorSkyblockReplacementFeaturePolicy() {
     }
@@ -20,6 +57,38 @@ public final class SuperiorSkyblockReplacementFeaturePolicy {
 
     public static String label(String key) {
         return key == null ? "" : REQUIRED_FEATURES.getOrDefault(key, "");
+    }
+
+    public static int requiredFeatureCount() {
+        return REQUIRED_FEATURES.size();
+    }
+
+    public static String requiredFeatureKeys() {
+        return String.join(",", REQUIRED_FEATURES.keySet());
+    }
+
+    public static List<String> migrationTargets() {
+        return MIGRATION_TARGETS;
+    }
+
+    public static String migrationTargetSummary() {
+        return String.join(",", MIGRATION_TARGETS);
+    }
+
+    public static List<String> migrationSteps() {
+        return MIGRATION_STEPS;
+    }
+
+    public static String migrationStepSummary() {
+        return String.join(">", MIGRATION_STEPS);
+    }
+
+    public static List<String> migrationCommands() {
+        return MIGRATION_COMMANDS;
+    }
+
+    public static String migrationCommandSummary() {
+        return String.join(",", MIGRATION_COMMANDS);
     }
 
     private static Map<String, String> buildRequiredFeatures() {
