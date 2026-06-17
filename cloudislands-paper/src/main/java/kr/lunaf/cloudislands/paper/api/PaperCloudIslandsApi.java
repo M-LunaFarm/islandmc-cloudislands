@@ -863,6 +863,18 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
+        public CompletableFuture<Map<String, String>> tableKeyValueBulkLoadState(String id, String table) {
+            String safeId = safeRegistrationId(id);
+            String safeTable = safeTableName(table);
+            if (safeTable.isBlank()) {
+                return CompletableFuture.completedFuture(Map.of());
+            }
+            return coreClient.tableKeyValueBulkLoadAddonState(safeId, safeTable)
+                .thenApply(this::stateFromJson)
+                .exceptionally(_error -> tableValuesFromState(readAddonState(safeId), safeTable));
+        }
+
+        @Override
         public CompletableFuture<Map<String, String>> tableKeyValueBulkSaveState(String id, String table, Map<String, String> values) {
             return bulkSaveState(id, Map.of(), table == null ? Map.of() : Map.of(table, values == null ? Map.<String, String>of() : values));
         }
@@ -961,6 +973,20 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 }
             });
             return Map.copyOf(state);
+        }
+
+        private Map<String, String> tableValuesFromState(Map<String, String> state, String table) {
+            if (state == null || state.isEmpty() || table == null || table.isBlank()) {
+                return Map.of();
+            }
+            String prefix = tableStatePrefix(table);
+            Map<String, String> values = new HashMap<>();
+            state.forEach((key, value) -> {
+                if (key != null && key.startsWith(prefix) && value != null) {
+                    values.put(key.substring(prefix.length()), value);
+                }
+            });
+            return Map.copyOf(values);
         }
 
         private String safeTableName(String table) {
@@ -1230,6 +1256,18 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<Map<String, String>> bulkIslandTableState(String id, UUID islandId, Map<String, Map<String, String>> tables) {
             return tableBulkIslandState(id, islandId, tables);
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> tableKeyValueBulkLoadIslandState(String id, UUID islandId, String table) {
+            String safeId = safeRegistrationId(id);
+            String safeTable = safeTableName(table);
+            if (islandId == null || safeTable.isBlank()) {
+                return CompletableFuture.completedFuture(Map.of());
+            }
+            return coreClient.tableKeyValueBulkLoadAddonIslandState(safeId, islandId, safeTable)
+                .thenApply(this::stateFromJson)
+                .exceptionally(_error -> tableValuesFromState(readAddonIslandState(safeId, islandId), safeTable));
         }
 
         @Override
