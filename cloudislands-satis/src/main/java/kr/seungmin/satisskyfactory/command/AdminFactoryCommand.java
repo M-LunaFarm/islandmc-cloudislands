@@ -1229,6 +1229,8 @@ public final class AdminFactoryCommand {
                         "database-active-authority",
                         "database-core-api-authority-status",
                         "database-core-api-authority-ready",
+                        "database-core-api-local-cache-writes-enabled",
+                        "database-core-api-local-cache-write-policy",
                         "database-configured-backend-active",
                         "database-effective-backend-status",
                         "database-attempted-backends",

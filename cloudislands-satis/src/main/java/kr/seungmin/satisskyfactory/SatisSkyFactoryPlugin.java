@@ -368,7 +368,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean storageWriteAuthorityReady() {
-        return database == null || database.coreApiAuthorityReady();
+        if (database == null || database.coreApiAuthorityReady()) {
+            return true;
+        }
+        return database.activeBackend() == DatabaseService.StorageBackend.CORE_API && coreApiLocalCacheWritesEnabled();
+    }
+
+    private boolean coreApiLocalCacheWritesEnabled() {
+        return configBoolean("setup.database.core-api.local-cache-writes.enabled", "database.core-api.local-cache-writes.enabled", false);
     }
 
     private void putRuntimeActivityState(Map<String, String> state) {
@@ -1439,6 +1446,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         metadata.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
         metadata.put("database-core-api-authority-ready", Boolean.toString(database == null || database.coreApiAuthorityReady()));
+        metadata.put("database-core-api-local-cache-writes-enabled", Boolean.toString(coreApiLocalCacheWritesEnabled()));
+        metadata.put("database-core-api-local-cache-write-policy", databaseCoreApiLocalCacheWritePolicy());
         metadata.put("database-node-local-cache-active", Boolean.toString(database != null && database.usesNodeLocalCache()));
         metadata.put("database-core-api-requires", "cloudislands-api,addon-state");
         metadata.put("database-core-api-mode", databaseCoreApiMode());
@@ -1848,6 +1857,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         state.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
         state.put("database-core-api-authority-ready", Boolean.toString(database == null || database.coreApiAuthorityReady()));
+        state.put("database-core-api-local-cache-writes-enabled", Boolean.toString(coreApiLocalCacheWritesEnabled()));
+        state.put("database-core-api-local-cache-write-policy", databaseCoreApiLocalCacheWritePolicy());
         state.put("database-node-local-cache-active", Boolean.toString(database != null && database.usesNodeLocalCache()));
         state.put("database-core-api-requires", "cloudislands-api,addon-state");
         state.put("database-core-api-mode", databaseCoreApiMode());
@@ -2009,6 +2020,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", false)));
         state.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
         state.put("database-core-api-authority-ready", Boolean.toString(database == null || database.coreApiAuthorityReady()));
+        state.put("database-core-api-local-cache-writes-enabled", Boolean.toString(coreApiLocalCacheWritesEnabled()));
+        state.put("database-core-api-local-cache-write-policy", databaseCoreApiLocalCacheWritePolicy());
         state.put("database-node-local-cache-active", Boolean.toString(database != null && database.usesNodeLocalCache()));
         state.put("database-core-api-requires", "cloudislands-api,addon-state");
         state.put("database-core-api-mode", databaseCoreApiMode());
@@ -4676,6 +4689,18 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return "inactive-after-fallback";
         }
         return "not-used";
+    }
+
+    private String databaseCoreApiLocalCacheWritePolicy() {
+        if (database == null || database.activeBackend() != DatabaseService.StorageBackend.CORE_API) {
+            return "not-core-api";
+        }
+        if (database.coreApiAuthorityReady()) {
+            return "writes-published-to-core-api";
+        }
+        return coreApiLocalCacheWritesEnabled()
+                ? "operator-enabled-local-cache-writes-risk-split-state"
+                : "blocked-until-core-api-authority-or-shared-fallback";
     }
 
     private String databaseCoreApiFallbackTarget() {

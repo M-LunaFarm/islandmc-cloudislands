@@ -236,7 +236,11 @@ database:
   # CORE_API stores Satis table rows as island-scoped CloudIslands addon-state keys and keeps
   # a local SQLite cache for fast runtime reads.
   type: CORE_API
-  core-api:
+    core-api:
+    local-cache-writes:
+      # Default false protects A/B Island nodes from split Satis state when CORE_API is selected
+      # but CloudIslands addon-state writers are unavailable. Set true only for single-node rescue.
+      enabled: false
     flattened-fallback:
       enabled: true
   fallback:
