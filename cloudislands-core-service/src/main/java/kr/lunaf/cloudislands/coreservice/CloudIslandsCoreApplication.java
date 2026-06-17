@@ -3053,6 +3053,8 @@ public final class CloudIslandsCoreApplication {
             + "\"satisDisabledRuntimePolicy\":\"disabled-satis-keeps-core-create-route-protect-save-restore-working-without-registering-satis-runtime-components\","
             + "\"satisReinstallPolicy\":\"preserved-addon-state-can-be-reconnected-when-satis-addon-is-installed-again\","
             + "\"satisStateAuthorityPolicy\":\"portable-addon-state-is-authoritative-in-core-api-bulk-table-key-value-or-configured-shared-database\","
+            + "\"satisMultiNodeSafe\":true,"
+            + "\"satisNodeCountPolicy\":\"island-node-count-does-not-change-satis-state-identity-or-storage-authority\","
             + "\"velocitySatisCommandPolicy\":\"no-direct-satis-command-handler-route-only\","
             + "\"paperSatisCommandPolicy\":\"addon-registers-own-commands-when-enabled\","
             + "\"finalRequestFlowKeys\":\"" + kr.lunaf.cloudislands.common.routing.FinalRequestFlowPolicy.flowKeys() + "\","
