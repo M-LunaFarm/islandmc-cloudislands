@@ -4495,6 +4495,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
             return "CORE_API";
         }
+        if (configs.main().getBoolean("addons.cloudislands-satis.database.core-api.enabled", false)) {
+            return "CORE_API";
+        }
         String jdbcType = inferredJdbcDatabaseType();
         if (!jdbcType.isBlank()) {
             return jdbcType;
@@ -4569,6 +4572,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
             return false;
         }
+        if (configs.main().getBoolean("addons.cloudislands-satis.database.core-api.enabled", false)) {
+            return false;
+        }
         return !inferredJdbcDatabaseType().isBlank() || !inferredSetupDatabaseType().isBlank();
     }
 
@@ -4597,6 +4603,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return "none";
         }
         if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
+            return "none";
+        }
+        if (configs.main().getBoolean("addons.cloudislands-satis.database.core-api.enabled", false)) {
             return "none";
         }
         String databaseType = configs.main().getString("database.type", "");
