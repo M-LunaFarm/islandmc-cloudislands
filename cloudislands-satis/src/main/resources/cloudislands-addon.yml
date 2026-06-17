@@ -221,3 +221,10 @@ features:
     - migration
     - addon-state
     - route-events
+    - members
+    - permissions
+    - level-values
+    - warps
+    - biomes
+    - chat
+    - templates

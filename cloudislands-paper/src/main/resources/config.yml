@@ -30,6 +30,13 @@ addons:
       migration: true
       addon-state: true
       route-events: true
+      members: true
+      permissions: true
+      level-values: true
+      warps: true
+      biomes: true
+      chat: true
+      templates: true
 
 satis:
   enabled: true
@@ -58,6 +65,13 @@ satis:
     migration: true
     addon-state: true
     route-events: true
+    members: true
+    permissions: true
+    level-values: true
+    warps: true
+    biomes: true
+    chat: true
+    templates: true
 
 migration:
   superiorskyblock2-enabled: true

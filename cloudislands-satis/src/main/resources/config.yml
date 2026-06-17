@@ -28,6 +28,13 @@ satis:
     migration: true
     addon-state: true
     route-events: true
+    members: true
+    permissions: true
+    level-values: true
+    warps: true
+    biomes: true
+    chat: true
+    templates: true
 addons:
   cloudislands-satis:
     # Same switch shape as CloudIslands Paper config. If both this block and satis.* are present,
@@ -69,6 +76,13 @@ addons:
       migration: true
       addon-state: true
       route-events: true
+      members: true
+      permissions: true
+      level-values: true
+      warps: true
+      biomes: true
+      chat: true
+      templates: true
 integration:
   # EXTERNAL_ADDON: normal removable plugin/addon mode.
   # BUILT_IN_COMPATIBLE: use the same CloudIslands addon API gates for builds that package Satis together.
