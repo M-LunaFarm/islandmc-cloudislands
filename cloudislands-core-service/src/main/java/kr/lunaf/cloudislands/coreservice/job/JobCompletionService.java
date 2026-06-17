@@ -338,10 +338,10 @@ public final class JobCompletionService {
         }
         events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
             "islandId", job.islandId().toString(),
-            "state", current.state().name(),
+            "state", current == null ? IslandState.RECOVERY_REQUIRED.name() : current.state().name(),
             "ignoredJob", job.jobId().toString(),
             "jobFencingToken", Long.toString(fencingToken),
-            "currentFencingToken", Long.toString(current.fencingToken()),
+            "currentFencingToken", current == null ? "0" : Long.toString(current.fencingToken()),
             "reason", staleReason,
             "error", errorMessage == null ? "" : errorMessage
         ));
