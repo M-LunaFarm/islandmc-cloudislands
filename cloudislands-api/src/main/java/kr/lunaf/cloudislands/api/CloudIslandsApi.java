@@ -12,6 +12,22 @@ import kr.lunaf.cloudislands.api.service.IslandStatusService;
 import kr.lunaf.cloudislands.api.service.PlayerIslandService;
 
 public interface CloudIslandsApi {
+    default String readConsistencyPolicy() {
+        return "query-services-use-core-api-or-local-cache-snapshots-no-direct-storage-access";
+    }
+
+    default String writeAuthorityPolicy() {
+        return "all-island-writes-go-through-core-api-transaction-endpoints";
+    }
+
+    default String synchronousEventPolicy() {
+        return "synchronous-paper-events-must-use-local-protection-permission-caches";
+    }
+
+    default String addonStoragePolicy() {
+        return "addons-use-addon-state-api-or-their-own-shared-database-never-cloudislands-internals";
+    }
+
     IslandQueryService islands();
     PlayerIslandService players();
     IslandRoutingService routing();
