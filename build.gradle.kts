@@ -72,7 +72,7 @@ tasks.register<Copy>("distServices") {
 
 tasks.register<Copy>("distTools") {
     group = "distribution"
-    description = "Collects CloudIslands admin and migration tool jars."
+    description = "Collects CloudIslands migration support jars used by the Core admin API."
 
     val migrationJar = project(":cloudislands-migration").tasks.named<Jar>("jar")
     dependsOn(migrationJar)
@@ -82,7 +82,7 @@ tasks.register<Copy>("distTools") {
 
 tasks.register<Zip>("distBundle") {
     group = "distribution"
-    description = "Packages the CloudIslands plugins, optional addons, Core API service runtime, and migration tools."
+    description = "Packages the CloudIslands plugins, optional addons, Core API service runtime, and migration support jars."
     dependsOn(tasks.named("distPlugins"))
     dependsOn(tasks.named("distAddons"))
     dependsOn(tasks.named("distServices"))

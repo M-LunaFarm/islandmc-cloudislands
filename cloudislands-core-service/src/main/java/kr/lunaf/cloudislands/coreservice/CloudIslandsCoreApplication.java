@@ -2858,7 +2858,7 @@ public final class CloudIslandsCoreApplication {
             + "\"moduleLayout\":\"api,common,protocol,core-client,core-service,velocity,paper,storage,migration,testkit,bom\","
             + "\"coreModuleLayout\":\"api,common,protocol,core-client,core-service,velocity,paper,storage,migration,testkit,bom\","
             + "\"addonModuleLayout\":\"satis\","
-            + "\"distributionLayout\":\"plugins=paper+velocity,addons=satis,services=core-api,tools=migration\","
+            + "\"distributionLayout\":\"plugins=paper+velocity,addons=satis,services=core-api,tools=migration-support-for-core-admin-api\","
             + "\"addonRegistryPolicy\":\"paper-addon-registers-core-stores-snapshot-only\","
             + "\"addonStateOwnershipPolicy\":\"core-persists-addon-key-value-state-without-addon-business-logic\","
             + "\"addonRemovalSafetyPolicy\":\"missing-addon-metadata-or-state-must-not-block-island-lifecycle\","

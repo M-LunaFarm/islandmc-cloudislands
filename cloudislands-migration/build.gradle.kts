@@ -23,7 +23,7 @@ tasks.jar {
             "CloudIslands-Migration-Source" to "SuperiorSkyblock2-read-only-scan",
             "CloudIslands-Migration-Targets" to "island,owner,members,roles,permissions,location,size,homes,warps,bans,level,worth,upgrades,flags,block-values,limits,missions",
             "CloudIslands-Migration-Flow" to "scan,manifest,dry-run,conflicts,approval,db-import,world-extract,bundle,checksum,activate-test,rollback",
-            "CloudIslands-Migration-Commands" to "scan,status,dryrun,dry-run,extract,import,verify,rollback",
+            "CloudIslands-Migration-Commands" to "core-admin-api:scan,status,dryrun,dry-run,extract,import,verify,rollback",
             "CloudIslands-Migration-Approval" to "explicit-admin-token-required-before-import",
             "CloudIslands-Migration-Safety-Policy" to "MigrationSafetyPolicy-input-only-read-only-actions-write-actions-approval-required",
             "CloudIslands-Migration-Rollback-Policy" to "rollback-plan-removes-only-cloudislands-imported-state",
