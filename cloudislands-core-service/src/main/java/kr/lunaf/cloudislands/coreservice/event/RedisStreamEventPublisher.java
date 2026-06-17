@@ -19,9 +19,10 @@ public final class RedisStreamEventPublisher implements GlobalEventPublisher {
 
     @Override
     public void publish(String eventType, Map<String, String> fields) {
+        String safeEventType = eventType == null ? "" : eventType;
         List<String> values = new ArrayList<>();
         values.add("type");
-        values.add(eventType);
+        values.add(safeEventType);
         Map<String, String> safeFields = fields == null ? Map.of() : fields;
         Map<String, String> enriched = new LinkedHashMap<>();
         safeFields.forEach((key, value) -> {
@@ -29,11 +30,11 @@ public final class RedisStreamEventPublisher implements GlobalEventPublisher {
                 enriched.put(key, value);
             }
         });
-        String cacheTargets = cacheTargets(eventType);
+        String cacheTargets = cacheTargets(safeEventType);
         if (!cacheTargets.isBlank()) {
             enriched.putIfAbsent("cacheTargets", cacheTargets);
         }
-        String cacheKeys = cacheKeys(eventType, safeFields);
+        String cacheKeys = cacheKeys(safeEventType, safeFields);
         if (!cacheKeys.isBlank()) {
             enriched.putIfAbsent("cacheKeys", cacheKeys);
         }

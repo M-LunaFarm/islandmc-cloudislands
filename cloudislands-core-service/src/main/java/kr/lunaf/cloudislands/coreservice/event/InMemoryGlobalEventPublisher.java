@@ -16,7 +16,8 @@ public final class InMemoryGlobalEventPublisher implements GlobalEventPublisher 
 
     @Override
     public synchronized void publish(String eventType, Map<String, String> fields) {
-        events.add(new EventRecord(nextSequence++, eventType, enrichedFields(eventType, fields), Instant.now()));
+        String safeEventType = eventType == null ? "" : eventType;
+        events.add(new EventRecord(nextSequence++, safeEventType, enrichedFields(safeEventType, fields), Instant.now()));
         while (events.size() > MAX_EVENTS) {
             events.remove(0);
         }
