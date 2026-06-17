@@ -31,6 +31,7 @@ import java.util.function.Predicate;
 import java.util.logging.Logger;
 
 public final class CoreApiSatisStateService {
+    private static final UUID NIL_UUID = new UUID(0L, 0L);
     private static final int MAX_PENDING_BULK_RETRIES = 64;
     private static final String GLOBAL_TABLE_BULK_ENDPOINT = "/v1/addons/state/table/bulk";
     private static final String GLOBAL_TABLE_KEY_VALUE_BULK_ENDPOINT = "/v1/addons/state/table/key-value/bulk-save";
@@ -1680,14 +1681,25 @@ public final class CoreApiSatisStateService {
     }
 
     private UUID uuid(String value) {
-        return UUID.fromString(value);
+        if (value == null || value.isBlank()) {
+            return NIL_UUID;
+        }
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException ignored) {
+            return NIL_UUID;
+        }
     }
 
     private UUID uuidOrNull(String value) {
         if (value == null || value.isBlank()) {
             return null;
         }
-        return UUID.fromString(value);
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
     }
 
     private String blankToNull(String value) {
@@ -1709,7 +1721,10 @@ public final class CoreApiSatisStateService {
         for (String part : csv.split(",")) {
             String value = part.trim();
             if (!value.isBlank()) {
-                values.add(uuid(value));
+                UUID parsed = uuidOrNull(value);
+                if (parsed != null) {
+                    values.add(parsed);
+                }
             }
         }
         return Set.copyOf(values);
@@ -1726,10 +1741,11 @@ public final class CoreApiSatisStateService {
             if (separator <= 0 || separator >= value.length() - 2) {
                 continue;
             }
-            routes.add(new ItemNetwork.Route(
-                    uuid(value.substring(0, separator)),
-                    uuid(value.substring(separator + 2))
-            ));
+            UUID from = uuidOrNull(value.substring(0, separator));
+            UUID to = uuidOrNull(value.substring(separator + 2));
+            if (from != null && to != null) {
+                routes.add(new ItemNetwork.Route(from, to));
+            }
         }
         return List.copyOf(routes);
     }
