@@ -128,6 +128,8 @@ public final class IslandMemberMenu implements Listener {
         };
         return item(material, member.role() + " " + shortUuid(member.playerUuid()),
             "플레이어=" + member.playerUuid(),
+            statusLine(member.playerUuid(), messages),
+            lastSeenLine(member.playerUuid(), messages),
             member.joinedAt().isBlank() ? message(messages, "member-menu-no-join-info", "가입 정보 없음") : message(messages, "member-menu-joined-at", "가입 시각: ") + member.joinedAt(),
             message(messages, "member-menu-left-click", "좌클릭: 승급"),
             message(messages, "member-menu-right-click", "우클릭: 강등"),
@@ -219,6 +221,36 @@ public final class IslandMemberMenu implements Listener {
 
     private static String shortUuid(String uuid) {
         return uuid.length() <= 8 ? uuid : uuid.substring(0, 8);
+    }
+
+    private static String statusLine(String playerUuid, MessageRenderer messages) {
+        UUID uuid = uuid(playerUuid);
+        if (uuid == null) {
+            return message(messages, "member-menu-status-unknown", "접속 상태: 알 수 없음");
+        }
+        return Bukkit.getPlayer(uuid) == null
+                ? message(messages, "member-menu-status-offline", "접속 상태: 오프라인")
+                : message(messages, "member-menu-status-online", "접속 상태: 온라인");
+    }
+
+    private static String lastSeenLine(String playerUuid, MessageRenderer messages) {
+        UUID uuid = uuid(playerUuid);
+        if (uuid == null) {
+            return message(messages, "member-menu-last-seen-unknown", "마지막 접속: 알 수 없음");
+        }
+        long lastPlayed = Bukkit.getOfflinePlayer(uuid).getLastPlayed();
+        if (lastPlayed <= 0L) {
+            return message(messages, "member-menu-last-seen-never", "마지막 접속: 기록 없음");
+        }
+        return message(messages, "member-menu-last-seen-prefix", "마지막 접속: ") + java.time.Instant.ofEpochMilli(lastPlayed);
+    }
+
+    private static UUID uuid(String value) {
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
     }
 
     private record Member(String playerUuid, String role, String joinedAt) {

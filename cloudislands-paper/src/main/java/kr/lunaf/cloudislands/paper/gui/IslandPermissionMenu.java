@@ -21,7 +21,7 @@ public final class IslandPermissionMenu implements Listener {
     private static final String TITLE_KEY = "permission-menu-title";
     private static final String TITLE = "섬 권한 설정";
     private static final List<String> ROLES = List.of("MEMBER", "TRUSTED", "VISITOR", "CUSTOM_1", "CUSTOM_2", "CUSTOM_3", "CUSTOM_4", "CUSTOM_5");
-    private static final List<String> PERMISSIONS = List.of("BUILD", "BREAK", "INTERACT", "OPEN_CONTAINER", "MANAGE_WARPS");
+    private static final List<String> PERMISSIONS = List.of("BUILD", "BREAK", "OPEN_CONTAINER", "USE_DOOR", "ATTACK_PLAYER");
     private final MessageRenderer messages;
 
     public IslandPermissionMenu() {
@@ -93,7 +93,7 @@ public final class IslandPermissionMenu implements Listener {
                     inventory.setItem(slot++, ruleItem(role, permission, allowed(rules, role, permission), messages));
                 }
             }
-            inventory.setItem(45, item(Material.BOOK, message(messages, "permission-menu-all-names-name", "전체 권한 이름"), message(messages, "permission-menu-all-names-command", "/섬 권한목록"), permissionSummary()));
+            inventory.setItem(45, item(Material.BOOK, message(messages, "permission-menu-all-names-name", "전체 권한 이름"), message(messages, "permission-menu-all-names-command", "/섬 권한목록"), message(messages, "permission-menu-matrix-policy", "표시 우선순위: BUILD/BREAK/CHEST/DOOR/PVP"), permissionSummary()));
             inventory.setItem(46, item(Material.PAPER, message(messages, "permission-menu-list-name", "권한 목록"), message(messages, "permission-menu-list-command", "/섬 권한목록")));
             inventory.setItem(47, item(Material.CLOCK, message(messages, "permission-menu-refresh-name", "새로고침"), message(messages, "permission-menu-refresh-command", "/섬 권한")));
             inventory.setItem(48, item(Material.COMPARATOR, message(messages, "permission-menu-settings-name", "설정"), message(messages, "permission-menu-settings-command", "/섬 설정")));
@@ -109,7 +109,16 @@ public final class IslandPermissionMenu implements Listener {
     private static ItemStack ruleItem(String role, String permission, Boolean allowed, MessageRenderer messages) {
         Material material = allowed == null ? Material.GRAY_DYE : allowed ? Material.LIME_DYE : Material.RED_DYE;
         String state = allowed == null ? message(messages, "permission-menu-default", "기본값") : allowed ? message(messages, "permission-menu-allow", "허용") : message(messages, "permission-menu-deny", "차단");
-        return item(material, role + " " + permission, "role=" + role, "permission=" + permission, message(messages, "permission-menu-current-state", "현재 상태: ") + state, message(messages, "permission-menu-click-actions", "좌클릭: 허용, 우클릭: 차단"));
+        return item(material, role + " " + permissionLabel(permission), "role=" + role, "permission=" + permission, message(messages, "permission-menu-current-state", "현재 상태: ") + state, message(messages, "permission-menu-matrix-cell", "Matrix: ") + role + " / " + permissionLabel(permission), message(messages, "permission-menu-click-actions", "좌클릭: 허용, 우클릭: 차단"));
+    }
+
+    private static String permissionLabel(String permission) {
+        return switch (permission) {
+            case "OPEN_CONTAINER" -> "CHEST";
+            case "USE_DOOR" -> "DOOR";
+            case "ATTACK_PLAYER" -> "PVP";
+            default -> permission;
+        };
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
