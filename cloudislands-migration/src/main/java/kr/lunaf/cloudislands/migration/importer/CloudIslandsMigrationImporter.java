@@ -17,9 +17,9 @@ public final class CloudIslandsMigrationImporter {
     }
 
     public ImportResult importPlan(MigrationImportPlan plan, MigrationTarget target) {
-        List<MigrationIssue> preflightIssues = preflightIssues(plan);
+        List<MigrationIssue> preflightIssues = preflightIssues(plan, target);
         if (plan == null) {
-            return new ImportResult(false, 0, preflightIssues, null);
+            return new ImportResult(false, 0, List.copyOf(preflightIssues), null);
         }
         if (!plan.report().canImport() || !preflightIssues.isEmpty()) {
             List<MigrationIssue> issues = new ArrayList<>(plan.issues());
@@ -39,18 +39,21 @@ public final class CloudIslandsMigrationImporter {
             }
         }
         MigrationRollbackPlan rollbackPlan = new MigrationRollbackPlan(UUID.randomUUID(), List.copyOf(importedIds), Instant.now());
-        return new ImportResult(issues.stream().noneMatch(MigrationIssue::blocking), imported, issues, rollbackPlan);
+        return new ImportResult(issues.stream().noneMatch(MigrationIssue::blocking), imported, List.copyOf(issues), rollbackPlan);
     }
 
     public ImportResult importPlan(MigrationImportPlan plan) {
         return importPlan(plan, ignored -> {});
     }
 
-    private List<MigrationIssue> preflightIssues(MigrationImportPlan plan) {
+    private List<MigrationIssue> preflightIssues(MigrationImportPlan plan, MigrationTarget target) {
         List<MigrationIssue> issues = new ArrayList<>();
         if (plan == null) {
             issues.add(new MigrationIssue("MIGRATION_PLAN_REQUIRED", "migration import requires a dry-run plan", true));
             return issues;
+        }
+        if (target == null) {
+            issues.add(new MigrationIssue("MIGRATION_TARGET_REQUIRED", "migration import requires a target", true));
         }
         if (!plan.sourceFingerprintMatches()) {
             issues.add(new MigrationIssue("MIGRATION_SOURCE_CHANGED", "source fingerprint changed after dry-run; run dry-run again", true));

@@ -6,12 +6,20 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Objects;
 import kr.lunaf.cloudislands.migration.MigrationIssue;
 import kr.lunaf.cloudislands.migration.MigrationManifest;
 import kr.lunaf.cloudislands.migration.MigrationReport;
 import kr.lunaf.cloudislands.migration.MigrationReportBuilder;
 
 public record MigrationImportPlan(List<MigrationManifest> manifests, List<MigrationIssue> issues, String sourceFingerprint, String approvalToken) {
+    public MigrationImportPlan {
+        manifests = manifests == null ? List.of() : List.copyOf(manifests);
+        issues = issues == null ? List.of() : List.copyOf(issues);
+        sourceFingerprint = sourceFingerprint == null || sourceFingerprint.isBlank() ? fingerprint(manifests) : sourceFingerprint;
+        approvalToken = approvalToken == null ? "" : approvalToken;
+    }
+
     public MigrationImportPlan(List<MigrationManifest> manifests, List<MigrationIssue> issues) {
         this(manifests, issues, fingerprint(manifests), "");
     }
@@ -45,7 +53,8 @@ public record MigrationImportPlan(List<MigrationManifest> manifests, List<Migrat
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             if (manifests != null) {
                 manifests.stream()
-                    .sorted(Comparator.comparing(manifest -> manifest.islandId().toString()))
+                    .filter(Objects::nonNull)
+                    .sorted(Comparator.comparing(manifest -> String.valueOf(manifest.islandId())))
                     .forEach(manifest -> update(digest, manifest));
             }
             return HexFormat.of().formatHex(digest.digest());
