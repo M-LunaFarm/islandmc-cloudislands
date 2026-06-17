@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import kr.lunaf.cloudislands.api.model.AddonStateBulkLoadRequest;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
@@ -1039,6 +1040,17 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> tableKeyValueBulkLoadAddonState(AddonStateBulkLoadRequest request) {
+        if (request == null) {
+            return invalidAddonState("Addon state bulk load request is required");
+        }
+        if (request.islandScoped()) {
+            return tableKeyValueBulkLoadAddonIslandState(request);
+        }
+        return tableKeyValueBulkLoadAddonState(request.addonId(), request.table());
+    }
+
+    @Override
     public CompletableFuture<String> putAddonTableState(String addonId, String table, Map<String, String> values) {
         if (blank(addonId) || blank(table)) {
             return invalidAddonState("Addon id and table are required");
@@ -1234,6 +1246,17 @@ public final class JdkCoreApiClient implements CoreApiClient {
             return invalidAddonState("Addon id, island id, and table are required");
         }
         return post("/v1/addons/islands/state/table/key-value/bulk-load", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"table\":\"" + escape(table) + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> tableKeyValueBulkLoadAddonIslandState(AddonStateBulkLoadRequest request) {
+        if (request == null) {
+            return invalidAddonState("Addon island state bulk load request is required");
+        }
+        if (!request.islandScoped()) {
+            return tableKeyValueBulkLoadAddonState(request);
+        }
+        return tableKeyValueBulkLoadAddonIslandState(request.addonId(), request.islandId(), request.table());
     }
 
     @Override
