@@ -25,6 +25,7 @@ class SatisLegacyMigrationPolicyTest {
         assertEquals("rollback-manifest-only-no-automatic-live-data-delete", SatisLegacyMigrationPolicy.ROLLBACK_POLICY);
         assertEquals("cloudislands-island-uuid", SatisLegacyMigrationPolicy.OUTPUT_ID_POLICY);
         assertEquals("create-cloudislands-migration-manifest-before-import", SatisLegacyMigrationPolicy.MANIFEST_POLICY);
+        assertEquals("SuperiorSkyblock2,BentoBox,ASkyBlock,uSkyBlock,IridiumSkyblock", SatisLegacyMigrationPolicy.forbiddenRuntimeProvidersCsv());
     }
 
     @Test

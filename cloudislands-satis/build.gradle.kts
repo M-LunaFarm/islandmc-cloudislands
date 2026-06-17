@@ -111,7 +111,7 @@ tasks.jar {
             "SuperiorSkyblock2-Live-Provider-Hooks" to "false",
             "SuperiorSkyblock2-Provider-Service-Check" to "plugin-enabled-only-no-bukkit-service-binding",
             "CloudIslands-Satis-Runtime-Dependency-Whitelist" to "CloudIslands,Vault,PlaceholderAPI",
-            "CloudIslands-Satis-Forbidden-Skyblock-Runtime-Providers" to "SuperiorSkyblock2,BentoBox,ASkyBlock",
+            "CloudIslands-Satis-Forbidden-Skyblock-Runtime-Providers" to "SuperiorSkyblock2,BentoBox,ASkyBlock,uSkyBlock,IridiumSkyblock",
             "CloudIslands-Satis-Forbidden-Skyblock-Runtime-Action" to "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes"
         )
     }
