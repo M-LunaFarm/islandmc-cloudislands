@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.api.addon;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
@@ -107,12 +108,38 @@ public interface CloudIslandsAddon {
         return "";
     }
 
+    default List<String> addonLifecycleEvents() {
+        return List.of(
+            "island-pre-create",
+            "island-created",
+            "island-pre-activate",
+            "island-activation-requested",
+            "island-activated",
+            "island-deactivation-requested",
+            "island-deactivated",
+            "island-migration-requested",
+            "island-migrated",
+            "island-deleted",
+            "island-member-changed",
+            "island-permission-changed",
+            "island-level-recalculate",
+            "island-worth-changed",
+            "route-ticket-created",
+            "route-ticket-consumed",
+            "route-ticket-failed",
+            "addon-state-changed"
+        );
+    }
+
     default Map<String, String> addonStandardMetadata() {
         Map<String, String> metadata = new HashMap<>();
         metadata.put("addon-packaging", safeMetadataValue(addonPackaging(), "external-plugin"));
         metadata.put("addon-runtime-owns-islands", Boolean.toString(addonOwnsIslands()));
         metadata.put("addon-removal-safe", Boolean.toString(addonRemovalSafe()));
         metadata.put("addon-data-retention", safeMetadataValue(addonDataRetentionPolicy(), "preserve-addon-state-by-addon-id-and-island-uuid"));
+        metadata.put("addon-event-source", "cloudislands-global-event-stream");
+        metadata.put("addon-event-delivery", "typed-cloud-event-callbacks-through-cloudislands-api");
+        metadata.put("addon-lifecycle-events", String.join(",", addonLifecycleEvents()));
         String descriptor = addonDescriptorResource();
         if (descriptor != null && !descriptor.isBlank()) {
             metadata.put("addon-descriptor-resource", descriptor);

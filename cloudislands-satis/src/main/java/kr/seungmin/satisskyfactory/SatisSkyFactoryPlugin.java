@@ -1396,6 +1396,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("runtime-hard-depend-plugin", SatisAddonIntegrationPolicy.RUNTIME_HARD_DEPEND_PLUGIN);
         metadata.put("standalone-island-management", SatisAddonIntegrationPolicy.STANDALONE_ISLAND_MANAGEMENT);
         metadata.put("missing-cloudislands-behavior", SatisAddonIntegrationPolicy.MISSING_API_BEHAVIOR);
+        metadata.put("addon-event-source", "cloudislands-global-event-stream");
+        metadata.put("addon-event-delivery", "typed-cloud-event-callbacks-through-cloudislands-api");
+        metadata.put("addon-lifecycle-events", String.join(",", SatisAddonIntegrationPolicy.lifecycleEvents()));
+        metadata.put("addon-lifecycle-event-policy", "receive-cloudislands-api-events-without-direct-core-storage-runtime-access");
         metadata.put("satis-enabled-configured", Boolean.toString(enabledByDefault()));
         metadata.put("satis-root-switch-policy", "satis.enabled-and-addons.cloudislands-satis.enabled-disable-all-runtime-features-before-child-feature-gates");
         metadata.put("satis-disabled-child-feature-policy", "child-features-remain-configured-but-operationalFeatureEnabled-always-returns-false");

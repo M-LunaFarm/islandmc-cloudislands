@@ -464,6 +464,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             effective.putIfAbsent("addon-state-unregister-policy", "preserve-core-and-local-fallback-state");
             effective.putIfAbsent("addon-state-clear-policy", "explicit-clear-only");
             effective.putIfAbsent("addon-reinstall-policy", "reuse-preserved-state-by-addon-id-and-island-uuid");
+            effective.putIfAbsent("addon-event-source", "cloudislands-global-event-stream");
+            effective.putIfAbsent("addon-event-delivery", "typed-cloud-event-callbacks-through-cloudislands-api");
+            effective.putIfAbsent("addon-lifecycle-events", "island-pre-create,island-created,island-pre-activate,island-activation-requested,island-activated,island-deactivation-requested,island-deactivated,island-migration-requested,island-migrated,island-deleted,island-member-changed,island-permission-changed,island-level-recalculate,island-worth-changed,route-ticket-created,route-ticket-consumed,route-ticket-failed,addon-state-changed");
             effective.put("addon-default-enabled", Boolean.toString(addonDefaultEnabled));
             effective.put("parent-enabled", Boolean.toString(parentEnabled));
             if (!addonDefaultEnabled) {
