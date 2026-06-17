@@ -1108,6 +1108,8 @@ public final class DatabaseService {
         island.activeCenterX(rs.getInt("active_center_x"));
         island.activeCenterY(rs.getInt("active_center_y"));
         island.activeCenterZ(rs.getInt("active_center_z"));
+        island.pendingMachineRemap(rs.getString("pending_machine_remap_world"), rs.getInt("pending_machine_remap_center_x"), rs.getInt("pending_machine_remap_center_y"), rs.getInt("pending_machine_remap_center_z"));
+        island.pendingResourceNodeRemap(rs.getString("pending_resource_node_remap_world"), rs.getInt("pending_resource_node_remap_center_x"), rs.getInt("pending_resource_node_remap_center_y"), rs.getInt("pending_resource_node_remap_center_z"));
         return island;
     }
 
@@ -1134,8 +1136,16 @@ public final class DatabaseService {
             statement.setInt(13, island.activeCenterX());
             statement.setInt(14, island.activeCenterY());
             statement.setInt(15, island.activeCenterZ());
-            statement.setLong(16, island.createdAt());
-            statement.setLong(17, now);
+            statement.setString(16, island.pendingMachineRemapWorld());
+            statement.setInt(17, island.pendingMachineRemapCenterX());
+            statement.setInt(18, island.pendingMachineRemapCenterY());
+            statement.setInt(19, island.pendingMachineRemapCenterZ());
+            statement.setString(20, island.pendingResourceNodeRemapWorld());
+            statement.setInt(21, island.pendingResourceNodeRemapCenterX());
+            statement.setInt(22, island.pendingResourceNodeRemapCenterY());
+            statement.setInt(23, island.pendingResourceNodeRemapCenterZ());
+            statement.setLong(24, island.createdAt());
+            statement.setLong(25, now);
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to save factory island", exception);
@@ -1148,8 +1158,11 @@ public final class DatabaseService {
             return """
                      INSERT INTO factory_islands(island_uuid, owner_uuid, tier, research_points, reputation, maintenance_debt,
                        maintenance_status, factory_score, last_maintenance_at, last_tick_at, emergency_contracts_used_today,
-                       active_world, active_center_x, active_center_y, active_center_z, created_at, updated_at)
-                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                       active_world, active_center_x, active_center_y, active_center_z,
+                       pending_machine_remap_world, pending_machine_remap_center_x, pending_machine_remap_center_y, pending_machine_remap_center_z,
+                       pending_resource_node_remap_world, pending_resource_node_remap_center_x, pending_resource_node_remap_center_y, pending_resource_node_remap_center_z,
+                       created_at, updated_at)
+                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                      ON DUPLICATE KEY UPDATE owner_uuid=VALUES(owner_uuid), tier=VALUES(tier),
                        research_points=VALUES(research_points), reputation=VALUES(reputation),
                        maintenance_debt=VALUES(maintenance_debt), maintenance_status=VALUES(maintenance_status),
@@ -1157,14 +1170,25 @@ public final class DatabaseService {
                        last_tick_at=VALUES(last_tick_at), emergency_contracts_used_today=VALUES(emergency_contracts_used_today),
                        active_world=VALUES(active_world), active_center_x=VALUES(active_center_x),
                        active_center_y=VALUES(active_center_y), active_center_z=VALUES(active_center_z),
+                       pending_machine_remap_world=VALUES(pending_machine_remap_world),
+                       pending_machine_remap_center_x=VALUES(pending_machine_remap_center_x),
+                       pending_machine_remap_center_y=VALUES(pending_machine_remap_center_y),
+                       pending_machine_remap_center_z=VALUES(pending_machine_remap_center_z),
+                       pending_resource_node_remap_world=VALUES(pending_resource_node_remap_world),
+                       pending_resource_node_remap_center_x=VALUES(pending_resource_node_remap_center_x),
+                       pending_resource_node_remap_center_y=VALUES(pending_resource_node_remap_center_y),
+                       pending_resource_node_remap_center_z=VALUES(pending_resource_node_remap_center_z),
                        updated_at=VALUES(updated_at)
                     """;
         }
         return """
                      INSERT INTO factory_islands(island_uuid, owner_uuid, tier, research_points, reputation, maintenance_debt,
                        maintenance_status, factory_score, last_maintenance_at, last_tick_at, emergency_contracts_used_today,
-                       active_world, active_center_x, active_center_y, active_center_z, created_at, updated_at)
-                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                       active_world, active_center_x, active_center_y, active_center_z,
+                       pending_machine_remap_world, pending_machine_remap_center_x, pending_machine_remap_center_y, pending_machine_remap_center_z,
+                       pending_resource_node_remap_world, pending_resource_node_remap_center_x, pending_resource_node_remap_center_y, pending_resource_node_remap_center_z,
+                       created_at, updated_at)
+                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                      ON CONFLICT(island_uuid) DO UPDATE SET owner_uuid=excluded.owner_uuid, tier=excluded.tier,
                        research_points=excluded.research_points, reputation=excluded.reputation,
                        maintenance_debt=excluded.maintenance_debt, maintenance_status=excluded.maintenance_status,
@@ -1172,6 +1196,14 @@ public final class DatabaseService {
                        last_tick_at=excluded.last_tick_at, emergency_contracts_used_today=excluded.emergency_contracts_used_today,
                        active_world=excluded.active_world, active_center_x=excluded.active_center_x,
                        active_center_y=excluded.active_center_y, active_center_z=excluded.active_center_z,
+                       pending_machine_remap_world=excluded.pending_machine_remap_world,
+                       pending_machine_remap_center_x=excluded.pending_machine_remap_center_x,
+                       pending_machine_remap_center_y=excluded.pending_machine_remap_center_y,
+                       pending_machine_remap_center_z=excluded.pending_machine_remap_center_z,
+                       pending_resource_node_remap_world=excluded.pending_resource_node_remap_world,
+                       pending_resource_node_remap_center_x=excluded.pending_resource_node_remap_center_x,
+                       pending_resource_node_remap_center_y=excluded.pending_resource_node_remap_center_y,
+                       pending_resource_node_remap_center_z=excluded.pending_resource_node_remap_center_z,
                        updated_at=excluded.updated_at
                     """;
     }
@@ -2486,6 +2518,14 @@ public final class DatabaseService {
                 + number("activeCenterX", island.activeCenterX()) + ","
                 + number("activeCenterY", island.activeCenterY()) + ","
                 + number("activeCenterZ", island.activeCenterZ()) + ","
+                + field("pendingMachineRemapWorld", island.pendingMachineRemapWorld()) + ","
+                + number("pendingMachineRemapCenterX", island.pendingMachineRemapCenterX()) + ","
+                + number("pendingMachineRemapCenterY", island.pendingMachineRemapCenterY()) + ","
+                + number("pendingMachineRemapCenterZ", island.pendingMachineRemapCenterZ()) + ","
+                + field("pendingResourceNodeRemapWorld", island.pendingResourceNodeRemapWorld()) + ","
+                + number("pendingResourceNodeRemapCenterX", island.pendingResourceNodeRemapCenterX()) + ","
+                + number("pendingResourceNodeRemapCenterY", island.pendingResourceNodeRemapCenterY()) + ","
+                + number("pendingResourceNodeRemapCenterZ", island.pendingResourceNodeRemapCenterZ()) + ","
                 + number("createdAt", island.createdAt()) + ","
                 + number("updatedAt", island.updatedAt())
                 + "}";

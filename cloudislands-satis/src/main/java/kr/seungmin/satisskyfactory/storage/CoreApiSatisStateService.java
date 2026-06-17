@@ -1127,6 +1127,14 @@ public final class CoreApiSatisStateService {
                 + number("activeCenterX", island.activeCenterX()) + ","
                 + number("activeCenterY", island.activeCenterY()) + ","
                 + number("activeCenterZ", island.activeCenterZ()) + ","
+                + field("pendingMachineRemapWorld", island.pendingMachineRemapWorld()) + ","
+                + number("pendingMachineRemapCenterX", island.pendingMachineRemapCenterX()) + ","
+                + number("pendingMachineRemapCenterY", island.pendingMachineRemapCenterY()) + ","
+                + number("pendingMachineRemapCenterZ", island.pendingMachineRemapCenterZ()) + ","
+                + field("pendingResourceNodeRemapWorld", island.pendingResourceNodeRemapWorld()) + ","
+                + number("pendingResourceNodeRemapCenterX", island.pendingResourceNodeRemapCenterX()) + ","
+                + number("pendingResourceNodeRemapCenterY", island.pendingResourceNodeRemapCenterY()) + ","
+                + number("pendingResourceNodeRemapCenterZ", island.pendingResourceNodeRemapCenterZ()) + ","
                 + number("createdAt", island.createdAt()) + ","
                 + number("updatedAt", island.updatedAt())
                 + "}";
@@ -1147,6 +1155,8 @@ public final class CoreApiSatisStateService {
         island.activeCenterX(integer(json, "activeCenterX", 0));
         island.activeCenterY(integer(json, "activeCenterY", 0));
         island.activeCenterZ(integer(json, "activeCenterZ", 0));
+        island.pendingMachineRemap(text(json, "pendingMachineRemapWorld", ""), integer(json, "pendingMachineRemapCenterX", 0), integer(json, "pendingMachineRemapCenterY", 0), integer(json, "pendingMachineRemapCenterZ", 0));
+        island.pendingResourceNodeRemap(text(json, "pendingResourceNodeRemapWorld", ""), integer(json, "pendingResourceNodeRemapCenterX", 0), integer(json, "pendingResourceNodeRemapCenterY", 0), integer(json, "pendingResourceNodeRemapCenterZ", 0));
         island.createdAt(longValue(json, "createdAt", System.currentTimeMillis()));
         island.updatedAt(longValue(json, "updatedAt", 0L));
         return island;

@@ -57,7 +57,15 @@ class MigrationServiceTest {
                     "active_world",
                     "active_center_x",
                     "active_center_y",
-                    "active_center_z"
+                    "active_center_z",
+                    "pending_machine_remap_world",
+                    "pending_machine_remap_center_x",
+                    "pending_machine_remap_center_y",
+                    "pending_machine_remap_center_z",
+                    "pending_resource_node_remap_world",
+                    "pending_resource_node_remap_center_x",
+                    "pending_resource_node_remap_center_y",
+                    "pending_resource_node_remap_center_z"
             )));
             assertTrue(columnNames(connection, "machines").containsAll(Set.of(
                     "power_network_id",

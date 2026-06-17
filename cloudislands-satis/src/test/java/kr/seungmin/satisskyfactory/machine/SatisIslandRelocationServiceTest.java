@@ -106,6 +106,51 @@ class SatisIslandRelocationServiceTest {
             assertEquals("ci_shard_001", machines.find(MACHINE_ID).orElseThrow().world());
             assertEquals("ci_shard_001", nodes.nodes(ISLAND_ID).getFirst().world());
             assertEquals("ci_shard_006", island.activeWorld());
+            assertTrue(island.hasPendingMachineRemap());
+            assertTrue(island.hasPendingResourceNodeRemap());
+            assertEquals("ci_shard_001", island.pendingMachineRemapWorld());
+            assertEquals("ci_shard_001", island.pendingResourceNodeRemapWorld());
+        }
+    }
+
+    @Test
+    void deferredRelocationAppliesWhenFeaturesAreReEnabled() {
+        try (DatabaseHandle handle = openDatabase("relocation-reenable")) {
+            FactoryIsland island = new FactoryIsland(ISLAND_ID, OWNER_ID);
+            island.activeWorld("ci_shard_001");
+            island.activeCenterX(0);
+            island.activeCenterY(64);
+            island.activeCenterZ(0);
+            handle.database().saveIsland(island);
+
+            StorageService storage = new StorageService(handle.database(), 1000);
+            MachineService machines = new MachineService(handle.database(), new MachineDefinitionService(), storage);
+            MachineInstance machine = new MachineInstance(MACHINE_ID, ISLAND_ID, OWNER_ID, "grinder_t1", 1, new BlockKey("ci_shard_001", 4, 65, 8));
+            machines.save(machine);
+            ResourceNode node = new ResourceNode(NODE_ID, ISLAND_ID, "MINERAL", "iron_ore", 1.0D, 100, 250, 60, 1, new BlockKey("ci_shard_001", -6, 63, 12), 0, 0);
+            handle.database().saveNode(node);
+            ResourceNodeService nodes = new ResourceNodeService(handle.database());
+            nodes.load(nodeConfig());
+
+            SatisIslandRelocationService relocation = new SatisIslandRelocationService(machines, nodes);
+            relocation.relocate(ISLAND_ID, island, "ci_shard_006", 2048, 80, -1024, false, false);
+            handle.database().saveIsland(island);
+
+            FactoryIsland reloaded = handle.database().findIsland(ISLAND_ID).orElseThrow();
+            SatisIslandRelocationService.RelocationResult result = relocation.relocate(ISLAND_ID, reloaded, "ci_shard_006", 2048, 80, -1024, true, true);
+            handle.database().saveIsland(reloaded);
+
+            assertEquals("0,0,0", result.delta());
+            assertEquals("2048,16,-1024", result.machineDelta());
+            assertEquals("2048,16,-1024", result.resourceNodeDelta());
+            assertTrue(result.machinesRemapped());
+            assertTrue(result.resourceNodesRemapped());
+            assertFalse(reloaded.hasPendingMachineRemap());
+            assertFalse(reloaded.hasPendingResourceNodeRemap());
+            assertEquals("ci_shard_006", machines.find(MACHINE_ID).orElseThrow().world());
+            assertEquals(2052, machines.find(MACHINE_ID).orElseThrow().x());
+            assertEquals("ci_shard_006", nodes.nodes(ISLAND_ID).getFirst().world());
+            assertEquals(2042, nodes.nodes(ISLAND_ID).getFirst().x());
         }
     }
 

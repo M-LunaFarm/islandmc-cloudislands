@@ -44,6 +44,14 @@ public final class MigrationService {
                       active_center_x INTEGER NOT NULL DEFAULT 0,
                       active_center_y INTEGER NOT NULL DEFAULT 0,
                       active_center_z INTEGER NOT NULL DEFAULT 0,
+                      pending_machine_remap_world TEXT NOT NULL DEFAULT '',
+                      pending_machine_remap_center_x INTEGER NOT NULL DEFAULT 0,
+                      pending_machine_remap_center_y INTEGER NOT NULL DEFAULT 0,
+                      pending_machine_remap_center_z INTEGER NOT NULL DEFAULT 0,
+                      pending_resource_node_remap_world TEXT NOT NULL DEFAULT '',
+                      pending_resource_node_remap_center_x INTEGER NOT NULL DEFAULT 0,
+                      pending_resource_node_remap_center_y INTEGER NOT NULL DEFAULT 0,
+                      pending_resource_node_remap_center_z INTEGER NOT NULL DEFAULT 0,
                       created_at INTEGER NOT NULL,
                       updated_at INTEGER NOT NULL
                     )
@@ -208,6 +216,14 @@ public final class MigrationService {
         addColumnIfMissing(connection, statement, "factory_islands", "active_center_x", "INTEGER NOT NULL DEFAULT 0", dialect);
         addColumnIfMissing(connection, statement, "factory_islands", "active_center_y", "INTEGER NOT NULL DEFAULT 0", dialect);
         addColumnIfMissing(connection, statement, "factory_islands", "active_center_z", "INTEGER NOT NULL DEFAULT 0", dialect);
+        addColumnIfMissing(connection, statement, "factory_islands", "pending_machine_remap_world", "TEXT NOT NULL DEFAULT ''", dialect);
+        addColumnIfMissing(connection, statement, "factory_islands", "pending_machine_remap_center_x", "INTEGER NOT NULL DEFAULT 0", dialect);
+        addColumnIfMissing(connection, statement, "factory_islands", "pending_machine_remap_center_y", "INTEGER NOT NULL DEFAULT 0", dialect);
+        addColumnIfMissing(connection, statement, "factory_islands", "pending_machine_remap_center_z", "INTEGER NOT NULL DEFAULT 0", dialect);
+        addColumnIfMissing(connection, statement, "factory_islands", "pending_resource_node_remap_world", "TEXT NOT NULL DEFAULT ''", dialect);
+        addColumnIfMissing(connection, statement, "factory_islands", "pending_resource_node_remap_center_x", "INTEGER NOT NULL DEFAULT 0", dialect);
+        addColumnIfMissing(connection, statement, "factory_islands", "pending_resource_node_remap_center_y", "INTEGER NOT NULL DEFAULT 0", dialect);
+        addColumnIfMissing(connection, statement, "factory_islands", "pending_resource_node_remap_center_z", "INTEGER NOT NULL DEFAULT 0", dialect);
         addColumnIfMissing(connection, statement, "machines", "power_network_id", "TEXT", dialect);
         addColumnIfMissing(connection, statement, "machines", "item_network_id", "TEXT", dialect);
         addColumnIfMissing(connection, statement, "machines", "linked_resource_node_id", "TEXT", dialect);
@@ -272,6 +288,8 @@ public final class MigrationService {
                 .replace("buffer_inventory_id TEXT", "buffer_inventory_id VARCHAR(36)")
                 .replace("world TEXT", "world VARCHAR(255)")
                 .replace("active_world TEXT", "active_world VARCHAR(255)")
+                .replace("pending_machine_remap_world TEXT", "pending_machine_remap_world VARCHAR(255)")
+                .replace("pending_resource_node_remap_world TEXT", "pending_resource_node_remap_world VARCHAR(255)")
                 .replace("holder_type TEXT", "holder_type VARCHAR(64)")
                 .replace("holder_id TEXT", "holder_id VARCHAR(128)")
                 .replace("type_id TEXT", "type_id VARCHAR(128)")

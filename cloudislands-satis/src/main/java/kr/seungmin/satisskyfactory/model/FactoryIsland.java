@@ -20,6 +20,14 @@ public final class FactoryIsland {
     private int activeCenterX;
     private int activeCenterY;
     private int activeCenterZ;
+    private String pendingMachineRemapWorld = "";
+    private int pendingMachineRemapCenterX;
+    private int pendingMachineRemapCenterY;
+    private int pendingMachineRemapCenterZ;
+    private String pendingResourceNodeRemapWorld = "";
+    private int pendingResourceNodeRemapCenterX;
+    private int pendingResourceNodeRemapCenterY;
+    private int pendingResourceNodeRemapCenterZ;
 
     public FactoryIsland(UUID islandUuid, UUID ownerUuid) {
         this.islandUuid = islandUuid;
@@ -163,5 +171,67 @@ public final class FactoryIsland {
 
     public boolean hasActiveCenter() {
         return activeWorld != null && !activeWorld.isBlank();
+    }
+
+    public boolean hasPendingMachineRemap() {
+        return pendingMachineRemapWorld != null && !pendingMachineRemapWorld.isBlank();
+    }
+
+    public String pendingMachineRemapWorld() {
+        return pendingMachineRemapWorld;
+    }
+
+    public int pendingMachineRemapCenterX() {
+        return pendingMachineRemapCenterX;
+    }
+
+    public int pendingMachineRemapCenterY() {
+        return pendingMachineRemapCenterY;
+    }
+
+    public int pendingMachineRemapCenterZ() {
+        return pendingMachineRemapCenterZ;
+    }
+
+    public void pendingMachineRemap(String world, int centerX, int centerY, int centerZ) {
+        this.pendingMachineRemapWorld = world == null ? "" : world;
+        this.pendingMachineRemapCenterX = centerX;
+        this.pendingMachineRemapCenterY = centerY;
+        this.pendingMachineRemapCenterZ = centerZ;
+    }
+
+    public void clearPendingMachineRemap() {
+        pendingMachineRemap("", 0, 0, 0);
+    }
+
+    public boolean hasPendingResourceNodeRemap() {
+        return pendingResourceNodeRemapWorld != null && !pendingResourceNodeRemapWorld.isBlank();
+    }
+
+    public String pendingResourceNodeRemapWorld() {
+        return pendingResourceNodeRemapWorld;
+    }
+
+    public int pendingResourceNodeRemapCenterX() {
+        return pendingResourceNodeRemapCenterX;
+    }
+
+    public int pendingResourceNodeRemapCenterY() {
+        return pendingResourceNodeRemapCenterY;
+    }
+
+    public int pendingResourceNodeRemapCenterZ() {
+        return pendingResourceNodeRemapCenterZ;
+    }
+
+    public void pendingResourceNodeRemap(String world, int centerX, int centerY, int centerZ) {
+        this.pendingResourceNodeRemapWorld = world == null ? "" : world;
+        this.pendingResourceNodeRemapCenterX = centerX;
+        this.pendingResourceNodeRemapCenterY = centerY;
+        this.pendingResourceNodeRemapCenterZ = centerZ;
+    }
+
+    public void clearPendingResourceNodeRemap() {
+        pendingResourceNodeRemap("", 0, 0, 0);
     }
 }
