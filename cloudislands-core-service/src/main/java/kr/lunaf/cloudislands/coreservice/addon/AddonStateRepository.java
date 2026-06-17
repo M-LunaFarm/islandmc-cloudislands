@@ -170,7 +170,7 @@ public interface AddonStateRepository {
 
     static String safeTableKeyOrBlank(String key) {
         String value = key == null ? "" : key.trim();
-        if (value.isBlank() || value.contains("/")) {
+        if (value.isBlank()) {
             return "";
         }
         return value;
