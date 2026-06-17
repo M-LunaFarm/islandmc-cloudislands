@@ -60,15 +60,26 @@ public final class RouteFailureMessagePolicy {
             || code.startsWith("ACTIVE_NODE")
             || code.startsWith("NO_CAPACITY")
             || code.startsWith("FULL_NODE")
-            || code.startsWith("ROUTE_ALLOCATOR"));
+            || code.startsWith("ROUTE_ALLOCATOR")
+            || code.equals("POOL_EMPTY")
+            || code.equals("POOL_MISMATCH")
+            || code.equals("MAX_ACTIVATION_QUEUE")
+            || code.equals("MAX_ACTIVE_ISLANDS")
+            || code.equals("HARD_PLAYER_CAP")
+            || code.equals("STATE_SOFT_FULL")
+            || code.equals("STATE_HARD_FULL"));
     }
 
     public static boolean maintenanceCode(String code) {
         return code != null
-            && (code.startsWith("STORAGE_")
+            && (code.startsWith("HEARTBEAT_")
+            || code.startsWith("STORAGE_")
             || code.startsWith("OBJECT_STORAGE_")
             || code.startsWith("TEMPLATE_VERSION_")
             || code.startsWith("UNSUPPORTED_TEMPLATE")
+            || code.equals("TEMPLATE_UNSUPPORTED")
+            || code.equals("NODE_VERSION_TOO_OLD")
+            || code.equals("DEFAULT_NODE_IDENTITY")
             || code.startsWith("TARGET_SERVER_")
             || code.startsWith("ROUTE_READY_")
             || code.startsWith("ROUTE_STATUS_")

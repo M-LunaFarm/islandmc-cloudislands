@@ -19,10 +19,18 @@ class RouteFailureMessagePolicyTest {
     void collapsesInternalRouteCodesToSafeCategories() {
         assertTrue(RouteFailureMessagePolicy.capacityCode("NO_READY_NODE_READY_COUNT_ZERO"));
         assertTrue(RouteFailureMessagePolicy.capacityCode("ACTIVE_NODE_HARD_FULL"));
+        assertTrue(RouteFailureMessagePolicy.capacityCode("POOL_EMPTY"));
+        assertTrue(RouteFailureMessagePolicy.capacityCode("MAX_ACTIVE_ISLANDS"));
+        assertTrue(RouteFailureMessagePolicy.capacityCode("STATE_SOFT_FULL"));
         assertEquals(RouteFailureMessagePolicy.CAPACITY_MESSAGE, RouteFailureMessagePolicy.playerMessage("TARGET_NODE_DOWN", "fallback"));
+        assertEquals(RouteFailureMessagePolicy.CAPACITY_MESSAGE, RouteFailureMessagePolicy.playerMessage("HARD_PLAYER_CAP", "fallback"));
 
         assertTrue(RouteFailureMessagePolicy.maintenanceCode("SESSION_PUBLISH_FAILED"));
         assertTrue(RouteFailureMessagePolicy.maintenanceCode("OBJECT_STORAGE_DOWN"));
+        assertTrue(RouteFailureMessagePolicy.maintenanceCode("HEARTBEAT_STALE"));
+        assertTrue(RouteFailureMessagePolicy.maintenanceCode("TEMPLATE_UNSUPPORTED"));
+        assertTrue(RouteFailureMessagePolicy.maintenanceCode("NODE_VERSION_TOO_OLD"));
         assertEquals(RouteFailureMessagePolicy.MAINTENANCE_MESSAGE, RouteFailureMessagePolicy.playerMessage("ROUTE_STATUS_TIMEOUT", "fallback"));
+        assertEquals(RouteFailureMessagePolicy.MAINTENANCE_MESSAGE, RouteFailureMessagePolicy.playerMessage("DEFAULT_NODE_IDENTITY", "fallback"));
     }
 }
