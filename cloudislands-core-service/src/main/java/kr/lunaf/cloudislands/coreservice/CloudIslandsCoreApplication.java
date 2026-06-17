@@ -3067,8 +3067,27 @@ public final class CloudIslandsCoreApplication {
             + "\"routePreparingTicketTtlSeconds\":" + config.routePreparingTicketTtl().toSeconds() + ","
             + "\"heartbeatTimeoutSeconds\":" + config.heartbeatTimeout().toSeconds() + ","
             + "\"leaseDurationSeconds\":" + config.leaseDuration().toSeconds() + ","
+            + "\"cacheTierPolicy\":\"L1=paper-velocity-local-memory,L2=redis,L3=postgresql-mysql-mariadb-core-jdbc\","
+            + "\"cacheAuthoritativeStorePolicy\":\"database-or-core-api-is-authority-redis-and-local-memory-are-discardable\","
             + "\"redisCacheTtlPolicy\":\"route-ticket=30s,player-island=300s,island-summary=60s,permissions=30s,locks=10-60s\","
+            + "\"redisCacheTtlMillis\":\"serverHeartbeat=" + kr.lunaf.cloudislands.common.cache.RedisTtls.SERVER_HEARTBEAT_MILLIS
+                + ",routeTicket=" + kr.lunaf.cloudislands.common.cache.RedisTtls.ROUTE_TICKET_MILLIS
+                + ",playerIsland=" + kr.lunaf.cloudislands.common.cache.RedisTtls.PLAYER_ISLAND_MILLIS
+                + ",playerProfile=" + kr.lunaf.cloudislands.common.cache.RedisTtls.PLAYER_PROFILE_MILLIS
+                + ",islandSummary=" + kr.lunaf.cloudislands.common.cache.RedisTtls.ISLAND_SUMMARY_MILLIS
+                + ",islandMetadata=" + kr.lunaf.cloudislands.common.cache.RedisTtls.ISLAND_METADATA_MILLIS
+                + ",islandRuntime=" + kr.lunaf.cloudislands.common.cache.RedisTtls.ISLAND_RUNTIME_MILLIS
+                + ",islandPermissions=" + kr.lunaf.cloudislands.common.cache.RedisTtls.ISLAND_PERMISSIONS_MILLIS
+                + ",lockMin=" + kr.lunaf.cloudislands.common.cache.RedisTtls.LOCK_MIN_MILLIS
+                + ",lockMax=" + kr.lunaf.cloudislands.common.cache.RedisTtls.LOCK_MAX_MILLIS + "\","
             + "\"redisKeyPolicy\":\"ci:server:{nodeId}:*,ci:player:{uuid}:*,ci:island:{islandId}:*,ci:lock:*,ci:stream:*\","
+            + "\"cacheInvalidationSource\":\"core-write-transaction-then-global-event\","
+            + "\"cacheInvalidationEvents\":\"IslandMemberChanged,IslandFlagChanged,IslandPermissionChanged,IslandWarpChanged,IslandRuntimeChanged,IslandDeleted\","
+            + "\"cacheInvalidationFanout\":\"core-event-stream>paper-event-poller>velocity-route-cache-if-affected>local-cache-delete\","
+            + "\"cacheInvalidationTargets\":\"player_uuid->island_id,island_id->summary,island_id->runtime,island_id->members,island_id->permissions,island_id->flags,island_id->warps,node_id->heartbeat\","
+            + "\"cacheInvalidationRedisPatterns\":\"ci:player:*:island,ci:player:*:profile,ci:player-name:*:profile,ci:island:*:summary,ci:island:*:runtime,ci:island:*:members,ci:island:*:permissions,ci:island:*:flags,ci:island:*:warps,ci:island:*:route-tickets,ci:rankings:*\","
+            + "\"cacheRedisDownPolicy\":\"degraded-db-direct-read-no-data-loss-event-propagation-delayed-jobs-and-heartbeats-limited\","
+            + "\"cacheCoreApiDownPolicy\":\"active-island-local-protection-continues-new-route-and-writes-limited\","
             + "\"redisStreamPolicy\":\"jobs,events,audit-append-only-observability\","
             + "\"globalEventTypes\":\"IslandCreated,IslandDeleted,IslandActivated,IslandDeactivated,IslandMigrated,IslandMemberChanged,IslandFlagChanged,IslandLevelUpdated,IslandSnapshotCreated,NodeStateChanged,RouteTicketCreated,RouteSessionPublished,RouteTicketConsumed,RouteTicketFailed,RouteTicketCleared\","
             + "\"routeMetricsTargetServerName\":true,"
