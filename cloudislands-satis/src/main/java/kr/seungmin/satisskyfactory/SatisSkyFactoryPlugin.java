@@ -1538,6 +1538,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("lifecycle-event-storage-policy", "cloudislands-island-uuid-stable-state-remap-active-world");
         metadata.put("lifecycle-placement-source-policy", "record-core-payload-or-paper-allocator-on-activate-and-migrate");
         metadata.put("lifecycle-placement-source-state-key", "last-lifecycle-operation");
+        metadata.put("relocation-state-keys", "last-relocation-island,last-relocation-operation,last-relocation-source-node,last-relocation-target-node,last-relocation-previous-world,last-relocation-previous-center,last-relocation-target-world,last-relocation-target-center,last-relocation-delta,last-relocation-machine-delta,last-relocation-resource-node-delta,last-relocation-placement-changed,last-relocation-machines-remapped,last-relocation-resource-nodes-remapped,last-relocation-machine-remap-deferred,last-relocation-resource-node-remap-deferred,last-relocation-remap-source,last-relocation-policy,last-relocation-at");
         metadata.put("route-event-source", "CloudIslandsAddon.route-ticket-events");
         metadata.put("route-event-policy", "diagnostic-state-only-no-routing-authority");
         metadata.put("route-event-feature-gate", "features.route-events&&features.addon-state&&CloudIslandsApi");
