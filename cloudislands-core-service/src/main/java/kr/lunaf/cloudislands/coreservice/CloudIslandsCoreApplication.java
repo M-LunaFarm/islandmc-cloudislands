@@ -3030,6 +3030,7 @@ public final class CloudIslandsCoreApplication {
             + "\"islandNodeSchemaColumns\":\"id,pool,velocity_server_name,node_version,state,soft_player_cap,hard_player_cap,reserved_slots,max_active_islands,players,active_islands,mspt,heap_used_mb,heap_max_mb,activation_queue,max_activation_queue,chunk_load_pressure,recent_failure_penalty,object_storage_available,supported_templates,last_heartbeat\","
             + "\"islandNodeExistingRoutePolicy\":\"active-island-stays-on-current-node-unless-node-missing-stale-down-or-admin-migration\","
             + "\"islandNodeVisitorSoftFullPolicy\":\"visitors-queue-or-retry-on-soft-full-active-node-members-use-reserved-slots\","
+            + "\"routingFailureDetailKeys\":\"pool,nodeCount,routeCandidateEstimateNodeCount,routeCandidateEstimatePolicy,elasticLimitPolicy,blockReason,physicalNodeNamesExposed\","
             + "\"islandPoolMultiNodeReady\":" + islandPoolMultiNodeReady(config, nodes) + ","
             + "\"islandPoolDegraded\":" + islandPoolDegraded(config, nodes) + ","
             + "\"islandPoolRouteCandidateShortfall\":" + islandPoolRouteCandidateShortfall(config, nodes) + ","

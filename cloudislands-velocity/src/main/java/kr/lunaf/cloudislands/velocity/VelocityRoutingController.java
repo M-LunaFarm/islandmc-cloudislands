@@ -2013,6 +2013,7 @@ public final class VelocityRoutingController {
             + " nodeSchema=" + jsonValue(body, "islandNodeSchemaColumns")
             + " existingRoutePolicy=" + jsonValue(body, "islandNodeExistingRoutePolicy")
             + " visitorSoftFullPolicy=" + jsonValue(body, "islandNodeVisitorSoftFullPolicy")
+            + " routingFailureDetails=" + jsonValue(body, "routingFailureDetailKeys")
             + " poolDegraded=" + boolValue(body, "islandPoolDegraded")
             + " poolCandidateShortfall=" + longValue(body, "islandPoolRouteCandidateShortfall")
             + " poolCandidateBlocks=" + jsonValue(body, "islandPoolRouteCandidateBlockSummary")

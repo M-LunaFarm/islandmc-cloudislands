@@ -2093,6 +2093,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " nodeSchema=" + textValue(body, "islandNodeSchemaColumns")
             + " existingRoutePolicy=" + textValue(body, "islandNodeExistingRoutePolicy")
             + " visitorSoftFullPolicy=" + textValue(body, "islandNodeVisitorSoftFullPolicy")
+            + " routingFailureDetails=" + textValue(body, "routingFailureDetailKeys")
             + adminText("admin-command-core-config-pool-degraded-prefix", " poolDegraded=") + boolValue(body, "islandPoolDegraded")
             + " poolCandidateShortfall=" + longValue(body, "islandPoolRouteCandidateShortfall")
             + " poolCandidateBlocks=" + textValue(body, "islandPoolRouteCandidateBlockSummary")
