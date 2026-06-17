@@ -87,13 +87,17 @@ public final class CachingIslandLimitRepository implements IslandLimitRepository
             if (parts.length != 5) {
                 continue;
             }
-            limits.add(new IslandLimitSnapshot(
-                UUID.fromString(parts[0]),
-                parts[1],
-                Long.parseLong(parts[2]),
-                UUID.fromString(parts[3]),
-                instant(parts[4])
-            ));
+            try {
+                limits.add(new IslandLimitSnapshot(
+                    UUID.fromString(parts[0]),
+                    parts[1],
+                    Long.parseLong(parts[2]),
+                    UUID.fromString(parts[3]),
+                    instant(parts[4])
+                ));
+            } catch (RuntimeException ignored) {
+                // Skip corrupt Redis cache rows without discarding every cached island limit.
+            }
         }
         return List.copyOf(limits);
     }

@@ -111,17 +111,21 @@ public final class CachingIslandMissionRepository implements IslandMissionReposi
             if (parts.length != 9) {
                 continue;
             }
-            missions.add(new IslandMissionSnapshot(
-                UUID.fromString(parts[0]),
-                decodeText(parts[1]),
-                decodeText(parts[2]),
-                decodeText(parts[3]),
-                Long.parseLong(parts[4]),
-                Long.parseLong(parts[5]),
-                Boolean.parseBoolean(parts[6]),
-                decodeText(parts[7]),
-                instant(parts[8])
-            ));
+            try {
+                missions.add(new IslandMissionSnapshot(
+                    UUID.fromString(parts[0]),
+                    decodeText(parts[1]),
+                    decodeText(parts[2]),
+                    decodeText(parts[3]),
+                    Long.parseLong(parts[4]),
+                    Long.parseLong(parts[5]),
+                    Boolean.parseBoolean(parts[6]),
+                    decodeText(parts[7]),
+                    instant(parts[8])
+                ));
+            } catch (RuntimeException ignored) {
+                // Skip corrupt Redis cache rows without discarding every cached island mission.
+            }
         }
         return List.copyOf(missions);
     }

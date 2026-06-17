@@ -101,13 +101,17 @@ public final class CachingIslandUpgradeRepository implements IslandUpgradeReposi
             if (parts.length != 5) {
                 continue;
             }
-            upgrades.add(new IslandUpgradeSnapshot(
-                UUID.fromString(parts[0]),
-                parts[1],
-                UpgradeType.valueOf(parts[2]),
-                Integer.parseInt(parts[3]),
-                instant(parts[4])
-            ));
+            try {
+                upgrades.add(new IslandUpgradeSnapshot(
+                    UUID.fromString(parts[0]),
+                    parts[1],
+                    UpgradeType.valueOf(parts[2]),
+                    Integer.parseInt(parts[3]),
+                    instant(parts[4])
+                ));
+            } catch (RuntimeException ignored) {
+                // Skip corrupt Redis cache rows without discarding every cached island upgrade.
+            }
         }
         return List.copyOf(upgrades);
     }
