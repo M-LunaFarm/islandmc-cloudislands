@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class InMemoryAddonStateRepositoryTest {
     @Test
@@ -85,5 +86,26 @@ class InMemoryAddonStateRepositoryTest {
 
         assertEquals(Map.of(), repository.list("cloudislands-satis"));
         assertEquals(Map.of("machine", "running"), repository.listIsland("cloudislands-satis", islandId));
+    }
+
+    @Test
+    void tableStateKeyRejectsKeysLongerThanStorageLimit() {
+        String table = "machines";
+        String key = "x".repeat(AddonStateRepository.MAX_KEY_LENGTH);
+
+        assertThrows(IllegalArgumentException.class, () -> AddonStateRepository.tableStateKey(table, key));
+    }
+
+    @Test
+    void tableBulkSaveSkipsOversizedExpandedKeys() {
+        InMemoryAddonStateRepository repository = new InMemoryAddonStateRepository();
+        String key = "x".repeat(AddonStateRepository.MAX_KEY_LENGTH);
+
+        Map<String, String> state = repository.tableKeyValueBulkSave(
+                "cloudislands-satis",
+                Map.of("runtime-status", "ok"),
+                Map.of("machines", Map.of(key, "too-long")));
+
+        assertEquals(Map.of("runtime-status", "ok"), state);
     }
 }

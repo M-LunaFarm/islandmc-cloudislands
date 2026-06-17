@@ -178,7 +178,12 @@ public interface AddonStateRepository {
     }
 
     static String tableStateKey(String table, String key) {
-        return TABLE_STATE_KEY_PREFIX + safeTableName(table) + "/" + safeKey(key);
+        String safeTable = safeTableName(table);
+        String safeKey = safeKey(key);
+        if (tableStateKeyLength(safeTable, safeKey) > MAX_KEY_LENGTH) {
+            throw new IllegalArgumentException("Addon table state key is too long");
+        }
+        return TABLE_STATE_KEY_PREFIX + safeTable + "/" + safeKey;
     }
 
     static String tableStateKeyPrefix(String table) {
