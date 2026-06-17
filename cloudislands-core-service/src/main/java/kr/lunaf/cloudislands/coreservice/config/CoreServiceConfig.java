@@ -239,11 +239,40 @@ public record CoreServiceConfig(
             + ",fallbackEnabled=" + setupDatabaseFallbackEnabled
             + ",order=" + setupDatabaseFallbackOrder
             + ",durable=" + setupDatabaseDurable()
+            + ",coreApiReady=" + setupDatabaseCoreApiClientReady()
+            + ",readiness=" + setupDatabaseFallbackReadiness()
             + ",reason=" + setupDatabaseFallbackReason();
     }
 
     public boolean setupDatabaseProductionDurable() {
         return jdbcRepositories() && setupDatabaseDurable();
+    }
+
+    public boolean setupDatabaseCoreApiClientMode() {
+        return "CORE_API".equals(setupDatabaseRequestedBackend()) || "CORE_API".equals(setupDatabaseFallbackTarget());
+    }
+
+    public boolean setupDatabaseCoreApiClientReady() {
+        return setupDatabaseCoreApiClientMode()
+            && setupDatabaseCoreApiBaseUrl != null
+            && !setupDatabaseCoreApiBaseUrl.isBlank()
+            && (setupDatabaseCoreApiAuthTokenConfigured || setupDatabaseCoreApiAdminTokenConfigured);
+    }
+
+    public String setupDatabaseFallbackReadiness() {
+        if (setupDatabaseProductionDurable()) {
+            return "production-durable";
+        }
+        if (setupDatabaseCoreApiClientReady()) {
+            return "core-api-client-ready";
+        }
+        if (setupDatabaseCoreApiClientMode()) {
+            return "core-api-client-missing-url-or-token";
+        }
+        if ("IN_MEMORY".equals(setupDatabaseFallbackTarget()) || "IN_MEMORY_FALLBACK".equals(setupDatabaseEffectiveBackend())) {
+            return "safe-startup-non-durable";
+        }
+        return "unknown";
     }
 
     public boolean redisJobs() {

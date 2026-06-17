@@ -24,6 +24,10 @@ class CoreServiceConfigTest {
         assertEquals("MYSQL_JDBC", config.setupDatabaseEffectiveAuthority());
         assertEquals("NONE", config.setupDatabaseFallbackTarget());
         assertEquals("native-mysql-core-jdbc", config.setupDatabaseFallbackReason());
+        assertFalse(config.setupDatabaseCoreApiClientMode());
+        assertFalse(config.setupDatabaseCoreApiClientReady());
+        assertEquals("production-durable", config.setupDatabaseFallbackReadiness());
+        assertTrue(config.setupDatabaseFallbackSummary().contains("readiness=production-durable"));
     }
 
     @Test
@@ -39,6 +43,9 @@ class CoreServiceConfigTest {
         assertEquals("POSTGRESQL_JDBC", config.setupDatabaseEffectiveAuthority());
         assertEquals("NONE", config.setupDatabaseFallbackTarget());
         assertEquals("native-postgresql-core-jdbc", config.setupDatabaseFallbackReason());
+        assertFalse(config.setupDatabaseCoreApiClientMode());
+        assertFalse(config.setupDatabaseCoreApiClientReady());
+        assertEquals("production-durable", config.setupDatabaseFallbackReadiness());
     }
 
     @Test
@@ -54,6 +61,10 @@ class CoreServiceConfigTest {
         assertEquals("CORE_API_CLIENT_MODE_NO_CORE_SELF_STORAGE", config.setupDatabaseEffectiveAuthority());
         assertEquals("CORE_API", config.setupDatabaseFallbackTarget());
         assertEquals("core-api-is-client-facing-selection-not-core-service-self-storage", config.setupDatabaseFallbackReason());
+        assertTrue(config.setupDatabaseCoreApiClientMode());
+        assertTrue(config.setupDatabaseCoreApiClientReady());
+        assertEquals("core-api-client-ready", config.setupDatabaseFallbackReadiness());
+        assertTrue(config.setupDatabaseFallbackSummary().contains("coreApiReady=true"));
     }
 
     @Test
@@ -69,6 +80,9 @@ class CoreServiceConfigTest {
         assertEquals("SAFE_IN_MEMORY_CORE_FALLBACK", config.setupDatabaseEffectiveAuthority());
         assertEquals("IN_MEMORY", config.setupDatabaseFallbackTarget());
         assertEquals("database-fallback-disabled-for-unsupported_jdbc-setup", config.setupDatabaseFallbackReason());
+        assertFalse(config.setupDatabaseCoreApiClientMode());
+        assertFalse(config.setupDatabaseCoreApiClientReady());
+        assertEquals("safe-startup-non-durable", config.setupDatabaseFallbackReadiness());
     }
 
     private CoreServiceConfig config(String repositoryMode, String jdbcUrl, String databaseType, boolean fallbackEnabled) {
