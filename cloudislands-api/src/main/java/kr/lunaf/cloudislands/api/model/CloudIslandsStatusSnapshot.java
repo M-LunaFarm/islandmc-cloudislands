@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.api.model;
 
 import java.time.Instant;
+import kr.lunaf.cloudislands.api.CloudIslandsApiContract;
 
 public record CloudIslandsStatusSnapshot(
     String platform,
@@ -27,4 +28,138 @@ public record CloudIslandsStatusSnapshot(
     String coreAuthPolicy,
     String adminEndpointPolicy,
     String networkExposurePolicy
-) {}
+) {
+    public CloudIslandsStatusSnapshot(
+        String platform,
+        String role,
+        String nodeId,
+        String version,
+        boolean providerRegistered,
+        boolean coreTokenConfigured,
+        boolean adminTokenConfigured,
+        boolean forwardingRequired,
+        boolean forwardingSecretConfigured,
+        boolean routeSessionEnforced,
+        int onlinePlayers,
+        int activeIslands,
+        int activationQueue,
+        Instant sampledAt
+    ) {
+        this(
+            platform,
+            role,
+            nodeId,
+            version,
+            providerRegistered,
+            coreTokenConfigured,
+            adminTokenConfigured,
+            forwardingRequired,
+            forwardingSecretConfigured,
+            routeSessionEnforced,
+            onlinePlayers,
+            activeIslands,
+            activationQueue,
+            sampledAt,
+            CloudIslandsApiContract.READ_POLICY,
+            CloudIslandsApiContract.WRITE_AUTHORITY,
+            CloudIslandsApiContract.SYNC_EVENT_POLICY,
+            CloudIslandsApiContract.ADDON_STORAGE_POLICY
+        );
+    }
+
+    public CloudIslandsStatusSnapshot(
+        String platform,
+        String role,
+        String nodeId,
+        String version,
+        boolean providerRegistered,
+        boolean coreTokenConfigured,
+        boolean adminTokenConfigured,
+        boolean forwardingRequired,
+        boolean forwardingSecretConfigured,
+        boolean routeSessionEnforced,
+        int onlinePlayers,
+        int activeIslands,
+        int activationQueue,
+        Instant sampledAt,
+        String readPolicy,
+        String writeAuthority,
+        String syncEventPolicy,
+        String addonStoragePolicy
+    ) {
+        this(
+            platform,
+            role,
+            nodeId,
+            version,
+            providerRegistered,
+            coreTokenConfigured,
+            adminTokenConfigured,
+            forwardingRequired,
+            forwardingSecretConfigured,
+            routeSessionEnforced,
+            onlinePlayers,
+            activeIslands,
+            activationQueue,
+            sampledAt,
+            readPolicy,
+            writeAuthority,
+            syncEventPolicy,
+            addonStoragePolicy,
+            CloudIslandsApiContract.JAVA_PLUGIN_API_POLICY,
+            CloudIslandsApiContract.INTERNAL_API_POLICY,
+            CloudIslandsApiContract.EVENT_API_POLICY
+        );
+    }
+
+    public CloudIslandsStatusSnapshot(
+        String platform,
+        String role,
+        String nodeId,
+        String version,
+        boolean providerRegistered,
+        boolean coreTokenConfigured,
+        boolean adminTokenConfigured,
+        boolean forwardingRequired,
+        boolean forwardingSecretConfigured,
+        boolean routeSessionEnforced,
+        int onlinePlayers,
+        int activeIslands,
+        int activationQueue,
+        Instant sampledAt,
+        String readPolicy,
+        String writeAuthority,
+        String syncEventPolicy,
+        String addonStoragePolicy,
+        String javaPluginApiPolicy,
+        String internalApiPolicy,
+        String eventApiPolicy
+    ) {
+        this(
+            platform,
+            role,
+            nodeId,
+            version,
+            providerRegistered,
+            coreTokenConfigured,
+            adminTokenConfigured,
+            forwardingRequired,
+            forwardingSecretConfigured,
+            routeSessionEnforced,
+            onlinePlayers,
+            activeIslands,
+            activationQueue,
+            sampledAt,
+            readPolicy,
+            writeAuthority,
+            syncEventPolicy,
+            addonStoragePolicy,
+            javaPluginApiPolicy,
+            internalApiPolicy,
+            eventApiPolicy,
+            CloudIslandsApiContract.CORE_AUTH_POLICY,
+            CloudIslandsApiContract.ADMIN_ENDPOINT_POLICY,
+            CloudIslandsApiContract.NETWORK_EXPOSURE_POLICY
+        );
+    }
+}
