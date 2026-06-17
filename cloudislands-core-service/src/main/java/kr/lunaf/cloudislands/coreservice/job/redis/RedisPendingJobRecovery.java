@@ -24,7 +24,7 @@ public final class RedisPendingJobRecovery {
             String recovered = redis.command("XAUTOCLAIM", RedisKeys.jobsStream(), GROUP, newOwner, Long.toString(minIdleMillis), "0-0", "COUNT", Integer.toString(maxJobs));
             requeueRecovered(redis, recovered);
             return recovered;
-        } catch (IOException exception) {
+        } catch (IOException | RuntimeException exception) {
             throw new IllegalStateException("failed to recover stale redis jobs", exception);
         }
     }
