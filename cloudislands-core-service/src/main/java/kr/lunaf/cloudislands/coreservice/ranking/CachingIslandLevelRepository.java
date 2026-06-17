@@ -121,7 +121,10 @@ public final class CachingIslandLevelRepository implements IslandLevelRepository
             }
             String[] parts = line.split("\\|", -1);
             if (parts.length == 2) {
-                counts.put(parts[0], Long.parseLong(parts[1]));
+                try {
+                    counts.put(parts[0], Long.parseLong(parts[1]));
+                } catch (RuntimeException ignored) {
+                }
             }
         }
         return Map.copyOf(counts);
@@ -148,7 +151,10 @@ public final class CachingIslandLevelRepository implements IslandLevelRepository
             }
             String[] parts = line.split("\\|", -1);
             if (parts.length == 4) {
-                values.put(parts[0], new RankingRecalculationService.BlockValue(new BigDecimal(parts[1]), Long.parseLong(parts[2]), Long.parseLong(parts[3])));
+                try {
+                    values.put(parts[0], new RankingRecalculationService.BlockValue(new BigDecimal(parts[1]), Long.parseLong(parts[2]), Long.parseLong(parts[3])));
+                } catch (RuntimeException ignored) {
+                }
             }
         }
         return Map.copyOf(values);

@@ -135,13 +135,16 @@ public final class CachingRankingRepository implements RankingRepository {
             if (parts.length != 5) {
                 continue;
             }
-            snapshots.add(new IslandRankSnapshot(
-                UUID.fromString(parts[0]),
-                Long.parseLong(parts[1]),
-                new BigDecimal(parts[2]),
-                Integer.parseInt(parts[3]),
-                Instant.parse(parts[4])
-            ));
+            try {
+                snapshots.add(new IslandRankSnapshot(
+                    UUID.fromString(parts[0]),
+                    Long.parseLong(parts[1]),
+                    new BigDecimal(parts[2]),
+                    Integer.parseInt(parts[3]),
+                    Instant.parse(parts[4])
+                ));
+            } catch (RuntimeException ignored) {
+            }
         }
         return List.copyOf(snapshots);
     }
