@@ -12,6 +12,7 @@ public final class SatisLegacyMigrationPolicy {
     public static final String FINGERPRINT_APPROVAL_TOKEN = "CONFIRM_IMPORT:<dryrun-sha256>";
     public static final String APPROVAL_TOKEN_POLICY = "plain-confirm-or-dryrun-sha256-bound-confirm";
     public static final String IMPORT_COMMAND = "factory admin migration import <sqlitePath> CONFIRM_IMPORT|CONFIRM_IMPORT:<dryrun-sha256>";
+    public static final String LEGACY_COMMAND_ROOT = "migrate-superiorskyblock2";
     public static final String ROLLBACK_POLICY = "rollback-manifest-only-no-automatic-live-data-delete";
     public static final String OUTPUT_ID_POLICY = "cloudislands-island-uuid";
     public static final String MANIFEST_POLICY = "create-cloudislands-migration-manifest-before-import";
@@ -59,7 +60,12 @@ public final class SatisLegacyMigrationPolicy {
             "factory admin migration dryrun <sqlitePath>",
             "factory admin migration verify <sqlitePath>",
             IMPORT_COMMAND,
-            "factory admin migration rollback"
+            "factory admin migration rollback",
+            "factory admin migrate-superiorskyblock2 scan <sqlitePath>",
+            "factory admin migrate-superiorskyblock2 dryrun <sqlitePath>",
+            "factory admin migrate-superiorskyblock2 import <sqlitePath> CONFIRM_IMPORT|CONFIRM_IMPORT:<dryrun-sha256>",
+            "factory admin migrate-superiorskyblock2 verify <sqlitePath>",
+            "factory admin migrate-superiorskyblock2 rollback"
     );
 
     private SatisLegacyMigrationPolicy() {

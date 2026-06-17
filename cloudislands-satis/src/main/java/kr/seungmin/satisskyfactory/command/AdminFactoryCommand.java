@@ -182,7 +182,7 @@ public final class AdminFactoryCommand {
             }
             case "features" -> showFeatures(sender);
             case "integration" -> showIntegration(sender);
-            case "migration" -> {
+            case "migration", "migrate-superiorskyblock2", "migrate-ss2" -> {
                 if (requireFeature(sender, "migration")) {
                     handleMigration(sender, args);
                 }
@@ -251,7 +251,7 @@ public final class AdminFactoryCommand {
 
     private String disabledFeatureFor(String subcommand) {
         return switch (subcommand) {
-            case "migration" -> enabled("migration") ? null : "migration";
+            case "migration", "migrate-superiorskyblock2", "migrate-ss2" -> enabled("migration") ? null : "migration";
             case "state" -> enabled("addon-state") ? null : "addon-state";
             case "give", "giveitem", "removehere" -> enabled("machines") ? null : "machines";
             case "addresearch" -> enabled("research") ? null : "research";
@@ -260,6 +260,12 @@ public final class AdminFactoryCommand {
             case "debug" -> debugCommandsVisible() ? null : "debug";
             default -> null;
         };
+    }
+
+    private boolean isMigrationRoot(String value) {
+        return value.equalsIgnoreCase("migration")
+                || value.equalsIgnoreCase(SatisLegacyMigrationPolicy.LEGACY_COMMAND_ROOT)
+                || value.equalsIgnoreCase("migrate-ss2");
     }
 
     private boolean debugCommandsVisible() {
@@ -288,6 +294,8 @@ public final class AdminFactoryCommand {
             values.add("integration");
             if (enabled("migration")) {
                 values.add("migration");
+                values.add(SatisLegacyMigrationPolicy.LEGACY_COMMAND_ROOT);
+                values.add("migrate-ss2");
             }
             if (enabled("addon-state")) {
                 values.add("state");
@@ -322,7 +330,7 @@ public final class AdminFactoryCommand {
         if (args.length == 4 && isCommandListRoot(args[1]) && (args[2].equalsIgnoreCase("list") || args[2].equals("목록"))) {
             return filter(helpPageSuggestions(), args[3]);
         }
-        if (args.length == 3 && args[1].equalsIgnoreCase("migration") && enabled("migration")) {
+        if (args.length == 3 && isMigrationRoot(args[1]) && enabled("migration")) {
             return filter(List.of("status", "scan", "dryrun", "dry-run", "verify", "import", "rollback"), args[2]);
         }
         if ((args[1].equalsIgnoreCase("give") || args[1].equalsIgnoreCase("giveitem") || args[1].equalsIgnoreCase("removehere")) && !enabled("machines")) {
