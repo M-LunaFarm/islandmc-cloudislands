@@ -84,6 +84,19 @@ class IslandAddonServiceTest {
         assertEquals(islandId, service.lastIslandId);
     }
 
+    @Test
+    void unregisterPreservingStateKeepsStoredAddonState() {
+        CapturingAddonService service = new CapturingAddonService();
+
+        service.putState("cloudislands-satis", Map.of("factory", "saved")).join();
+
+        service.unregisterPreservingState("cloudislands-satis").join();
+
+        assertEquals("cloudislands-satis", service.unregisteredId);
+        assertFalse(service.clearStateCalled);
+        assertEquals("saved", service.lastGlobalValues.get("factory"));
+    }
+
     private static final class BrokenAddon implements CloudIslandsAddon {
         @Override
         public String addonId() {
@@ -160,6 +173,8 @@ class IslandAddonServiceTest {
         private Map<String, String> lastGlobalValues = Map.of();
         private Map<String, String> lastIslandValues = Map.of();
         private UUID lastIslandId;
+        private String unregisteredId;
+        private boolean clearStateCalled;
 
         @Override
         public CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled,
@@ -179,6 +194,14 @@ class IslandAddonServiceTest {
 
         @Override
         public CompletableFuture<Void> unregister(String id) {
+            unregisteredId = id;
+            return CompletableFuture.completedFuture(null);
+        }
+
+        @Override
+        public CompletableFuture<Void> clearState(String id) {
+            clearStateCalled = true;
+            lastGlobalValues = Map.of();
             return CompletableFuture.completedFuture(null);
         }
 
