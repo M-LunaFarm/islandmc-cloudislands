@@ -27,7 +27,10 @@ class CoreServiceConfigTest {
         assertFalse(config.setupDatabaseCoreApiClientMode());
         assertFalse(config.setupDatabaseCoreApiClientReady());
         assertEquals("production-durable", config.setupDatabaseFallbackReadiness());
+        assertFalse(config.setupDatabaseFallbackSafetyForced());
+        assertEquals("none", config.setupDatabaseFallbackSafetyMode());
         assertTrue(config.setupDatabaseFallbackSummary().contains("readiness=production-durable"));
+        assertTrue(config.setupDatabaseFallbackSummary().contains("safetyForced=false"));
     }
 
     @Test
@@ -46,6 +49,8 @@ class CoreServiceConfigTest {
         assertFalse(config.setupDatabaseCoreApiClientMode());
         assertFalse(config.setupDatabaseCoreApiClientReady());
         assertEquals("production-durable", config.setupDatabaseFallbackReadiness());
+        assertFalse(config.setupDatabaseFallbackSafetyForced());
+        assertEquals("none", config.setupDatabaseFallbackSafetyMode());
     }
 
     @Test
@@ -64,6 +69,8 @@ class CoreServiceConfigTest {
         assertTrue(config.setupDatabaseCoreApiClientMode());
         assertTrue(config.setupDatabaseCoreApiClientReady());
         assertEquals("core-api-client-ready", config.setupDatabaseFallbackReadiness());
+        assertFalse(config.setupDatabaseFallbackSafetyForced());
+        assertEquals("core-api-client-ready", config.setupDatabaseFallbackSafetyMode());
         assertTrue(config.setupDatabaseFallbackSummary().contains("coreApiReady=true"));
     }
 
@@ -83,6 +90,8 @@ class CoreServiceConfigTest {
         assertTrue(config.setupDatabaseCoreApiClientMode());
         assertTrue(config.setupDatabaseCoreApiClientReady());
         assertEquals("production-durable", config.setupDatabaseFallbackReadiness());
+        assertFalse(config.setupDatabaseFallbackSafetyForced());
+        assertEquals("durable-shared-backend", config.setupDatabaseFallbackSafetyMode());
         assertTrue(config.setupDatabaseFallbackSummary().contains("target=POSTGRESQL"));
         assertTrue(config.setupDatabaseFallbackSummary().contains("coreApiReady=true"));
     }
@@ -103,6 +112,10 @@ class CoreServiceConfigTest {
         assertFalse(config.setupDatabaseCoreApiClientMode());
         assertFalse(config.setupDatabaseCoreApiClientReady());
         assertEquals("safe-startup-non-durable", config.setupDatabaseFallbackReadiness());
+        assertTrue(config.setupDatabaseFallbackSafetyForced());
+        assertEquals("fallback-disabled-but-safe-in-memory-forced", config.setupDatabaseFallbackSafetyMode());
+        assertTrue(config.setupDatabaseFallbackSummary().contains("safetyForced=true"));
+        assertTrue(config.setupDatabaseFallbackSummary().contains("safetyMode=fallback-disabled-but-safe-in-memory-forced"));
     }
 
     private CoreServiceConfig config(String repositoryMode, String jdbcUrl, String databaseType, boolean fallbackEnabled) {

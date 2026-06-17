@@ -2842,6 +2842,8 @@ public final class CloudIslandsCoreApplication {
             + "\"coreSetupDatabaseFallbackSummary\":\"" + escape(config.setupDatabaseFallbackSummary()) + "\","
             + "\"coreSetupDatabaseDurable\":" + config.setupDatabaseDurable() + ","
             + "\"coreSetupDatabaseProductionDurable\":" + config.setupDatabaseProductionDurable() + ","
+            + "\"coreSetupDatabaseFallbackSafetyForced\":" + config.setupDatabaseFallbackSafetyForced() + ","
+            + "\"coreSetupDatabaseFallbackSafetyMode\":\"" + escape(config.setupDatabaseFallbackSafetyMode()) + "\","
             + "\"coreSetupDatabaseOperationalModes\":\"POSTGRESQL=CORE_JDBC,MYSQL=CORE_JDBC,MARIADB=CORE_JDBC,CORE_API=CLIENT_MODE_NO_CORE_SERVICE_SELF_STORAGE\","
             + "\"coreSetupDatabasePrimaryAuthority\":\"POSTGRESQL_MYSQL_MARIADB_FOR_CORE_STATE_CORE_API_FOR_CLIENT_ADDON_STATE\","
             + "\"coreSetupDatabaseMysqlPolicy\":\"native-core-jdbc-through-setup.database.mysql-or-jdbc-url\","

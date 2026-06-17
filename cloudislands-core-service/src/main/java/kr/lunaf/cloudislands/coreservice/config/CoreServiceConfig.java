@@ -237,6 +237,8 @@ public record CoreServiceConfig(
             + ",target=" + setupDatabaseFallbackTarget()
             + ",fallbackActive=" + setupDatabaseFallbackActive()
             + ",fallbackEnabled=" + setupDatabaseFallbackEnabled
+            + ",safetyForced=" + setupDatabaseFallbackSafetyForced()
+            + ",safetyMode=" + setupDatabaseFallbackSafetyMode()
             + ",order=" + setupDatabaseFallbackOrder
             + ",durable=" + setupDatabaseDurable()
             + ",coreApiReady=" + setupDatabaseCoreApiClientReady()
@@ -246,6 +248,31 @@ public record CoreServiceConfig(
 
     public boolean setupDatabaseProductionDurable() {
         return jdbcRepositories() && setupDatabaseDurable();
+    }
+
+    public boolean setupDatabaseFallbackSafetyForced() {
+        return setupDatabaseFallbackActive()
+            && !setupDatabaseFallbackEnabled
+            && ("IN_MEMORY".equals(setupDatabaseFallbackTarget()) || "IN_MEMORY_FALLBACK".equals(setupDatabaseEffectiveBackend()));
+    }
+
+    public String setupDatabaseFallbackSafetyMode() {
+        if (!setupDatabaseFallbackActive()) {
+            return "none";
+        }
+        if (setupDatabaseFallbackSafetyForced()) {
+            return "fallback-disabled-but-safe-in-memory-forced";
+        }
+        if (setupDatabaseProductionDurable()) {
+            return "durable-shared-backend";
+        }
+        if (setupDatabaseCoreApiClientReady()) {
+            return "core-api-client-ready";
+        }
+        if ("IN_MEMORY".equals(setupDatabaseFallbackTarget()) || "IN_MEMORY_FALLBACK".equals(setupDatabaseEffectiveBackend())) {
+            return "safe-in-memory-non-durable";
+        }
+        return "configured-fallback";
     }
 
     public boolean setupDatabaseCoreApiClientMode() {
