@@ -96,7 +96,7 @@ public final class FactoryGuiListener implements Listener {
             return;
         }
         event.setCancelled(true);
-        if (!featureEnabled.test("gui")) {
+        if (!enabled("gui")) {
             if (event.getWhoClicked() instanceof Player player) {
                 messages.send(player, "feature-disabled", Map.of("feature", "gui"));
                 player.closeInventory();
@@ -166,8 +166,8 @@ public final class FactoryGuiListener implements Listener {
             gui.openAdmin(
                     player,
                     island,
-                    featureEnabled.test("machines") ? machines.byIsland(island.islandUuid()).size() : 0,
-                    featureEnabled.test("machines") ? power.state(island.islandUuid()) : null
+                    enabled("machines") ? machines.byIsland(island.islandUuid()).size() : 0,
+                    enabled("machines") ? power.state(island.islandUuid()) : null
             );
             return;
         }
@@ -175,8 +175,8 @@ public final class FactoryGuiListener implements Listener {
             gui.openMain(
                     player,
                     island,
-                    featureEnabled.test("machines") ? machines.byIsland(island.islandUuid()).size() : 0,
-                    featureEnabled.test("machines") ? power.state(island.islandUuid()) : null,
+                    enabled("machines") ? machines.byIsland(island.islandUuid()).size() : 0,
+                    enabled("machines") ? power.state(island.islandUuid()) : null,
                     boosts.boosts(island.islandUuid())
             );
             return;
@@ -296,7 +296,7 @@ public final class FactoryGuiListener implements Listener {
         } else if (actionType.equals("admin_debug_island")) {
             messages.send(player, "debug-island", Map.of("island", island.islandUuid().toString()));
         } else if (actionType.equals("admin_debug_networks")) {
-            if (!featureEnabled.test("machines")) {
+            if (!enabled("machines")) {
                 messages.send(player, "feature-disabled", Map.of("feature", "machines"));
                 return;
             }
@@ -312,8 +312,8 @@ public final class FactoryGuiListener implements Listener {
         gui.openAdmin(
                 player,
                 island,
-                featureEnabled.test("machines") ? machines.byIsland(island.islandUuid()).size() : 0,
-                featureEnabled.test("machines") ? power.state(island.islandUuid()) : null
+                enabled("machines") ? machines.byIsland(island.islandUuid()).size() : 0,
+                enabled("machines") ? power.state(island.islandUuid()) : null
         );
     }
 
@@ -384,7 +384,7 @@ public final class FactoryGuiListener implements Listener {
     }
 
     private void refreshMaintenanceStatus(FactoryIsland island) {
-        if (!featureEnabled.test("maintenance")) {
+        if (!enabled("maintenance")) {
             return;
         }
         maintenance.updateStatus(island);
@@ -570,5 +570,16 @@ public final class FactoryGuiListener implements Listener {
     private Material material(String itemId) {
         Material material = Material.matchMaterial(itemId.toUpperCase(Locale.ROOT));
         return material == null ? Material.PAPER : material;
+    }
+
+    private boolean enabled(String feature) {
+        if (featureEnabled == null) {
+            return true;
+        }
+        try {
+            return featureEnabled.test(feature);
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 }
