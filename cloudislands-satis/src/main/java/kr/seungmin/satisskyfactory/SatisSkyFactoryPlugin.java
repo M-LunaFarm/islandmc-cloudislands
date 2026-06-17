@@ -611,7 +611,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("island-state-remap-key", "islandUuid+activeWorld+activeCenter");
         state.put("island-state-failover-policy", "last-confirmed-addon-state-only");
         state.put("island-state-ab-node-scenario", "A-server-to-B-server-preserve-addon-state");
-        state.put("island-state-multi-node-scenario", "island-1..island-6-preserve-addon-state-by-island-uuid");
+        state.put("island-state-multi-node-scenario", "registered-node-pool-preserves-addon-state-by-island-uuid");
+        state.put("island-state-node-count-policy", "no-hardcoded-island-node-count");
+        state.put("island-state-node-identity-policy", "node-id-is-routing-context-not-addon-state-key");
         state.put("island-state-failure-recovery-steps", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.failureRecoveryStepSummary());
         state.put("island-state-addon-reconnect-steps", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.addonReconnectStepSummary());
         state.put("island-state-scale-policy", "node-count-does-not-change-satis-state-keys-or-storage-authority");
@@ -1519,7 +1521,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-shared-state-safe-backends", "CORE_API,POSTGRESQL,MYSQL,MARIADB");
         metadata.put("database-local-fallback-backend", "SQLITE");
         metadata.put("database-recommended-fallback-order", "POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE");
-        metadata.put("database-multi-node-warning", "keep-shared-backend-before-sqlite-for-a-b-island-node-pools");
+        metadata.put("database-multi-node-warning", "keep-shared-backend-before-sqlite-for-any-island-node-count");
         metadata.put("database-config-source", databaseConfigSource());
         metadata.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", configs.main().getBoolean("addons.cloudislands-satis.database.core-api.enabled", false))));
         metadata.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
@@ -1950,7 +1952,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-shared-state-safe-backends", "CORE_API,POSTGRESQL,MYSQL,MARIADB");
         state.put("database-local-fallback-backend", "SQLITE");
         state.put("database-recommended-fallback-order", "POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE");
-        state.put("database-multi-node-warning", "keep-shared-backend-before-sqlite-for-a-b-island-node-pools");
+        state.put("database-multi-node-warning", "keep-shared-backend-before-sqlite-for-any-island-node-count");
         state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", configs.main().getBoolean("addons.cloudislands-satis.database.core-api.enabled", false))));
         state.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
         state.put("database-core-api-authority-ready", Boolean.toString(database == null || database.coreApiAuthorityReady()));
@@ -2122,7 +2124,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-shared-state-safe-backends", "CORE_API,POSTGRESQL,MYSQL,MARIADB");
         state.put("database-local-fallback-backend", "SQLITE");
         state.put("database-recommended-fallback-order", "POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE");
-        state.put("database-multi-node-warning", "keep-shared-backend-before-sqlite-for-a-b-island-node-pools");
+        state.put("database-multi-node-warning", "keep-shared-backend-before-sqlite-for-any-island-node-count");
         state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", configs.main().getBoolean("addons.cloudislands-satis.database.core-api.enabled", false))));
         state.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
         state.put("database-core-api-authority-ready", Boolean.toString(database == null || database.coreApiAuthorityReady()));
