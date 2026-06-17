@@ -25,6 +25,7 @@ public final class CloudIslandsModuleLayoutPolicy {
     );
 
     private static final Map<String, List<String>> MODULE_RESPONSIBILITIES = responsibilities();
+    private static final Map<String, List<String>> DISTRIBUTION_ARTIFACTS = distributionArtifacts();
 
     private CloudIslandsModuleLayoutPolicy() {
     }
@@ -39,6 +40,26 @@ public final class CloudIslandsModuleLayoutPolicy {
 
     public static Map<String, List<String>> moduleResponsibilities() {
         return MODULE_RESPONSIBILITIES;
+    }
+
+    public static Map<String, List<String>> distributionArtifacts() {
+        return DISTRIBUTION_ARTIFACTS;
+    }
+
+    public static String requiredModuleSummary() {
+        return String.join(",", REQUIRED_MODULES);
+    }
+
+    public static String optionalExtensionModuleSummary() {
+        return String.join(",", OPTIONAL_EXTENSION_MODULES);
+    }
+
+    public static String moduleResponsibilitySummary() {
+        return summarize(MODULE_RESPONSIBILITIES);
+    }
+
+    public static String distributionArtifactSummary() {
+        return summarize(DISTRIBUTION_ARTIFACTS);
     }
 
     public static boolean requiredModule(String moduleName) {
@@ -68,5 +89,26 @@ public final class CloudIslandsModuleLayoutPolicy {
         modules.put("cloudislands-bom", List.of("dependency-alignment", "published-version-coordinates"));
         modules.put("cloudislands-satis", List.of("satismc-feature-bridge", "config-gated-addon-runtime", "legacy-feature-migration"));
         return Collections.unmodifiableMap(modules);
+    }
+
+    private static Map<String, List<String>> distributionArtifacts() {
+        LinkedHashMap<String, List<String>> artifacts = new LinkedHashMap<>();
+        artifacts.put("plugins", List.of("cloudislands-paper", "cloudislands-velocity"));
+        artifacts.put("addons", List.of("cloudislands-satis"));
+        artifacts.put("services", List.of("cloudislands-core-service"));
+        artifacts.put("libraries", List.of("cloudislands-api", "cloudislands-common", "cloudislands-protocol", "cloudislands-core-client", "cloudislands-storage", "cloudislands-migration"));
+        artifacts.put("platform", List.of("cloudislands-bom", "cloudislands-testkit"));
+        return Collections.unmodifiableMap(artifacts);
+    }
+
+    private static String summarize(Map<String, List<String>> values) {
+        StringBuilder summary = new StringBuilder();
+        values.forEach((key, entries) -> {
+            if (!summary.isEmpty()) {
+                summary.append(';');
+            }
+            summary.append(key).append('=').append(String.join("+", entries));
+        });
+        return summary.toString();
     }
 }
