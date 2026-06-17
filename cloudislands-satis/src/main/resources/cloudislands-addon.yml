@@ -196,7 +196,7 @@ superiorskyblock2:
   runtime-dependency: false
   plugin-yml-dependency: false
   live-provider-hooks: false
-  provider-service-check: plugin-enabled-and-bukkit-services-manager
+  provider-service-check: plugin-enabled-only-no-bukkit-service-binding
   runtime-dependency-whitelist:
     - CloudIslands
     - Vault

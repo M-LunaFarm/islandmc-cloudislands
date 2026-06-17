@@ -693,7 +693,7 @@ public final class AdminFactoryCommand {
         state.put("superior-runtime-dependency", "false");
         state.put("superior-forbidden-runtime-dependencies", "SuperiorSkyblock2,BentoBox,ASkyBlock");
         state.put("superior-provider-lookup", "disabled-at-runtime");
-        state.put("superior-provider-service-check", "plugin-enabled-and-bukkit-services-manager");
+        state.put("superior-provider-service-check", "plugin-enabled-only-no-bukkit-service-binding");
         state.put("superior-migration-source-policy", SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY);
         state.put("superior-runtime-dependency-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
         state.put("superior-runtime-provider-hook-policy", SatisLegacyMigrationPolicy.RUNTIME_PROVIDER_HOOK_POLICY);
