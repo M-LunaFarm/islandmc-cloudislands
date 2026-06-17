@@ -31,7 +31,7 @@ public final class RedisStreamWriterAdapter implements RedisStreamWriter {
         command.addAll(List.of(fieldValues));
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             redis.command(command.toArray(String[]::new));
-        } catch (IOException exception) {
+        } catch (IOException | RuntimeException exception) {
             failuresTotal.incrementAndGet();
             throw new IllegalStateException("failed to publish redis stream event", exception);
         }
