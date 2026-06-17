@@ -76,6 +76,8 @@ tasks.jar {
             "CloudIslands-Satis-Recovery-Scenario" to "heartbeat-expiry-fencing-token-guards-last-confirmed-state-no-duplicate-tick-or-write",
             "CloudIslands-Satis-Core-API-Bulk-Endpoints" to "global:table/bulk,table-key-value/bulk-save,table/key-value/bulk-save,table/key-value/bulk/save,table/key-value/bulk;island:table/bulk,table-key-value/bulk-save,table/key-value/bulk-save,table/key-value/bulk/save,table/key-value/bulk",
             "CloudIslands-Satis-Core-API-Bulk-Fallback" to "flattened-addon-state-when-enabled",
+            "CloudIslands-Satis-Core-State-Writer-Gate" to "addonRuntimeEnabled&&features.addon-state&&databaseBackend=CORE_API&&cloudislands-addon-state-api",
+            "CloudIslands-Satis-Core-State-Writer-State-Keys" to "runtime-core-api-state-writer,runtime-core-api-state-writer-gate,runtime-core-api-state-writer-block-reason",
             "CloudIslands-Addon-Feature-Gates" to "commands,machines,storage,factories,generators,upgrades,missions,menus,gui,lifecycle,resource-nodes,market,contracts,research,maintenance,placeholders,migration,addon-state,route-events,members,permissions,level-values,warps,biomes,chat,templates",
             "CloudIslands-Addon-Feature-Dependencies" to "resource-nodes:machines,market:storage,contracts:storage,missions:contracts+storage,upgrades:research,menus:gui,route-events:addon-state,members:lifecycle,permissions:lifecycle,level-values:lifecycle,warps:lifecycle,biomes:lifecycle,chat:lifecycle,templates:lifecycle",
             "CloudIslands-Addon-Compound-Dependency-Separator" to "+",
