@@ -331,7 +331,7 @@ public final class AdminFactoryCommand {
             return filter(helpPageSuggestions(), args[3]);
         }
         if (args.length == 3 && isMigrationRoot(args[1]) && enabled("migration")) {
-            return filter(List.of("status", "scan", "dryrun", "dry-run", "verify", "import", "rollback"), args[2]);
+            return filter(List.of("status", "scan", "dryrun", "dry-run", "verify", "verify-addon-state", "verify-no-legacy-provider", "import", "rollback"), args[2]);
         }
         if ((args[1].equalsIgnoreCase("give") || args[1].equalsIgnoreCase("giveitem") || args[1].equalsIgnoreCase("removehere")) && !enabled("machines")) {
             return new ArrayList<>();
@@ -689,6 +689,7 @@ public final class AdminFactoryCommand {
         state.put("superior-runtime-dependency", "false");
         state.put("superior-forbidden-runtime-dependencies", "SuperiorSkyblock2,BentoBox,ASkyBlock");
         state.put("superior-provider-lookup", "disabled-at-runtime");
+        state.put("superior-provider-service-check", "plugin-enabled-and-bukkit-services-manager");
         state.put("superior-migration-source-policy", SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY);
         state.put("superior-runtime-dependency-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
         state.put("superior-migration-manifest-policy", SatisLegacyMigrationPolicy.MANIFEST_POLICY);
