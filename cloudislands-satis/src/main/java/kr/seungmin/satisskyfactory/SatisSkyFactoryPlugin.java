@@ -3420,7 +3420,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return -1;
         }
         try {
-            return Math.max(0, Integer.parseInt(parts[index].trim()));
+            return Integer.parseInt(parts[index].trim());
         } catch (NumberFormatException exception) {
             return -1;
         }
