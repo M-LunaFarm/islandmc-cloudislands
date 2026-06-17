@@ -39,7 +39,7 @@ public final class CoreApiSatisStateService {
     private static final String ISLAND_TABLE_KEY_VALUE_BULK_ENDPOINT = "/v1/addons/islands/state/table/key-value/bulk-save";
     private static final String ISLAND_TABLE_KEY_VALUE_BULK_LOAD_ENDPOINT = "/v1/addons/islands/state/table/key-value/bulk-load";
     private static final String ISLAND_FLATTENED_FALLBACK_ENDPOINT = "/v1/addons/islands/state/bulk";
-    private static final String ISLAND_TABLE_REPLACE_FALLBACK_ENDPOINT = "/v1/addons/islands/state/table/replace";
+    private static final String ISLAND_TABLE_REPLACE_ENDPOINT = "/v1/addons/islands/state/table/replace";
 
     private final Logger logger;
     private final CloudIslandsApi cloudIslandsApi;
@@ -374,9 +374,9 @@ public final class CoreApiSatisStateService {
         state.put("last-core-table-publish-error", safeError);
         state.put("last-core-table-publish-at", Instant.now().toString());
         state.put("last-core-table-publish-authority", "cloudislands-addon-state");
-        state.put("last-core-table-publish-primary-endpoint", ISLAND_TABLE_BULK_ENDPOINT);
+        state.put("last-core-table-publish-primary-endpoint", ISLAND_TABLE_REPLACE_ENDPOINT);
         state.put("last-core-table-publish-compat-endpoint", ISLAND_TABLE_KEY_VALUE_BULK_ENDPOINT);
-        state.put("last-core-table-publish-fallback-endpoint", ISLAND_TABLE_REPLACE_FALLBACK_ENDPOINT);
+        state.put("last-core-table-publish-fallback-endpoint", ISLAND_TABLE_BULK_ENDPOINT);
         state.put("last-core-table-publish-write-path", "replace-table->clear-table-and-table-bulk-on-failure");
         state.put("last-core-table-publish-node-bound", "false");
         state.put("last-core-table-publish-write-fence", "active-island-runtime-owner-only");
