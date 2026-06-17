@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.util.UUID;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
+import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
 
 public final class SnapshotRollbackService {
     private final IslandStorage storage;
@@ -41,6 +42,7 @@ public final class SnapshotRollbackService {
         if (!plan.targetPortable()) {
             throw new IOException("rollback target is not portable: " + plan.islandId() + " #" + plan.targetSnapshotNo());
         }
+        verifyChecksum(plan.targetChecksum(), storage.openSnapshotBundle(plan.islandId(), plan.targetSnapshotNo()), "snapshot " + plan.targetSnapshotNo());
         storage.promoteSnapshot(plan.islandId(), plan.targetSnapshotNo());
         return new RollbackResult(plan.islandId(), plan.targetSnapshotNo(), "snapshot", plan.targetChecksum(), plan.restorePolicy());
     }
@@ -51,8 +53,21 @@ public final class SnapshotRollbackService {
         if (!target.portable()) {
             throw new IOException("rollback bundle is not portable: " + storagePath);
         }
+        verifyChecksum(target.checksum(), storage.openBundle(storagePath), storagePath);
         storage.promoteBundle(islandId, snapshotNo, storagePath);
         return new RollbackResult(islandId, snapshotNo, "bundle", target.checksum(), target.restorePolicy());
+    }
+
+    private void verifyChecksum(String expectedChecksum, InputStream bundle, String source) throws IOException {
+        if (expectedChecksum == null || expectedChecksum.isBlank()) {
+            throw new IOException("missing rollback checksum: " + source);
+        }
+        try (InputStream input = bundle) {
+            String actualChecksum = Sha256Checksums.of(input);
+            if (!expectedChecksum.equalsIgnoreCase(actualChecksum)) {
+                throw new IOException("rollback checksum mismatch for " + source);
+            }
+        }
     }
 
     public record RollbackPlan(
