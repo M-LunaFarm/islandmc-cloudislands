@@ -603,8 +603,17 @@ public final class PrometheusMetricsRenderer {
         appendEventFieldCounters(out, "cloudislands_route_ticket_failed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_FAILED, "targetNode");
         appendEventFieldCounters(out, "cloudislands_route_ticket_failed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_FAILED, "targetServerName");
         appendEventFieldCounters(out, "cloudislands_route_ticket_failed_total", kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_FAILED, "requestedNode");
-        for (Map.Entry<String, Long> entry : events.countsByField(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_FAILED.name(), "reason").entrySet()) {
+        Map<String, Long> routeFailureReasons = events.countsByField(kr.lunaf.cloudislands.common.event.CloudIslandEventType.ROUTE_TICKET_FAILED.name(), "reason");
+        for (Map.Entry<String, Long> entry : routeFailureReasons.entrySet()) {
             out.append("cloudislands_route_ticket_failed_total{reason=\"").append(escape(entry.getKey())).append("\"} ").append(entry.getValue()).append('\n');
+        }
+        java.util.Map<String, Long> routeFailureCategories = new java.util.TreeMap<>();
+        for (Map.Entry<String, Long> entry : routeFailureReasons.entrySet()) {
+            String category = kr.lunaf.cloudislands.protocol.route.RouteFailureMessagePolicy.playerSafeCategory(entry.getKey());
+            routeFailureCategories.merge(category, entry.getValue(), Long::sum);
+        }
+        for (Map.Entry<String, Long> entry : routeFailureCategories.entrySet()) {
+            out.append("cloudislands_route_ticket_failed_total{category=\"").append(escape(entry.getKey())).append("\"} ").append(entry.getValue()).append('\n');
         }
         help(out, "cloudislands_route_ticket_expired_total", "Route tickets that expired before being consumed");
         type(out, "cloudislands_route_ticket_expired_total", "counter");

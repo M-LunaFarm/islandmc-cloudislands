@@ -97,7 +97,8 @@ public final class RouteFailureMessagePolicy {
                 "ISLAND_MIGRATING",
                 "ISLAND_LOADING_FAILED",
                 "ROUTE_TICKET_NOT_FOUND",
-                "ROUTE_ROUTE_NOT_FOUND" -> TRANSIENT_CATEGORY;
+                "ROUTE_ROUTE_NOT_FOUND",
+                "TICKET_EXPIRED" -> TRANSIENT_CATEGORY;
             case "UNAUTHORIZED", "ADMIN_PERMISSION_DENIED" -> PERMISSION_CATEGORY;
             case "RATE_LIMITED" -> RATE_LIMIT_CATEGORY;
             default -> FALLBACK_CATEGORY;
