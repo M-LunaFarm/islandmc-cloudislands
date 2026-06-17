@@ -170,13 +170,18 @@ public final class SatisDatabaseConfigPolicy {
     }
 
     public static String fallbackReadyChainRisk(String configuredOrder, String readyBackends) {
+        String readyChain = fallbackReadyChain(configuredOrder, readyBackends);
+        return readyChain.isBlank() ? fallbackReadyChainEmptyRisk(configuredOrder, readyBackends) : fallbackRisk(parseBackendList(readyChain));
+    }
+
+    public static String fallbackReadyChain(String configuredOrder, String readyBackends) {
         List<String> order = parseBackendList(configuredOrder);
         if (order.isEmpty()) {
-            return FALLBACK_RISK_NO_ORDER;
+            return "";
         }
         List<String> ready = parseBackendList(readyBackends);
         if (ready.isEmpty()) {
-            return FALLBACK_RISK_NO_READY_BACKEND;
+            return "";
         }
         List<String> readyOrder = new ArrayList<>();
         for (String backend : order) {
@@ -185,7 +190,36 @@ public final class SatisDatabaseConfigPolicy {
                 readyOrder.add(normalized);
             }
         }
-        return readyOrder.isEmpty() ? FALLBACK_RISK_NO_READY_BACKEND : fallbackRisk(readyOrder);
+        return String.join(",", readyOrder);
+    }
+
+    public static String fallbackNotReadyBackends(String configuredOrder, String readyBackends) {
+        List<String> order = parseBackendList(configuredOrder);
+        List<String> ready = parseBackendList(readyBackends);
+        List<String> missing = new ArrayList<>();
+        for (String backend : order) {
+            String normalized = normalizeBackend(backend);
+            if (!normalized.isBlank() && !ready.contains(normalized)) {
+                missing.add(normalized);
+            }
+        }
+        return String.join(",", missing);
+    }
+
+    public static String fallbackReadinessSummary(String configuredOrder, String readyBackends) {
+        String readyChain = fallbackReadyChain(configuredOrder, readyBackends);
+        String missing = fallbackNotReadyBackends(configuredOrder, readyBackends);
+        return "ready=" + (readyChain.isBlank() ? "none" : readyChain) + ";not-ready=" + (missing.isBlank() ? "none" : missing);
+    }
+
+    private static String fallbackReadyChainEmptyRisk(String configuredOrder, String readyBackends) {
+        if (parseBackendList(configuredOrder).isEmpty()) {
+            return FALLBACK_RISK_NO_ORDER;
+        }
+        if (parseBackendList(readyBackends).isEmpty()) {
+            return FALLBACK_RISK_NO_READY_BACKEND;
+        }
+        return FALLBACK_RISK_NO_READY_BACKEND;
     }
 
     public static boolean fallbackReadyChainProductionSafe(String configuredOrder, String readyBackends) {

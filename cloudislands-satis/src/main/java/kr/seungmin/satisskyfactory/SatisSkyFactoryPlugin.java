@@ -1443,6 +1443,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-fallback-order-policy", "configured-order-filtered-to-ready-effective-attempt-order");
         metadata.put("database-fallback-shared-backends", databaseFallbackSharedBackendsMetadata());
         metadata.put("database-fallback-ready-backends", databaseFallbackReadyBackendsMetadata());
+        metadata.put("database-fallback-ready-chain", SatisDatabaseConfigPolicy.fallbackReadyChain(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata()));
+        metadata.put("database-fallback-not-ready-backends", SatisDatabaseConfigPolicy.fallbackNotReadyBackends(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata()));
+        metadata.put("database-fallback-readiness-summary", SatisDatabaseConfigPolicy.fallbackReadinessSummary(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata()));
         metadata.put("database-fallback-first-shared-backend", databaseFirstSharedBackendMetadata());
         metadata.put("database-fallback-local-position", databaseLocalFallbackPositionMetadata());
         metadata.put("database-fallback-shared-safe", Boolean.toString(databaseFallbackSharedSafe()));
@@ -1861,6 +1864,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-order-policy", "configured-order-filtered-to-ready-effective-attempt-order");
         state.put("database-fallback-shared-backends", databaseFallbackSharedBackendsMetadata());
         state.put("database-fallback-ready-backends", databaseFallbackReadyBackendsMetadata());
+        state.put("database-fallback-ready-chain", SatisDatabaseConfigPolicy.fallbackReadyChain(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata()));
+        state.put("database-fallback-not-ready-backends", SatisDatabaseConfigPolicy.fallbackNotReadyBackends(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata()));
+        state.put("database-fallback-readiness-summary", SatisDatabaseConfigPolicy.fallbackReadinessSummary(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata()));
         state.put("database-fallback-ready-chain-risk", SatisDatabaseConfigPolicy.fallbackReadyChainRisk(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata()));
         state.put("database-fallback-ready-chain-production-safe", Boolean.toString(SatisDatabaseConfigPolicy.fallbackReadyChainProductionSafe(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata())));
         state.put("database-fallback-first-shared-backend", databaseFirstSharedBackendMetadata());
@@ -2030,6 +2036,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-order-policy", "configured-order-filtered-to-ready-effective-attempt-order");
         state.put("database-fallback-shared-backends", databaseFallbackSharedBackendsMetadata());
         state.put("database-fallback-ready-backends", databaseFallbackReadyBackendsMetadata());
+        state.put("database-fallback-ready-chain", SatisDatabaseConfigPolicy.fallbackReadyChain(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata()));
+        state.put("database-fallback-not-ready-backends", SatisDatabaseConfigPolicy.fallbackNotReadyBackends(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata()));
+        state.put("database-fallback-readiness-summary", SatisDatabaseConfigPolicy.fallbackReadinessSummary(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata()));
         state.put("database-fallback-ready-chain-risk", SatisDatabaseConfigPolicy.fallbackReadyChainRisk(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata()));
         state.put("database-fallback-ready-chain-production-safe", Boolean.toString(SatisDatabaseConfigPolicy.fallbackReadyChainProductionSafe(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata())));
         state.put("database-fallback-first-shared-backend", databaseFirstSharedBackendMetadata());
