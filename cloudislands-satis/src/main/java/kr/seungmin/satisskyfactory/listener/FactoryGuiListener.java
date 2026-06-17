@@ -2,6 +2,7 @@ package kr.seungmin.satisskyfactory.listener;
 
 import kr.seungmin.satisskyfactory.config.MessageService;
 import kr.seungmin.satisskyfactory.contract.ContractService;
+import kr.seungmin.satisskyfactory.gui.FactoryGuiFeaturePolicy;
 import kr.seungmin.satisskyfactory.gui.FactoryGuiHolder;
 import kr.seungmin.satisskyfactory.gui.FactoryGuiService;
 import kr.seungmin.satisskyfactory.hook.SkyblockProvider;
@@ -127,14 +128,9 @@ public final class FactoryGuiListener implements Listener {
             player.closeInventory();
             return;
         }
-        String requiredFeature = requiredFeature(action.type());
-        if (requiredFeature != null && !featureEnabled.test(requiredFeature)) {
-            messages.send(player, "feature-disabled", Map.of("feature", requiredFeature));
-            player.closeInventory();
-            return;
-        }
-        if (requiresStorage(action.type()) && !featureEnabled.test("storage")) {
-            messages.send(player, "feature-disabled", Map.of("feature", "storage"));
+        Optional<String> blockedFeature = FactoryGuiFeaturePolicy.blockedFeature(action.type(), featureEnabled);
+        if (blockedFeature.isPresent()) {
+            messages.send(player, "feature-disabled", Map.of("feature", blockedFeature.get()));
             player.closeInventory();
             return;
         }
@@ -223,11 +219,6 @@ public final class FactoryGuiListener implements Listener {
             return;
         }
         if (action.type().equals("complete_emergency")) {
-            if (!featureEnabled.test("maintenance")) {
-                messages.send(player, "feature-disabled", Map.of("feature", "maintenance"));
-                player.closeInventory();
-                return;
-            }
             if (contracts.completeEmergency(island, player)) {
                 refreshMaintenanceStatus(island);
                 islands.save(island);
@@ -274,41 +265,6 @@ public final class FactoryGuiListener implements Listener {
             machine(holder).ifPresentOrElse(machine -> reclaimMachine(player, island, machine),
                     () -> messages.send(player, "machine-unavailable"));
         }
-    }
-
-    private String requiredFeature(String actionType) {
-        if (actionType.equals("market_page") || actionType.equals("main_market") || actionType.equals("sell_market_item")) {
-            return "market";
-        }
-        if (actionType.equals("storage_page") || actionType.equals("main_storage") || actionType.equals("withdraw_storage")) {
-            return "storage";
-        }
-        if (actionType.equals("main_contracts") || actionType.equals("contracts_back") || actionType.equals("contract_detail")
-                || actionType.equals("complete_contract") || actionType.equals("complete_emergency")) {
-            return "contracts";
-        }
-        if (actionType.equals("main_research") || actionType.equals("unlock_research")) {
-            return "research";
-        }
-        if (actionType.equals("deposit_hand")) {
-            return "storage";
-        }
-        if (actionType.equals("deposit_machine_input") || actionType.equals("withdraw_machine_input")
-                || actionType.equals("withdraw_machine_output") || actionType.equals("select_recipe") || actionType.equals("reclaim_machine")) {
-            return "machines";
-        }
-        return null;
-    }
-
-    private boolean requiresStorage(String actionType) {
-        return actionType.equals("market_page")
-                || actionType.equals("main_market")
-                || actionType.equals("sell_market_item")
-                || actionType.equals("main_contracts")
-                || actionType.equals("contracts_back")
-                || actionType.equals("contract_detail")
-                || actionType.equals("complete_contract")
-                || actionType.equals("complete_emergency");
     }
 
     private Optional<MachineInstance> machine(FactoryGuiHolder holder) {
