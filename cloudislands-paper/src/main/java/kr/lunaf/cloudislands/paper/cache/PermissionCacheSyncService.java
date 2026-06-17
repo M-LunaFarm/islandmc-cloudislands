@@ -9,6 +9,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 public final class PermissionCacheSyncService {
@@ -25,6 +26,10 @@ public final class PermissionCacheSyncService {
     }
 
     public void sync(UUID islandId) {
+        if (Bukkit.isPrimaryThread()) {
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> sync(islandId));
+            return;
+        }
         try {
             cache.invalidate(islandId);
             loadMembers(islandId, client.listIslandMembers(islandId).join());
