@@ -624,7 +624,11 @@ public final class AdminFactoryCommand {
                 "write-gate-research",
                 "runtime-commands-status",
                 "runtime-gui-status",
-                "runtime-placeholder-status"
+                "runtime-placeholder-status",
+                "runtime-placeholder-exposure-policy",
+                "runtime-placeholder-exposed-keys",
+                "runtime-placeholder-denied-internal-fields",
+                "runtime-placeholder-internal-placement-exposure"
         ).forEach(key -> {
             String value = details.get(key);
             if (value != null && !value.isBlank()) {
@@ -1337,6 +1341,14 @@ public final class AdminFactoryCommand {
                         "runtime-placeholder-gate",
                         "runtime-placeholder-status",
                         "runtime-placeholder-policy",
+                        "runtime-placeholder-exposure-policy",
+                        "runtime-placeholder-exposed-keys",
+                        "runtime-placeholder-denied-internal-fields",
+                        "runtime-placeholder-internal-placement-exposure",
+                        "placeholder-exposure-policy",
+                        "placeholder-exposed-keys",
+                        "placeholder-denied-internal-fields",
+                        "placeholder-internal-placement-exposure",
                         "runtime-migration-gate",
                         "runtime-migration-status",
                         "runtime-migration-policy",
