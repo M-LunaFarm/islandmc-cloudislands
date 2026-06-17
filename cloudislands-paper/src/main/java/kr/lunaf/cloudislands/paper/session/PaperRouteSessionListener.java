@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import kr.lunaf.cloudislands.common.security.BackendAccessPolicy;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.RouteTicketConsumer;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -81,13 +82,13 @@ public final class PaperRouteSessionListener implements Listener {
     public void onPreLogin(AsyncPlayerPreLoginEvent event) {
         if (requireProxySourceAllowlist && !proxySourceAllowlist.configured()) {
             proxySourceConfigurationRejections.incrementAndGet();
-            plugin.getLogger().warning("Rejected login because security.proxy-source-allowlist is required but empty");
+            plugin.getLogger().warning("Rejected login because security.proxy-source-allowlist is required but empty; policy=" + BackendAccessPolicy.PAPER_DIRECT_ACCESS_POLICY);
             event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, playerMessage("route-login-proxy-allowlist-required", "섬 서버 프록시 보안 설정이 완료되지 않았습니다. 관리자에게 문의해주세요."));
             return;
         }
         if (!proxySourceAllowlist.allows(event.getAddress())) {
             proxySourceRejections.incrementAndGet();
-            plugin.getLogger().warning("Rejected non-proxy login source for " + event.getUniqueId() + " from " + event.getAddress().getHostAddress());
+            plugin.getLogger().warning("Rejected non-proxy login source for " + event.getUniqueId() + " from " + event.getAddress().getHostAddress() + "; policy=" + BackendAccessPolicy.PAPER_DIRECT_ACCESS_POLICY);
             event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, playerMessage("route-login-proxy-required", "정상적인 프록시 경로로 접속해주세요."));
             return;
         }

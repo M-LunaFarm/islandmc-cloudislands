@@ -421,13 +421,14 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + "\"redisAvailable\":" + redis.available() + ","
             + "\"redisLatencySeconds\":" + redis.latencySeconds() + ","
             + "\"redisFailuresTotal\":" + redis.failuresTotal() + ","
-            + "\"velocityForwardingModePolicy\":\"modern-forwarding-required\","
+            + "\"backendAccessPolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.CONTRACT + "\","
+            + "\"velocityForwardingModePolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.MODERN_FORWARDING_POLICY + "\","
             + "\"velocityForwardingRequired\":" + forwardingRequired + ","
             + "\"forwardingSecretConfigured\":" + forwardingSecretConfigured + ","
-            + "\"forwardingSecretPolicy\":\"required-when-velocity-forwarding-required\","
-            + "\"paperDirectAccessPolicy\":\"deny-backend-direct-player-connections\","
-            + "\"paperOnlineModePolicy\":\"false-only-behind-velocity-with-forwarding-secret\","
-            + "\"backendFirewallPolicy\":\"paper-redis-database-and-object-storage-private-only\","
+            + "\"forwardingSecretPolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.FORWARDING_SECRET_POLICY + "\","
+            + "\"paperDirectAccessPolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PAPER_DIRECT_ACCESS_POLICY + "\","
+            + "\"paperOnlineModePolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PAPER_ONLINE_MODE_POLICY + "\","
+            + "\"backendFirewallPolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.INFRASTRUCTURE_EXPOSURE_POLICY + "\","
             + "\"routeSessionEnforced\":" + routeSessionEnforced + ","
             + "\"hideNodeNames\":" + hideNodeNames + ","
             + "\"playerTopologyPolicy\":\"logical-island-only\","
@@ -714,6 +715,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";periodicSaveFailures=" + (periodicSaveTask == null ? 0L : periodicSaveTask.failuresTotal())
             + ";emptySaveRetryQueue=" + (emptyIslandSaveTask == null ? 0 : emptyIslandSaveTask.retryQueueSize())
             + ";emptySaveFailures=" + (emptyIslandSaveTask == null ? 0L : emptyIslandSaveTask.failuresTotal())
+            + ";backendAccessPolicy=" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.CONTRACT
+            + ";paperDirectAccessPolicy=" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PAPER_DIRECT_ACCESS_POLICY
             + ";generatorKeys=" + (generatorListener == null ? 0 : generatorListener.generatorKeyCount())
             + ";generatorRuleLevels=" + (generatorListener == null ? 0 : generatorListener.ruleLevelCount())
             + ";generatorCacheTtlSeconds=" + (generatorListener == null ? 0L : generatorListener.cacheTtlSeconds())

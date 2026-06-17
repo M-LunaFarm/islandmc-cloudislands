@@ -15,6 +15,7 @@ tasks.jar {
             "CloudIslands-Runtime-State-Policy" to "IslandRuntimeStatePolicy-single-active-transition-owner-fencing-token-stale-write-guard",
             "CloudIslands-Node-Drain-Policy" to "NodeDrainPolicy-drain-blocks-new-activation-route-candidates-keeps-active-islands-single-owner",
             "CloudIslands-Storage-Outage-Policy" to "StorageOutagePolicy-active-islands-stay-local-save-failures-queued-for-retry",
+            "CloudIslands-Backend-Access-Policy" to "BackendAccessPolicy-velocity-modern-forwarding-proxy-only-paper-backends",
             "CloudIslands-Protection-Decision-Policy" to "ProtectionDecisionPolicy-region-index-local-cache-only-no-sync-io",
             "CloudIslands-Cache-Invalidation-Targets" to "player,island-summary,runtime,members,permissions,flags,warps,node-heartbeat",
             "CloudIslands-Cache-Invalidation-Redis-Key-Mapper" to "CacheInvalidationPlan.redisKeysFor-event-to-RedisKeys",

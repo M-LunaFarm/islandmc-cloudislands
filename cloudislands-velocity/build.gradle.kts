@@ -21,6 +21,7 @@ tasks.jar {
             "CloudIslands-Node-Full-Policy" to "hard-full-deny-or-queue-soft-full-avoid-new-activations",
             "CloudIslands-Network-Forwarding-Policy" to "velocity-modern-forwarding-required",
             "CloudIslands-Network-Forwarding-Secret-Path" to "security.forwarding-secret",
+            "CloudIslands-Backend-Access-Policy" to "BackendAccessPolicy-modern-forwarding-paper-backends-private-proxy-only",
             "CloudIslands-Plugin-Messaging-Policy" to "block-cloudislands-plugin-messages-by-default-do-not-use-for-core-control-plane",
             "CloudIslands-Velocity-Setup-Database-Policy" to "setup.database.type-core-api-only-velocity-never-owns-island-state",
             "CloudIslands-Velocity-Setup-Fallback-Policy" to "core-api-primary-with-config-visible-fallback-order-and-lobby-fallback-on-route-failure",

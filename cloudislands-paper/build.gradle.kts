@@ -27,6 +27,7 @@ tasks.jar {
             "CloudIslands-Node-Routing-Hard-Rules" to "ready-or-soft-full,fresh-heartbeat,hard-cap-open,activation-queue-open,object-storage-available,template-supported",
             "CloudIslands-Network-Forwarding-Policy" to "velocity-modern-forwarding-required",
             "CloudIslands-Network-Forwarding-Secret-Path" to "security.forwarding-secret",
+            "CloudIslands-Backend-Access-Policy" to "BackendAccessPolicy-proxy-only-paper-backends-route-session-required",
             "CloudIslands-Plugin-Messaging-Policy" to "no-core-control-plane-over-plugin-messages-bungeecord-connect-only-for-proxy-transfer-fallback",
             "CloudIslands-Route-Session-Security" to "paper-join-requires-core-published-route-session-and-forwarding-secret-before-island-teleport",
             "CloudIslands-Route-Ticket-Policy" to "velocity-issues-paper-consumes-ttl-bound-route-tickets",
