@@ -28,6 +28,24 @@ subprojects {
     }
 }
 
+tasks.register("verifyNoMarkdownDocs") {
+    group = "verification"
+    description = "Fails when markdown documents are present in this deliverable repository."
+    doLast {
+        val markdownFiles = fileTree(projectDir) {
+            include("**/*.md", "**/*.MD", "**/*.mdx", "**/*.MDX", "**/*.markdown", "**/*.MARKDOWN", "**/*.mkd", "**/*.MKD")
+            exclude(".git/**", ".gradle/**", "**/build/**", "**/.gradle/**")
+        }.files.sortedBy { it.relativeTo(projectDir).path }
+        check(markdownFiles.isEmpty()) {
+            "Markdown documents are not allowed in result/: " + markdownFiles.joinToString(", ") { it.relativeTo(projectDir).path }
+        }
+    }
+}
+
+tasks.named("build") {
+    dependsOn(tasks.named("verifyNoMarkdownDocs"))
+}
+
 tasks.register<Copy>("distPlugins") {
     group = "distribution"
     description = "Collects required CloudIslands plugin jars."
