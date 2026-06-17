@@ -3009,6 +3009,7 @@ public final class CloudIslandsCoreApplication {
             + "\"addonExtensionModel\":\"optional-external-plugin-using-cloudislands-api\","
             + "\"addonApiLookupPolicy\":\"cloudislands-provider-first-bukkit-servicesmanager-fallback\","
             + "\"addonApiContractVersion\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.CONTRACT_VERSION) + "\","
+            + "\"addonApiRequiredMetadataKeys\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.requiredMetadataKeysCsv()) + "\","
             + "\"addonApiReadPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.READ_POLICY) + "\","
             + "\"addonApiWriteAuthority\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.WRITE_AUTHORITY) + "\","
             + "\"addonApiSyncEventPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.SYNC_EVENT_POLICY) + "\","

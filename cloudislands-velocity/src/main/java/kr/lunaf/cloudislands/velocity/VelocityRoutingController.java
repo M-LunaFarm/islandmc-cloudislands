@@ -1957,6 +1957,7 @@ public final class VelocityRoutingController {
             + " addonExtension=" + jsonValue(body, "addonExtensionModel")
             + " addonApiLookup=" + jsonValue(body, "addonApiLookupPolicy")
             + " addonApiContract=" + jsonValue(body, "addonApiContractVersion")
+            + " addonApiRequiredKeys=" + jsonValue(body, "addonApiRequiredMetadataKeys")
             + " addonApiRead=" + jsonValue(body, "addonApiReadPolicy")
             + " addonApiWrite=" + jsonValue(body, "addonApiWriteAuthority")
             + " addonApiSyncEvent=" + jsonValue(body, "addonApiSyncEventPolicy")

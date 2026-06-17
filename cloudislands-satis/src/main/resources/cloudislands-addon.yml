@@ -18,6 +18,7 @@ api:
   core-isolation-policy: core-lifecycle-never-depends-on-satis-jar-or-state
   contract:
     contract-version: "1"
+    required-metadata-keys: contract-version,read-policy,write-authority,sync-event-policy,addon-storage-policy,java-plugin-api-policy,internal-api-policy,event-api-policy,core-auth-policy,admin-endpoint-policy,network-exposure-policy,security-posture-summary,topology-privacy-policy,consistency-authority-policy
     read-policy: query-services-use-core-api-or-local-cache-snapshots-no-direct-storage-access
     write-authority: all-island-writes-go-through-core-api-transaction-endpoints
     sync-event-policy: synchronous-paper-events-must-use-local-protection-permission-caches

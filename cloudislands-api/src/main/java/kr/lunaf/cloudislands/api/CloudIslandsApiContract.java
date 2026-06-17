@@ -41,6 +41,10 @@ public final class CloudIslandsApiContract {
         );
     }
 
+    public static String requiredMetadataKeysCsv() {
+        return String.join(",", requiredMetadataKeys());
+    }
+
     public static boolean compatibleMetadata(Map<String, String> metadata) {
         if (metadata == null) {
             return false;
@@ -55,6 +59,7 @@ public final class CloudIslandsApiContract {
     public static Map<String, String> metadata() {
         return Map.ofEntries(
             Map.entry("contract-version", CONTRACT_VERSION),
+            Map.entry("required-metadata-keys", requiredMetadataKeysCsv()),
             Map.entry("read-policy", READ_POLICY),
             Map.entry("write-authority", WRITE_AUTHORITY),
             Map.entry("sync-event-policy", SYNC_EVENT_POLICY),
