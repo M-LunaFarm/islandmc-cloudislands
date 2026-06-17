@@ -313,7 +313,11 @@ public final class ContractService {
     }
 
     private boolean writesEnabled() {
-        return writesEnabled.getAsBoolean();
+        try {
+            return writesEnabled.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 
     private boolean matchesTier(FactoryIsland island, ContractTemplate template) {

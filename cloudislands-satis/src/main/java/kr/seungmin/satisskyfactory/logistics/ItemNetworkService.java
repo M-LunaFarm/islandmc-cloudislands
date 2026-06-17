@@ -72,6 +72,10 @@ public final class ItemNetworkService {
     }
 
     private boolean writesEnabled() {
-        return writesEnabled.getAsBoolean();
+        try {
+            return writesEnabled.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 }

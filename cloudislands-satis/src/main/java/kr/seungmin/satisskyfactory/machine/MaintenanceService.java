@@ -158,7 +158,11 @@ public final class MaintenanceService {
     }
 
     private boolean writesEnabled() {
-        return writesEnabled.getAsBoolean();
+        try {
+            return writesEnabled.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 
     private long maintenanceFee(FactoryIsland island) {

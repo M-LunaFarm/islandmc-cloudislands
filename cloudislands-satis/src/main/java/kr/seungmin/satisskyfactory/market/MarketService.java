@@ -201,7 +201,11 @@ public final class MarketService {
     }
 
     private boolean writesEnabled() {
-        return writesEnabled.getAsBoolean();
+        try {
+            return writesEnabled.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 
     private Optional<SellResult> payout(FactoryIsland island, OfflinePlayer owner, String itemId, long amount) {
