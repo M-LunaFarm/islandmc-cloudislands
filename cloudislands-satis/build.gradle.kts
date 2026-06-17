@@ -76,6 +76,8 @@ tasks.jar {
             "CloudIslands-Satis-Core-API-Bulk-Endpoints" to "global:table/bulk,table-key-value/bulk-save,table/key-value/bulk-save,table/key-value/bulk/save,table/key-value/bulk;island:table/bulk,table-key-value/bulk-save,table/key-value/bulk-save,table/key-value/bulk/save,table/key-value/bulk",
             "CloudIslands-Satis-Core-API-Bulk-Fallback" to "flattened-addon-state-when-enabled",
             "CloudIslands-Addon-Feature-Gates" to "commands,machines,storage,factories,generators,upgrades,missions,menus,gui,lifecycle,resource-nodes,market,contracts,research,maintenance,placeholders,migration,addon-state,route-events,members,permissions,level-values,warps,biomes,chat,templates",
+            "CloudIslands-Addon-Feature-Dependencies" to "resource-nodes:machines,market:storage,contracts:storage,missions:contracts+storage,upgrades:research,menus:gui,route-events:addon-state,members:lifecycle,permissions:lifecycle,level-values:lifecycle,warps:lifecycle,biomes:lifecycle,chat:lifecycle,templates:lifecycle",
+            "CloudIslands-Addon-Compound-Dependency-Separator" to "+",
             "CloudIslands-Addon-Feature-Disable-Policy" to "disabled-features-preserve-data-and-skip-runtime-components",
             "CloudIslands-Addon-Component-Audit-Keys" to "runtime-active-components,runtime-skipped-components,runtime-blocked-components,runtime-component-audit",
             "CloudIslands-Satis-Command-List-Format" to "one-line-per-command",
