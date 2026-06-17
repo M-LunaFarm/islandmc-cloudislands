@@ -81,32 +81,64 @@ public final class SatisIntegrationPolicy {
 
     private SatisIntegrationPolicy() {}
 
+    public static Map<String, String> operationScenarios() {
+        return OPERATION_SCENARIOS;
+    }
+
     public static String operationScenarioSummary() {
         return summary(OPERATION_SCENARIOS);
+    }
+
+    public static List<String> recommendedModeReasons() {
+        return RECOMMENDED_MODE_REASONS;
     }
 
     public static String recommendedModeReasonSummary() {
         return String.join(",", RECOMMENDED_MODE_REASONS);
     }
 
+    public static Map<String, String> componentBoundaries() {
+        return COMPONENT_BOUNDARIES;
+    }
+
     public static String componentBoundarySummary() {
         return summary(COMPONENT_BOUNDARIES);
+    }
+
+    public static Map<String, String> featureOffRuntimeBlocks() {
+        return FEATURE_OFF_RUNTIME_BLOCKS;
     }
 
     public static String featureOffRuntimeBlockSummary() {
         return summary(FEATURE_OFF_RUNTIME_BLOCKS);
     }
 
+    public static List<String> nodeMoveRemapSteps() {
+        return NODE_MOVE_REMAP_STEPS;
+    }
+
     public static String nodeMoveRemapStepSummary() {
         return String.join(">", NODE_MOVE_REMAP_STEPS);
+    }
+
+    public static List<String> failureRecoverySteps() {
+        return FAILURE_RECOVERY_STEPS;
     }
 
     public static String failureRecoveryStepSummary() {
         return String.join(">", FAILURE_RECOVERY_STEPS);
     }
 
+    public static List<String> addonReconnectSteps() {
+        return ADDON_RECONNECT_STEPS;
+    }
+
     public static String addonReconnectStepSummary() {
         return String.join(">", ADDON_RECONNECT_STEPS);
+    }
+
+    public static List<String> completionCriteria() {
+        return COMPLETION_CRITERIA;
     }
 
     public static String completionCriteriaSummary() {

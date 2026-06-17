@@ -212,11 +212,11 @@ public final class SatisAddonIntegrationPolicy {
     }
 
     public static Map<String, String> operationScenarios() {
-        return OPERATION_SCENARIOS;
+        return SatisIntegrationPolicy.operationScenarios();
     }
 
     public static List<String> completionCriteria() {
-        return COMPLETION_CRITERIA;
+        return SatisIntegrationPolicy.completionCriteria();
     }
 
     public static String operationScenarioSummary() {
@@ -224,7 +224,7 @@ public final class SatisAddonIntegrationPolicy {
     }
 
     public static List<String> recommendedModeReasons() {
-        return RECOMMENDED_MODE_REASONS;
+        return SatisIntegrationPolicy.recommendedModeReasons();
     }
 
     public static String recommendedModeReasonSummary() {
@@ -232,7 +232,7 @@ public final class SatisAddonIntegrationPolicy {
     }
 
     public static Map<String, String> componentBoundaries() {
-        return COMPONENT_BOUNDARIES;
+        return SatisIntegrationPolicy.componentBoundaries();
     }
 
     public static String componentBoundarySummary() {
@@ -240,7 +240,7 @@ public final class SatisAddonIntegrationPolicy {
     }
 
     public static Map<String, String> featureOffRuntimeBlocks() {
-        return FEATURE_OFF_RUNTIME_BLOCKS;
+        return SatisIntegrationPolicy.featureOffRuntimeBlocks();
     }
 
     public static String featureOffRuntimeBlockSummary() {
@@ -248,7 +248,7 @@ public final class SatisAddonIntegrationPolicy {
     }
 
     public static List<String> nodeMoveRemapSteps() {
-        return NODE_MOVE_REMAP_STEPS;
+        return SatisIntegrationPolicy.nodeMoveRemapSteps();
     }
 
     public static String nodeMoveRemapStepSummary() {
@@ -256,7 +256,7 @@ public final class SatisAddonIntegrationPolicy {
     }
 
     public static List<String> failureRecoverySteps() {
-        return FAILURE_RECOVERY_STEPS;
+        return SatisIntegrationPolicy.failureRecoverySteps();
     }
 
     public static String failureRecoveryStepSummary() {
@@ -264,7 +264,7 @@ public final class SatisAddonIntegrationPolicy {
     }
 
     public static List<String> addonReconnectSteps() {
-        return ADDON_RECONNECT_STEPS;
+        return SatisIntegrationPolicy.addonReconnectSteps();
     }
 
     public static String addonReconnectStepSummary() {
