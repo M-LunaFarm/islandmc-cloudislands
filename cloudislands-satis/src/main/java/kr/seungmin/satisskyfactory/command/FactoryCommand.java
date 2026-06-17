@@ -600,7 +600,14 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean enabled(String feature) {
-        return featureEnabled == null || featureEnabled.test(feature);
+        if (featureEnabled == null) {
+            return true;
+        }
+        try {
+            return featureEnabled.test(feature);
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 
     private boolean requireFeature(Player player, String feature) {
