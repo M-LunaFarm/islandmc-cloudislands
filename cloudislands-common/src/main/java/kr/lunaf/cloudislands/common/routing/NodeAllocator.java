@@ -48,8 +48,9 @@ public final class NodeAllocator {
     }
 
     public Optional<NodeLoad> selectBestNode(List<NodeLoad> nodes, Instant now, String templateId, String minNodeVersion, String pool) {
-        Map<String, Integer> velocityServerCounts = velocityServerCounts(nodes);
-        List<NodeLoad> eligible = nodes.stream()
+        List<NodeLoad> safeNodes = safeNodes(nodes);
+        Map<String, Integer> velocityServerCounts = velocityServerCounts(safeNodes);
+        List<NodeLoad> eligible = safeNodes.stream()
             .filter(node -> node.inPool(pool))
             .filter(node -> !duplicateVelocityServerName(node, velocityServerCounts))
             .filter(node -> node.eligible(now, heartbeatTimeout))
@@ -72,7 +73,7 @@ public final class NodeAllocator {
     }
 
     private List<NodeLoad> readyNodeCandidates(List<NodeLoad> nodes, Instant now, String templateId, String minNodeVersion, String pool) {
-        List<NodeLoad> safeNodes = nodes == null ? List.of() : nodes;
+        List<NodeLoad> safeNodes = safeNodes(nodes);
         Map<String, Integer> velocityServerCounts = velocityServerCounts(safeNodes);
         return safeNodes.stream()
             .filter(node -> node.inPool(pool))
@@ -87,8 +88,9 @@ public final class NodeAllocator {
         if (targetNodeId == null || targetNodeId.isBlank()) {
             return Optional.empty();
         }
-        Map<String, Integer> velocityServerCounts = velocityServerCounts(nodes);
-        return nodes.stream()
+        List<NodeLoad> safeNodes = safeNodes(nodes);
+        Map<String, Integer> velocityServerCounts = velocityServerCounts(safeNodes);
+        return safeNodes.stream()
             .filter(node -> targetNodeId.equals(node.nodeId()))
             .filter(node -> !duplicateVelocityServerName(node, velocityServerCounts))
             .filter(node -> nodeBlockReason(node, now, templateId, minNodeVersion, pool).isBlank())
@@ -99,8 +101,9 @@ public final class NodeAllocator {
         if (targetNodeId == null || targetNodeId.isBlank()) {
             return "NODE_NOT_FOUND";
         }
-        Map<String, Integer> velocityServerCounts = velocityServerCounts(nodes);
-        for (NodeLoad node : nodes) {
+        List<NodeLoad> safeNodes = safeNodes(nodes);
+        Map<String, Integer> velocityServerCounts = velocityServerCounts(safeNodes);
+        for (NodeLoad node : safeNodes) {
             if (!targetNodeId.equals(node.nodeId())) {
                 continue;
             }
@@ -117,8 +120,9 @@ public final class NodeAllocator {
         boolean anyTemplateNode = false;
         boolean anyVersionNode = false;
         String allocationFallback = "NO_READY_NODE";
-        Map<String, Integer> velocityServerCounts = velocityServerCounts(nodes);
-        for (NodeLoad node : nodes) {
+        List<NodeLoad> safeNodes = safeNodes(nodes);
+        Map<String, Integer> velocityServerCounts = velocityServerCounts(safeNodes);
+        for (NodeLoad node : safeNodes) {
             if (!node.inPool(pool)) {
                 continue;
             }
@@ -300,13 +304,17 @@ public final class NodeAllocator {
 
     private Map<String, Integer> velocityServerCounts(List<NodeLoad> nodes) {
         Map<String, Integer> counts = new LinkedHashMap<>();
-        for (NodeLoad node : nodes) {
+        for (NodeLoad node : safeNodes(nodes)) {
             String key = velocityServerKey(node);
             if (!key.isBlank()) {
                 counts.merge(key, 1, Integer::sum);
             }
         }
         return counts;
+    }
+
+    private List<NodeLoad> safeNodes(List<NodeLoad> nodes) {
+        return nodes == null ? List.of() : nodes;
     }
 
     private boolean duplicateVelocityServerName(NodeLoad node, Map<String, Integer> counts) {

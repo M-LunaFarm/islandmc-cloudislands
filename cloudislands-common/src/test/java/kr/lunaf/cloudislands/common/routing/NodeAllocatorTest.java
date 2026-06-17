@@ -131,6 +131,17 @@ class NodeAllocatorTest {
         assertEquals("NODE_VERSION_TOO_OLD", allocator.targetNodeBlockReason(nodes, NOW, "old-version", "default", "1.2.0", "island"));
     }
 
+    @Test
+    void treatsMissingNodeRegistryAsEmptyPoolInsteadOfFailing() {
+        NodeAllocator allocator = new NodeAllocator(Duration.ofSeconds(5));
+
+        assertTrue(allocator.selectBestNode(null, NOW, "default", "1.0.0", "island").isEmpty());
+        assertTrue(allocator.selectReadyNode(null, NOW, "default", "1.0.0", "island").isEmpty());
+        assertEquals(0L, allocator.readyNodeCandidateCount(null, NOW, "default", "1.0.0", "island"));
+        assertEquals("POOL_EMPTY", allocator.readyNodeBlockReason(null, NOW, "default", "1.0.0", "island"));
+        assertEquals("NODE_NOT_FOUND", allocator.targetNodeBlockReason(null, NOW, "node-a", "default", "1.0.0", "island"));
+    }
+
     private NodeLoad node(String nodeId, String velocityServerName, NodeState state, int players, int activeIslands, double mspt, int activationQueue) {
         return nodeInPool(nodeId, velocityServerName, "island", state, players, activeIslands, mspt, activationQueue);
     }
