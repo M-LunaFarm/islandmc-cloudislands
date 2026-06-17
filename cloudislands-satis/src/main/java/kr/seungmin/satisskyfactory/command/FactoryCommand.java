@@ -254,7 +254,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                 if (args.length > 1 && args[1].equalsIgnoreCase("scan")) {
                     nodes.generateIfMissing(island.islandUuid(), player.getLocation(), location -> isInsideIsland(location, island))
                             .forEach(node -> messages.send(player, "node-scan-result",
-                                    Map.of("item", node.resourceId(), "location", node.location().databaseKey())));
+                                    Map.of("item", node.resourceId())));
                 }
             }
             case "sell" -> {
