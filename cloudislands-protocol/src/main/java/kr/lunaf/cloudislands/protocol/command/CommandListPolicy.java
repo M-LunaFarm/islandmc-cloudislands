@@ -31,7 +31,9 @@ public final class CommandListPolicy {
         String base = oneLine(navigationCommand);
         String previous = safePage > 1 ? base + " " + (safePage - 1) : null;
         String next = safePage < maxPage ? base + " " + (safePage + 1) : null;
-        return new Page(safePage, maxPage, from + 1, to, commands.size(), List.copyOf(entries), previous, next);
+        int displayFrom = commands.isEmpty() ? 0 : from + 1;
+        int displayTo = commands.isEmpty() ? 0 : to;
+        return new Page(safePage, maxPage, displayFrom, displayTo, commands.size(), List.copyOf(entries), previous, next);
     }
 
     public static String oneLine(String command) {
