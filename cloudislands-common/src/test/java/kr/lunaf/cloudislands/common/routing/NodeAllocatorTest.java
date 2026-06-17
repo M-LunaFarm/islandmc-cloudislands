@@ -53,6 +53,27 @@ class NodeAllocatorTest {
     }
 
     @Test
+    void countsOnlyIslandPoolCandidatesWhenOtherServerPoolsArePresent() {
+        NodeAllocator allocator = new NodeAllocator(Duration.ofSeconds(5));
+        List<NodeLoad> nodes = List.of(
+                node("node-a", "server-a", NodeState.READY, 65, 420, 31.0, 4),
+                node("node-b", "server-b", NodeState.READY, 58, 350, 28.0, 3),
+                node("node-c", "server-c", NodeState.READY, 42, 260, 24.0, 2),
+                node("node-d", "server-d", NodeState.READY, 38, 220, 22.0, 2),
+                node("node-e", "server-e", NodeState.READY, 31, 180, 21.0, 1),
+                node("node-f", "server-f", NodeState.READY, 26, 150, 20.0, 1),
+                nodeInPool("lobby-a", "lobby-a", "lobby", NodeState.READY, 0, 0, 18.0, 0),
+                nodeInPool("event-a", "event-a", "event", NodeState.READY, 0, 0, 18.0, 0)
+        );
+
+        NodeLoad selected = allocator.selectReadyNode(nodes, NOW, "default", "1.0.0", "island").orElseThrow();
+
+        assertEquals("node-f", selected.nodeId());
+        assertEquals(6L, allocator.readyNodeCandidateCount(nodes, NOW, "default", "1.0.0", "island"));
+        assertEquals("POOL_MISMATCH", allocator.targetNodeBlockReason(nodes, NOW, "lobby-a", "default", "1.0.0", "island"));
+    }
+
+    @Test
     void ignoresDuplicateVelocityServerNamesInsidePool() {
         NodeAllocator allocator = new NodeAllocator(Duration.ofSeconds(5));
         List<NodeLoad> nodes = List.of(
@@ -92,9 +113,13 @@ class NodeAllocatorTest {
     }
 
     private NodeLoad node(String nodeId, String velocityServerName, NodeState state, int players, int activeIslands, double mspt, int activationQueue) {
+        return nodeInPool(nodeId, velocityServerName, "island", state, players, activeIslands, mspt, activationQueue);
+    }
+
+    private NodeLoad nodeInPool(String nodeId, String velocityServerName, String pool, NodeState state, int players, int activeIslands, double mspt, int activationQueue) {
         return new NodeLoad(
                 nodeId,
-                "island",
+                pool,
                 velocityServerName,
                 "1.2.0",
                 state,
