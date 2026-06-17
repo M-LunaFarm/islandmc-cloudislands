@@ -1,5 +1,8 @@
 package kr.seungmin.satisskyfactory.storage;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 public final class SatisStatePortabilityPolicy {
     public static final String AUTHORITY = "cloudislands-addon-state";
     public static final String NODE_BOUND = "false";
@@ -15,5 +18,21 @@ public final class SatisStatePortabilityPolicy {
     public static final String LOCAL_FALLBACK_RISK = "local-fallback-can-split-state-without-shared-backend";
 
     private SatisStatePortabilityPolicy() {
+    }
+
+    public static Map<String, String> coreApiSyncState() {
+        Map<String, String> values = new LinkedHashMap<>();
+        values.put("core-api-sync-authority", AUTHORITY);
+        values.put("core-api-sync-node-bound", NODE_BOUND);
+        values.put("core-api-sync-portability", PORTABILITY);
+        values.put("core-api-sync-runtime-source", RUNTIME_SOURCE);
+        values.put("core-api-sync-remap-policy", REMAP_POLICY);
+        values.put("core-api-sync-remap-key", REMAP_KEY);
+        values.put("core-api-sync-write-policy", WRITE_POLICY);
+        values.put("core-api-sync-write-fence", WRITE_FENCE);
+        values.put("core-api-sync-duplicate-tick-policy", DUPLICATE_TICK_POLICY);
+        values.put("core-api-sync-node-handoff-policy", NODE_HANDOFF_POLICY);
+        values.put("core-api-sync-addon-removal-policy", ADDON_REMOVAL_POLICY);
+        return Map.copyOf(values);
     }
 }

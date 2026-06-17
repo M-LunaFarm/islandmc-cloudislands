@@ -188,17 +188,7 @@ public final class CoreApiSatisStateService {
             Map<String, String> values = state(valuesByIsland, islandId);
             int tableKeys = tables.values().stream().mapToInt(Map::size).sum();
             values.put("core-api-sync-schema", "1");
-            values.put("core-api-sync-authority", SatisStatePortabilityPolicy.AUTHORITY);
-            values.put("core-api-sync-node-bound", SatisStatePortabilityPolicy.NODE_BOUND);
-            values.put("core-api-sync-portability", SatisStatePortabilityPolicy.PORTABILITY);
-            values.put("core-api-sync-runtime-source", SatisStatePortabilityPolicy.RUNTIME_SOURCE);
-            values.put("core-api-sync-remap-policy", SatisStatePortabilityPolicy.REMAP_POLICY);
-            values.put("core-api-sync-remap-key", SatisStatePortabilityPolicy.REMAP_KEY);
-            values.put("core-api-sync-write-policy", SatisStatePortabilityPolicy.WRITE_POLICY);
-            values.put("core-api-sync-write-fence", SatisStatePortabilityPolicy.WRITE_FENCE);
-            values.put("core-api-sync-duplicate-tick-policy", SatisStatePortabilityPolicy.DUPLICATE_TICK_POLICY);
-            values.put("core-api-sync-node-handoff-policy", SatisStatePortabilityPolicy.NODE_HANDOFF_POLICY);
-            values.put("core-api-sync-addon-removal-policy", SatisStatePortabilityPolicy.ADDON_REMOVAL_POLICY);
+            values.putAll(SatisStatePortabilityPolicy.coreApiSyncState());
             values.put("core-api-sync-updated-at", Instant.now().toString());
             values.put("core-api-sync-keys", Integer.toString(values.size() + tableKeys));
             values.put("core-api-sync-tables", Integer.toString(tables.size()));
