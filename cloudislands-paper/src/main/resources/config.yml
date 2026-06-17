@@ -8,6 +8,7 @@ addons:
     features:
       # Dependencies are enforced even when a child feature is set to true:
       # resource-nodes requires machines, market requires storage, contracts requires storage.
+      # missions requires contracts and storage, upgrades requires research, menus requires gui.
       # route-events requires addon-state because it only writes CloudIslands route diagnostics.
       # Event sub-gates such as members, permissions, level-values and warps require lifecycle.
       # Legacy satismc names are aliases:
@@ -44,6 +45,7 @@ satis:
   features:
     # Dependencies are enforced even when a child feature is set to true:
     # resource-nodes requires machines, market requires storage, contracts requires storage.
+    # missions requires contracts and storage, upgrades requires research, menus requires gui.
     # route-events requires addon-state because it only writes CloudIslands route diagnostics.
     # Event sub-gates such as members, permissions, level-values and warps require lifecycle.
     # Legacy satismc names are aliases:

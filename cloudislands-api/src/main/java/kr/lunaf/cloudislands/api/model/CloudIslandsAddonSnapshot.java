@@ -150,10 +150,19 @@ public record CloudIslandsAddonSnapshot(
         }
         for (Map.Entry<String, String> dependency : featureDependencies().entrySet()) {
             if (dependency.getKey().equals(canonical) || dependency.getKey().equals(requested)) {
-                enabled = enabled && linkedFeatureEnabledIn(source, dependency.getValue(), fallback, new java.util.HashSet<>());
+                enabled = enabled && linkedDependenciesEnabledIn(source, dependency.getValue(), fallback, new java.util.HashSet<>());
             }
         }
         return enabled;
+    }
+
+    private boolean linkedDependenciesEnabledIn(Map<String, Boolean> source, String required, boolean fallback, java.util.Set<String> visited) {
+        for (String dependency : dependencyParts(required)) {
+            if (!linkedFeatureEnabledIn(source, dependency, fallback, visited)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private boolean linkedFeatureEnabledIn(Map<String, Boolean> source, String required, boolean fallback, java.util.Set<String> visited) {
@@ -171,7 +180,7 @@ public record CloudIslandsAddonSnapshot(
         }
         for (Map.Entry<String, String> dependency : featureDependencies().entrySet()) {
             if (dependency.getKey().equals(canonical) || dependency.getKey().equals(requested)) {
-                enabled = enabled && linkedFeatureEnabledIn(source, dependency.getValue(), fallback, visited);
+                enabled = enabled && linkedDependenciesEnabledIn(source, dependency.getValue(), fallback, visited);
             }
         }
         return enabled;
@@ -186,8 +195,8 @@ public record CloudIslandsAddonSnapshot(
         Map<String, String> dependencies = new HashMap<>();
         metadataPairs("feature-dependencies").forEach((feature, required) -> {
             String canonicalFeature = canonicalFeature(feature, aliases);
-            String canonicalRequired = canonicalFeature(required, aliases);
-            if (!canonicalFeature.isBlank() && !canonicalRequired.isBlank() && !canonicalFeature.equals(canonicalRequired)) {
+            String canonicalRequired = canonicalDependencyExpression(required, aliases);
+            if (!canonicalFeature.isBlank() && !canonicalRequired.isBlank() && !dependencyParts(canonicalRequired).contains(canonicalFeature)) {
                 dependencies.putIfAbsent(canonicalFeature, canonicalRequired);
             }
         });
@@ -209,7 +218,7 @@ public record CloudIslandsAddonSnapshot(
         });
         dependencies.forEach((feature, required) -> {
             putResolvedFeatureState(resolved, source, feature, runtime);
-            putResolvedFeatureState(resolved, source, required, runtime);
+            dependencyParts(required).forEach(dependency -> putResolvedFeatureState(resolved, source, dependency, runtime));
         });
         return Map.copyOf(resolved);
     }
@@ -242,6 +251,24 @@ public record CloudIslandsAddonSnapshot(
             }
         }
         return requested;
+    }
+
+    private String canonicalDependencyExpression(String required, Map<String, String> aliases) {
+        return dependencyParts(required).stream()
+            .map(part -> canonicalFeature(part, aliases))
+            .filter(part -> !part.isBlank())
+            .distinct()
+            .collect(java.util.stream.Collectors.joining("+"));
+    }
+
+    private java.util.List<String> dependencyParts(String required) {
+        if (required == null || required.isBlank()) {
+            return java.util.List.of();
+        }
+        return java.util.Arrays.stream(required.split("\\+"))
+            .map(String::trim)
+            .filter(part -> !part.isBlank())
+            .toList();
     }
 
     private Map<String, String> metadataPairs(String key) {

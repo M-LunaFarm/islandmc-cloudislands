@@ -3,7 +3,7 @@ satis:
   features:
     # Dependencies are enforced even when a child feature is set to true:
     # resource-nodes requires machines, market/contracts require storage.
-    # missions requires contracts, upgrades requires research, menus requires gui.
+    # missions requires contracts and storage, upgrades requires research, menus requires gui.
     # route-events requires addon-state because it only writes CloudIslands route diagnostics.
     # Event sub-gates such as members, permissions, level-values and warps require lifecycle.
     # Disabled features do not register active commands, GUI listeners, event listeners, tickers,

@@ -18,18 +18,21 @@ public final class SatisFeatureGateResolver {
             "missions", "contracts",
             "menus", "gui"
     );
-    private static final Map<String, String> DEPENDENCIES = Map.ofEntries(
-            Map.entry("resource-nodes", "machines"),
-            Map.entry("market", "storage"),
-            Map.entry("contracts", "storage"),
-            Map.entry("route-events", "addon-state"),
-            Map.entry("members", "lifecycle"),
-            Map.entry("permissions", "lifecycle"),
-            Map.entry("level-values", "lifecycle"),
-            Map.entry("warps", "lifecycle"),
-            Map.entry("biomes", "lifecycle"),
-            Map.entry("chat", "lifecycle"),
-            Map.entry("templates", "lifecycle")
+    private static final Map<String, List<String>> DEPENDENCIES = Map.ofEntries(
+            Map.entry("resource-nodes", List.of("machines")),
+            Map.entry("market", List.of("storage")),
+            Map.entry("contracts", List.of("storage")),
+            Map.entry("missions", List.of("contracts", "storage")),
+            Map.entry("upgrades", List.of("research")),
+            Map.entry("menus", List.of("gui")),
+            Map.entry("route-events", List.of("addon-state")),
+            Map.entry("members", List.of("lifecycle")),
+            Map.entry("permissions", List.of("lifecycle")),
+            Map.entry("level-values", List.of("lifecycle")),
+            Map.entry("warps", List.of("lifecycle")),
+            Map.entry("biomes", List.of("lifecycle")),
+            Map.entry("chat", List.of("lifecycle")),
+            Map.entry("templates", List.of("lifecycle"))
     );
 
     private SatisFeatureGateResolver() {
@@ -59,8 +62,8 @@ public final class SatisFeatureGateResolver {
         if (!directFeatureEnabled(config, canonical)) {
             return false;
         }
-        String dependency = DEPENDENCIES.get(canonical);
-        return dependency == null || featureEnabled(config, dependency);
+        List<String> dependencies = DEPENDENCIES.get(canonical);
+        return dependencies == null || dependencies.stream().allMatch(dependency -> featureEnabled(config, dependency));
     }
 
     public static String canonical(String feature) {
