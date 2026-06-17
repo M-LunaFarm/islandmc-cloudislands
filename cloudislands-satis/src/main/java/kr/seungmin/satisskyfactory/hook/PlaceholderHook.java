@@ -69,6 +69,18 @@ public final class PlaceholderHook extends PlaceholderExpansion {
         return true;
     }
 
+    public String exposedKeys() {
+        return PlaceholderFeaturePolicy.exposedKeys();
+    }
+
+    public String deniedInternalFields() {
+        return PlaceholderFeaturePolicy.deniedInternalFields();
+    }
+
+    public String exposurePolicy() {
+        return PlaceholderFeaturePolicy.exposurePolicy();
+    }
+
     @Override
     public String onRequest(OfflinePlayer offlinePlayer, String params) {
         Player player = offlinePlayer == null ? null : offlinePlayer.getPlayer();

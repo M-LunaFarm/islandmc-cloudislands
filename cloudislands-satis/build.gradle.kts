@@ -83,6 +83,8 @@ tasks.jar {
             "CloudIslands-Satis-Core-API-Bulk-Fallback" to "flattened-addon-state-when-enabled",
             "CloudIslands-Satis-Core-State-Writer-Gate" to "addonRuntimeEnabled&&features.addon-state&&databaseBackend=CORE_API&&cloudislands-addon-state-api",
             "CloudIslands-Satis-Core-State-Writer-State-Keys" to "runtime-core-api-state-writer,runtime-core-api-state-writer-gate,runtime-core-api-state-writer-block-reason",
+            "CloudIslands-Satis-Placeholder-Exposure-Policy" to "allow-listed-public-island-metrics-only-no-server-node-world-cell-coordinate-placement-or-route-identifiers",
+            "CloudIslands-Satis-Placeholder-State-Keys" to "runtime-placeholder-exposure-policy,runtime-placeholder-exposed-keys,runtime-placeholder-denied-internal-fields,runtime-placeholder-internal-placement-exposure",
             "CloudIslands-Addon-Feature-Gates" to "commands,machines,storage,factories,generators,upgrades,missions,menus,gui,lifecycle,resource-nodes,market,contracts,research,maintenance,placeholders,migration,addon-state,route-events,members,permissions,level-values,warps,biomes,chat,templates",
             "CloudIslands-Addon-Feature-Dependencies" to "resource-nodes:machines,market:storage,contracts:storage,missions:contracts+storage,upgrades:research,menus:gui,route-events:addon-state,members:lifecycle,permissions:lifecycle,level-values:lifecycle,warps:lifecycle,biomes:lifecycle,chat:lifecycle,templates:lifecycle",
             "CloudIslands-Addon-Compound-Dependency-Separator" to "+",

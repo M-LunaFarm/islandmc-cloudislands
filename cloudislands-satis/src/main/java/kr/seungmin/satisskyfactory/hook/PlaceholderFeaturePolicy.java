@@ -1,8 +1,46 @@
 package kr.seungmin.satisskyfactory.hook;
 
+import java.util.Set;
 import java.util.function.Predicate;
 
 public final class PlaceholderFeaturePolicy {
+    private static final Set<String> BASE_KEYS = Set.of(
+            "island_uuid",
+            "tier",
+            "reputation"
+    );
+    private static final Set<String> MAINTENANCE_KEYS = Set.of(
+            "debt",
+            "maintenance_status",
+            "maintenance_score"
+    );
+    private static final Set<String> CONTRACT_KEYS = Set.of(
+            "contracts_active",
+            "contract_slot_bonus"
+    );
+    private static final Set<String> STORAGE_KEYS = Set.of(
+            "storage_used",
+            "storage_capacity",
+            "storage_free"
+    );
+    private static final Set<String> RESOURCE_NODE_KEYS = Set.of(
+            "resource_nodes",
+            "resource_node_count",
+            "nodes"
+    );
+    private static final Set<String> MACHINE_KEYS = Set.of(
+            "factory_score",
+            "machines",
+            "power_ratio",
+            "power_generation",
+            "power_consumption",
+            "battery_stored",
+            "battery_capacity",
+            "battery_percent",
+            "agriculture_boost",
+            "machine_limit_bonus"
+    );
+
     private PlaceholderFeaturePolicy() {
     }
 
@@ -10,27 +48,43 @@ public final class PlaceholderFeaturePolicy {
         if (!enabled(featureEnabled, "placeholders")) {
             return false;
         }
+        if (BASE_KEYS.contains(key)) {
+            return true;
+        }
         if (key.equals("research") || key.startsWith("unlocked_")) {
             return enabled(featureEnabled, "research");
         }
-        if (key.equals("debt") || key.equals("maintenance_status") || key.equals("maintenance_score")) {
+        if (MAINTENANCE_KEYS.contains(key)) {
             return enabled(featureEnabled, "maintenance");
         }
-        if (key.equals("contracts_active") || key.equals("contract_slot_bonus")) {
+        if (CONTRACT_KEYS.contains(key)) {
             return enabled(featureEnabled, "contracts") && enabled(featureEnabled, "storage");
         }
-        if (key.startsWith("storage_")) {
+        if (STORAGE_KEYS.contains(key)) {
             return enabled(featureEnabled, "storage");
         }
-        if (key.equals("resource_nodes") || key.equals("resource_node_count") || key.equals("nodes")) {
+        if (RESOURCE_NODE_KEYS.contains(key)) {
             return enabled(featureEnabled, "resource-nodes");
         }
-        if (key.equals("factory_score") || key.equals("machines")
-                || key.startsWith("power_") || key.startsWith("battery_") || key.equals("agriculture_boost")
-                || key.equals("machine_limit_bonus")) {
+        if (MACHINE_KEYS.contains(key)) {
             return enabled(featureEnabled, "machines");
         }
-        return true;
+        return false;
+    }
+
+    public static String exposedKeys() {
+        return "island_uuid,tier,reputation,research,unlocked_<research>,debt,maintenance_status,maintenance_score,"
+                + "contracts_active,contract_slot_bonus,storage_used,storage_capacity,storage_free,"
+                + "resource_nodes,resource_node_count,nodes,factory_score,machines,power_ratio,power_generation,"
+                + "power_consumption,battery_stored,battery_capacity,battery_percent,agriculture_boost,machine_limit_bonus";
+    }
+
+    public static String deniedInternalFields() {
+        return "server,node,world,cell,coordinates,placement,route,backend-storage-key";
+    }
+
+    public static String exposurePolicy() {
+        return "allow-listed-public-island-metrics-only-no-server-node-world-cell-coordinate-placement-or-route-identifiers";
     }
 
     private static boolean enabled(Predicate<String> featureEnabled, String feature) {
