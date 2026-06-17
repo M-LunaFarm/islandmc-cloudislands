@@ -103,7 +103,7 @@ public final class AdminNodeMenu implements Listener {
         if (slot == 22) {
             CommandListPolicy.Page commandPage = CommandListPolicy.page(adminHelpCommands(messages), 1, "ciadmin command list");
             String title = message(messages, "admin-node-menu-help", "CloudIslands 관리자 명령어 목록");
-            player.sendMessage(title.replace(CommandListPolicy.HEADER_SUFFIX, "").trim() + " " + commandPage.page() + "/" + commandPage.pages() + CommandListPolicy.HEADER_SUFFIX);
+            player.sendMessage(title.replace(CommandListPolicy.HEADER_SUFFIX, "").trim() + " " + commandPage.page() + "/" + commandPage.pages() + " commands=" + commandPage.fromCommand() + "-" + commandPage.toCommand() + "/" + commandPage.totalCommands() + CommandListPolicy.HEADER_SUFFIX);
             commandPage.entries().forEach(command -> player.sendMessage(CommandListPolicy.ENTRY_PREFIX + command));
             if (commandPage.previousCommand() != null && !commandPage.previousCommand().isBlank()) {
                 player.sendMessage(CommandListPolicy.ENTRY_PREFIX + commandPage.previousCommand());
