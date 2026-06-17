@@ -2,6 +2,7 @@ package kr.seungmin.satisskyfactory.command;
 
 import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.Test;
+import kr.seungmin.satisskyfactory.storage.SatisLegacyMigrationPolicy;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -34,12 +35,9 @@ class AdminFactoryCommandTest {
         assertTrue(commands.stream().allMatch(command -> !command.contains("\n") && !command.contains("\r")));
         assertEquals(commands.size(), commands.stream().distinct().count());
         assertTrue(commands.contains("ci admin migration"));
-        assertTrue(commands.contains("ci admin migration status"));
-        assertTrue(commands.contains("ci admin migration scan <sqlitePath>"));
-        assertTrue(commands.contains("ci admin migration dryrun <sqlitePath>"));
-        assertTrue(commands.contains("ci admin migration verify <sqlitePath>"));
-        assertTrue(commands.contains("ci admin migration import <sqlitePath> CONFIRM_IMPORT|CONFIRM_IMPORT:<dryrun-sha256>"));
-        assertTrue(commands.contains("ci admin migration rollback"));
+        for (String policyCommand : SatisLegacyMigrationPolicy.adminCommands()) {
+            assertTrue(commands.contains(policyCommand.replaceFirst("^factory", "ci")));
+        }
     }
 
     @Test
