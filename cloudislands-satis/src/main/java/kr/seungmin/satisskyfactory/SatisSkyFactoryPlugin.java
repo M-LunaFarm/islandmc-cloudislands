@@ -3866,7 +3866,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         DatabaseService.BackendSettings postgresqlSettings = databaseBackendSettings("postgresql");
         DatabaseService.BackendSettings mysqlSettings = databaseBackendSettings("mysql");
         DatabaseService.BackendSettings mariadbSettings = databaseBackendSettings("mariadb");
-        boolean fallbackEnabled = envBoolean("CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED", setupBoolean("database.fallback.enabled", true));
+        boolean fallbackEnabled = envBoolean("CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED",
+                setupBoolean("database.fallback.enabled",
+                        configs.main().getBoolean("addons.cloudislands-satis.database.fallback.enabled", true)));
         List<DatabaseService.StorageBackend> fallbackOrder = databaseFallbackOrder(true);
         DatabaseService.Settings settings = new DatabaseService.Settings(
                 backend,
