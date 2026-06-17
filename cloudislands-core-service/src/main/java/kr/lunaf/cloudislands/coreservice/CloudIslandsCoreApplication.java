@@ -602,7 +602,7 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        route("/v1/addons/state/table/bulk", exchange -> {
+        route("/v1/addons/state/table/bulk-set", exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             String table = JsonFields.text(body, "table", "");
