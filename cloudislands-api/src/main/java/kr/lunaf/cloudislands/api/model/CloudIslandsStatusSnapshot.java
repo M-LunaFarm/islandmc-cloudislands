@@ -27,7 +27,8 @@ public record CloudIslandsStatusSnapshot(
     String eventApiPolicy,
     String coreAuthPolicy,
     String adminEndpointPolicy,
-    String networkExposurePolicy
+    String networkExposurePolicy,
+    String topologyPrivacyPolicy
 ) {
     public CloudIslandsStatusSnapshot(
         String platform,
@@ -159,7 +160,8 @@ public record CloudIslandsStatusSnapshot(
             eventApiPolicy,
             CloudIslandsApiContract.CORE_AUTH_POLICY,
             CloudIslandsApiContract.ADMIN_ENDPOINT_POLICY,
-            CloudIslandsApiContract.NETWORK_EXPOSURE_POLICY
+            CloudIslandsApiContract.NETWORK_EXPOSURE_POLICY,
+            CloudIslandsApiContract.TOPOLOGY_PRIVACY_POLICY
         );
     }
 }
