@@ -458,7 +458,7 @@ public final class RoutingOrchestrator {
             .count();
         long duplicateVelocityServerNames = duplicateVelocityServerNameCount(poolSnapshot);
         long routeCandidateEstimate = allocator.readyNodeCandidateCount(snapshot, Instant.now(), "", "", islandPool);
-        long recommendedCandidates = Math.max(1L, Math.min(poolNodes, 3L));
+        long recommendedCandidates = routeCandidateRecommendedMinimum(poolNodes);
         long candidateShortfall = Math.max(0L, recommendedCandidates - routeCandidateEstimate);
         Map<String, String> details = new LinkedHashMap<>();
         details.put("pool", islandPool);
@@ -479,6 +479,22 @@ public final class RoutingOrchestrator {
         details.put("blockReason", publicBlockReason(debugReason));
         details.put("physicalNodeNamesExposed", "false");
         return Map.copyOf(details);
+    }
+
+    private long routeCandidateRecommendedMinimum(long poolNodes) {
+        if (poolNodes <= 0L) {
+            return 0L;
+        }
+        if (poolNodes == 1L) {
+            return 1L;
+        }
+        if (poolNodes < 5L) {
+            return 2L;
+        }
+        if (poolNodes <= 6L) {
+            return poolNodes;
+        }
+        return Math.min(poolNodes, 6L);
     }
 
     private long duplicateVelocityServerNameCount(List<NodeLoad> poolSnapshot) {
