@@ -197,12 +197,20 @@ public final class MarketService {
     }
 
     private boolean marketBlocked(FactoryIsland island) {
-        return maintenanceEnabled.getAsBoolean() && lockedMarketSalesBlocked && island.maintenanceStatus() == MaintenanceStatus.LOCKED;
+        return maintenanceEnabled() && lockedMarketSalesBlocked && island.maintenanceStatus() == MaintenanceStatus.LOCKED;
     }
 
     private boolean writesEnabled() {
         try {
             return writesEnabled.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private boolean maintenanceEnabled() {
+        try {
+            return maintenanceEnabled.getAsBoolean();
         } catch (RuntimeException ignored) {
             return false;
         }
@@ -215,7 +223,7 @@ public final class MarketService {
         PriceCalculator.Factors factors = calculator().factors(itemId, amount, serverSold, personalSold);
         long gross = calculator().finalPrice(itemId, amount, serverSold, personalSold);
         long debtRepaid = 0;
-        if (maintenanceEnabled.getAsBoolean() && island.maintenanceDebt() > 0) {
+        if (maintenanceEnabled() && island.maintenanceDebt() > 0) {
             double repayRate = island.maintenanceStatus() == MaintenanceStatus.LOCKED ? lockedDebtRepayRate : debtRepayRate;
             debtRepaid = Math.min(island.maintenanceDebt(), Math.round(gross * clamp(repayRate, 0.0, 1.0)));
         }

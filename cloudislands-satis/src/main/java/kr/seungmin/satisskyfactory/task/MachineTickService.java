@@ -367,7 +367,7 @@ public final class MachineTickService {
     }
 
     private boolean passesMaintenanceGate(MachineInstance machine, MachineDefinition definition) {
-        if (!maintenanceEnabled.getAsBoolean()) {
+        if (!maintenanceEnabled()) {
             return true;
         }
         Optional<FactoryIsland> island = islands.find(machine.islandUuid());
@@ -606,7 +606,7 @@ public final class MachineTickService {
     }
 
     private boolean processNodeProducer(MachineInstance machine, MachineDefinition definition) {
-        if (!resourceNodesEnabled.getAsBoolean()) {
+        if (!resourceNodesEnabled()) {
             setStatus(machine, MachineStatus.NO_INPUT);
             return false;
         }
@@ -672,7 +672,7 @@ public final class MachineTickService {
     }
 
     private Optional<ResourceNode> recipeNode(MachineInstance machine, MachineDefinition definition) {
-        if (definition.recipeNodeType() == null || !resourceNodesEnabled.getAsBoolean()) {
+        if (definition.recipeNodeType() == null || !resourceNodesEnabled()) {
             return Optional.empty();
         }
         Optional<ResourceNode> node = machine.linkedResourceNodeId() == null
@@ -926,6 +926,22 @@ public final class MachineTickService {
     private boolean activeEnabled() {
         try {
             return active.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private boolean maintenanceEnabled() {
+        try {
+            return maintenanceEnabled.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private boolean resourceNodesEnabled() {
+        try {
+            return resourceNodesEnabled.getAsBoolean();
         } catch (RuntimeException ignored) {
             return false;
         }

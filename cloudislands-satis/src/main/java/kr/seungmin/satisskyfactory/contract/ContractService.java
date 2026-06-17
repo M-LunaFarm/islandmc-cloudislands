@@ -138,7 +138,7 @@ public final class ContractService {
         if (!active) {
             return false;
         }
-        if (!maintenanceEnabled.getAsBoolean()) {
+        if (!maintenanceEnabled()) {
             return false;
         }
         if (!writesEnabled()) {
@@ -172,7 +172,7 @@ public final class ContractService {
         if (!active) {
             return Optional.empty();
         }
-        if (!maintenanceEnabled.getAsBoolean()) {
+        if (!maintenanceEnabled()) {
             return Optional.empty();
         }
         return emergencyTemplates().stream().findFirst().or(() -> Optional.ofNullable(emergency));
@@ -304,7 +304,7 @@ public final class ContractService {
         }
         island.researchPoints(island.researchPoints() + template.research());
         island.reputation(island.reputation() + template.reputation());
-        if (template.debtRelief() > 0 && maintenanceEnabled.getAsBoolean()) {
+        if (template.debtRelief() > 0 && maintenanceEnabled()) {
             island.maintenanceDebt(Math.max(0, island.maintenanceDebt() - template.debtRelief()));
         }
         database.saveIsland(island);
@@ -315,6 +315,14 @@ public final class ContractService {
     private boolean writesEnabled() {
         try {
             return writesEnabled.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private boolean maintenanceEnabled() {
+        try {
+            return maintenanceEnabled.getAsBoolean();
         } catch (RuntimeException ignored) {
             return false;
         }
