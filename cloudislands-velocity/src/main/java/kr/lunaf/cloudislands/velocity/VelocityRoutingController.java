@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import kr.lunaf.cloudislands.api.CloudIslandsApiContract;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
@@ -146,6 +147,8 @@ public final class VelocityRoutingController {
             + ", actionbar=" + useActionBar
             + ", bossbarLoading=" + useBossBarLoading
             + ", hideNodeNames=" + hideNodeNames
+            + ", topologyPrivacyPolicy=" + CloudIslandsApiContract.TOPOLOGY_PRIVACY_POLICY
+            + ", topologyPrivacyActive=" + hideNodeNames
             + ", routeAttempts=" + routeAttempts.get()
             + ", routeSuccesses=" + routeSuccesses.get()
             + ", routeFailures=" + routeFailures.get()
@@ -170,6 +173,7 @@ public final class VelocityRoutingController {
             + "cloudislands_velocity_route_wait_seconds " + routeWaitSeconds + "\n"
             + "cloudislands_velocity_route_ticket_ttl_seconds " + routeTicketTtlSeconds + "\n"
             + "cloudislands_velocity_hide_node_names " + (hideNodeNames ? 1 : 0) + "\n"
+            + "cloudislands_velocity_topology_privacy_active " + (hideNodeNames ? 1 : 0) + "\n"
             + "cloudislands_velocity_actionbar_enabled " + (useActionBar ? 1 : 0) + "\n"
             + "cloudislands_velocity_bossbar_loading_enabled " + (useBossBarLoading ? 1 : 0) + "\n"
             + "cloudislands_velocity_island_pool_servers " + islandPoolServerCount() + "\n"
