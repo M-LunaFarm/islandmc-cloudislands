@@ -51,4 +51,49 @@ class RuntimeDependencyPolicyTest {
             assertFalse(lower.contains("askyblock"), "plugin.yml declares ASkyBlock runtime dependency: " + line);
         }
     }
+
+    @Test
+    void gradleBuildFilesDoNotDeclareLegacySkyblockDependencies() throws IOException {
+        Path repoRoot = Path.of("").toAbsolutePath().normalize().getParent();
+        List<Path> buildFiles = List.of(
+                repoRoot.resolve("build.gradle.kts"),
+                repoRoot.resolve("cloudislands-satis/build.gradle.kts"),
+                repoRoot.resolve("cloudislands-migration/build.gradle.kts"),
+                repoRoot.resolve("cloudislands-core-service/build.gradle.kts"),
+                repoRoot.resolve("cloudislands-paper/build.gradle.kts"),
+                repoRoot.resolve("cloudislands-velocity/build.gradle.kts")
+        );
+        List<String> dependencyConfigurations = List.of(
+                "api(",
+                "implementation(",
+                "compileOnly(",
+                "runtimeOnly(",
+                "annotationProcessor(",
+                "testImplementation(",
+                "testRuntimeOnly("
+        );
+        List<String> forbiddenProviders = List.of(
+                "superiorskyblock",
+                "bgsoftware",
+                "bentobox",
+                "askyblock"
+        );
+
+        for (Path buildFile : buildFiles) {
+            List<String> dependencyLines = Files.readString(buildFile).lines()
+                    .map(String::trim)
+                    .filter(line -> dependencyConfigurations.stream().anyMatch(line::startsWith))
+                    .toList();
+
+            for (String dependencyLine : dependencyLines) {
+                String lower = dependencyLine.toLowerCase();
+                for (String forbiddenProvider : forbiddenProviders) {
+                    assertFalse(
+                            lower.contains(forbiddenProvider),
+                            buildFile + " declares legacy skyblock dependency " + forbiddenProvider + ": " + dependencyLine
+                    );
+                }
+            }
+        }
+    }
 }
