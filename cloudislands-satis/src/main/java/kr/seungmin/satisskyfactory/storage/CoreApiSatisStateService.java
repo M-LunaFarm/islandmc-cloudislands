@@ -1,6 +1,7 @@
 package kr.seungmin.satisskyfactory.storage;
 
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
+import kr.lunaf.cloudislands.api.model.AddonStateBulkLoadRequest;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.api.service.IslandAddonService;
 import kr.seungmin.satisskyfactory.database.DatabaseService;
@@ -1127,7 +1128,7 @@ public final class CoreApiSatisStateService {
             return Map.of();
         }
         try {
-            Map<String, String> state = safeState(cloudIslandsApi.addons().tableKeyValueBulkLoadState(addonId, table).join());
+            Map<String, String> state = safeState(cloudIslandsApi.addons().tableKeyValueBulkLoadState(AddonStateBulkLoadRequest.global(addonId, table)).join());
             globalTableLoadSuccesses.incrementAndGet();
             return state;
         } catch (RuntimeException exception) {
@@ -1146,7 +1147,7 @@ public final class CoreApiSatisStateService {
             return Map.of();
         }
         try {
-            Map<String, String> state = safeState(cloudIslandsApi.addons().tableKeyValueBulkLoadIslandState(addonId, islandId, table).join());
+            Map<String, String> state = safeState(cloudIslandsApi.addons().tableKeyValueBulkLoadIslandState(AddonStateBulkLoadRequest.island(addonId, islandId, table)).join());
             islandTableLoadSuccesses.incrementAndGet();
             return state;
         } catch (RuntimeException exception) {
