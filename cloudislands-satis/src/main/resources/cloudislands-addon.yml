@@ -16,6 +16,12 @@ api:
   lookup-policy: CloudIslandsProvider-first-Bukkit-ServicesManager-fallback
   bootstrap-policy: register-if-cloudislands-api-available-disable-runtime-components-when-missing
   core-isolation-policy: core-lifecycle-never-depends-on-satis-jar-or-state
+  contract:
+    read-policy: query-services-use-core-api-or-local-cache-snapshots-no-direct-storage-access
+    write-authority: all-island-writes-go-through-core-api-transaction-endpoints
+    sync-event-policy: synchronous-paper-events-must-use-local-protection-permission-caches
+    addon-storage-policy: addons-use-addon-state-api-or-their-own-shared-database-never-cloudislands-internals
+    source-class: kr.lunaf.cloudislands.api.CloudIslandsApiContract
 removal:
   safe: true
   data-retention: preserve-addon-state-by-island-uuid
