@@ -5,6 +5,7 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 
@@ -56,7 +57,11 @@ public final class RedisPendingJobRecovery {
     }
 
     private void requeue(RedisRespConnection redis, String streamId, Map<String, String> job) throws IOException {
-        if (streamId == null || streamId.isBlank() || !job.containsKey("jobId")) {
+        if (streamId == null || streamId.isBlank()) {
+            return;
+        }
+        if (!hasRequiredFields(job)) {
+            skipMalformedRecovered(redis, streamId, job);
             return;
         }
         redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
@@ -73,5 +78,38 @@ public final class RedisPendingJobRecovery {
             "payload", job.getOrDefault("payload", "")
         );
         redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_RECOVERED_REQUEUED", "jobId", job.getOrDefault("jobId", ""), "streamId", streamId);
+    }
+
+    private void skipMalformedRecovered(RedisRespConnection redis, String streamId, Map<String, String> job) throws IOException {
+        redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
+        redis.command(
+            "XADD",
+            RedisKeys.auditStream(),
+            "*",
+            "type", "JOB_RECOVERED_SKIPPED_MALFORMED",
+            "jobId", job.getOrDefault("jobId", ""),
+            "streamId", streamId
+        );
+    }
+
+    private boolean hasRequiredFields(Map<String, String> job) {
+        return validUuid(job.get("jobId")) && present(job, "type") && validUuid(job.get("islandId"));
+    }
+
+    private boolean present(Map<String, String> job, String key) {
+        String value = job.get(key);
+        return value != null && !value.isBlank();
+    }
+
+    private boolean validUuid(String value) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+        try {
+            UUID.fromString(value);
+            return true;
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 }

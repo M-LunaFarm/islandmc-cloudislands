@@ -221,14 +221,18 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
                 boolean supported = type != null && supportedTypes.contains(type);
                 boolean targetMatches = targetNode.isBlank() || targetNode.equals(nodeId);
                 if (supported && targetMatches) {
-                    UUID jobId = UUID.fromString(current.get("jobId"));
-                    if (streamId != null) {
-                        streamIdsByJobId.put(jobId, streamId);
+                    try {
+                        UUID jobId = UUID.fromString(current.get("jobId"));
+                        if (streamId != null) {
+                            streamIdsByJobId.put(jobId, streamId);
+                        }
+                        IslandJob claimedJob = new IslandJob(jobId, type, UUID.fromString(current.get("islandId")), targetNode, parseInt(current.get("priority"), 0), decodePayload(current.getOrDefault("payload", "")), parseInstant(current.get("createdAt")));
+                        claimedJobs.put(jobId, claimedJob);
+                        claimedNodesByJobId.put(jobId, nodeId);
+                        jobs.add(claimedJob);
+                    } catch (RuntimeException exception) {
+                        skipMalformedJob(redis, streamId, current, nodeId, exception);
                     }
-                    IslandJob claimedJob = new IslandJob(jobId, type, UUID.fromString(current.get("islandId")), targetNode, parseInt(current.get("priority"), 0), decodePayload(current.getOrDefault("payload", "")), parseInstant(current.get("createdAt")));
-                    claimedJobs.put(jobId, claimedJob);
-                    claimedNodesByJobId.put(jobId, nodeId);
-                    jobs.add(claimedJob);
                 } else if (streamId != null && type != null && !targetMatches) {
                     requeueMismatchedTarget(redis, streamId, current, nodeId, targetNode);
                 } else if (streamId != null) {
@@ -239,6 +243,22 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             }
         }
         return jobs;
+    }
+
+    private void skipMalformedJob(RedisRespConnection redis, String streamId, Map<String, String> job, String nodeId, RuntimeException exception) throws IOException {
+        if (streamId != null && !streamId.isBlank()) {
+            redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
+        }
+        redis.command(
+            "XADD",
+            RedisKeys.auditStream(),
+            "*",
+            "type", "JOB_SKIPPED_MALFORMED",
+            "jobId", job.getOrDefault("jobId", ""),
+            "streamId", streamId == null ? "" : streamId,
+            "nodeId", nodeId,
+            "error", exception.getClass().getSimpleName()
+        );
     }
 
     private void requeueMismatchedTarget(RedisRespConnection redis, String streamId, Map<String, String> job, String nodeId, String targetNode) throws IOException {
