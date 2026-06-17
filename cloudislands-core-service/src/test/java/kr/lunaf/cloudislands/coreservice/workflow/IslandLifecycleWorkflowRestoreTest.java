@@ -63,6 +63,32 @@ class IslandLifecycleWorkflowRestoreTest {
         assertEquals(true, eventJson.contains("\"rollbackPolicy\":\"" + BundleRestorePolicy.ROLLBACK_POLICY + "\""));
     }
 
+    @Test
+    void activeResetQueuesBeforeResetSnapshotPolicy() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        islands.createOwnedIsland(ISLAND, OWNER, "default", "reset target");
+        runtimes.markActive(ISLAND, "island-2", "ci_shard_002", 7, 8, 42L);
+
+        IslandLifecycleWorkflow.Result result = workflow(runtimes, islands, jobs, events).reset(ISLAND, "player-request");
+
+        assertEquals(true, result.accepted());
+        assertEquals("RESET_QUEUED", result.code());
+        assertEquals(IslandState.ACTIVATING, runtimes.find(ISLAND).orElseThrow().state());
+        List<IslandJob> queued = jobs.snapshot();
+        assertEquals(1, queued.size());
+        IslandJob reset = queued.get(0);
+        assertEquals(IslandJobType.RESET_ISLAND, reset.type());
+        assertEquals("player-request", reset.payload().get("reason"));
+        assertEquals("BEFORE_RESET", reset.payload().get("preMutationReason"));
+        assertEquals("true", reset.payload().get("preMutationSnapshotRequired"));
+        assertEquals("ci_shard_002", reset.payload().get("worldName"));
+        assertEquals("7", reset.payload().get("cellX"));
+        assertEquals("8", reset.payload().get("cellZ"));
+    }
+
     private IslandLifecycleWorkflow workflow(
         InMemoryIslandRuntimeRepository runtimes,
         InMemoryIslandRepository islands,

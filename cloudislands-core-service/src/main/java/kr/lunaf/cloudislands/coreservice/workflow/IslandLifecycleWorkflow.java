@@ -27,6 +27,8 @@ public final class IslandLifecycleWorkflow {
     public static final String RESTORE_SUPPORTED_FORMATS = BundleRestorePolicy.SUPPORTED_FORMATS;
     public static final String RESTORE_ROLLBACK_POLICY = BundleRestorePolicy.ROLLBACK_POLICY;
     public static final String PRE_RESTORE_REASON = "BEFORE_RESTORE";
+    public static final String DEACTIVATION_SNAPSHOT_REASON = "DEACTIVATION";
+    public static final String BEFORE_RESET_REASON = "BEFORE_RESET";
 
     private final IslandRuntimeRepository runtimes;
     private final IslandRepository islands;
@@ -142,7 +144,7 @@ public final class IslandLifecycleWorkflow {
         IslandRuntimeSnapshot runtime = runtimes.markSaving(islandId);
         islands.setState(islandId, IslandState.SAVING);
         try {
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DEACTIVATE_ISLAND, islandId, runtime.activeNode(), 0, Map.of("fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DEACTIVATE_ISLAND, islandId, runtime.activeNode(), 0, Map.of("fencingToken", Long.toString(runtime.fencingToken()), "reason", DEACTIVATION_SNAPSHOT_REASON), Instant.now()));
         } catch (RuntimeException exception) {
             return jobQueueFailed(islandId, IslandState.ERROR_SAVING);
         }
@@ -330,7 +332,13 @@ public final class IslandLifecycleWorkflow {
         }
         islands.setState(islandId, IslandState.ACTIVATING);
         try {
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESET_ISLAND, islandId, node.nodeId(), 40, Map.of("templateId", templateId, "reason", safeReason, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESET_ISLAND, islandId, node.nodeId(), 40, Map.of(
+                "templateId", templateId,
+                "reason", safeReason,
+                "preMutationReason", BEFORE_RESET_REASON,
+                "preMutationSnapshotRequired", "true",
+                "fencingToken", Long.toString(runtime.fencingToken())
+            ), Instant.now()));
         } catch (RuntimeException exception) {
             releaseActivationLock(lease);
             return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
@@ -440,6 +448,8 @@ public final class IslandLifecycleWorkflow {
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESET_ISLAND, islandId, current.activeNode(), 40, Map.of(
                 "templateId", templateId,
                 "reason", reason,
+                "preMutationReason", BEFORE_RESET_REASON,
+                "preMutationSnapshotRequired", "true",
                 "fencingToken", Long.toString(current.fencingToken()),
                 "worldName", current.activeWorld() == null ? "ci_shard_001" : current.activeWorld(),
                 "cellX", current.cellX() == null ? "0" : Integer.toString(current.cellX()),

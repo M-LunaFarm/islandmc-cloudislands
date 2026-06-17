@@ -3663,8 +3663,8 @@ public final class CloudIslandsCoreApplication {
             String fencingToken = runtime.map(value -> Long.toString(value.fencingToken())).orElse("0");
             islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DEACTIVATING);
             runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DEACTIVATING);
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DELETE_ISLAND, islandId, targetNode, 50, Map.of("reason", reason, "ownerUuid", ownerUuid.toString(), "fencingToken", fencingToken), java.time.Instant.now()));
-            events.publish(CloudIslandEventType.ISLAND_DELETE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "targetNode", targetNode, "reason", reason));
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DELETE_ISLAND, islandId, targetNode, 50, Map.of("reason", "BEFORE_DELETE", "deleteReason", reason, "ownerUuid", ownerUuid.toString(), "fencingToken", fencingToken), java.time.Instant.now()));
+            events.publish(CloudIslandEventType.ISLAND_DELETE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "targetNode", targetNode, "reason", reason, "snapshotReason", "BEFORE_DELETE"));
             return false;
         }
         islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.BACKUP_BEFORE_DELETE);
@@ -3685,11 +3685,11 @@ public final class CloudIslandsCoreApplication {
         }
         try {
             long snapshotNo = System.currentTimeMillis();
-            IslandStorage.StoredBundle storedBundle = deleteStorage.writeDeleteBackupFromLatest(islandId, snapshotNo, reason == null || reason.isBlank() ? "BEFORE_DELETE" : reason);
+            IslandStorage.StoredBundle storedBundle = deleteStorage.writeDeleteBackupFromLatest(islandId, snapshotNo, "BEFORE_DELETE");
             String storagePath = storedBundle.storagePath() == null || storedBundle.storagePath().isBlank()
                 ? "islands/" + islandId + "/backups/delete-" + String.format("%06d", snapshotNo) + "/bundle.tar.zst"
                 : storedBundle.storagePath();
-            recordSnapshotAndPublish(islandId, snapshotNo, storagePath, reason, storedBundle.checksum(), storedBundle.sizeBytes(), "");
+            recordSnapshotAndPublish(islandId, snapshotNo, storagePath, "BEFORE_DELETE", storedBundle.checksum(), storedBundle.sizeBytes(), "");
             deleteStorage.deleteLiveState(islandId);
             return true;
         } catch (IOException exception) {

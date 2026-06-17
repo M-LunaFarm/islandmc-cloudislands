@@ -106,7 +106,7 @@ public final class JobCompletionService {
             if (!markInactiveFromJob(job)) {
                 return;
             }
-            long snapshotNo = recordCompletedSnapshot(job, job.type().name(), true);
+            long snapshotNo = recordCompletedSnapshot(job, "DEACTIVATION", true);
             setIslandState(job.islandId(), IslandState.INACTIVE_READY);
             publishMigrationActivation(job);
             events.publish(CloudIslandEventType.ISLAND_DEACTIVATED.name(), Map.of(
