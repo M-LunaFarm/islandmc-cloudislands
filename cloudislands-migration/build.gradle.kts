@@ -1,5 +1,9 @@
 plugins { `java-library` }
 
+fun embeddedOutput(projectName: String) =
+    (project(projectName).extensions.getByName("sourceSets") as org.gradle.api.tasks.SourceSetContainer)
+        .named("main").get().output
+
 dependencies {
     implementation(project(":cloudislands-api"))
     implementation(project(":cloudislands-storage"))
@@ -7,6 +11,13 @@ dependencies {
 }
 
 tasks.jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    listOf(
+        ":cloudislands-api",
+        ":cloudislands-storage"
+    ).forEach { embeddedProject ->
+        from(embeddedOutput(embeddedProject))
+    }
     manifest {
         attributes(
             "CloudIslands-Migration-Source" to "SuperiorSkyblock2-read-only-scan",
