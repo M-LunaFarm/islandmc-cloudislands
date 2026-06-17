@@ -25,6 +25,9 @@ public record CoreServiceConfig(
     boolean setupDatabaseAutoSchema,
     boolean setupDatabaseFallbackEnabled,
     String setupDatabaseFallbackOrder,
+    boolean setupDatabaseFallbackRequireSharedBeforeLocal,
+    boolean setupDatabaseFallbackLocalLast,
+    String setupDatabaseFallbackProductionSafeOrder,
     String setupDatabaseCoreApiBaseUrl,
     boolean setupDatabaseCoreApiAuthTokenConfigured,
     boolean setupDatabaseCoreApiAdminTokenConfigured,
@@ -85,6 +88,9 @@ public record CoreServiceConfig(
             bool("CI_DB_AUTO_SCHEMA", configBoolean(config, "setup.database.auto-schema", configBoolean(config, "setup.database-auto-schema", false))),
             bool("CI_DB_FALLBACK_ENABLED", configBoolean(config, "setup.database.fallback.enabled", configBoolean(config, "setup.database-fallback-enabled", true))),
             env("CI_DB_FALLBACK_ORDER", setupDatabaseFallbackOrder(config)),
+            bool("CI_DB_FALLBACK_REQUIRE_SHARED_BEFORE_LOCAL", configBoolean(config, "setup.database.fallback.require-shared-before-local", true)),
+            bool("CI_DB_FALLBACK_LOCAL_LAST", configBoolean(config, "setup.database.fallback.local-fallback-last", true)),
+            env("CI_DB_FALLBACK_PRODUCTION_SAFE_ORDER", setting(config, "setup.database.fallback.production-safe-order", setupDatabaseFallbackProductionSafeOrder(config))),
             env("CI_SETUP_CORE_API_BASE_URL", setupDatabaseCoreApiSetting(config, "base-url", setupDatabaseCoreApiSetting(config, "url", setting(config, "core-api.base-url", "")))),
             !env("CI_SETUP_CORE_API_AUTH_TOKEN", setupDatabaseCoreApiSetting(config, "auth-token", setting(config, "core-api.auth-token", env("CI_CORE_TOKEN", "")))).isBlank(),
             !env("CI_SETUP_CORE_API_ADMIN_TOKEN", setupDatabaseCoreApiSetting(config, "admin-token", setting(config, "core-api.admin-token", env("CI_ADMIN_TOKEN", "")))).isBlank(),
@@ -315,7 +321,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseAutoSchema, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, setupDatabaseCoreApiBaseUrl, setupDatabaseCoreApiAuthTokenConfigured, setupDatabaseCoreApiAdminTokenConfigured, setupDatabaseCoreApiTimeoutMillis, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, rateLimitRequests, rateLimitWindow);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseAutoSchema, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, setupDatabaseFallbackRequireSharedBeforeLocal, setupDatabaseFallbackLocalLast, setupDatabaseFallbackProductionSafeOrder, setupDatabaseCoreApiBaseUrl, setupDatabaseCoreApiAuthTokenConfigured, setupDatabaseCoreApiAdminTokenConfigured, setupDatabaseCoreApiTimeoutMillis, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, rateLimitRequests, rateLimitWindow);
     }
 
     public static String configuredDatabaseTypeSource() {
@@ -612,13 +618,47 @@ public record CoreServiceConfig(
     private static String setupDatabaseFallbackOrder(Map<String, String> config) {
         String nested = setting(config, "setup.database.fallback.order", "");
         if (!nested.isBlank()) {
-            return nested;
+            return normalizeSetupDatabaseFallbackOrder(config, nested);
         }
         String legacy = setting(config, "setup.database-fallback-order", "");
         if (!legacy.isBlank()) {
-            return legacy;
+            return normalizeSetupDatabaseFallbackOrder(config, legacy);
+        }
+        return normalizeSetupDatabaseFallbackOrder(config, setupDatabaseFallbackProductionSafeOrder(config));
+    }
+
+    private static String setupDatabaseFallbackProductionSafeOrder(Map<String, String> config) {
+        String configured = setting(config, "setup.database.fallback.production-safe-order", "");
+        if (!configured.isBlank()) {
+            return configured;
         }
         return "POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC";
+    }
+
+    private static String normalizeSetupDatabaseFallbackOrder(Map<String, String> config, String order) {
+        boolean localLast = configBoolean(config, "setup.database.fallback.local-fallback-last", true);
+        boolean sharedFirst = configBoolean(config, "setup.database.fallback.require-shared-before-local", true);
+        if (!localLast && !sharedFirst) {
+            return order;
+        }
+        java.util.List<String> shared = new java.util.ArrayList<>();
+        java.util.List<String> local = new java.util.ArrayList<>();
+        for (String entry : order.split(",")) {
+            String normalized = normalizeDatabaseType(entry);
+            if (normalized.isBlank()) {
+                continue;
+            }
+            if ("IN_MEMORY".equals(normalized) || "UNSUPPORTED_JDBC".equals(normalized) || "SQLITE".equals(normalized)) {
+                local.add(normalized);
+            } else {
+                shared.add(normalized);
+            }
+        }
+        if (localLast || sharedFirst) {
+            shared.addAll(local);
+            return String.join(",", shared);
+        }
+        return order;
     }
 
     private static String setupJdbcUrl(Map<String, String> config, String fallback) {
