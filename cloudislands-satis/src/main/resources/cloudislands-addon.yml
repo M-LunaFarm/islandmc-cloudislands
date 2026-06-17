@@ -245,3 +245,9 @@ features:
     - biomes
     - chat
     - templates
+commands:
+  list-format: one-line-per-command
+  list-entry-prefix: "> /"
+  list-page-size: 12
+  player-list-command: factory command list [page]
+  admin-list-command: factory admin command list [page]
