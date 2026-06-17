@@ -3026,6 +3026,12 @@ public final class CloudIslandsCoreApplication {
             + "\"routeDebugReasonPolicy\":\"raw-routing-block-reason-visible-only-in-admin-route-debug-events\","
             + "\"routeTransferFailurePolicy\":\"clear-ticket-session-and-show-public-message-or-return-lobby\","
             + "\"softFullRoutingPolicy\":\"new-and-inactive-islands-use-ready-node-active-owner-member-reserve-current-node-visitors-queue-or-limit\","
+            + "\"newActivationSoftFullPolicy\":\"" + escape(config.softFullPolicy()) + "\","
+            + "\"newActivationSoftFullAvoided\":" + avoidsSoftFullNewActivations(config.softFullPolicy()) + ","
+            + "\"newActivationHardFullPolicy\":\"" + escape(config.hardFullPolicy()) + "\","
+            + "\"newActivationHardFullAllowed\":" + allowsHardFullNewActivations(config.hardFullPolicy()) + ","
+            + "\"softFullNewActivationBehavior\":\"ready-node-preferred-soft-full-avoided-unless-policy-allows\","
+            + "\"softFullExistingRouteBehavior\":\"active-owner-member-routes-can-use-current-soft-full-node-visitors-queue-or-limit\","
             + "\"moduleLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.requiredModuleSummary()) + "\","
             + "\"coreModuleLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.requiredModuleSummary()) + "\","
             + "\"addonModuleLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.optionalExtensionModuleSummary()) + "\","
@@ -3129,6 +3135,9 @@ public final class CloudIslandsCoreApplication {
             + "\"islandPoolDefaultNodeIdentityRiskCount\":" + islandPoolDefaultNodeIdentityRiskCount(config, nodes) + ","
             + "\"softFullPolicy\":\"" + escape(config.softFullPolicy()) + "\","
             + "\"hardFullPolicy\":\"" + escape(config.hardFullPolicy()) + "\","
+            + "\"softFullNewActivationAvoided\":" + avoidsSoftFullNewActivations(config.softFullPolicy()) + ","
+            + "\"hardFullNewActivationAllowed\":" + allowsHardFullNewActivations(config.hardFullPolicy()) + ","
+            + "\"nodeAllocatorNewActivationFallback\":\"READY nodes first, SOFT_FULL skipped by default so Island-2/next ready node receives new work when Island-1 is soft-full\","
             + "\"migrationPolicy\":\"" + escape(config.migrationPolicy()) + "\","
             + "\"superiorSkyblock2MigrationEnabled\":" + config.superiorSkyblock2MigrationEnabled() + ","
             + "\"superiorSkyblock2MigrationInputOnly\":true,"
@@ -3226,6 +3235,10 @@ public final class CloudIslandsCoreApplication {
             + "\"homeRouteFlowPolicy\":\"velocity-command-core-runtime-check-active-node-or-best-node-activation-route-ticket-ready-connect-paper-teleport\","
             + "\"visitRouteFlowPolicy\":\"target-island-lookup-public-ban-permission-check-active-or-activate-visitor-ticket-connect-visitor-spawn\","
             + "\"softFullRoutingPolicy\":\"new-and-inactive-islands-avoid-soft-full-nodes-active-members-may-use-reserved-slots-visitors-queue-or-deny\","
+            + "\"newActivationSoftFullPolicy\":\"" + escape(config.softFullPolicy()) + "\","
+            + "\"newActivationSoftFullAvoided\":" + avoidsSoftFullNewActivations(config.softFullPolicy()) + ","
+            + "\"newActivationHardFullPolicy\":\"" + escape(config.hardFullPolicy()) + "\","
+            + "\"newActivationHardFullAllowed\":" + allowsHardFullNewActivations(config.hardFullPolicy()) + ","
             + "\"portableIslandPolicy\":\"islands-are-global-portable-bundles-not-fixed-to-a-server-node\","
             + "\"portableIslandResourceModel\":\"" + kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.RESOURCE_MODEL + "\","
             + "\"portableIslandBundleModel\":\"" + kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.BUNDLE_MODEL + "\","
@@ -5023,6 +5036,20 @@ public final class CloudIslandsCoreApplication {
             + "\"nodeProtocolUpgradeHint\":\"" + escape(current.upgradeHint()) + "\","
             + "\"nodeHeartbeatEndpoint\":\"/v1/nodes/heartbeat\""
             + "}";
+    }
+
+    private static boolean avoidsSoftFullNewActivations(String policy) {
+        return policy == null
+            || policy.isBlank()
+            || policy.equalsIgnoreCase("AVOID_NEW_ACTIVATIONS")
+            || policy.equalsIgnoreCase("READY_ONLY");
+    }
+
+    private static boolean allowsHardFullNewActivations(String policy) {
+        return policy != null
+            && (policy.equalsIgnoreCase("ALLOW_NEW_ACTIVATIONS")
+                || policy.equalsIgnoreCase("ALLOW")
+                || policy.equalsIgnoreCase("IGNORE_HARD_FULL"));
     }
 
     private static NodeHeartbeatRequest heartbeat(String body) {
