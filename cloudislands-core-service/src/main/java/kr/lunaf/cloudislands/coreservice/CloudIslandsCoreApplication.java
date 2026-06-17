@@ -2887,6 +2887,10 @@ public final class CloudIslandsCoreApplication {
             + "\"coreSetupDatabaseCoreApiFallbackConfigured\":" + config.setupDatabaseCoreApiFallbackConfigured() + ","
             + "\"coreSetupDatabaseFallbackReason\":\"" + escape(config.setupDatabaseFallbackReason()) + "\","
             + "\"coreSetupDatabaseFallbackSummary\":\"" + escape(config.setupDatabaseFallbackSummary()) + "\","
+            + "\"coreSetupDatabaseFallbackCandidateChain\":\"" + escape(coreSetupFallbackCandidateChain(config)) + "\","
+            + "\"coreSetupDatabaseFallbackReadyBackends\":\"" + escape(coreSetupFallbackReadyBackends(config)) + "\","
+            + "\"coreSetupDatabaseFallbackMissingBackends\":\"" + escape(coreSetupFallbackMissingBackends(config)) + "\","
+            + "\"coreSetupDatabaseFallbackDecision\":\"" + escape(coreSetupFallbackDecision(config)) + "\","
             + "\"coreSetupDatabaseDurable\":" + config.setupDatabaseDurable() + ","
             + "\"coreSetupDatabaseProductionDurable\":" + config.setupDatabaseProductionDurable() + ","
             + "\"coreSetupDatabaseFallbackSafetyForced\":" + config.setupDatabaseFallbackSafetyForced() + ","
@@ -3224,6 +3228,103 @@ public final class CloudIslandsCoreApplication {
             + ":repo=" + (config.jdbcRepositories() ? "JDBC" : "IN_MEMORY")
             + ",jobs=" + (config.jdbcJobs() ? "JDBC" : config.redisJobs() ? "REDIS" : "IN_MEMORY")
             + ",order=" + config.setupDatabaseFallbackOrder();
+    }
+
+    private static String coreSetupFallbackCandidateChain(CoreServiceConfig config) {
+        return String.join(">", coreSetupFallbackCandidates(config));
+    }
+
+    private static String coreSetupFallbackReadyBackends(CoreServiceConfig config) {
+        java.util.List<String> ready = new java.util.ArrayList<>();
+        for (String candidate : coreSetupFallbackCandidates(config)) {
+            if (coreSetupFallbackCandidateReady(config, candidate)) {
+                ready.add(candidate);
+            }
+        }
+        return ready.isEmpty() ? "NONE" : String.join(",", ready);
+    }
+
+    private static String coreSetupFallbackMissingBackends(CoreServiceConfig config) {
+        java.util.List<String> missing = new java.util.ArrayList<>();
+        for (String candidate : coreSetupFallbackCandidates(config)) {
+            if (!coreSetupFallbackCandidateReady(config, candidate)) {
+                missing.add(candidate + ":" + coreSetupFallbackCandidateMissingReason(config, candidate));
+            }
+        }
+        return missing.isEmpty() ? "NONE" : String.join(",", missing);
+    }
+
+    private static String coreSetupFallbackDecision(CoreServiceConfig config) {
+        return "requested=" + config.setupDatabaseRequestedBackend()
+            + ",target=" + config.setupDatabaseFallbackTarget()
+            + ",effective=" + config.setupDatabaseEffectiveBackend()
+            + ",ready=" + coreSetupFallbackReadyBackends(config)
+            + ",missing=" + coreSetupFallbackMissingBackends(config)
+            + ",reason=" + config.setupDatabaseFallbackReason();
+    }
+
+    private static java.util.List<String> coreSetupFallbackCandidates(CoreServiceConfig config) {
+        String order = config.setupDatabaseFallbackOrder();
+        if (order == null || order.isBlank()) {
+            order = "POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC";
+        }
+        java.util.List<String> candidates = new java.util.ArrayList<>();
+        for (String raw : order.split("[,>\\s]+")) {
+            String candidate = normalizeSetupBackend(raw);
+            if (!candidate.isBlank() && !candidates.contains(candidate)) {
+                candidates.add(candidate);
+            }
+        }
+        if (candidates.isEmpty()) {
+            candidates.add("POSTGRESQL");
+            candidates.add("MYSQL");
+            candidates.add("MARIADB");
+            candidates.add("CORE_API");
+            candidates.add("UNSUPPORTED_JDBC");
+        }
+        return candidates;
+    }
+
+    private static boolean coreSetupFallbackCandidateReady(CoreServiceConfig config, String candidate) {
+        String effective = jdbcBackend(config.jdbcUrl());
+        if ("POSTGRESQL".equals(candidate) || "MYSQL".equals(candidate) || "MARIADB".equals(candidate)) {
+            return candidate.equals(effective) && coreJdbcSupported(config.jdbcUrl());
+        }
+        if ("CORE_API".equals(candidate)) {
+            return config.setupDatabaseCoreApiClientReady();
+        }
+        if ("IN_MEMORY".equals(candidate) || "UNSUPPORTED_JDBC".equals(candidate)) {
+            return "IN_MEMORY_FALLBACK".equals(config.setupDatabaseEffectiveBackend())
+                || "SAFE_IN_MEMORY_CORE_FALLBACK".equals(config.setupDatabaseEffectiveAuthority());
+        }
+        return false;
+    }
+
+    private static String coreSetupFallbackCandidateMissingReason(CoreServiceConfig config, String candidate) {
+        String effective = jdbcBackend(config.jdbcUrl());
+        if ("POSTGRESQL".equals(candidate) || "MYSQL".equals(candidate) || "MARIADB".equals(candidate)) {
+            return candidate.equals(effective) ? "jdbc-not-supported" : "not-selected-or-not-configured";
+        }
+        if ("CORE_API".equals(candidate)) {
+            return config.setupDatabaseCoreApiClientMode() ? "core-api-url-or-token-missing" : "core-api-not-selected";
+        }
+        if ("IN_MEMORY".equals(candidate) || "UNSUPPORTED_JDBC".equals(candidate)) {
+            return "safety-fallback-not-active";
+        }
+        return "unknown-backend";
+    }
+
+    private static String normalizeSetupBackend(String backend) {
+        String value = backend == null ? "" : backend.trim().toUpperCase(Locale.ROOT).replace('-', '_');
+        return switch (value) {
+            case "", "NONE" -> "";
+            case "POSTGRES", "PG" -> "POSTGRESQL";
+            case "MARIA" -> "MARIADB";
+            case "CORE", "COREAPI", "CLOUDISLANDS", "CLOUDISLANDS_API" -> "CORE_API";
+            case "MEMORY", "LOCAL", "LOCAL_SQLITE" -> "IN_MEMORY";
+            case "UNSUPPORTED" -> "UNSUPPORTED_JDBC";
+            default -> value;
+        };
     }
 
     private static long islandPoolNodeCount(CoreServiceConfig config, NodeRegistry nodes) {
