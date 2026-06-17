@@ -177,30 +177,6 @@ public final class PlaceholderHook extends PlaceholderExpansion {
     }
 
     private boolean canResolve(String key) {
-        if (key.equals("research") || key.startsWith("unlocked_")) {
-            return enabled("research");
-        }
-        if (key.equals("debt") || key.equals("maintenance_status") || key.equals("maintenance_score")) {
-            return enabled("maintenance");
-        }
-        if (key.equals("contracts_active") || key.equals("contract_slot_bonus")) {
-            return enabled("contracts") && enabled("storage");
-        }
-        if (key.startsWith("storage_")) {
-            return enabled("storage");
-        }
-        if (key.equals("resource_nodes") || key.equals("resource_node_count") || key.equals("nodes")) {
-            return enabled("resource-nodes");
-        }
-        if (key.equals("factory_score") || key.equals("machines")
-                || key.startsWith("power_") || key.startsWith("battery_") || key.equals("agriculture_boost")
-                || key.equals("machine_limit_bonus")) {
-            return enabled("machines");
-        }
-        return true;
-    }
-
-    private boolean enabled(String feature) {
-        return featureEnabled == null || featureEnabled.test(feature);
+        return PlaceholderFeaturePolicy.canResolve(key, featureEnabled);
     }
 }
