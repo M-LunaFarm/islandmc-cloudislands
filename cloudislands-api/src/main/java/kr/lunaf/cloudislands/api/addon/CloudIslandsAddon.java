@@ -168,7 +168,9 @@ public interface CloudIslandsAddon {
             "route-ticket-consumed",
             "route-ticket-failed",
             "route-ticket-cleared",
-            "addon-state-changed"
+            "addon-state-changed",
+            "core-cache-cleared",
+            "core-reloaded"
         );
     }
 
@@ -180,6 +182,8 @@ public interface CloudIslandsAddon {
         metadata.put("addon-data-retention", safeMetadataValue(addonDataRetentionPolicy(), "preserve-addon-state-by-addon-id-and-island-uuid"));
         metadata.put("addon-event-source", "cloudislands-global-event-stream");
         metadata.put("addon-event-delivery", "typed-cloud-event-callbacks-through-cloudislands-api");
+        metadata.put("addon-event-failure-policy", "addon-callback-exceptions-are-logged-and-isolated");
+        metadata.put("addon-event-feature-gating-policy", "disabled-addon-features-do-not-receive-matching-runtime-events");
         metadata.put("addon-lifecycle-events", String.join(",", addonLifecycleEvents()));
         String descriptor = addonDescriptorResource();
         if (descriptor != null && !descriptor.isBlank()) {
