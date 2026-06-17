@@ -683,6 +683,7 @@ public final class AdminFactoryCommand {
         state.put("superior-runtime-dependency-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
         state.put("superior-runtime-provider-hook-policy", SatisLegacyMigrationPolicy.RUNTIME_PROVIDER_HOOK_POLICY);
         state.put("superior-migration-manifest-policy", SatisLegacyMigrationPolicy.MANIFEST_POLICY);
+        state.put("superior-migration-manifest-file", "migration-backups/legacy-import-last-manifest.json");
         state.put("superior-migration-output-id-policy", SatisLegacyMigrationPolicy.OUTPUT_ID_POLICY);
         state.put("superior-migration-approval-policy", SatisLegacyMigrationPolicy.APPROVAL_POLICY);
         state.put("superior-migration-approval-token-policy", SatisLegacyMigrationPolicy.APPROVAL_TOKEN_POLICY);
@@ -702,6 +703,7 @@ public final class AdminFactoryCommand {
         state.put("satismc-import-import", "/factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL + "|" + MIGRATION_IMPORT_APPROVAL + ":<dryrun-sha256>");
         state.put("satismc-import-approval", MIGRATION_IMPORT_APPROVAL);
         state.put("satismc-import-mode", "cross-backend-sqlite-copy");
+        state.put("satismc-import-manifest", "migration-backups/legacy-import-last-manifest.json");
         state.put("satismc-import-prerequisite", "same-source-dryrun-or-verify-before-import");
         state.put("satismc-core-api-import-guard", "reject-core-api-import-when-addon-state-writer-unavailable");
         state.put("satismc-rollback-mode", "sqlite-snapshot-restore-or-shared-backend-table-restore");

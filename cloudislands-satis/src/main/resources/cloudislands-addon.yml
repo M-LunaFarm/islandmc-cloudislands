@@ -211,6 +211,8 @@ superiorskyblock2:
   migration-source-policy: read-only-snapshot-or-sqlite-import-no-live-provider-hooks
   replacement-api: CloudIslands API
 migration:
+  manifest-file: migration-backups/legacy-import-last-manifest.json
+  manifest-policy: create-before-writing-imported-satis-rows
   legacy-satismc:
     source: sqlite
     command-root: factory admin migration
