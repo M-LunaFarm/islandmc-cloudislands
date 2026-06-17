@@ -3118,6 +3118,7 @@ public final class CloudIslandsCoreApplication {
             + "\"cacheInvalidationRedisPatterns\":\"ci:player:*:island,ci:player:*:profile,ci:player-name:*:profile,ci:addon:*:state,ci:island:*:summary,ci:island:*:runtime,ci:island:*:members,ci:island:*:permissions,ci:island:*:flags,ci:island:*:warps,ci:island:*:addon-state,ci:island:*:route-tickets,ci:rankings:*\","
             + "\"addonStateGlobalCacheKey\":\"ci:addon:{addonId}:state\","
             + "\"addonStateIslandCacheKey\":\"ci:island:{islandId}:addon-state\","
+            + "\"addonStateCacheInvalidationApi\":\"CacheInvalidationPlan.redisKeysFor(eventType,islandId,addonId)\","
             + "\"cacheRedisDownPolicy\":\"degraded-db-direct-read-no-data-loss-event-propagation-delayed-jobs-and-heartbeats-limited\","
             + "\"cacheCoreApiDownPolicy\":\"active-island-local-protection-continues-new-route-and-writes-limited\","
             + "\"redisStreamPolicy\":\"jobs,events,audit-append-only-observability\","

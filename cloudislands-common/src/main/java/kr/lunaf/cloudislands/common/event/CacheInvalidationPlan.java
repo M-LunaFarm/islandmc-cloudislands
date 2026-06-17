@@ -45,12 +45,20 @@ public final class CacheInvalidationPlan {
     }
 
     public static Set<String> redisKeysFor(CloudIslandEventType eventType, UUID islandId) {
-        if (islandId == null) {
+        return redisKeysFor(eventType, islandId, "");
+    }
+
+    public static Set<String> redisKeysFor(CloudIslandEventType eventType, UUID islandId, String addonId) {
+        if (eventType == null) {
             return Set.of();
+        }
+        if (islandId == null) {
+            String addonStateKey = targetsFor(eventType).contains(CacheTarget.ADDON_STATE) ? RedisKeys.addonState(addonId(addonId)) : "";
+            return addonStateKey.isBlank() ? Set.of() : Set.of(addonStateKey);
         }
         Set<String> keys = new LinkedHashSet<>();
         for (CacheTarget target : targetsFor(eventType)) {
-            String key = redisKey(target, islandId);
+            String key = redisKey(target, islandId, addonId);
             if (!key.isBlank()) {
                 keys.add(key);
             }
@@ -59,7 +67,14 @@ public final class CacheInvalidationPlan {
     }
 
     public static String redisKey(CacheTarget target, UUID islandId) {
+        return redisKey(target, islandId, "");
+    }
+
+    public static String redisKey(CacheTarget target, UUID islandId, String addonId) {
         if (target == null || islandId == null) {
+            if (target == CacheTarget.ADDON_STATE) {
+                return addonId(addonId).isBlank() ? "" : RedisKeys.addonState(addonId(addonId));
+            }
             return "";
         }
         return switch (target) {
@@ -83,6 +98,10 @@ public final class CacheInvalidationPlan {
             case ADDON_STATE -> RedisKeys.islandAddonState(islandId);
             default -> "";
         };
+    }
+
+    private static String addonId(String addonId) {
+        return addonId == null ? "" : addonId.trim();
     }
 
     public enum CacheTarget {
