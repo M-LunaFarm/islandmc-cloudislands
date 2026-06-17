@@ -4012,7 +4012,17 @@ public final class CloudIslandsCoreApplication {
         if (jobs instanceof JdbcIslandJobQueue jdbcJobs) {
             return jdbcJobs.toJson();
         }
-        return "{\"mode\":\"REDIS\"}";
+        if (jobs instanceof RedisIslandJobQueue redisJobs) {
+            Map<String, Long> counts = redisJobs.countsByState();
+            return "{\"mode\":\"REDIS\""
+                + ",\"pending\":" + counts.getOrDefault("PENDING", 0L)
+                + ",\"claimed\":" + counts.getOrDefault("CLAIMED", 0L)
+                + ",\"failed\":" + counts.getOrDefault("FAILED", 0L)
+                + ",\"retryAttempts\":" + redisJobs.retryAttemptsTotal()
+                + ",\"redisFailures\":" + redisJobs.redisFailuresTotal()
+                + "}";
+        }
+        return "{\"mode\":\"EXTERNAL\"}";
     }
 
     private static String deleteResultJson(DeleteIslandResult result) {
