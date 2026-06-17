@@ -9,6 +9,7 @@ import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
+import kr.lunaf.cloudislands.common.storage.StorageOutagePolicy;
 import kr.lunaf.cloudislands.coreservice.NodeRegistry;
 import kr.lunaf.cloudislands.coreservice.RedisActivationLock;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
@@ -237,7 +238,7 @@ public final class IslandLifecycleWorkflow {
             return new Result(false, "NODE_UNAVAILABLE", runtime);
         }
         if (!activeNode.storageAvailable()) {
-            return new Result(false, "STORAGE_UNAVAILABLE", runtime);
+            return new Result(false, StorageOutagePolicy.STORAGE_BLOCK_CODE, runtime);
         }
         try {
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.SNAPSHOT_ISLAND, islandId, runtime.activeNode(), 20, Map.of("reason", safeReason, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
@@ -360,7 +361,7 @@ public final class IslandLifecycleWorkflow {
             return new Result(false, "NODE_UNAVAILABLE", current);
         }
         if (!activeNode.storageAvailable()) {
-            return new Result(false, "STORAGE_UNAVAILABLE", current);
+            return new Result(false, StorageOutagePolicy.STORAGE_BLOCK_CODE, current);
         }
         RedisActivationLock.Lease lease = acquireActivationLock(islandId, "restore");
         if (activationLock != null && lease == null) {
@@ -439,7 +440,7 @@ public final class IslandLifecycleWorkflow {
             return new Result(false, "NODE_UNAVAILABLE", current);
         }
         if (!activeNode.storageAvailable()) {
-            return new Result(false, "STORAGE_UNAVAILABLE", current);
+            return new Result(false, StorageOutagePolicy.STORAGE_BLOCK_CODE, current);
         }
         String templateId = islands.templateId(islandId).orElse("default");
         IslandRuntimeSnapshot runtime = runtimes.setState(islandId, IslandState.ACTIVATING);
