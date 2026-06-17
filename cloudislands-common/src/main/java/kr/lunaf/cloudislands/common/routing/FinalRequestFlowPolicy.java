@@ -1,0 +1,75 @@
+package kr.lunaf.cloudislands.common.routing;
+
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+public final class FinalRequestFlowPolicy {
+    private static final Map<String, List<String>> FLOWS = buildFlows();
+
+    private FinalRequestFlowPolicy() {
+    }
+
+    public static Map<String, List<String>> flows() {
+        return FLOWS;
+    }
+
+    public static List<String> flow(String key) {
+        return key == null ? List.of() : FLOWS.getOrDefault(key, List.of());
+    }
+
+    public static boolean knownFlow(String key) {
+        return key != null && FLOWS.containsKey(key);
+    }
+
+    private static Map<String, List<String>> buildFlows() {
+        LinkedHashMap<String, List<String>> flows = new LinkedHashMap<>();
+        flows.put("island-create", List.of(
+            "player",
+            "velocity-command-create",
+            "core-api-create-island",
+            "db-transaction-and-lock",
+            "node-allocator",
+            "create-island-job",
+            "island-agent-claim",
+            "template-restore",
+            "cell-allocate",
+            "runtime-active",
+            "route-ticket-ready",
+            "velocity-connect-target-node",
+            "paper-consume-ticket",
+            "teleport-island-spawn"
+        ));
+        flows.put("island-home", List.of(
+            "player",
+            "velocity-command-home",
+            "core-api-create-home-route",
+            "island-runtime-check",
+            "active-runtime-uses-active-node",
+            "inactive-runtime-activates-on-best-node",
+            "route-ticket-ready",
+            "velocity-connect",
+            "paper-teleport"
+        ));
+        flows.put("island-visit", List.of(
+            "player",
+            "velocity-command-visit-player",
+            "target-island-lookup",
+            "public-ban-permission-check",
+            "active-or-activate",
+            "visitor-ticket-create",
+            "connect",
+            "visitor-spawn-teleport"
+        ));
+        flows.put("soft-full-routing", List.of(
+            "soft-full-node-avoided-for-new-islands",
+            "ready-node-selected-for-new-islands",
+            "ready-node-selected-for-inactive-existing-islands",
+            "active-island-owner-member-use-reserved-slots-on-current-node",
+            "active-island-visitor-queued-or-limited",
+            "empty-active-island-may-migrate-after-save"
+        ));
+        return Collections.unmodifiableMap(flows);
+    }
+}
