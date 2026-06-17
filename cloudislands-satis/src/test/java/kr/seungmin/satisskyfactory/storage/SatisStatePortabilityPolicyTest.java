@@ -23,6 +23,7 @@ class SatisStatePortabilityPolicyTest {
         assertEquals("single-active-runtime-owner", state.get("core-api-sync-duplicate-tick-policy"));
         assertEquals("save-on-source-restore-on-target-by-island-uuid", state.get("core-api-sync-node-handoff-policy"));
         assertEquals("preserve-cloudislands-island-and-addon-state-by-island-uuid", state.get("core-api-sync-addon-removal-policy"));
+        assertEquals("preflush-satis-state-stop-runtime-keep-cloudislands-lifecycle", state.get("core-api-sync-addon-disable-policy"));
     }
 
     @Test

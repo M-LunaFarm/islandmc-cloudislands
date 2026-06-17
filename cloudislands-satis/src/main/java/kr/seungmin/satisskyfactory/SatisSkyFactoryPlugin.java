@@ -242,6 +242,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onDisable() {
+        flushPendingSatisStateBeforeDisable("plugin-disable", effectiveFeatures);
         if (ticker != null) {
             ticker.stop();
             ticker = null;

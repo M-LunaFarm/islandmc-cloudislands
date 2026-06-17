@@ -15,6 +15,7 @@ public final class SatisStatePortabilityPolicy {
     public static final String DUPLICATE_TICK_POLICY = "single-active-runtime-owner";
     public static final String NODE_HANDOFF_POLICY = "save-on-source-restore-on-target-by-island-uuid";
     public static final String ADDON_REMOVAL_POLICY = "preserve-cloudislands-island-and-addon-state-by-island-uuid";
+    public static final String ADDON_DISABLE_POLICY = "preflush-satis-state-stop-runtime-keep-cloudislands-lifecycle";
     public static final String LOCAL_FALLBACK_RISK = "local-fallback-can-split-state-without-shared-backend";
 
     private SatisStatePortabilityPolicy() {
@@ -33,6 +34,7 @@ public final class SatisStatePortabilityPolicy {
         values.put("core-api-sync-duplicate-tick-policy", DUPLICATE_TICK_POLICY);
         values.put("core-api-sync-node-handoff-policy", NODE_HANDOFF_POLICY);
         values.put("core-api-sync-addon-removal-policy", ADDON_REMOVAL_POLICY);
+        values.put("core-api-sync-addon-disable-policy", ADDON_DISABLE_POLICY);
         return Map.copyOf(values);
     }
 }
