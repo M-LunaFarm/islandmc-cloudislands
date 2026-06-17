@@ -1369,6 +1369,8 @@ public final class AdminFactoryCommand {
                         "runtime-dirty-save-stop-policy",
                         "runtime-duplicate-tick-guard",
                         "runtime-core-api-state-writer",
+                        "runtime-core-api-state-writer-gate",
+                        "runtime-core-api-state-writer-block-reason",
                         "runtime-core-api-state-readiness",
                         "runtime-core-api-state-transport",
                         "runtime-core-api-state-fallback-policy",
