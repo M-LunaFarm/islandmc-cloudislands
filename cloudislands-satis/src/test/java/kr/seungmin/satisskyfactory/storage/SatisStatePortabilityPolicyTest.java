@@ -30,6 +30,7 @@ class SatisStatePortabilityPolicyTest {
         assertEquals("CLOUDISLANDS_SATIS_DATABASE_TYPE,setup.database.type,addons.cloudislands-satis.database.type,setup.database.core-api.enabled,jdbc-url,setup.database.<backend>,database.type", state.get("core-api-sync-setup-backend-priority"));
         assertEquals("shared-backend-before-local-sqlite-or-warn", state.get("core-api-sync-fallback-chain-policy"));
         assertEquals("use-only-explicitly-configured-shared-targets-then-explicit-local-sqlite", state.get("core-api-sync-fallback-readiness-policy"));
+        assertEquals("report-ready-fallback-targets-before-using-local-sqlite", state.get("core-api-sync-fallback-ready-chain-policy"));
         assertEquals("retry-table-key-value-bulk-save-as-flattened-addon-state", state.get("core-api-sync-write-fallback-policy"));
     }
 

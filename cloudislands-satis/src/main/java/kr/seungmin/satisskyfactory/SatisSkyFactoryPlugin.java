@@ -1377,6 +1377,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
         metadata.put("database-fallback-order", databaseFallbackOrderMetadata());
         metadata.put("database-fallback-shared-backends", databaseFallbackSharedBackendsMetadata());
+        metadata.put("database-fallback-ready-backends", databaseFallbackReadyBackendsMetadata());
         metadata.put("database-fallback-first-shared-backend", databaseFirstSharedBackendMetadata());
         metadata.put("database-fallback-local-position", databaseLocalFallbackPositionMetadata());
         metadata.put("database-fallback-shared-safe", Boolean.toString(databaseFallbackSharedSafe()));
@@ -1388,6 +1389,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-fallback-read-write-policy", databaseFallbackReadWritePolicyMetadata());
         metadata.put("database-fallback-chain-policy", SatisStatePortabilityPolicy.FALLBACK_CHAIN_POLICY);
         metadata.put("database-fallback-readiness-policy", SatisStatePortabilityPolicy.FALLBACK_READINESS_POLICY);
+        metadata.put("database-fallback-ready-chain-policy", SatisStatePortabilityPolicy.FALLBACK_READY_CHAIN_POLICY);
         metadata.put("database-fallback-source", databaseFallbackSource());
         metadata.put("database-fallback-env", "CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED,CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER");
         metadata.put("database-setup-path", "setup.database");
@@ -1773,6 +1775,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
         state.put("database-fallback-order", databaseFallbackOrderMetadata());
         state.put("database-fallback-shared-backends", databaseFallbackSharedBackendsMetadata());
+        state.put("database-fallback-ready-backends", databaseFallbackReadyBackendsMetadata());
         state.put("database-fallback-first-shared-backend", databaseFirstSharedBackendMetadata());
         state.put("database-fallback-local-position", databaseLocalFallbackPositionMetadata());
         state.put("database-fallback-shared-safe", Boolean.toString(databaseFallbackSharedSafe()));
@@ -1784,6 +1787,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-read-write-policy", databaseFallbackReadWritePolicyMetadata());
         state.put("database-fallback-chain-policy", SatisStatePortabilityPolicy.FALLBACK_CHAIN_POLICY);
         state.put("database-fallback-readiness-policy", SatisStatePortabilityPolicy.FALLBACK_READINESS_POLICY);
+        state.put("database-fallback-ready-chain-policy", SatisStatePortabilityPolicy.FALLBACK_READY_CHAIN_POLICY);
         state.put("database-config-source", databaseConfigSource());
         state.put("database-setup-path", "setup.database");
         state.put("database-supported-backends", "CORE_API,POSTGRESQL,MYSQL,MARIADB,SQLITE");
@@ -1914,6 +1918,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
         state.put("database-fallback-order", databaseFallbackOrderMetadata());
         state.put("database-fallback-shared-backends", databaseFallbackSharedBackendsMetadata());
+        state.put("database-fallback-ready-backends", databaseFallbackReadyBackendsMetadata());
         state.put("database-fallback-first-shared-backend", databaseFirstSharedBackendMetadata());
         state.put("database-fallback-local-position", databaseLocalFallbackPositionMetadata());
         state.put("database-fallback-shared-safe", Boolean.toString(databaseFallbackSharedSafe()));
@@ -1925,6 +1930,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-read-write-policy", databaseFallbackReadWritePolicyMetadata());
         state.put("database-fallback-chain-policy", SatisStatePortabilityPolicy.FALLBACK_CHAIN_POLICY);
         state.put("database-fallback-readiness-policy", SatisStatePortabilityPolicy.FALLBACK_READINESS_POLICY);
+        state.put("database-fallback-ready-chain-policy", SatisStatePortabilityPolicy.FALLBACK_READY_CHAIN_POLICY);
         state.put("database-config-source", databaseConfigSource());
         state.put("database-setup-path", "setup.database");
         state.put("database-supported-backends", "CORE_API,POSTGRESQL,MYSQL,MARIADB,SQLITE");
@@ -4265,6 +4271,21 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 .map(DatabaseService.StorageBackend::name)
                 .reduce((left, right) -> left + "," + right)
                 .orElse("none");
+    }
+
+    private String databaseFallbackReadyBackendsMetadata() {
+        DatabaseService.Settings settings = databaseSettings();
+        if (settings == null || !settings.fallbackEnabled()) {
+            return "disabled";
+        }
+        DatabaseService.StorageBackend configured = settings.backend() == null ? DatabaseService.StorageBackend.SQLITE : settings.backend();
+        List<String> ready = new ArrayList<>();
+        for (DatabaseService.StorageBackend backend : databaseBackendAttemptOrder(settings)) {
+            if (backend != configured && databaseFallbackBackendReady(settings, backend)) {
+                ready.add(backend.name());
+            }
+        }
+        return ready.isEmpty() ? "none" : String.join(",", ready);
     }
 
     private String databaseFirstSharedBackendMetadata() {

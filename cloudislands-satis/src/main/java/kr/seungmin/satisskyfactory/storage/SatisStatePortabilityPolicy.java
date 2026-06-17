@@ -23,6 +23,7 @@ public final class SatisStatePortabilityPolicy {
     public static final String SETUP_BACKEND_PRIORITY = "CLOUDISLANDS_SATIS_DATABASE_TYPE,setup.database.type,addons.cloudislands-satis.database.type,setup.database.core-api.enabled,jdbc-url,setup.database.<backend>,database.type";
     public static final String FALLBACK_CHAIN_POLICY = "shared-backend-before-local-sqlite-or-warn";
     public static final String FALLBACK_READINESS_POLICY = "use-only-explicitly-configured-shared-targets-then-explicit-local-sqlite";
+    public static final String FALLBACK_READY_CHAIN_POLICY = "report-ready-fallback-targets-before-using-local-sqlite";
     public static final String CORE_API_WRITE_FALLBACK_POLICY = "retry-table-key-value-bulk-save-as-flattened-addon-state";
 
     private SatisStatePortabilityPolicy() {
@@ -48,6 +49,7 @@ public final class SatisStatePortabilityPolicy {
         values.put("core-api-sync-setup-backend-priority", SETUP_BACKEND_PRIORITY);
         values.put("core-api-sync-fallback-chain-policy", FALLBACK_CHAIN_POLICY);
         values.put("core-api-sync-fallback-readiness-policy", FALLBACK_READINESS_POLICY);
+        values.put("core-api-sync-fallback-ready-chain-policy", FALLBACK_READY_CHAIN_POLICY);
         values.put("core-api-sync-write-fallback-policy", CORE_API_WRITE_FALLBACK_POLICY);
         return Map.copyOf(values);
     }
