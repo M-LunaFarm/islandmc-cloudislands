@@ -53,6 +53,7 @@ import kr.lunaf.cloudislands.migration.world.MigrationWorldBundle;
 import kr.lunaf.cloudislands.migration.world.MigrationWorldExtractor;
 
 public final class MigrationAdminService {
+    static final String MIGRATION_SNAPSHOT_REASON = "BEFORE_MIGRATION:SUPERIORSKYBLOCK2_IMPORT";
     private final IslandRepository islands;
     private final IslandMetadataRepository metadata;
     private final PlayerProfileRepository playerProfiles;
@@ -245,7 +246,7 @@ public final class MigrationAdminService {
         try {
             Path root = lastExtractionRoot == null ? migrationBundleRoot : lastExtractionRoot;
             String storagePath = root.normalize().relativize(bundle.bundlePath().normalize()).toString().replace('\\', '/');
-            snapshots.record(manifest.islandId(), 1L, storagePath, "Migrated from SuperiorSkyblock2", manifest.ownerUuid(), bundle.checksum(), bundle.sizeBytes());
+            snapshots.record(manifest.islandId(), 1L, storagePath, MIGRATION_SNAPSHOT_REASON, manifest.ownerUuid(), bundle.checksum(), bundle.sizeBytes());
         } catch (RuntimeException exception) {
             throw new IllegalStateException("migration bundle snapshot unavailable for " + manifest.islandId() + ": " + exception.getMessage(), exception);
         }
@@ -266,6 +267,7 @@ public final class MigrationAdminService {
         matched &= expect(issues, storagePath.equals(snapshot.storagePath()), "MIGRATION_SNAPSHOT_PATH_MISMATCH", "snapshot path mismatch " + manifest.islandId());
         matched &= expect(issues, bundle.checksum().equalsIgnoreCase(snapshot.checksum()), "MIGRATION_SNAPSHOT_CHECKSUM_MISMATCH", "snapshot checksum mismatch " + manifest.islandId());
         matched &= expect(issues, bundle.sizeBytes() == snapshot.sizeBytes(), "MIGRATION_SNAPSHOT_SIZE_MISMATCH", "snapshot size mismatch " + manifest.islandId());
+        matched &= expect(issues, MIGRATION_SNAPSHOT_REASON.equals(snapshot.reason()), "MIGRATION_SNAPSHOT_REASON_MISMATCH", "snapshot reason mismatch " + manifest.islandId());
         return matched;
     }
 
@@ -561,6 +563,7 @@ public final class MigrationAdminService {
                 + ",\"activationTestMode\":\"" + activationTestMode + "\""
                 + ",\"activationLifecycleTesterAvailable\":" + (activationTester != null)
                 + ",\"migrationChecksumPolicy\":\"sha256-every-extracted-world-bundle-and-verify-against-imported-snapshot\""
+                + ",\"migrationSnapshotReason\":\"" + MIGRATION_SNAPSHOT_REASON + "\""
                 + ",\"migrationActivationTestPolicy\":\"verify-can-run-cloudislands-activation-test-without-superiorskyblock2-runtime-dependency\"");
         } catch (java.io.IOException exception) {
             issues.add(new MigrationIssue("MIGRATION_REPORT_WRITE_FAILED", exception.getMessage(), true));
