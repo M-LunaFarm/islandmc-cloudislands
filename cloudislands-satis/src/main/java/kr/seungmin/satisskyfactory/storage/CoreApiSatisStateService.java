@@ -349,7 +349,7 @@ public final class CoreApiSatisStateService {
     }
 
     private void publishTableStatus(DatabaseService.CoreTableWrite table, String status, String error) {
-        if (cloudIslandsApi == null || table == null) {
+        if (cloudIslandsApi == null || table == null || !stateFeatureEnabled("addon-state")) {
             return;
         }
         String island = table.islandUuid() == null ? "" : table.islandUuid().toString();
@@ -526,7 +526,7 @@ public final class CoreApiSatisStateService {
     }
 
     private void publishBulkStatus(UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables, String status, String mode, String error) {
-        if (cloudIslandsApi == null || islandId == null) {
+        if (cloudIslandsApi == null || islandId == null || !stateFeatureEnabled("addon-state")) {
             return;
         }
         int valueKeys = values == null ? 0 : values.size();
@@ -569,7 +569,7 @@ public final class CoreApiSatisStateService {
     }
 
     private void publishGlobalBulkStatus(Map<String, String> values, Map<String, Map<String, String>> tables, String status, String mode, String error) {
-        if (cloudIslandsApi == null) {
+        if (cloudIslandsApi == null || !stateFeatureEnabled("addon-state")) {
             return;
         }
         int valueKeys = values == null ? 0 : values.size();
@@ -881,7 +881,7 @@ public final class CoreApiSatisStateService {
     }
 
     public void publishGlobalTable(DatabaseService.CoreGlobalTableWrite table) {
-        if (cloudIslandsApi == null || table == null || table.table() == null || table.table().isBlank() || table.values() == null) {
+        if (cloudIslandsApi == null || table == null || table.table() == null || table.table().isBlank() || table.values() == null || !stateFeatureEnabled("addon-state")) {
             return;
         }
         if (!tableNameFeatureEnabled(table.table())) {
@@ -922,7 +922,7 @@ public final class CoreApiSatisStateService {
     }
 
     private void publishGlobalTableStatus(DatabaseService.CoreGlobalTableWrite table, String status, String error) {
-        if (cloudIslandsApi == null || table == null) {
+        if (cloudIslandsApi == null || table == null || !stateFeatureEnabled("addon-state")) {
             return;
         }
         String tableName = table.table() == null ? "" : table.table();
