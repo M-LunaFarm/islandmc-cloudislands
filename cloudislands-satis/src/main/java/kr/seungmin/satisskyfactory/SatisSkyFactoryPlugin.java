@@ -474,6 +474,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-dirty-save-stop-policy", "runtime-stop-preflushes-queued-dirty-state-before-task-cancel-and-addon-unregister");
         state.put("runtime-duplicate-tick-guard", "ticker-stops-when-addon-or-machine-feature-disabled");
         state.put("runtime-core-api-state-writer", Boolean.toString(coreApiState != null));
+        state.put("runtime-core-api-state-writer-gate", "addonRuntimeEnabled&&features.addon-state&&databaseBackend=CORE_API&&cloudislands-addon-state-api");
+        state.put("runtime-core-api-state-writer-block-reason", coreApiStateWriterBlockReason());
         state.put("runtime-core-api-state-readiness", coreApiState == null ? "not-configured" : coreApiState.writerReadiness());
         state.put("runtime-core-api-state-transport", coreApiState == null ? "none" : coreApiState.writerTransportMode());
         state.put("runtime-core-api-state-reader-transport", coreApiState == null ? "none" : coreApiState.readerTransportMode());
@@ -628,6 +630,28 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return "placeholderapi-not-installed";
         }
         return "not-registered";
+    }
+
+    private String coreApiStateWriterBlockReason() {
+        if (coreApiState != null) {
+            return "none";
+        }
+        if (!addonRuntimeEnabled) {
+            return "addon-disabled";
+        }
+        if (!operationalFeatureEnabled("addon-state")) {
+            return "addon-state-feature-disabled";
+        }
+        if (database == null) {
+            return "database-not-configured";
+        }
+        if (database.activeBackend() != DatabaseService.StorageBackend.CORE_API) {
+            return "database-backend-" + database.activeBackend().name().toLowerCase(Locale.ROOT);
+        }
+        if (!coreApiAddonStateAvailable()) {
+            return "cloudislands-addon-state-api-unavailable";
+        }
+        return "not-configured";
     }
 
     private boolean lifecycleStateEnabled() {
