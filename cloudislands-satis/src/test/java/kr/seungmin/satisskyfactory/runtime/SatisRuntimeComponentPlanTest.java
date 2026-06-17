@@ -43,8 +43,41 @@ class SatisRuntimeComponentPlanTest {
         assertTrue(plan.skippedComponentsMetadata().contains("dirty-save"));
         assertTrue(plan.skippedComponentsMetadata().contains("core-api-state-writer"));
         assertTrue(plan.blockedComponentsMetadata().contains("commands:addon-disabled"));
-        assertTrue(plan.blockedComponentsMetadata().contains("dirty-save:data-writes-disabled"));
-        assertTrue(plan.blockedComponentsMetadata().contains("core-api-state-writer:addon-state-feature-disabled"));
+        assertTrue(plan.blockedComponentsMetadata().contains("dirty-save:addon-disabled"));
+        assertTrue(plan.blockedComponentsMetadata().contains("core-api-state-writer:addon-disabled"));
+    }
+
+    @Test
+    void addonDisabledDominatesStaleRegisteredRuntimeState() {
+        SatisRuntimeComponentPlan plan = new SatisRuntimeComponentPlan(
+                false,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+        );
+
+        assertEquals("none", plan.activeComponentsMetadata());
+        assertEquals("addon-disabled", plan.commandBlockReason());
+        assertTrue(plan.skippedComponentsMetadata().contains("commands"));
+        assertTrue(plan.skippedComponentsMetadata().contains("machine-ticker"));
+        assertTrue(plan.blockedComponentsMetadata().contains("commands:addon-disabled"));
+        assertTrue(plan.blockedComponentsMetadata().contains("core-api-state-writer:addon-disabled"));
     }
 
     @Test

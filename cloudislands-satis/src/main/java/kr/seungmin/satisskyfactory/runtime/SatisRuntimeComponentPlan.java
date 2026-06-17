@@ -26,11 +26,11 @@ public record SatisRuntimeComponentPlan(
         boolean coreApiAvailable
 ) {
     public String commandBlockReason() {
-        if (commandsRegistered) {
-            return "none";
-        }
         if (!addonRuntimeEnabled) {
             return "addon-disabled";
+        }
+        if (commandsRegistered) {
+            return "none";
         }
         if (!commandsEnabled) {
             return "commands-feature-disabled";
@@ -39,6 +39,9 @@ public record SatisRuntimeComponentPlan(
     }
 
     public String activeComponentsMetadata() {
+        if (!addonRuntimeEnabled) {
+            return "none";
+        }
         List<String> active = new ArrayList<>();
         if (commandsRegistered) {
             active.add("commands");
@@ -71,6 +74,9 @@ public record SatisRuntimeComponentPlan(
     }
 
     public String skippedComponentsMetadata() {
+        if (!addonRuntimeEnabled) {
+            return "commands,machine-listener,machine-ticker,gui-listener,lifecycle-listener,maintenance-ticker,placeholder-expansion,dirty-save,core-api-state-writer";
+        }
         List<String> skipped = new ArrayList<>();
         if (!commandsEnabled) {
             skipped.add("commands");
@@ -103,6 +109,9 @@ public record SatisRuntimeComponentPlan(
     }
 
     public String blockedComponentsMetadata() {
+        if (!addonRuntimeEnabled) {
+            return "commands:addon-disabled,machine-listener:addon-disabled,gui-listener:addon-disabled,lifecycle-listener:addon-disabled,placeholders:addon-disabled,machine-ticker:addon-disabled,maintenance-ticker:addon-disabled,dirty-save:addon-disabled,core-api-state-writer:addon-disabled";
+        }
         List<String> blocked = new ArrayList<>();
         if (!commandsRegistered) {
             blocked.add("commands:" + commandBlockReason());
