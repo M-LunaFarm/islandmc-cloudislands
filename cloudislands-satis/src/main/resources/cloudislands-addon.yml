@@ -130,6 +130,8 @@ state:
   authority: core-api-table-key-value-or-shared-database
   move-policy: remap-state-to-current-active-world-and-cell
   ab-node-scenario: save-on-source-node-remap-active-world-and-cell-on-target-node-restore-state-by-island-uuid
+  multi-node-safe: true
+  node-count-policy: island-node-count-does-not-change-satis-state-identity-or-storage-authority
   recovery-scenario: heartbeat-expiry-fencing-token-guards-last-confirmed-state-no-duplicate-tick-or-write
   addon-removal-scenario: missing-addon-state-never-blocks-cloudislands-base-island-load
   addon-removal-runtime-action: stop-satis-runtime-preserve-addon-state-leave-cloudislands-islands-loadable
