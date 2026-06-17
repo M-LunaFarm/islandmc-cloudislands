@@ -2919,7 +2919,7 @@ public final class CloudIslandsCoreApplication {
             + "\"coreSetupDatabaseCoreApiClientMode\":" + config.setupDatabaseCoreApiClientMode() + ","
             + "\"coreSetupDatabaseCoreApiClientReady\":" + config.setupDatabaseCoreApiClientReady() + ","
             + "\"coreSetupDatabaseFallbackReadiness\":\"" + escape(config.setupDatabaseFallbackReadiness()) + "\","
-            + "\"coreSetupDatabaseCoreApiConfigPaths\":\"setup.database.core-api.base-url,setup.database.core-api.auth-token,setup.database.core-api.admin-token,setup.database.core-api.timeout-ms,setup.core-api.*,core-api.*\","
+            + "\"coreSetupDatabaseCoreApiConfigPaths\":\"setup.database.core-api.base-url,setup.database.core-api.url,setup.database.core-api.auth-token,setup.database.core-api.admin-token,setup.database.core-api.timeout-ms,setup.core-api.*,setup-core-api.*,core-api.*\","
             + "\"coreSetupDatabaseEnv\":\"CI_DATABASE_TYPE,CI_JDBC_URL,CI_DB_USERNAME,CI_DB_PASSWORD,CI_DB_POOL_SIZE,CI_DB_AUTO_SCHEMA,CI_DB_FALLBACK_ENABLED,CI_DB_FALLBACK_ORDER,CI_SETUP_CORE_API_BASE_URL,CI_SETUP_CORE_API_AUTH_TOKEN,CI_SETUP_CORE_API_ADMIN_TOKEN,CI_SETUP_CORE_API_TIMEOUT_MS\","
             + "\"coreSetupDatabasePrecedence\":\"env,nested-setup-database,legacy-flat-setup,database-default\","
             + "\"coreSetupDatabaseNameAliases\":\"setup.database.name,setup.database.database,setup.database-name\","

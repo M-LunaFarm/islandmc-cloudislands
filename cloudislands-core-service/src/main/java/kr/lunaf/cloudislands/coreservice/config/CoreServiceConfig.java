@@ -335,8 +335,9 @@ public record CoreServiceConfig(
         if (presentConfig(config, "setup.database-type")) {
             return "setup.database-type";
         }
-        if (configBoolean(config, "setup.database.core-api.enabled", false)) {
-            return "setup.database.core-api.enabled";
+        String coreApiSource = setupDatabaseCoreApiConfiguredSource(config);
+        if (!coreApiSource.isBlank()) {
+            return coreApiSource;
         }
         if (presentEnv("CI_JDBC_URL")) {
             return "CI_JDBC_URL";
@@ -602,6 +603,25 @@ public record CoreServiceConfig(
         return legacy.isBlank() ? fallback : legacy;
     }
 
+    private static boolean setupDatabaseCoreApiConfigured(Map<String, String> config) {
+        return !setupDatabaseCoreApiConfiguredSource(config).isBlank();
+    }
+
+    private static String setupDatabaseCoreApiConfiguredSource(Map<String, String> config) {
+        if (configBoolean(config, "setup.database.core-api.enabled", false)) {
+            return "setup.database.core-api.enabled";
+        }
+        for (String prefix : java.util.List.of("setup.database.core-api", "setup.core-api", "setup-core-api", "core-api")) {
+            for (String key : java.util.List.of("base-url", "url", "auth-token", "admin-token")) {
+                String path = prefix + "." + key;
+                if (presentConfig(config, path)) {
+                    return path;
+                }
+            }
+        }
+        return "";
+    }
+
     private static int setupDatabaseCoreApiInteger(Map<String, String> config, String key, int fallback) {
         String value = setupDatabaseCoreApiSetting(config, key, "");
         if (value.isBlank()) {
@@ -858,7 +878,7 @@ public record CoreServiceConfig(
         if (!setupType.isBlank()) {
             return normalizeDatabaseType(setupType);
         }
-        if (configBoolean(config, "setup.database.core-api.enabled", false)) {
+        if (setupDatabaseCoreApiConfigured(config)) {
             return "CORE_API";
         }
         String setupJdbcUrl = setupDatabaseSetting(config, "jdbc-url", setting(config, "setup.jdbc-url", ""));
