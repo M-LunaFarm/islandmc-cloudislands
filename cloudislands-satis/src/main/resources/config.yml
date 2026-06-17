@@ -127,6 +127,7 @@ setup:
       flattened-fallback:
         # If the table/key-value bulk endpoint fails, retry with flattened addon state keys.
         # This keeps older Core API builds and partial endpoint outages from dropping writes.
+        # /factory admin state exposes database-core-api-authority-status for cache-only fallback checks.
         enabled: true
     fallback:
       # Empty order inherits database.fallback.order below.

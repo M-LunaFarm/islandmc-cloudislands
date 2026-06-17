@@ -1227,6 +1227,8 @@ public final class AdminFactoryCommand {
                         "database-active-backend",
                         "database-active-shared",
                         "database-active-authority",
+                        "database-core-api-authority-status",
+                        "database-core-api-authority-ready",
                         "database-configured-backend-active",
                         "database-effective-backend-status",
                         "database-attempted-backends",

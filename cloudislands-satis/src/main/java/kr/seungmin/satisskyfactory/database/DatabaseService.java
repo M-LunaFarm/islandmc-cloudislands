@@ -352,6 +352,16 @@ public final class DatabaseService {
         return activeBackend != StorageBackend.CORE_API || coreStateWritersAvailable();
     }
 
+    public String coreApiAuthorityStatus() {
+        if (activeBackend != StorageBackend.CORE_API) {
+            return "not-core-api:" + activeBackend.name();
+        }
+        if (coreStateWritersAvailable()) {
+            return coreStatePublishingSuspended ? "ready-publishing-suspended" : "ready";
+        }
+        return "unavailable-local-cache-only";
+    }
+
     public boolean usesNodeLocalCache() {
         return activeBackend == StorageBackend.CORE_API || activeBackend == StorageBackend.SQLITE;
     }

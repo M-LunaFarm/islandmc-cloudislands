@@ -1395,6 +1395,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-active-backend", databaseActiveBackendName());
         metadata.put("database-active-shared", Boolean.toString(databaseActiveBackendShared()));
         metadata.put("database-active-authority", databaseActiveAuthorityMetadata());
+        metadata.put("database-core-api-authority-status", databaseCoreApiAuthorityStatus());
+        metadata.put("database-core-api-authority-ready", Boolean.toString(database == null || database.coreApiAuthorityReady()));
         metadata.put("database-configured-backend-active", Boolean.toString(databaseConfiguredBackendActive()));
         metadata.put("database-effective-backend-status", databaseEffectiveBackendStatus());
         metadata.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
@@ -1806,6 +1808,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-active-authority", databaseActiveAuthorityMetadata());
         state.put("database-configured-backend-active", Boolean.toString(databaseConfiguredBackendActive()));
         state.put("database-effective-backend-status", databaseEffectiveBackendStatus());
+        state.put("database-core-api-authority-status", databaseCoreApiAuthorityStatus());
+        state.put("database-core-api-authority-ready", Boolean.toString(database == null || database.coreApiAuthorityReady()));
         state.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
         state.put("database-attempt-order", databaseBackendAttemptOrderMetadata());
         state.put("database-fallback-effective-order", databaseBackendAttemptOrderMetadata());
@@ -1966,6 +1970,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-configured-backend-active", Boolean.toString(databaseConfiguredBackendActive()));
         state.put("database-effective-backend-status", databaseEffectiveBackendStatus());
         state.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
+        state.put("database-core-api-authority-status", databaseCoreApiAuthorityStatus());
+        state.put("database-core-api-authority-ready", Boolean.toString(database == null || database.coreApiAuthorityReady()));
         state.put("database-attempt-order", databaseBackendAttemptOrderMetadata());
         state.put("database-fallback-effective-order", databaseBackendAttemptOrderMetadata());
         state.put("database-jdbc-target", databaseJdbcTargetMetadata());
@@ -4648,6 +4654,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return "setup-core-api-marker-only";
         }
         return "not-selected";
+    }
+
+    private String databaseCoreApiAuthorityStatus() {
+        if (database == null) {
+            return "database-not-open";
+        }
+        return database.coreApiAuthorityStatus();
     }
 
     private String databaseCoreApiLocalCachePolicy() {
