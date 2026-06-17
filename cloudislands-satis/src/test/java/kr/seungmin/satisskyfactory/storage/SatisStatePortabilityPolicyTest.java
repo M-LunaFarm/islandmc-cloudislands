@@ -2,6 +2,7 @@ package kr.seungmin.satisskyfactory.storage;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -32,6 +33,9 @@ class SatisStatePortabilityPolicyTest {
         assertEquals("use-only-explicitly-configured-shared-targets-then-explicit-local-sqlite", state.get("core-api-sync-fallback-readiness-policy"));
         assertEquals("report-ready-fallback-targets-before-using-local-sqlite", state.get("core-api-sync-fallback-ready-chain-policy"));
         assertEquals("retry-table-key-value-bulk-save-as-flattened-addon-state", state.get("core-api-sync-write-fallback-policy"));
+        assertEquals("POSTGRESQL,MYSQL,MARIADB,CORE_API-before-SQLITE", state.get("core-api-sync-production-safe-fallback-policy"));
+        assertEquals("POSTGRESQL,MYSQL,MARIADB,CORE_API", state.get("core-api-sync-shared-backends"));
+        assertEquals("SQLITE", state.get("core-api-sync-local-backends"));
     }
 
     @Test
@@ -39,5 +43,17 @@ class SatisStatePortabilityPolicyTest {
         Map<String, String> state = SatisStatePortabilityPolicy.coreApiSyncState();
 
         assertThrows(UnsupportedOperationException.class, () -> state.put("core-api-sync-node-bound", "true"));
+    }
+
+    @Test
+    void classifiesSharedAndLocalFallbackBackends() {
+        assertEquals(List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API", "SQLITE"),
+                SatisStatePortabilityPolicy.recommendedFallbackOrder());
+        assertEquals(true, SatisStatePortabilityPolicy.sharedBackend("postgresql"));
+        assertEquals(true, SatisStatePortabilityPolicy.sharedBackend("MYSQL"));
+        assertEquals(true, SatisStatePortabilityPolicy.sharedBackend("core_api"));
+        assertEquals(false, SatisStatePortabilityPolicy.sharedBackend("sqlite"));
+        assertEquals(true, SatisStatePortabilityPolicy.localBackend("sqlite"));
+        assertEquals(false, SatisStatePortabilityPolicy.localBackend("postgresql"));
     }
 }

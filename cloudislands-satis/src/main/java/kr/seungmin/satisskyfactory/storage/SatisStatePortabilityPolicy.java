@@ -1,7 +1,9 @@
 package kr.seungmin.satisskyfactory.storage;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public final class SatisStatePortabilityPolicy {
     public static final String AUTHORITY = "cloudislands-addon-state";
@@ -25,6 +27,11 @@ public final class SatisStatePortabilityPolicy {
     public static final String FALLBACK_READINESS_POLICY = "use-only-explicitly-configured-shared-targets-then-explicit-local-sqlite";
     public static final String FALLBACK_READY_CHAIN_POLICY = "report-ready-fallback-targets-before-using-local-sqlite";
     public static final String CORE_API_WRITE_FALLBACK_POLICY = "retry-table-key-value-bulk-save-as-flattened-addon-state";
+    public static final String PRODUCTION_SAFE_FALLBACK_POLICY = "POSTGRESQL,MYSQL,MARIADB,CORE_API-before-SQLITE";
+
+    private static final Set<String> SHARED_BACKENDS = Set.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API");
+    private static final Set<String> LOCAL_BACKENDS = Set.of("SQLITE");
+    private static final List<String> RECOMMENDED_FALLBACK_ORDER = List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API", "SQLITE");
 
     private SatisStatePortabilityPolicy() {
     }
@@ -51,6 +58,21 @@ public final class SatisStatePortabilityPolicy {
         values.put("core-api-sync-fallback-readiness-policy", FALLBACK_READINESS_POLICY);
         values.put("core-api-sync-fallback-ready-chain-policy", FALLBACK_READY_CHAIN_POLICY);
         values.put("core-api-sync-write-fallback-policy", CORE_API_WRITE_FALLBACK_POLICY);
+        values.put("core-api-sync-production-safe-fallback-policy", PRODUCTION_SAFE_FALLBACK_POLICY);
+        values.put("core-api-sync-shared-backends", String.join(",", RECOMMENDED_FALLBACK_ORDER.stream().filter(SatisStatePortabilityPolicy::sharedBackend).toList()));
+        values.put("core-api-sync-local-backends", String.join(",", LOCAL_BACKENDS));
         return Map.copyOf(values);
+    }
+
+    public static List<String> recommendedFallbackOrder() {
+        return RECOMMENDED_FALLBACK_ORDER;
+    }
+
+    public static boolean sharedBackend(String backend) {
+        return backend != null && SHARED_BACKENDS.contains(backend.trim().toUpperCase(java.util.Locale.ROOT));
+    }
+
+    public static boolean localBackend(String backend) {
+        return backend != null && LOCAL_BACKENDS.contains(backend.trim().toUpperCase(java.util.Locale.ROOT));
     }
 }
