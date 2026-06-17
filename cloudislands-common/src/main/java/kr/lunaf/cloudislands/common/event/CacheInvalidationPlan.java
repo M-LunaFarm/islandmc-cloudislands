@@ -64,7 +64,7 @@ public final class CacheInvalidationPlan {
                 keys.add(key);
             }
         }
-        return Set.copyOf(keys);
+        return java.util.Collections.unmodifiableSet(keys);
     }
 
     public static String redisKey(CacheTarget target, UUID islandId) {
