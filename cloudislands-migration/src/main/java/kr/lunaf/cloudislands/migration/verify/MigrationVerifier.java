@@ -16,12 +16,18 @@ import kr.lunaf.cloudislands.migration.MigrationReportBuilder;
 public final class MigrationVerifier {
     public VerificationResult verify(List<MigrationManifest> expected, List<MigrationManifest> imported) {
         List<MigrationIssue> issues = new ArrayList<>();
+        expected = expected == null ? List.of() : expected;
+        imported = imported == null ? List.of() : imported;
         if (expected.size() != imported.size()) {
             issues.add(new MigrationIssue("COUNT_MISMATCH", "expected " + expected.size() + " imported islands but found " + imported.size(), true));
         }
         Set<UUID> importedIds = new HashSet<>();
         Map<UUID, MigrationManifest> importedById = new HashMap<>();
         for (MigrationManifest manifest : imported) {
+            if (manifest == null || manifest.islandId() == null) {
+                issues.add(new MigrationIssue("INVALID_IMPORTED_MANIFEST", "imported manifests must include island ids", true));
+                continue;
+            }
             if (!importedIds.add(manifest.islandId())) {
                 issues.add(new MigrationIssue("DUPLICATE_IMPORTED_ID", "imported island ids contain duplicates", true));
             } else {
@@ -29,6 +35,10 @@ public final class MigrationVerifier {
             }
         }
         for (MigrationManifest manifest : expected) {
+            if (manifest == null || manifest.islandId() == null) {
+                issues.add(new MigrationIssue("INVALID_EXPECTED_MANIFEST", "expected manifests must include island ids", true));
+                continue;
+            }
             MigrationManifest actual = importedById.get(manifest.islandId());
             if (actual == null) {
                 issues.add(new MigrationIssue("MISSING_IMPORTED_ISLAND", "missing imported island " + manifest.islandId(), true));
@@ -36,7 +46,7 @@ public final class MigrationVerifier {
             }
             compareManifest(manifest, actual, issues);
         }
-        return new VerificationResult(issues.isEmpty(), issues, MigrationReportBuilder.build(imported, issues));
+        return new VerificationResult(issues.isEmpty(), List.copyOf(issues), MigrationReportBuilder.build(imported, issues));
     }
 
     private void compareManifest(MigrationManifest expected, MigrationManifest actual, List<MigrationIssue> issues) {
