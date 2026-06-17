@@ -184,8 +184,13 @@ public record CloudIslandsAddonSnapshot(
     public Map<String, String> featureDependencies() {
         Map<String, String> aliases = featureAliases();
         Map<String, String> dependencies = new HashMap<>();
-        metadataPairs("feature-dependencies").forEach((feature, required) ->
-            dependencies.put(feature.trim(), canonicalFeature(required, aliases)));
+        metadataPairs("feature-dependencies").forEach((feature, required) -> {
+            String canonicalFeature = canonicalFeature(feature, aliases);
+            String canonicalRequired = canonicalFeature(required, aliases);
+            if (!canonicalFeature.isBlank() && !canonicalRequired.isBlank() && !canonicalFeature.equals(canonicalRequired)) {
+                dependencies.putIfAbsent(canonicalFeature, canonicalRequired);
+            }
+        });
         return Map.copyOf(dependencies);
     }
 

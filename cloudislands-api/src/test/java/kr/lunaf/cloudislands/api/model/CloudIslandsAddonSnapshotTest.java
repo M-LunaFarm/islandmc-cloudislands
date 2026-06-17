@@ -32,6 +32,41 @@ class CloudIslandsAddonSnapshotTest {
     }
 
     @Test
+    void canonicalizesAliasDependencies() {
+        CloudIslandsAddonSnapshot snapshot = snapshot(
+                Map.of("machines", false, "resource-nodes", true, "generators", true),
+                Map.of(
+                        "feature-aliases", "factories:machines,generators:resource-nodes",
+                        "feature-dependencies", "generators:factories"
+                )
+        );
+
+        assertEquals("resource-nodes", snapshot.canonicalFeatureKey("generators"));
+        assertEquals(Map.of("resource-nodes", "machines"), snapshot.featureDependencies());
+        assertFalse(snapshot.featureEnabled("resource-nodes"));
+        assertFalse(snapshot.featureEnabled("generators"));
+    }
+
+    @Test
+    void disabledAddonForcesRuntimeFeaturesOffButKeepsConfiguredStateVisible() {
+        CloudIslandsAddonSnapshot snapshot = new CloudIslandsAddonSnapshot(
+                "cloudislands-satis",
+                "CloudIslands Satis",
+                "test",
+                false,
+                Instant.EPOCH,
+                Instant.EPOCH,
+                Map.of("machines", true),
+                Map.of("machines", true),
+                Map.of()
+        );
+
+        assertTrue(snapshot.configuredFeatureEnabled("machines"));
+        assertFalse(snapshot.runtimeFeatureEnabled("machines"));
+        assertEquals(Map.of("machines", false), snapshot.resolvedRuntimeFeatures());
+    }
+
+    @Test
     void fillsMissingIdentityAndTimestamps() {
         CloudIslandsAddonSnapshot snapshot = new CloudIslandsAddonSnapshot(null, "", "", true,
                 null, null, null, null, null);
