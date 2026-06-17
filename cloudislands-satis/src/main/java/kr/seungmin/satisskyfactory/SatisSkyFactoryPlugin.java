@@ -1366,6 +1366,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-effective-backend-status", databaseEffectiveBackendStatus());
         metadata.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
         metadata.put("database-attempt-order", databaseBackendAttemptOrderMetadata());
+        metadata.put("database-fallback-effective-order", databaseBackendAttemptOrderMetadata());
         metadata.put("database-jdbc-target", databaseJdbcTargetMetadata());
         metadata.put("database-fallback-jdbc-target", databaseFallbackJdbcTargetMetadata());
         metadata.put("database-fallback-jdbc-targets", databaseFallbackJdbcTargetsMetadata());
@@ -1374,6 +1375,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-fallback-status", databaseFallbackStatus());
         metadata.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
         metadata.put("database-fallback-order", databaseFallbackOrderMetadata());
+        metadata.put("database-fallback-configured-order", databaseFallbackOrderMetadata());
+        metadata.put("database-fallback-order-policy", "configured-order-filtered-to-ready-effective-attempt-order");
         metadata.put("database-fallback-shared-backends", databaseFallbackSharedBackendsMetadata());
         metadata.put("database-fallback-ready-backends", databaseFallbackReadyBackendsMetadata());
         metadata.put("database-fallback-first-shared-backend", databaseFirstSharedBackendMetadata());
@@ -1764,6 +1767,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-effective-backend-status", databaseEffectiveBackendStatus());
         state.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
         state.put("database-attempt-order", databaseBackendAttemptOrderMetadata());
+        state.put("database-fallback-effective-order", databaseBackendAttemptOrderMetadata());
         state.put("database-jdbc-target", databaseJdbcTargetMetadata());
         state.put("database-fallback-jdbc-target", databaseFallbackJdbcTargetMetadata());
         state.put("database-fallback-jdbc-targets", databaseFallbackJdbcTargetsMetadata());
@@ -1772,6 +1776,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-status", databaseFallbackStatus());
         state.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
         state.put("database-fallback-order", databaseFallbackOrderMetadata());
+        state.put("database-fallback-configured-order", databaseFallbackOrderMetadata());
+        state.put("database-fallback-order-policy", "configured-order-filtered-to-ready-effective-attempt-order");
         state.put("database-fallback-shared-backends", databaseFallbackSharedBackendsMetadata());
         state.put("database-fallback-ready-backends", databaseFallbackReadyBackendsMetadata());
         state.put("database-fallback-first-shared-backend", databaseFirstSharedBackendMetadata());
@@ -1907,6 +1913,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-effective-backend-status", databaseEffectiveBackendStatus());
         state.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
         state.put("database-attempt-order", databaseBackendAttemptOrderMetadata());
+        state.put("database-fallback-effective-order", databaseBackendAttemptOrderMetadata());
         state.put("database-jdbc-target", databaseJdbcTargetMetadata());
         state.put("database-fallback-jdbc-target", databaseFallbackJdbcTargetMetadata());
         state.put("database-fallback-jdbc-targets", databaseFallbackJdbcTargetsMetadata());
@@ -1915,6 +1922,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-status", databaseFallbackStatus());
         state.put("database-fallback-enabled", Boolean.toString(databaseSettings().fallbackEnabled()));
         state.put("database-fallback-order", databaseFallbackOrderMetadata());
+        state.put("database-fallback-configured-order", databaseFallbackOrderMetadata());
+        state.put("database-fallback-order-policy", "configured-order-filtered-to-ready-effective-attempt-order");
         state.put("database-fallback-shared-backends", databaseFallbackSharedBackendsMetadata());
         state.put("database-fallback-ready-backends", databaseFallbackReadyBackendsMetadata());
         state.put("database-fallback-first-shared-backend", databaseFirstSharedBackendMetadata());
