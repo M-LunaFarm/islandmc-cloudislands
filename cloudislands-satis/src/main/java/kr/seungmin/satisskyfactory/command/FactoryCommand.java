@@ -695,8 +695,10 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             if (enabled("contracts") && enabled("maintenance") && enabled("storage")) {
                 values.add("emergency");
             }
-            if (enabled("market") && enabled("storage")) {
+            if (enabled("market") && enabled("storage") && enabled("gui")) {
                 values.add("market");
+            }
+            if (enabled("market") && enabled("storage")) {
                 values.add("sell");
             }
             if (enabled("research")) {
@@ -725,6 +727,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         }
         if ((args[0].equalsIgnoreCase("sell") && !enabled("market"))
                 || ((args[0].equalsIgnoreCase("sell") || args[0].equalsIgnoreCase("market")) && !enabled("storage"))
+                || (args[0].equalsIgnoreCase("market") && !enabled("gui"))
                 || ((args[0].equalsIgnoreCase("withdraw") || args[0].equalsIgnoreCase("deposit")) && !enabled("storage"))
                 || (args[0].equalsIgnoreCase("contracts") && (!enabled("contracts") || !enabled("storage")))
                 || (args[0].equalsIgnoreCase("emergency") && (!enabled("contracts") || !enabled("maintenance") || !enabled("storage")))

@@ -47,6 +47,37 @@ class FactoryCommandTest {
         assertTrue(commands.contains("factory machines"));
     }
 
+    @Test
+    void tabCompleteHidesGuiOnlyEntrypointsWhenGuiFeatureIsDisabled() {
+        FactoryCommand command = command(feature -> !"gui".equals(feature));
+
+        List<String> suggestions = command.onTabComplete(null, null, "factory", new String[]{""});
+
+        assertFalse(suggestions.contains("main"));
+        assertFalse(suggestions.contains("storage"));
+        assertFalse(suggestions.contains("market"));
+        assertTrue(suggestions.contains("sell"));
+        assertTrue(suggestions.contains("contracts"));
+        assertTrue(suggestions.contains("emergency"));
+    }
+
+    @Test
+    void tabCompleteHidesStorageBackedCommandsWhenStorageFeatureIsDisabled() {
+        FactoryCommand command = command(feature -> !"storage".equals(feature));
+
+        List<String> suggestions = command.onTabComplete(null, null, "factory", new String[]{""});
+
+        assertFalse(suggestions.contains("storage"));
+        assertFalse(suggestions.contains("deposit"));
+        assertFalse(suggestions.contains("withdraw"));
+        assertFalse(suggestions.contains("market"));
+        assertFalse(suggestions.contains("sell"));
+        assertFalse(suggestions.contains("contracts"));
+        assertFalse(suggestions.contains("emergency"));
+        assertTrue(suggestions.contains("main"));
+        assertTrue(suggestions.contains("machines"));
+    }
+
     @SuppressWarnings("unchecked")
     private List<String> visibleHelpCommands(FactoryCommand command, String label, CommandSender viewer) throws Exception {
         Method method = FactoryCommand.class.getDeclaredMethod("visibleHelpCommands", String.class, CommandSender.class);
