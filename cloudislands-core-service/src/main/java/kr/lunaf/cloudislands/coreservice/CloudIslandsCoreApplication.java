@@ -2998,6 +2998,7 @@ public final class CloudIslandsCoreApplication {
             + "\"coreModuleLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.requiredModuleSummary()) + "\","
             + "\"addonModuleLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.optionalExtensionModuleSummary()) + "\","
             + "\"moduleResponsibilityLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.moduleResponsibilitySummary()) + "\","
+            + "\"moduleRuntimeSurfaceLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.moduleRuntimeSurfaceSummary()) + "\","
             + "\"distributionLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.distributionArtifactSummary()) + "\","
             + "\"addonRegistryPolicy\":\"paper-addon-registers-core-stores-snapshot-only\","
             + "\"addonStateOwnershipPolicy\":\"core-persists-addon-key-value-state-without-addon-business-logic\","

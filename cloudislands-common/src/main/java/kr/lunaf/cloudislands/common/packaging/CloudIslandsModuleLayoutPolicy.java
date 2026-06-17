@@ -25,6 +25,7 @@ public final class CloudIslandsModuleLayoutPolicy {
     );
 
     private static final Map<String, List<String>> MODULE_RESPONSIBILITIES = responsibilities();
+    private static final Map<String, List<String>> MODULE_RUNTIME_SURFACES = runtimeSurfaces();
     private static final Map<String, List<String>> DISTRIBUTION_ARTIFACTS = distributionArtifacts();
 
     private CloudIslandsModuleLayoutPolicy() {
@@ -46,6 +47,10 @@ public final class CloudIslandsModuleLayoutPolicy {
         return DISTRIBUTION_ARTIFACTS;
     }
 
+    public static Map<String, List<String>> moduleRuntimeSurfaces() {
+        return MODULE_RUNTIME_SURFACES;
+    }
+
     public static String requiredModuleSummary() {
         return String.join(",", REQUIRED_MODULES);
     }
@@ -56,6 +61,10 @@ public final class CloudIslandsModuleLayoutPolicy {
 
     public static String moduleResponsibilitySummary() {
         return summarize(MODULE_RESPONSIBILITIES);
+    }
+
+    public static String moduleRuntimeSurfaceSummary() {
+        return summarize(MODULE_RUNTIME_SURFACES);
     }
 
     public static String distributionArtifactSummary() {
@@ -99,6 +108,16 @@ public final class CloudIslandsModuleLayoutPolicy {
         artifacts.put("libraries", List.of("cloudislands-api", "cloudislands-common", "cloudislands-protocol", "cloudislands-core-client", "cloudislands-storage", "cloudislands-migration"));
         artifacts.put("platform", List.of("cloudislands-bom", "cloudislands-testkit"));
         return Collections.unmodifiableMap(artifacts);
+    }
+
+    private static Map<String, List<String>> runtimeSurfaces() {
+        LinkedHashMap<String, List<String>> surfaces = new LinkedHashMap<>();
+        surfaces.put("cloudislands-core-service", List.of("rest-api", "grpc-ready-boundary", "admin-api", "routing-allocator", "job-scheduler", "transaction-boundary"));
+        surfaces.put("cloudislands-velocity", List.of("player-command-entrypoint", "route-ticket-router", "connection-fallback", "status-and-metrics-endpoints"));
+        surfaces.put("cloudislands-paper", List.of("lobby-gui-role", "island-node-runtime-role", "protection-listeners", "teleport-consumer", "world-cell-manager", "bukkit-addon-events"));
+        surfaces.put("cloudislands-storage", List.of("s3-minio-object-storage", "local-filesystem-fallback", "bundle-manifest", "snapshot-restore-pipeline"));
+        surfaces.put("cloudislands-migration", List.of("superiorskyblock2-readonly-scan", "manifest-dryrun", "world-cell-extract", "import-verify-rollback"));
+        return Collections.unmodifiableMap(surfaces);
     }
 
     private static String summarize(Map<String, List<String>> values) {
