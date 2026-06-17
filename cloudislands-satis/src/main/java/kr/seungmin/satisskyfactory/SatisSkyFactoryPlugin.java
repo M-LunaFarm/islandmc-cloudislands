@@ -1,6 +1,7 @@
 package kr.seungmin.satisskyfactory;
 
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
+import kr.lunaf.cloudislands.api.CloudIslandsApiContract;
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddonBootstrap;
 import kr.lunaf.cloudislands.api.event.CoreCacheClearEvent;
@@ -1395,12 +1396,17 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("requires-cloudislands-api", Boolean.toString(requiresCloudIslandsApi()));
         metadata.put("cloudislands-api-available", Boolean.toString(cloudIslandsApi != null));
         if (cloudIslandsApi == null) {
+            metadata.put("cloudislands-api-contract-compatibility", "unavailable");
+            metadata.put("cloudislands-api-contract-missing-keys", CloudIslandsApiContract.requiredMetadataKeysCsv());
             metadata.put("cloudislands-api-read-policy", "unavailable");
             metadata.put("cloudislands-api-write-authority", "unavailable");
             metadata.put("cloudislands-api-sync-event-policy", "unavailable");
             metadata.put("cloudislands-api-addon-storage-policy", "unavailable");
         } else {
-            cloudIslandsApi.contractMetadata().forEach((key, value) -> metadata.put("cloudislands-api-" + key, value));
+            Map<String, String> contractMetadata = cloudIslandsApi.contractMetadata();
+            metadata.put("cloudislands-api-contract-compatibility", CloudIslandsApiContract.metadataCompatibilityStatus(contractMetadata));
+            metadata.put("cloudislands-api-contract-missing-keys", String.join(",", CloudIslandsApiContract.missingMetadataKeys(contractMetadata)));
+            contractMetadata.forEach((key, value) -> metadata.put("cloudislands-api-" + key, value));
         }
         metadata.put("cloudislands-required-policy", SatisAddonIntegrationPolicy.CLOUDISLANDS_REQUIRED_POLICY);
         metadata.put("cloudislands-api-resolution", SatisAddonIntegrationPolicy.API_RESOLUTION_POLICY);
