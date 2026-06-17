@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.cache;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
@@ -20,6 +21,7 @@ import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.common.event.CacheInvalidationPlan;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.event.AddonStateChangeEvent;
 import kr.lunaf.cloudislands.paper.event.CoreCacheClearEvent;
 import kr.lunaf.cloudislands.paper.event.CoreReloadEvent;
 import kr.lunaf.cloudislands.paper.event.CloudIslandsGlobalEvent;
@@ -28,10 +30,12 @@ import kr.lunaf.cloudislands.paper.event.IslandActivationRequestEvent;
 import kr.lunaf.cloudislands.paper.event.IslandActivatedEvent;
 import kr.lunaf.cloudislands.paper.event.IslandBankChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandBiomeChangeEvent;
+import kr.lunaf.cloudislands.paper.event.IslandBlockValueChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandCreatedEvent;
 import kr.lunaf.cloudislands.paper.event.IslandDeactivatedEvent;
 import kr.lunaf.cloudislands.paper.event.IslandDeactivationRequestEvent;
 import kr.lunaf.cloudislands.paper.event.IslandDeleteRequestEvent;
+import kr.lunaf.cloudislands.paper.event.IslandDeleteBackupFailedEvent;
 import kr.lunaf.cloudislands.paper.event.IslandDeletedEvent;
 import kr.lunaf.cloudislands.paper.event.IslandFlagChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandHomeChangeEvent;
@@ -859,6 +863,8 @@ public final class PermissionEventPoller {
             Bukkit.getPluginManager().callEvent(new IslandRestoreRequestEvent(islandId, fields.getOrDefault("state", ""), fields.getOrDefault("targetNode", ""), longField(fields, "snapshotNo"), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_DELETE_REQUESTED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandDeleteRequestEvent(islandId, fields.getOrDefault("targetNode", ""), fields.getOrDefault("reason", ""), fields));
+        } else if (type.equals(CloudIslandEventType.ISLAND_DELETE_BACKUP_FAILED.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandDeleteBackupFailedEvent(islandId, fields.getOrDefault("reason", ""), fields.getOrDefault("error", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_DELETED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandDeletedEvent(islandId, longField(fields, "snapshotNo"), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name())) {
@@ -947,6 +953,10 @@ public final class PermissionEventPoller {
             if (fields.containsKey("worth")) {
                 Bukkit.getPluginManager().callEvent(new IslandWorthChangeEvent(islandId, fields.getOrDefault("worth", ""), fields));
             }
+        } else if (type.equals(CloudIslandEventType.ISLAND_BLOCK_VALUE_CHANGED.name())) {
+            Bukkit.getPluginManager().callEvent(new IslandBlockValueChangeEvent(fields.getOrDefault("materialKey", ""), decimalField(fields, "worth"), longField(fields, "levelPoints"), longField(fields, "limit")));
+        } else if (type.equals(CloudIslandEventType.ADDON_STATE_CHANGED.name())) {
+            Bukkit.getPluginManager().callEvent(new AddonStateChangeEvent(fields.getOrDefault("addonId", ""), islandId, fields.getOrDefault("operation", ""), fields.getOrDefault("key", ""), fields.getOrDefault("table", ""), intField(fields, "keys"), intField(fields, "valueKeys"), intField(fields, "tableKeys"), intField(fields, "tables"), fields));
         }
     }
 
@@ -1014,6 +1024,18 @@ public final class PermissionEventPoller {
             return Long.parseLong(value);
         } catch (NumberFormatException ignored) {
             return 0L;
+        }
+    }
+
+    private BigDecimal decimalField(Map<String, String> fields, String key) {
+        String value = fields.get(key);
+        if (value == null || value.isBlank()) {
+            return BigDecimal.ZERO;
+        }
+        try {
+            return new BigDecimal(value);
+        } catch (NumberFormatException ignored) {
+            return BigDecimal.ZERO;
         }
     }
 
