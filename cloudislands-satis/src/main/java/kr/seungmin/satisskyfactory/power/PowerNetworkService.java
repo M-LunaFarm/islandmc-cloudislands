@@ -226,7 +226,11 @@ public final class PowerNetworkService {
     }
 
     private boolean writesEnabled() {
-        return writesEnabled.getAsBoolean();
+        try {
+            return writesEnabled.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 
     private boolean canParticipate(MachineInstance machine) {

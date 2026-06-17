@@ -120,7 +120,7 @@ public final class ResearchService {
         if (island.reputation() < unlock.requiredReputation()) {
             return UnlockResult.NOT_ENOUGH_REPUTATION;
         }
-        if (maintenanceEnabled.getAsBoolean()
+        if (maintenanceEnabled()
                 && blockTierUpgradesWhenLimited
                 && island.maintenanceStatus() == MaintenanceStatus.LIMITED
                 && unlock.factoryTier() > island.tier()) {
@@ -154,7 +154,19 @@ public final class ResearchService {
     }
 
     private boolean writesEnabled() {
-        return writesEnabled.getAsBoolean();
+        try {
+            return writesEnabled.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private boolean maintenanceEnabled() {
+        try {
+            return maintenanceEnabled.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 
     private List<String> stringList(ConfigurationSection section, String firstPath, String secondPath) {
