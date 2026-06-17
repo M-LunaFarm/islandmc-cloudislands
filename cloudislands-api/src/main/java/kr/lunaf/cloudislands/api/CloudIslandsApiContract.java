@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.api;
 
+import java.util.List;
 import java.util.Map;
 
 public final class CloudIslandsApiContract {
@@ -19,6 +20,36 @@ public final class CloudIslandsApiContract {
     public static final String CONSISTENCY_AUTHORITY_POLICY = "database-transactions-and-fencing-tokens-are-authoritative-redis-locks-are-advisory";
 
     private CloudIslandsApiContract() {
+    }
+
+    public static List<String> requiredMetadataKeys() {
+        return List.of(
+            "contract-version",
+            "read-policy",
+            "write-authority",
+            "sync-event-policy",
+            "addon-storage-policy",
+            "java-plugin-api-policy",
+            "internal-api-policy",
+            "event-api-policy",
+            "core-auth-policy",
+            "admin-endpoint-policy",
+            "network-exposure-policy",
+            "security-posture-summary",
+            "topology-privacy-policy",
+            "consistency-authority-policy"
+        );
+    }
+
+    public static boolean compatibleMetadata(Map<String, String> metadata) {
+        if (metadata == null) {
+            return false;
+        }
+        String version = metadata.get("contract-version");
+        if (!CONTRACT_VERSION.equals(version)) {
+            return false;
+        }
+        return requiredMetadataKeys().stream().allMatch(metadata::containsKey);
     }
 
     public static Map<String, String> metadata() {
