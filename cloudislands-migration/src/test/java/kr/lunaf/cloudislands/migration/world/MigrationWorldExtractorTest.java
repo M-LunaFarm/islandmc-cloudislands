@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
+import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.manifest.IslandManifestJson;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -62,6 +63,45 @@ class MigrationWorldExtractorTest {
         IOException exception = assertThrows(IOException.class, () -> extractor.verify(plan));
 
         assertEquals("migration bundle checksum mismatch for " + ISLAND_ID, exception.getMessage());
+    }
+
+    @Test
+    void verifyRejectsMismatchedBundleManifestOwner() throws Exception {
+        Path sourceWorld = root.resolve("SuperiorWorld");
+        Files.createDirectories(sourceWorld);
+        Files.writeString(sourceWorld.resolve("level.dat"), "level", StandardCharsets.UTF_8);
+
+        MigrationWorldExtractor extractor = new MigrationWorldExtractor();
+        MigrationWorldExtractionPlan plan = extractor.plan(manifest(sourceWorld), root.resolve("target"));
+        MigrationWorldBundle bundle = extractor.extract(plan);
+        IslandBundleManifest manifest = IslandManifestJson.read(Files.readString(bundle.manifestPath()));
+        Files.writeString(bundle.manifestPath(), IslandManifestJson.write(new IslandBundleManifest(
+                manifest.islandId(),
+                UUID.fromString("00000000-0000-0000-0000-000000000999"),
+                manifest.formatVersion(),
+                manifest.minecraftVersion(),
+                manifest.schemaVersion(),
+                manifest.size(),
+                manifest.spawn(),
+                manifest.homes(),
+                manifest.warps(),
+                manifest.biomes(),
+                manifest.createdAt(),
+                manifest.savedAt(),
+                manifest.checksum(),
+                manifest.checksumAlgorithm(),
+                manifest.compression(),
+                manifest.storagePath(),
+                manifest.sizeBytes(),
+                manifest.snapshotReason(),
+                manifest.portable(),
+                manifest.placementPolicy(),
+                manifest.restorePolicy()
+        )));
+
+        IOException exception = assertThrows(IOException.class, () -> extractor.verify(plan));
+
+        assertEquals("migration manifest owner mismatch for " + ISLAND_ID, exception.getMessage());
     }
 
     @Test

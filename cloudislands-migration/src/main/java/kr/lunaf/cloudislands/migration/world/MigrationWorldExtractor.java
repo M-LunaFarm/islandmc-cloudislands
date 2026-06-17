@@ -73,6 +73,7 @@ public final class MigrationWorldExtractor {
         if (!manifest.portable()) {
             throw new IOException("migration manifest is not portable for " + plan.islandId());
         }
+        verifyManifestIdentity(plan, manifest);
         return new MigrationWorldBundle(plan.islandId(), plan.sourcePath(), plan.targetBundlePath(), manifestPath, actual, Files.size(plan.targetBundlePath()), countZipEntries(plan.targetBundlePath()));
     }
 
@@ -135,6 +136,22 @@ public final class MigrationWorldExtractor {
             }
         }
         return count;
+    }
+
+    private void verifyManifestIdentity(MigrationWorldExtractionPlan plan, IslandBundleManifest manifest) throws IOException {
+        if (!plan.islandId().equals(manifest.islandId())) {
+            throw new IOException("migration manifest island id mismatch for " + plan.islandId());
+        }
+        MigrationManifest source = plan.manifest();
+        if (source == null) {
+            return;
+        }
+        if (!source.ownerUuid().equals(manifest.ownerUuid())) {
+            throw new IOException("migration manifest owner mismatch for " + plan.islandId());
+        }
+        if (source.size() != manifest.size()) {
+            throw new IOException("migration manifest size mismatch for " + plan.islandId());
+        }
     }
 
     private Path writeManifest(MigrationWorldExtractionPlan plan, String checksum, long sizeBytes) throws IOException {
