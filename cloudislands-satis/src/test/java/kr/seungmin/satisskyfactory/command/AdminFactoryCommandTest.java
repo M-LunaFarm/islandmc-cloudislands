@@ -43,6 +43,15 @@ class AdminFactoryCommandTest {
     }
 
     @Test
+    void exposesPagedAdminCommandSuggestions() throws Exception {
+        List<String> suggestions = helpPageSuggestions(command(feature -> true));
+
+        assertTrue(suggestions.size() > 1);
+        assertEquals("1", suggestions.get(0));
+        assertEquals(String.valueOf(suggestions.size()), suggestions.get(suggestions.size() - 1));
+    }
+
+    @Test
     void hidesMigrationCommandsWhenMigrationFeatureIsDisabled() throws Exception {
         List<String> commands = visibleHelpCommands(command(feature -> !"migration".equals(feature)), "factory");
 
@@ -55,6 +64,13 @@ class AdminFactoryCommandTest {
         Method method = AdminFactoryCommand.class.getDeclaredMethod("visibleHelpCommands", String.class);
         method.setAccessible(true);
         return (List<String>) method.invoke(command, label);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> helpPageSuggestions(AdminFactoryCommand command) throws Exception {
+        Method method = AdminFactoryCommand.class.getDeclaredMethod("helpPageSuggestions");
+        method.setAccessible(true);
+        return (List<String>) method.invoke(command);
     }
 
     private AdminFactoryCommand command(Predicate<String> featureEnabled) {

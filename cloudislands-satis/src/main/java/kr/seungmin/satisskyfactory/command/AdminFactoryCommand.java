@@ -42,7 +42,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public final class AdminFactoryCommand {
-    private static final int HELP_PAGE_SIZE = CommandListPolicy.DEFAULT_PAGE_SIZE;
     private static final String MIGRATION_IMPORT_APPROVAL = "CONFIRM_IMPORT";
     private static final String MIGRATION_SOURCE_POLICY = "read-only-snapshot-or-sqlite-import-no-live-provider-hooks";
     private static final String MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS = "SuperiorSkyblock2,BentoBox,ASkyBlock";
@@ -358,7 +357,7 @@ public final class AdminFactoryCommand {
     }
 
     private List<String> helpPageSuggestions() {
-        int maxPage = Math.max(1, (visibleHelpCommands("factory").size() + HELP_PAGE_SIZE - 1) / HELP_PAGE_SIZE);
+        int maxPage = CommandListPolicy.pages(visibleHelpCommands("factory").size());
         List<String> values = new ArrayList<>();
         for (int page = 1; page <= maxPage; page++) {
             values.add(String.valueOf(page));
@@ -1434,19 +1433,16 @@ public final class AdminFactoryCommand {
 
     private void help(CommandSender sender, String label, int page) {
         List<String> commands = visibleHelpCommands(label);
-        int maxPage = Math.max(1, (commands.size() + HELP_PAGE_SIZE - 1) / HELP_PAGE_SIZE);
-        int safePage = Math.max(1, Math.min(page, maxPage));
-        int from = (safePage - 1) * HELP_PAGE_SIZE;
-        int to = Math.min(commands.size(), from + HELP_PAGE_SIZE);
-        sender.sendMessage(messages.raw("admin-command-list-title", Map.of("page", String.valueOf(safePage), "pages", String.valueOf(maxPage))));
-        for (String command : commands.subList(from, to)) {
+        CommandListPolicy.Page commandPage = CommandListPolicy.page(commands, page, label + " admin command list");
+        sender.sendMessage(messages.raw("admin-command-list-title", Map.of("page", String.valueOf(commandPage.page()), "pages", String.valueOf(commandPage.pages()))));
+        for (String command : commandPage.entries()) {
             sender.sendMessage(messages.raw("command-list-entry", Map.of("command", command)));
         }
-        if (safePage > 1) {
-            sender.sendMessage(messages.raw("command-list-entry", Map.of("command", label + " admin command list " + (safePage - 1))));
+        if (commandPage.previousCommand() != null) {
+            sender.sendMessage(messages.raw("command-list-entry", Map.of("command", commandPage.previousCommand())));
         }
-        if (safePage < maxPage) {
-            sender.sendMessage(messages.raw("command-list-entry", Map.of("command", label + " admin command list " + (safePage + 1))));
+        if (commandPage.nextCommand() != null) {
+            sender.sendMessage(messages.raw("command-list-entry", Map.of("command", commandPage.nextCommand())));
         }
     }
 

@@ -45,7 +45,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public final class FactoryCommand implements CommandExecutor, TabCompleter {
-    private static final int HELP_PAGE_SIZE = CommandListPolicy.DEFAULT_PAGE_SIZE;
     private static final List<String> HELP_COMMANDS = List.of(
             "factory help [page]",
             "factory list [page]",
@@ -519,19 +518,16 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
 
     private void help(Player player, String label, int page) {
         List<String> commands = visibleHelpCommands(label, player);
-        int maxPage = Math.max(1, (commands.size() + HELP_PAGE_SIZE - 1) / HELP_PAGE_SIZE);
-        int safePage = Math.max(1, Math.min(page, maxPage));
-        int from = (safePage - 1) * HELP_PAGE_SIZE;
-        int to = Math.min(commands.size(), from + HELP_PAGE_SIZE);
-        player.sendMessage(messages.raw("command-list-title", Map.of("page", String.valueOf(safePage), "pages", String.valueOf(maxPage))));
-        for (String command : commands.subList(from, to)) {
+        CommandListPolicy.Page commandPage = CommandListPolicy.page(commands, page, label + " command list");
+        player.sendMessage(messages.raw("command-list-title", Map.of("page", String.valueOf(commandPage.page()), "pages", String.valueOf(commandPage.pages()))));
+        for (String command : commandPage.entries()) {
             player.sendMessage(messages.raw("command-list-entry", Map.of("command", command)));
         }
-        if (safePage > 1) {
-            player.sendMessage(messages.raw("command-list-entry", Map.of("command", label + " command list " + (safePage - 1))));
+        if (commandPage.previousCommand() != null) {
+            player.sendMessage(messages.raw("command-list-entry", Map.of("command", commandPage.previousCommand())));
         }
-        if (safePage < maxPage) {
-            player.sendMessage(messages.raw("command-list-entry", Map.of("command", label + " command list " + (safePage + 1))));
+        if (commandPage.nextCommand() != null) {
+            player.sendMessage(messages.raw("command-list-entry", Map.of("command", commandPage.nextCommand())));
         }
     }
 
@@ -775,7 +771,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     }
 
     private List<String> helpPageSuggestions(CommandSender sender) {
-        int maxPage = Math.max(1, (visibleHelpCommands("factory", sender).size() + HELP_PAGE_SIZE - 1) / HELP_PAGE_SIZE);
+        int maxPage = CommandListPolicy.pages(visibleHelpCommands("factory", sender).size());
         List<String> values = new ArrayList<>();
         for (int page = 1; page <= maxPage; page++) {
             values.add(String.valueOf(page));
