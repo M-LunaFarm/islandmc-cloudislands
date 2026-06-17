@@ -198,7 +198,8 @@ public final class RoutingOrchestrator {
             "islandId", ticket.islandId().toString(),
             "targetNode", ticket.targetNode(),
             "nodeId", ticket.targetNode(),
-            "targetWorld", ticket.targetWorld()
+            "targetWorld", ticket.targetWorld(),
+            "placementSource", ticket.payload().getOrDefault("placementSource", "")
         )));
         if (consumed.isEmpty()) {
             publishTicketConsumeFailure(ticketId, playerUuid, nodeId, nonce);

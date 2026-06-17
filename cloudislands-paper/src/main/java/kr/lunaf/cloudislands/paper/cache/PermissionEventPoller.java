@@ -63,6 +63,7 @@ import kr.lunaf.cloudislands.paper.event.IslandSnapshotCreateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandSnapshotRequestEvent;
 import kr.lunaf.cloudislands.paper.event.IslandTemplateChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandUpgradeEvent;
+import kr.lunaf.cloudislands.paper.event.IslandVisitEvent;
 import kr.lunaf.cloudislands.paper.event.IslandVisitorBanChangeEvent;
 import kr.lunaf.cloudislands.paper.event.IslandVisitorKickEvent;
 import kr.lunaf.cloudislands.paper.event.IslandWarpChangeEvent;
@@ -908,6 +909,9 @@ public final class PermissionEventPoller {
         } else if (type.equals(CloudIslandEventType.ISLAND_PRE_VISIT.name())) {
             UUID visitorUuid = uuidField(fields, "visitorUuid", "playerUuid");
             Bukkit.getPluginManager().callEvent(new IslandPreVisitEvent(islandId, visitorUuid, visitorUuid == null ? null : Bukkit.getPlayer(visitorUuid), firstPresent(fields, "targetWorld", "worldName", "world")));
+        } else if (type.equals(CloudIslandEventType.ISLAND_VISITED.name())) {
+            UUID visitorUuid = uuidField(fields, "visitorUuid", "playerUuid");
+            Bukkit.getPluginManager().callEvent(new IslandVisitEvent(islandId, visitorUuid, visitorUuid == null ? null : Bukkit.getPlayer(visitorUuid), firstPresent(fields, "targetWorld", "worldName", "world"), firstPresent(fields, "placementSource", "source")));
         } else if (type.equals(CloudIslandEventType.ISLAND_WARP_CREATED.name())) {
             Bukkit.getPluginManager().callEvent(new IslandWarpCreateEvent(islandId, firstPresent(fields, "warpName", "name"), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_WARP_DELETED.name())) {
