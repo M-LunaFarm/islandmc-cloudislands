@@ -5169,6 +5169,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 || !configs.main().getString("setup.database." + typedSection + ".password", "").isBlank())) {
             return "setup.database." + typedSection + ".username/password";
         }
+        if (!typedSection.isBlank()
+                && (!configs.main().getString("addons.cloudislands-satis.database." + typedSection + ".username", "").isBlank()
+                || !configs.main().getString("addons.cloudislands-satis.database." + typedSection + ".password", "").isBlank())) {
+            return "addons.cloudislands-satis.database." + typedSection + ".username/password";
+        }
 
         String setupUsername = configs.main().getString("setup.database.jdbc.username", "");
         String setupPassword = configs.main().getString("setup.database.jdbc.password", "");
@@ -5197,6 +5202,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (nonBlankConfig("setup.database.jdbc.url")) {
             return "setup.database.jdbc.url";
         }
+        if (nonBlankConfig("addons.cloudislands-satis.database.jdbc.url")) {
+            return "addons.cloudislands-satis.database.jdbc.url";
+        }
         if (nonBlankConfig("database.jdbc.url")) {
             return "database.jdbc.url";
         }
@@ -5206,6 +5214,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 || nonBlankConfig("setup.database." + backend + ".name")
                 || nonBlankConfig("setup.database." + backend + ".database")) {
             return "setup.database." + backend;
+        }
+        if (nonBlankConfig("addons.cloudislands-satis.database." + backend + ".jdbc-url")
+                || nonBlankConfig("addons.cloudislands-satis.database." + backend + ".url")
+                || nonBlankConfig("addons.cloudislands-satis.database." + backend + ".host")
+                || nonBlankConfig("addons.cloudislands-satis.database." + backend + ".name")
+                || nonBlankConfig("addons.cloudislands-satis.database." + backend + ".database")) {
+            return "addons.cloudislands-satis.database." + backend;
         }
         return "database." + backend;
     }
@@ -5225,10 +5240,19 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 || configs.main().getLong("setup.database." + typedSection + ".connection-timeout-ms", 0L) > 0L)) {
             return "setup.database." + typedSection + ".pool";
         }
+        if (!typedSection.isBlank()
+                && (configs.main().getInt("addons.cloudislands-satis.database." + typedSection + ".max-pool-size", 0) > 0
+                || configs.main().getLong("addons.cloudislands-satis.database." + typedSection + ".connection-timeout-ms", 0L) > 0L)) {
+            return "addons.cloudislands-satis.database." + typedSection + ".pool";
+        }
 
         if (configs.main().getInt("setup.database.jdbc.max-pool-size", 0) > 0
                 || configs.main().getLong("setup.database.jdbc.connection-timeout-ms", 0L) > 0L) {
             return "setup.database.jdbc.pool";
+        }
+        if (configs.main().getInt("addons.cloudislands-satis.database.jdbc.max-pool-size", 0) > 0
+                || configs.main().getLong("addons.cloudislands-satis.database.jdbc.connection-timeout-ms", 0L) > 0L) {
+            return "addons.cloudislands-satis.database.jdbc.pool";
         }
         return "database.jdbc.pool";
     }
