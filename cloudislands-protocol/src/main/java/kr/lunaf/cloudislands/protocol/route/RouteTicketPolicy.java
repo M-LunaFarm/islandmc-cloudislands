@@ -14,6 +14,11 @@ public final class RouteTicketPolicy {
     public static final boolean TARGET_NODE_REQUIRED = true;
     public static final boolean ONE_TIME_CONSUME = true;
     public static final boolean HIDE_PHYSICAL_NODE_NAMES_FROM_PLAYERS = true;
+    public static final String ONE_TIME_POLICY = "ready-ticket-can-be-consumed-once-only-by-player-target-node-and-nonce-before-expiry";
+    public static final String NONCE_POLICY = "nonce-required-for-ticket-status-session-publish-session-consume-and-ticket-consume";
+    public static final String ARRIVAL_CONSUME_POLICY = "paper-join-consumes-route-session-then-route-ticket-before-teleport";
+    public static final String DIRECT_ACCESS_POLICY = "island-node-requires-velocity-forwarding-proxy-source-allowlist-and-route-session";
+    public static final String REPLAY_POLICY = "consumed-expired-cancelled-and-failed-tickets-are-terminal-and-not-reusable";
 
     private RouteTicketPolicy() {
     }
