@@ -1,5 +1,9 @@
 plugins { `java-library` }
 
+fun embeddedOutput(projectName: String) =
+    (project(projectName).extensions.getByName("sourceSets") as org.gradle.api.tasks.SourceSetContainer)
+        .named("main").get().output
+
 dependencies {
     compileOnly("com.velocitypowered:velocity-api:3.5.0-SNAPSHOT")
     annotationProcessor("com.velocitypowered:velocity-api:3.5.0-SNAPSHOT")
@@ -12,6 +16,14 @@ dependencies {
 tasks.jar {
     archiveBaseName.set("CloudIslands-Velocity")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    listOf(
+        ":cloudislands-api",
+        ":cloudislands-protocol",
+        ":cloudislands-core-client",
+        ":cloudislands-common"
+    ).forEach { embeddedProject ->
+        from(embeddedOutput(embeddedProject))
+    }
     manifest {
         attributes(
             "CloudIslands-Multi-Node-Pool-Support" to "true",

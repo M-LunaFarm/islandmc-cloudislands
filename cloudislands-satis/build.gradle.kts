@@ -1,5 +1,9 @@
 plugins { `java-library` }
 
+fun embeddedOutput(projectName: String) =
+    (project(projectName).extensions.getByName("sourceSets") as org.gradle.api.tasks.SourceSetContainer)
+        .named("main").get().output
+
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     compileOnly("com.github.MilkBowl:VaultAPI:1.7")
@@ -23,6 +27,7 @@ tasks.processResources {
 tasks.jar {
     archiveBaseName.set("CloudIslands-Satis")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from(embeddedOutput(":cloudislands-protocol"))
     manifest {
         attributes(
             "CloudIslands-Addon" to "cloudislands-satis",

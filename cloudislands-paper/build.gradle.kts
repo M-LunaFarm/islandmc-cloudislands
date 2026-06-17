@@ -1,5 +1,9 @@
 plugins { `java-library` }
 
+fun embeddedOutput(projectName: String) =
+    (project(projectName).extensions.getByName("sourceSets") as org.gradle.api.tasks.SourceSetContainer)
+        .named("main").get().output
+
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     compileOnly("me.clip:placeholderapi:2.11.6")
@@ -18,6 +22,15 @@ tasks.test {
 tasks.jar {
     archiveBaseName.set("CloudIslands-Paper")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    listOf(
+        ":cloudislands-api",
+        ":cloudislands-protocol",
+        ":cloudislands-common",
+        ":cloudislands-core-client",
+        ":cloudislands-storage"
+    ).forEach { embeddedProject ->
+        from(embeddedOutput(embeddedProject))
+    }
     manifest {
         attributes(
             "CloudIslands-Multi-Node-Pool-Support" to "true",
