@@ -685,6 +685,10 @@ public final class AdminFactoryCommand {
         Map<String, String> state = new LinkedHashMap<>();
         state.put("satis-schema", "3");
         state.put("satis-storage-key", "cloudislands-island-uuid");
+        state.put("legacy-source-project", SatisLegacyMigrationPolicy.SOURCE_PROJECT);
+        state.put("legacy-skyblock-source", SatisLegacyMigrationPolicy.LEGACY_SKYBLOCK_SOURCE);
+        state.put("legacy-satis-source", SatisLegacyMigrationPolicy.LEGACY_SATIS_SOURCE);
+        state.put("legacy-allowed-input", "read-only-snapshot,sqlite-export");
         state.put("superior-migration-input-only", "true");
         state.put("superior-runtime-dependency", "false");
         state.put("superior-forbidden-runtime-dependencies", "SuperiorSkyblock2,BentoBox,ASkyBlock");
@@ -692,9 +696,11 @@ public final class AdminFactoryCommand {
         state.put("superior-provider-service-check", "plugin-enabled-and-bukkit-services-manager");
         state.put("superior-migration-source-policy", SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY);
         state.put("superior-runtime-dependency-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
+        state.put("superior-runtime-provider-hook-policy", SatisLegacyMigrationPolicy.RUNTIME_PROVIDER_HOOK_POLICY);
         state.put("superior-migration-manifest-policy", SatisLegacyMigrationPolicy.MANIFEST_POLICY);
         state.put("superior-migration-output-id-policy", SatisLegacyMigrationPolicy.OUTPUT_ID_POLICY);
         state.put("superior-migration-approval-policy", SatisLegacyMigrationPolicy.APPROVAL_POLICY);
+        state.put("superior-migration-approval-token-policy", SatisLegacyMigrationPolicy.APPROVAL_TOKEN_POLICY);
         state.put("superior-import-scan", "/ciadmin migrate-superiorskyblock2 scan [path]");
         state.put("superior-import-dryrun", "/ciadmin migrate-superiorskyblock2 dryrun [path]");
         state.put("superior-import-import", "/ciadmin migrate-superiorskyblock2 import <approvalToken>");
