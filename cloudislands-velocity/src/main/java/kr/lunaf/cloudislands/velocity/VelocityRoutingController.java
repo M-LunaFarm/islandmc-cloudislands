@@ -54,6 +54,10 @@ public final class VelocityRoutingController {
     private final AtomicLong fallbackMissing = new AtomicLong();
     private final AtomicLong fallbackFailures = new AtomicLong();
     private final AtomicLong fallbackSkippedOffline = new AtomicLong();
+    private volatile String lastFallbackCode = "none";
+    private volatile String lastFallbackCategory = "none";
+    private volatile String lastFallbackResult = "none";
+    private volatile long lastFallbackAtEpochMillis;
     private final Set<String> seenEvents = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Long> recentRouteRequests = new ConcurrentHashMap<>();
     private ScheduledTask eventPollTask;
@@ -144,7 +148,11 @@ public final class VelocityRoutingController {
             + ", fallbackTransfers=" + fallbackTransfers.get()
             + ", fallbackMissing=" + fallbackMissing.get()
             + ", fallbackFailures=" + fallbackFailures.get()
-            + ", fallbackSkippedOffline=" + fallbackSkippedOffline.get();
+            + ", fallbackSkippedOffline=" + fallbackSkippedOffline.get()
+            + ", lastFallbackCode=" + lastFallbackCode
+            + ", lastFallbackCategory=" + lastFallbackCategory
+            + ", lastFallbackResult=" + lastFallbackResult
+            + ", lastFallbackAtEpochMillis=" + lastFallbackAtEpochMillis;
     }
 
     public String routingMetricsText() {
@@ -158,7 +166,8 @@ public final class VelocityRoutingController {
             + "cloudislands_velocity_fallback_transfers_total " + fallbackTransfers.get() + "\n"
             + "cloudislands_velocity_fallback_missing_total " + fallbackMissing.get() + "\n"
             + "cloudislands_velocity_fallback_failed_total " + fallbackFailures.get() + "\n"
-            + "cloudislands_velocity_fallback_skipped_offline_total " + fallbackSkippedOffline.get() + "\n";
+            + "cloudislands_velocity_fallback_skipped_offline_total " + fallbackSkippedOffline.get() + "\n"
+            + "cloudislands_velocity_last_fallback_at_epoch_seconds " + (lastFallbackAtEpochMillis / 1000L) + "\n";
     }
 
     private int islandPoolServerCount() {
@@ -3527,25 +3536,32 @@ public final class VelocityRoutingController {
 
     private void fallback(Player player, String message, String code) {
         routeFailures.incrementAndGet();
-        recordRouteFailureCode(code);
+        String safeCode = safeRouteFailureCode(code, "ROUTE_FAILED");
+        recordRouteFailureCode(safeCode);
+        rememberFallback(safeCode, "attempt");
         if (!playerOnline(player)) {
             fallbackSkippedOffline.incrementAndGet();
+            rememberFallback(safeCode, "skipped-offline");
             return;
         }
         player.sendMessage(playerComponent(message));
         RegisteredServer server = findServer(fallbackServer);
         if (server == null) {
             fallbackMissing.incrementAndGet();
+            rememberFallback(safeCode, "fallback-missing");
             return;
         }
         player.createConnectionRequest(server).connectWithIndication().thenAccept(success -> {
             if (success) {
                 fallbackTransfers.incrementAndGet();
+                rememberFallback(safeCode, "transferred");
             } else {
                 fallbackFailures.incrementAndGet();
+                rememberFallback(safeCode, "transfer-failed");
             }
         }).exceptionally(error -> {
             fallbackFailures.incrementAndGet();
+            rememberFallback(safeCode, "transfer-exception");
             return null;
         });
     }
@@ -3566,6 +3582,14 @@ public final class VelocityRoutingController {
 
     private void recordRouteFailureCode(String code) {
         routeFailureCodes.computeIfAbsent(safeRouteFailureCode(code, "ROUTE_FAILED"), ignored -> new AtomicLong()).incrementAndGet();
+    }
+
+    private void rememberFallback(String code, String result) {
+        String safeCode = safeRouteFailureCode(code, "ROUTE_FAILED");
+        lastFallbackCode = safeCode;
+        lastFallbackCategory = kr.lunaf.cloudislands.protocol.route.RouteFailureMessagePolicy.playerSafeCategory(safeCode);
+        lastFallbackResult = result == null || result.isBlank() ? "unknown" : result;
+        lastFallbackAtEpochMillis = System.currentTimeMillis();
     }
 
     private String routeFailureCodesSummary() {
