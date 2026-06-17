@@ -19,6 +19,8 @@ class SatisAddonIntegrationPolicyTest {
     @Test
     void requiresCloudIslandsApiOnlyAndRootFeatureGates() {
         assertEquals("cloudislands-api-only-no-superiorskyblock2-runtime", SatisAddonIntegrationPolicy.API_POLICY);
+        assertEquals("island-member-permission-location-upgrade-values-through-cloudislands-api-or-addon-spi", SatisAddonIntegrationPolicy.API_SURFACE_POLICY);
+        assertEquals("no-direct-cloudislands-storage-runtime-or-world-owner-access", SatisAddonIntegrationPolicy.FORBIDDEN_DIRECT_ACCESS_POLICY);
         assertEquals("cloudislands-api-required-no-standalone-island-runtime", SatisAddonIntegrationPolicy.CLOUDISLANDS_REQUIRED_POLICY);
         assertEquals("bootstrap-or-services-manager", SatisAddonIntegrationPolicy.API_RESOLUTION_POLICY);
         assertEquals("disable-plugin-clear-features-register-no-components", SatisAddonIntegrationPolicy.MISSING_API_BEHAVIOR);
@@ -39,6 +41,24 @@ class SatisAddonIntegrationPolicyTest {
         assertTrue(SatisAddonIntegrationPolicy.featureGateRequired("maintenance"));
         assertTrue(SatisAddonIntegrationPolicy.featureGateRequired("placeholders"));
         assertTrue(SatisAddonIntegrationPolicy.featureGateRequired("addon-state"));
+    }
+
+    @Test
+    void requiresPublicCloudIslandsApiDomainsAndBlocksDirectInternals() {
+        assertTrue(SatisAddonIntegrationPolicy.apiDomainRequired("island-query"));
+        assertTrue(SatisAddonIntegrationPolicy.apiDomainRequired("member-query"));
+        assertTrue(SatisAddonIntegrationPolicy.apiDomainRequired("permission-query"));
+        assertTrue(SatisAddonIntegrationPolicy.apiDomainRequired("active-location-query"));
+        assertTrue(SatisAddonIntegrationPolicy.apiDomainRequired("upgrade-value-query"));
+        assertTrue(SatisAddonIntegrationPolicy.apiDomainRequired("runtime-route-query"));
+        assertTrue(SatisAddonIntegrationPolicy.apiDomainRequired("lifecycle-events"));
+        assertTrue(SatisAddonIntegrationPolicy.apiDomainRequired("addon-state-storage"));
+
+        assertTrue(SatisAddonIntegrationPolicy.directAccessForbidden("SuperiorSkyblock2-runtime-api"));
+        assertTrue(SatisAddonIntegrationPolicy.directAccessForbidden("CloudIslands-core-service-internals"));
+        assertTrue(SatisAddonIntegrationPolicy.directAccessForbidden("CloudIslands-storage-implementation"));
+        assertTrue(SatisAddonIntegrationPolicy.directAccessForbidden("Paper-world-name-as-state-owner"));
+        assertTrue(SatisAddonIntegrationPolicy.directAccessForbidden("Island-node-name-as-state-owner"));
     }
 
     @Test
@@ -98,6 +118,14 @@ class SatisAddonIntegrationPolicyTest {
                 SatisAddonIntegrationPolicy.requiredScenarios().get("volatile-placement")
         );
         assertEquals(
+                "island-member-permission-location-upgrade-data-come-from-cloudislands-api-or-addon-spi",
+                SatisAddonIntegrationPolicy.requiredScenarios().get("api-surface")
+        );
+        assertEquals(
+                "satis-does-not-read-cloudislands-storage-runtime-internals-or-node-ownership-directly",
+                SatisAddonIntegrationPolicy.requiredScenarios().get("no-direct-internals")
+        );
+        assertEquals(
                 "cloudislands-boots-without-satis-jar-and-discovers-satis-through-addon-api-when-installed",
                 SatisAddonIntegrationPolicy.requiredScenarios().get("external-addon")
         );
@@ -115,6 +143,8 @@ class SatisAddonIntegrationPolicyTest {
     void publicPolicyCollectionsAreImmutable() {
         assertThrows(UnsupportedOperationException.class, () -> SatisAddonIntegrationPolicy.supportedModes().add("LEGACY"));
         assertThrows(UnsupportedOperationException.class, () -> SatisAddonIntegrationPolicy.featureGates().add("legacy-skyblock"));
+        assertThrows(UnsupportedOperationException.class, () -> SatisAddonIntegrationPolicy.requiredApiDomains().add("legacy"));
+        assertThrows(UnsupportedOperationException.class, () -> SatisAddonIntegrationPolicy.forbiddenDirectAccessTargets().add("legacy"));
         assertThrows(UnsupportedOperationException.class, () -> SatisAddonIntegrationPolicy.lifecycleEvents().add("legacy-event"));
         assertThrows(UnsupportedOperationException.class, () -> SatisAddonIntegrationPolicy.requiredScenarios().put("legacy", "disabled"));
     }

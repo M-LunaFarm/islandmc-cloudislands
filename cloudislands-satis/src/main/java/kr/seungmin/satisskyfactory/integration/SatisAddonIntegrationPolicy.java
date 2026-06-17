@@ -9,6 +9,8 @@ public final class SatisAddonIntegrationPolicy {
     public static final String COMPATIBLE_BUILT_IN_MODE = "BUILT_IN_COMPATIBLE";
     public static final String DISABLED_MODE = "DISABLED";
     public static final String API_POLICY = "cloudislands-api-only-no-superiorskyblock2-runtime";
+    public static final String API_SURFACE_POLICY = "island-member-permission-location-upgrade-values-through-cloudislands-api-or-addon-spi";
+    public static final String FORBIDDEN_DIRECT_ACCESS_POLICY = "no-direct-cloudislands-storage-runtime-or-world-owner-access";
     public static final String CLOUDISLANDS_REQUIRED_POLICY = "cloudislands-api-required-no-standalone-island-runtime";
     public static final String API_RESOLUTION_POLICY = "bootstrap-or-services-manager";
     public static final String MISSING_API_BEHAVIOR = "disable-plugin-clear-features-register-no-components";
@@ -50,6 +52,25 @@ public final class SatisAddonIntegrationPolicy {
             "route-events"
     );
 
+    private static final List<String> REQUIRED_API_DOMAINS = List.of(
+            "island-query",
+            "member-query",
+            "permission-query",
+            "active-location-query",
+            "upgrade-value-query",
+            "runtime-route-query",
+            "lifecycle-events",
+            "addon-state-storage"
+    );
+
+    private static final List<String> FORBIDDEN_DIRECT_ACCESS_TARGETS = List.of(
+            "SuperiorSkyblock2-runtime-api",
+            "CloudIslands-core-service-internals",
+            "CloudIslands-storage-implementation",
+            "Paper-world-name-as-state-owner",
+            "Island-node-name-as-state-owner"
+    );
+
     private static final List<String> LIFECYCLE_EVENTS = List.of(
             "island-created",
             "island-pre-activate",
@@ -72,6 +93,8 @@ public final class SatisAddonIntegrationPolicy {
             "addon-reenable", "previous-addon-state-is-reloaded-from-shared-storage-by-island-uuid",
             "island-id-storage", "satis-state-uses-cloudislands-island-uuid-as-persistent-owner-key",
             "volatile-placement", "server-world-and-center-are-remapped-runtime-placement-not-persistent-identity",
+            "api-surface", "island-member-permission-location-upgrade-data-come-from-cloudislands-api-or-addon-spi",
+            "no-direct-internals", "satis-does-not-read-cloudislands-storage-runtime-internals-or-node-ownership-directly",
             "external-addon", "cloudislands-boots-without-satis-jar-and-discovers-satis-through-addon-api-when-installed",
             "missing-cloudislands-api", "satis-runtime-does-not-start-and-registers-no-commands-listeners-tickers-or-writers",
             "no-superiorskyblock2", "legacy-skyblock-calls-are-replaced-by-cloudislands-api-or-addon-spi"
@@ -88,6 +111,14 @@ public final class SatisAddonIntegrationPolicy {
         return FEATURE_GATES;
     }
 
+    public static List<String> requiredApiDomains() {
+        return REQUIRED_API_DOMAINS;
+    }
+
+    public static List<String> forbiddenDirectAccessTargets() {
+        return FORBIDDEN_DIRECT_ACCESS_TARGETS;
+    }
+
     public static List<String> lifecycleEvents() {
         return LIFECYCLE_EVENTS;
     }
@@ -102,6 +133,14 @@ public final class SatisAddonIntegrationPolicy {
 
     public static boolean featureGateRequired(String feature) {
         return FEATURE_GATES.contains(feature);
+    }
+
+    public static boolean apiDomainRequired(String domain) {
+        return REQUIRED_API_DOMAINS.contains(domain);
+    }
+
+    public static boolean directAccessForbidden(String target) {
+        return FORBIDDEN_DIRECT_ACCESS_TARGETS.contains(target);
     }
 
     public static boolean lifecycleEventRequired(String event) {
