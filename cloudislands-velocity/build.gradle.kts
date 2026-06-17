@@ -18,6 +18,12 @@ dependencies {
     implementation(project(":cloudislands-protocol"))
     implementation(project(":cloudislands-core-client"))
     implementation(project(":cloudislands-common"))
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")
+    testImplementation("com.velocitypowered:velocity-api:3.5.0-SNAPSHOT")
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 tasks.jar {
