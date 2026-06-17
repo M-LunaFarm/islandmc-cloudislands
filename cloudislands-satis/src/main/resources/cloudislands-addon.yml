@@ -67,6 +67,8 @@ database:
     safety-state-keys:
       - database-fallback-risk
       - database-fallback-production-safe
+      - database-fallback-ready-chain-risk
+      - database-fallback-ready-chain-production-safe
       - database-fallback-first-shared-backend
       - database-fallback-local-position
     recommended-order:

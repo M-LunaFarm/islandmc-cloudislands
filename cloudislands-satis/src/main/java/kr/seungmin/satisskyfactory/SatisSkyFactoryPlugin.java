@@ -1854,6 +1854,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-order-policy", "configured-order-filtered-to-ready-effective-attempt-order");
         state.put("database-fallback-shared-backends", databaseFallbackSharedBackendsMetadata());
         state.put("database-fallback-ready-backends", databaseFallbackReadyBackendsMetadata());
+        state.put("database-fallback-ready-chain-risk", SatisDatabaseConfigPolicy.fallbackReadyChainRisk(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata()));
+        state.put("database-fallback-ready-chain-production-safe", Boolean.toString(SatisDatabaseConfigPolicy.fallbackReadyChainProductionSafe(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata())));
         state.put("database-fallback-first-shared-backend", databaseFirstSharedBackendMetadata());
         state.put("database-fallback-local-position", databaseLocalFallbackPositionMetadata());
         state.put("database-fallback-shared-safe", Boolean.toString(databaseFallbackSharedSafe()));
@@ -2021,6 +2023,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-order-policy", "configured-order-filtered-to-ready-effective-attempt-order");
         state.put("database-fallback-shared-backends", databaseFallbackSharedBackendsMetadata());
         state.put("database-fallback-ready-backends", databaseFallbackReadyBackendsMetadata());
+        state.put("database-fallback-ready-chain-risk", SatisDatabaseConfigPolicy.fallbackReadyChainRisk(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata()));
+        state.put("database-fallback-ready-chain-production-safe", Boolean.toString(SatisDatabaseConfigPolicy.fallbackReadyChainProductionSafe(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata())));
         state.put("database-fallback-first-shared-backend", databaseFirstSharedBackendMetadata());
         state.put("database-fallback-local-position", databaseLocalFallbackPositionMetadata());
         state.put("database-fallback-shared-safe", Boolean.toString(databaseFallbackSharedSafe()));

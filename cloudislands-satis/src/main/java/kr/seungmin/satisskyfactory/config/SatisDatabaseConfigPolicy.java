@@ -1,5 +1,6 @@
 package kr.seungmin.satisskyfactory.config;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -166,5 +167,43 @@ public final class SatisDatabaseConfigPolicy {
             return FALLBACK_RISK_SHARED_ONLY;
         }
         return firstShared < firstLocal ? FALLBACK_RISK_SHARED_BEFORE_LOCAL : FALLBACK_RISK_LOCAL_BEFORE_SHARED;
+    }
+
+    public static String fallbackReadyChainRisk(String configuredOrder, String readyBackends) {
+        List<String> order = parseBackendList(configuredOrder);
+        if (order.isEmpty()) {
+            return FALLBACK_RISK_NO_ORDER;
+        }
+        List<String> ready = parseBackendList(readyBackends);
+        if (ready.isEmpty()) {
+            return FALLBACK_RISK_NO_READY_BACKEND;
+        }
+        List<String> readyOrder = new ArrayList<>();
+        for (String backend : order) {
+            String normalized = normalizeBackend(backend);
+            if (ready.contains(normalized)) {
+                readyOrder.add(normalized);
+            }
+        }
+        return readyOrder.isEmpty() ? FALLBACK_RISK_NO_READY_BACKEND : fallbackRisk(readyOrder);
+    }
+
+    public static boolean fallbackReadyChainProductionSafe(String configuredOrder, String readyBackends) {
+        String risk = fallbackReadyChainRisk(configuredOrder, readyBackends);
+        return FALLBACK_RISK_SHARED_BEFORE_LOCAL.equals(risk) || FALLBACK_RISK_SHARED_ONLY.equals(risk);
+    }
+
+    private static List<String> parseBackendList(String value) {
+        if (value == null || value.isBlank()) {
+            return List.of();
+        }
+        List<String> values = new ArrayList<>();
+        for (String token : value.split(",")) {
+            String normalized = normalizeBackend(token);
+            if (!normalized.isBlank() && !values.contains(normalized)) {
+                values.add(normalized);
+            }
+        }
+        return values;
     }
 }

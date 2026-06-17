@@ -71,7 +71,7 @@ tasks.jar {
             "CloudIslands-Addon-Database-Core-API-Flattened-Fallback-Path" to "setup.database.core-api.flattened-fallback.enabled",
             "CloudIslands-Addon-Database-Fallback-Order" to "POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE",
             "CloudIslands-Addon-Database-Split-Brain-Warning" to "keep-shared-backend-before-sqlite-for-multi-island-node-pools",
-            "CloudIslands-Addon-Database-Fallback-Safety-Keys" to "database-fallback-risk,database-fallback-production-safe,database-fallback-first-shared-backend,database-fallback-local-position",
+            "CloudIslands-Addon-Database-Fallback-Safety-Keys" to "database-fallback-risk,database-fallback-production-safe,database-fallback-ready-chain-risk,database-fallback-ready-chain-production-safe,database-fallback-first-shared-backend,database-fallback-local-position",
             "CloudIslands-Addon-Database-Fallback-Safety-Policy" to "production-safe-when-shared-backend-precedes-local-sqlite",
             "CloudIslands-Addon-Database-Env-Keys" to "CLOUDISLANDS_SATIS_DATABASE_TYPE,CLOUDISLANDS_SATIS_JDBC_URL,CLOUDISLANDS_SATIS_DB_USERNAME,CLOUDISLANDS_SATIS_DB_PASSWORD,CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED,CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER",
             "CloudIslands-Satis-Placement-Source-Policy" to "record-core-payload-or-paper-allocator-on-activate-and-migrate",
