@@ -24,6 +24,9 @@ api:
     java-plugin-api-policy: paper-plugins-use-cloudislands-api-services-and-never-core-internals
     internal-api-policy: http-admin-and-runtime-endpoints-are-token-or-mtls-protected-core-boundaries
     event-api-policy: global-events-are-append-only-cache-invalidation-and-addon-lifecycle-contract
+    core-auth-policy: core-api-requires-api-token-or-mtls-for-non-health-requests
+    admin-endpoint-policy: admin-endpoints-use-separate-admin-token-and-per-command-permissions
+    network-exposure-policy: bind-public-only-with-ip-allowlist-mtls-and-token-controls
     source-class: kr.lunaf.cloudislands.api.CloudIslandsApiContract
 removal:
   safe: true

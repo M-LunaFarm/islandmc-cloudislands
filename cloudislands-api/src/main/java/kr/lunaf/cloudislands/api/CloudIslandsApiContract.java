@@ -10,6 +10,9 @@ public final class CloudIslandsApiContract {
     public static final String JAVA_PLUGIN_API_POLICY = "paper-plugins-use-cloudislands-api-services-and-never-core-internals";
     public static final String INTERNAL_API_POLICY = "http-admin-and-runtime-endpoints-are-token-or-mtls-protected-core-boundaries";
     public static final String EVENT_API_POLICY = "global-events-are-append-only-cache-invalidation-and-addon-lifecycle-contract";
+    public static final String CORE_AUTH_POLICY = "core-api-requires-api-token-or-mtls-for-non-health-requests";
+    public static final String ADMIN_ENDPOINT_POLICY = "admin-endpoints-use-separate-admin-token-and-per-command-permissions";
+    public static final String NETWORK_EXPOSURE_POLICY = "bind-public-only-with-ip-allowlist-mtls-and-token-controls";
 
     private CloudIslandsApiContract() {
     }
@@ -22,7 +25,10 @@ public final class CloudIslandsApiContract {
             "addon-storage-policy", ADDON_STORAGE_POLICY,
             "java-plugin-api-policy", JAVA_PLUGIN_API_POLICY,
             "internal-api-policy", INTERNAL_API_POLICY,
-            "event-api-policy", EVENT_API_POLICY
+            "event-api-policy", EVENT_API_POLICY,
+            "core-auth-policy", CORE_AUTH_POLICY,
+            "admin-endpoint-policy", ADMIN_ENDPOINT_POLICY,
+            "network-exposure-policy", NETWORK_EXPOSURE_POLICY
         );
     }
 }
