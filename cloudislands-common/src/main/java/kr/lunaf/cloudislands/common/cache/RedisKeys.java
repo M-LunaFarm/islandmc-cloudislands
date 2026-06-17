@@ -38,6 +38,7 @@ public final class RedisKeys {
     public static String islandRouteTickets(UUID islandId) { return "ci:island:" + islandId + ":route-tickets"; }
     public static String islandBlockCounts(UUID islandId) { return "ci:island:" + islandId + ":block-counts"; }
     public static String blockValues() { return "ci:block-values"; }
+    public static String addonState(String addonId) { return "ci:addon:" + addonId + ":state"; }
     public static String templates() { return "ci:templates"; }
     public static String rankingVersion() { return "ci:rankings:version"; }
     public static String rankingTop(String metric, int limit, long version) { return "ci:rankings:" + metric + ":" + limit + ":v" + version; }
