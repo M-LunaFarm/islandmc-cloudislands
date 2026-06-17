@@ -152,6 +152,12 @@ events:
 superiorskyblock2:
   migration-input-only: true
   runtime-dependency: false
+  plugin-yml-dependency: false
+  live-provider-hooks: false
+  runtime-dependency-whitelist:
+    - CloudIslands
+    - Vault
+    - PlaceholderAPI
   runtime-policy: migration-input-only-no-runtime-hooks
   forbidden-runtime-dependencies:
     - SuperiorSkyblock2

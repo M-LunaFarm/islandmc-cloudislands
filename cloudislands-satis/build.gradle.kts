@@ -75,7 +75,7 @@ tasks.jar {
             "CloudIslands-Satis-Recovery-Scenario" to "heartbeat-expiry-fencing-token-guards-last-confirmed-state-no-duplicate-tick-or-write",
             "CloudIslands-Satis-Core-API-Bulk-Endpoints" to "global:table/bulk,table-key-value/bulk-save,table/key-value/bulk-save,table/key-value/bulk/save,table/key-value/bulk;island:table/bulk,table-key-value/bulk-save,table/key-value/bulk-save,table/key-value/bulk/save,table/key-value/bulk",
             "CloudIslands-Satis-Core-API-Bulk-Fallback" to "flattened-addon-state-when-enabled",
-            "CloudIslands-Addon-Feature-Gates" to "commands,machines,storage,factories,generators,upgrades,missions,menus,gui,lifecycle,resource-nodes,market,contracts,research,maintenance,placeholders,migration,addon-state,route-events",
+            "CloudIslands-Addon-Feature-Gates" to "commands,machines,storage,factories,generators,upgrades,missions,menus,gui,lifecycle,resource-nodes,market,contracts,research,maintenance,placeholders,migration,addon-state,route-events,members,permissions,level-values,warps,biomes,chat,templates",
             "CloudIslands-Addon-Feature-Disable-Policy" to "disabled-features-preserve-data-and-skip-runtime-components",
             "CloudIslands-Addon-Component-Audit-Keys" to "runtime-active-components,runtime-skipped-components,runtime-blocked-components,runtime-component-audit",
             "CloudIslands-Satis-Dirty-Save-State-Keys" to "runtime-dirty-save-running,runtime-dirty-save-pending-writes,runtime-dirty-save-pending-machines,runtime-dirty-save-pending-inventories,runtime-dirty-save-pending-nodes,runtime-dirty-save-pending-islands,runtime-dirty-save-stop-policy",
@@ -91,6 +91,9 @@ tasks.jar {
             "CloudIslands-Addon-API-Only" to "true",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false",
+            "SuperiorSkyblock2-Plugin-Yml-Dependency" to "false",
+            "SuperiorSkyblock2-Live-Provider-Hooks" to "false",
+            "CloudIslands-Satis-Runtime-Dependency-Whitelist" to "CloudIslands,Vault,PlaceholderAPI",
             "CloudIslands-Satis-Forbidden-Skyblock-Runtime-Providers" to "SuperiorSkyblock2,BentoBox,ASkyBlock",
             "CloudIslands-Satis-Forbidden-Skyblock-Runtime-Action" to "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes"
         )

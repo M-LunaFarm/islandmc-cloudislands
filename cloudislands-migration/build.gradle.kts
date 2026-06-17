@@ -33,7 +33,8 @@ tasks.jar {
             "CloudIslands-Migration-Safety-Policy" to "MigrationSafetyPolicy-input-only-read-only-actions-write-actions-approval-required",
             "CloudIslands-Migration-Rollback-Policy" to "rollback-plan-removes-only-cloudislands-imported-state",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
-            "SuperiorSkyblock2-Runtime-Dependency" to "false"
+            "SuperiorSkyblock2-Runtime-Dependency" to "false",
+            "SuperiorSkyblock2-Live-Provider-Hooks" to "false"
         )
     }
 }
