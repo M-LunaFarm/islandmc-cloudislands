@@ -2152,9 +2152,12 @@ public final class VelocityRoutingController {
             + " tableIslandAlias=" + jsonValue(body, "addonStateTableKeyValueBulkSaveIslandAlias")
             + " tableBulkGlobal=" + jsonValue(body, "addonStateTableKeyValueBulkGlobalEndpoint")
             + " tableBulkIsland=" + jsonValue(body, "addonStateTableKeyValueBulkIslandEndpoint")
+            + " tableLoadGlobal=" + jsonValue(body, "addonStateTableKeyValueBulkLoadGlobalEndpoint")
+            + " tableLoadIsland=" + jsonValue(body, "addonStateTableKeyValueBulkLoadIslandEndpoint")
             + " tableMapGlobal=" + jsonValue(body, "addonStateTableBulkGlobalEndpoint")
             + " tableMapIsland=" + jsonValue(body, "addonStateTableBulkIslandEndpoint")
             + " payload=" + jsonValue(body, "addonStateTableKeyValueBulkSavePayload")
+            + " loadPayload=" + jsonValue(body, "addonStateTableKeyValueBulkLoadPayload")
             + " api=" + jsonValue(body, "addonStateTableKeyValueBulkSaveRepositoryApi")
             + " storage=" + jsonValue(body, "addonStateTableKeyValueBulkSaveStorageMode")
             + " tablePrefix=" + jsonValue(body, "addonStateTableKeyPrefix")
@@ -2167,7 +2170,8 @@ public final class VelocityRoutingController {
             + " eventTypeKeys=" + jsonValue(body, "globalEventTypeKeys")
             + " eventRecoveryKeys=" + jsonValue(body, "globalEventRecoveryKeys")
             + " eventAddonKeys=" + jsonValue(body, "globalEventAddonKeys")
-            + " fallback=" + jsonValue(body, "addonStateTableKeyValueBulkSaveFallback");
+            + " fallback=" + jsonValue(body, "addonStateTableKeyValueBulkSaveFallback")
+            + " loadFallback=" + jsonValue(body, "addonStateTableKeyValueBulkLoadFallback");
     }
 
     public void playerInfo(Player player, UUID playerUuid) {

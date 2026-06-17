@@ -2190,9 +2190,12 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " tableIslandAlias=" + textValue(body, "addonStateTableKeyValueBulkSaveIslandAlias")
             + " tableBulkGlobal=" + textValue(body, "addonStateTableKeyValueBulkGlobalEndpoint")
             + " tableBulkIsland=" + textValue(body, "addonStateTableKeyValueBulkIslandEndpoint")
+            + " tableLoadGlobal=" + textValue(body, "addonStateTableKeyValueBulkLoadGlobalEndpoint")
+            + " tableLoadIsland=" + textValue(body, "addonStateTableKeyValueBulkLoadIslandEndpoint")
             + " tableMapGlobal=" + textValue(body, "addonStateTableBulkGlobalEndpoint")
             + " tableMapIsland=" + textValue(body, "addonStateTableBulkIslandEndpoint")
             + " payload=" + textValue(body, "addonStateTableKeyValueBulkSavePayload")
+            + " loadPayload=" + textValue(body, "addonStateTableKeyValueBulkLoadPayload")
             + " api=" + textValue(body, "addonStateTableKeyValueBulkSaveRepositoryApi")
             + " storage=" + textValue(body, "addonStateTableKeyValueBulkSaveStorageMode")
             + " tablePrefix=" + textValue(body, "addonStateTableKeyPrefix")
@@ -2205,7 +2208,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " eventTypeKeys=" + textValue(body, "globalEventTypeKeys")
             + " eventRecoveryKeys=" + textValue(body, "globalEventRecoveryKeys")
             + " eventAddonKeys=" + textValue(body, "globalEventAddonKeys")
-            + " fallback=" + textValue(body, "addonStateTableKeyValueBulkSaveFallback");
+            + " fallback=" + textValue(body, "addonStateTableKeyValueBulkSaveFallback")
+            + " loadFallback=" + textValue(body, "addonStateTableKeyValueBulkLoadFallback");
     }
 
     private String eventListMessage(String body) {

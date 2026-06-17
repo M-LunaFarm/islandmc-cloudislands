@@ -108,12 +108,16 @@ database:
       - /v1/addons/state/table/key-value/bulk-save
       - /v1/addons/state/table/key-value/bulk/save
       - /v1/addons/state/table/key-value/bulk
+      - /v1/addons/state/table/key-value/bulk-load
+      - /v1/addons/state/table/load
       - /v1/addons/state/table/bulk-set
       - /v1/addons/islands/state/table/bulk
       - /v1/addons/islands/state/table-key-value/bulk-save
       - /v1/addons/islands/state/table/key-value/bulk-save
       - /v1/addons/islands/state/table/key-value/bulk/save
       - /v1/addons/islands/state/table/key-value/bulk
+      - /v1/addons/islands/state/table/key-value/bulk-load
+      - /v1/addons/islands/state/table/load
       - /v1/addons/islands/state/table/bulk-set
     flattened-fallback-path: setup.database.core-api.flattened-fallback.enabled
   env:
