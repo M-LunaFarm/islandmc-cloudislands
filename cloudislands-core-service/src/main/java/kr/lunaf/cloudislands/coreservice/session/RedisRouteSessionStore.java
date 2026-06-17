@@ -66,18 +66,33 @@ public final class RedisRouteSessionStore implements RouteSessionStore {
     @Override
     public Optional<PlayerRouteSession> consume(UUID playerUuid, String nodeId, UUID ticketId, String nonce) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            String sessionKey = key(playerUuid);
+            String currentKey = key(playerUuid);
+            String legacySessionKey = legacyKey(playerUuid);
+            String sessionKey = currentKey;
             String value = redis.command("GETDEL", sessionKey);
             if (value == null || value.isBlank()) {
-                sessionKey = legacyKey(playerUuid);
+                sessionKey = legacySessionKey;
                 value = redis.command("GETDEL", sessionKey);
             } else {
-                redis.command("DEL", legacyKey(playerUuid));
+                redis.command("DEL", legacySessionKey);
             }
             if (value == null || value.isBlank()) {
                 return Optional.empty();
             }
-            PlayerRouteSession session = decode(value);
+            Optional<PlayerRouteSession> decoded = decodeOptional(value);
+            if (decoded.isEmpty() && sessionKey.equals(currentKey)) {
+                failures.incrementAndGet();
+                sessionKey = legacySessionKey;
+                value = redis.command("GETDEL", sessionKey);
+                if (value != null && !value.isBlank()) {
+                    decoded = decodeOptional(value);
+                }
+            }
+            if (decoded.isEmpty()) {
+                failures.incrementAndGet();
+                return fallback.consume(playerUuid, nodeId, ticketId, nonce);
+            }
+            PlayerRouteSession session = decoded.get();
             if (session.expiresAt().isBefore(Instant.now())) {
                 return Optional.empty();
             }
@@ -106,17 +121,34 @@ public final class RedisRouteSessionStore implements RouteSessionStore {
     @Override
     public Optional<PlayerRouteSession> findAny(UUID playerUuid) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            String value = redis.command("GET", key(playerUuid));
-            if (value == null || value.isBlank()) {
-                value = redis.command("GET", legacyKey(playerUuid));
+            String currentKey = key(playerUuid);
+            String legacySessionKey = legacyKey(playerUuid);
+            String value = redis.command("GET", currentKey);
+            Optional<PlayerRouteSession> decoded = Optional.empty();
+            if (value != null && !value.isBlank()) {
+                decoded = decodeOptional(value);
+                if (decoded.isEmpty()) {
+                    failures.incrementAndGet();
+                    redis.command("DEL", currentKey);
+                }
             }
-            if (value == null || value.isBlank()) {
+            if (decoded.isEmpty()) {
+                value = redis.command("GET", legacySessionKey);
+                if (value != null && !value.isBlank()) {
+                    decoded = decodeOptional(value);
+                    if (decoded.isEmpty()) {
+                        failures.incrementAndGet();
+                        redis.command("DEL", legacySessionKey);
+                    }
+                }
+            }
+            if (decoded.isEmpty()) {
                 return Optional.empty();
             }
-            PlayerRouteSession session = decode(value);
+            PlayerRouteSession session = decoded.get();
             if (session.expiresAt().isBefore(Instant.now())) {
-                redis.command("DEL", key(playerUuid));
-                redis.command("DEL", legacyKey(playerUuid));
+                redis.command("DEL", currentKey);
+                redis.command("DEL", legacySessionKey);
                 return Optional.empty();
             }
             return Optional.of(session);
@@ -267,15 +299,26 @@ public final class RedisRouteSessionStore implements RouteSessionStore {
             + "|" + session.expiresAt();
     }
 
+    private Optional<PlayerRouteSession> decodeOptional(String value) {
+        try {
+            return Optional.of(decode(value));
+        } catch (RuntimeException ignored) {
+            return Optional.empty();
+        }
+    }
+
     private PlayerRouteSession decode(String value) {
         String[] parts = value.split("\\|", -1);
+        if (parts.length < 6) {
+            throw new IllegalArgumentException("invalid route session");
+        }
         return new PlayerRouteSession(
             UUID.fromString(parts[0]),
             UUID.fromString(parts[1]),
-            parts.length > 2 ? parts[2] : "",
-            parts.length > 3 ? parts[3] : "",
-            parts.length > 4 ? parts[4] : "",
-            Instant.parse(parts.length > 5 ? parts[5] : Instant.EPOCH.toString())
+            parts[2],
+            parts[3],
+            parts[4],
+            Instant.parse(parts[5])
         );
     }
 
