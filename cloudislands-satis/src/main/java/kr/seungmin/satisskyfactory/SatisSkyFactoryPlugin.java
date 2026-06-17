@@ -2443,106 +2443,106 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     @Override
     public void onIslandMemberJoined(IslandMemberJoinEvent event) {
         String operation = "member-join:" + (event.role() == null ? "unknown" : event.role().name());
-        runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
+        runSatisLifecycle("members", event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
     }
 
     @Override
     public void onIslandMemberLeft(IslandMemberLeaveEvent event) {
-        runSatisLifecycle(event.islandId(), "member-left", () -> synchronizeSatisIsland(event.islandId(), "member-left"));
+        runSatisLifecycle("members", event.islandId(), "member-left", () -> synchronizeSatisIsland(event.islandId(), "member-left"));
     }
 
     @Override
     public void onIslandMemberChanged(IslandMemberChangedEvent event) {
-        runSatisLifecycle(event.islandId(), "member-change", () -> synchronizeSatisIsland(event.islandId(), "member-change"));
+        runSatisLifecycle("members", event.islandId(), "member-change", () -> synchronizeSatisIsland(event.islandId(), "member-change"));
     }
 
     @Override
     public void onIslandRoleChanged(IslandRoleChangeEvent event) {
         String operation = "member-role-change:" + (event.newRole() == null ? "unknown" : event.newRole().name());
-        runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
+        runSatisLifecycle("permissions", event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
     }
 
     @Override
     public void onIslandRoleCatalogChanged(IslandRoleCatalogChangeEvent event) {
         String operation = "role-change:" + (event.operation() == null || event.operation().isBlank() ? "unknown" : event.operation());
-        runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
+        runSatisLifecycle("permissions", event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
     }
 
     @Override
     public void onIslandOwnershipChanged(IslandOwnershipChangeEvent event) {
-        runSatisLifecycle(event.islandId(), "ownership-change", () -> synchronizeSatisIsland(event.islandId(), "ownership-change"));
+        runSatisLifecycle("members", event.islandId(), "ownership-change", () -> synchronizeSatisIsland(event.islandId(), "ownership-change"));
     }
 
     @Override
     public void onIslandFlagChanged(IslandFlagChangeEvent event) {
-        runSatisLifecycle(event.islandId(), "flag-change", () -> synchronizeSatisIsland(event.islandId(), "flag-change"));
+        runSatisLifecycle("permissions", event.islandId(), "flag-change", () -> synchronizeSatisIsland(event.islandId(), "flag-change"));
     }
 
     @Override
     public void onIslandPermissionChecked(IslandPermissionCheckEvent event) {
         String operation = "permission-check:" + (event.allowed() ? "allowed" : "denied");
-        runSatisLifecycle(event.islandId(), operation, () -> publishIslandLifecycleState(event.islandId(), operation, islands.find(event.islandId()).orElse(null), "checked", ""));
+        runSatisLifecycle("permissions", event.islandId(), operation, () -> publishIslandLifecycleState(event.islandId(), operation, islands.find(event.islandId()).orElse(null), "checked", ""));
     }
 
     @Override
     public void onIslandPermissionChanged(IslandPermissionChangeEvent event) {
-        runSatisLifecycle(event.islandId(), "permission-change", () -> synchronizeSatisIsland(event.islandId(), "permission-change"));
+        runSatisLifecycle("permissions", event.islandId(), "permission-change", () -> synchronizeSatisIsland(event.islandId(), "permission-change"));
     }
 
     @Override
     public void onIslandBankChanged(IslandBankChangeEvent event) {
         String operation = "bank-change:" + (event.operation() == null || event.operation().isBlank() ? "unknown" : event.operation());
-        runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
+        runSatisLifecycle("storage", event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
     }
 
     @Override
     public void onIslandBiomeChanged(IslandBiomeChangeEvent event) {
         String operation = "biome-change:" + (event.biomeKey() == null || event.biomeKey().isBlank() ? "unknown" : event.biomeKey());
-        runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
+        runSatisLifecycle("biomes", event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
     }
 
     @Override
     public void onIslandHomeChanged(IslandHomeChangeEvent event) {
         String operation = "home-change:" + (event.name() == null || event.name().isBlank() ? "default" : event.name());
-        runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
+        runSatisLifecycle("warps", event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
     }
 
     @Override
     public void onIslandWarpCreated(IslandWarpCreateEvent event) {
         String operation = "warp-create:" + (event.warpName() == null || event.warpName().isBlank() ? "unknown" : event.warpName());
-        runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
+        runSatisLifecycle("warps", event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
     }
 
     @Override
     public void onIslandWarpDeleted(IslandWarpDeleteEvent event) {
         String operation = "warp-delete:" + (event.warpName() == null || event.warpName().isBlank() ? "unknown" : event.warpName());
-        runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
+        runSatisLifecycle("warps", event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
     }
 
     @Override
     public void onIslandWarpChanged(IslandWarpChangeEvent event) {
         String operation = "warp-change:" + (event.operation() == null || event.operation().isBlank() ? "unknown" : event.operation());
-        runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
+        runSatisLifecycle("warps", event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
     }
 
     @Override
     public void onIslandLevelUpdated(IslandLevelRecalculateEvent event) {
-        runSatisLifecycle(event.islandId(), "level-update", () -> synchronizeSatisIsland(event.islandId(), "level-update"));
+        runSatisLifecycle("level-values", event.islandId(), "level-update", () -> synchronizeSatisIsland(event.islandId(), "level-update"));
     }
 
     @Override
     public void onIslandWorthChanged(IslandWorthChangeEvent event) {
-        runSatisLifecycle(event.islandId(), "worth-change", () -> synchronizeSatisIsland(event.islandId(), "worth-change"));
+        runSatisLifecycle("level-values", event.islandId(), "worth-change", () -> synchronizeSatisIsland(event.islandId(), "worth-change"));
     }
 
     @Override
     public void onIslandUpgradeChanged(IslandUpgradeEvent event) {
-        runSatisLifecycle(event.islandId(), "upgrade-change", () -> synchronizeSatisIsland(event.islandId(), "upgrade-change"));
+        runSatisLifecycle("upgrades", event.islandId(), "upgrade-change", () -> synchronizeSatisIsland(event.islandId(), "upgrade-change"));
     }
 
     @Override
     public void onIslandLimitChanged(IslandLimitChangeEvent event) {
-        runSatisLifecycle(event.islandId(), "limit-change", () -> synchronizeSatisIsland(event.islandId(), "limit-change"));
+        runSatisLifecycle("upgrades", event.islandId(), "limit-change", () -> synchronizeSatisIsland(event.islandId(), "limit-change"));
     }
 
     @Override
@@ -2725,6 +2725,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 getLogger().warning("CloudIslands lifecycle sync failed for " + islandId + ": " + exception.getMessage());
             }
         });
+    }
+
+    private void runSatisLifecycle(String feature, UUID islandId, String operation, Runnable action) {
+        if (!operationalFeatureEnabled(feature)) {
+            return;
+        }
+        runSatisLifecycle(islandId, operation, action);
     }
 
     private String lifecycleNode(String nodeId) {
