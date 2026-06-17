@@ -17,6 +17,7 @@ api:
   bootstrap-policy: register-if-cloudislands-api-available-disable-runtime-components-when-missing
   core-isolation-policy: core-lifecycle-never-depends-on-satis-jar-or-state
   contract:
+    contract-version: "1"
     read-policy: query-services-use-core-api-or-local-cache-snapshots-no-direct-storage-access
     write-authority: all-island-writes-go-through-core-api-transaction-endpoints
     sync-event-policy: synchronous-paper-events-must-use-local-protection-permission-caches

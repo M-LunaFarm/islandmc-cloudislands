@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.api;
 import java.util.Map;
 
 public final class CloudIslandsApiContract {
+    public static final String CONTRACT_VERSION = "1";
     public static final String READ_POLICY = "query-services-use-core-api-or-local-cache-snapshots-no-direct-storage-access";
     public static final String WRITE_AUTHORITY = "all-island-writes-go-through-core-api-transaction-endpoints";
     public static final String SYNC_EVENT_POLICY = "synchronous-paper-events-must-use-local-protection-permission-caches";
@@ -22,6 +23,7 @@ public final class CloudIslandsApiContract {
 
     public static Map<String, String> metadata() {
         return Map.ofEntries(
+            Map.entry("contract-version", CONTRACT_VERSION),
             Map.entry("read-policy", READ_POLICY),
             Map.entry("write-authority", WRITE_AUTHORITY),
             Map.entry("sync-event-policy", SYNC_EVENT_POLICY),

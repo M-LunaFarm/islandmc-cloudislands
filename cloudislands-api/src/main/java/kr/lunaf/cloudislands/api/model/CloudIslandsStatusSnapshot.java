@@ -31,7 +31,8 @@ public record CloudIslandsStatusSnapshot(
     String adminEndpointPolicy,
     String networkExposurePolicy,
     String topologyPrivacyPolicy,
-    String consistencyAuthorityPolicy
+    String consistencyAuthorityPolicy,
+    String contractVersion
 ) {
     public CloudIslandsStatusSnapshot(
         String platform,
@@ -165,12 +166,14 @@ public record CloudIslandsStatusSnapshot(
             CloudIslandsApiContract.ADMIN_ENDPOINT_POLICY,
             CloudIslandsApiContract.NETWORK_EXPOSURE_POLICY,
             CloudIslandsApiContract.TOPOLOGY_PRIVACY_POLICY,
-            CloudIslandsApiContract.CONSISTENCY_AUTHORITY_POLICY
+            CloudIslandsApiContract.CONSISTENCY_AUTHORITY_POLICY,
+            CloudIslandsApiContract.CONTRACT_VERSION
         );
     }
 
     public Map<String, String> contractMetadata() {
         Map<String, String> metadata = new LinkedHashMap<>();
+        metadata.put("contract-version", safe(contractVersion));
         metadata.put("read-policy", safe(readPolicy));
         metadata.put("write-authority", safe(writeAuthority));
         metadata.put("sync-event-policy", safe(syncEventPolicy));
