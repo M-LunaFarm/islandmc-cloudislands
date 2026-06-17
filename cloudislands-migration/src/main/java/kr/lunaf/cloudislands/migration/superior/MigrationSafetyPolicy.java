@@ -15,6 +15,42 @@ public final class MigrationSafetyPolicy {
     public static final Set<String> WRITE_ACTIONS = Set.of("extract", "import", "rollback");
     public static final String OPERATIONS = "scan,dryrun,extract,import,verify,rollback,status";
     public static final String PIPELINE = "read-only-scan,manifest,dry-run,conflict-report,approval,db-import,world-cell-extract,bundle-checksum,cloudislands-activate-test,rollback-plan";
+    public static final List<String> REQUIRED_TARGET_FIELDS = List.of(
+        "island-id",
+        "owner-uuid",
+        "members",
+        "roles",
+        "permissions",
+        "island-location",
+        "island-size",
+        "homes",
+        "warps",
+        "banned-visitors",
+        "level",
+        "worth",
+        "upgrades",
+        "flags",
+        "block-value-settings"
+    );
+    public static final List<String> REQUIRED_PIPELINE_STEPS = List.of(
+        "read-only-scan",
+        "cloudislands-migration-manifest",
+        "dry-run-validation",
+        "conflict-report",
+        "admin-approval",
+        "db-import",
+        "world-cell-extract",
+        "island-bundle-create",
+        "checksum-verify",
+        "cloudislands-activate-test"
+    );
+    public static final List<String> REQUIRED_ADMIN_COMMANDS = List.of(
+        "/ciadmin migrate-superiorskyblock2 scan",
+        "/ciadmin migrate-superiorskyblock2 dryrun",
+        "/ciadmin migrate-superiorskyblock2 import",
+        "/ciadmin migrate-superiorskyblock2 verify",
+        "/ciadmin migrate-superiorskyblock2 rollback"
+    );
     public static final String CHECKSUM_POLICY = "sha256-every-extracted-world-bundle-and-verify-against-imported-snapshot";
     public static final String ACTIVATION_TEST_POLICY = "verify-can-run-cloudislands-activation-test-without-superiorskyblock2-runtime-dependency";
     public static final List<String> FORBIDDEN_RUNTIME_PROVIDERS = List.of("SuperiorSkyblock2", "BentoBox", "ASkyBlock");
@@ -35,6 +71,21 @@ public final class MigrationSafetyPolicy {
 
     public static boolean approvalRequired(String action) {
         return normalize(action).equals("import");
+    }
+
+    public static boolean requiredTargetField(String field) {
+        return REQUIRED_TARGET_FIELDS.contains(normalize(field));
+    }
+
+    public static boolean requiredPipelineStep(String step) {
+        return REQUIRED_PIPELINE_STEPS.contains(normalize(step));
+    }
+
+    public static boolean requiredAdminCommand(String command) {
+        String normalizedCommand = command == null ? "" : command.trim().toLowerCase();
+        return REQUIRED_ADMIN_COMMANDS.stream()
+            .map(value -> value.toLowerCase())
+            .anyMatch(normalizedCommand::equals);
     }
 
     public static boolean forbiddenRuntimeProvider(String provider) {

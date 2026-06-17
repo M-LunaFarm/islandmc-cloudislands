@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class MigrationSafetyPolicyTest {
@@ -27,6 +28,73 @@ class MigrationSafetyPolicyTest {
         assertTrue(MigrationSafetyPolicy.writeAction("rollback"));
         assertTrue(MigrationSafetyPolicy.approvalRequired("import"));
         assertFalse(MigrationSafetyPolicy.approvalRequired("extract"));
+    }
+
+    @Test
+    void migrationTargetsCoverSuperiorSkyblockDataNeededByCloudIslands() {
+        assertEquals(
+            List.of(
+                "island-id",
+                "owner-uuid",
+                "members",
+                "roles",
+                "permissions",
+                "island-location",
+                "island-size",
+                "homes",
+                "warps",
+                "banned-visitors",
+                "level",
+                "worth",
+                "upgrades",
+                "flags",
+                "block-value-settings"
+            ),
+            MigrationSafetyPolicy.REQUIRED_TARGET_FIELDS
+        );
+        assertTrue(MigrationSafetyPolicy.requiredTargetField("owner-uuid"));
+        assertTrue(MigrationSafetyPolicy.requiredTargetField(" block-value-settings "));
+        assertFalse(MigrationSafetyPolicy.requiredTargetField("runtime-hook"));
+    }
+
+    @Test
+    void migrationPipelineRequiresValidationApprovalImportBundleVerifyAndActivateTest() {
+        assertEquals(
+            List.of(
+                "read-only-scan",
+                "cloudislands-migration-manifest",
+                "dry-run-validation",
+                "conflict-report",
+                "admin-approval",
+                "db-import",
+                "world-cell-extract",
+                "island-bundle-create",
+                "checksum-verify",
+                "cloudislands-activate-test"
+            ),
+            MigrationSafetyPolicy.REQUIRED_PIPELINE_STEPS
+        );
+        assertTrue(MigrationSafetyPolicy.requiredPipelineStep("read-only-scan"));
+        assertTrue(MigrationSafetyPolicy.requiredPipelineStep("checksum-verify"));
+        assertTrue(MigrationSafetyPolicy.requiredPipelineStep("cloudislands-activate-test"));
+        assertFalse(MigrationSafetyPolicy.requiredPipelineStep("live-superiorskyblock2-write"));
+    }
+
+    @Test
+    void adminCommandSurfaceMatchesTheMigrationToolContract() {
+        assertEquals(
+            List.of(
+                "/ciadmin migrate-superiorskyblock2 scan",
+                "/ciadmin migrate-superiorskyblock2 dryrun",
+                "/ciadmin migrate-superiorskyblock2 import",
+                "/ciadmin migrate-superiorskyblock2 verify",
+                "/ciadmin migrate-superiorskyblock2 rollback"
+            ),
+            MigrationSafetyPolicy.REQUIRED_ADMIN_COMMANDS
+        );
+        assertTrue(MigrationSafetyPolicy.requiredAdminCommand("/ciadmin migrate-superiorskyblock2 scan"));
+        assertTrue(MigrationSafetyPolicy.requiredAdminCommand(" /ciadmin migrate-superiorskyblock2 verify "));
+        assertFalse(MigrationSafetyPolicy.requiredAdminCommand("/ciadmin migrate-superiorskyblock2 mutate-live"));
     }
 
     @Test
