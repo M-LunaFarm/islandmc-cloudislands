@@ -242,7 +242,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         itemNetworks = new ItemNetworkService(database, machines, machineDefinitions);
         power = new PowerNetworkService(database, machines, machineDefinitions, recipes, storage);
         market = new MarketService(storage, economy, database, itemRegistry, () -> operationalFeatureEnabled("maintenance"));
-        contracts = new ContractService(storage, economy, database, boosts, () -> operationalFeatureEnabled("maintenance"));
+        contracts = new ContractService(storage, economy, database, boosts, () -> operationalFeatureEnabled("maintenance"), islands::save);
         maintenance = new MaintenanceService(machines, economy, database);
         research = new ResearchService(database, economy, () -> operationalFeatureEnabled("maintenance"), islands::save);
         gui = new FactoryGuiService(storage, itemRegistry, machineDefinitions, recipes, islands, research, economy, messages, this::operationalFeatureEnabled);
@@ -509,7 +509,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-research-gate", "addonRuntimeEnabled&&features.research");
         state.put("runtime-research-status", operationalFeatureEnabled("research") ? "enabled" : "research-feature-disabled");
         state.put("runtime-research-policy", "disabled-feature-blocks-research-commands-gui-and-writes-preserve-data");
-        state.put("runtime-research-unlock-save-policy", "command-and-gui-save-island-only-after-unlocked-result");
+        state.put("runtime-research-unlock-save-policy", "research-unlock-uses-island-save-gate-before-writing-unlock-records");
         state.put("runtime-admin-research-save-policy", "admin-addresearch-saves-island-only-after-service-accepted-write");
         state.put("runtime-machines-gate", "addonRuntimeEnabled&&features.machines");
         state.put("runtime-machines-status", operationalFeatureEnabled("machines") ? "enabled" : "machines-feature-disabled");
@@ -585,6 +585,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-machine-save-result-policy", "machine-save-reports-write-gate-result-and-recipe-selection-or-repair-rolls-back-on-failure");
         state.put("runtime-machine-placement-link-save-policy", "resource-node-link-or-no-input-status-rolls-back-when-machine-save-is-not-accepted");
         state.put("runtime-research-unlock-save-policy", "research-unlock-uses-island-save-gate-before-writing-unlock-records");
+        state.put("runtime-contract-emergency-usage-save-policy", "emergency-contract-usage-cache-uses-island-save-gate-and-rolls-back-on-failure");
         state.put("runtime-dirty-save-last-flush-status", dirtySaves == null ? "not-configured" : dirtySaves.lastFlushStatus());
         state.put("runtime-dirty-save-last-flush-at", dirtySaves == null ? "" : dirtySaves.lastFlushAt());
         state.put("runtime-dirty-save-last-flush-writes", dirtySaves == null ? "0" : Integer.toString(dirtySaves.lastFlushWrites()));
@@ -1371,7 +1372,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         itemNetworks = new ItemNetworkService(database, machines, machineDefinitions);
         power = new PowerNetworkService(database, machines, machineDefinitions, recipes, storage);
         market = new MarketService(storage, economy, database, itemRegistry, () -> operationalFeatureEnabled("maintenance"));
-        contracts = new ContractService(storage, economy, database, boosts, () -> operationalFeatureEnabled("maintenance"));
+        contracts = new ContractService(storage, economy, database, boosts, () -> operationalFeatureEnabled("maintenance"), islands::save);
         maintenance = new MaintenanceService(machines, economy, database);
         research = new ResearchService(database, economy, () -> operationalFeatureEnabled("maintenance"), islands::save);
         gui = new FactoryGuiService(storage, itemRegistry, machineDefinitions, recipes, islands, research, economy, messages, this::operationalFeatureEnabled);

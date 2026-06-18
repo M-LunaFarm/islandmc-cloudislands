@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public final class ContractService {
@@ -37,6 +38,7 @@ public final class ContractService {
     private final DatabaseService database;
     private final IslandBoostService boosts;
     private final BooleanSupplier maintenanceEnabled;
+    private final Predicate<FactoryIsland> islandSaver;
     private BooleanSupplier writesEnabled = () -> true;
     private final Map<String, ContractTemplate> templates = new HashMap<>();
     private ContractTemplate emergency;
@@ -54,11 +56,23 @@ public final class ContractService {
 
     public ContractService(StorageService storage, EconomyService economy, DatabaseService database, IslandBoostService boosts,
                            BooleanSupplier maintenanceEnabled) {
+        this(storage, economy, database, boosts, maintenanceEnabled, island -> {
+            database.saveIsland(island);
+            return true;
+        });
+    }
+
+    public ContractService(StorageService storage, EconomyService economy, DatabaseService database, IslandBoostService boosts,
+                           BooleanSupplier maintenanceEnabled, Predicate<FactoryIsland> islandSaver) {
         this.storage = storage;
         this.economy = economy;
         this.database = database;
         this.boosts = boosts;
         this.maintenanceEnabled = maintenanceEnabled == null ? () -> true : maintenanceEnabled;
+        this.islandSaver = islandSaver == null ? island -> {
+            database.saveIsland(island);
+            return true;
+        } : islandSaver;
     }
 
     public void writeGate(BooleanSupplier writesEnabled) {
@@ -148,9 +162,8 @@ public final class ContractService {
             return false;
         }
         int usedToday = database.countContracts(island.islandUuid(), "EMERGENCY", "COMPLETED", startOfToday());
-        island.emergencyContractsUsedToday(usedToday);
         if (usedToday >= emergencyDailyLimit) {
-            database.saveIsland(island);
+            saveEmergencyUsage(island, usedToday);
             return false;
         }
         for (ContractTemplate template : emergencyTemplates()) {
@@ -160,11 +173,20 @@ public final class ContractService {
                     template
             ));
             if (completed) {
-                island.emergencyContractsUsedToday(usedToday + 1);
-                database.saveIsland(island);
+                saveEmergencyUsage(island, usedToday + 1);
                 return true;
             }
         }
+        return false;
+    }
+
+    private boolean saveEmergencyUsage(FactoryIsland island, int usedToday) {
+        int previousUsed = island.emergencyContractsUsedToday();
+        island.emergencyContractsUsedToday(usedToday);
+        if (islandSaver.test(island)) {
+            return true;
+        }
+        island.emergencyContractsUsedToday(previousUsed);
         return false;
     }
 
