@@ -235,6 +235,11 @@ class RuntimeDependencyPolicyTest {
         assertTrue(satisBuild.contains("val jarDependencyProjects = embeddedProjects"));
         assertFalse(satisBuild.contains("val jarDependencyProjects = embeddedProjects + listOf(\":cloudislands-api\")"));
         assertFalse(satisBuild.contains("implementation(project(\":cloudislands-api\"))"));
+        assertFalse(satisBuild.contains("project(\":cloudislands-core-service\")"));
+        assertFalse(satisBuild.contains("project(\":cloudislands-paper\")"));
+        assertFalse(satisBuild.contains("project(\":cloudislands-velocity\")"));
+        assertFalse(satisBuild.contains("project(\":cloudislands-storage\")"));
+        assertFalse(satisBuild.contains("kr.lunaf.cloudislands.coreservice"));
     }
 
     @Test
