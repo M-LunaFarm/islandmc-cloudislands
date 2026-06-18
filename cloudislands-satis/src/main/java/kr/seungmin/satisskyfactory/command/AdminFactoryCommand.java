@@ -1556,6 +1556,7 @@ public final class AdminFactoryCommand {
                         "runtime-admin-maintenance-charge-save-policy",
                         "runtime-maintenance-tick-save-policy",
                         "runtime-lifecycle-island-save-policy",
+                        "runtime-machine-placement-island-save-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",

@@ -170,11 +170,16 @@ public final class MachineListener implements Listener {
         }
         MachineInstance machine = created.get();
         linkResourceNode(machine, definition);
+        if (!islands.save(island)) {
+            machines.forceRemove(machine);
+            targetBlock.setType(Material.AIR, false);
+            messages.send(player, "place-denied");
+            return false;
+        }
         if (consumeItem && player.getGameMode() != GameMode.CREATIVE) {
             consumeHand(player, hand);
         }
         messages.send(player, "placed", Map.of("machine", definition.displayName()));
-        islands.save(island);
         itemNetworks.rebuildIsland(island.islandUuid());
         power.rebuildIsland(island.islandUuid());
         return true;
