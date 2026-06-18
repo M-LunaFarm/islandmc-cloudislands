@@ -250,14 +250,10 @@ public final class CoreApiSatisStateService {
         }
         Map<UUID, Map<String, String>> valuesByIsland = new LinkedHashMap<>();
         Map<UUID, Map<String, Map<String, String>>> tablesByIsland = new LinkedHashMap<>();
-        batch.islands().values().forEach(island -> table(tablesByIsland, island.islandUuid(), "factory_islands")
-                .put(island.islandUuid().toString(), islandJson(island)));
-        batch.machines().values().forEach(machine -> table(tablesByIsland, machine.islandUuid(), "machines")
-                .put(machine.machineId().toString(), machineJson(machine)));
-        batch.inventories().values().forEach(inventory -> table(tablesByIsland, inventory.islandUuid(), "virtual_inventories")
-                .put(inventory.inventoryId().toString(), inventoryJson(inventory)));
-        batch.nodes().values().forEach(node -> table(tablesByIsland, node.islandUuid(), "resource_nodes")
-                .put(node.nodeId().toString(), nodeJson(node)));
+        batch.islands().values().forEach(island -> putIslandTableValue(tablesByIsland, island.islandUuid(), "factory_islands", island.islandUuid(), islandJson(island)));
+        batch.machines().values().forEach(machine -> putIslandTableValue(tablesByIsland, machine.islandUuid(), "machines", machine.machineId(), machineJson(machine)));
+        batch.inventories().values().forEach(inventory -> putIslandTableValue(tablesByIsland, inventory.islandUuid(), "virtual_inventories", inventory.inventoryId(), inventoryJson(inventory)));
+        batch.nodes().values().forEach(node -> putIslandTableValue(tablesByIsland, node.islandUuid(), "resource_nodes", node.nodeId(), nodeJson(node)));
         tablesByIsland.forEach((islandId, tables) -> {
             Map<String, String> values = state(valuesByIsland, islandId);
             int tableKeys = tables.values().stream().mapToInt(Map::size).sum();
@@ -270,10 +266,14 @@ public final class CoreApiSatisStateService {
         });
     }
 
-    private Map<String, String> table(Map<UUID, Map<String, Map<String, String>>> tablesByIsland, UUID islandId, String table) {
-        return tablesByIsland
+    private void putIslandTableValue(Map<UUID, Map<String, Map<String, String>>> tablesByIsland, UUID islandId, String table, UUID rowId, String value) {
+        if (tablesByIsland == null || islandId == null || table == null || table.isBlank() || rowId == null || value == null) {
+            return;
+        }
+        tablesByIsland
                 .computeIfAbsent(islandId, _ignored -> new LinkedHashMap<>())
-                .computeIfAbsent(table, _ignored -> new LinkedHashMap<>());
+                .computeIfAbsent(table, _ignored -> new LinkedHashMap<>())
+                .put(rowId.toString(), value);
     }
 
     public void removeRow(UUID islandId, String key) {
@@ -551,6 +551,7 @@ public final class CoreApiSatisStateService {
         lastBulkStatusFingerprint = fingerprint;
         Map<String, String> state = new LinkedHashMap<>();
         state.put("last-core-bulk-publish-island", islandId.toString());
+        state.put("last-core-bulk-publish-owner-key", SatisStatePortabilityPolicy.STATE_OWNER_KEY);
         state.put("last-core-bulk-publish-status", safeStatus);
         state.put("last-core-bulk-publish-mode", safeMode);
         state.put("last-core-bulk-publish-value-keys", Integer.toString(valueKeys));
