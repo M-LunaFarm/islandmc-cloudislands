@@ -54,10 +54,24 @@ public final class MigrationSafetyPolicy {
     );
     public static final String CHECKSUM_POLICY = "sha256-every-extracted-world-bundle-and-verify-against-imported-snapshot";
     public static final String ACTIVATION_TEST_POLICY = "verify-can-run-cloudislands-activation-test-without-superiorskyblock2-runtime-dependency";
+    public static final List<String> ACTIVATION_TEST_REQUIREMENTS = List.of(
+        "imported-manifest-available",
+        "bundle-checksum-verified",
+        "target-node-can-activate",
+        "route-ticket-ready",
+        "no-superiorskyblock2-runtime-provider"
+    );
     public static final List<String> FORBIDDEN_RUNTIME_PROVIDERS = List.of("SuperiorSkyblock2", "BentoBox", "ASkyBlock", "uSkyBlock", "IridiumSkyblock");
     public static final String FORBIDDEN_RUNTIME_ACTION = "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes";
     public static final String APPROVAL_POLICY = "import-requires-successful-dryrun-approval-token-and-unchanged-source-fingerprint";
     public static final String ROLLBACK_POLICY = "rollback-plan-records-imported-islands-and-removes-only-cloudislands-imported-state";
+    public static final List<String> ROLLBACK_REQUIREMENTS = List.of(
+        "rollback-plan-id-present",
+        "imported-island-id-list-present",
+        "remove-only-cloudislands-imported-state",
+        "preserve-source-superiorskyblock2-data",
+        "emit-audit-event"
+    );
     public static final String IMPORT_PREFLIGHT_POLICY = "import-runs-only-after-clean-dryrun-admin-approval-and-unchanged-source-fingerprint";
     public static final List<String> IMPORT_PREFLIGHT_REQUIREMENTS = List.of(
         "dry-run-report-can-import",
@@ -86,6 +100,22 @@ public final class MigrationSafetyPolicy {
 
     public static boolean importPreflightSatisfied(boolean dryRunCanImport, boolean approved, boolean sourceFingerprintMatches) {
         return dryRunCanImport && approved && sourceFingerprintMatches;
+    }
+
+    public static boolean activationTestRequirement(String requirement) {
+        return ACTIVATION_TEST_REQUIREMENTS.contains(normalize(requirement));
+    }
+
+    public static boolean activationTestSatisfied(boolean manifestAvailable, boolean checksumVerified, boolean targetNodeCanActivate, boolean routeTicketReady, boolean legacyRuntimeAbsent) {
+        return manifestAvailable && checksumVerified && targetNodeCanActivate && routeTicketReady && legacyRuntimeAbsent;
+    }
+
+    public static boolean rollbackRequirement(String requirement) {
+        return ROLLBACK_REQUIREMENTS.contains(normalize(requirement));
+    }
+
+    public static boolean rollbackSafe(boolean rollbackPlanPresent, boolean importedIslandIdsPresent, boolean onlyImportedStateRemoved, boolean sourceDataPreserved, boolean auditEventEmitted) {
+        return rollbackPlanPresent && importedIslandIdsPresent && onlyImportedStateRemoved && sourceDataPreserved && auditEventEmitted;
     }
 
     public static boolean requiredTargetField(String field) {
@@ -125,6 +155,10 @@ public final class MigrationSafetyPolicy {
         fields.put("forbiddenRuntimeProviders", forbiddenRuntimeProvidersCsv());
         fields.put("forbiddenRuntimeAction", FORBIDDEN_RUNTIME_ACTION);
         fields.put("importPreflightPolicy", IMPORT_PREFLIGHT_POLICY);
+        fields.put("activationTestPolicy", ACTIVATION_TEST_POLICY);
+        fields.put("activationTestRequirements", String.join(",", ACTIVATION_TEST_REQUIREMENTS));
+        fields.put("rollbackPolicy", ROLLBACK_POLICY);
+        fields.put("rollbackRequirements", String.join(",", ROLLBACK_REQUIREMENTS));
         return Map.copyOf(fields);
     }
 

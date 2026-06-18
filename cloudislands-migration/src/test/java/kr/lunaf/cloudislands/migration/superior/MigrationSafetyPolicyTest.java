@@ -132,6 +132,50 @@ class MigrationSafetyPolicyTest {
     }
 
     @Test
+    void activationTestRequiresImportedBundleRouteReadinessAndNoLegacyRuntime() {
+        assertEquals(
+            "verify-can-run-cloudislands-activation-test-without-superiorskyblock2-runtime-dependency",
+            MigrationSafetyPolicy.ACTIVATION_TEST_POLICY
+        );
+        assertEquals(
+            List.of(
+                "imported-manifest-available",
+                "bundle-checksum-verified",
+                "target-node-can-activate",
+                "route-ticket-ready",
+                "no-superiorskyblock2-runtime-provider"
+            ),
+            MigrationSafetyPolicy.ACTIVATION_TEST_REQUIREMENTS
+        );
+        assertTrue(MigrationSafetyPolicy.activationTestRequirement("route-ticket-ready"));
+        assertTrue(MigrationSafetyPolicy.activationTestSatisfied(true, true, true, true, true));
+        assertFalse(MigrationSafetyPolicy.activationTestSatisfied(true, true, true, false, true));
+        assertFalse(MigrationSafetyPolicy.activationTestSatisfied(true, true, true, true, false));
+    }
+
+    @Test
+    void rollbackRemovesOnlyImportedCloudIslandsState() {
+        assertEquals(
+            "rollback-plan-records-imported-islands-and-removes-only-cloudislands-imported-state",
+            MigrationSafetyPolicy.ROLLBACK_POLICY
+        );
+        assertEquals(
+            List.of(
+                "rollback-plan-id-present",
+                "imported-island-id-list-present",
+                "remove-only-cloudislands-imported-state",
+                "preserve-source-superiorskyblock2-data",
+                "emit-audit-event"
+            ),
+            MigrationSafetyPolicy.ROLLBACK_REQUIREMENTS
+        );
+        assertTrue(MigrationSafetyPolicy.rollbackRequirement("preserve-source-superiorskyblock2-data"));
+        assertTrue(MigrationSafetyPolicy.rollbackSafe(true, true, true, true, true));
+        assertFalse(MigrationSafetyPolicy.rollbackSafe(false, true, true, true, true));
+        assertFalse(MigrationSafetyPolicy.rollbackSafe(true, true, false, true, true));
+    }
+
+    @Test
     void boundaryMetadataPublishesRuntimeFence() {
         Map<String, String> metadata = MigrationSafetyPolicy.boundaryMetadata();
 
@@ -144,5 +188,9 @@ class MigrationSafetyPolicyTest {
         assertEquals("SuperiorSkyblock2,BentoBox,ASkyBlock,uSkyBlock,IridiumSkyblock", metadata.get("forbiddenRuntimeProviders"));
         assertEquals("warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes", metadata.get("forbiddenRuntimeAction"));
         assertEquals("import-runs-only-after-clean-dryrun-admin-approval-and-unchanged-source-fingerprint", metadata.get("importPreflightPolicy"));
+        assertEquals("verify-can-run-cloudislands-activation-test-without-superiorskyblock2-runtime-dependency", metadata.get("activationTestPolicy"));
+        assertEquals("imported-manifest-available,bundle-checksum-verified,target-node-can-activate,route-ticket-ready,no-superiorskyblock2-runtime-provider", metadata.get("activationTestRequirements"));
+        assertEquals("rollback-plan-records-imported-islands-and-removes-only-cloudislands-imported-state", metadata.get("rollbackPolicy"));
+        assertEquals("rollback-plan-id-present,imported-island-id-list-present,remove-only-cloudislands-imported-state,preserve-source-superiorskyblock2-data,emit-audit-event", metadata.get("rollbackRequirements"));
     }
 }
