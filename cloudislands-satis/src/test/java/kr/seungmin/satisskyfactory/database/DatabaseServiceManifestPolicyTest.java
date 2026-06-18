@@ -23,5 +23,13 @@ class DatabaseServiceManifestPolicyTest {
         assertTrue(source.contains("\"importProviderPrerequisite\""));
         assertTrue(source.contains("SatisLegacyMigrationPolicy.IMPORT_PROVIDER_PREREQUISITE"));
         assertTrue(source.contains("\"liveProviderHooks\": false"));
+        assertTrue(source.contains("\"addonStateVerifyPolicy\""));
+        assertTrue(source.contains("SatisLegacyMigrationPolicy.ADDON_STATE_VERIFY_POLICY"));
+        assertTrue(source.contains("\"satisStateScopePolicy\""));
+        assertTrue(source.contains("SatisLegacyMigrationPolicy.SATIS_STATE_SCOPE_POLICY"));
+        assertTrue(source.contains("\"legacySatisTables\""));
+        assertTrue(source.contains("SatisLegacyMigrationPolicy.legacySatisTables()"));
+        assertTrue(source.contains("\"addonStateVerifyTables\""));
+        assertTrue(source.contains("SatisLegacyMigrationPolicy.addonStateVerifyTables()"));
     }
 }

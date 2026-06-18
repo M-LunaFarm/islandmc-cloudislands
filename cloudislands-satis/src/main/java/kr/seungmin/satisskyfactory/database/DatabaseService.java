@@ -713,6 +713,10 @@ public final class DatabaseService {
         builder.append("  \"runtimeProviderHookPolicy\": \"").append(SatisLegacyMigrationPolicy.RUNTIME_PROVIDER_HOOK_POLICY).append("\",\n");
         builder.append("  \"importProviderPrerequisite\": \"").append(SatisLegacyMigrationPolicy.IMPORT_PROVIDER_PREREQUISITE).append("\",\n");
         builder.append("  \"liveProviderHooks\": false,\n");
+        builder.append("  \"addonStateVerifyPolicy\": \"").append(SatisLegacyMigrationPolicy.ADDON_STATE_VERIFY_POLICY).append("\",\n");
+        builder.append("  \"satisStateScopePolicy\": \"").append(SatisLegacyMigrationPolicy.SATIS_STATE_SCOPE_POLICY).append("\",\n");
+        builder.append("  \"legacySatisTables\": \"").append(String.join(",", SatisLegacyMigrationPolicy.legacySatisTables())).append("\",\n");
+        builder.append("  \"addonStateVerifyTables\": \"").append(String.join(",", SatisLegacyMigrationPolicy.addonStateVerifyTables())).append("\",\n");
         builder.append("  \"rollbackPolicy\": \"").append(sqlDialect == SqlDialect.SQLITE ? "sqlite-vacuum-into-snapshot" : "shared-backend-table-snapshot").append("\",\n");
         builder.append("  \"rollbackBackupPath\": \"").append(jsonEscape(rollbackBackupPath)).append("\",\n");
         builder.append("  \"createdAt\": \"").append(Instant.now()).append("\",\n");
