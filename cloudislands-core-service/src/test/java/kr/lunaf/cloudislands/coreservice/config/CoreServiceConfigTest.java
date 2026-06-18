@@ -118,6 +118,26 @@ class CoreServiceConfigTest {
         assertTrue(config.setupDatabaseFallbackSummary().contains("safetyMode=fallback-disabled-but-safe-in-memory-forced"));
     }
 
+    @Test
+    void mariadbSetupUsesNativeCoreJdbcAuthority() {
+        CoreServiceConfig config = config("JDBC", "jdbc:mariadb://mariadb.internal:3306/cloudislands", "MARIADB", true);
+
+        assertTrue(config.jdbcRepositories());
+        assertTrue(config.setupDatabaseDurable());
+        assertTrue(config.setupDatabaseProductionDurable());
+        assertFalse(config.setupDatabaseFallbackActive());
+        assertEquals("MARIADB", config.setupDatabaseRequestedBackend());
+        assertEquals("MARIADB_JDBC", config.setupDatabaseEffectiveBackend());
+        assertEquals("MARIADB_JDBC", config.setupDatabaseEffectiveAuthority());
+        assertEquals("NONE", config.setupDatabaseFallbackTarget());
+        assertEquals("native-mariadb-core-jdbc", config.setupDatabaseFallbackReason());
+        assertFalse(config.setupDatabaseCoreApiClientMode());
+        assertFalse(config.setupDatabaseCoreApiClientReady());
+        assertEquals("production-durable", config.setupDatabaseFallbackReadiness());
+        assertFalse(config.setupDatabaseFallbackSafetyForced());
+        assertEquals("none", config.setupDatabaseFallbackSafetyMode());
+    }
+
     private CoreServiceConfig config(String repositoryMode, String jdbcUrl, String databaseType, boolean fallbackEnabled) {
         return new CoreServiceConfig(
                 "127.0.0.1",
@@ -135,7 +155,7 @@ class CoreServiceConfigTest {
                 "POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC",
                 true,
                 true,
-                "POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC",
+                "POSTGRESQL,MYSQL,MARIADB,CORE_API",
                 "http://127.0.0.1:8443",
                 true,
                 true,

@@ -22,6 +22,7 @@ tasks.jar {
             "CloudIslands-Core-Setup-Database-Path" to "setup.database",
             "CloudIslands-Core-Setup-Database-Supported-Targets" to "POSTGRESQL,MYSQL,MARIADB,CORE_API",
             "CloudIslands-Core-JDBC-Native-Backend" to "POSTGRESQL,MYSQL,MARIADB",
+            "CloudIslands-Core-JDBC-Drivers" to "org.postgresql:postgresql,com.mysql:mysql-connector-j,org.mariadb.jdbc:mariadb-java-client",
             "CloudIslands-Core-JDBC-Auto-Schema-Path" to "setup.database.auto-schema",
             "CloudIslands-Core-JDBC-Auto-Schema-Policy" to "explicit-opt-in-postgresql-mysql-mariadb-bootstrap",
             "CloudIslands-Core-JDBC-Auto-Schema-Resource" to "postgresql=/db/migration/V1..V54,mysql-mariadb=/db/mysql/V1__cloudislands_mysql_schema.sql",
