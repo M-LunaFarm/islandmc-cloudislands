@@ -53,11 +53,15 @@ runtime:
     - BUILT_IN_COMPATIBLE
     - DISABLED
   mode-policy: external-addon-and-built-in-compatible-modes-share-cloudislands-addon-feature-gates
+  activation-policy: external-addon-and-built-in-compatible-use-same-root-gate-feature-gate-and-cloudislands-api-checks
   packaging-policy: setup.satis.mode, addons.cloudislands-satis.integration.mode, or integration.mode selects external-plugin, built-in-compatible, or disabled-unregistered registry metadata
   mode-config-paths: setup.satis.mode,addons.cloudislands-satis.integration.mode,integration.mode
   external-addon-boundary: paper-plugin-hard-depends-cloudislands-but-uses-public-cloudislands-api
+  external-descriptor-policy: external-addon-runtime-requires-cloudislands-addon-descriptor
   built-in-compatible-boundary: same-cloudislands-addon-spi-no-core-internals-no-standalone-runtime
+  built-in-descriptor-policy: built-in-compatible-runtime-does-not-require-external-addon-jar-but-keeps-addon-spi-gates
   packaging-boundary-policy: external-plugin-and-built-in-compatible-share-public-addon-spi-and-feature-gates
+  activation-block-reasons: unsupported-mode,mode-disabled,root-disabled,feature-disabled,cloudislands-api-missing,external-addon-descriptor-missing
   owns-islands: false
   standalone-island-runtime: false
   missing-cloudislands-behavior: disable-satis-runtime-no-standalone-island-management

@@ -137,6 +137,19 @@ class SatisSkyFactoryPluginTest {
     }
 
     @Test
+    void resourceConfigDocumentsFeaturePackActivationContract() throws Exception {
+        String addonDescriptor = Files.readString(Path.of("src/main/resources/cloudislands-addon.yml"));
+        String config = Files.readString(Path.of("src/main/resources/config.yml"));
+
+        assertTrue(addonDescriptor.contains("activation-policy: external-addon-and-built-in-compatible-use-same-root-gate-feature-gate-and-cloudislands-api-checks"));
+        assertTrue(addonDescriptor.contains("external-descriptor-policy: external-addon-runtime-requires-cloudislands-addon-descriptor"));
+        assertTrue(addonDescriptor.contains("built-in-descriptor-policy: built-in-compatible-runtime-does-not-require-external-addon-jar-but-keeps-addon-spi-gates"));
+        assertTrue(addonDescriptor.contains("activation-block-reasons: unsupported-mode,mode-disabled,root-disabled,feature-disabled,cloudislands-api-missing,external-addon-descriptor-missing"));
+        assertTrue(config.contains("activation-policy: external-addon-and-built-in-compatible-use-same-root-gate-feature-gate-and-cloudislands-api-checks"));
+        assertTrue(config.contains("- external-addon-descriptor-missing"));
+    }
+
+    @Test
     void runtimePlanUsesCloudIslandsApiPresenceForStandaloneGuard() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java"));
 

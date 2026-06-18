@@ -254,6 +254,16 @@ integration:
   # DISABLED: keep the plugin installed but register no active Satis runtime components.
   # Treat Satis as an official feature pack: CloudIslands Core must keep working when this jar is absent or disabled.
   mode: EXTERNAL_ADDON
+  activation-policy: external-addon-and-built-in-compatible-use-same-root-gate-feature-gate-and-cloudislands-api-checks
+  external-descriptor-policy: external-addon-runtime-requires-cloudislands-addon-descriptor
+  built-in-descriptor-policy: built-in-compatible-runtime-does-not-require-external-addon-jar-but-keeps-addon-spi-gates
+  activation-block-reasons:
+    - unsupported-mode
+    - mode-disabled
+    - root-disabled
+    - feature-disabled
+    - cloudislands-api-missing
+    - external-addon-descriptor-missing
   skyblock-provider: CLOUDISLANDS
   cloudislands-adapter: true
   # Used only when CloudIslands region lookup is temporarily unavailable during lifecycle sync.
