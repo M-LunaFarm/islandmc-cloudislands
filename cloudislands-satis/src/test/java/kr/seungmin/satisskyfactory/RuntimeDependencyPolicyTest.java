@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RuntimeDependencyPolicyTest {
     @Test
@@ -101,6 +102,45 @@ class RuntimeDependencyPolicyTest {
                     );
                 }
             }
+        }
+    }
+
+    @Test
+    void jarManifestsExposeCompleteAddonStateBulkEndpoints() throws IOException {
+        Path repoRoot = Path.of("").toAbsolutePath().normalize().getParent();
+        String satisBuild = Files.readString(repoRoot.resolve("cloudislands-satis/build.gradle.kts"));
+        String coreBuild = Files.readString(repoRoot.resolve("cloudislands-core-service/build.gradle.kts"));
+        List<String> globalEndpoints = List.of(
+                "/v1/addons/state/table/bulk",
+                "/v1/addons/state/table-key-value/bulk-save",
+                "/v1/addons/state/table/key-value/bulk-save",
+                "/v1/addons/state/table/key-value/bulk/save",
+                "/v1/addons/state/table/key-value/bulk",
+                "/v1/addons/state/table/key-value/bulk-load",
+                "/v1/addons/state/table/load",
+                "/v1/addons/state/table/bulk-set"
+        );
+        List<String> islandEndpoints = List.of(
+                "/v1/addons/islands/state/table/bulk",
+                "/v1/addons/islands/state/table-key-value/bulk-save",
+                "/v1/addons/islands/state/table/key-value/bulk-save",
+                "/v1/addons/islands/state/table/key-value/bulk/save",
+                "/v1/addons/islands/state/table/key-value/bulk",
+                "/v1/addons/islands/state/table/key-value/bulk-load",
+                "/v1/addons/islands/state/table/load",
+                "/v1/addons/islands/state/table/bulk-set"
+        );
+
+        assertTrue(satisBuild.contains("CloudIslands-Satis-Core-API-Bulk-Endpoints"));
+        assertTrue(coreBuild.contains("CloudIslands-Core-Addon-State-Bulk-Endpoints"));
+        assertTrue(coreBuild.contains("CloudIslands-Core-Addon-Island-State-Bulk-Endpoints"));
+        for (String endpoint : globalEndpoints) {
+            assertTrue(satisBuild.contains(endpoint), "Satis manifest missing global endpoint " + endpoint);
+            assertTrue(coreBuild.contains(endpoint), "Core manifest missing global endpoint " + endpoint);
+        }
+        for (String endpoint : islandEndpoints) {
+            assertTrue(satisBuild.contains(endpoint), "Satis manifest missing island endpoint " + endpoint);
+            assertTrue(coreBuild.contains(endpoint), "Core manifest missing island endpoint " + endpoint);
         }
     }
 }
