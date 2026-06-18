@@ -20,6 +20,7 @@ import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
@@ -484,26 +485,16 @@ public final class RoutingOrchestrator {
         details.put("routeCandidateRecommendedMinimum", Long.toString(recommendedCandidates));
         details.put("routeCandidateShortfall", Long.toString(candidateShortfall));
         details.put("routeCandidateEstimatePolicy", "allocator-ready-node-candidates-no-fixed-node-limit");
-        details.put("elasticLimitPolicy", "no-fixed-island-node-count-limit-route-candidates-derive-from-live-heartbeats");
+        details.put("elasticLimitPolicy", IslandPortabilityPolicy.NO_FIXED_NODE_COUNT_LIMIT_POLICY);
+        details.put("eightPlusNodePolicy", IslandPortabilityPolicy.EIGHT_PLUS_NODE_POLICY);
+        details.put("routeCandidateMinimumPolicy", IslandPortabilityPolicy.ROUTE_CANDIDATE_MINIMUM_POLICY);
         details.put("blockReason", publicBlockReason(debugReason));
         details.put("physicalNodeNamesExposed", "false");
         return Map.copyOf(details);
     }
 
     private long routeCandidateRecommendedMinimum(long poolNodes) {
-        if (poolNodes <= 0L) {
-            return 0L;
-        }
-        if (poolNodes == 1L) {
-            return 1L;
-        }
-        if (poolNodes < 5L) {
-            return 2L;
-        }
-        if (poolNodes <= 6L) {
-            return poolNodes;
-        }
-        return Math.min(poolNodes, 6L);
+        return IslandPortabilityPolicy.recommendedRouteCandidateMinimum(poolNodes);
     }
 
     private long duplicateVelocityServerNameCount(List<NodeLoad> poolSnapshot) {
