@@ -583,6 +583,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-player-maintenance-status-save-policy", "player-command-maintenance-status-refresh-rolls-back-when-island-save-is-not-accepted");
         state.put("runtime-gui-maintenance-status-save-policy", "gui-maintenance-status-refresh-rolls-back-when-island-save-is-not-accepted");
         state.put("runtime-machine-save-result-policy", "machine-save-reports-write-gate-result-and-recipe-selection-or-repair-rolls-back-on-failure");
+        state.put("runtime-machine-placement-link-save-policy", "resource-node-link-or-no-input-status-rolls-back-when-machine-save-is-not-accepted");
         state.put("runtime-dirty-save-last-flush-status", dirtySaves == null ? "not-configured" : dirtySaves.lastFlushStatus());
         state.put("runtime-dirty-save-last-flush-at", dirtySaves == null ? "" : dirtySaves.lastFlushAt());
         state.put("runtime-dirty-save-last-flush-writes", dirtySaves == null ? "0" : Integer.toString(dirtySaves.lastFlushWrites()));

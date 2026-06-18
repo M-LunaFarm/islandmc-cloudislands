@@ -36,6 +36,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.BooleanSupplier;
 
 public final class MachineListener implements Listener {
@@ -174,7 +175,6 @@ public final class MachineListener implements Listener {
         }
         messages.send(player, "placed", Map.of("machine", definition.displayName()));
         islands.save(island);
-        machines.save(machine);
         itemNetworks.rebuildIsland(island.islandUuid());
         power.rebuildIsland(island.islandUuid());
         return true;
@@ -209,8 +209,14 @@ public final class MachineListener implements Listener {
         if (definition.nodeType() == null || !resourceNodesEnabled()) {
             return;
         }
+        UUID previousNodeId = machine.linkedResourceNodeId();
+        MachineStatus previousStatus = machine.status();
         nodes.nearest(machine.islandUuid(), machine.location(), nodeLinkRadius(), definition.nodeType())
                 .ifPresentOrElse(node -> machine.linkedResourceNodeId(node.nodeId()), () -> machine.status(MachineStatus.NO_INPUT));
+        if (!machines.save(machine)) {
+            machine.linkedResourceNodeId(previousNodeId);
+            machine.status(previousStatus);
+        }
     }
 
     private Set<String> recoveryTypes() {
