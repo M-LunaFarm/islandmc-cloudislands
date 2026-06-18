@@ -76,6 +76,36 @@ class RuntimeDependencyPolicyTest {
         }
     }
 
+    @Test
+    void descriptorDependencyParserReadsNestedDependencyBlocks() {
+        String descriptor = """
+                name: Example
+                softdepend:
+                  - SuperiorSkyblock2
+                  - PlaceholderAPI
+                commands:
+                  island:
+                    usage: /island
+                required-plugins:
+                  BentoBox: optional
+                  CloudIslands: required
+                """;
+
+        List<String> dependencyLines = descriptorDependencyLines(
+                descriptor,
+                List.of("depend:", "softdepend:", "loadbefore:", "required-plugins:", "plugin-dependencies:", "runtime-dependencies:")
+        );
+
+        assertTrue(dependencyLines.contains("softdepend:"));
+        assertTrue(dependencyLines.contains("- SuperiorSkyblock2"));
+        assertTrue(dependencyLines.contains("- PlaceholderAPI"));
+        assertTrue(dependencyLines.contains("required-plugins:"));
+        assertTrue(dependencyLines.contains("BentoBox: optional"));
+        assertTrue(dependencyLines.contains("CloudIslands: required"));
+        assertFalse(dependencyLines.contains("commands:"));
+        assertFalse(dependencyLines.contains("usage: /island"));
+    }
+
     private List<String> descriptorDependencyLines(String descriptor, List<String> dependencyKeys) {
         List<String> lines = descriptor.lines().toList();
         java.util.ArrayList<String> dependencyLines = new java.util.ArrayList<>();
