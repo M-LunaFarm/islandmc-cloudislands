@@ -404,7 +404,10 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         }
         String itemId = resolvedItemId.get();
         long amount = hand.getAmount();
-        var inventory = storage.islandStorage(island.islandUuid());
+        var inventory = islandStorageIfAllowed(player, island).orElse(null);
+        if (inventory == null) {
+            return;
+        }
         if (!inventory.add(itemId, amount)) {
             messages.send(player, "storage-full");
             return;
@@ -448,7 +451,10 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             messages.send(player, "virtual-only-withdraw");
             return;
         }
-        var inventory = storage.islandStorage(island.islandUuid());
+        var inventory = islandStorageIfAllowed(player, island).orElse(null);
+        if (inventory == null) {
+            return;
+        }
         if (!inventory.remove(itemId, amount)) {
             messages.send(player, "not-enough-storage");
             return;
@@ -677,7 +683,10 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean consumeRepairParts(FactoryIsland island, MachineInstance machine) {
-        var inventory = storage.islandStorage(island.islandUuid());
+        var inventory = storage.islandStorageIfAllowed(island.islandUuid()).orElse(null);
+        if (inventory == null) {
+            return false;
+        }
         Map<String, Long> cost = maintenance.repairCost(machine.status() == MachineStatus.BROKEN);
         if (cost.entrySet().stream().anyMatch(entry -> inventory.amount(entry.getKey()) < entry.getValue())) {
             return false;
@@ -691,12 +700,23 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     }
 
     private void refundRepairParts(FactoryIsland island, MachineInstance machine) {
-        var inventory = storage.islandStorage(island.islandUuid());
+        var inventory = storage.islandStorageIfAllowed(island.islandUuid()).orElse(null);
+        if (inventory == null) {
+            return;
+        }
         Map<String, Long> cost = maintenance.repairCost(machine.status() == MachineStatus.BROKEN);
         cost.forEach(inventory::add);
         if (!storage.saveIfAllowed(inventory)) {
             cost.forEach(inventory::remove);
         }
+    }
+
+    private Optional<kr.seungmin.satisskyfactory.storage.VirtualInventory> islandStorageIfAllowed(Player player, FactoryIsland island) {
+        Optional<kr.seungmin.satisskyfactory.storage.VirtualInventory> inventory = storage.islandStorageIfAllowed(island.islandUuid());
+        if (inventory.isEmpty()) {
+            messages.send(player, "feature-disabled", Map.of("feature", "storage"));
+        }
+        return inventory;
     }
 
     private String repairCostText(MachineInstance machine) {
