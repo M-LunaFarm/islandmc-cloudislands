@@ -3,6 +3,7 @@ package kr.seungmin.satisskyfactory.storage;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -14,7 +15,10 @@ class SatisLegacyMigrationPolicyTest {
         assertEquals("satismc", SatisLegacyMigrationPolicy.LEGACY_SATIS_SOURCE);
         assertEquals("read-only-snapshot-or-sqlite-scan-no-live-provider-hooks", SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY);
         assertEquals("legacy-provider-is-migration-input-only-never-runtime-dependency", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
+        assertEquals("satis-runtime-starts-and-runs-when-superiorskyblock2-is-absent", SatisLegacyMigrationPolicy.RUNTIME_WITHOUT_LEGACY_PROVIDER_POLICY);
         assertEquals("forbid-superiorskyblock2-runtime-hooks-after-import", SatisLegacyMigrationPolicy.RUNTIME_PROVIDER_HOOK_POLICY);
+        assertEquals("legacy-provider-present-is-warning-only-migration-input-never-runtime-authority", SatisLegacyMigrationPolicy.LIVE_PROVIDER_PRESENT_POLICY);
+        assertEquals("no-bukkit-service-lookup-no-event-hooks-no-data-writes", SatisLegacyMigrationPolicy.PROVIDER_LOOKUP_POLICY);
         assertEquals("verify-imported-satis-state-through-cloudislands-addon-state", SatisLegacyMigrationPolicy.ADDON_STATE_VERIFY_POLICY);
         assertEquals("admin-confirmation-required-before-import", SatisLegacyMigrationPolicy.APPROVAL_POLICY);
         assertEquals("CONFIRM_IMPORT", SatisLegacyMigrationPolicy.APPROVAL_TOKEN);
@@ -26,6 +30,14 @@ class SatisLegacyMigrationPolicyTest {
         assertEquals("cloudislands-island-uuid", SatisLegacyMigrationPolicy.OUTPUT_ID_POLICY);
         assertEquals("create-cloudislands-migration-manifest-before-import", SatisLegacyMigrationPolicy.MANIFEST_POLICY);
         assertEquals("SuperiorSkyblock2,BentoBox,ASkyBlock,uSkyBlock,IridiumSkyblock", SatisLegacyMigrationPolicy.forbiddenRuntimeProvidersCsv());
+    }
+
+    @Test
+    void runtimeDoesNotRequireOrPromoteLegacyProviders() {
+        assertFalse(SatisLegacyMigrationPolicy.runtimeRequiresLegacyProvider());
+        assertFalse(SatisLegacyMigrationPolicy.legacyProviderMayBecomeRuntimeAuthority());
+        assertEquals("continue-cloudislands-api-only", SatisLegacyMigrationPolicy.runtimeProviderAction(false));
+        assertEquals("warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes", SatisLegacyMigrationPolicy.runtimeProviderAction(true));
     }
 
     @Test

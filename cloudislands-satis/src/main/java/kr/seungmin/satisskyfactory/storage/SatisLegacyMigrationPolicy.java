@@ -8,7 +8,12 @@ public final class SatisLegacyMigrationPolicy {
     public static final String LEGACY_SATIS_SOURCE = "satismc";
     public static final String SOURCE_ACCESS_POLICY = "read-only-snapshot-or-sqlite-scan-no-live-provider-hooks";
     public static final String RUNTIME_DEPENDENCY_POLICY = "legacy-provider-is-migration-input-only-never-runtime-dependency";
+    public static final String RUNTIME_WITHOUT_LEGACY_PROVIDER_POLICY = "satis-runtime-starts-and-runs-when-superiorskyblock2-is-absent";
     public static final String RUNTIME_PROVIDER_HOOK_POLICY = "forbid-superiorskyblock2-runtime-hooks-after-import";
+    public static final String LIVE_PROVIDER_PRESENT_POLICY = "legacy-provider-present-is-warning-only-migration-input-never-runtime-authority";
+    public static final String PROVIDER_LOOKUP_POLICY = "no-bukkit-service-lookup-no-event-hooks-no-data-writes";
+    public static final String PROVIDER_ABSENT_ACTION = "continue-cloudislands-api-only";
+    public static final String PROVIDER_PRESENT_ACTION = "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes";
     public static final String ADDON_STATE_VERIFY_POLICY = "verify-imported-satis-state-through-cloudislands-addon-state";
     public static final String APPROVAL_POLICY = "admin-confirmation-required-before-import";
     public static final String APPROVAL_TOKEN = "CONFIRM_IMPORT";
@@ -114,5 +119,17 @@ public final class SatisLegacyMigrationPolicy {
 
     public static boolean pipelineStepRequired(String step) {
         return PIPELINE_STEPS.contains(step);
+    }
+
+    public static boolean runtimeRequiresLegacyProvider() {
+        return false;
+    }
+
+    public static boolean legacyProviderMayBecomeRuntimeAuthority() {
+        return false;
+    }
+
+    public static String runtimeProviderAction(boolean legacyProviderPresent) {
+        return legacyProviderPresent ? PROVIDER_PRESENT_ACTION : PROVIDER_ABSENT_ACTION;
     }
 }

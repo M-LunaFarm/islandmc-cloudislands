@@ -252,6 +252,8 @@ superiorskyblock2:
   live-provider-hooks: false
   provider-service-check: plugin-enabled-only-no-bukkit-service-binding
   provider-service-binding: false
+  runtime-without-legacy-provider: true
+  live-provider-present-policy: legacy-provider-present-is-warning-only-migration-input-never-runtime-authority
   runtime-dependency-whitelist:
     - CloudIslands
     - Vault
