@@ -5,9 +5,12 @@ import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SatisSkyFactoryPluginTest {
     @Test
@@ -79,5 +82,15 @@ class SatisSkyFactoryPluginTest {
                 String.join(",", AddonStateBulkSaveRequest.ISLAND_ENDPOINTS) + "," + String.join(",", AddonStateBulkLoadRequest.ISLAND_ENDPOINTS),
                 metadata.get("database-core-api-island-endpoint")
         );
+    }
+
+    @Test
+    void commandsFeatureGateUnregistersFactoryEntrypoints() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java"));
+
+        assertTrue(source.contains("if (!operationalFeatureEnabled(\"commands\"))"));
+        assertTrue(source.contains("unregisterAddonCommands();"));
+        assertTrue(source.contains("disabled-feature-unregisters-factory-and-sfactory-commands-and-registers-no-active-satis-command"));
+        assertTrue(source.contains("commands-feature-disabled-unregisters-command-list-entrypoints"));
     }
 }
