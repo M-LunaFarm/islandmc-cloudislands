@@ -1923,6 +1923,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("addon-descriptor-resource", "cloudislands-addon.yml"),
                 Map.entry("addon-descriptor-format", "cloudislands-addon-yaml"),
                 Map.entry("addon-packaging", "external-plugin"),
+                Map.entry("addon-supported-packaging", SatisAddonIntegrationPolicy.SUPPORTED_PACKAGING_MODES),
+                Map.entry("addon-spi-policy", SatisAddonIntegrationPolicy.ADDON_SPI_POLICY),
                 Map.entry("supported-integration-modes", "EXTERNAL_ADDON,BUILT_IN_COMPATIBLE,DISABLED"),
                 Map.entry("built-in-compatible-policy", "same-addon-api-contract-config-gated-no-core-boot-dependency"),
                 Map.entry("extension-model", "superiorskyblock-style-addon"),

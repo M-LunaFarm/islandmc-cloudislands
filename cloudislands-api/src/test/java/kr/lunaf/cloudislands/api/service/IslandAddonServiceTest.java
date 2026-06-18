@@ -29,6 +29,8 @@ class IslandAddonServiceTest {
         assertFalse(snapshot.enabled());
         assertEquals(Map.of(), snapshot.features());
         assertEquals("IllegalStateException", snapshot.metadata().get("metadata-error"));
+        assertEquals("external-plugin", snapshot.metadata().get("addon-packaging"));
+        assertEquals("external-plugin,built-in-feature-pack,built-in-compatible", snapshot.metadata().get("addon-supported-packaging"));
     }
 
     @Test
@@ -38,7 +40,11 @@ class IslandAddonServiceTest {
         CloudIslandsAddonSnapshot snapshot = service.register(new AddonWithNullMapEntries()).join();
 
         assertEquals(Map.of("machines", true), snapshot.features());
-        assertEquals(Map.of("mode", "ADDON"), snapshot.metadata());
+        assertEquals("ADDON", snapshot.metadata().get("mode"));
+        assertEquals("external-plugin", snapshot.metadata().get("addon-packaging"));
+        assertEquals("external-plugin,built-in-feature-pack,built-in-compatible", snapshot.metadata().get("addon-supported-packaging"));
+        assertEquals("false", snapshot.metadata().get("addon-core-lifecycle-owner"));
+        assertEquals("addon-enabled-and-feature-switches-control-runtime-components", snapshot.metadata().get("addon-config-gate-policy"));
     }
 
     @Test

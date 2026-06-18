@@ -70,6 +70,11 @@ import kr.lunaf.cloudislands.api.event.RouteTicketFailedEvent;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 
 public interface CloudIslandsAddon {
+    String PACKAGING_EXTERNAL_PLUGIN = "external-plugin";
+    String PACKAGING_BUILT_IN_FEATURE_PACK = "built-in-feature-pack";
+    String PACKAGING_BUILT_IN_COMPATIBLE = "built-in-compatible";
+    String STANDARD_METADATA_VERSION = "1";
+
     String addonId();
 
     String addonDisplayName();
@@ -89,7 +94,11 @@ public interface CloudIslandsAddon {
     }
 
     default String addonPackaging() {
-        return "external-plugin";
+        return PACKAGING_EXTERNAL_PLUGIN;
+    }
+
+    default List<String> addonSupportedPackagingModes() {
+        return List.of(PACKAGING_EXTERNAL_PLUGIN, PACKAGING_BUILT_IN_FEATURE_PACK, PACKAGING_BUILT_IN_COMPATIBLE);
     }
 
     default boolean addonOwnsIslands() {
@@ -102,6 +111,10 @@ public interface CloudIslandsAddon {
 
     default String addonDataRetentionPolicy() {
         return "preserve-addon-state-by-addon-id-and-island-uuid";
+    }
+
+    default String addonConfigGatePolicy() {
+        return "addon-enabled-and-feature-switches-control-runtime-components";
     }
 
     default String addonDescriptorResource() {
@@ -176,10 +189,14 @@ public interface CloudIslandsAddon {
 
     default Map<String, String> addonStandardMetadata() {
         Map<String, String> metadata = new HashMap<>();
+        metadata.put("addon-standard-metadata-version", STANDARD_METADATA_VERSION);
         metadata.put("addon-packaging", safeMetadataValue(addonPackaging(), "external-plugin"));
+        metadata.put("addon-supported-packaging", safeMetadataList(addonSupportedPackagingModes(), PACKAGING_EXTERNAL_PLUGIN + "," + PACKAGING_BUILT_IN_FEATURE_PACK + "," + PACKAGING_BUILT_IN_COMPATIBLE));
         metadata.put("addon-runtime-owns-islands", Boolean.toString(addonOwnsIslands()));
+        metadata.put("addon-core-lifecycle-owner", "false");
         metadata.put("addon-removal-safe", Boolean.toString(addonRemovalSafe()));
         metadata.put("addon-data-retention", safeMetadataValue(addonDataRetentionPolicy(), "preserve-addon-state-by-addon-id-and-island-uuid"));
+        metadata.put("addon-config-gate-policy", safeMetadataValue(addonConfigGatePolicy(), "addon-enabled-and-feature-switches-control-runtime-components"));
         metadata.put("addon-event-source", "cloudislands-global-event-stream");
         metadata.put("addon-event-delivery", "typed-cloud-event-callbacks-through-cloudislands-api");
         metadata.put("addon-event-failure-policy", "addon-callback-exceptions-are-logged-and-isolated");
@@ -194,6 +211,16 @@ public interface CloudIslandsAddon {
 
     private static String safeMetadataValue(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private static String safeMetadataList(List<String> values, String fallback) {
+        if (values == null || values.isEmpty()) {
+            return fallback;
+        }
+        return values.stream()
+            .filter(value -> value != null && !value.isBlank())
+            .reduce((left, right) -> left + "," + right)
+            .orElse(fallback);
     }
 
     default void onAddonRegistered(CloudIslandsAddonSnapshot snapshot) {

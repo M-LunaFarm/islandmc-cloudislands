@@ -44,6 +44,8 @@ class SatisSkyFactoryPluginTest {
         assertEquals("cloudislands-addon.yml", metadata.get("addon-descriptor-resource"));
         assertEquals("cloudislands-addon-yaml", metadata.get("addon-descriptor-format"));
         assertEquals("external-plugin", metadata.get("addon-packaging"));
+        assertEquals("external-plugin,built-in-feature-pack,built-in-compatible", metadata.get("addon-supported-packaging"));
+        assertEquals("same-cloudislands-addon-spi-for-external-plugin-and-built-in-feature-pack", metadata.get("addon-spi-policy"));
         assertEquals("true", metadata.get("addon-removal-safe"));
         assertEquals("preserve-addon-state-by-island-uuid", metadata.get("addon-data-retention"));
         assertEquals("false", metadata.get("addon-runtime-owns-islands"));

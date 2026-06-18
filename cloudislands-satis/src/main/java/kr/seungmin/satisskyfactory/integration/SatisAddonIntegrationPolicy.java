@@ -9,6 +9,7 @@ public final class SatisAddonIntegrationPolicy {
     public static final String RECOMMENDED_MODE = "EXTERNAL_ADDON";
     public static final String COMPATIBLE_BUILT_IN_MODE = "BUILT_IN_COMPATIBLE";
     public static final String DISABLED_MODE = "DISABLED";
+    public static final String SUPPORTED_PACKAGING_MODES = "external-plugin,built-in-feature-pack,built-in-compatible";
     public static final String API_POLICY = "cloudislands-api-only-no-superiorskyblock2-runtime";
     public static final String API_SURFACE_POLICY = "island-member-permission-location-upgrade-values-through-cloudislands-api-or-addon-spi";
     public static final String FORBIDDEN_DIRECT_ACCESS_POLICY = "no-direct-cloudislands-storage-runtime-or-world-owner-access";
@@ -35,6 +36,7 @@ public final class SatisAddonIntegrationPolicy {
     public static final String PLAYER_VISIBLE_TOPOLOGY_POLICY = "show-logical-island-only-never-island-node-or-shard-placement";
     public static final String INTERNAL_TOPOLOGY_FIELDS = "active-node,source-node,target-node,server-name,world-name,cell,route-ticket,backend-storage-key";
     public static final String OFFICIAL_FEATURE_PACK_POLICY = "optional-content-layer-not-cloudislands-core-lifecycle-owner";
+    public static final String ADDON_SPI_POLICY = "same-cloudislands-addon-spi-for-external-plugin-and-built-in-feature-pack";
     public static final String CONTENT_LAYER_POLICY = "cloudislands-satis-owns-optional-machines-resource-nodes-contracts-research-market-and-placeholders";
     public static final String CORE_BOUNDARY_POLICY = "cloudislands-core-owns-island-lifecycle-routing-storage-protection-and-public-api";
 

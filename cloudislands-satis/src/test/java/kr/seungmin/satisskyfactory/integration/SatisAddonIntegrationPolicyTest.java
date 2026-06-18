@@ -11,6 +11,7 @@ class SatisAddonIntegrationPolicyTest {
     void prefersOfficialExternalAddonWithoutClosingBuiltInCompatiblePath() {
         assertEquals("cloudislands-satis", SatisAddonIntegrationPolicy.ADDON_ID);
         assertEquals("EXTERNAL_ADDON", SatisAddonIntegrationPolicy.RECOMMENDED_MODE);
+        assertEquals("external-plugin,built-in-feature-pack,built-in-compatible", SatisAddonIntegrationPolicy.SUPPORTED_PACKAGING_MODES);
         assertTrue(SatisAddonIntegrationPolicy.modeSupported("EXTERNAL_ADDON"));
         assertTrue(SatisAddonIntegrationPolicy.modeSupported("BUILT_IN_COMPATIBLE"));
         assertTrue(SatisAddonIntegrationPolicy.modeSupported("DISABLED"));
@@ -22,6 +23,7 @@ class SatisAddonIntegrationPolicyTest {
         assertEquals("island-member-permission-location-upgrade-values-through-cloudislands-api-or-addon-spi", SatisAddonIntegrationPolicy.API_SURFACE_POLICY);
         assertEquals("no-direct-cloudislands-storage-runtime-or-world-owner-access", SatisAddonIntegrationPolicy.FORBIDDEN_DIRECT_ACCESS_POLICY);
         assertEquals("optional-content-layer-not-cloudislands-core-lifecycle-owner", SatisAddonIntegrationPolicy.OFFICIAL_FEATURE_PACK_POLICY);
+        assertEquals("same-cloudislands-addon-spi-for-external-plugin-and-built-in-feature-pack", SatisAddonIntegrationPolicy.ADDON_SPI_POLICY);
         assertEquals("cloudislands-satis-owns-optional-machines-resource-nodes-contracts-research-market-and-placeholders", SatisAddonIntegrationPolicy.CONTENT_LAYER_POLICY);
         assertEquals("cloudislands-core-owns-island-lifecycle-routing-storage-protection-and-public-api", SatisAddonIntegrationPolicy.CORE_BOUNDARY_POLICY);
         assertEquals("cloudislands-api-required-no-standalone-island-runtime", SatisAddonIntegrationPolicy.CLOUDISLANDS_REQUIRED_POLICY);
