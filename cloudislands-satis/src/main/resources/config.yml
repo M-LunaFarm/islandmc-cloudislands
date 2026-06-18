@@ -36,6 +36,24 @@ satis:
     biomes: true
     chat: true
     templates: true
+    dependencies:
+      resource-nodes: machines
+      generators: factories
+      gui: machines
+      placeholders: machines
+      market: storage
+      contracts: storage
+      missions: contracts+storage
+      upgrades: research
+      menus: gui
+      route-events: addon-state
+      members: lifecycle
+      permissions: lifecycle
+      level-values: lifecycle
+      warps: lifecycle
+      biomes: lifecycle
+      chat: lifecycle
+      templates: lifecycle
   commands:
     # One line is always one command. This only controls how many command lines appear per page.
     list-page-size: 12
@@ -136,6 +154,24 @@ addons:
       biomes: true
       chat: true
       templates: true
+      dependencies:
+        resource-nodes: machines
+        generators: factories
+        gui: machines
+        placeholders: machines
+        market: storage
+        contracts: storage
+        missions: contracts+storage
+        upgrades: research
+        menus: gui
+        route-events: addon-state
+        members: lifecycle
+        permissions: lifecycle
+        level-values: lifecycle
+        warps: lifecycle
+        biomes: lifecycle
+        chat: lifecycle
+        templates: lifecycle
 setup:
   database:
     # Highest-priority config shape for new CloudIslands installs.

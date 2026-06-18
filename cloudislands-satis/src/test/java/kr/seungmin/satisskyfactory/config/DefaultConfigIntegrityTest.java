@@ -174,6 +174,10 @@ class DefaultConfigIntegrityTest {
         assertEquals("lifecycle", addon.getString("features.dependencies.biomes"));
         assertEquals("lifecycle", addon.getString("features.dependencies.chat"));
         assertEquals("lifecycle", addon.getString("features.dependencies.templates"));
+        assertEquals("machines", config.getString("satis.features.dependencies.gui"));
+        assertEquals("machines", config.getString("satis.features.dependencies.placeholders"));
+        assertEquals("machines", config.getString("addons.cloudislands-satis.features.dependencies.gui"));
+        assertEquals("machines", config.getString("addons.cloudislands-satis.features.dependencies.placeholders"));
     }
 
     @Test
