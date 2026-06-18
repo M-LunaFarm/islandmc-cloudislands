@@ -15,15 +15,25 @@ public final class CommandListPolicy {
     }
 
     public static int pages(int commandCount) {
-        return Math.max(1, (Math.max(0, commandCount) + DEFAULT_PAGE_SIZE - 1) / DEFAULT_PAGE_SIZE);
+        return pages(commandCount, DEFAULT_PAGE_SIZE);
+    }
+
+    public static int pages(int commandCount, int pageSize) {
+        int safePageSize = Math.max(1, pageSize);
+        return Math.max(1, (Math.max(0, commandCount) + safePageSize - 1) / safePageSize);
     }
 
     public static Page page(List<String> commands, int requestedPage, String navigationCommand) {
+        return page(commands, requestedPage, navigationCommand, DEFAULT_PAGE_SIZE);
+    }
+
+    public static Page page(List<String> commands, int requestedPage, String navigationCommand, int pageSize) {
         Objects.requireNonNull(commands, "commands");
-        int maxPage = pages(commands.size());
+        int safePageSize = Math.max(1, pageSize);
+        int maxPage = pages(commands.size(), safePageSize);
         int safePage = Math.max(1, Math.min(requestedPage, maxPage));
-        int from = Math.min(commands.size(), (safePage - 1) * DEFAULT_PAGE_SIZE);
-        int to = Math.min(commands.size(), from + DEFAULT_PAGE_SIZE);
+        int from = Math.min(commands.size(), (safePage - 1) * safePageSize);
+        int to = Math.min(commands.size(), from + safePageSize);
         List<String> entries = new ArrayList<>();
         for (String command : commands.subList(from, to)) {
             entries.add(oneLine(command));

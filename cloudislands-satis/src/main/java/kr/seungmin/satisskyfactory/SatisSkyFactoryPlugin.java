@@ -573,7 +573,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("command-list-header-suffix", CommandListPolicy.HEADER_SUFFIX);
         state.put("command-list-entry-prefix", CommandListPolicy.ENTRY_PREFIX);
         state.put("command-list-paging", "factory command list [page],factory admin command list [page]");
-        state.put("command-list-page-size", Integer.toString(CommandListPolicy.DEFAULT_PAGE_SIZE));
+        state.put("command-list-page-size", Integer.toString(commandListPageSize()));
         state.put("command-list-disabled-policy", "commands-feature-disabled-unregisters-command-list-entrypoints");
         putDataWriteGateState(state);
         putLifecycleCoverageState(state);
@@ -1027,6 +1027,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 this::addonMetadata,
                 this::addonStateSnapshot,
                 this::addonIslandStateSnapshot,
+                commandListPageSize(),
                 this::reloadPluginConfig
         );
         boolean registered = false;
@@ -1058,6 +1059,20 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         unregisterPluginCommand(getCommand("factory"));
         unregisterPluginCommand(getCommand("sfactory"));
         commandsRegistered = false;
+    }
+
+    private int commandListPageSize() {
+        if (configs == null) {
+            return CommandListPolicy.DEFAULT_PAGE_SIZE;
+        }
+        int configured = configs.main().getInt("satis.commands.list-page-size", 0);
+        if (configured <= 0) {
+            configured = configs.main().getInt("addons.cloudislands-satis.commands.list-page-size", 0);
+        }
+        if (configured <= 0) {
+            configured = configs.main().getInt("commands.list-page-size", 0);
+        }
+        return configured > 0 ? configured : CommandListPolicy.DEFAULT_PAGE_SIZE;
     }
 
     private void unregisterPluginCommand(PluginCommand command) {

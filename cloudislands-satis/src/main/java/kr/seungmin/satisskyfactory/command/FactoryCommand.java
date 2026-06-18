@@ -85,6 +85,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     private final MessageService messages;
     private final Predicate<String> featureEnabled;
     private final AdminFactoryCommand adminCommand;
+    private final int commandListPageSize;
 
     public FactoryCommand(FactoryIslandService islands, MachineService machines, MachineDefinitionService definitions,
                           StorageService storage, ResourceNodeService nodes, SkyblockProvider skyblock,
@@ -95,6 +96,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                           Supplier<Map<String, String>> integrationMetadata,
                           Supplier<Map<String, String>> addonState,
                           Function<UUID, Map<String, String>> addonIslandState,
+                          int commandListPageSize,
                           Runnable reload) {
         this.islands = islands;
         this.machines = machines;
@@ -112,8 +114,9 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         this.items = items;
         this.messages = messages;
         this.featureEnabled = featureEnabled;
+        this.commandListPageSize = Math.max(1, commandListPageSize);
         this.adminCommand = new AdminFactoryCommand(islands, machines, definitions, storage, nodes, skyblock,
-                maintenance, research, power, itemFactory, items, messages, database, featureEnabled, integrationMetadata, addonState, addonIslandState, reload);
+                maintenance, research, power, itemFactory, items, messages, database, featureEnabled, integrationMetadata, addonState, addonIslandState, this.commandListPageSize, reload);
     }
 
     @Override
@@ -525,7 +528,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
 
     private void help(Player player, String label, int page) {
         List<String> commands = visibleHelpCommands(label, player);
-        CommandListPolicy.Page commandPage = CommandListPolicy.page(commands, page, label + " command list");
+        CommandListPolicy.Page commandPage = CommandListPolicy.page(commands, page, label + " command list", commandListPageSize);
         player.sendMessage(messages.raw("command-list-title", Map.of("page", String.valueOf(commandPage.page()), "pages", String.valueOf(commandPage.pages()))) + " commands=" + commandPage.rangeSummary());
         for (String command : commandPage.entries()) {
             player.sendMessage(messages.raw("command-list-entry", Map.of("command", command)));
@@ -792,7 +795,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     }
 
     private List<String> helpPageSuggestions(CommandSender sender) {
-        int maxPage = CommandListPolicy.pages(visibleHelpCommands("factory", sender).size());
+        int maxPage = CommandListPolicy.pages(visibleHelpCommands("factory", sender).size(), commandListPageSize);
         List<String> values = new ArrayList<>();
         for (int page = 1; page <= maxPage; page++) {
             values.add(String.valueOf(page));

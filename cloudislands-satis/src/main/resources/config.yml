@@ -36,6 +36,9 @@ satis:
     biomes: true
     chat: true
     templates: true
+  commands:
+    # One line is always one command. This only controls how many command lines appear per page.
+    list-page-size: 12
 addons:
   cloudislands-satis:
     # Same switch shape as CloudIslands Paper config. If both this block and satis.* are present,
@@ -99,6 +102,9 @@ addons:
       fallback:
         enabled: true
         order: "POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE"
+    commands:
+      # Host-level addon alias for satis.commands.list-page-size.
+      list-page-size: 12
     features:
       # This block can be used by host-level addon config. It follows the same disable policy as satis.features.
       # Parent/root disabled forces every Satis runtime feature off, even when a child value is true.

@@ -94,6 +94,7 @@ public final class AdminFactoryCommand {
     private final Supplier<Map<String, String>> addonState;
     private final Function<UUID, Map<String, String>> addonIslandState;
     private final Runnable reload;
+    private final int commandListPageSize;
     private String lastLegacyDryRunSource;
     private long lastLegacyDryRunRows;
     private String lastLegacyDryRunFingerprint;
@@ -106,6 +107,7 @@ public final class AdminFactoryCommand {
                                Supplier<Map<String, String>> integrationMetadata,
                                Supplier<Map<String, String>> addonState,
                                Function<UUID, Map<String, String>> addonIslandState,
+                               int commandListPageSize,
                                Runnable reload) {
         this.islands = islands;
         this.machines = machines;
@@ -124,6 +126,7 @@ public final class AdminFactoryCommand {
         this.integrationMetadata = integrationMetadata;
         this.addonState = addonState;
         this.addonIslandState = addonIslandState;
+        this.commandListPageSize = Math.max(1, commandListPageSize);
         this.reload = reload;
     }
 
@@ -355,7 +358,7 @@ public final class AdminFactoryCommand {
     }
 
     private List<String> helpPageSuggestions() {
-        int maxPage = CommandListPolicy.pages(visibleHelpCommands("factory").size());
+        int maxPage = CommandListPolicy.pages(visibleHelpCommands("factory").size(), commandListPageSize);
         List<String> values = new ArrayList<>();
         for (int page = 1; page <= maxPage; page++) {
             values.add(String.valueOf(page));
@@ -1693,7 +1696,7 @@ public final class AdminFactoryCommand {
 
     private void help(CommandSender sender, String label, int page) {
         List<String> commands = visibleHelpCommands(label);
-        CommandListPolicy.Page commandPage = CommandListPolicy.page(commands, page, adminNavigationCommand(label));
+        CommandListPolicy.Page commandPage = CommandListPolicy.page(commands, page, adminNavigationCommand(label), commandListPageSize);
         sender.sendMessage(messages.raw("admin-command-list-title", Map.of("page", String.valueOf(commandPage.page()), "pages", String.valueOf(commandPage.pages()))) + " commands=" + commandPage.rangeSummary());
         for (String command : commandPage.entries()) {
             sender.sendMessage(messages.raw("command-list-entry", Map.of("command", command)));
