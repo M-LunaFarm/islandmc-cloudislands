@@ -138,6 +138,16 @@ class SatisFeatureGateResolverTest {
                 "root-gates-disable-all-satis-runtime-and-feature-roots-disable-their-runtime-components",
                 SatisFeatureGateResolver.configGatePolicy()
         );
+        assertEquals(
+                "disabled-features-hide-commands-skip-runtime-components-preserve-data-and-block-writes",
+                SatisFeatureGateResolver.disablePolicy()
+        );
+        assertTrue(SatisFeatureGateResolver.dependencyMetadata().contains("market:storage"));
+        assertTrue(SatisFeatureGateResolver.dependencyMetadata().contains("contracts:storage"));
+        assertTrue(SatisFeatureGateResolver.dependencyMetadata().contains("route-events:addon-state"));
+        assertTrue(SatisFeatureGateResolver.dependencyMetadata().contains("warps:lifecycle"));
+        assertTrue(SatisFeatureGateResolver.aliasMetadata().contains("generators->resource-nodes"));
+        assertTrue(SatisFeatureGateResolver.aliasMetadata().contains("menus->gui"));
     }
 
     private YamlConfiguration defaults() {
