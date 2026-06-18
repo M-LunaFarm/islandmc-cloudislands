@@ -3141,7 +3141,7 @@ public final class CloudIslandsCoreApplication {
             + "\"nodeProtocolCurrent\":" + MAX_NODE_PROTOCOL_VERSION + ","
             + "\"nodeProtocolNegotiationPolicy\":\"" + kr.lunaf.cloudislands.protocol.ProtocolVersion.NEGOTIATION_POLICY + "\","
             + "\"nodeProtocolHeartbeatField\":\"" + kr.lunaf.cloudislands.protocol.ProtocolVersion.HEARTBEAT_FIELD + "\","
-            + "\"routingFailureDetailKeys\":\"pool,nodeCount,routeCandidateEstimateNodeCount,routeCandidateRecommendedMinimum,routeCandidateShortfall,routeCandidateEstimatePolicy,elasticLimitPolicy,blockReason,physicalNodeNamesExposed\","
+            + "\"routingFailureDetailKeys\":\"pool,nodeCount,readyOrSoftFullNodeCount,storageReadyNodeCount,primaryStorageHealthyNodeCount,storageSaveRetryBacklogNodeCount,storageSaveRetryBacklogTotal,hardCapOpenNodeCount,activeIslandOpenNodeCount,queueOpenNodeCount,defaultIdentityRiskNodeCount,duplicateVelocityServerNameNodeCount,routeCandidateEstimateNodeCount,routeCandidateRecommendedMinimum,routeCandidateShortfall,routeCandidateEstimatePolicy,elasticLimitPolicy,blockReason,physicalNodeNamesExposed\","
             + "\"islandPoolMultiNodeReady\":" + islandPoolMultiNodeReady(config, nodes) + ","
             + "\"islandPoolDegraded\":" + islandPoolDegraded(config, nodes) + ","
             + "\"islandPoolRouteCandidateShortfall\":" + islandPoolRouteCandidateShortfall(config, nodes) + ","

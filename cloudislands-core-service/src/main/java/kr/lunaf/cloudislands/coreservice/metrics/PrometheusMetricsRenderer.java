@@ -198,6 +198,8 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_storage_primary_degraded", "gauge");
         help(out, "cloudislands_storage_primary_failures_total", "Primary island storage backend failures reported by Paper heartbeat");
         type(out, "cloudislands_storage_primary_failures_total", "counter");
+        help(out, "cloudislands_storage_save_retry_queue", "Queued island saves waiting for object storage recovery on each Paper node");
+        type(out, "cloudislands_storage_save_retry_queue", "gauge");
         help(out, "cloudislands_paper_redis_available", "Whether Redis is reachable from each Paper node");
         type(out, "cloudislands_paper_redis_available", "gauge");
         help(out, "cloudislands_paper_redis_latency_seconds", "Redis PING latency reported by each Paper node heartbeat");
@@ -442,6 +444,7 @@ public final class PrometheusMetricsRenderer {
             appendMetadataGauge(out, "cloudislands_storage_fallback_operations_total", node, "storageFallbackWrites", "operation=\"write\"");
             appendMetadataGauge(out, "cloudislands_storage_fallback_operations_total", node, "storageFallbackDeletes", "operation=\"delete\"");
             appendMetadataGauge(out, "cloudislands_storage_fallback_operations_total", node, "storageFallbackOperations", "operation=\"maintenance\"");
+            appendMetadataGauge(out, "cloudislands_storage_save_retry_queue", node, "storageSaveRetryQueueTotal");
             String redisAvailable = node.heartbeatMetadata().get("redisAvailable");
             if (redisAvailable != null && !redisAvailable.isBlank()) {
                 redisReportedNodes++;

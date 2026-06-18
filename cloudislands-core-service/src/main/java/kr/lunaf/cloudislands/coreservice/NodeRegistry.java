@@ -110,6 +110,7 @@ public interface NodeRegistry {
             summary.maxActiveIslands += Math.max(0, node.maxActiveIslands());
             summary.activationQueue += Math.max(0, node.activationQueue());
             summary.maxActivationQueue += Math.max(0, node.maxActivationQueue());
+            summary.storageSaveRetryQueue += Math.max(0, node.storageSaveRetryQueueTotal());
             boolean stale = node.lastHeartbeat() == null || node.lastHeartbeat().isBefore(now.minus(timeout));
             boolean routeCandidate = allocationBlockReason(node, timeout, now, velocityServerCounts).isBlank();
             if (routeCandidate) {
@@ -151,6 +152,7 @@ public interface NodeRegistry {
                 .append("\"maxActiveIslands\":").append(summary.maxActiveIslands).append(',')
                 .append("\"activationQueue\":").append(summary.activationQueue).append(',')
                 .append("\"maxActivationQueue\":").append(summary.maxActivationQueue).append(',')
+                .append("\"storageSaveRetryQueueTotal\":").append(summary.storageSaveRetryQueue).append(',')
                 .append("\"duplicateVelocityServerNameNodeCount\":").append(summary.duplicateVelocityServerNameNodes).append(',')
                 .append("\"defaultNodeIdentityRiskCount\":").append(summary.defaultNodeIdentityRisk)
                 .append('}');
@@ -208,6 +210,7 @@ public interface NodeRegistry {
         private long maxActiveIslands;
         private long activationQueue;
         private long maxActivationQueue;
+        private long storageSaveRetryQueue;
         private long duplicateVelocityServerNameNodes;
         private long defaultNodeIdentityRisk;
     }
@@ -265,6 +268,7 @@ public interface NodeRegistry {
             .append("\"storage\":{")
             .append("\"backend\":\"").append(metadata.getOrDefault("storageBackend", "").replace("\"", "'")).append("\",")
             .append("\"primaryDegraded\":").append(node.storagePrimaryDegraded()).append(',')
+            .append("\"saveRetryQueueTotal\":").append(node.storageSaveRetryQueueTotal()).append(',')
             .append("\"uploadSeconds\":").append(doubleMetadata(metadata, "storageUploadSeconds")).append(',')
             .append("\"downloadSeconds\":").append(doubleMetadata(metadata, "storageDownloadSeconds")).append(',')
             .append("\"healthCheckFailures\":").append(longMetadata(metadata, "storageHealthCheckFailures")).append(',')
