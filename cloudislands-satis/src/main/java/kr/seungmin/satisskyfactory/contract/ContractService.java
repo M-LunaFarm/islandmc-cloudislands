@@ -336,9 +336,10 @@ public final class ContractService {
             island.researchPoints(previousResearch);
             island.reputation(previousReputation);
             island.maintenanceDebt(previousDebt);
-            template.itemRewards().forEach((item, amount) -> inventory.remove(item, amount));
-            template.required().forEach(inventory::add);
-            storage.saveIfAllowed(inventory);
+            if (!restoreCompletionInventory(inventory, template)) {
+                template.required().forEach((item, amount) -> inventory.remove(item, amount));
+                template.itemRewards().forEach(inventory::add);
+            }
             return false;
         }
         if (template.money() > 0) {
@@ -347,6 +348,12 @@ public final class ContractService {
         }
         database.saveContract(storedContract(active.contract().completed(template.required())));
         return true;
+    }
+
+    private boolean restoreCompletionInventory(VirtualInventory inventory, ContractTemplate template) {
+        template.itemRewards().forEach((item, amount) -> inventory.remove(item, amount));
+        template.required().forEach(inventory::add);
+        return storage.saveIfAllowed(inventory);
     }
 
     private boolean writesEnabled() {
