@@ -10,6 +10,8 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
 public final class PeriodicIslandSaveTask {
+    private static final String PERIODIC_SNAPSHOT_REASON = "PERIODIC";
+
     private final Plugin plugin;
     private final ActiveIslandRegistry activeIslands;
     private final IslandSaveService saveService;
@@ -76,7 +78,7 @@ public final class PeriodicIslandSaveTask {
         String storagePath = result.storagePath() == null || result.storagePath().isBlank()
             ? "islands/" + result.islandId() + "/snapshots/" + String.format("%06d", result.snapshotNo()) + "/bundle.tar.zst"
             : result.storagePath();
-        coreApiClient.recordIslandSnapshot(result.islandId(), result.snapshotNo(), storagePath, "AUTO", result.checksum(), result.sizeBytes(), nodeId, fencingToken)
+        coreApiClient.recordIslandSnapshot(result.islandId(), result.snapshotNo(), storagePath, PERIODIC_SNAPSHOT_REASON, result.checksum(), result.sizeBytes(), nodeId, fencingToken)
             .exceptionally(error -> {
                 plugin.getLogger().warning("Periodic island snapshot record failed for " + result.islandId() + ": " + error.getMessage());
                 return null;
