@@ -39,7 +39,11 @@ public final class IslandManifestJson {
             + "\"snapshotReason\":\"" + escape(manifest.snapshotReason()) + "\","
             + "\"portable\":" + manifest.portable() + ","
             + "\"placementPolicy\":\"" + escape(manifest.placementPolicy()) + "\","
-            + "\"restorePolicy\":\"" + escape(manifest.restorePolicy()) + "\""
+            + "\"restorePolicy\":\"" + escape(manifest.restorePolicy()) + "\","
+            + "\"restorePreflightReady\":" + manifest.restorePreflightReady() + ","
+            + "\"restorePreflightSummary\":\"" + escape(manifest.restorePreflightSummary()) + "\","
+            + "\"restoreRequirements\":\"" + escape(kr.lunaf.cloudislands.storage.BundleRestorePolicy.RESTORE_REQUIREMENTS) + "\","
+            + "\"restoreMissingRequirements\":" + stringArray(manifest.restoreMissingRequirements())
             + "}";
     }
 

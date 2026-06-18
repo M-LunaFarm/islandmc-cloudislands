@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.storage;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
@@ -32,6 +33,11 @@ public record IslandBundleManifest(
         homes = homes == null ? List.of() : List.copyOf(homes);
         warps = warps == null ? List.of() : List.copyOf(warps);
         biomes = biomes == null ? List.of() : List.copyOf(biomes);
+        checksum = checksum == null ? "" : checksum;
+        checksumAlgorithm = checksumAlgorithm == null || checksumAlgorithm.isBlank() ? BundleRestorePolicy.CHECKSUM_ALGORITHM : checksumAlgorithm;
+        compression = compression == null || compression.isBlank() ? BundleRestorePolicy.COMPRESSION : compression;
+        storagePath = storagePath == null ? "" : storagePath;
+        snapshotReason = snapshotReason == null ? "" : snapshotReason;
         placementPolicy = placementPolicy == null || placementPolicy.isBlank() ? BundleRestorePolicy.PLACEMENT_POLICY : placementPolicy;
         restorePolicy = restorePolicy == null || restorePolicy.isBlank() ? BundleRestorePolicy.RESTORE_POLICY : restorePolicy;
     }
@@ -99,5 +105,37 @@ public record IslandBundleManifest(
 
     public IslandBundleManifest withStoredBundle(String checksum, String checksumAlgorithm, String compression, String storagePath, long sizeBytes) {
         return new IslandBundleManifest(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, homes, warps, biomes, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, snapshotReason, portable, placementPolicy, restorePolicy);
+    }
+
+    public boolean restorePreflightReady() {
+        return restoreMissingRequirements().isEmpty();
+    }
+
+    public List<String> restoreMissingRequirements() {
+        List<String> missing = new ArrayList<>();
+        if (!portable) {
+            missing.add("portable");
+        }
+        if (checksum.isBlank()) {
+            missing.add("checksum");
+        }
+        if (!BundleRestorePolicy.CHECKSUM_ALGORITHM.equalsIgnoreCase(checksumAlgorithm)) {
+            missing.add("checksumAlgorithm");
+        }
+        if (!BundleRestorePolicy.COMPRESSION.equalsIgnoreCase(compression)) {
+            missing.add("compression");
+        }
+        if (storagePath.isBlank()) {
+            missing.add("storagePath");
+        }
+        if (sizeBytes <= 0L) {
+            missing.add("sizeBytes");
+        }
+        return List.copyOf(missing);
+    }
+
+    public String restorePreflightSummary() {
+        List<String> missing = restoreMissingRequirements();
+        return missing.isEmpty() ? "ready" : "missing-" + String.join("+", missing);
     }
 }

@@ -9,6 +9,8 @@ public final class BundleRestorePolicy {
     public static final String PLACEMENT_POLICY = "node-agnostic-shard-cell-remap";
     public static final String RESTORE_POLICY = "verify-checksum-then-restore-to-current-active-node";
     public static final String RESTORE_CHECKSUM_POLICY = "verify-manifest-checksum";
+    public static final String RESTORE_PREFLIGHT_POLICY = "reject-restore-when-portable-checksum-compression-storage-or-size-metadata-is-missing";
+    public static final String RESTORE_REQUIREMENTS = "portable=true,checksum,checksumAlgorithm=SHA-256,compression=zstd,storagePath,sizeBytes>0,manifest.json,checksums.sha256";
     public static final String SUPPORTED_FORMATS = "checksum=SHA-256,compression=zstd,file=bundle.tar.zst";
     public static final String ROLLBACK_POLICY = "lock-restoring-lobby-transfer-pre-restore-snapshot-restore-runtime-reset-reactivate";
 
