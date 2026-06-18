@@ -30,6 +30,8 @@ class DefaultConfigIntegrityTest {
         assertEquals("external-plugin-or-built-in-compatible", addon.getString("packaging"));
         assertTrue(addon.getBoolean("removal.safe"));
         assertEquals("preserve-addon-state-by-island-uuid", addon.getString("removal.data-retention"));
+        assertEquals("reinstalled-addon-reconnects-preserved-addon-state-by-addon-id-and-island-uuid", addon.getString("removal.reconnect-policy"));
+        assertEquals("matching-cloudislands-island-uuid-and-compatible-satis-state-schema", addon.getString("removal.reconnect-requires"));
         assertFalse(addon.getBoolean("runtime.owns-islands"));
         assertEquals("cloudislands-island-uuid", addon.getString("runtime.storage-key"));
         assertEquals("CloudIslands", addon.getString("runtime.core-admin-root-owner"));
