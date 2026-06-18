@@ -10,6 +10,10 @@ public final class CloudIslandsApiContract {
     public static final String WRITE_AUTHORITY = "all-island-writes-go-through-core-api-transaction-endpoints";
     public static final String SYNC_EVENT_POLICY = "synchronous-paper-events-must-use-local-protection-permission-caches";
     public static final String ADDON_STORAGE_POLICY = "addons-use-addon-state-api-or-their-own-shared-database-never-cloudislands-internals";
+    public static final String ADDON_PACKAGING_POLICY = "addons-may-run-as-external-plugins-or-built-in-feature-packs-through-the-same-spi";
+    public static final String ADDON_SUPPORTED_PACKAGING = "external-plugin,built-in-feature-pack,built-in-compatible";
+    public static final String ADDON_DESCRIPTOR_POLICY = "addon-descriptor-may-be-embedded-in-jar-or-distributed-as-sidecar-cloudislands-addon-yml";
+    public static final String ADDON_DISTRIBUTION_POLICY = "distAddons-and-distAddonBundle-package-addon-jars-and-descriptor-sidecars-separately-from-required-core";
     public static final String JAVA_PLUGIN_API_POLICY = "paper-plugins-use-cloudislands-api-services-and-never-core-internals";
     public static final String INTERNAL_API_POLICY = "http-admin-and-runtime-endpoints-are-token-or-mtls-protected-core-boundaries";
     public static final String EVENT_API_POLICY = "global-events-are-append-only-cache-invalidation-and-addon-lifecycle-contract";
@@ -32,6 +36,10 @@ public final class CloudIslandsApiContract {
             "write-authority",
             "sync-event-policy",
             "addon-storage-policy",
+            "addon-packaging-policy",
+            "addon-supported-packaging",
+            "addon-descriptor-policy",
+            "addon-distribution-policy",
             "java-plugin-api-policy",
             "internal-api-policy",
             "event-api-policy",
@@ -94,6 +102,10 @@ public final class CloudIslandsApiContract {
             Map.entry("write-authority", WRITE_AUTHORITY),
             Map.entry("sync-event-policy", SYNC_EVENT_POLICY),
             Map.entry("addon-storage-policy", ADDON_STORAGE_POLICY),
+            Map.entry("addon-packaging-policy", ADDON_PACKAGING_POLICY),
+            Map.entry("addon-supported-packaging", ADDON_SUPPORTED_PACKAGING),
+            Map.entry("addon-descriptor-policy", ADDON_DESCRIPTOR_POLICY),
+            Map.entry("addon-distribution-policy", ADDON_DISTRIBUTION_POLICY),
             Map.entry("java-plugin-api-policy", JAVA_PLUGIN_API_POLICY),
             Map.entry("internal-api-policy", INTERNAL_API_POLICY),
             Map.entry("event-api-policy", EVENT_API_POLICY),

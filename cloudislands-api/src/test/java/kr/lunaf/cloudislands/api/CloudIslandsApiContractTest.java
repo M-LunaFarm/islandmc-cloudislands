@@ -1,0 +1,29 @@
+package kr.lunaf.cloudislands.api;
+
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class CloudIslandsApiContractTest {
+    @Test
+    void includesAddonPackagingAndDescriptorContractInRequiredMetadata() {
+        assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("addon-packaging-policy"));
+        assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("addon-supported-packaging"));
+        assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("addon-descriptor-policy"));
+        assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("addon-distribution-policy"));
+
+        assertEquals("external-plugin,built-in-feature-pack,built-in-compatible", CloudIslandsApiContract.ADDON_SUPPORTED_PACKAGING);
+        assertEquals("addons-may-run-as-external-plugins-or-built-in-feature-packs-through-the-same-spi", CloudIslandsApiContract.ADDON_PACKAGING_POLICY);
+        assertEquals("addon-descriptor-may-be-embedded-in-jar-or-distributed-as-sidecar-cloudislands-addon-yml", CloudIslandsApiContract.ADDON_DESCRIPTOR_POLICY);
+        assertEquals("distAddons-and-distAddonBundle-package-addon-jars-and-descriptor-sidecars-separately-from-required-core", CloudIslandsApiContract.ADDON_DISTRIBUTION_POLICY);
+    }
+
+    @Test
+    void contractMetadataMatchesTheRequiredKeySet() {
+        assertEquals("compatible", CloudIslandsApiContract.metadataCompatibilityStatus(CloudIslandsApiContract.metadata()));
+        assertEquals(CloudIslandsApiContract.ADDON_SUPPORTED_PACKAGING, CloudIslandsApiContract.metadata().get("addon-supported-packaging"));
+        assertEquals(CloudIslandsApiContract.ADDON_DESCRIPTOR_POLICY, CloudIslandsApiContract.metadata().get("addon-descriptor-policy"));
+        assertEquals(CloudIslandsApiContract.ADDON_DISTRIBUTION_POLICY, CloudIslandsApiContract.metadata().get("addon-distribution-policy"));
+    }
+}
