@@ -428,6 +428,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-root-switch-policy", "when-disabled-all-satis-features-are-forced-off-even-if-child-feature-configs-are-true");
         state.put("runtime-addon-status", addonRuntimeEnabled ? "enabled" : "addon-disabled-by-config-or-registry");
         state.put("runtime-addon-policy", "disabled-addon-registers-no-active-components-preserves-satis-data-and-cloudislands-core");
+        state.put("runtime-addon-removal-safe", "true");
+        state.put("runtime-addon-removal-policy", SatisAddonIntegrationPolicy.REMOVAL_POLICY);
+        state.put("runtime-addon-removal-core-impact", "none");
+        state.put("runtime-addon-removal-action", "unregister-satis-runtime-only");
+        state.put("runtime-addon-removal-data-retention", SatisAddonIntegrationPolicy.DATA_RETENTION_POLICY);
+        state.put("runtime-addon-reenable-policy", SatisAddonIntegrationPolicy.REENABLE_POLICY);
+        state.put("runtime-addon-disable-preflush-policy", SatisStatePortabilityPolicy.ADDON_DISABLE_POLICY);
+        state.put("runtime-cloudislands-lifecycle-depends-on-satis", "false");
         state.put("runtime-cloudislands-api-required", Boolean.toString(requiresCloudIslandsApi()));
         state.put("runtime-cloudislands-api-available", Boolean.toString(cloudIslandsApi != null));
         state.put("runtime-cloudislands-api-missing-behavior", SatisAddonIntegrationPolicy.MISSING_API_BEHAVIOR);
@@ -2185,6 +2193,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-tickers-running", "false");
         state.put("runtime-state-writers-attached", "false");
         state.put("addon-removal-core-impact", "none");
+        state.put("addon-removal-policy", SatisAddonIntegrationPolicy.REMOVAL_POLICY);
+        state.put("addon-removal-data-retention", SatisAddonIntegrationPolicy.DATA_RETENTION_POLICY);
+        state.put("addon-reenable-policy", SatisAddonIntegrationPolicy.REENABLE_POLICY);
+        state.put("addon-disable-preflush-policy", SatisStatePortabilityPolicy.ADDON_DISABLE_POLICY);
         state.put("cloudislands-lifecycle-depends-on-satis", "false");
         state.put("addon-state-retained", "true");
         state.put("database-shared", Boolean.toString(databaseShared()));
