@@ -42,6 +42,7 @@ removal:
   reconnect-requires: matching-cloudislands-island-uuid-and-compatible-satis-state-schema
   dirty-save-detach-policy: stop-dirty-save-loop-clear-publishers-detach-service-references
   dirty-save-reattach-policy: recreate-dirty-save-service-and-reattach-service-references-before-restart
+  reload-runtime-restart-policy: reload-reenable-starts-runtime-when-database-is-not-initialized
   core-impact: none
   runtime-stop-policy: unregister-satis-commands-listeners-tickers-placeholders-and-state-writers-only
   cloudislands-lifecycle-dependency: false

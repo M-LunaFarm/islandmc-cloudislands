@@ -86,6 +86,7 @@ class AdminFactoryCommandTest {
         assertTrue(source.contains("\"write-gate-route-events\""));
         assertTrue(source.contains("\"addon-removal-dirty-save-detach-policy\""));
         assertTrue(source.contains("\"addon-removal-dirty-save-reattach-policy\""));
+        assertTrue(source.contains("\"addon-reload-runtime-restart-policy\""));
         assertTrue(source.contains("\"island-state-ab-server-new-island-scenario\""));
         assertTrue(source.contains("\"island-state-ab-server-existing-island-scenario\""));
         assertTrue(source.contains("\"satis-operation-scenarios\""));

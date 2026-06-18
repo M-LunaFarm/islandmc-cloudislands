@@ -59,6 +59,7 @@ class SatisSkyFactoryPluginTest {
         assertEquals("reinstalled-addon-reconnects-preserved-addon-state-by-addon-id-and-island-uuid", metadata.get("addon-reconnect-policy"));
         assertEquals("stop-dirty-save-loop-clear-publishers-detach-service-references", metadata.get("addon-removal-dirty-save-detach-policy"));
         assertEquals("recreate-dirty-save-service-and-reattach-service-references-before-restart", metadata.get("addon-removal-dirty-save-reattach-policy"));
+        assertEquals("reload-reenable-starts-runtime-when-database-is-not-initialized", metadata.get("addon-reload-runtime-restart-policy"));
         assertEquals("preserve-addon-state-by-island-uuid", metadata.get("addon-data-retention"));
         assertEquals("false", metadata.get("addon-runtime-owns-islands"));
         assertEquals("CORE_API", metadata.get("addon-default-database-mode"));
