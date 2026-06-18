@@ -393,6 +393,10 @@ public final class TranslationManager {
         values.put("admin-command-core-config-setup-fallback-enabled-prefix", " setupFallbackEnabled=");
         values.put("admin-command-core-config-setup-fallback-order-prefix", " setupFallbackOrder=");
         values.put("admin-command-core-config-setup-fallback-mode-prefix", " setupFallbackMode=");
+        values.put("admin-command-core-config-setup-db-postgresql-fallback-prefix", " setupDbPostgresqlFallback=");
+        values.put("admin-command-core-config-setup-db-mysql-fallback-prefix", " setupDbMysqlFallback=");
+        values.put("admin-command-core-config-setup-db-mariadb-fallback-prefix", " setupDbMariadbFallback=");
+        values.put("admin-command-core-config-setup-db-core-api-fallback-prefix", " setupDbCoreApiFallback=");
         values.put("admin-command-core-config-setup-db-operational-modes-prefix", " setupDbModes=");
         values.put("admin-command-core-config-setup-db-loader-prefix", " setupDbLoader=");
         values.put("admin-command-core-config-setup-db-paths-prefix", " setupDbPaths=");

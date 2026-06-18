@@ -2901,6 +2901,8 @@ public final class CloudIslandsCoreApplication {
             + "\"coreSetupDatabaseEffectiveBackend\":\"" + escape(config.setupDatabaseEffectiveBackend()) + "\","
             + "\"coreSetupDatabaseFallbackTarget\":\"" + escape(config.setupDatabaseFallbackTarget()) + "\","
             + "\"coreSetupDatabasePostgresqlFallbackConfigured\":" + config.setupDatabasePostgresqlFallbackConfigured() + ","
+            + "\"coreSetupDatabaseMysqlFallbackConfigured\":" + config.setupDatabaseMysqlFallbackConfigured() + ","
+            + "\"coreSetupDatabaseMariadbFallbackConfigured\":" + config.setupDatabaseMariadbFallbackConfigured() + ","
             + "\"coreSetupDatabaseCoreApiFallbackConfigured\":" + config.setupDatabaseCoreApiFallbackConfigured() + ","
             + "\"coreSetupDatabaseFallbackReason\":\"" + escape(config.setupDatabaseFallbackReason()) + "\","
             + "\"coreSetupDatabaseFallbackSummary\":\"" + escape(config.setupDatabaseFallbackSummary()) + "\","

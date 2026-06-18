@@ -205,6 +205,14 @@ public record CoreServiceConfig(
         return "POSTGRESQL".equals(setupDatabaseFallbackTarget()) || "POSTGRESQL".equals(jdbcUrlDatabaseType(jdbcUrl));
     }
 
+    public boolean setupDatabaseMysqlFallbackConfigured() {
+        return "MYSQL".equals(setupDatabaseFallbackTarget()) || "MYSQL".equals(jdbcUrlDatabaseType(jdbcUrl));
+    }
+
+    public boolean setupDatabaseMariadbFallbackConfigured() {
+        return "MARIADB".equals(setupDatabaseFallbackTarget()) || "MARIADB".equals(jdbcUrlDatabaseType(jdbcUrl));
+    }
+
     public boolean setupDatabaseCoreApiFallbackConfigured() {
         return setupDatabaseCoreApiFallbackConfigured(setupDatabaseRequestedBackend());
     }
