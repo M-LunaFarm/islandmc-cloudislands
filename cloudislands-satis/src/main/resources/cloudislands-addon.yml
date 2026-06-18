@@ -40,6 +40,7 @@ removal:
   data-retention: preserve-addon-state-by-island-uuid
   reconnect-policy: reinstalled-addon-reconnects-preserved-addon-state-by-addon-id-and-island-uuid
   reconnect-requires: matching-cloudislands-island-uuid-and-compatible-satis-state-schema
+  dirty-save-detach-policy: stop-dirty-save-loop-clear-publishers-detach-service-references
   core-impact: none
   runtime-stop-policy: unregister-satis-commands-listeners-tickers-placeholders-and-state-writers-only
   cloudislands-lifecycle-dependency: false
