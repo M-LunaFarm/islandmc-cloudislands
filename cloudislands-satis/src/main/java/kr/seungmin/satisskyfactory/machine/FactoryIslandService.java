@@ -66,14 +66,13 @@ public final class FactoryIslandService {
             transientIsland.ownerUuid(island.ownerUuid());
             return transientIsland;
         }
-        FactoryIsland factoryIsland = cache.computeIfAbsent(island.islandUuid(), uuid -> {
-            FactoryIsland loaded = database.findIsland(uuid).orElseGet(() -> new FactoryIsland(uuid, island.ownerUuid()));
-            loaded.ownerUuid(island.ownerUuid());
-            if (writesEnabled()) {
-                database.saveIsland(loaded);
-            }
-            return loaded;
-        });
+        FactoryIsland factoryIsland = cache.get(island.islandUuid());
+        if (factoryIsland == null) {
+            factoryIsland = database.findIsland(island.islandUuid())
+                    .orElseGet(() -> new FactoryIsland(island.islandUuid(), island.ownerUuid()));
+            factoryIsland.ownerUuid(island.ownerUuid());
+            save(factoryIsland);
+        }
         synchronizeOwner(factoryIsland, island.ownerUuid());
         return factoryIsland;
     }
