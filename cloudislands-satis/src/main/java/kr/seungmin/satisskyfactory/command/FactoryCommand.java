@@ -724,7 +724,9 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             if (enabled("maintenance") && enabled("storage")) {
                 values.add("repair");
             }
-            values.add("admin");
+            if (sender.hasPermission("satisskyfactory.admin")) {
+                values.add("admin");
+            }
             return filter(values, args[0]);
         }
         if (args.length == 2 && isCommandListRoot(args[0])) {
