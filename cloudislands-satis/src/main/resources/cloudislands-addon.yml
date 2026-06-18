@@ -171,6 +171,10 @@ database:
     fallback-order: CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER
 state:
   authority: core-api-table-key-value-or-shared-database
+  cloudislands-api-surface-policy: island-member-permission-location-upgrade-values-through-cloudislands-api-or-addon-spi
+  cloudislands-direct-access-policy: no-direct-cloudislands-storage-runtime-or-world-owner-access
+  cloudislands-forbidden-direct-access-targets: SuperiorSkyblock2-runtime-api,CloudIslands-core-service-internals,CloudIslands-storage-implementation,Paper-world-name-as-state-owner,Island-node-name-as-state-owner
+  cloudislands-core-internal-access: false
   move-policy: remap-state-to-current-active-world-and-cell
   ab-node-scenario: save-on-source-node-remap-active-world-and-cell-on-target-node-restore-state-by-island-uuid
   multi-node-safe: true

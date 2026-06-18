@@ -182,6 +182,10 @@ public final class SatisAddonIntegrationPolicy {
         return FORBIDDEN_DIRECT_ACCESS_TARGETS;
     }
 
+    public static String forbiddenDirectAccessTargetsCsv() {
+        return String.join(",", FORBIDDEN_DIRECT_ACCESS_TARGETS);
+    }
+
     public static List<String> lifecycleEvents() {
         return LIFECYCLE_EVENTS;
     }

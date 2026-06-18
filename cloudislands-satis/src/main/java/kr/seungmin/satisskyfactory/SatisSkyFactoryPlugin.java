@@ -443,6 +443,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-addon-owns-islands", "false");
         state.put("runtime-standalone-island-management", SatisAddonIntegrationPolicy.STANDALONE_ISLAND_MANAGEMENT);
         state.put("runtime-skyblock-provider-policy", "cloudislands-api-only-ignore-legacy-provider-config");
+        state.put("runtime-cloudislands-api-surface-policy", SatisAddonIntegrationPolicy.API_SURFACE_POLICY);
+        state.put("runtime-cloudislands-direct-access-policy", SatisAddonIntegrationPolicy.FORBIDDEN_DIRECT_ACCESS_POLICY);
+        state.put("runtime-cloudislands-forbidden-direct-access-targets", SatisAddonIntegrationPolicy.forbiddenDirectAccessTargetsCsv());
+        state.put("runtime-cloudislands-core-internal-access", "false");
         state.put("runtime-topology-privacy-policy", SatisAddonIntegrationPolicy.TOPOLOGY_PRIVACY_POLICY);
         state.put("runtime-player-visible-topology-policy", SatisAddonIntegrationPolicy.PLAYER_VISIBLE_TOPOLOGY_POLICY);
         state.put("runtime-internal-topology-fields", SatisAddonIntegrationPolicy.INTERNAL_TOPOLOGY_FIELDS);
@@ -1772,6 +1776,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("addon-removal-core-impact", "none");
         metadata.put("addon-removal-runtime-action", "unregister-satis-commands-listeners-tickers-placeholders-and-state-writers-only");
         metadata.put("cloudislands-lifecycle-depends-on-satis", "false");
+        metadata.put("cloudislands-api-surface-policy", SatisAddonIntegrationPolicy.API_SURFACE_POLICY);
+        metadata.put("cloudislands-direct-access-policy", SatisAddonIntegrationPolicy.FORBIDDEN_DIRECT_ACCESS_POLICY);
+        metadata.put("cloudislands-forbidden-direct-access-targets", SatisAddonIntegrationPolicy.forbiddenDirectAccessTargetsCsv());
+        metadata.put("cloudislands-core-internal-access", "false");
         metadata.put("topology-privacy-policy", SatisAddonIntegrationPolicy.TOPOLOGY_PRIVACY_POLICY);
         metadata.put("player-visible-topology-policy", SatisAddonIntegrationPolicy.PLAYER_VISIBLE_TOPOLOGY_POLICY);
         metadata.put("internal-topology-fields", SatisAddonIntegrationPolicy.INTERNAL_TOPOLOGY_FIELDS);
