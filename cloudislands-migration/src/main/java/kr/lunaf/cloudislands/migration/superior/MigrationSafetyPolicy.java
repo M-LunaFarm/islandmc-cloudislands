@@ -53,7 +53,7 @@ public final class MigrationSafetyPolicy {
     );
     public static final String CHECKSUM_POLICY = "sha256-every-extracted-world-bundle-and-verify-against-imported-snapshot";
     public static final String ACTIVATION_TEST_POLICY = "verify-can-run-cloudislands-activation-test-without-superiorskyblock2-runtime-dependency";
-    public static final List<String> FORBIDDEN_RUNTIME_PROVIDERS = List.of("SuperiorSkyblock2", "BentoBox", "ASkyBlock");
+    public static final List<String> FORBIDDEN_RUNTIME_PROVIDERS = List.of("SuperiorSkyblock2", "BentoBox", "ASkyBlock", "uSkyBlock", "IridiumSkyblock");
     public static final String FORBIDDEN_RUNTIME_ACTION = "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes";
     public static final String APPROVAL_POLICY = "import-requires-successful-dryrun-approval-token-and-unchanged-source-fingerprint";
     public static final String ROLLBACK_POLICY = "rollback-plan-records-imported-islands-and-removes-only-cloudislands-imported-state";
