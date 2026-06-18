@@ -5,6 +5,17 @@ plugins {
     `java-library`
 }
 
+val markdownDocPatterns = listOf(
+    "**/*.md",
+    "**/*.MD",
+    "**/*.mdx",
+    "**/*.MDX",
+    "**/*.markdown",
+    "**/*.MARKDOWN",
+    "**/*.mkd",
+    "**/*.MKD"
+)
+
 allprojects {
     group = "kr.lunaf.cloudislands"
     version = "0.1.0"
@@ -33,7 +44,7 @@ tasks.register("verifyNoMarkdownDocs") {
     description = "Fails when markdown documents are present in this deliverable repository."
     doLast {
         val markdownFiles = fileTree(projectDir) {
-            include("**/*.md", "**/*.MD", "**/*.mdx", "**/*.MDX", "**/*.markdown", "**/*.MARKDOWN", "**/*.mkd", "**/*.MKD")
+            include(markdownDocPatterns)
             exclude(".git/**", ".gradle/**", "**/build/**", "**/.gradle/**")
         }.files.sortedBy { it.relativeTo(projectDir).path }
         check(markdownFiles.isEmpty()) {
@@ -49,6 +60,7 @@ tasks.named("build") {
 tasks.register<Copy>("distPlugins") {
     group = "distribution"
     description = "Collects required CloudIslands plugin jars."
+    exclude(markdownDocPatterns)
 
     val pluginProjects = listOf(
         "cloudislands-paper",
@@ -65,6 +77,7 @@ tasks.register<Copy>("distPlugins") {
 tasks.register<Copy>("distAddons") {
     group = "distribution"
     description = "Collects optional CloudIslands addon jars."
+    exclude(markdownDocPatterns)
 
     val addonProjects = listOf(
         "cloudislands-satis"
@@ -80,6 +93,7 @@ tasks.register<Copy>("distAddons") {
 tasks.register<Copy>("distServices") {
     group = "distribution"
     description = "Collects CloudIslands service runtime images."
+    exclude(markdownDocPatterns)
 
     val coreService = project(":cloudislands-core-service")
     val installTask = coreService.tasks.named("installDist")
@@ -91,6 +105,7 @@ tasks.register<Copy>("distServices") {
 tasks.register<Copy>("distTools") {
     group = "distribution"
     description = "Collects CloudIslands migration support jars used by the Core admin API."
+    exclude(markdownDocPatterns)
 
     val migrationJar = project(":cloudislands-migration").tasks.named<Jar>("jar")
     dependsOn(migrationJar)
@@ -101,6 +116,7 @@ tasks.register<Copy>("distTools") {
 tasks.register<Copy>("distDeveloperKit") {
     group = "distribution"
     description = "Collects API, client, protocol, testkit, and BOM artifacts for addon/plugin developers."
+    exclude(markdownDocPatterns)
 
     val developerProjects = listOf(
         "cloudislands-api",
@@ -145,6 +161,7 @@ tasks.register<Zip>("distBundle") {
     dependsOn(tasks.named("distDeveloperKit"))
     archiveBaseName.set("cloudislands")
     archiveVersion.set(project.version.toString())
+    exclude(markdownDocPatterns)
     from(layout.buildDirectory.dir("dist/plugins")) {
         into("plugins")
     }
@@ -170,6 +187,7 @@ tasks.register<Zip>("distAddonBundle") {
     dependsOn(tasks.named("distAddons"))
     archiveBaseName.set("cloudislands-addons")
     archiveVersion.set(project.version.toString())
+    exclude(markdownDocPatterns)
     from(layout.buildDirectory.dir("dist/addons")) {
         into("addons")
     }
