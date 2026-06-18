@@ -1823,6 +1823,8 @@ public final class AdminFactoryCommand {
                         "island-state-remap-key",
                         "island-state-failover-policy",
                         "island-state-ab-node-scenario",
+                        "island-state-ab-server-new-island-scenario",
+                        "island-state-ab-server-existing-island-scenario",
                         "island-state-multi-node-scenario",
                         "island-state-node-count-policy",
                         "island-state-node-identity-policy",
