@@ -152,11 +152,17 @@ class SatisSkyFactoryPluginTest {
     @Test
     void runtimePlanUsesCloudIslandsApiPresenceForStandaloneGuard() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java"));
+        String adminSource = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/command/AdminFactoryCommand.java"));
 
         assertTrue(source.contains("operationalFeatureEnabled(\"addon-state\"),\n                cloudIslandsApi != null"));
         assertTrue(source.contains("SatisAddonIntegrationPolicy.activationDecision("));
         assertTrue(source.contains("runtime-feature-pack-block-reason"));
         assertTrue(source.contains("CloudIslands Satis runtime blocked by activation policy"));
+        assertTrue(adminSource.contains("runtime-feature-pack-activation-policy"));
+        assertTrue(adminSource.contains("runtime-feature-pack-activation-mode"));
+        assertTrue(adminSource.contains("runtime-feature-pack-runtime-enabled"));
+        assertTrue(adminSource.contains("runtime-feature-pack-runtime-shape"));
+        assertTrue(adminSource.contains("runtime-feature-pack-block-reason"));
     }
 
     @Test
