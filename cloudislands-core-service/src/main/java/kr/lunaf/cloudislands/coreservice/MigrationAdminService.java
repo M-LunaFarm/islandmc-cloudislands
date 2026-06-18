@@ -308,7 +308,14 @@ public final class MigrationAdminService {
         return ",\"sourcePlugin\":\"" + MigrationSafetyPolicy.SOURCE_PLUGIN
             + "\",\"migrationInputOnly\":" + MigrationSafetyPolicy.MIGRATION_INPUT_ONLY
             + ",\"runtimeDependency\":" + MigrationSafetyPolicy.RUNTIME_DEPENDENCY_ALLOWED
-            + ",\"targetRuntime\":\"" + MigrationSafetyPolicy.TARGET_RUNTIME + "\"";
+            + ",\"targetRuntime\":\"" + MigrationSafetyPolicy.TARGET_RUNTIME + "\""
+            + ",\"migrationReadOnlyActions\":\"" + escape(String.join(",", MigrationSafetyPolicy.READ_ONLY_ACTIONS)) + "\""
+            + ",\"migrationWriteActions\":\"" + escape(String.join(",", MigrationSafetyPolicy.WRITE_ACTIONS)) + "\""
+            + ",\"migrationRequiredTargetFields\":\"" + escape(String.join(",", MigrationSafetyPolicy.REQUIRED_TARGET_FIELDS)) + "\""
+            + ",\"migrationRequiredPipelineSteps\":\"" + escape(String.join(",", MigrationSafetyPolicy.REQUIRED_PIPELINE_STEPS)) + "\""
+            + ",\"migrationRequiredAdminCommands\":\"" + escape(String.join(",", MigrationSafetyPolicy.REQUIRED_ADMIN_COMMANDS)) + "\""
+            + ",\"migrationApprovalPolicy\":\"" + MigrationSafetyPolicy.APPROVAL_POLICY + "\""
+            + ",\"migrationRollbackPolicy\":\"" + MigrationSafetyPolicy.ROLLBACK_POLICY + "\"";
     }
 
     private String migrationSafetyStatusFields() {
