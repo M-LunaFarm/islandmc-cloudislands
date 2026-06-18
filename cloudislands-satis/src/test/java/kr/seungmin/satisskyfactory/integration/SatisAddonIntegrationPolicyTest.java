@@ -37,8 +37,13 @@ class SatisAddonIntegrationPolicyTest {
                 SatisAddonIntegrationPolicy.FEATURE_GATE_POLICY
         );
         assertTrue(SatisAddonIntegrationPolicy.featureGateRequired("machines"));
+        assertTrue(SatisAddonIntegrationPolicy.featureGateRequired("factories"));
+        assertTrue(SatisAddonIntegrationPolicy.featureGateRequired("generators"));
+        assertTrue(SatisAddonIntegrationPolicy.featureGateRequired("upgrades"));
+        assertTrue(SatisAddonIntegrationPolicy.featureGateRequired("missions"));
         assertTrue(SatisAddonIntegrationPolicy.featureGateRequired("resource-nodes"));
         assertTrue(SatisAddonIntegrationPolicy.featureGateRequired("gui"));
+        assertTrue(SatisAddonIntegrationPolicy.featureGateRequired("menus"));
         assertTrue(SatisAddonIntegrationPolicy.featureGateRequired("storage"));
         assertTrue(SatisAddonIntegrationPolicy.featureGateRequired("market"));
         assertTrue(SatisAddonIntegrationPolicy.featureGateRequired("contracts"));

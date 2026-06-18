@@ -49,8 +49,13 @@ public final class SatisAddonIntegrationPolicy {
     private static final List<String> FEATURE_GATES = List.of(
             "commands",
             "machines",
+            "factories",
+            "generators",
+            "upgrades",
+            "missions",
             "resource-nodes",
             "gui",
+            "menus",
             "storage",
             "market",
             "contracts",
