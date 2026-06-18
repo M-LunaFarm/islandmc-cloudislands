@@ -189,6 +189,36 @@ setup:
     path: ""
     shared-directory: "../CloudIslands/satis-state"
     sqlite-file: "data.db"
+    readiness:
+      source-precedence: env-type>setup.database.type>setup.database.core-api.enabled>setup.database.jdbc.url>single-configured-shared-backend>legacy-database.type
+      core-api-fields:
+        - setup.database.core-api.enabled
+        - cloudislands-api
+        - addon-state
+        - table-key-value-bulk-save-or-flattened-fallback
+      postgresql-fields:
+        - setup.database.postgresql.jdbc-url
+        - setup.database.postgresql.host
+        - setup.database.postgresql.database
+        - setup.database.postgresql.username
+        - setup.database.postgresql.password
+      mysql-fields:
+        - setup.database.mysql.jdbc-url
+        - setup.database.mysql.host
+        - setup.database.mysql.database
+        - setup.database.mysql.username
+        - setup.database.mysql.password
+      mariadb-fields:
+        - setup.database.mariadb.jdbc-url
+        - setup.database.mariadb.host
+        - setup.database.mariadb.database
+        - setup.database.mariadb.username
+        - setup.database.mariadb.password
+      sqlite-fields:
+        - setup.database.sqlite-file
+        - single-node-or-shared-directory-only
+      jdbc-policy: jdbc-backend-ready-requires-jdbc-url-or-host-database-credentials
+      local-cache-write-policy: core-api-local-cache-writes-disabled-by-default-and-single-node-rescue-only
     core-api:
       # Explicit marker for setup.database.type=CORE_API. Keep this true when Satis should use
       # CloudIslands addon-state as the authoritative backend instead of a direct JDBC database.

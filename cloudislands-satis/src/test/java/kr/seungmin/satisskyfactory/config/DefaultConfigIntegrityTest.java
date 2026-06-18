@@ -151,6 +151,14 @@ class DefaultConfigIntegrityTest {
         assertEquals("data.db", config.getString("database.sqlite-file"));
         assertEquals(60, config.getInt("database.save-interval-seconds"));
         assertEquals(1200, config.getInt("settings.dirty-save-period-ticks"));
+        assertEquals("env-type>setup.database.type>setup.database.core-api.enabled>setup.database.jdbc.url>single-configured-shared-backend>legacy-database.type", config.getString("setup.database.readiness.source-precedence"));
+        assertTrue(config.getStringList("setup.database.readiness.core-api-fields").contains("table-key-value-bulk-save-or-flattened-fallback"));
+        assertTrue(config.getStringList("setup.database.readiness.postgresql-fields").contains("setup.database.postgresql.jdbc-url"));
+        assertTrue(config.getStringList("setup.database.readiness.mysql-fields").contains("setup.database.mysql.database"));
+        assertTrue(config.getStringList("setup.database.readiness.mariadb-fields").contains("setup.database.mariadb.password"));
+        assertTrue(config.getStringList("setup.database.readiness.sqlite-fields").contains("single-node-or-shared-directory-only"));
+        assertEquals("jdbc-backend-ready-requires-jdbc-url-or-host-database-credentials", config.getString("setup.database.readiness.jdbc-policy"));
+        assertEquals("core-api-local-cache-writes-disabled-by-default-and-single-node-rescue-only", config.getString("setup.database.readiness.local-cache-write-policy"));
         assertEquals("env-type>setup.database.type>setup.database.core-api.enabled>setup.database.jdbc.url>single-configured-shared-backend>legacy-database.type", addon.getString("database.setup-source-precedence"));
         assertTrue(addon.getString("database.core-api-readiness-fields").contains("table-key-value-bulk-save-or-flattened-fallback"));
         assertTrue(addon.getString("database.postgresql-readiness-fields").contains("setup.database.postgresql.jdbc-url"));
