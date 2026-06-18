@@ -30,7 +30,9 @@ public final class SnapshotRollbackService {
             target.compression(),
             target.portable(),
             SnapshotReason.BEFORE_RESTORE,
-            target.restorePolicy()
+            target.restorePolicy(),
+            target.restorePreflightReady(),
+            target.restorePreflightSummary()
         );
     }
 
@@ -42,9 +44,7 @@ public final class SnapshotRollbackService {
         if (plan == null) {
             throw new IllegalArgumentException("rollback plan is required");
         }
-        if (!plan.targetPortable()) {
-            throw new IOException("rollback target is not portable: " + plan.islandId() + " #" + plan.targetSnapshotNo());
-        }
+        requireRestorePreflightReady(plan.targetRestorePreflightReady(), plan.targetRestorePreflightSummary(), plan.islandId() + " #" + plan.targetSnapshotNo());
         BundleCompressionPolicy.ensureSupported(plan.targetCompression(), "snapshot " + plan.targetSnapshotNo());
         verifyChecksum(plan.targetChecksum(), storage.openSnapshotBundle(plan.islandId(), plan.targetSnapshotNo()), "snapshot " + plan.targetSnapshotNo());
         storage.promoteSnapshot(plan.islandId(), plan.targetSnapshotNo());
@@ -54,13 +54,17 @@ public final class SnapshotRollbackService {
     public RollbackResult restoreBundle(UUID islandId, long snapshotNo, String storagePath) throws IOException {
         IslandBundleManifest target = storage.readBundleManifest(storagePath)
             .orElseThrow(() -> new IOException("missing rollback bundle manifest: " + storagePath));
-        if (!target.portable()) {
-            throw new IOException("rollback bundle is not portable: " + storagePath);
-        }
+        requireRestorePreflightReady(target.restorePreflightReady(), target.restorePreflightSummary(), storagePath);
         BundleCompressionPolicy.ensureSupported(target.compression(), storagePath);
         verifyChecksum(target.checksum(), storage.openBundle(storagePath), storagePath);
         storage.promoteBundle(islandId, snapshotNo, storagePath);
         return new RollbackResult(islandId, snapshotNo, "bundle", target.checksum(), target.compression(), target.restorePolicy());
+    }
+
+    private void requireRestorePreflightReady(boolean ready, String summary, String source) throws IOException {
+        if (!ready) {
+            throw new IOException("rollback preflight failed for " + source + ": " + summary);
+        }
     }
 
     private void verifyChecksum(String expectedChecksum, InputStream bundle, String source) throws IOException {
@@ -85,7 +89,9 @@ public final class SnapshotRollbackService {
         String targetCompression,
         boolean targetPortable,
         SnapshotReason preRestoreReason,
-        String restorePolicy
+        String restorePolicy,
+        boolean targetRestorePreflightReady,
+        String targetRestorePreflightSummary
     ) {
         public boolean preRestoreSnapshotRequired() {
             return preRestoreReason == SnapshotReason.BEFORE_RESTORE;
@@ -113,6 +119,10 @@ public final class SnapshotRollbackService {
 
         public String portabilityPolicy() {
             return SnapshotOperationPolicy.PORTABILITY_POLICY;
+        }
+
+        public String restorePreflightPolicy() {
+            return BundleRestorePolicy.RESTORE_PREFLIGHT_POLICY;
         }
     }
 
