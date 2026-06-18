@@ -57,7 +57,9 @@ public final class StorageService {
 
     public VirtualInventory createMachineInventory(UUID islandUuid, UUID machineId, String holderType, long capacity) {
         VirtualInventory inventory = new VirtualInventory(UUID.randomUUID(), islandUuid, holderType, machineId.toString(), capacity);
-        saveNow(inventory);
+        if (!saveNow(inventory)) {
+            throw new IllegalStateException("Machine inventory writes are not available");
+        }
         return inventory;
     }
 
@@ -96,12 +98,13 @@ public final class StorageService {
         return true;
     }
 
-    public void saveNow(VirtualInventory inventory) {
+    public boolean saveNow(VirtualInventory inventory) {
         if (!writesEnabled(inventory)) {
-            return;
+            return false;
         }
         cache.put(inventory.inventoryId(), inventory);
         database.saveInventory(inventory);
+        return true;
     }
 
     public boolean canDelete(UUID inventoryId) {
