@@ -1536,6 +1536,7 @@ public final class AdminFactoryCommand {
                         "runtime-gui-maintenance-status-save-policy",
                         "runtime-machine-save-result-policy",
                         "runtime-machine-placement-link-save-policy",
+                        "runtime-research-unlock-save-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",

@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 
 public final class ResearchService {
     public enum UnlockResult {
@@ -30,6 +31,7 @@ public final class ResearchService {
     private final DatabaseService database;
     private final EconomyService economy;
     private final BooleanSupplier maintenanceEnabled;
+    private final Predicate<FactoryIsland> islandSaver;
     private BooleanSupplier writesEnabled = () -> true;
     private final Map<String, UnlockDefinition> unlocks = new HashMap<>();
     private boolean blockTierUpgradesWhenLimited;
@@ -40,9 +42,21 @@ public final class ResearchService {
     }
 
     public ResearchService(DatabaseService database, EconomyService economy, BooleanSupplier maintenanceEnabled) {
+        this(database, economy, maintenanceEnabled, island -> {
+            database.saveIsland(island);
+            return true;
+        });
+    }
+
+    public ResearchService(DatabaseService database, EconomyService economy, BooleanSupplier maintenanceEnabled,
+                           Predicate<FactoryIsland> islandSaver) {
         this.database = database;
         this.economy = economy;
         this.maintenanceEnabled = maintenanceEnabled == null ? () -> true : maintenanceEnabled;
+        this.islandSaver = islandSaver == null ? island -> {
+            database.saveIsland(island);
+            return true;
+        } : islandSaver;
     }
 
     public void writeGate(BooleanSupplier writesEnabled) {
@@ -133,13 +147,19 @@ public final class ResearchService {
         if (unlock.moneyCost() > 0 && (owner == null || !economy.withdraw(owner, unlock.moneyCost()))) {
             return UnlockResult.NOT_ENOUGH_MONEY;
         }
+        long previousResearch = island.researchPoints();
+        int previousTier = island.tier();
         island.researchPoints(island.researchPoints() - unlock.cost());
         if (unlock.factoryTier() > island.tier()) {
             island.tier(unlock.factoryTier());
         }
+        if (!islandSaver.test(island)) {
+            island.researchPoints(previousResearch);
+            island.tier(previousTier);
+            return UnlockResult.UNKNOWN;
+        }
         database.saveUnlock(island.islandUuid(), unlockId);
         unlock.grants().forEach(grant -> database.saveUnlock(island.islandUuid(), grant));
-        database.saveIsland(island);
         return UnlockResult.UNLOCKED;
     }
 
