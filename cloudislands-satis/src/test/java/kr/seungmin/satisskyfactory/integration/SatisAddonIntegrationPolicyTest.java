@@ -166,6 +166,31 @@ class SatisAddonIntegrationPolicyTest {
     }
 
     @Test
+    void exposesGoalCompletionCriteriaForRecentIntegrationRequirements() {
+        assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("addon-jar-and-cloudislands-addon-descriptor-ship-as-separate-addon-bundle-artifacts"));
+        assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("setup-database-supports-core-api-postgresql-mysql-mariadb-and-safe-fallback"));
+        assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("table-key-value-bulk-save-api-covers-global-and-island-addon-state"));
+        assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("command-list-renders-one-line-per-command-with-paging"));
+        assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("island-create-home-visit-and-soft-full-island-1-to-island-2-flows-are-pinned"));
+        assertEquals(
+                "operator-selects-core-api-postgresql-mysql-mariadb-or-safe-fallback-through-setup-database-config",
+                SatisAddonIntegrationPolicy.operationScenarios().get("setup-database-mode")
+        );
+        assertEquals(
+                "satis-uses-table-key-value-bulk-save-and-load-before-flattened-addon-state-fallback",
+                SatisAddonIntegrationPolicy.operationScenarios().get("bulk-table-state-mode")
+        );
+        assertEquals(
+                "factory-and-admin-command-list-render-one-command-per-line-with-page-navigation",
+                SatisAddonIntegrationPolicy.operationScenarios().get("command-list-mode")
+        );
+        assertEquals(
+                "island-1-soft-full-new-create-skips-to-ready-island-2-without-player-command-change",
+                SatisAddonIntegrationPolicy.operationScenarios().get("soft-full-create-mode")
+        );
+    }
+
+    @Test
     void publicPolicyCollectionsAreImmutable() {
         assertThrows(UnsupportedOperationException.class, () -> SatisAddonIntegrationPolicy.supportedModes().add("LEGACY"));
         assertThrows(UnsupportedOperationException.class, () -> SatisAddonIntegrationPolicy.featureGates().add("legacy-skyblock"));

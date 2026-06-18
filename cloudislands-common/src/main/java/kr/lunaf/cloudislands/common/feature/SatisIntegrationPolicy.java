@@ -4,13 +4,17 @@ import java.util.List;
 import java.util.Map;
 
 public final class SatisIntegrationPolicy {
-    private static final Map<String, String> OPERATION_SCENARIOS = Map.of(
-        "built-in-mode", "cloudislands-installs-one-plugin-satis-features-start-only-when-root-and-child-feature-gates-enable-them",
-        "addon-plugin-mode", "cloudislands-plus-cloudislands-satis-jar-registers-through-addon-registry-and-uses-cloudislands-api-only",
-        "partial-feature-mode", "enabled-features-register-runtime-components-disabled-features-register-no-commands-gui-listeners-placeholders-tasks-or-writes",
-        "legacy-migration-mode", "superiorskyblock2-backed-satis-data-is-rebound-to-cloudislands-api-island-member-permission-location-upgrade-state",
-        "a-b-island-node-move", "satis-state-follows-cloudislands-island-uuid-through-shared-state-when-island-moves-from-node-a-to-node-b",
-        "addon-removed-mode", "cloudislands-core-boots-and-base-island-lifecycle-continues-when-satis-addon-jar-is-absent"
+    private static final Map<String, String> OPERATION_SCENARIOS = Map.ofEntries(
+        Map.entry("built-in-mode", "cloudislands-installs-one-plugin-satis-features-start-only-when-root-and-child-feature-gates-enable-them"),
+        Map.entry("addon-plugin-mode", "cloudislands-plus-cloudislands-satis-jar-registers-through-addon-registry-and-uses-cloudislands-api-only"),
+        Map.entry("partial-feature-mode", "enabled-features-register-runtime-components-disabled-features-register-no-commands-gui-listeners-placeholders-tasks-or-writes"),
+        Map.entry("legacy-migration-mode", "superiorskyblock2-backed-satis-data-is-rebound-to-cloudislands-api-island-member-permission-location-upgrade-state"),
+        Map.entry("a-b-island-node-move", "satis-state-follows-cloudislands-island-uuid-through-shared-state-when-island-moves-from-node-a-to-node-b"),
+        Map.entry("addon-removed-mode", "cloudislands-core-boots-and-base-island-lifecycle-continues-when-satis-addon-jar-is-absent"),
+        Map.entry("setup-database-mode", "operator-selects-core-api-postgresql-mysql-mariadb-or-safe-fallback-through-setup-database-config"),
+        Map.entry("bulk-table-state-mode", "satis-uses-table-key-value-bulk-save-and-load-before-flattened-addon-state-fallback"),
+        Map.entry("command-list-mode", "factory-and-admin-command-list-render-one-command-per-line-with-page-navigation"),
+        Map.entry("soft-full-create-mode", "island-1-soft-full-new-create-skips-to-ready-island-2-without-player-command-change")
     );
 
     private static final List<String> RECOMMENDED_MODE_REASONS = List.of(
@@ -102,7 +106,12 @@ public final class SatisIntegrationPolicy {
         "root-config-can-disable-all-satis-runtime-components",
         "major-features-have-independent-feature-gates",
         "chosen-built-in-or-addon-structure-is-visible-in-code",
+        "addon-jar-and-cloudislands-addon-descriptor-ship-as-separate-addon-bundle-artifacts",
         "no-superiorskyblock2-runtime-dependency",
+        "setup-database-supports-core-api-postgresql-mysql-mariadb-and-safe-fallback",
+        "table-key-value-bulk-save-api-covers-global-and-island-addon-state",
+        "command-list-renders-one-line-per-command-with-paging",
+        "island-create-home-visit-and-soft-full-island-1-to-island-2-flows-are-pinned",
         "state-survives-a-node-to-b-node-island-move",
         "base-cloudislands-functions-survive-satis-disable-or-addon-removal"
     );
