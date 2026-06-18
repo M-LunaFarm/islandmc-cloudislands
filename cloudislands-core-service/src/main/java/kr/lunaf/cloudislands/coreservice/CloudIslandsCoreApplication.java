@@ -3231,6 +3231,12 @@ public final class CloudIslandsCoreApplication {
             + "\"auditLogPolicy\":\"record-admin-player-and-system-actions\","
             + "\"controlChannelPolicy\":\"http-or-grpc-plus-redis-streams\","
             + "\"pluginMessagingPolicy\":\"not-used-for-critical-island-control\","
+            + "\"requiredSecurityControls\":\"" + escape(String.join(",", kr.lunaf.cloudislands.common.security.BackendAccessPolicy.requiredSecurityControls())) + "\","
+            + "\"velocityForwardingSecurityPolicy\":\"" + escape(kr.lunaf.cloudislands.common.security.BackendAccessPolicy.MODERN_FORWARDING_POLICY) + "\","
+            + "\"paperDirectAccessSecurityPolicy\":\"" + escape(kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PAPER_DIRECT_ACCESS_POLICY) + "\","
+            + "\"coreApiSecurityPolicy\":\"" + escape(kr.lunaf.cloudislands.common.security.BackendAccessPolicy.CORE_API_AUTH_POLICY) + "\","
+            + "\"infrastructureExposureSecurityPolicy\":\"" + escape(kr.lunaf.cloudislands.common.security.BackendAccessPolicy.INFRASTRUCTURE_EXPOSURE_POLICY) + "\","
+            + "\"pluginMessagingSecurityPolicy\":\"" + escape(kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PLUGIN_MESSAGING_POLICY) + "\","
             + "\"pluginMessagingAllowedUse\":\"emergency-proxy-assist-only\","
             + "\"pluginMessagingForbiddenUse\":\"island-create-delete-save-migrate-routing-authority\","
             + "\"paperAgentRolePolicy\":\"LOBBY handles menus-and-query-flow,ISLAND_NODE handles-world-runtime-protection-save-teleport\","
@@ -3270,6 +3276,8 @@ public final class CloudIslandsCoreApplication {
             + "\"adminApiEnabled\":" + config.adminApiEnabled() + ","
             + "\"requireMtls\":" + config.requireMtls() + ","
             + "\"ipAllowlistEnabled\":" + (config.ipAllowlist() != null && !config.ipAllowlist().isBlank()) + ","
+            + "\"requiredSecurityControls\":\"" + escape(String.join(",", kr.lunaf.cloudislands.common.security.BackendAccessPolicy.requiredSecurityControls())) + "\","
+            + "\"pluginMessagingSecurityPolicy\":\"" + escape(kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PLUGIN_MESSAGING_POLICY) + "\","
             + "\"rateLimitRequests\":" + config.rateLimitRequests() + ","
             + "\"rateLimitWindowSeconds\":" + config.rateLimitWindow().toSeconds()
             + "}";

@@ -2185,7 +2185,9 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " upgradePolicy=" + textValue(body, "upgradePolicy")
             + " generatorPolicy=" + textValue(body, "generatorPolicy")
             + adminText("admin-command-core-config-mtls-prefix", " mtls=") + boolValue(body, "requireMtls")
-            + adminText("admin-command-core-config-ip-allowlist-prefix", " ipAllowlist=") + boolValue(body, "ipAllowlistEnabled");
+            + adminText("admin-command-core-config-ip-allowlist-prefix", " ipAllowlist=") + boolValue(body, "ipAllowlistEnabled")
+            + " securityControls=" + textValue(body, "requiredSecurityControls")
+            + " pluginMessagingSecurity=" + textValue(body, "pluginMessagingSecurityPolicy");
     }
 
     private String addonEndpointMessage(String body) {
