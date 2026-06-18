@@ -1427,6 +1427,8 @@ public final class AdminFactoryCommand {
                         "runtime-addon-policy",
                         "runtime-cloudislands-api-required",
                         "runtime-standalone-island-management",
+                        "runtime-standalone-island-runtime-policy",
+                        "runtime-island-runtime-authority",
                         "runtime-skyblock-provider-policy",
                         "runtime-cloudislands-api-surface-policy",
                         "runtime-cloudislands-direct-access-policy",
