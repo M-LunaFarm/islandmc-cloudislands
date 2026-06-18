@@ -19,6 +19,7 @@ public final class SatisIntegrationPolicy {
         Map.entry("topology-private-mode", "players-use-logical-island-commands-and-never-see-island-node-server-world-cell-or-route-ticket-identifiers"),
         Map.entry("player-island-surface-mode", "my-island-other-island-ranking-visit-settings-and-warps-stay-logical-and-route-through-core-api"),
         Map.entry("infrastructure-authority-mode", "postgresql-is-authoritative-redis-is-cache-lock-stream-queue-helper-object-storage-holds-portable-bundles"),
+        Map.entry("island-lifecycle-state-machine-mode", "create-activate-save-delete-error-quarantine-and-recovery-states-follow-cloudislands-core-lifecycle"),
         Map.entry("soft-full-create-mode", "island-1-soft-full-new-create-skips-to-ready-island-2-without-player-command-change")
     );
 
@@ -133,6 +134,7 @@ public final class SatisIntegrationPolicy {
         "my-island-other-island-ranking-visit-settings-and-warps-use-logical-core-api-backed-flows",
         "postgresql-redis-and-object-storage-authority-boundaries-are-explicit-and-tested",
         "portable-island-bundles-require-manifest-checksums-safe-restore-and-quarantine-fallback",
+        "island-lifecycle-state-machine-covers-create-activate-save-delete-error-quarantine-and-recovery",
         "island-create-home-visit-and-soft-full-island-1-to-island-2-flows-are-pinned",
         "state-survives-a-node-to-b-node-island-move",
         "state-survives-a-node-to-b-node-move-while-satis-is-disabled-or-removed",
