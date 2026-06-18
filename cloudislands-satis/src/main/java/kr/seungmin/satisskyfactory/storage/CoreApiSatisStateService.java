@@ -34,12 +34,12 @@ public final class CoreApiSatisStateService {
     private static final UUID NIL_UUID = new UUID(0L, 0L);
     private static final int MAX_PENDING_BULK_RETRIES = 64;
     private static final String GLOBAL_TABLE_BULK_ENDPOINT = "/v1/addons/state/table/bulk";
-    private static final String GLOBAL_TABLE_KEY_VALUE_BULK_ENDPOINT = "/v1/addons/state/table/key-value/bulk-save";
-    private static final String GLOBAL_TABLE_KEY_VALUE_BULK_LOAD_ENDPOINT = "/v1/addons/state/table/key-value/bulk-load";
+    private static final String GLOBAL_TABLE_KEY_VALUE_BULK_ENDPOINT = AddonStateBulkSaveRequest.GLOBAL_ENDPOINT;
+    private static final String GLOBAL_TABLE_KEY_VALUE_BULK_LOAD_ENDPOINT = AddonStateBulkLoadRequest.GLOBAL_ENDPOINT;
     private static final String GLOBAL_FLATTENED_FALLBACK_ENDPOINT = "/v1/addons/state/bulk";
     private static final String ISLAND_TABLE_BULK_ENDPOINT = "/v1/addons/islands/state/table/bulk";
-    private static final String ISLAND_TABLE_KEY_VALUE_BULK_ENDPOINT = "/v1/addons/islands/state/table/key-value/bulk-save";
-    private static final String ISLAND_TABLE_KEY_VALUE_BULK_LOAD_ENDPOINT = "/v1/addons/islands/state/table/key-value/bulk-load";
+    private static final String ISLAND_TABLE_KEY_VALUE_BULK_ENDPOINT = AddonStateBulkSaveRequest.ISLAND_ENDPOINT;
+    private static final String ISLAND_TABLE_KEY_VALUE_BULK_LOAD_ENDPOINT = AddonStateBulkLoadRequest.ISLAND_ENDPOINT;
     private static final String ISLAND_FLATTENED_FALLBACK_ENDPOINT = "/v1/addons/islands/state/bulk";
     private static final String ISLAND_TABLE_REPLACE_ENDPOINT = "/v1/addons/islands/state/table/replace";
 

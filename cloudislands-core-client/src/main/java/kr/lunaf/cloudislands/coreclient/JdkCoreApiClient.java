@@ -1033,7 +1033,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || blank(table)) {
             return invalidAddonState("Addon id and table are required");
         }
-        return post("/v1/addons/state/table/load", "{\"addonId\":\"" + escape(addonId) + "\",\"table\":\"" + escape(table) + "\"}");
+        return post(AddonStateBulkLoadRequest.GLOBAL_TABLE_LOAD_ALIAS, "{\"addonId\":\"" + escape(addonId) + "\",\"table\":\"" + escape(table) + "\"}");
     }
 
     @Override
@@ -1041,7 +1041,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || blank(table)) {
             return invalidAddonState("Addon id and table are required");
         }
-        return post("/v1/addons/state/table/key-value/bulk-load", "{\"addonId\":\"" + escape(addonId) + "\",\"table\":\"" + escape(table) + "\"}");
+        return post(AddonStateBulkLoadRequest.GLOBAL_ENDPOINT, "{\"addonId\":\"" + escape(addonId) + "\",\"table\":\"" + escape(table) + "\"}");
     }
 
     @Override
@@ -1256,7 +1256,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId) || blank(table)) {
             return invalidAddonState("Addon id, island id, and table are required");
         }
-        return post("/v1/addons/islands/state/table/load", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"table\":\"" + escape(table) + "\"}");
+        return post(AddonStateBulkLoadRequest.ISLAND_TABLE_LOAD_ALIAS, "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"table\":\"" + escape(table) + "\"}");
     }
 
     @Override
@@ -1264,7 +1264,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId) || blank(table)) {
             return invalidAddonState("Addon id, island id, and table are required");
         }
-        return post("/v1/addons/islands/state/table/key-value/bulk-load", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"table\":\"" + escape(table) + "\"}");
+        return post(AddonStateBulkLoadRequest.ISLAND_ENDPOINT, "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"table\":\"" + escape(table) + "\"}");
     }
 
     @Override
