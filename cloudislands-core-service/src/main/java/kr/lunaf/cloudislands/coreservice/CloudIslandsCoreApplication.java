@@ -3294,8 +3294,11 @@ public final class CloudIslandsCoreApplication {
             + "\"portableIslandDesignEffects\":\"" + escape(kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.designEffectSummary()) + "\","
             + "\"portableIslandDefinition\":\"" + escape(kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.ONE_LINE_DEFINITION) + "\","
             + "\"nodeScaleOutPolicy\":\"add-island-nodes-with-unique-node-id-and-velocity-server-name-then-allocator-can-route-new-or-inactive-islands-there\","
-            + "\"rankingUpdatePolicy\":\"block-delta-dirty-flag-batch-recalculate-ranking-snapshot\","
-            + "\"blockValuePolicy\":\"config-loaded-values-plus-admin-api-overrides-worth-level-limit\","
+            + "\"rankingUpdatePolicy\":\"" + escape(kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService.UPDATE_POLICY) + "\","
+            + "\"blockValuePolicy\":\"" + escape(kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService.BLOCK_VALUE_POLICY) + "\",
+            + "\"rankingFullScanPolicy\":\"" + escape(kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService.FULL_SCAN_POLICY) + "\",
+            + "\"rankingCachePolicy\":\"" + escape(kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService.CACHE_POLICY) + "\",
+            + "\"rankingDirtyBatchLimit\":" + kr.lunaf.cloudislands.coreservice.ranking.DirtyRankingRecalculationTask.BATCH_LIMIT + ",""
             + "\"levelFormulaType\":\"" + escape(config.levelFormulaType()) + "\","
             + "\"levelFormulaExpression\":\"" + escape(config.levelFormulaExpression()) + "\","
             + "\"worthFormulaType\":\"" + escape(config.worthFormulaType()) + "\","

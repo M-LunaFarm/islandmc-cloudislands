@@ -8,6 +8,11 @@ import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 
 public final class RankingRecalculationService {
+    public static final String UPDATE_POLICY = "block-delta-dirty-flag-batch-recalculate-ranking-snapshot";
+    public static final String BLOCK_VALUE_POLICY = "config-loaded-values-plus-admin-api-overrides-worth-level-limit";
+    public static final String FULL_SCAN_POLICY = "periodic-full-scan-replaces-block-counts-and-marks-island-dirty";
+    public static final String CACHE_POLICY = "ranking-snapshot-query-backed-by-postgresql-and-redis-ranking-cache";
+
     private final RankingRepository rankings;
     private final GlobalEventPublisher events;
     private final String levelFormulaExpression;

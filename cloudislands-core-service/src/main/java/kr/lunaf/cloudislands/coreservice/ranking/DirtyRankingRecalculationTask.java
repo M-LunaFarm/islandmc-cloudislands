@@ -11,6 +11,10 @@ import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 
 public final class DirtyRankingRecalculationTask {
     private static final Logger LOGGER = Logger.getLogger(DirtyRankingRecalculationTask.class.getName());
+    public static final int BATCH_LIMIT = 100;
+    public static final long INITIAL_DELAY_SECONDS = 10L;
+    public static final long PERIOD_SECONDS = 30L;
+
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(task -> {
         Thread thread = new Thread(task, "cloudislands-ranking-recalc");
         thread.setDaemon(true);
@@ -33,11 +37,11 @@ public final class DirtyRankingRecalculationTask {
     }
 
     public void start() {
-        executor.scheduleWithFixedDelay(this::runOnce, 10L, 30L, TimeUnit.SECONDS);
+        executor.scheduleWithFixedDelay(this::runOnce, INITIAL_DELAY_SECONDS, PERIOD_SECONDS, TimeUnit.SECONDS);
     }
 
     public void runOnce() {
-        java.util.List<UUID> dirty = rankings.drainDirty(100);
+        java.util.List<UUID> dirty = rankings.drainDirty(BATCH_LIMIT);
         lastBatchSize.set(dirty.size());
         drainedTotal.addAndGet(dirty.size());
         for (UUID islandId : dirty) {

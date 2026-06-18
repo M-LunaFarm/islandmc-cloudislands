@@ -14,6 +14,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class RankingRecalculationServiceTest {
     private static final UUID ISLAND = UUID.fromString("00000000-0000-0000-0000-000000000601");
 
+    
+    void exposesGoalRankingUpdateContract() {
+        assertEquals("block-delta-dirty-flag-batch-recalculate-ranking-snapshot", RankingRecalculationService.UPDATE_POLICY);
+        assertEquals("config-loaded-values-plus-admin-api-overrides-worth-level-limit", RankingRecalculationService.BLOCK_VALUE_POLICY);
+        assertEquals("periodic-full-scan-replaces-block-counts-and-marks-island-dirty", RankingRecalculationService.FULL_SCAN_POLICY);
+        assertEquals("ranking-snapshot-query-backed-by-postgresql-and-redis-ranking-cache", RankingRecalculationService.CACHE_POLICY);
+        assertEquals(100, DirtyRankingRecalculationTask.BATCH_LIMIT);
+        assertEquals(30L, DirtyRankingRecalculationTask.PERIOD_SECONDS);
+    }
+
     @Test
     void appliesBlockValueLimitsAndIgnoresUndefinedOrNegativeCounts() {
         InMemoryRankingRepository rankings = new InMemoryRankingRepository();
