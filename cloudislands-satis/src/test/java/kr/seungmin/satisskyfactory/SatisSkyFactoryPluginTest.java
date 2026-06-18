@@ -50,6 +50,9 @@ class SatisSkyFactoryPluginTest {
         assertEquals("cloudislands-addon-yaml", metadata.get("addon-descriptor-format"));
         assertEquals("external-plugin", metadata.get("addon-packaging"));
         assertEquals("external-plugin,built-in-feature-pack,built-in-compatible", metadata.get("addon-supported-packaging"));
+        assertEquals("paper-plugin-hard-depends-cloudislands-but-uses-public-cloudislands-api", metadata.get("external-addon-boundary"));
+        assertEquals("same-cloudislands-addon-spi-no-core-internals-no-standalone-runtime", metadata.get("built-in-compatible-boundary"));
+        assertEquals("external-plugin-and-built-in-compatible-share-public-addon-spi-and-feature-gates", metadata.get("packaging-boundary-policy"));
         assertEquals("same-cloudislands-addon-spi-for-external-plugin-and-built-in-feature-pack", metadata.get("addon-spi-policy"));
         assertEquals("true", metadata.get("addon-removal-safe"));
         assertEquals("missing-disabled-or-removed-addon-must-not-block-core-island-create-route-save-restore", metadata.get("addon-removal-policy"));

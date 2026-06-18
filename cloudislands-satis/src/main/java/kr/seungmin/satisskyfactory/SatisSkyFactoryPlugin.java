@@ -1684,6 +1684,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("integration-mode-effective", "DISABLED".equals(integrationMode) ? "disabled-no-runtime-components" : "cloudislands-addon-registry");
         metadata.put("integration-mode-policy", "external-addon-and-built-in-compatible-modes-share-the-same-cloudislands-addon-feature-gates");
         metadata.put("integration-mode-runtime-boundary", SatisAddonIntegrationPolicy.modeRuntimeBoundary(integrationMode));
+        metadata.put("external-addon-boundary", "paper-plugin-hard-depends-cloudislands-but-uses-public-cloudislands-api");
+        metadata.put("built-in-compatible-boundary", "same-cloudislands-addon-spi-no-core-internals-no-standalone-runtime");
+        metadata.put("packaging-boundary-policy", "external-plugin-and-built-in-compatible-share-public-addon-spi-and-feature-gates");
         metadata.put("integration-packaging", addonPackaging());
         metadata.put("integration-runtime-shape", integrationRuntimeShape(integrationMode));
         metadata.putAll(cloudIslandsIntegrationMetadata());
@@ -1964,6 +1967,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("addon-descriptor-format", "cloudislands-addon-yaml"),
                 Map.entry("addon-packaging", "external-plugin"),
                 Map.entry("addon-supported-packaging", SatisAddonIntegrationPolicy.SUPPORTED_PACKAGING_MODES),
+                Map.entry("external-addon-boundary", "paper-plugin-hard-depends-cloudislands-but-uses-public-cloudislands-api"),
+                Map.entry("built-in-compatible-boundary", "same-cloudislands-addon-spi-no-core-internals-no-standalone-runtime"),
+                Map.entry("packaging-boundary-policy", "external-plugin-and-built-in-compatible-share-public-addon-spi-and-feature-gates"),
                 Map.entry("addon-spi-policy", SatisAddonIntegrationPolicy.ADDON_SPI_POLICY),
                 Map.entry("supported-integration-modes", "EXTERNAL_ADDON,BUILT_IN_COMPATIBLE,DISABLED"),
                 Map.entry("built-in-compatible-policy", "same-addon-api-contract-config-gated-no-core-boot-dependency"),

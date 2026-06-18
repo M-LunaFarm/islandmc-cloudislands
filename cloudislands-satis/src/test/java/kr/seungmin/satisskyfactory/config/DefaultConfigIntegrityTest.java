@@ -28,6 +28,9 @@ class DefaultConfigIntegrityTest {
         assertEquals("CloudIslandsSatis", plugin.getString("name"));
         assertEquals("cloudislands-satis", addon.getString("id"));
         assertEquals("external-plugin-or-built-in-compatible", addon.getString("packaging"));
+        assertEquals("paper-plugin-hard-depends-cloudislands-but-uses-public-cloudislands-api", addon.getString("runtime.external-addon-boundary"));
+        assertEquals("same-cloudislands-addon-spi-no-core-internals-no-standalone-runtime", addon.getString("runtime.built-in-compatible-boundary"));
+        assertEquals("external-plugin-and-built-in-compatible-share-public-addon-spi-and-feature-gates", addon.getString("runtime.packaging-boundary-policy"));
         assertTrue(addon.getBoolean("removal.safe"));
         assertEquals("preserve-addon-state-by-island-uuid", addon.getString("removal.data-retention"));
         assertEquals("reinstalled-addon-reconnects-preserved-addon-state-by-addon-id-and-island-uuid", addon.getString("removal.reconnect-policy"));
