@@ -74,8 +74,11 @@ class DefaultConfigIntegrityTest {
         assertTrue(config.isConfigurationSection("addons.cloudislands-satis.database.jdbc"));
         assertTrue(config.getBoolean("database.fallback.enabled"));
         assertTrue(config.getBoolean("setup.database.fallback.enabled"));
+        assertTrue(config.getBoolean("setup.database.core-api.enabled"));
         assertEquals(List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API", "SQLITE"),
                 config.getStringList("database.fallback.order"));
+        assertEquals(List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API", "SQLITE"),
+                config.getStringList("addons.cloudislands-satis.database.fallback.order"));
         assertEquals(List.of(), config.getStringList("setup.database.fallback.order"));
         assertTrue(config.getStringList("database.fallback.order").indexOf("POSTGRESQL")
                 < config.getStringList("database.fallback.order").indexOf("SQLITE"));
