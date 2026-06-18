@@ -303,6 +303,9 @@ public final class MachineService {
         if (!loaded) {
             return false;
         }
+        if (!writesEnabled()) {
+            return false;
+        }
         if (worldName == null || worldName.isBlank()) {
             return false;
         }
@@ -311,16 +314,17 @@ public final class MachineService {
             if (worldName.equals(machine.location().world()) && deltaX == 0 && deltaY == 0 && deltaZ == 0) {
                 continue;
             }
-            byLocation.remove(LocationKey.from(machine.location()));
+            LocationKey previousLocation = LocationKey.from(machine.location());
             MachineInstance remapped = copyWithLocation(machine, new BlockKey(
                     worldName,
                     machine.location().x() + deltaX,
                     machine.location().y() + deltaY,
                     machine.location().z() + deltaZ
             ));
-            machines.put(remapped.machineId(), remapped);
-            byLocation.put(LocationKey.from(remapped.location()), remapped.machineId());
-            saveLater(remapped);
+            if (!saveLater(remapped)) {
+                continue;
+            }
+            byLocation.remove(previousLocation);
             changed = true;
         }
         if (changed) {

@@ -1562,6 +1562,7 @@ public final class AdminFactoryCommand {
                         "runtime-machine-save-later-policy",
                         "runtime-power-network-machine-save-policy",
                         "runtime-item-network-machine-save-policy",
+                        "runtime-machine-region-remap-save-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",
