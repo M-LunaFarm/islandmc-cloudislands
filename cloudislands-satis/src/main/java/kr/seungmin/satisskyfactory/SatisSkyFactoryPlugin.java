@@ -96,6 +96,7 @@ import kr.seungmin.satisskyfactory.recipe.RecipeService;
 import kr.seungmin.satisskyfactory.research.ResearchService;
 import kr.seungmin.satisskyfactory.runtime.SatisRuntimeComponentPlan;
 import kr.seungmin.satisskyfactory.storage.CoreApiSatisStateService;
+import kr.seungmin.satisskyfactory.storage.SatisRuntimeTickAuthorityPolicy;
 import kr.seungmin.satisskyfactory.storage.SatisStatePortabilityPolicy;
 import kr.seungmin.satisskyfactory.storage.SatisLegacyMigrationPolicy;
 import kr.seungmin.satisskyfactory.storage.StorageService;
@@ -377,13 +378,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean satisRuntimeTickReadyForIsland(UUID islandId) {
-        if (database == null || database.activeBackend() != DatabaseService.StorageBackend.CORE_API) {
-            return true;
-        }
-        if (islandId == null || coreApiState == null || !operationalFeatureEnabled("addon-state")) {
+        if (database == null || islandId == null) {
             return false;
         }
-        return coreHydratedIslandActivations.containsKey(islandId);
+        boolean coreHydrated = coreApiState != null && coreHydratedIslandActivations.containsKey(islandId);
+        return SatisRuntimeTickAuthorityPolicy.tickReady(
+                database.activeBackend(),
+                cloudIslandsApi != null,
+                operationalFeatureEnabled("addon-state"),
+                coreHydrated
+        );
     }
 
     private boolean runtimeWriteFeatureEnabled() {
