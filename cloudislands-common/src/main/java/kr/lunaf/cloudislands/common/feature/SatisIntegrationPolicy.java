@@ -60,6 +60,14 @@ public final class SatisIntegrationPolicy {
         "disabled-surface", "disabled-or-removed-addon-leaves-no-player-facing-satis-entrypoints"
     );
 
+    private static final Map<String, String> OFFICIAL_FEATURE_PACK_BOUNDARIES = Map.of(
+        "platform-layer", "cloudislands-core-owns-island-lifecycle-routing-storage-protection-and-public-api",
+        "content-layer", "cloudislands-satis-owns-optional-machines-resource-nodes-contracts-research-market-and-placeholders",
+        "coupling-rule", "satis-uses-cloudislands-api-and-addon-spi-without-core-internal-repository-access",
+        "release-boundary", "satis-can-ship-as-official-addon-or-built-in-module-with-the-same-feature-gates",
+        "failure-boundary", "satis-failure-or-removal-must-not-stop-core-island-create-route-save-restore"
+    );
+
     private static final List<String> NODE_MOVE_REMAP_STEPS = List.of(
         "source-node-save-addon-state-by-island-uuid",
         "cloudislands-deactivate-and-store-portable-island-bundle",
@@ -147,6 +155,14 @@ public final class SatisIntegrationPolicy {
 
     public static String playerExperienceBoundarySummary() {
         return summary(PLAYER_EXPERIENCE_BOUNDARIES);
+    }
+
+    public static Map<String, String> officialFeaturePackBoundaries() {
+        return OFFICIAL_FEATURE_PACK_BOUNDARIES;
+    }
+
+    public static String officialFeaturePackBoundarySummary() {
+        return summary(OFFICIAL_FEATURE_PACK_BOUNDARIES);
     }
 
     public static List<String> nodeMoveRemapSteps() {
