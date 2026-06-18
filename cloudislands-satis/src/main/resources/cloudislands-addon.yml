@@ -50,6 +50,8 @@ runtime:
   packaging-policy: integration.mode selects external-plugin, built-in-compatible, or disabled-unregistered registry metadata
   owns-islands: false
   standalone-island-runtime: false
+  missing-cloudislands-behavior: disable-satis-runtime-no-standalone-island-management
+  cloudislands-api-status-key: runtime-cloudislands-api-available
   storage-key: cloudislands-island-uuid
   default-database-mode: CORE_API
   load-phase: Paper-POSTWORLD-after-CloudIslands
