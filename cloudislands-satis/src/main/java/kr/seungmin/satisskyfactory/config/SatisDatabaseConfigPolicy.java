@@ -51,8 +51,13 @@ public final class SatisDatabaseConfigPolicy {
             ENV_JDBC_URL,
             "setup.database.jdbc-url",
             "setup.database.jdbc.url",
+            "setup.database.url",
+            "addons.cloudislands-satis.database.jdbc-url",
             "addons.cloudislands-satis.database.jdbc.url",
-            "database.jdbc.url"
+            "addons.cloudislands-satis.database.url",
+            "database.jdbc-url",
+            "database.jdbc.url",
+            "database.url"
     );
 
     private static final List<String> CREDENTIAL_ALIASES = List.of(
@@ -89,7 +94,7 @@ public final class SatisDatabaseConfigPolicy {
     }
 
     public static String commonJdbcAliasMetadata() {
-        return "setup.database.jdbc-url,setup.database.jdbc.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,addons.cloudislands-satis.database.jdbc.url,database.jdbc.url,database.<backend>.url";
+        return "setup.database.jdbc-url,setup.database.jdbc.url,setup.database.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,addons.cloudislands-satis.database.jdbc-url,addons.cloudislands-satis.database.jdbc.url,addons.cloudislands-satis.database.url,database.jdbc-url,database.jdbc.url,database.url,database.<backend>.url";
     }
 
     public static List<String> sharedBackends() {

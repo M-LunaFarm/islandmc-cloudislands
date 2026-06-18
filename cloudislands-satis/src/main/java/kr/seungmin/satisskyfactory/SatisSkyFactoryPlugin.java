@@ -4164,11 +4164,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             appendPendingDatabaseConfigFallbackReason("invalid-database-backend:" + safeReasonToken(configuredType) + "->SQLITE");
         }
         String sqliteFileName = resolveDatabaseFileName();
-        String jdbcUrl = firstNonBlank(System.getenv("CLOUDISLANDS_SATIS_JDBC_URL"),
-                firstNonBlank(configs.main().getString("setup.database.jdbc-url", ""),
-                        firstNonBlank(configs.main().getString("setup.database.jdbc.url", ""),
-                                firstNonBlank(configs.main().getString("addons.cloudislands-satis.database.jdbc.url", ""),
-                                        configs.main().getString("database.jdbc.url", "")))));
+        String jdbcUrl = configuredCommonJdbcUrl();
         String postgresqlJdbcUrl = jdbcUrl("postgresql", "jdbc:postgresql", 5432);
         String mysqlJdbcUrl = jdbcUrl("mysql", "jdbc:mysql", 3306);
         String mariadbJdbcUrl = jdbcUrl("mariadb", "jdbc:mariadb", 3306);
@@ -4824,11 +4820,28 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String configuredCommonJdbcUrl() {
-        return firstNonBlank(System.getenv("CLOUDISLANDS_SATIS_JDBC_URL"),
-                firstNonBlank(configs.main().getString("setup.database.jdbc-url", ""),
-                        firstNonBlank(configs.main().getString("setup.database.jdbc.url", ""),
-                                firstNonBlank(configs.main().getString("addons.cloudislands-satis.database.jdbc.url", ""),
-                                        configs.main().getString("database.jdbc.url", "")))));
+        String envJdbcUrl = System.getenv("CLOUDISLANDS_SATIS_JDBC_URL");
+        if (envJdbcUrl != null && !envJdbcUrl.isBlank()) {
+            return envJdbcUrl;
+        }
+        String[] aliases = {
+                "setup.database.jdbc-url",
+                "setup.database.jdbc.url",
+                "setup.database.url",
+                "addons.cloudislands-satis.database.jdbc-url",
+                "addons.cloudislands-satis.database.jdbc.url",
+                "addons.cloudislands-satis.database.url",
+                "database.jdbc-url",
+                "database.jdbc.url",
+                "database.url"
+        };
+        for (String alias : aliases) {
+            String configured = configs.main().getString(alias, "");
+            if (configured != null && !configured.isBlank()) {
+                return configured;
+            }
+        }
+        return "";
     }
 
     private boolean setupDatabaseSectionConfigured(String section) {
@@ -5322,6 +5335,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (nonBlankConfig("setup.database.jdbc-url")
                 || nonBlankConfig("setup.database.jdbc.url")
+                || nonBlankConfig("setup.database.url")
+                || nonBlankConfig("addons.cloudislands-satis.database.jdbc-url")
+                || nonBlankConfig("addons.cloudislands-satis.database.jdbc.url")
+                || nonBlankConfig("addons.cloudislands-satis.database.url")
+                || nonBlankConfig("database.jdbc-url")
+                || nonBlankConfig("database.url")
                 || nonBlankConfig("setup.database.jdbc.username")
                 || nonBlankConfig("setup.database.jdbc.password")
                 || configs.main().getInt("setup.database.jdbc.max-pool-size", 0) > 0
@@ -5597,11 +5616,26 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (nonBlankConfig("setup.database.jdbc.url")) {
             return "setup.database.jdbc.url";
         }
+        if (nonBlankConfig("setup.database.url")) {
+            return "setup.database.url";
+        }
+        if (nonBlankConfig("addons.cloudislands-satis.database.jdbc-url")) {
+            return "addons.cloudislands-satis.database.jdbc-url";
+        }
         if (nonBlankConfig("addons.cloudislands-satis.database.jdbc.url")) {
             return "addons.cloudislands-satis.database.jdbc.url";
         }
+        if (nonBlankConfig("addons.cloudislands-satis.database.url")) {
+            return "addons.cloudislands-satis.database.url";
+        }
+        if (nonBlankConfig("database.jdbc-url")) {
+            return "database.jdbc-url";
+        }
         if (nonBlankConfig("database.jdbc.url")) {
             return "database.jdbc.url";
+        }
+        if (nonBlankConfig("database.url")) {
+            return "database.url";
         }
         if (nonBlankConfig("setup.database." + backend + ".jdbc-url")
                 || nonBlankConfig("setup.database." + backend + ".url")
