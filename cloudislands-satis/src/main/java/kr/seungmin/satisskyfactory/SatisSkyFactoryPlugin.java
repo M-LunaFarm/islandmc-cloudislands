@@ -455,7 +455,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-gui-listener-registered", Boolean.toString(guiListenerRegistered));
         state.put("runtime-lifecycle-listener-registered", Boolean.toString(lifecycleListenerRegistered));
         state.put("runtime-placeholder-registered", Boolean.toString(placeholderHook != null));
-        state.put("runtime-placeholder-gate", "addonRuntimeEnabled&&features.placeholders&&PlaceholderAPI");
+        state.put("runtime-placeholder-gate", "addonRuntimeEnabled&&features.placeholders&&features.machines&&PlaceholderAPI");
         state.put("runtime-placeholder-status", placeholderHook != null ? "registered" : placeholderBlockReason());
         state.put("runtime-placeholder-policy", "disabled-feature-or-missing-placeholderapi-registers-no-expansion");
         state.put("runtime-placeholder-exposure-policy", PlaceholderFeaturePolicy.exposurePolicy());
@@ -483,8 +483,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-resource-nodes-gate", "addonRuntimeEnabled&&features.resource-nodes&&features.machines");
         state.put("runtime-resource-nodes-status", operationalFeatureEnabled("resource-nodes") ? "enabled" : "resource-nodes-or-machines-feature-disabled");
         state.put("runtime-resource-nodes-policy", "disabled-feature-blocks-node-generation-commands-gui-and-writes-preserve-data");
-        state.put("runtime-gui-gate", "addonRuntimeEnabled&&features.gui");
-        state.put("runtime-gui-status", operationalFeatureEnabled("gui") ? "enabled" : "gui-feature-disabled");
+        state.put("runtime-gui-gate", "addonRuntimeEnabled&&features.gui&&features.machines");
+        state.put("runtime-gui-status", operationalFeatureEnabled("gui") ? "enabled" : "gui-or-machines-feature-disabled");
         state.put("runtime-gui-policy", "disabled-feature-registers-no-gui-listener-and-opens-no-satis-menus");
         state.put("runtime-menus-gate", "addonRuntimeEnabled&&features.menus->features.gui");
         state.put("runtime-menus-status", operationalFeatureEnabled("menus") ? "enabled" : "menus-or-gui-feature-disabled");
@@ -4117,7 +4117,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             }
             String canonical = canonicalFeature(key);
             return switch (canonical) {
-                case "resource-nodes" -> featureEnabled("machines");
+                case "resource-nodes", "gui", "placeholders" -> featureEnabled("machines");
                 case "market", "contracts" -> featureEnabled("storage");
                 case "route-events" -> featureEnabled("addon-state");
                 default -> true;

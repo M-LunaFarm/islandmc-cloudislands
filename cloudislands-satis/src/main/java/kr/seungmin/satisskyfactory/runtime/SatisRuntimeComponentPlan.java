@@ -125,7 +125,7 @@ public record SatisRuntimeComponentPlan(
             blocked.add("machine-listener:" + (!machinesEnabled ? "machines-feature-disabled" : "not-registered"));
         }
         if (!guiListenerRegistered) {
-            blocked.add("gui-listener:" + (!guiEnabled ? "gui-feature-disabled" : "not-registered"));
+            blocked.add("gui-listener:" + (!guiEnabled ? guiBlockReason() : "not-registered"));
         }
         if (!lifecycleListenerRegistered) {
             blocked.add("lifecycle-listener:" + (!lifecycleListenerNeeded ? "lifecycle-state-disabled" : "not-registered"));
@@ -175,7 +175,7 @@ public record SatisRuntimeComponentPlan(
             reasons.add("research:research-feature-disabled");
         }
         if (!guiEnabled) {
-            reasons.add("gui:gui-feature-disabled");
+            reasons.add("gui:" + guiBlockReason());
         }
         if (!lifecycleListenerNeeded) {
             reasons.add("lifecycle:lifecycle-feature-or-state-disabled");
@@ -184,7 +184,7 @@ public record SatisRuntimeComponentPlan(
             reasons.add("maintenance:maintenance-feature-disabled");
         }
         if (!placeholdersEnabled) {
-            reasons.add("placeholders:placeholders-feature-disabled");
+            reasons.add("placeholders:" + placeholderBlockReason());
         } else if (!placeholderApiInstalled) {
             reasons.add("placeholders:placeholderapi-not-installed");
         }
@@ -203,11 +203,27 @@ public record SatisRuntimeComponentPlan(
         if (placeholderRegistered) {
             return "none";
         }
+        if (!machinesEnabled) {
+            return "placeholders-machines-feature-disabled";
+        }
         if (!placeholdersEnabled) {
             return "placeholders-feature-disabled";
         }
         if (!placeholderApiInstalled) {
             return "placeholderapi-not-installed";
+        }
+        return "not-registered";
+    }
+
+    private String guiBlockReason() {
+        if (guiListenerRegistered) {
+            return "none";
+        }
+        if (!machinesEnabled) {
+            return "gui-machines-feature-disabled";
+        }
+        if (!guiEnabled) {
+            return "gui-feature-disabled";
         }
         return "not-registered";
     }
