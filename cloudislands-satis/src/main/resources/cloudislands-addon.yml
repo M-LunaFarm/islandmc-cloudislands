@@ -91,6 +91,7 @@ runtime:
     policy-key: runtime-component-audit
     policy: disabled-features-unregister-commands-and-skip-listeners-tickers-placeholders-core-api-writers-and-dirty-save
 database:
+  fallback-operator-remediation: put-shared-backend-before-sqlite-or-disable-distributed-runtime-writes
   setup-path: setup.database
   setup-source-policy: env-type-explicit-type-core-api-marker-jdbc-url-single-backend-section-legacy-database
   setup-source-precedence: env-type>setup.database.type>setup.database.core-api.enabled>setup.database.jdbc.url>single-configured-shared-backend>legacy-database.type
@@ -198,6 +199,7 @@ database:
     fallback-enabled: CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED
     fallback-order: CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER
 state:
+  fallback-remediation-state-keys: database-fallback-readiness-summary,database-fallback-ready-chain-risk,database-fallback-ready-chain-production-safe,database-fallback-operator-remediation
   setup-readiness-state-keys: database-setup-source-precedence,database-setup-core-api-readiness-fields,database-setup-postgresql-readiness-fields,database-setup-mysql-readiness-fields,database-setup-mariadb-readiness-fields,database-setup-sqlite-readiness-fields,database-setup-jdbc-readiness-policy,database-setup-core-api-local-cache-write-policy
   authority: core-api-table-key-value-or-shared-database
   cloudislands-api-surface-policy: island-member-permission-location-upgrade-values-through-cloudislands-api-or-addon-spi

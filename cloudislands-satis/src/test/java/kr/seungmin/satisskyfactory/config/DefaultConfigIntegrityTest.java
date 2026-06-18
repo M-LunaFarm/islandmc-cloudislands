@@ -169,6 +169,8 @@ class DefaultConfigIntegrityTest {
         assertEquals("core-api-local-cache-writes-disabled-by-default-and-single-node-rescue-only", addon.getString("database.core-api-local-cache-write-policy"));
         assertTrue(addon.getString("state.setup-readiness-state-keys").contains("database-setup-core-api-readiness-fields"));
         assertTrue(addon.getString("state.setup-readiness-state-keys").contains("database-setup-core-api-local-cache-write-policy"));
+        assertEquals("put-shared-backend-before-sqlite-or-disable-distributed-runtime-writes", addon.getString("database.fallback-operator-remediation"));
+        assertTrue(addon.getString("state.fallback-remediation-state-keys").contains("database-fallback-operator-remediation"));
         assertTrue(addon.getString("state.addon-removal-state-keys").contains("addon-reload-runtime-restart-policy"));
         assertTrue(addon.getString("state.addon-removal-state-keys").contains("addon-core-refresh-reapply-policy"));
         assertTrue(addon.getString("state.core-refresh-reapply-state-keys").contains("last-core-refresh-policy"));

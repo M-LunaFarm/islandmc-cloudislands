@@ -1827,6 +1827,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-setup-sqlite-readiness-fields", String.join(",", SetupBackendFallbackPolicy.backendReadinessFields("SQLITE")));
         metadata.put("database-setup-jdbc-readiness-policy", SetupBackendFallbackPolicy.JDBC_READY_POLICY);
         metadata.put("database-setup-core-api-local-cache-write-policy", SetupBackendFallbackPolicy.LOCAL_CACHE_WRITE_POLICY);
+        metadata.put("database-fallback-operator-remediation", "put-shared-backend-before-sqlite-or-disable-distributed-runtime-writes");
+        metadata.put("fallback-remediation-state-keys", "database-fallback-readiness-summary,database-fallback-ready-chain-risk,database-fallback-ready-chain-production-safe,database-fallback-operator-remediation");
         metadata.put("setup-readiness-state-keys", "database-setup-source-precedence,database-setup-core-api-readiness-fields,database-setup-postgresql-readiness-fields,database-setup-mysql-readiness-fields,database-setup-mariadb-readiness-fields,database-setup-sqlite-readiness-fields,database-setup-jdbc-readiness-policy,database-setup-core-api-local-cache-write-policy");
         metadata.put("database-setup-fallback-precedence", SatisDatabaseConfigPolicy.FALLBACK_PRECEDENCE);
         metadata.put("database-setup-core-api-fallback", "cloudislands-addon-state-then-configured-shared-backend-then-sqlite");
@@ -2389,6 +2391,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-fallback-ready-chain", SatisDatabaseConfigPolicy.fallbackReadyChain(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata()));
         state.put("database-fallback-not-ready-backends", SatisDatabaseConfigPolicy.fallbackNotReadyBackends(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata()));
         state.put("database-fallback-readiness-summary", SatisDatabaseConfigPolicy.fallbackReadinessSummary(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata()));
+        state.put("database-fallback-operator-remediation", "put-shared-backend-before-sqlite-or-disable-distributed-runtime-writes");
         state.put("database-fallback-ready-chain-risk", SatisDatabaseConfigPolicy.fallbackReadyChainRisk(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata()));
         state.put("database-fallback-ready-chain-production-safe", Boolean.toString(SatisDatabaseConfigPolicy.fallbackReadyChainProductionSafe(databaseFallbackOrderMetadata(), databaseFallbackReadyBackendsMetadata())));
         state.put("database-fallback-first-shared-backend", databaseFirstSharedBackendMetadata());

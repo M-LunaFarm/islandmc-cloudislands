@@ -97,6 +97,8 @@ class SatisSkyFactoryPluginTest {
         assertTrue(metadata.get("database-setup-sqlite-readiness-fields").contains("single-node-or-shared-directory-only"));
         assertEquals("jdbc-backend-ready-requires-jdbc-url-or-host-database-credentials", metadata.get("database-setup-jdbc-readiness-policy"));
         assertEquals("core-api-local-cache-writes-disabled-by-default-and-single-node-rescue-only", metadata.get("database-setup-core-api-local-cache-write-policy"));
+        assertEquals("put-shared-backend-before-sqlite-or-disable-distributed-runtime-writes", metadata.get("database-fallback-operator-remediation"));
+        assertTrue(metadata.get("fallback-remediation-state-keys").contains("database-fallback-operator-remediation"));
         assertTrue(metadata.get("dirty-save-state-keys").contains("addon-removal-dirty-save-detach-policy"));
         assertTrue(metadata.get("dirty-save-state-keys").contains("addon-removal-dirty-save-reattach-policy"));
         assertTrue(metadata.get("dirty-save-state-keys").contains("addon-reload-runtime-restart-policy"));

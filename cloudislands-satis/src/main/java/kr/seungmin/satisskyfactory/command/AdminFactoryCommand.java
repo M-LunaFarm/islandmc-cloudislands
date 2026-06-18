@@ -1421,6 +1421,7 @@ public final class AdminFactoryCommand {
                         "database-fallback-ready-chain",
                         "database-fallback-not-ready-backends",
                         "database-fallback-readiness-summary",
+            "database-fallback-operator-remediation",
                         "database-fallback-ready-chain-risk",
                         "database-fallback-ready-chain-production-safe",
                         "database-fallback-first-shared-backend",
