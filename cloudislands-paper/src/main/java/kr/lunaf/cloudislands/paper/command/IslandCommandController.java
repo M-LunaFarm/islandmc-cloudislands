@@ -1407,10 +1407,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
             return;
         }
         int progress = RoutePreparationProgressPolicy.preparingPercent(attempt);
-        String target = routeTargetName(ticket);
+        String target = RoutePreparationProgressPolicy.safeTargetName(routeTargetName(ticket));
         String progressValue = Integer.toString(progress);
-        showRouteLoading(player, RoutePreparationProgressPolicy.preparingProgress(attempt), routeMessage("route-loading-progress", target + " 로딩 중 " + progress + "%", "target", target, "progress", progressValue));
-        player.sendActionBar(routeComponent("route-preparing-progress", target + "을 준비하는 중입니다... " + progress + "%", "target", target, "progress", progressValue));
+        showRouteLoading(player, RoutePreparationProgressPolicy.preparingProgress(attempt), routeMessage("route-loading-progress", RoutePreparationProgressPolicy.loadingTitle(target, attempt), "target", target, "progress", progressValue));
+        player.sendActionBar(routeComponent("route-preparing-progress", RoutePreparationProgressPolicy.preparingActionBar(target, attempt), "target", target, "progress", progressValue));
         CompletableFuture.runAsync(() -> coreApiClient.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
             if (status.isPresent()) {
                 routeTicket(player, status.get(), failureMessage, attempt + 1);
