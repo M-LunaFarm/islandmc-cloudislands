@@ -118,20 +118,21 @@ public final class MachineService {
         return true;
     }
 
-    public void saveLater(MachineInstance machine) {
+    public boolean saveLater(MachineInstance machine) {
         if (!loaded) {
-            return;
+            return false;
+        }
+        if (!writesEnabled()) {
+            return false;
         }
         machines.put(machine.machineId(), machine);
         byLocation.put(LocationKey.from(machine.location()), machine.machineId());
-        if (!writesEnabled()) {
-            return;
-        }
         if (dirtySaves == null) {
             database.saveMachine(machine);
         } else {
             dirtySaves.markMachine(machine);
         }
+        return true;
     }
 
     public void reactivate(MachineInstance machine) {
@@ -414,8 +415,11 @@ public final class MachineService {
             if (machine.status() == MachineStatus.BROKEN || machine.status() == status) {
                 continue;
             }
+            MachineStatus previousStatus = machine.status();
             machine.status(status);
-            saveLater(machine);
+            if (!saveLater(machine)) {
+                machine.status(previousStatus);
+            }
         }
     }
 
