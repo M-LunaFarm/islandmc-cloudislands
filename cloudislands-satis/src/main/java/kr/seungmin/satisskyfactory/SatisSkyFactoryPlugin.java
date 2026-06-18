@@ -508,7 +508,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-research-policy", "disabled-feature-blocks-research-commands-gui-and-writes-preserve-data");
         state.put("runtime-machines-gate", "addonRuntimeEnabled&&features.machines");
         state.put("runtime-machines-status", operationalFeatureEnabled("machines") ? "enabled" : "machines-feature-disabled");
-        state.put("runtime-machines-policy", "disabled-feature-blocks-machine-listener-ticker-commands-gui-and-writes-preserve-data");
+        state.put("runtime-machines-policy", "disabled-feature-blocks-machine-listener-ticker-commands-gui-service-and-writes-preserve-data");
+        state.put("runtime-machine-gui-service-policy", "openMachine-rejects-when-machines-feature-disabled");
         state.put("runtime-resource-nodes-gate", "addonRuntimeEnabled&&features.resource-nodes&&features.machines");
         state.put("runtime-resource-nodes-status", operationalFeatureEnabled("resource-nodes") ? "enabled" : "resource-nodes-or-machines-feature-disabled");
         state.put("runtime-resource-nodes-policy", "disabled-feature-blocks-node-generation-commands-gui-and-writes-preserve-data");

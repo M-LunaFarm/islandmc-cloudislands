@@ -249,6 +249,10 @@ public final class FactoryGuiService {
     }
 
     public void openMachine(Player player, MachineInstance machine) {
+        if (!enabled("machines")) {
+            messages.send(player, "feature-disabled", Map.of("feature", "machines"));
+            return;
+        }
         FactoryGuiHolder holder = new FactoryGuiHolder("machine", machine.islandUuid(), machine.machineId());
         Inventory inventory = Bukkit.createInventory(holder, 27, title("machine-title", "Machine"));
         holder.inventory(inventory);

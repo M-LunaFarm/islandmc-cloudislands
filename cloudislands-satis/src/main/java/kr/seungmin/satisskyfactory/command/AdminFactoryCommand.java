@@ -1421,6 +1421,7 @@ public final class AdminFactoryCommand {
                         "runtime-machines-gate",
                         "runtime-machines-status",
                         "runtime-machines-policy",
+                        "runtime-machine-gui-service-policy",
                         "runtime-resource-nodes-gate",
                         "runtime-resource-nodes-status",
                         "runtime-resource-nodes-policy",
