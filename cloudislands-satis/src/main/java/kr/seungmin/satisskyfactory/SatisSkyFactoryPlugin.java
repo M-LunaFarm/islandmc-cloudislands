@@ -4042,7 +4042,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             dirtySaves.forgetIsland(islandId);
         }
         coreHydratedIslandActivations.remove(islandId);
-        database.purgeIsland(islandId);
+        if (database != null) {
+            database.purgeIsland(islandId);
+        }
         publishLifecycleState(islandId, "purge");
         clearIslandLifecycleState(islandId);
     }

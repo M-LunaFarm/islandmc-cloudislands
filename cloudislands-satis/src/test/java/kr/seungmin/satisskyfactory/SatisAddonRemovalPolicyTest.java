@@ -29,6 +29,7 @@ class SatisAddonRemovalPolicyTest {
         assertTrue(source.contains("if (nodes != null)"));
         assertTrue(source.contains("nodes.dirtySaves(null);"));
         assertTrue(source.contains("dirtySaves = null;"));
+        assertTrue(source.contains("if (database != null) {\n            database.purgeIsland(islandId);\n        }"));
         assertTrue(source.contains("database.coreStateWriter(null);"));
         assertTrue(source.contains("database.coreTableWriter(null);"));
         assertTrue(source.contains("database.coreBulkWriter(null);"));
