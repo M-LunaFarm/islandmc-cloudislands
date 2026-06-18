@@ -265,7 +265,10 @@ public final class MachineService {
     }
 
     private boolean flushInventories(MachineInstance machine) {
-        VirtualInventory islandStorage = storage.islandStorage(machine.islandUuid());
+        VirtualInventory islandStorage = storage.islandStorageIfAllowed(machine.islandUuid()).orElse(null);
+        if (islandStorage == null) {
+            return false;
+        }
         List<VirtualInventory> buffers = machineInventories(machine);
         long bufferedItems = buffers.stream().mapToLong(VirtualInventory::used).sum();
         if (!islandStorage.canAdd("__machine_buffer__", bufferedItems)) {

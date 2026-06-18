@@ -1590,6 +1590,7 @@ public final class AdminFactoryCommand {
                         "runtime-market-storage-create-policy",
                         "runtime-contract-storage-create-policy",
                         "runtime-power-storage-create-policy",
+                        "runtime-machine-flush-storage-create-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",
