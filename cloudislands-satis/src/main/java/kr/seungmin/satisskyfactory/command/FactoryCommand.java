@@ -668,7 +668,10 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             return false;
         }
         cost.forEach(inventory::remove);
-        storage.save(inventory);
+        if (!storage.saveIfAllowed(inventory)) {
+            cost.forEach(inventory::add);
+            return false;
+        }
         return true;
     }
 

@@ -1460,6 +1460,7 @@ public final class AdminFactoryCommand {
                         "runtime-player-market-command-service-gate",
                         "runtime-gui-market-save-policy",
                         "runtime-player-repair-command-service-gate",
+                        "runtime-player-repair-storage-save-policy",
                         "runtime-resource-nodes-gate",
                         "runtime-resource-nodes-status",
                         "runtime-resource-nodes-policy",
