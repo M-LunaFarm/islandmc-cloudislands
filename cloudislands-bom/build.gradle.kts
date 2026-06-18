@@ -1,4 +1,7 @@
-plugins { `java-platform` }
+plugins {
+    `java-platform`
+    `maven-publish`
+}
 
 javaPlatform {
     allowDependencies()
@@ -17,5 +20,14 @@ dependencies {
         api(project(":cloudislands-storage"))
         api(project(":cloudislands-migration"))
         api(project(":cloudislands-testkit"))
+    }
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("cloudIslandsBom") {
+            from(components["javaPlatform"])
+            artifactId = "cloudislands-bom"
+        }
     }
 }

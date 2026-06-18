@@ -98,14 +98,51 @@ tasks.register<Copy>("distTools") {
     into(layout.buildDirectory.dir("dist/tools"))
 }
 
+tasks.register<Copy>("distDeveloperKit") {
+    group = "distribution"
+    description = "Collects API, client, protocol, testkit, and BOM artifacts for addon/plugin developers."
+
+    val developerProjects = listOf(
+        "cloudislands-api",
+        "cloudislands-common",
+        "cloudislands-protocol",
+        "cloudislands-core-client",
+        "cloudislands-storage",
+        "cloudislands-migration",
+        "cloudislands-testkit"
+    )
+    developerProjects.forEach { projectName ->
+        val jarTask = project(":$projectName").tasks.named<Jar>("jar")
+        val sourcesJarTask = project(":$projectName").tasks.named<Jar>("sourcesJar")
+        dependsOn(jarTask)
+        dependsOn(sourcesJarTask)
+        from(jarTask.flatMap { it.archiveFile }) {
+            into("libs")
+        }
+        from(sourcesJarTask.flatMap { it.archiveFile }) {
+            into("sources")
+        }
+    }
+
+    val bomProject = project(":cloudislands-bom")
+    val bomPomTask = bomProject.tasks.named("generatePomFileForCloudIslandsBomPublication")
+    dependsOn(bomPomTask)
+    from(bomProject.layout.buildDirectory.file("publications/cloudIslandsBom/pom-default.xml")) {
+        rename { "cloudislands-bom-${project.version}.pom" }
+        into("bom")
+    }
+    into(layout.buildDirectory.dir("dist/devkit"))
+}
+
 tasks.register<Zip>("distBundle") {
     group = "distribution"
-    description = "Packages the CloudIslands plugins, optional addons, Core API service runtime, and migration support jars."
+    description = "Packages the CloudIslands plugins, optional addons, Core API service runtime, migration support jars, and developer artifacts."
     dependsOn(tasks.named("verifyNoMarkdownDocs"))
     dependsOn(tasks.named("distPlugins"))
     dependsOn(tasks.named("distAddons"))
     dependsOn(tasks.named("distServices"))
     dependsOn(tasks.named("distTools"))
+    dependsOn(tasks.named("distDeveloperKit"))
     archiveBaseName.set("cloudislands")
     archiveVersion.set(project.version.toString())
     from(layout.buildDirectory.dir("dist/plugins")) {
@@ -119,6 +156,9 @@ tasks.register<Zip>("distBundle") {
     }
     from(layout.buildDirectory.dir("dist/tools")) {
         into("tools")
+    }
+    from(layout.buildDirectory.dir("dist/devkit")) {
+        into("devkit")
     }
     destinationDirectory.set(layout.buildDirectory.dir("dist"))
 }
