@@ -616,6 +616,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("write-gate-biomes", Boolean.toString(operationalFeatureEnabled("biomes")));
         state.put("write-gate-chat", Boolean.toString(operationalFeatureEnabled("chat")));
         state.put("write-gate-templates", Boolean.toString(operationalFeatureEnabled("templates")));
+        state.put("runtime-biomes-status", operationalFeatureEnabled("biomes") ? "enabled" : "biomes-feature-disabled-or-lifecycle-disabled");
+        state.put("runtime-biomes-policy", "disabled-feature-skips-biome-lifecycle-synchronization-and-preserves-satis-state");
+        state.put("runtime-chat-status", operationalFeatureEnabled("chat") ? "enabled" : "chat-feature-disabled-or-lifecycle-disabled");
+        state.put("runtime-chat-policy", "disabled-feature-skips-chat-diagnostics-and-stores-no-message-body");
+        state.put("runtime-templates-status", operationalFeatureEnabled("templates") ? "enabled" : "templates-feature-disabled-or-lifecycle-disabled");
+        state.put("runtime-templates-policy", "disabled-feature-skips-template-metadata-diagnostics-without-owning-cloudislands-templates");
         state.put("write-gate-migration", Boolean.toString(operationalFeatureEnabled("migration")));
         state.put("write-gate-migration-policy", "disabled-feature-hides-migration-admin-surface-and-rejects-scan-dryrun-verify-import-rollback");
         state.put("write-gate-lifecycle-subfeatures", "members,permissions,level-values,warps,biomes,chat,templates");
