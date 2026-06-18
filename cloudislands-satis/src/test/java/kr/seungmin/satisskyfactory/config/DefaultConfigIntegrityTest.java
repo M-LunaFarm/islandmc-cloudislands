@@ -44,6 +44,8 @@ class DefaultConfigIntegrityTest {
         assertEquals("local-sqlite-fallback-preserves-state-but-blocks-distributed-runtime-ticks", addon.getString("runtime.local-fallback-tick-policy"));
         assertEquals("core-api-writes-require-addon-state-write-authority", addon.getString("runtime.write-authority-policy"));
         assertEquals("local-sqlite-fallback-preserves-state-but-blocks-distributed-runtime-writes", addon.getString("runtime.local-fallback-write-policy"));
+        assertEquals("server-a-soft-full-or-draining-core-api-allocates-new-island-on-server-b-and-player-still-runs-logical-island-command", addon.getString("state.ab-server-new-island-scenario"));
+        assertEquals("existing-island-deactivates-on-server-a-saves-satis-state-by-island-uuid-activates-on-server-b-and-remaps-volatile-placement", addon.getString("state.ab-server-existing-island-scenario"));
         assertTrue(addon.getBoolean("superiorskyblock2.migration-input-only"));
         assertFalse(addon.getBoolean("superiorskyblock2.runtime-dependency"));
         assertEquals("verify-no-legacy-provider-passed-before-import", addon.getString("superiorskyblock2.import-provider-prerequisite"));

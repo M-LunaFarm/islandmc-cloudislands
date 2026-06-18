@@ -781,6 +781,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("island-state-remap-key", SatisStatePortabilityPolicy.REMAP_AUDIT_KEY);
         state.put("island-state-failover-policy", "last-confirmed-addon-state-only");
         state.put("island-state-ab-node-scenario", "A-server-to-B-server-preserve-addon-state");
+        state.put("island-state-ab-server-new-island-scenario", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.operationScenarios().get("a-b-server-new-island-mode"));
+        state.put("island-state-ab-server-existing-island-scenario", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.operationScenarios().get("a-b-server-existing-island-mode"));
         state.put("island-state-multi-node-scenario", "registered-node-pool-preserves-addon-state-by-island-uuid");
         state.put("island-state-node-count-policy", "no-hardcoded-island-node-count");
         state.put("island-state-node-identity-policy", "node-id-is-routing-context-not-addon-state-key");
@@ -2009,6 +2011,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("island-state-node-identity-policy", "node-id-is-routing-context-not-addon-state-key"),
                 Map.entry("island-state-five-six-node-policy", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.FIVE_SIX_NODE_POLICY),
                 Map.entry("island-state-seven-plus-node-policy", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.ABOVE_SIX_NODE_POLICY),
+                Map.entry("island-state-ab-server-new-island-scenario", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.operationScenarios().get("a-b-server-new-island-mode")),
+                Map.entry("island-state-ab-server-existing-island-scenario", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.operationScenarios().get("a-b-server-existing-island-mode")),
                 Map.entry("island-state-scale-policy", "node-count-does-not-change-satis-state-keys-or-storage-authority"),
                 Map.entry("island-state-node-handoff-policy", "A-node-save-B-node-restore-by-island-uuid"),
                 Map.entry("feature-gate-scope", "global-and-per-feature"),
