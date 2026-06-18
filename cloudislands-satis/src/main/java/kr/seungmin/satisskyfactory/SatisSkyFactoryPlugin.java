@@ -755,7 +755,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("island-state-active-world-source", "cloudislands-runtime");
         state.put("island-state-active-runtime-source", "CloudIslands IslandRuntime");
         state.put("island-state-location-remap", "active-world-center-delta");
-        state.put("island-state-remap-key", "islandUuid+activeWorld+activeCenter");
+        state.put("island-state-owner-key", SatisStatePortabilityPolicy.STATE_OWNER_KEY);
+        state.put("island-state-remap-audit-key", SatisStatePortabilityPolicy.REMAP_AUDIT_KEY);
+        state.put("island-state-remap-key", SatisStatePortabilityPolicy.REMAP_AUDIT_KEY);
         state.put("island-state-failover-policy", "last-confirmed-addon-state-only");
         state.put("island-state-ab-node-scenario", "A-server-to-B-server-preserve-addon-state");
         state.put("island-state-multi-node-scenario", "registered-node-pool-preserves-addon-state-by-island-uuid");
@@ -2281,6 +2283,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,delete-backup-failed,restore,reset,recovery,repair,runtime,pre-visit,visit,rename,invite,member-join,member-left,member-role,member,role,ownership,access,visitor-ban,visitor-kick,flag,permission-check,permission,chat,blocks,block-value,mission-progress,mission-complete,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot,template");
         state.put("lifecycle-event-actions", "pre-create=diagnostic,migration-request=preflush,activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete=purge,delete-backup-failed=flush-and-mark-failed,reset=purge,recovery=suspend,member-role-ownership-permission-bank-biome-home-warp-level-worth=synchronize,permission-check-and-pre-visit=diagnostic");
         state.put("lifecycle-event-storage-policy", "cloudislands-island-uuid-stable-state-remap-active-world");
+        state.put("lifecycle-state-owner-key", SatisStatePortabilityPolicy.STATE_OWNER_KEY);
+        state.put("lifecycle-remap-audit-key", SatisStatePortabilityPolicy.REMAP_AUDIT_KEY);
         state.put("lifecycle-placement-source-policy", "record-core-payload-or-paper-allocator-on-activate-and-migrate");
         state.put("lifecycle-placement-source-state-key", "last-lifecycle-operation");
         state.put("route-event-source", "CloudIslandsAddon.route-ticket-events");
