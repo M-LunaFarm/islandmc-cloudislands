@@ -43,7 +43,12 @@ public final class SatisFeatureGateResolver {
             "satis.enabled",
             "integration.enabled",
             "addons.cloudislands-satis.enabled",
-            "integration.mode!=DISABLED"
+            "setup.satis.mode|addons.cloudislands-satis.integration.mode|integration.mode!=DISABLED"
+    );
+    private static final List<String> INTEGRATION_MODE_PATHS = List.of(
+            "setup.satis.mode",
+            "addons.cloudislands-satis.integration.mode",
+            "integration.mode"
     );
     private static final Map<String, String> ALIASES = Map.of(
             "factories", "machines",
@@ -94,6 +99,10 @@ public final class SatisFeatureGateResolver {
         return ROOT_GATES;
     }
 
+    public static List<String> integrationModePaths() {
+        return INTEGRATION_MODE_PATHS;
+    }
+
     public static String rootGateMetadata() {
         return String.join("&&", ROOT_GATES);
     }
@@ -135,7 +144,27 @@ public final class SatisFeatureGateResolver {
         if (!config.getBoolean("addons.cloudislands-satis.enabled", true)) {
             return false;
         }
-        return !"DISABLED".equals(config.getString("integration.mode", "EXTERNAL_ADDON").toUpperCase(Locale.ROOT));
+        return !"DISABLED".equals(integrationMode(config, "EXTERNAL_ADDON"));
+    }
+
+    public static String integrationMode(ConfigurationSection config, String fallback) {
+        String raw = fallback == null || fallback.isBlank() ? "EXTERNAL_ADDON" : fallback;
+        if (config != null) {
+            for (String path : INTEGRATION_MODE_PATHS) {
+                String configured = config.getString(path, "");
+                if (configured != null && !configured.isBlank()) {
+                    raw = configured;
+                    break;
+                }
+            }
+        }
+        String normalized = raw.trim().replace('-', '_').toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "DISABLE", "DISABLED", "OFF" -> "DISABLED";
+            case "BUILTIN", "BUILT_IN", "BUILT_IN_ADDON", "BUILTIN_ADDON", "BUILT_IN_COMPATIBLE" -> "BUILT_IN_COMPATIBLE";
+            case "EXTERNAL", "EXTERNAL_PLUGIN", "PLUGIN", "ADDON", "EXTERNAL_ADDON" -> "EXTERNAL_ADDON";
+            default -> "EXTERNAL_ADDON";
+        };
     }
 
     public static boolean featureEnabled(ConfigurationSection config, String feature) {
@@ -163,7 +192,7 @@ public final class SatisFeatureGateResolver {
         if (!config.getBoolean("addons.cloudislands-satis.enabled", true)) {
             return "addon-root-disabled";
         }
-        if ("DISABLED".equals(config.getString("integration.mode", "EXTERNAL_ADDON").toUpperCase(Locale.ROOT))) {
+        if ("DISABLED".equals(integrationMode(config, "EXTERNAL_ADDON"))) {
             return "integration-mode-disabled";
         }
         return "none";

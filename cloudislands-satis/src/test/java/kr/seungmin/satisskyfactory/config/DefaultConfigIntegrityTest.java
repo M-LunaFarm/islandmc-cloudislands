@@ -44,6 +44,7 @@ class DefaultConfigIntegrityTest {
         assertTrue(plugin.isConfigurationSection("commands.sfactory"));
         assertFalse(plugin.isConfigurationSection("commands.ciadmin"));
         assertTrue(config.getBoolean("satis.enabled"));
+        assertEquals("EXTERNAL_ADDON", config.getString("setup.satis.mode"));
         assertEquals("EXTERNAL_ADDON", config.getString("integration.mode"));
         assertEquals("CLOUDISLANDS", config.getString("integration.skyblock-provider"));
         assertTrue(config.getBoolean("integration.cloudislands-adapter"));

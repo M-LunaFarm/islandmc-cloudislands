@@ -47,7 +47,8 @@ runtime:
     - BUILT_IN_COMPATIBLE
     - DISABLED
   mode-policy: external-addon-and-built-in-compatible-modes-share-cloudislands-addon-feature-gates
-  packaging-policy: integration.mode selects external-plugin, built-in-compatible, or disabled-unregistered registry metadata
+  packaging-policy: setup.satis.mode, addons.cloudislands-satis.integration.mode, or integration.mode selects external-plugin, built-in-compatible, or disabled-unregistered registry metadata
+  mode-config-paths: setup.satis.mode,addons.cloudislands-satis.integration.mode,integration.mode
   owns-islands: false
   standalone-island-runtime: false
   missing-cloudislands-behavior: disable-satis-runtime-no-standalone-island-management

@@ -173,6 +173,9 @@ addons:
         chat: lifecycle
         templates: lifecycle
 setup:
+  satis:
+    # Setup-time alias for integration.mode. Valid: EXTERNAL_ADDON, BUILT_IN_COMPATIBLE, DISABLED.
+    mode: EXTERNAL_ADDON
   database:
     # Highest-priority config shape for new CloudIslands installs.
     # SQLITE, POSTGRESQL, MYSQL, MARIADB, CORE_API.

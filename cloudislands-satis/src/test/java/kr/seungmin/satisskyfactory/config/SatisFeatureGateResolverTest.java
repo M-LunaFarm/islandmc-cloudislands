@@ -32,6 +32,22 @@ class SatisFeatureGateResolverTest {
     }
 
     @Test
+    void setupOrAddonIntegrationModeOverridesDefaultRuntimeMode() {
+        YamlConfiguration setupDisabled = defaults();
+        setupDisabled.set("setup.satis.mode", "disabled");
+        setupDisabled.set("integration.mode", "EXTERNAL_ADDON");
+
+        YamlConfiguration addonBuiltIn = defaults();
+        addonBuiltIn.set("addons.cloudislands-satis.integration.mode", "built-in-compatible");
+
+        assertEquals("DISABLED", SatisFeatureGateResolver.integrationMode(setupDisabled, "EXTERNAL_ADDON"));
+        assertFalse(SatisFeatureGateResolver.rootEnabled(setupDisabled));
+        assertEquals("integration-mode-disabled", SatisFeatureGateResolver.rootBlockReason(setupDisabled));
+        assertEquals("BUILT_IN_COMPATIBLE", SatisFeatureGateResolver.integrationMode(addonBuiltIn, "EXTERNAL_ADDON"));
+        assertTrue(SatisFeatureGateResolver.rootEnabled(addonBuiltIn));
+    }
+
+    @Test
     void legacyIntegrationSwitchAlsoDisablesTheRuntimeRoot() {
         YamlConfiguration config = defaults();
         config.set("integration.enabled", false);
@@ -104,12 +120,16 @@ class SatisFeatureGateResolverTest {
                 SatisFeatureGateResolver.featureRootMetadata()
         );
         assertEquals(
-                List.of("satis.enabled", "integration.enabled", "addons.cloudislands-satis.enabled", "integration.mode!=DISABLED"),
+                List.of("satis.enabled", "integration.enabled", "addons.cloudislands-satis.enabled", "setup.satis.mode|addons.cloudislands-satis.integration.mode|integration.mode!=DISABLED"),
                 SatisFeatureGateResolver.rootGates()
         );
         assertEquals(
-                "satis.enabled&&integration.enabled&&addons.cloudislands-satis.enabled&&integration.mode!=DISABLED",
+                "satis.enabled&&integration.enabled&&addons.cloudislands-satis.enabled&&setup.satis.mode|addons.cloudislands-satis.integration.mode|integration.mode!=DISABLED",
                 SatisFeatureGateResolver.rootGateMetadata()
+        );
+        assertEquals(
+                List.of("setup.satis.mode", "addons.cloudislands-satis.integration.mode", "integration.mode"),
+                SatisFeatureGateResolver.integrationModePaths()
         );
         assertEquals(
                 "root-gates-disable-all-satis-runtime-and-feature-roots-disable-their-runtime-components",

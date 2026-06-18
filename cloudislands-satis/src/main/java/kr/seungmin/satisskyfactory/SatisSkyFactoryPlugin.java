@@ -1964,14 +1964,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String configuredIntegrationMode() {
-        String raw = configs == null ? "ADDON" : configs.main().getString("integration.mode", "ADDON");
-        String normalized = raw == null ? "ADDON" : raw.trim().replace('-', '_').toUpperCase(Locale.ROOT);
-        return switch (normalized) {
-            case "DISABLE", "DISABLED", "OFF" -> "DISABLED";
-            case "BUILTIN", "BUILT_IN", "BUILT_IN_ADDON", "BUILTIN_ADDON", "BUILT_IN_COMPATIBLE" -> "BUILT_IN_COMPATIBLE";
-            case "EXTERNAL", "EXTERNAL_PLUGIN", "PLUGIN", "ADDON", "EXTERNAL_ADDON" -> "EXTERNAL_ADDON";
-            default -> "EXTERNAL_ADDON";
-        };
+        return SatisFeatureGateResolver.integrationMode(configs == null ? null : configs.main(), "ADDON");
     }
 
     private String integrationRuntimeShape(String integrationMode) {
