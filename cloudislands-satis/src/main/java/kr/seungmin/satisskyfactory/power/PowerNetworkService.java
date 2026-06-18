@@ -186,9 +186,16 @@ public final class PowerNetworkService {
         if (stored > maxStored) {
             if (writeBattery) {
                 long excess = stored - maxStored;
+                Map<String, Long> before = islandStorage.items();
+                long previousStored = stored;
                 if (islandStorage.remove(POWER_CHARGE_ITEM, excess)) {
-                    stored = maxStored;
-                    storage.save(islandStorage);
+                    if (storage.saveIfAllowed(islandStorage)) {
+                        stored = maxStored;
+                    } else {
+                        restoreInventory(islandStorage, before);
+                        storage.saveIfAllowed(islandStorage);
+                        stored = previousStored;
+                    }
                 }
             } else {
                 stored = maxStored;
@@ -198,9 +205,14 @@ public final class PowerNetworkService {
         if (generation >= consumption) {
             long charge = Math.max(0, Math.round(Math.min(generation - consumption, maxStored - stored)));
             if (charge > 0) {
+                Map<String, Long> before = islandStorage.items();
                 if (writeBattery && islandStorage.add(POWER_CHARGE_ITEM, charge)) {
-                    stored += charge;
-                    storage.save(islandStorage);
+                    if (storage.saveIfAllowed(islandStorage)) {
+                        stored += charge;
+                    } else {
+                        restoreInventory(islandStorage, before);
+                        storage.saveIfAllowed(islandStorage);
+                    }
                 } else if (!writeBattery) {
                     stored += charge;
                 }
@@ -208,10 +220,15 @@ public final class PowerNetworkService {
         } else {
             long discharge = maxStored <= 0 ? 0 : Math.max(0, Math.round(Math.min(stored, consumption - generation)));
             if (discharge > 0) {
+                Map<String, Long> before = islandStorage.items();
                 if (writeBattery && islandStorage.remove(POWER_CHARGE_ITEM, discharge)) {
-                    stored -= discharge;
-                    available += discharge;
-                    storage.save(islandStorage);
+                    if (storage.saveIfAllowed(islandStorage)) {
+                        stored -= discharge;
+                        available += discharge;
+                    } else {
+                        restoreInventory(islandStorage, before);
+                        storage.saveIfAllowed(islandStorage);
+                    }
                 } else if (!writeBattery) {
                     stored -= discharge;
                     available += discharge;
@@ -223,6 +240,11 @@ public final class PowerNetworkService {
         }
         double ratio = Math.max(0.0, Math.min(1.0, available / consumption));
         return new NetworkState(cycleId, ratio, generation, consumption, stored, batteryCapacity);
+    }
+
+    private void restoreInventory(VirtualInventory inventory, Map<String, Long> snapshot) {
+        inventory.items().keySet().forEach(itemId -> inventory.set(itemId, 0));
+        snapshot.forEach(inventory::set);
     }
 
     private boolean writesEnabled() {

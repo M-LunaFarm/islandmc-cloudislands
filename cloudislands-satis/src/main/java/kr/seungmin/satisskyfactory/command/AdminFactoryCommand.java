@@ -1504,6 +1504,7 @@ public final class AdminFactoryCommand {
                         "runtime-machine-tick-node-producer-save-policy",
                         "runtime-machine-tick-recipe-save-policy",
                 "runtime-machine-tick-logistics-save-policy",
+                "runtime-power-battery-save-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",
