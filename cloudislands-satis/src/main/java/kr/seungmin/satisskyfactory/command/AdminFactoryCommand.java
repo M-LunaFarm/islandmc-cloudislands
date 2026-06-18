@@ -1724,7 +1724,7 @@ public final class AdminFactoryCommand {
                 || command.contains(" addresearch ") && !enabled("research")
                 || (command.contains(" setdebt ") || command.contains(" charge ") || command.contains(" repairhere")) && !enabled("maintenance")
                 || command.contains(" gennodes ") && !enabled("resource-nodes")
-                || command.contains(" migration") && !enabled("migration")
+                || (command.contains(" migration") || command.contains(" migrate-superiorskyblock2") || command.contains(" migrate-ss2")) && !enabled("migration")
                 || command.contains(" state") && !enabled("addon-state")
                 || command.contains(" debug ") && !debugCommandsVisible()
                 || command.contains(" debug networks") && !enabled("machines");
