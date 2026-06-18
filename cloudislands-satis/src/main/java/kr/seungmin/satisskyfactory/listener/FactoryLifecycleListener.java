@@ -8,6 +8,7 @@ import kr.seungmin.satisskyfactory.machine.MaintenanceService;
 import kr.seungmin.satisskyfactory.model.FactoryIsland;
 import kr.seungmin.satisskyfactory.model.MachineInstance;
 import kr.seungmin.satisskyfactory.model.MachineStatus;
+import kr.seungmin.satisskyfactory.model.MaintenanceStatus;
 import kr.seungmin.satisskyfactory.node.ResourceNodeService;
 import kr.seungmin.satisskyfactory.power.PowerNetworkService;
 import org.bukkit.Location;
@@ -61,6 +62,8 @@ public final class FactoryLifecycleListener implements Listener {
         }
         skyblock.getIslandOf(event.getPlayer()).ifPresent(islandRef -> {
             FactoryIsland island = islands.getOrCreate(islandRef);
+            long previousLastTickAt = island.lastTickAt();
+            MaintenanceStatus previousStatus = island.maintenanceStatus();
             island.lastTickAt(System.currentTimeMillis());
             Location origin = skyblock.getIslandCenter(islandRef).orElse(event.getPlayer().getLocation());
             if (resourceNodesEnabled()) {
@@ -75,7 +78,10 @@ public final class FactoryLifecycleListener implements Listener {
                 itemNetworks.rebuildIsland(island.islandUuid());
                 power.rebuildIsland(island.islandUuid());
             }
-            islands.save(island);
+            if (!islands.save(island)) {
+                island.lastTickAt(previousLastTickAt);
+                island.maintenanceStatus(previousStatus);
+            }
         });
     }
 
@@ -85,8 +91,12 @@ public final class FactoryLifecycleListener implements Listener {
             return;
         }
         islands.existingContext(event.getPlayer()).ifPresent(context -> {
-            context.factoryIsland().lastTickAt(System.currentTimeMillis());
-            islands.save(context.factoryIsland());
+            FactoryIsland island = context.factoryIsland();
+            long previousLastTickAt = island.lastTickAt();
+            island.lastTickAt(System.currentTimeMillis());
+            if (!islands.save(island)) {
+                island.lastTickAt(previousLastTickAt);
+            }
         });
     }
 
