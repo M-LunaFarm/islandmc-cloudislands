@@ -1,10 +1,12 @@
 package kr.lunaf.cloudislands.common.protection;
 
+import kr.lunaf.cloudislands.common.island.PortableIslandCoordinateMapper;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RegionIndexTest {
@@ -47,5 +49,37 @@ class RegionIndexTest {
         assertTrue(index.findIsland(ISLAND).isEmpty());
         assertEquals(0, index.indexedChunkCount());
         assertEquals(0, index.indexedIslandCount());
+    }
+
+    @Test
+    void buildsProtectionRegionFromCurrentRuntimePlacement() {
+        PortableIslandCoordinateMapper.RuntimePlacement source =
+                new PortableIslandCoordinateMapper.RuntimePlacement("island-1", "ci_shard_001", 2, 0, 1024);
+        PortableIslandCoordinateMapper.RuntimePlacement target =
+                new PortableIslandCoordinateMapper.RuntimePlacement("island-2", "ci_shard_003", 5, 3, 1024);
+
+        IslandRegion sourceRegion = IslandRegion.fromRuntimePlacement(ISLAND, source, 150);
+        IslandRegion targetRegion = IslandRegion.fromRuntimePlacement(ISLAND, target, 150);
+
+        assertEquals("ci_shard_001", sourceRegion.world());
+        assertEquals(1898, sourceRegion.minX());
+        assertEquals(2198, sourceRegion.maxX());
+        assertEquals(-150, sourceRegion.minZ());
+        assertEquals(150, sourceRegion.maxZ());
+        assertEquals("ci_shard_003", targetRegion.world());
+        assertEquals(4970, targetRegion.minX());
+        assertEquals(5270, targetRegion.maxX());
+        assertEquals(2922, targetRegion.minZ());
+        assertEquals(3222, targetRegion.maxZ());
+        assertTrue(targetRegion.contains("ci_shard_003", 5120, 3072));
+        assertTrue(targetRegion.contains("ci_shard_001", 5120, 3072) == false);
+    }
+
+    @Test
+    void rejectsNegativeLogicalIslandRegionSize() {
+        PortableIslandCoordinateMapper.RuntimePlacement placement =
+                new PortableIslandCoordinateMapper.RuntimePlacement("island-1", "ci_shard_001", 0, 0, 1024);
+
+        assertThrows(IllegalArgumentException.class, () -> IslandRegion.fromRuntimePlacement(ISLAND, placement, -1));
     }
 }
