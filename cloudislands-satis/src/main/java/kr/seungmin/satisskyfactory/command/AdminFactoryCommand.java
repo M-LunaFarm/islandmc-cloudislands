@@ -454,6 +454,9 @@ public final class AdminFactoryCommand {
     }
 
     private boolean giveVirtualOnlyItem(CommandSender sender, Player target, String itemId, long amount) {
+        if (!requireFeature(sender, "storage")) {
+            return false;
+        }
         return islands.context(target).map(context -> {
             var inventory = storage.islandStorage(context.factoryIsland().islandUuid());
             if (!inventory.add(itemId, amount)) {
@@ -1424,6 +1427,7 @@ public final class AdminFactoryCommand {
                         "runtime-machine-gui-service-policy",
                         "runtime-machine-break-storage-gate",
                         "runtime-machine-break-policy",
+                        "runtime-admin-virtual-item-storage-gate",
                         "runtime-resource-nodes-gate",
                         "runtime-resource-nodes-status",
                         "runtime-resource-nodes-policy",
