@@ -1439,6 +1439,8 @@ public final class AdminFactoryCommand {
                         "runtime-tick-authority-shared-sql-policy",
                         "runtime-tick-authority-local-fallback-policy",
                         "runtime-tick-authority-core-hydrated-islands",
+                        "runtime-write-authority-policy",
+                        "runtime-write-authority-local-fallback-policy",
                         "runtime-superior-migration-input-only",
                         "runtime-superior-runtime-dependency",
                         "runtime-superior-runtime-policy",

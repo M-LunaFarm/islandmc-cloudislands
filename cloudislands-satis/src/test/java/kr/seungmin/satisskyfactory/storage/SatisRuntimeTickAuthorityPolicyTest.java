@@ -34,4 +34,15 @@ class SatisRuntimeTickAuthorityPolicyTest {
         assertEquals("local-sqlite-fallback-preserves-state-but-blocks-distributed-runtime-ticks",
                 SatisRuntimeTickAuthorityPolicy.tickPolicy(DatabaseService.StorageBackend.SQLITE));
     }
+
+    @Test
+    void localSqliteFallbackDoesNotRunDistributedRuntimeWrites() {
+        assertTrue(SatisRuntimeTickAuthorityPolicy.writeReady(DatabaseService.StorageBackend.CORE_API, true));
+        assertTrue(SatisRuntimeTickAuthorityPolicy.writeReady(DatabaseService.StorageBackend.POSTGRESQL, true));
+        assertFalse(SatisRuntimeTickAuthorityPolicy.writeReady(DatabaseService.StorageBackend.CORE_API, false));
+        assertFalse(SatisRuntimeTickAuthorityPolicy.writeReady(DatabaseService.StorageBackend.SQLITE, true));
+        assertFalse(SatisRuntimeTickAuthorityPolicy.writeReady(null, true));
+        assertEquals("local-sqlite-fallback-preserves-state-but-blocks-distributed-runtime-writes",
+                SatisRuntimeTickAuthorityPolicy.writePolicy(DatabaseService.StorageBackend.SQLITE));
+    }
 }

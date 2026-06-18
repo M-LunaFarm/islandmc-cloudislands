@@ -79,6 +79,8 @@ class AdminFactoryCommandTest {
         assertTrue(source.contains("\"runtime-tick-authority-policy\""));
         assertTrue(source.contains("\"runtime-tick-authority-local-fallback-policy\""));
         assertTrue(source.contains("\"runtime-tick-authority-core-hydrated-islands\""));
+        assertTrue(source.contains("\"runtime-write-authority-policy\""));
+        assertTrue(source.contains("\"runtime-write-authority-local-fallback-policy\""));
     }
 
     @SuppressWarnings("unchecked")

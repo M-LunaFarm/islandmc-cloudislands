@@ -374,7 +374,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean dataWritesEnabled() {
-        return storageWriteAuthorityReady() && runtimeWriteFeatureEnabled();
+        if (database == null) {
+            return false;
+        }
+        return SatisRuntimeTickAuthorityPolicy.writeReady(database.activeBackend(), storageWriteAuthorityReady())
+                && runtimeWriteFeatureEnabled();
     }
 
     private boolean satisRuntimeTickReadyForIsland(UUID islandId) {
@@ -661,6 +665,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-tick-authority-shared-sql-policy", SatisRuntimeTickAuthorityPolicy.SHARED_SQL_TICK_POLICY);
         state.put("runtime-tick-authority-local-fallback-policy", SatisRuntimeTickAuthorityPolicy.LOCAL_FALLBACK_TICK_POLICY);
         state.put("runtime-tick-authority-core-hydrated-islands", Integer.toString(coreHydratedIslandActivations.size()));
+        state.put("runtime-write-authority-policy", SatisRuntimeTickAuthorityPolicy.writePolicy(database == null ? null : database.activeBackend()));
+        state.put("runtime-write-authority-local-fallback-policy", SatisRuntimeTickAuthorityPolicy.LOCAL_FALLBACK_WRITE_POLICY);
         state.put("runtime-core-api-state-writer", Boolean.toString(coreApiState != null));
         state.put("runtime-core-api-state-bulk-writer", Boolean.toString(coreApiState != null));
         state.put("runtime-core-api-state-writer-gate", "addonRuntimeEnabled&&features.addon-state&&databaseBackend=CORE_API&&cloudislands-addon-state-api");
@@ -707,7 +713,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private void putDataWriteGateState(Map<String, String> state) {
         state.put("data-write-mode", dataWritesEnabled() ? "enabled" : "disabled");
         state.put("data-write-authority-ready", Boolean.toString(storageWriteAuthorityReady()));
-        state.put("data-write-authority-policy", "CORE_API backend requires addon-state writers before local cache writes are accepted");
+        state.put("data-write-authority-policy", SatisRuntimeTickAuthorityPolicy.writePolicy(database == null ? null : database.activeBackend()));
         state.put("data-write-feature-ready", Boolean.toString(runtimeWriteFeatureEnabled()));
         state.put("write-gate-machines", Boolean.toString(operationalFeatureEnabled("machines")));
         state.put("write-gate-machines-direct", Boolean.toString(operationalFeatureEnabled("machines")));
