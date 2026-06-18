@@ -79,6 +79,7 @@ class SatisSkyFactoryPluginTest {
         assertEquals("A-node-save-B-node-restore-by-island-uuid", metadata.get("island-state-node-handoff-policy"));
         assertEquals("read-only-snapshot-or-sqlite-scan-no-live-provider-hooks", metadata.get("migration-source-policy"));
         assertEquals("legacy-provider-is-migration-input-only-never-runtime-dependency", metadata.get("migration-runtime-dependency-policy"));
+        assertEquals("verify-no-legacy-provider-passed-before-import", metadata.get("legacy-satismc-import-provider-prerequisite"));
         assertEquals("create-cloudislands-migration-manifest-before-import", metadata.get("migration-manifest-policy"));
         assertEquals("cloudislands-island-uuid", metadata.get("migration-output-id-policy"));
         assertEquals(

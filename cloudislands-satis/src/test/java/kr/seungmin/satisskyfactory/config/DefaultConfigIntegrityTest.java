@@ -41,6 +41,7 @@ class DefaultConfigIntegrityTest {
         assertEquals("local-sqlite-fallback-preserves-state-but-blocks-distributed-runtime-writes", addon.getString("runtime.local-fallback-write-policy"));
         assertTrue(addon.getBoolean("superiorskyblock2.migration-input-only"));
         assertFalse(addon.getBoolean("superiorskyblock2.runtime-dependency"));
+        assertEquals("verify-no-legacy-provider-passed-before-import", addon.getString("superiorskyblock2.import-provider-prerequisite"));
         assertEquals("kr.seungmin.satisskyfactory.SatisSkyFactoryPlugin", plugin.getString("main"));
         assertEquals(List.of("CloudIslands"), plugin.getStringList("depend"));
         assertEquals(List.of("Vault", "PlaceholderAPI"), plugin.getStringList("softdepend"));

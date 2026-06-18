@@ -267,6 +267,7 @@ superiorskyblock2:
     - PlaceholderAPI
   runtime-policy: migration-input-only-no-runtime-hooks
   runtime-provider-hook-policy: forbid-superiorskyblock2-runtime-hooks-after-import
+  import-provider-prerequisite: verify-no-legacy-provider-passed-before-import
   forbidden-runtime-dependencies:
     - SuperiorSkyblock2
     - BentoBox

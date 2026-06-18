@@ -1847,6 +1847,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("legacy-satismc-import-import", "factory admin migration import <sqlitePath> CONFIRM_IMPORT|CONFIRM_IMPORT:<dryrun-sha256>");
         metadata.put("legacy-satismc-import-approval-token", "CONFIRM_IMPORT or CONFIRM_IMPORT:<dryrun-sha256>");
         metadata.put("legacy-satismc-import-approval-fingerprint-token", "CONFIRM_IMPORT:<dryrun-sha256>");
+        metadata.put("legacy-satismc-import-provider-prerequisite", SatisLegacyMigrationPolicy.IMPORT_PROVIDER_PREREQUISITE);
         metadata.put("legacy-satismc-import-read-only-actions", "scan,dryrun,verify");
         metadata.put("legacy-satismc-import-write-actions", "import");
         metadata.put("legacy-satismc-source-project", SatisLegacyMigrationPolicy.SOURCE_PROJECT);
