@@ -50,6 +50,8 @@ class DefaultConfigIntegrityTest {
         assertEquals("EXTERNAL_ADDON", config.getString("integration.mode"));
         assertEquals("CLOUDISLANDS", config.getString("integration.skyblock-provider"));
         assertTrue(config.getBoolean("integration.cloudislands-adapter"));
+        assertFalse(config.isConfigurationSection("integration.database"));
+        assertFalse(config.isConfigurationSection("integration.setup"));
         assertFalse(config.saveToString().contains("Superior"));
         assertEquals(20, config.getInt("settings.tick-period-ticks"));
         assertEquals(300, config.getInt("settings.max-machines-per-tick"));
