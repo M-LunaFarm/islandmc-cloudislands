@@ -43,6 +43,15 @@ public final class StorageService {
         return inventory;
     }
 
+    public Optional<VirtualInventory> islandStorageIfAllowed(UUID islandUuid) {
+        Optional<VirtualInventory> existing = findIslandStorage(islandUuid);
+        if (existing.isPresent()) {
+            return existing;
+        }
+        VirtualInventory inventory = new VirtualInventory(UUID.randomUUID(), islandUuid, "ISLAND", islandUuid.toString(), defaultCapacity);
+        return saveNow(inventory) ? Optional.of(inventory) : Optional.empty();
+    }
+
     public Optional<VirtualInventory> findIslandStorage(UUID islandUuid) {
         Optional<VirtualInventory> cached = cache.values().stream()
                 .filter(inventory -> inventory.islandUuid().equals(islandUuid))

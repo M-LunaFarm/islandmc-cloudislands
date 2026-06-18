@@ -436,7 +436,9 @@ public final class MachineTickService {
 
     private boolean consumeGeneratorFuel(MachineInstance machine, Map<String, Long> fuel) {
         VirtualInventory input = inputInventory(machine);
-        VirtualInventory islandStorage = publicStorageEnabled() ? storage.islandStorage(machine.islandUuid()) : null;
+        VirtualInventory islandStorage = publicStorageEnabled()
+                ? storage.islandStorageIfAllowed(machine.islandUuid()).orElse(null)
+                : null;
         if (fuel.entrySet().stream().anyMatch(entry ->
                 input.amount(entry.getKey()) + (islandStorage == null ? 0L : islandStorage.amount(entry.getKey())) < entry.getValue())) {
             return false;
@@ -1035,7 +1037,8 @@ public final class MachineTickService {
 
     private VirtualInventory fallbackInventory(MachineInstance machine, String holderType) {
         if (publicStorageEnabled()) {
-            return storage.islandStorage(machine.islandUuid());
+            return storage.islandStorageIfAllowed(machine.islandUuid())
+                    .orElseGet(() -> new VirtualInventory(UUID.randomUUID(), machine.islandUuid(), holderType, machine.machineId().toString(), 0L));
         }
         return new VirtualInventory(UUID.randomUUID(), machine.islandUuid(), holderType, machine.machineId().toString(), 0L);
     }
