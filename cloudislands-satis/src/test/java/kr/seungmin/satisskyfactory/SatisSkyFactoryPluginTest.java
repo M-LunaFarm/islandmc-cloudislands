@@ -1,5 +1,7 @@
 package kr.seungmin.satisskyfactory;
 
+import kr.lunaf.cloudislands.api.model.AddonStateBulkLoadRequest;
+import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
 
@@ -65,5 +67,13 @@ class SatisSkyFactoryPluginTest {
         assertEquals("legacy-provider-is-migration-input-only-never-runtime-dependency", metadata.get("migration-runtime-dependency-policy"));
         assertEquals("create-cloudislands-migration-manifest-before-import", metadata.get("migration-manifest-policy"));
         assertEquals("cloudislands-island-uuid", metadata.get("migration-output-id-policy"));
+        assertEquals(
+                String.join(",", AddonStateBulkSaveRequest.GLOBAL_ENDPOINTS) + "," + String.join(",", AddonStateBulkLoadRequest.GLOBAL_ENDPOINTS),
+                metadata.get("database-core-api-endpoint")
+        );
+        assertEquals(
+                String.join(",", AddonStateBulkSaveRequest.ISLAND_ENDPOINTS) + "," + String.join(",", AddonStateBulkLoadRequest.ISLAND_ENDPOINTS),
+                metadata.get("database-core-api-island-endpoint")
+        );
     }
 }
