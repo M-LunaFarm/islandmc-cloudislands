@@ -322,7 +322,10 @@ public final class FactoryGuiListener implements Listener {
             gui.openStorage(player, island, page);
             return;
         }
-        var inventory = storage.islandStorage(island.islandUuid());
+        var inventory = islandStorageIfAllowed(player, island, page).orElse(null);
+        if (inventory == null) {
+            return;
+        }
         long amount = Math.min(requested, inventory.amount(itemId));
         if (amount <= 0 || !inventory.remove(itemId, amount)) {
             messages.send(player, "item-unavailable");
@@ -360,7 +363,10 @@ public final class FactoryGuiListener implements Listener {
         }
         String itemId = resolvedItemId.get();
         long amount = hand.getAmount();
-        var inventory = storage.islandStorage(island.islandUuid());
+        var inventory = islandStorageIfAllowed(player, island).orElse(null);
+        if (inventory == null) {
+            return;
+        }
         if (!inventory.add(itemId, amount)) {
             messages.send(player, "storage-full");
             return;
@@ -376,7 +382,12 @@ public final class FactoryGuiListener implements Listener {
     }
 
     private void sellMarketItem(Player player, FactoryIsland island, String itemId, int page, long requested) {
-        long stored = storage.islandStorage(island.islandUuid()).amount(itemId);
+        var inventory = islandStorageIfAllowed(player, island, page).orElse(null);
+        if (inventory == null) {
+            gui.openMarket(player, island, market, page);
+            return;
+        }
+        long stored = inventory.amount(itemId);
         long amount = Math.min(requested, stored);
         if (amount <= 0) {
             messages.send(player, "nothing-to-sell");
@@ -479,6 +490,22 @@ public final class FactoryGuiListener implements Listener {
         machines.reactivate(machine);
         messages.send(player, "withdrew", Map.of("item", itemId, "amount", String.valueOf(amount - returned)));
         gui.openMachine(player, machine);
+    }
+
+    private Optional<VirtualInventory> islandStorageIfAllowed(Player player, FactoryIsland island) {
+        Optional<VirtualInventory> inventory = storage.islandStorageIfAllowed(island.islandUuid());
+        if (inventory.isEmpty()) {
+            messages.send(player, "feature-disabled", Map.of("feature", "storage"));
+        }
+        return inventory;
+    }
+
+    private Optional<VirtualInventory> islandStorageIfAllowed(Player player, FactoryIsland island, int page) {
+        Optional<VirtualInventory> inventory = islandStorageIfAllowed(player, island);
+        if (inventory.isEmpty()) {
+            gui.openStorage(player, island, page);
+        }
+        return inventory;
     }
 
     private long giveVirtualItem(Player player, String itemId, long amount) {

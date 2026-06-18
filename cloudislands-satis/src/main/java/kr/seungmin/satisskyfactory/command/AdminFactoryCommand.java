@@ -1586,6 +1586,7 @@ public final class AdminFactoryCommand {
                         "runtime-island-storage-create-policy",
                         "runtime-island-storage-optional-create-policy",
                         "runtime-player-command-storage-create-policy",
+                        "runtime-gui-storage-create-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",
