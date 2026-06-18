@@ -467,7 +467,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             effective.putIfAbsent("addon-event-source", "cloudislands-global-event-stream");
             effective.putIfAbsent("addon-event-delivery", "typed-cloud-event-callbacks-through-cloudislands-api");
             effective.putIfAbsent("addon-event-failure-policy", "addon-callback-exceptions-are-logged-and-isolated");
-            effective.putIfAbsent("addon-event-feature-gating-policy", "disabled-addon-features-do-not-receive-matching-runtime-events");
+            effective.putIfAbsent("addon-event-feature-gating-policy", "disabled-addon-features-do-not-receive-matching-runtime-events,node-state-uses-lifecycle-gate,core-cache-and-reload-use-addon-enabled-gate");
             effective.putIfAbsent("addon-route-event-feature-gate", "route-events&&addon-state");
             effective.putIfAbsent("addon-lifecycle-events", "island-pre-create,island-created,island-pre-activate,island-activation-requested,island-activated,island-deactivation-requested,island-deactivated,island-migration-requested,island-migrated,island-delete-requested,island-deleted,island-delete-backup-failed,island-restore-requested,island-restored,island-reset,island-recovery-required,island-repaired,island-runtime-changed,island-pre-visit,island-visited,island-invite-changed,island-member-joined,island-member-left,island-member-changed,island-renamed,island-access-changed,island-visitor-ban-changed,island-visitor-kicked,island-flag-changed,island-permission-checked,island-permission-changed,island-role-changed,island-role-catalog-changed,island-ownership-changed,island-chat-sent,island-blocks-changed,island-block-value-changed,island-mission-progress,island-mission-completed,island-level-recalculate,island-worth-changed,island-upgrade-changed,island-limit-changed,island-biome-changed,island-home-changed,island-warp-created,island-warp-deleted,island-warp-changed,island-bank-changed,island-snapshot-requested,island-snapshot-created,island-template-changed,node-state-changed,route-ticket-created,route-session-published,route-ticket-consumed,route-ticket-failed,route-ticket-cleared,addon-state-changed,core-cache-cleared,core-reloaded");
             effective.put("addon-default-enabled", Boolean.toString(addonDefaultEnabled));
@@ -1712,8 +1712,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (eventName.equals("AddonStateChangeEvent")) {
                 return List.of("addon-state");
             }
-            if (eventName.equals("NodeStateChangedEvent") || eventName.startsWith("Core")) {
-                return List.of("maintenance");
+            if (eventName.equals("NodeStateChangedEvent")) {
+                return List.of("lifecycle");
+            }
+            if (eventName.startsWith("Core")) {
+                return List.of();
             }
             if (eventName.equals("IslandPreCreateEvent")
                 || eventName.equals("IslandCreatedEvent")
