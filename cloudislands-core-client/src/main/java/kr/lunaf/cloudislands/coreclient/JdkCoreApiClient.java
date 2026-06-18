@@ -955,7 +955,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (request.islandScoped()) {
             return tableKeyValueBulkSaveAddonIslandState(request);
         }
-        return postWithResultBody("/v1/addons/state/table/key-value/bulk-save", "{\"addonId\":\"" + escape(request.addonId()) + "\",\"table\":\"" + escape(request.table()) + "\",\"values\":" + stringMapJson(request.values()) + ",\"tables\":" + tableMapJson(request.tables()) + "}");
+        return postWithResultBody("/v1/addons/state/table/key-value/bulk-save", bulkSaveRequestJson(request, false));
     }
 
     @Override
@@ -1164,7 +1164,21 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (!request.islandScoped()) {
             return tableKeyValueBulkSaveAddonState(request);
         }
-        return postWithResultBody("/v1/addons/islands/state/table/key-value/bulk-save", "{\"addonId\":\"" + escape(request.addonId()) + "\",\"islandId\":\"" + request.islandId() + "\",\"table\":\"" + escape(request.table()) + "\",\"values\":" + stringMapJson(request.values()) + ",\"tables\":" + tableMapJson(request.tables()) + "}");
+        return postWithResultBody("/v1/addons/islands/state/table/key-value/bulk-save", bulkSaveRequestJson(request, true));
+    }
+
+    private String bulkSaveRequestJson(AddonStateBulkSaveRequest request, boolean includeIslandId) {
+        Map<String, String> rootValues = request.tableScoped() ? Map.of() : request.values();
+        String json = "{\"addonId\":\"" + escape(request.addonId()) + "\"";
+        if (includeIslandId) {
+            json += ",\"islandId\":\"" + request.islandId() + "\"";
+        }
+        if (request.tableScoped()) {
+            json += ",\"table\":\"" + escape(request.table()) + "\",\"values\":" + stringMapJson(request.values());
+        } else {
+            json += ",\"values\":" + stringMapJson(rootValues);
+        }
+        return json + ",\"tables\":" + tableMapJson(request.tablesWithScopedTable()) + "}";
     }
 
     @Override
