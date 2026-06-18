@@ -17,6 +17,7 @@ public final class SatisIntegrationPolicy {
         Map.entry("command-list-mode", "factory-and-admin-command-list-render-one-command-per-line-with-page-navigation"),
         Map.entry("velocity-forwarding-mode", "paper-island-nodes-trust-player-identity-only-through-velocity-modern-forwarding-and-shared-secret"),
         Map.entry("topology-private-mode", "players-use-logical-island-commands-and-never-see-island-node-server-world-cell-or-route-ticket-identifiers"),
+        Map.entry("player-island-surface-mode", "my-island-other-island-ranking-visit-settings-and-warps-stay-logical-and-route-through-core-api"),
         Map.entry("soft-full-create-mode", "island-1-soft-full-new-create-skips-to-ready-island-2-without-player-command-change")
     );
 
@@ -128,6 +129,7 @@ public final class SatisIntegrationPolicy {
         "command-list-renders-one-line-per-command-with-paging",
         "velocity-modern-forwarding-and-forwarding-secret-are-required-for-paper-island-node-trust",
         "player-facing-output-hides-physical-island-node-server-world-cell-and-route-identifiers",
+        "my-island-other-island-ranking-visit-settings-and-warps-use-logical-core-api-backed-flows",
         "island-create-home-visit-and-soft-full-island-1-to-island-2-flows-are-pinned",
         "state-survives-a-node-to-b-node-island-move",
         "state-survives-a-node-to-b-node-move-while-satis-is-disabled-or-removed",
