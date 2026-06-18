@@ -106,19 +106,20 @@ public final class FactoryIslandService {
         return new ArrayList<>(cache.values());
     }
 
-    public void save(FactoryIsland island) {
+    public boolean save(FactoryIsland island) {
         if (!loaded) {
-            return;
+            return false;
         }
         cache.put(island.islandUuid(), island);
         if (!writesEnabled()) {
-            return;
+            return false;
         }
         if (dirtySaves != null) {
             dirtySaves.markIsland(island);
-            return;
+            return true;
         }
         database.saveIsland(island);
+        return true;
     }
 
     public void forget(UUID islandUuid) {

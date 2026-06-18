@@ -240,8 +240,11 @@ public final class MachineTickService {
         for (UUID islandUuid : touchedIslands) {
             islands.find(islandUuid).ifPresent(island -> {
                 if (island.lastTickAt() < now) {
+                    long previousLastTickAt = island.lastTickAt();
                     island.lastTickAt(now);
-                    islands.save(island);
+                    if (!islands.save(island)) {
+                        island.lastTickAt(previousLastTickAt);
+                    }
                 }
             });
         }
