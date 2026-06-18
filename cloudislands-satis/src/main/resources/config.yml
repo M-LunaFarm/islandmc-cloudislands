@@ -38,7 +38,7 @@ satis:
     templates: true
     dependencies:
       resource-nodes: machines
-      generators: factories
+      generators: resource-nodes
       gui: machines
       placeholders: machines
       market: storage
@@ -161,7 +161,7 @@ addons:
       templates: true
       dependencies:
         resource-nodes: machines
-        generators: factories
+        generators: resource-nodes
         gui: machines
         placeholders: machines
         market: storage

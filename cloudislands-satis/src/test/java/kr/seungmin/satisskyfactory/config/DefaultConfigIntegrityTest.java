@@ -189,6 +189,7 @@ class DefaultConfigIntegrityTest {
         assertEquals("contracts", addon.getString("features.aliases.missions"));
         assertEquals("gui", addon.getString("features.aliases.menus"));
         assertEquals("machines", addon.getString("features.dependencies.resource-nodes"));
+        assertEquals("resource-nodes", addon.getString("features.dependencies.generators"));
         assertEquals("machines", addon.getString("features.dependencies.gui"));
         assertEquals("machines", addon.getString("features.dependencies.placeholders"));
         assertEquals("storage", addon.getString("features.dependencies.market"));
@@ -203,8 +204,10 @@ class DefaultConfigIntegrityTest {
         assertEquals("lifecycle", addon.getString("features.dependencies.templates"));
         assertEquals("machines", config.getString("satis.features.dependencies.gui"));
         assertEquals("machines", config.getString("satis.features.dependencies.placeholders"));
+        assertEquals("resource-nodes", config.getString("satis.features.dependencies.generators"));
         assertEquals("machines", config.getString("addons.cloudislands-satis.features.dependencies.gui"));
         assertEquals("machines", config.getString("addons.cloudislands-satis.features.dependencies.placeholders"));
+        assertEquals("resource-nodes", config.getString("addons.cloudislands-satis.features.dependencies.generators"));
     }
 
     @Test

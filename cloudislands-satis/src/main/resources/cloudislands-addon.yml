@@ -310,7 +310,7 @@ features:
     menus: gui
   dependencies:
     resource-nodes: machines
-    generators: factories
+    generators: resource-nodes
     gui: machines
     placeholders: machines
     market: storage
