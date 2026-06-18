@@ -4165,9 +4165,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         String sqliteFileName = resolveDatabaseFileName();
         String jdbcUrl = firstNonBlank(System.getenv("CLOUDISLANDS_SATIS_JDBC_URL"),
-                firstNonBlank(configs.main().getString("setup.database.jdbc.url", ""),
-                        firstNonBlank(configs.main().getString("addons.cloudislands-satis.database.jdbc.url", ""),
-                                configs.main().getString("database.jdbc.url", ""))));
+                firstNonBlank(configs.main().getString("setup.database.jdbc-url", ""),
+                        firstNonBlank(configs.main().getString("setup.database.jdbc.url", ""),
+                                firstNonBlank(configs.main().getString("addons.cloudislands-satis.database.jdbc.url", ""),
+                                        configs.main().getString("database.jdbc.url", "")))));
         String postgresqlJdbcUrl = jdbcUrl("postgresql", "jdbc:postgresql", 5432);
         String mysqlJdbcUrl = jdbcUrl("mysql", "jdbc:mysql", 3306);
         String mariadbJdbcUrl = jdbcUrl("mariadb", "jdbc:mariadb", 3306);
@@ -4824,9 +4825,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private String configuredCommonJdbcUrl() {
         return firstNonBlank(System.getenv("CLOUDISLANDS_SATIS_JDBC_URL"),
-                firstNonBlank(configs.main().getString("setup.database.jdbc.url", ""),
-                        firstNonBlank(configs.main().getString("addons.cloudislands-satis.database.jdbc.url", ""),
-                                configs.main().getString("database.jdbc.url", ""))));
+                firstNonBlank(configs.main().getString("setup.database.jdbc-url", ""),
+                        firstNonBlank(configs.main().getString("setup.database.jdbc.url", ""),
+                                firstNonBlank(configs.main().getString("addons.cloudislands-satis.database.jdbc.url", ""),
+                                        configs.main().getString("database.jdbc.url", "")))));
     }
 
     private boolean setupDatabaseSectionConfigured(String section) {
@@ -5318,7 +5320,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 || backendEnvLong(section, "CONNECTION_TIMEOUT_MS", 0L) > 0L) {
             return true;
         }
-        if (nonBlankConfig("setup.database.jdbc.url")
+        if (nonBlankConfig("setup.database.jdbc-url")
+                || nonBlankConfig("setup.database.jdbc.url")
                 || nonBlankConfig("setup.database.jdbc.username")
                 || nonBlankConfig("setup.database.jdbc.password")
                 || configs.main().getInt("setup.database.jdbc.max-pool-size", 0) > 0
@@ -5587,6 +5590,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 || backendEnvInt(backend, "PORT", 0) > 0
                 || !backendEnv(backend, "OPTIONS").isBlank()) {
             return "CLOUDISLANDS_SATIS_" + backend.toUpperCase(Locale.ROOT) + "_HOST";
+        }
+        if (nonBlankConfig("setup.database.jdbc-url")) {
+            return "setup.database.jdbc-url";
         }
         if (nonBlankConfig("setup.database.jdbc.url")) {
             return "setup.database.jdbc.url";
