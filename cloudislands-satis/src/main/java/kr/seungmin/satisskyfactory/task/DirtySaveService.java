@@ -75,6 +75,11 @@ public final class DirtySaveService {
 
     public void start(long intervalTicks) {
         stop();
+        if (!writeGatesEnabled()) {
+            clearDisabledQueues();
+            recordFlush("skipped-write-gates-disabled", 0, 0);
+            return;
+        }
         task = SchedulerUtil.asyncRepeating(plugin, this::flushSafely, intervalTicks);
     }
 
@@ -88,6 +93,13 @@ public final class DirtySaveService {
 
     public boolean running() {
         return task != null;
+    }
+
+    public boolean writeGatesEnabled() {
+        return enabled(machineWritesEnabled)
+                || enabled(inventoryWritesAvailable)
+                || enabled(nodeWritesEnabled)
+                || enabled(islandWritesEnabled);
     }
 
     public int pendingMachines() {
@@ -140,6 +152,25 @@ public final class DirtySaveService {
             inventories.clear();
             nodes.clear();
             islands.clear();
+        }
+    }
+
+    private void clearDisabledQueues() {
+        synchronized (flushLock) {
+            if (!enabled(machineWritesEnabled)) {
+                machines.clear();
+            }
+            if (!enabled(inventoryWritesAvailable)) {
+                inventories.clear();
+            } else {
+                inventories.entrySet().removeIf(entry -> !inventoryWritesEnabled(entry.getValue()));
+            }
+            if (!enabled(nodeWritesEnabled)) {
+                nodes.clear();
+            }
+            if (!enabled(islandWritesEnabled)) {
+                islands.clear();
+            }
         }
     }
 
