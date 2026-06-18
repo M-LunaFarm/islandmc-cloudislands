@@ -143,4 +143,16 @@ class RuntimeDependencyPolicyTest {
             assertTrue(coreBuild.contains(endpoint), "Core manifest missing island endpoint " + endpoint);
         }
     }
+
+    @Test
+    void cloudIslandsApiStaysProvidedForSatisRuntime() throws IOException {
+        Path repoRoot = Path.of("").toAbsolutePath().normalize().getParent();
+        String satisBuild = Files.readString(repoRoot.resolve("cloudislands-satis/build.gradle.kts"));
+
+        assertTrue(satisBuild.contains("compileOnly(project(\":cloudislands-api\"))"));
+        assertTrue(satisBuild.contains("testImplementation(project(\":cloudislands-api\"))"));
+        assertTrue(satisBuild.contains("val jarDependencyProjects = embeddedProjects"));
+        assertFalse(satisBuild.contains("val jarDependencyProjects = embeddedProjects + listOf(\":cloudislands-api\")"));
+        assertFalse(satisBuild.contains("implementation(project(\":cloudislands-api\"))"));
+    }
 }
