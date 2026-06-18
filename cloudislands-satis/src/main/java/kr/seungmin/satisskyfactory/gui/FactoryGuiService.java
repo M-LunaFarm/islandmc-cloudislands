@@ -226,7 +226,12 @@ public final class FactoryGuiService {
         FactoryGuiHolder holder = new FactoryGuiHolder("storage", island.islandUuid(), null, safePage);
         Inventory inventory = Bukkit.createInventory(holder, 54, title("storage-title", "Factory Storage"));
         holder.inventory(inventory);
-        VirtualInventory virtual = storage.islandStorage(island.islandUuid());
+        VirtualInventory virtual = storage.islandStorageIfAllowed(island.islandUuid()).orElse(null);
+        if (virtual == null) {
+            messages.send(player, "feature-disabled", Map.of("feature", "storage"));
+            player.closeInventory();
+            return;
+        }
         List<Map.Entry<String, Long>> entries = virtual.items().entrySet().stream()
                 .sorted(Comparator.comparing(Map.Entry::getKey))
                 .toList();
@@ -536,11 +541,11 @@ public final class FactoryGuiService {
         int start = safePage * pageSize;
         int end = Math.min(itemIds.size(), start + pageSize);
         int slot = 0;
-        VirtualInventory virtual = storage.islandStorage(island.islandUuid());
+        VirtualInventory virtual = storage.islandStorageIfAllowed(island.islandUuid()).orElse(null);
         for (String itemId : itemIds.subList(start, end)) {
             ItemDefinition item = items.get(itemId).orElse(new ItemDefinition(
                     itemId, Material.PAPER, itemId, 0, false, market.prices().getOrDefault(itemId, 0L), false, List.of()));
-            long stored = virtual.amount(itemId);
+            long stored = virtual == null ? 0 : virtual.amount(itemId);
             long unitPrice = market.price(island.islandUuid(), itemId, 1);
             ItemStack stack = new ItemStack(item.material(), (int) Math.max(1, Math.min(64, stored)));
             ItemMeta meta = stack.getItemMeta();

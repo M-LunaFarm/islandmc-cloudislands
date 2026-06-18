@@ -489,7 +489,11 @@ public final class AdminFactoryCommand {
             return false;
         }
         return islands.context(target).map(context -> {
-            var inventory = storage.islandStorage(context.factoryIsland().islandUuid());
+            var inventory = storage.islandStorageIfAllowed(context.factoryIsland().islandUuid()).orElse(null);
+            if (inventory == null) {
+                messages.send(sender, "feature-disabled", Map.of("feature", "storage"));
+                return false;
+            }
             if (!inventory.add(itemId, amount)) {
                 messages.send(sender, "storage-full");
                 return false;
@@ -1591,6 +1595,7 @@ public final class AdminFactoryCommand {
                         "runtime-contract-storage-create-policy",
                         "runtime-power-storage-create-policy",
                         "runtime-machine-flush-storage-create-policy",
+                        "runtime-direct-island-storage-create-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",

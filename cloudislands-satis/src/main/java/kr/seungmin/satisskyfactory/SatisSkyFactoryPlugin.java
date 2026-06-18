@@ -628,6 +628,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-contract-storage-create-policy", "contract-completion-uses-optional-island-storage-create-path-instead-of-throwing");
         state.put("runtime-power-storage-create-policy", "power-network-uses-optional-island-storage-create-path-instead-of-throwing");
         state.put("runtime-machine-flush-storage-create-policy", "machine-flush-uses-optional-island-storage-create-path-instead-of-throwing");
+        state.put("runtime-direct-island-storage-create-policy", "runtime-paths-use-optional-island-storage-create-path-instead-of-throwing");
         state.put("runtime-dirty-save-last-flush-status", dirtySaves == null ? "not-configured" : dirtySaves.lastFlushStatus());
         state.put("runtime-dirty-save-last-flush-at", dirtySaves == null ? "" : dirtySaves.lastFlushAt());
         state.put("runtime-dirty-save-last-flush-writes", dirtySaves == null ? "0" : Integer.toString(dirtySaves.lastFlushWrites()));
@@ -2725,7 +2726,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         runSatisLifecycle(event.islandId(), "created", () -> {
             islands.getOrCreate(new kr.seungmin.satisskyfactory.hook.IslandRef(null, event.islandId(), event.ownerUuid()));
             if (storageDataEnabled()) {
-                storage.islandStorage(event.islandId());
+                storage.islandStorageIfAllowed(event.islandId());
             }
             synchronizeSatisIsland(event.islandId(), "created");
         });
