@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -240,6 +241,30 @@ class RuntimeDependencyPolicyTest {
         assertFalse(satisBuild.contains("project(\":cloudislands-velocity\")"));
         assertFalse(satisBuild.contains("project(\":cloudislands-storage\")"));
         assertFalse(satisBuild.contains("kr.lunaf.cloudislands.coreservice"));
+    }
+
+    @Test
+    void satisSourcesDoNotImportCloudIslandsInternals() throws IOException {
+        Path repoRoot = Path.of("").toAbsolutePath().normalize().getParent();
+        Path satisSourceRoot = repoRoot.resolve("cloudislands-satis/src/main/java");
+        List<String> forbiddenImports = List.of(
+                "kr.lunaf.cloudislands.coreservice",
+                "kr.lunaf.cloudislands.paper",
+                "kr.lunaf.cloudislands.velocity",
+                "kr.lunaf.cloudislands.storage"
+        );
+
+        try (Stream<Path> sourceFiles = Files.walk(satisSourceRoot)) {
+            for (Path sourceFile : sourceFiles.filter(path -> path.toString().endsWith(".java")).toList()) {
+                String source = Files.readString(sourceFile);
+                for (String forbiddenImport : forbiddenImports) {
+                    assertFalse(
+                            source.contains("import " + forbiddenImport),
+                            sourceFile + " imports CloudIslands internal implementation package " + forbiddenImport
+                    );
+                }
+            }
+        }
     }
 
     @Test
