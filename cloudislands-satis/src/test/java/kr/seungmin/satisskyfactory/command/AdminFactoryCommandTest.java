@@ -89,6 +89,7 @@ class AdminFactoryCommandTest {
         assertTrue(source.contains("\"addon-reload-runtime-restart-policy\""));
         assertTrue(source.contains("\"island-state-ab-server-new-island-scenario\""));
         assertTrue(source.contains("\"island-state-ab-server-existing-island-scenario\""));
+        assertTrue(source.contains("\"island-state-reload-reenable-scenario\""));
         assertTrue(source.contains("\"satis-operation-scenarios\""));
         assertTrue(source.contains("\"satis-completion-criteria\""));
         assertTrue(source.contains("\"lifecycle-event-source\""));

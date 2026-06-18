@@ -1828,6 +1828,7 @@ public final class AdminFactoryCommand {
                         "island-state-ab-node-scenario",
                         "island-state-ab-server-new-island-scenario",
                         "island-state-ab-server-existing-island-scenario",
+                        "island-state-reload-reenable-scenario",
                         "satis-operation-scenarios",
                         "satis-completion-criteria",
                         "island-state-multi-node-scenario",
