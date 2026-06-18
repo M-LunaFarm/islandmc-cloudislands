@@ -44,5 +44,25 @@ class FencingTokenTest {
                 "redis-lock-is-advisory-postgresql-row-lock-and-fencing-token-are-authoritative",
                 FencingToken.REDIS_LOCK_POLICY
         );
+        assertEquals(
+                "island-1-token-101-fails-after-island-2-row-lock-advances-current-token-to-102",
+                FencingToken.FAILURE_RECOVERY_SCENARIO
+        );
+        assertEquals(
+                "redis-lock-fast-duplicate-filter-then-postgresql-row-lock-then-fencing-token-increment",
+                FencingToken.ACQUIRE_ORDER_POLICY
+        );
+        assertEquals("redis-lock>postgresql-row-lock>fencing-token-next-owner", FencingToken.acquisitionSteps());
+    }
+
+    @Test
+    void rejectsLateSnapshotWriteFromRecoveredOldNode() {
+        FencingToken island1Lease = new FencingToken(101L);
+        FencingToken island2Lease = FencingToken.nextAfter(island1Lease);
+
+        assertEquals(new FencingToken(102L), island2Lease);
+        assertTrue(island2Lease.rejectsStaleSnapshotWrite(island1Lease));
+        assertEquals("DENY_STALE_OWNER", island2Lease.writeDecision(island1Lease));
+        assertEquals("ALLOW_CURRENT_OWNER", island2Lease.writeDecision(new FencingToken(102L)));
     }
 }
