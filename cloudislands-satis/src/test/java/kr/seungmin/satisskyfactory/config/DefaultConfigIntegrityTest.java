@@ -158,6 +158,8 @@ class DefaultConfigIntegrityTest {
         assertTrue(addon.getString("state.route-event-player-visible-state-keys").contains("last-route-ticket-player-visible"));
         assertTrue(addon.getString("state.recovery-state-keys").contains("runtime-redis-advisory-policy"));
         assertTrue(addon.getString("state.recovery-state-keys").contains("last-lifecycle-error-policy"));
+        assertTrue(addon.getString("state.activation-state-keys").contains("runtime-feature-pack-activation-policy"));
+        assertTrue(addon.getString("state.activation-state-keys").contains("runtime-feature-pack-block-reason"));
         assertTrue(addon.getString("state.dirty-save-state-keys").contains("addon-removal-dirty-save-detach-policy"));
         assertTrue(addon.getString("state.dirty-save-state-keys").contains("addon-removal-dirty-save-reattach-policy"));
         assertTrue(addon.getString("state.dirty-save-state-keys").contains("addon-reload-runtime-restart-policy"));

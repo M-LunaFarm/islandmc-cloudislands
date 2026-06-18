@@ -218,6 +218,7 @@ state:
   plugin-message-security-policy: proxy-plugin-messages-are-handled-not-forwarded-to-prevent-backend-spoofing
   recovery-scenario: heartbeat-expiry-fencing-token-guards-last-confirmed-state-no-duplicate-tick-or-write
   recovery-state-keys: last-lifecycle-heartbeat-expiry-policy,last-lifecycle-fencing-token-policy,last-lifecycle-error-policy,last-lifecycle-recovery-policy,last-relocation-heartbeat-expiry-policy,last-relocation-fencing-token-policy,last-relocation-stale-write-policy,runtime-authoritative-store-policy,runtime-redis-advisory-policy,runtime-redis-failure-policy
+  activation-state-keys: runtime-feature-pack-activation-policy,runtime-feature-pack-activation-mode,runtime-feature-pack-runtime-enabled,runtime-feature-pack-runtime-shape,runtime-feature-pack-block-reason
   lifecycle-state-machine: CREATE_REQUESTED,CREATING,INACTIVE_READY,ACTIVATING,ACTIVE,SAVING,DELETE_REQUESTED,DEACTIVATING,BACKUP_BEFORE_DELETE,DELETING,DELETED,ERROR_CREATING,ERROR_ACTIVATING,ERROR_SAVING,RECOVERY_REQUIRED,QUARANTINED
   lifecycle-authority-policy: cloudislands-core-owns-island-lifecycle-state-machine-satis-reacts-to-events-only
   lifecycle-error-policy: error-or-quarantine-state-suspends-satis-runtime-and-keeps-last-confirmed-addon-state
