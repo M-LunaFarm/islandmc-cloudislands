@@ -52,6 +52,14 @@ public final class SatisIntegrationPolicy {
         "external-database", "allowed-when-addon-owns-schema-and-keeps-island-uuid-as-primary-scope"
     );
 
+    private static final Map<String, String> PLAYER_EXPERIENCE_BOUNDARIES = Map.of(
+        "player-visible-mode", "addon-features-feel-built-in-when-enabled",
+        "operator-visible-mode", "operator-manages-cloudislands-satis-through-addon-config-and-feature-gates",
+        "command-surface", "commands-appear-only-when-root-addon-and-command-feature-are-enabled",
+        "gui-surface", "menus-appear-only-when-root-addon-and-gui-or-menu-feature-are-enabled",
+        "disabled-surface", "disabled-or-removed-addon-leaves-no-player-facing-satis-entrypoints"
+    );
+
     private static final List<String> NODE_MOVE_REMAP_STEPS = List.of(
         "source-node-save-addon-state-by-island-uuid",
         "cloudislands-deactivate-and-store-portable-island-bundle",
@@ -131,6 +139,14 @@ public final class SatisIntegrationPolicy {
 
     public static String stateStorageConfigSummary() {
         return summary(STATE_STORAGE_CONFIG);
+    }
+
+    public static Map<String, String> playerExperienceBoundaries() {
+        return PLAYER_EXPERIENCE_BOUNDARIES;
+    }
+
+    public static String playerExperienceBoundarySummary() {
+        return summary(PLAYER_EXPERIENCE_BOUNDARIES);
     }
 
     public static List<String> nodeMoveRemapSteps() {

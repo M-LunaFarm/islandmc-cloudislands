@@ -2020,6 +2020,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " satisReinstall=" + textValue(body, "satisReinstallPolicy")
             + " satisStateAuthority=" + textValue(body, "satisStateAuthorityPolicy")
             + " satisStateStorage=" + textValue(body, "satisStateStorageConfig")
+            + " satisPlayerExperience=" + textValue(body, "satisPlayerExperiencePolicy")
             + " velocitySatisCommandPolicy=" + textValue(body, "velocitySatisCommandPolicy")
             + " paperSatisCommandPolicy=" + textValue(body, "paperSatisCommandPolicy")
             + " paperAgentRolePolicy=" + textValue(body, "paperAgentRolePolicy")
