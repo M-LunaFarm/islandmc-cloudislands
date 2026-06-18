@@ -105,6 +105,16 @@ database:
     split-brain-warning: keep-a-shared-backend-before-sqlite-for-multi-island-node-pools
   core-api:
     setup-path: setup.database.core-api.enabled
+    setup-aliases:
+      - setup.database.core-api.enabled
+      - setup.database.core_api.enabled
+      - setup.database.core.api.enabled
+      - addons.cloudislands-satis.database.core-api.enabled
+      - addons.cloudislands-satis.database.core_api.enabled
+      - addons.cloudislands-satis.database.core.api.enabled
+      - database.core-api.enabled
+      - database.core_api.enabled
+      - database.core.api.enabled
     requires:
       - cloudislands-api
       - addon-state
@@ -126,6 +136,26 @@ database:
       - /v1/addons/islands/state/table/load
       - /v1/addons/islands/state/table/bulk-set
     flattened-fallback-path: setup.database.core-api.flattened-fallback.enabled
+    flattened-fallback-aliases:
+      - setup.database.core-api.flattened-fallback.enabled
+      - setup.database.core_api.flattened-fallback.enabled
+      - setup.database.core.api.flattened-fallback.enabled
+      - addons.cloudislands-satis.database.core-api.flattened-fallback.enabled
+      - addons.cloudislands-satis.database.core_api.flattened-fallback.enabled
+      - addons.cloudislands-satis.database.core.api.flattened-fallback.enabled
+      - database.core-api.flattened-fallback.enabled
+      - database.core_api.flattened-fallback.enabled
+      - database.core.api.flattened-fallback.enabled
+    local-cache-writes-aliases:
+      - setup.database.core-api.local-cache-writes.enabled
+      - setup.database.core_api.local-cache-writes.enabled
+      - setup.database.core.api.local-cache-writes.enabled
+      - addons.cloudislands-satis.database.core-api.local-cache-writes.enabled
+      - addons.cloudislands-satis.database.core_api.local-cache-writes.enabled
+      - addons.cloudislands-satis.database.core.api.local-cache-writes.enabled
+      - database.core-api.local-cache-writes.enabled
+      - database.core_api.local-cache-writes.enabled
+      - database.core.api.local-cache-writes.enabled
   env:
     type: CLOUDISLANDS_SATIS_DATABASE_TYPE
     jdbc-url: CLOUDISLANDS_SATIS_JDBC_URL

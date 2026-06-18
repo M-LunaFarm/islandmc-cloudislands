@@ -168,15 +168,21 @@ setup:
     core-api:
       # Optional selection marker for CORE_API setup. Empty type still inherits database.type.
       # Requires the CloudIslands API and the addon-state feature to stay enabled.
+      # Accepted marker aliases: core-api, core_api, and core.api under setup.database,
+      # addons.cloudislands-satis.database, or database.
       enabled: false
       local-cache-writes:
         # Default false protects multi-node Island pools from split local cache writes.
         # Set true only for single-node rescue when Core API is unavailable.
+        # Accepted aliases: core-api.local-cache-writes, core_api.local-cache-writes,
+        # and core.api.local-cache-writes under the same database roots.
         enabled: false
       flattened-fallback:
         # If the table/key-value bulk endpoint fails, retry with flattened addon state keys.
         # This keeps older Core API builds and partial endpoint outages from dropping writes.
         # /factory admin state exposes database-core-api-authority-status for cache-only fallback checks.
+        # Accepted aliases: core-api.flattened-fallback, core_api.flattened-fallback,
+        # and core.api.flattened-fallback under the same database roots.
         enabled: true
     fallback:
       # Empty order inherits database.fallback.order below.
