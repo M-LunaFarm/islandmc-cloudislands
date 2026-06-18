@@ -824,6 +824,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("island-state-bundle-checksum-policy", SatisStatePortabilityPolicy.BUNDLE_CHECKSUM_POLICY);
         state.put("island-state-bundle-restore-policy", SatisStatePortabilityPolicy.BUNDLE_RESTORE_POLICY);
         state.put("island-state-bundle-quarantine-policy", SatisStatePortabilityPolicy.BUNDLE_QUARANTINE_POLICY);
+        state.put("island-state-lifecycle-state-machine", SatisStatePortabilityPolicy.LIFECYCLE_STATE_MACHINE);
+        state.put("island-state-lifecycle-authority-policy", SatisStatePortabilityPolicy.LIFECYCLE_AUTHORITY_POLICY);
+        state.put("island-state-lifecycle-error-policy", SatisStatePortabilityPolicy.LIFECYCLE_ERROR_POLICY);
+        state.put("island-state-lifecycle-recovery-policy", SatisStatePortabilityPolicy.LIFECYCLE_RECOVERY_POLICY);
     }
 
     private String disabledRuntimeFeatures() {
@@ -1949,6 +1953,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,delete-backup-failed,restore,reset,recovery,repair,runtime,pre-visit,visit,rename,invite,member-join,member-left,member-role,member,role,ownership,access,visitor-ban,visitor-kick,flag,permission-check,permission,chat,blocks,block-value,mission-progress,mission-complete,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot,template");
         metadata.put("lifecycle-event-actions", "pre-create=diagnostic,migration-request=preflush,activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete=purge,delete-backup-failed=flush-and-mark-failed,reset=purge,recovery=suspend,member-role-ownership-permission-bank-biome-home-warp-level-worth=synchronize,permission-check-and-pre-visit=diagnostic");
         metadata.put("lifecycle-event-storage-policy", "cloudislands-island-uuid-stable-state-remap-active-world");
+        metadata.put("lifecycle-state-machine", SatisStatePortabilityPolicy.LIFECYCLE_STATE_MACHINE);
+        metadata.put("lifecycle-authority-policy", SatisStatePortabilityPolicy.LIFECYCLE_AUTHORITY_POLICY);
+        metadata.put("lifecycle-error-policy", SatisStatePortabilityPolicy.LIFECYCLE_ERROR_POLICY);
+        metadata.put("lifecycle-recovery-policy", SatisStatePortabilityPolicy.LIFECYCLE_RECOVERY_POLICY);
         metadata.put("object-storage-active-island-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_ACTIVE_ISLAND_POLICY);
         metadata.put("object-storage-save-failure-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_SAVE_FAILURE_POLICY);
         metadata.put("object-storage-retry-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_RETRY_POLICY);
@@ -2420,6 +2428,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,delete-backup-failed,restore,reset,recovery,repair,runtime,pre-visit,visit,rename,invite,member-join,member-left,member-role,member,role,ownership,access,visitor-ban,visitor-kick,flag,permission-check,permission,chat,blocks,block-value,mission-progress,mission-complete,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot,template");
         state.put("lifecycle-event-actions", "pre-create=diagnostic,migration-request=preflush,activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete=purge,delete-backup-failed=flush-and-mark-failed,reset=purge,recovery=suspend,member-role-ownership-permission-bank-biome-home-warp-level-worth=synchronize,permission-check-and-pre-visit=diagnostic");
         state.put("lifecycle-event-storage-policy", "cloudislands-island-uuid-stable-state-remap-active-world");
+        state.put("lifecycle-state-machine", SatisStatePortabilityPolicy.LIFECYCLE_STATE_MACHINE);
+        state.put("lifecycle-authority-policy", SatisStatePortabilityPolicy.LIFECYCLE_AUTHORITY_POLICY);
+        state.put("lifecycle-error-policy", SatisStatePortabilityPolicy.LIFECYCLE_ERROR_POLICY);
+        state.put("lifecycle-recovery-policy", SatisStatePortabilityPolicy.LIFECYCLE_RECOVERY_POLICY);
         state.put("lifecycle-state-owner-key", SatisStatePortabilityPolicy.STATE_OWNER_KEY);
         state.put("lifecycle-remap-audit-key", SatisStatePortabilityPolicy.REMAP_AUDIT_KEY);
         state.put("lifecycle-placement-source-policy", "record-core-payload-or-paper-allocator-on-activate-and-migrate");
@@ -4061,6 +4073,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("last-lifecycle-stale-write-policy", "discard-local-dirty-state");
         state.put("last-lifecycle-heartbeat-expiry-policy", SatisStatePortabilityPolicy.HEARTBEAT_EXPIRY_POLICY);
         state.put("last-lifecycle-fencing-token-policy", SatisStatePortabilityPolicy.FENCING_TOKEN_POLICY);
+        state.put("last-lifecycle-error-policy", SatisStatePortabilityPolicy.LIFECYCLE_ERROR_POLICY);
+        state.put("last-lifecycle-recovery-policy", SatisStatePortabilityPolicy.LIFECYCLE_RECOVERY_POLICY);
         if (!eventNode.isBlank()) {
             state.put("last-lifecycle-node", eventNode);
         }

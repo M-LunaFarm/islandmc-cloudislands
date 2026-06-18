@@ -51,6 +51,10 @@ public final class SatisStatePortabilityPolicy {
     public static final String BUNDLE_CHECKSUM_POLICY = "restore-requires-manifest-and-checksums-sha256-match-before-satis-state-rehydrate";
     public static final String BUNDLE_RESTORE_POLICY = "pre-restore-snapshot-then-core-restore-then-satis-addon-state-rehydrate";
     public static final String BUNDLE_QUARANTINE_POLICY = "checksum-or-manifest-mismatch-quarantines-bundle-and-keeps-last-confirmed-satis-state";
+    public static final String LIFECYCLE_STATE_MACHINE = "CREATE_REQUESTED,CREATING,INACTIVE_READY,ACTIVATING,ACTIVE,SAVING,DELETE_REQUESTED,DEACTIVATING,BACKUP_BEFORE_DELETE,DELETING,DELETED,ERROR_CREATING,ERROR_ACTIVATING,ERROR_SAVING,RECOVERY_REQUIRED,QUARANTINED";
+    public static final String LIFECYCLE_AUTHORITY_POLICY = "cloudislands-core-owns-island-lifecycle-state-machine-satis-reacts-to-events-only";
+    public static final String LIFECYCLE_ERROR_POLICY = "error-or-quarantine-state-suspends-satis-runtime-and-keeps-last-confirmed-addon-state";
+    public static final String LIFECYCLE_RECOVERY_POLICY = "repaired-or-restored-state-rehydrates-satis-after-core-confirms-runtime-owner";
 
     private static final Set<String> SHARED_BACKENDS = Set.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API");
     private static final Set<String> LOCAL_BACKENDS = Set.of("SQLITE");
@@ -115,6 +119,10 @@ public final class SatisStatePortabilityPolicy {
         values.put("core-api-sync-bundle-checksum-policy", BUNDLE_CHECKSUM_POLICY);
         values.put("core-api-sync-bundle-restore-policy", BUNDLE_RESTORE_POLICY);
         values.put("core-api-sync-bundle-quarantine-policy", BUNDLE_QUARANTINE_POLICY);
+        values.put("core-api-sync-lifecycle-state-machine", LIFECYCLE_STATE_MACHINE);
+        values.put("core-api-sync-lifecycle-authority-policy", LIFECYCLE_AUTHORITY_POLICY);
+        values.put("core-api-sync-lifecycle-error-policy", LIFECYCLE_ERROR_POLICY);
+        values.put("core-api-sync-lifecycle-recovery-policy", LIFECYCLE_RECOVERY_POLICY);
         return Map.copyOf(values);
     }
 

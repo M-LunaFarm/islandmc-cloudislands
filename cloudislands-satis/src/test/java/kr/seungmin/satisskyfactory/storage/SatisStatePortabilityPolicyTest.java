@@ -45,6 +45,10 @@ class SatisStatePortabilityPolicyTest {
         assertEquals("restore-requires-manifest-and-checksums-sha256-match-before-satis-state-rehydrate", state.get("core-api-sync-bundle-checksum-policy"));
         assertEquals("pre-restore-snapshot-then-core-restore-then-satis-addon-state-rehydrate", state.get("core-api-sync-bundle-restore-policy"));
         assertEquals("checksum-or-manifest-mismatch-quarantines-bundle-and-keeps-last-confirmed-satis-state", state.get("core-api-sync-bundle-quarantine-policy"));
+        assertEquals("CREATE_REQUESTED,CREATING,INACTIVE_READY,ACTIVATING,ACTIVE,SAVING,DELETE_REQUESTED,DEACTIVATING,BACKUP_BEFORE_DELETE,DELETING,DELETED,ERROR_CREATING,ERROR_ACTIVATING,ERROR_SAVING,RECOVERY_REQUIRED,QUARANTINED", state.get("core-api-sync-lifecycle-state-machine"));
+        assertEquals("cloudislands-core-owns-island-lifecycle-state-machine-satis-reacts-to-events-only", state.get("core-api-sync-lifecycle-authority-policy"));
+        assertEquals("error-or-quarantine-state-suspends-satis-runtime-and-keeps-last-confirmed-addon-state", state.get("core-api-sync-lifecycle-error-policy"));
+        assertEquals("repaired-or-restored-state-rehydrates-satis-after-core-confirms-runtime-owner", state.get("core-api-sync-lifecycle-recovery-policy"));
         assertEquals("POSTGRESQL,MYSQL,MARIADB,CORE_API", state.get("core-api-sync-shared-backends"));
         assertEquals("SQLITE", state.get("core-api-sync-local-backends"));
     }

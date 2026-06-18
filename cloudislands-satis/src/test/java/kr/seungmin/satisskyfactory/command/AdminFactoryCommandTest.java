@@ -105,6 +105,10 @@ class AdminFactoryCommandTest {
         assertTrue(source.contains("\"satis-operation-scenarios\""));
         assertTrue(source.contains("\"satis-completion-criteria\""));
         assertTrue(source.contains("\"lifecycle-event-source\""));
+        assertTrue(source.contains("\"lifecycle-state-machine\""));
+        assertTrue(source.contains("\"lifecycle-authority-policy\""));
+        assertTrue(source.contains("\"lifecycle-error-policy\""));
+        assertTrue(source.contains("\"lifecycle-recovery-policy\""));
         assertTrue(source.contains("\"route-event-last-block-reason\""));
         assertTrue(source.contains("\"last-route-player-visible-topology\""));
         assertTrue(source.contains("\"last-route-ticket-player-visible\""));
@@ -116,6 +120,7 @@ class AdminFactoryCommandTest {
         assertTrue(source.contains("\"bundle-checksum-policy\""));
         assertTrue(source.contains("\"bundle-restore-policy\""));
         assertTrue(source.contains("\"bundle-quarantine-policy\""));
+        assertTrue(source.contains("\"island-state-lifecycle-error-policy\""));
         assertTrue(source.contains("\"island-state-redis-advisory-policy\""));
         assertTrue(source.contains("\"island-state-five-six-node-policy\""));
         assertTrue(source.contains("\"island-state-seven-plus-node-policy\""));

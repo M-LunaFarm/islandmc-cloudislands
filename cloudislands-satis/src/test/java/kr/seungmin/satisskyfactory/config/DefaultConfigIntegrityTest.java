@@ -56,6 +56,10 @@ class DefaultConfigIntegrityTest {
         assertEquals("restore-requires-manifest-and-checksums-sha256-match-before-satis-state-rehydrate", addon.getString("state.bundle-checksum-policy"));
         assertEquals("pre-restore-snapshot-then-core-restore-then-satis-addon-state-rehydrate", addon.getString("state.bundle-restore-policy"));
         assertEquals("checksum-or-manifest-mismatch-quarantines-bundle-and-keeps-last-confirmed-satis-state", addon.getString("state.bundle-quarantine-policy"));
+        assertTrue(addon.getString("state.lifecycle-state-machine").contains("QUARANTINED"));
+        assertEquals("cloudislands-core-owns-island-lifecycle-state-machine-satis-reacts-to-events-only", addon.getString("state.lifecycle-authority-policy"));
+        assertEquals("error-or-quarantine-state-suspends-satis-runtime-and-keeps-last-confirmed-addon-state", addon.getString("state.lifecycle-error-policy"));
+        assertEquals("repaired-or-restored-state-rehydrates-satis-after-core-confirms-runtime-owner", addon.getString("state.lifecycle-recovery-policy"));
         assertEquals("not-owned-by-satis-addon", addon.getString("runtime.ciadmin-policy"));
         assertEquals("CORE_API", addon.getString("runtime.default-database-mode"));
         assertEquals("core-api-requires-cloudislands-api-addon-state-and-hydrated-island", addon.getString("runtime.tick-authority-policy"));
@@ -150,6 +154,7 @@ class DefaultConfigIntegrityTest {
         assertTrue(addon.getString("state.core-refresh-reapply-state-keys").contains("last-core-refresh-result"));
         assertTrue(addon.getString("state.route-event-player-visible-state-keys").contains("last-route-ticket-player-visible"));
         assertTrue(addon.getString("state.recovery-state-keys").contains("runtime-redis-advisory-policy"));
+        assertTrue(addon.getString("state.recovery-state-keys").contains("last-lifecycle-error-policy"));
         assertTrue(addon.getString("state.dirty-save-state-keys").contains("addon-removal-dirty-save-detach-policy"));
         assertTrue(addon.getString("state.dirty-save-state-keys").contains("addon-removal-dirty-save-reattach-policy"));
         assertTrue(addon.getString("state.dirty-save-state-keys").contains("addon-reload-runtime-restart-policy"));
