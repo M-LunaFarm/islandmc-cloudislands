@@ -274,6 +274,10 @@ public final class MachineService {
         if (!storage.saveIfAllowed(islandStorage)) {
             restoreInventory(islandStorage, islandAfter);
         }
+        restoreClearedInventories(clearedBuffers, bufferBefore);
+    }
+
+    private void restoreClearedInventories(List<VirtualInventory> clearedBuffers, Map<UUID, Map<String, Long>> bufferBefore) {
         for (VirtualInventory buffer : clearedBuffers) {
             restoreInventory(buffer, bufferBefore.getOrDefault(buffer.inventoryId(), Map.of()));
             if (!storage.saveIfAllowed(buffer)) {
@@ -288,11 +292,17 @@ public final class MachineService {
     }
 
     private boolean clearInventories(MachineInstance machine) {
+        Map<UUID, Map<String, Long>> bufferBefore = new java.util.HashMap<>();
+        List<VirtualInventory> clearedBuffers = new ArrayList<>();
         for (VirtualInventory buffer : machineInventories(machine)) {
+            bufferBefore.put(buffer.inventoryId(), buffer.items());
             new ArrayList<>(buffer.items().keySet()).forEach(itemId -> buffer.set(itemId, 0));
             if (!storage.saveIfAllowed(buffer)) {
+                restoreInventory(buffer, bufferBefore.getOrDefault(buffer.inventoryId(), Map.of()));
+                restoreClearedInventories(clearedBuffers, bufferBefore);
                 return false;
             }
+            clearedBuffers.add(buffer);
         }
         return true;
     }
