@@ -62,10 +62,7 @@ class RuntimeDependencyPolicyTest {
         );
 
         for (Path descriptorFile : descriptorFiles) {
-            List<String> dependencyLines = Files.readString(descriptorFile).lines()
-                    .map(String::trim)
-                    .filter(line -> dependencyKeys.stream().anyMatch(line::startsWith))
-                    .toList();
+            List<String> dependencyLines = descriptorDependencyLines(Files.readString(descriptorFile), dependencyKeys);
 
             for (String line : dependencyLines) {
                 String lower = line.toLowerCase();
@@ -77,6 +74,34 @@ class RuntimeDependencyPolicyTest {
                 }
             }
         }
+    }
+
+    private List<String> descriptorDependencyLines(String descriptor, List<String> dependencyKeys) {
+        List<String> lines = descriptor.lines().toList();
+        java.util.ArrayList<String> dependencyLines = new java.util.ArrayList<>();
+        boolean inDependencyBlock = false;
+        int dependencyIndent = -1;
+        for (String rawLine : lines) {
+            String trimmed = rawLine.trim();
+            if (trimmed.isBlank() || trimmed.startsWith("#")) {
+                continue;
+            }
+            int indent = rawLine.length() - rawLine.stripLeading().length();
+            boolean startsDependencyKey = dependencyKeys.stream().anyMatch(trimmed::startsWith);
+            if (startsDependencyKey) {
+                dependencyLines.add(trimmed);
+                inDependencyBlock = !trimmed.contains("[") && !trimmed.contains("]") && trimmed.endsWith(":");
+                dependencyIndent = indent;
+                continue;
+            }
+            if (inDependencyBlock && indent > dependencyIndent && (trimmed.startsWith("-") || trimmed.contains(":"))) {
+                dependencyLines.add(trimmed);
+                continue;
+            }
+            inDependencyBlock = false;
+            dependencyIndent = -1;
+        }
+        return List.copyOf(dependencyLines);
     }
 
     @Test
