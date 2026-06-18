@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class SuperiorSkyblockReplacementFeaturePolicyTest {
@@ -67,5 +68,28 @@ class SuperiorSkyblockReplacementFeaturePolicyTest {
         assertFalse(SuperiorSkyblockReplacementFeaturePolicy.requiredFeature("legacy-placeholder"));
         assertFalse(SuperiorSkyblockReplacementFeaturePolicy.requiredFeature(null));
         assertEquals("", SuperiorSkyblockReplacementFeaturePolicy.label(null));
+    }
+
+    @Test
+    void pinsMigrationInputOnlyRuntimeProviderFence() {
+        assertEquals(
+            "superiorskyblock2-is-readonly-migration-input-never-runtime-authority",
+            SuperiorSkyblockReplacementFeaturePolicy.MIGRATION_INPUT_ONLY_POLICY
+        );
+        assertEquals(
+            "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes",
+            SuperiorSkyblockReplacementFeaturePolicy.FORBIDDEN_RUNTIME_PROVIDER_ACTION
+        );
+        assertEquals(
+            List.of("SuperiorSkyblock2", "BentoBox", "ASkyBlock", "uSkyBlock", "IridiumSkyblock"),
+            SuperiorSkyblockReplacementFeaturePolicy.forbiddenRuntimeProviders()
+        );
+        assertEquals(
+            "SuperiorSkyblock2,BentoBox,ASkyBlock,uSkyBlock,IridiumSkyblock",
+            SuperiorSkyblockReplacementFeaturePolicy.forbiddenRuntimeProviderSummary()
+        );
+        assertTrue(SuperiorSkyblockReplacementFeaturePolicy.forbiddenRuntimeProvider("SuperiorSkyblock2"));
+        assertTrue(SuperiorSkyblockReplacementFeaturePolicy.forbiddenRuntimeProvider(" bentobox "));
+        assertFalse(SuperiorSkyblockReplacementFeaturePolicy.forbiddenRuntimeProvider("CloudIslands"));
     }
 }

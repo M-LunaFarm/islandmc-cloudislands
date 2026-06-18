@@ -43,7 +43,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     private static final List<String> BLOCK_VALUE_MATERIALS = List.of("minecraft:stone", "minecraft:diamond_block", "minecraft:emerald_block", "minecraft:spawner");
     private static final List<String> TEMPLATE_COMMANDS = List.of("list", "upsert", "enable", "disable");
     private static final List<String> MIGRATION_COMMANDS = List.of("scan", "status", "dryrun", "dry-run", "extract", "extract-worlds", "world-extract", "import", "verify", "verify-no-legacy-provider", "rollback");
-    private static final List<String> FORBIDDEN_LEGACY_SKYBLOCK_PROVIDERS = List.of("SuperiorSkyblock2", "BentoBox", "ASkyBlock", "uSkyBlock", "IridiumSkyblock");
+    private static final List<String> FORBIDDEN_LEGACY_SKYBLOCK_PROVIDERS = kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy.forbiddenRuntimeProviders();
     private static final List<String> NODE_DANGER_REASONS = List.of("maintenance", "restart", "drain");
     private static final List<String> HELP_COMMANDS = List.of(
         "ciadmin status",

@@ -43,6 +43,15 @@ public final class SuperiorSkyblockReplacementFeaturePolicy {
         "/ciadmin migrate-superiorskyblock2 verify",
         "/ciadmin migrate-superiorskyblock2 rollback"
     );
+    private static final List<String> FORBIDDEN_RUNTIME_PROVIDERS = List.of(
+        "SuperiorSkyblock2",
+        "BentoBox",
+        "ASkyBlock",
+        "uSkyBlock",
+        "IridiumSkyblock"
+    );
+    public static final String MIGRATION_INPUT_ONLY_POLICY = "superiorskyblock2-is-readonly-migration-input-never-runtime-authority";
+    public static final String FORBIDDEN_RUNTIME_PROVIDER_ACTION = "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes";
 
     private SuperiorSkyblockReplacementFeaturePolicy() {
     }
@@ -89,6 +98,24 @@ public final class SuperiorSkyblockReplacementFeaturePolicy {
 
     public static String migrationCommandSummary() {
         return String.join(",", MIGRATION_COMMANDS);
+    }
+
+    public static List<String> forbiddenRuntimeProviders() {
+        return FORBIDDEN_RUNTIME_PROVIDERS;
+    }
+
+    public static String forbiddenRuntimeProviderSummary() {
+        return String.join(",", FORBIDDEN_RUNTIME_PROVIDERS);
+    }
+
+    public static boolean forbiddenRuntimeProvider(String provider) {
+        if (provider == null || provider.isBlank()) {
+            return false;
+        }
+        String normalized = provider.trim().toLowerCase(java.util.Locale.ROOT);
+        return FORBIDDEN_RUNTIME_PROVIDERS.stream()
+            .map(value -> value.toLowerCase(java.util.Locale.ROOT))
+            .anyMatch(normalized::equals);
     }
 
     private static Map<String, String> buildRequiredFeatures() {
