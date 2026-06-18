@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -68,6 +69,18 @@ class BackendAccessPolicyTest {
             "plugin messaging is never used for critical island lifecycle control",
             BackendAccessPolicy.PLUGIN_MESSAGING_POLICY
         );
+        assertEquals(
+            "velocity-plugin-message-events-for-cloudislands-control-channels-must-return-handled",
+            BackendAccessPolicy.PLUGIN_MESSAGING_FORWARDING_POLICY
+        );
+        assertEquals(
+            "core-control-plane-uses-http-grpc-plus-redis-streams-never-plugin-messaging",
+            BackendAccessPolicy.CORE_CONTROL_PLANE_POLICY
+        );
+        assertEquals(
+            "routing-is-owned-by-velocity-plugin-direct-core-api-route-ticket-flow",
+            BackendAccessPolicy.ROUTING_CONTROL_POLICY
+        );
     }
 
     @Test
@@ -76,5 +89,44 @@ class BackendAccessPolicyTest {
         assertTrue(BackendAccessPolicy.requiredSecurityControl("plugin-messaging-minimized"));
         assertFalse(BackendAccessPolicy.requiredSecurityControl("legacy-forwarding"));
         assertFalse(BackendAccessPolicy.requiredSecurityControl(null));
+    }
+
+    @Test
+    void restrictsPluginMessagingToNonAuthoritativeFallbackScopes() {
+        assertEquals(
+            "bungeecord-connect-fallback-and-client-branding-only-no-core-control-plane",
+            BackendAccessPolicy.PLUGIN_MESSAGING_ALLOWED_SCOPE
+        );
+        assertEquals(
+            List.of(
+                "bungeecord-connect-fallback",
+                "client-branding",
+                "non-authoritative-emergency-assist"
+            ),
+            BackendAccessPolicy.allowedPluginMessagingScopes()
+        );
+        assertTrue(BackendAccessPolicy.allowedPluginMessagingScope("bungeecord-connect-fallback"));
+        assertTrue(BackendAccessPolicy.allowedPluginMessagingScope(" CLIENT-BRANDING "));
+        assertFalse(BackendAccessPolicy.allowedPluginMessagingScope("core-control-plane"));
+    }
+
+    @Test
+    void forbidsCriticalIslandLifecycleOverPluginMessaging() {
+        assertEquals(
+            List.of(
+                "island-create",
+                "island-delete",
+                "island-save",
+                "island-migrate",
+                "snapshot-restore",
+                "addon-state-write",
+                "permission-write"
+            ),
+            BackendAccessPolicy.forbiddenPluginMessagingOperations()
+        );
+        assertTrue(BackendAccessPolicy.forbiddenPluginMessagingOperation("island-create"));
+        assertTrue(BackendAccessPolicy.forbiddenPluginMessagingOperation(" ISLAND-MIGRATE "));
+        assertTrue(BackendAccessPolicy.forbiddenPluginMessagingOperation("snapshot-restore"));
+        assertFalse(BackendAccessPolicy.forbiddenPluginMessagingOperation("client-branding"));
     }
 }
