@@ -15,6 +15,7 @@ class RankingRecalculationServiceTest {
     private static final UUID ISLAND = UUID.fromString("00000000-0000-0000-0000-000000000601");
 
     
+    @Test
     void exposesGoalRankingUpdateContract() {
         assertEquals("block-delta-dirty-flag-batch-recalculate-ranking-snapshot", RankingRecalculationService.UPDATE_POLICY);
         assertEquals("config-loaded-values-plus-admin-api-overrides-worth-level-limit", RankingRecalculationService.BLOCK_VALUE_POLICY);

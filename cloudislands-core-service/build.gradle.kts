@@ -57,6 +57,8 @@ tasks.jar {
             "CloudIslands-Core-Level-Worth-Policy" to "event-delta-plus-periodic-full-scan-reconciliation",
             "CloudIslands-Core-Ranking-Policy" to "dirty-queue-batch-recalculation-redis-ranking-cache",
             "CloudIslands-Core-Block-Value-Policy" to "material-worth-level-limit-values-backed-by-core-api",
+            "CloudIslands-Core-Level-Worth-Formula" to "level=floor(total_level_points/1000),worth=SUM_BLOCK_VALUES",
+            "CloudIslands-Core-Ranking-Snapshot-Table" to "island_rank_snapshots(island_id,level,worth,member_count,updated_at)",
             "CloudIslands-Core-Upgrade-Policy" to "config-driven-upgrade-rules-with-economy-abstracted-purchase-flow",
             "CloudIslands-Core-Failure-Policy" to "node-down-recovery-required-core-down-degraded-active-play-redis-down-db-source-object-storage-down-local-active-play-retry-save",
             "CloudIslands-Core-Cache-Invalidation-Policy" to "writes-publish-global-events-for-local-cache-and-redis-invalidation",
