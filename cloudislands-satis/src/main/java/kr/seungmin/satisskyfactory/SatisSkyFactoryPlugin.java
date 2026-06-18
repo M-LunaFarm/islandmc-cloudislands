@@ -705,8 +705,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String placeholderBlockReason() {
-        if (!operationalFeatureEnabled("placeholders")) {
+        if (!featureEnabled("placeholders")) {
             return "placeholders-feature-disabled";
+        }
+        if (!featureEnabled("machines")) {
+            return "machines-feature-disabled";
         }
         if (!getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             return "placeholderapi-not-installed";
@@ -1160,7 +1163,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void registerPlaceholders() {
-        if (!operationalFeatureEnabled("placeholders") || !getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+        if (!placeholderRuntimeEnabled()) {
             if (placeholderHook != null) {
                 placeholderHook.unregister();
                 placeholderHook = null;
@@ -1176,7 +1179,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void refreshPlaceholders() {
-        if (!operationalFeatureEnabled("placeholders") || !getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+        if (!placeholderRuntimeEnabled()) {
             if (placeholderHook != null) {
                 placeholderHook.unregister();
                 placeholderHook = null;
@@ -1186,6 +1189,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (placeholderHook == null) {
             registerPlaceholders();
         }
+    }
+
+    private boolean placeholderRuntimeEnabled() {
+        return operationalFeatureEnabled("placeholders")
+                && operationalFeatureEnabled("machines")
+                && getServer().getPluginManager().isPluginEnabled("PlaceholderAPI");
     }
 
     private void reloadDatabaseIfNeeded() {
