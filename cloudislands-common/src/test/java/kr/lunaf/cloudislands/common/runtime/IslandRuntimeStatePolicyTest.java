@@ -71,4 +71,31 @@ class IslandRuntimeStatePolicyTest {
         assertTrue(IslandRuntimeStatePolicy.lifecycleStateMachineSummary().contains("CREATE_REQUESTED>CREATING>INACTIVE_READY>ACTIVATING>ACTIVE>SAVING>INACTIVE_READY"));
         assertTrue(IslandRuntimeStatePolicy.lifecycleStateMachineSummary().contains("DELETE_REQUESTED>DEACTIVATING>BACKUP_BEFORE_DELETE>DELETING>DELETED"));
     }
+
+    @Test
+    void acceptsOnlyExpectedLifecycleTransitions() {
+        assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.CREATE_REQUESTED, IslandState.CREATING));
+        assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.CREATING, IslandState.INACTIVE_READY));
+        assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.INACTIVE_READY, IslandState.ACTIVATING));
+        assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.ACTIVATING, IslandState.ACTIVE));
+        assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.ACTIVE, IslandState.SAVING));
+        assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.SAVING, IslandState.INACTIVE_READY));
+        assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.ACTIVE, IslandState.DELETE_REQUESTED));
+        assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.DELETE_REQUESTED, IslandState.DEACTIVATING));
+        assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.DEACTIVATING, IslandState.BACKUP_BEFORE_DELETE));
+        assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.BACKUP_BEFORE_DELETE, IslandState.DELETING));
+        assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.DELETING, IslandState.DELETED));
+        assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.RECOVERY_REQUIRED, IslandState.RESTORING));
+        assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.RECOVERY_REQUIRED, IslandState.QUARANTINED));
+        assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.QUARANTINED, IslandState.RESTORING));
+        assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.RESTORING, IslandState.ACTIVE));
+        assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.ACTIVATING, IslandState.ERROR_ACTIVATING));
+
+        assertFalse(IslandRuntimeStatePolicy.transitionAllowed(IslandState.CREATE_REQUESTED, IslandState.ACTIVE));
+        assertFalse(IslandRuntimeStatePolicy.transitionAllowed(IslandState.INACTIVE_READY, IslandState.DELETED));
+        assertFalse(IslandRuntimeStatePolicy.transitionAllowed(IslandState.DELETED, IslandState.ACTIVE));
+        assertFalse(IslandRuntimeStatePolicy.transitionAllowed(IslandState.ACTIVE, IslandState.CREATE_REQUESTED));
+        assertFalse(IslandRuntimeStatePolicy.transitionAllowed(null, IslandState.ACTIVE));
+        assertFalse(IslandRuntimeStatePolicy.transitionAllowed(IslandState.ACTIVE, null));
+    }
 }

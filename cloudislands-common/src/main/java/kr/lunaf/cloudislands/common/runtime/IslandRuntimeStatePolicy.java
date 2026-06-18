@@ -55,6 +55,27 @@ public final class IslandRuntimeStatePolicy {
         return state != null && FAILURE_STATES.contains(state);
     }
 
+    public static boolean transitionAllowed(IslandState from, IslandState to) {
+        if (from == null || to == null) {
+            return false;
+        }
+        if (from == to) {
+            return true;
+        }
+        if (failureState(to)) {
+            return true;
+        }
+        return adjacentTransition(CREATE_ACTIVATE_SAVE_FLOW, from, to)
+            || adjacentTransition(DELETE_FLOW, from, to)
+            || from == IslandState.INACTIVE_READY && to == IslandState.RESTORING
+            || from == IslandState.RESTORING && to == IslandState.ACTIVE
+            || from == IslandState.ACTIVE && to == IslandState.DELETE_REQUESTED
+            || from == IslandState.SAVING && to == IslandState.DELETE_REQUESTED
+            || from == IslandState.QUARANTINED && to == IslandState.RESTORING
+            || from == IslandState.RECOVERY_REQUIRED && to == IslandState.RESTORING
+            || from == IslandState.RECOVERY_REQUIRED && to == IslandState.QUARANTINED;
+    }
+
     public static String lifecycleStateMachineSummary() {
         return STATE_MACHINE_POLICY
             + ";create=" + stateSummary(CREATE_ACTIVATE_SAVE_FLOW)
@@ -96,5 +117,14 @@ public final class IslandRuntimeStatePolicy {
 
     private static String stateSummary(List<IslandState> states) {
         return states.stream().map(IslandState::name).reduce((left, right) -> left + ">" + right).orElse("");
+    }
+
+    private static boolean adjacentTransition(List<IslandState> states, IslandState from, IslandState to) {
+        for (int index = 0; index < states.size() - 1; index++) {
+            if (states.get(index) == from && states.get(index + 1) == to) {
+                return true;
+            }
+        }
+        return false;
     }
 }
