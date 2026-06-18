@@ -81,6 +81,12 @@ class AdminFactoryCommandTest {
         assertTrue(source.contains("\"runtime-tick-authority-core-hydrated-islands\""));
         assertTrue(source.contains("\"runtime-write-authority-policy\""));
         assertTrue(source.contains("\"runtime-write-authority-local-fallback-policy\""));
+        assertTrue(source.contains("\"runtime-route-events-gate\""));
+        assertTrue(source.contains("\"runtime-route-events-last-block-reason\""));
+        assertTrue(source.contains("\"write-gate-route-events\""));
+        assertTrue(source.contains("\"lifecycle-event-source\""));
+        assertTrue(source.contains("\"route-event-last-block-reason\""));
+        assertTrue(source.contains("\"last-route-player-visible-topology\""));
     }
 
     @SuppressWarnings("unchecked")
