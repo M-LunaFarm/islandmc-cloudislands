@@ -194,6 +194,7 @@ state:
   ab-node-scenario: save-on-source-node-remap-active-world-and-cell-on-target-node-restore-state-by-island-uuid
   ab-server-new-island-scenario: server-a-soft-full-or-draining-core-api-allocates-new-island-on-server-b-and-player-still-runs-logical-island-command
   ab-server-existing-island-scenario: existing-island-deactivates-on-server-a-saves-satis-state-by-island-uuid-activates-on-server-b-and-remaps-volatile-placement
+  reload-reenable-scenario: config-reload-after-satis-disable-restarts-runtime-when-database-is-not-initialized
   multi-node-safe: true
   node-count-policy: island-node-count-does-not-change-satis-state-identity-or-storage-authority
   topology-privacy-policy: player-facing-satis-output-hides-physical-node-server-world-cell-and-route-identifiers

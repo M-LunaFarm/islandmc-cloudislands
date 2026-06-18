@@ -2045,6 +2045,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("island-state-seven-plus-node-policy", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.ABOVE_SIX_NODE_POLICY),
                 Map.entry("island-state-ab-server-new-island-scenario", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.operationScenarios().get("a-b-server-new-island-mode")),
                 Map.entry("island-state-ab-server-existing-island-scenario", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.operationScenarios().get("a-b-server-existing-island-mode")),
+                Map.entry("island-state-reload-reenable-scenario", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.operationScenarios().get("reload-reenable-mode")),
                 Map.entry("satis-operation-scenarios", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.operationScenarioSummary()),
                 Map.entry("satis-completion-criteria", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.completionCriteriaSummary()),
                 Map.entry("island-state-scale-policy", "node-count-does-not-change-satis-state-keys-or-storage-authority"),
