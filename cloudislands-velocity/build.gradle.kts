@@ -47,6 +47,7 @@ tasks.jar {
             "CloudIslands-Velocity-Setup-Database-Policy" to "setup.database.type-core-api-only-velocity-never-owns-island-state",
             "CloudIslands-Velocity-Setup-Fallback-Policy" to "core-api-primary-with-config-visible-fallback-order-and-lobby-fallback-on-route-failure",
             "CloudIslands-Velocity-Core-API-Setup-Path" to "setup.core-api",
+            "CloudIslands-Velocity-Config-Surface" to "plugin,core-api,routing,commands,messages,security,health",
             "CloudIslands-Route-Ticket-Policy" to "velocity-issues-paper-consumes-ttl-bound-route-tickets",
             "CloudIslands-Route-Preparation-Progress" to "actionbar-and-bossbar-progress-without-physical-node-name-exposure",
             "CloudIslands-Logical-Island-View" to "hide-physical-island-node-names-from-players",

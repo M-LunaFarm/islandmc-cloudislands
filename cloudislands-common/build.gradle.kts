@@ -31,6 +31,7 @@ tasks.jar {
             "CloudIslands-Package-Modules" to "api,common,protocol,core-client,core-service,velocity,paper,satis,storage,migration,testkit,bom",
             "CloudIslands-Package-External-Addon" to "cloudislands-satis",
             "CloudIslands-Package-Primary-Services" to "velocity-router,paper-agent,core-api,storage,migration",
+            "CloudIslands-Config-Surface-Policy" to "velocity-paper-core-configs-keep-goal-setup-routing-storage-security-keys",
             "CloudIslands-Satis-Policy-Owner" to "cloudislands-common",
             "CloudIslands-Satis-Recommended-Mode" to "external-addon-built-in-compatible",
             "CloudIslands-Satis-Core-Dependency-Policy" to "core-never-depends-on-cloudislands-satis-jar",

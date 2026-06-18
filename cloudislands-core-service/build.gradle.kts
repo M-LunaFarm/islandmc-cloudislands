@@ -34,6 +34,7 @@ tasks.jar {
             "CloudIslands-Core-Setup-Fallback-Policy" to "unsupported-or-incomplete-selection-falls-through-configured-order",
             "CloudIslands-Core-Setup-Core-API-Policy" to "client-addon-state-marker-core-self-storage-requires-durable-jdbc-or-safe-in-memory-fallback",
             "CloudIslands-Core-Setup-Fallback-Safety" to "disabled-fallback-still-refuses-unsafe-unsupported-jdbc",
+            "CloudIslands-Core-Config-Surface" to "server,database,redis,storage,routing,security,upgrades,block-values",
             "CloudIslands-Core-Addon-State-Bulk-Endpoints" to "/v1/addons/state/table/bulk,/v1/addons/state/table-key-value/bulk-save,/v1/addons/state/table/key-value/bulk-save,/v1/addons/state/table/key-value/bulk/save,/v1/addons/state/table/key-value/bulk,/v1/addons/state/table/key-value/bulk-load,/v1/addons/state/table/load,/v1/addons/state/table/bulk-set",
             "CloudIslands-Core-Addon-Island-State-Bulk-Endpoints" to "/v1/addons/islands/state/table/bulk,/v1/addons/islands/state/table-key-value/bulk-save,/v1/addons/islands/state/table/key-value/bulk-save,/v1/addons/islands/state/table/key-value/bulk/save,/v1/addons/islands/state/table/key-value/bulk,/v1/addons/islands/state/table/key-value/bulk-load,/v1/addons/islands/state/table/load,/v1/addons/islands/state/table/bulk-set",
             "CloudIslands-Core-Addon-State-Bulk-Compatibility" to "table-key-value-and-table/key-value-routes-share-table-prefix-flattened-storage",

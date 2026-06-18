@@ -67,6 +67,7 @@ tasks.jar {
             "CloudIslands-Paper-GUI-Coverage" to "main,member,permission,flag,ranking,node-admin,bank,warp,invite,ban,log,role,danger,snapshot,upgrade,biome,limit",
             "CloudIslands-Paper-GUI-Main-Menu" to "home,create,visit,members,permissions,upgrades,warps,ranking,missions,admin",
             "CloudIslands-Paper-GUI-Node-Admin" to "node-load-drain-undrain-view-islands-move-load-shutdown-safe",
+            "CloudIslands-Paper-Config-Surface" to "node,core-api,redis,storage,island-node,protection,heartbeat,routing",
             "CloudIslands-Paper-Degraded-Mode-Policy" to "core-down-active-island-local-protection-and-limited-teleport-object-storage-down-active-local-play",
             "CloudIslands-Paper-Storage-Outage-Policy" to "StorageOutagePolicy-active-islands-stay-local-periodic-and-empty-save-failures-queued-for-retry",
             "CloudIslands-Paper-Storage-Backend-Policy" to "S3-or-MINIO-shared-object-storage-LOCAL_FILESYSTEM-fallback",
