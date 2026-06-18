@@ -77,6 +77,19 @@ class DefaultConfigIntegrityTest {
         assertTrue(config.getBoolean("database.fallback.enabled"));
         assertTrue(config.getBoolean("setup.database.fallback.enabled"));
         assertTrue(config.getBoolean("setup.database.core-api.enabled"));
+        assertTrue(SatisDatabaseConfigPolicy.typePriority().indexOf("setup.database.type")
+                < SatisDatabaseConfigPolicy.typePriority().indexOf("database.type"));
+        assertTrue(SatisDatabaseConfigPolicy.typePriority().contains("setup.database.core-api.enabled"));
+        assertTrue(SatisDatabaseConfigPolicy.commonJdbcAliases().contains("setup.database.jdbc-url"));
+        assertTrue(SatisDatabaseConfigPolicy.backendJdbcAliases().contains("setup.database.postgresql.jdbc-url"));
+        assertTrue(SatisDatabaseConfigPolicy.backendJdbcAliases().contains("setup.database.mysql.jdbc-url"));
+        assertTrue(SatisDatabaseConfigPolicy.backendJdbcAliases().contains("setup.database.mariadb.jdbc-url"));
+        assertTrue(SatisDatabaseConfigPolicy.backendCredentialAliases().contains("setup.database.postgresql.username"));
+        assertTrue(SatisDatabaseConfigPolicy.backendCredentialAliases().contains("setup.database.mysql.username"));
+        assertTrue(SatisDatabaseConfigPolicy.backendCredentialAliases().contains("setup.database.mariadb.username"));
+        assertEquals(List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API"),
+                SatisDatabaseConfigPolicy.sharedBackends());
+        assertEquals(List.of("SQLITE"), SatisDatabaseConfigPolicy.localBackends());
         assertEquals(List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API", "SQLITE"),
                 config.getStringList("database.fallback.order"));
         assertEquals(List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API", "SQLITE"),
