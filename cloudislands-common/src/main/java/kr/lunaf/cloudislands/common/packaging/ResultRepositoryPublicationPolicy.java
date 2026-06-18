@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.common.packaging;
 
 import java.util.List;
+import java.util.Locale;
 
 public final class ResultRepositoryPublicationPolicy {
     public static final String REPOSITORY_ROOT = "result";
@@ -50,9 +51,9 @@ public final class ResultRepositoryPublicationPolicy {
         if (filename == null) {
             return false;
         }
-        String normalized = filename.trim();
+        String normalized = filename.trim().toLowerCase(Locale.ROOT);
         return MARKDOWN_DENY_PATTERNS.stream()
-            .map(pattern -> pattern.substring(1))
+            .map(pattern -> pattern.substring(1).toLowerCase(Locale.ROOT))
             .anyMatch(normalized::endsWith);
     }
 

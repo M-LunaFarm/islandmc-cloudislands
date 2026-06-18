@@ -21,11 +21,13 @@ class ResultRepositoryPublicationPolicyTest {
     @Test
     void deniesCommonMarkdownDocumentExtensions() {
         assertTrue(ResultRepositoryPublicationPolicy.markdownDenied("README.md"));
+        assertTrue(ResultRepositoryPublicationPolicy.markdownDenied("README.Md"));
         assertTrue(ResultRepositoryPublicationPolicy.markdownDenied("guide.MD"));
         assertTrue(ResultRepositoryPublicationPolicy.markdownDenied("notes.mdx"));
         assertTrue(ResultRepositoryPublicationPolicy.markdownDenied("plan.mdown"));
         assertTrue(ResultRepositoryPublicationPolicy.markdownDenied("task.mkdn"));
         assertTrue(ResultRepositoryPublicationPolicy.markdownDenied("book.markdown"));
+        assertTrue(ResultRepositoryPublicationPolicy.markdownDenied("PLAN.MarkDown"));
         assertTrue(ResultRepositoryPublicationPolicy.markdownDenied("chapter.mkd"));
         assertFalse(ResultRepositoryPublicationPolicy.markdownDenied("plugin.yml"));
         assertFalse(ResultRepositoryPublicationPolicy.markdownDenied(null));
