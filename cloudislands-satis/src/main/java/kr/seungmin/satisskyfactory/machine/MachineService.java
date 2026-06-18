@@ -73,20 +73,32 @@ public final class MachineService {
         return Optional.ofNullable(machines.get(machineId));
     }
 
-    public MachineInstance create(UUID islandUuid, UUID ownerUuid, String typeId, Location location, BlockFace direction) {
+    public Optional<MachineInstance> create(UUID islandUuid, UUID ownerUuid, String typeId, Location location, BlockFace direction) {
         if (!loaded) {
             throw new IllegalStateException("Machine service is not active");
+        }
+        if (!writesEnabled()) {
+            return Optional.empty();
         }
         MachineDefinition definition = definitions.get(typeId).orElseThrow();
         MachineInstance machine = new MachineInstance(UUID.randomUUID(), islandUuid, ownerUuid, typeId, definition.tier(), BlockKey.from(location));
         machine.direction(direction);
-        VirtualInventory input = storage.createMachineInventory(islandUuid, machine.machineId(), "MACHINE_INPUT", definition.inputCapacity());
-        VirtualInventory output = storage.createMachineInventory(islandUuid, machine.machineId(), "MACHINE_OUTPUT", definition.outputCapacity());
+        Optional<VirtualInventory> inputInventory = storage.createMachineInventoryIfAllowed(islandUuid, machine.machineId(), "MACHINE_INPUT", definition.inputCapacity());
+        if (inputInventory.isEmpty()) {
+            return Optional.empty();
+        }
+        Optional<VirtualInventory> outputInventory = storage.createMachineInventoryIfAllowed(islandUuid, machine.machineId(), "MACHINE_OUTPUT", definition.outputCapacity());
+        if (outputInventory.isEmpty()) {
+            storage.delete(inputInventory.get().inventoryId());
+            return Optional.empty();
+        }
+        VirtualInventory input = inputInventory.get();
+        VirtualInventory output = outputInventory.get();
         machine.inputInventoryId(input.inventoryId());
         machine.outputInventoryId(output.inventoryId());
         save(machine);
         revision.incrementAndGet();
-        return machine;
+        return Optional.of(machine);
     }
 
     public void save(MachineInstance machine) {

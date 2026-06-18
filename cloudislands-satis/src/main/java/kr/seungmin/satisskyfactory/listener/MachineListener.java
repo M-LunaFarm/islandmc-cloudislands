@@ -161,7 +161,13 @@ public final class MachineListener implements Listener {
             return false;
         }
         targetBlock.setType(definition.placedMaterial(), false);
-        MachineInstance machine = machines.create(island.islandUuid(), player.getUniqueId(), typeId, targetBlock.getLocation(), direction);
+        Optional<MachineInstance> created = machines.create(island.islandUuid(), player.getUniqueId(), typeId, targetBlock.getLocation(), direction);
+        if (created.isEmpty()) {
+            targetBlock.setType(Material.AIR, false);
+            messages.send(player, "place-denied");
+            return false;
+        }
+        MachineInstance machine = created.get();
         linkResourceNode(machine, definition);
         if (consumeItem && player.getGameMode() != GameMode.CREATIVE) {
             consumeHand(player, hand);

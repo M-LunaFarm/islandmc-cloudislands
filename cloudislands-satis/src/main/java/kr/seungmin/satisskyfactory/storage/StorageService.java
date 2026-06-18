@@ -61,6 +61,11 @@ public final class StorageService {
         return inventory;
     }
 
+    public Optional<VirtualInventory> createMachineInventoryIfAllowed(UUID islandUuid, UUID machineId, String holderType, long capacity) {
+        VirtualInventory inventory = new VirtualInventory(UUID.randomUUID(), islandUuid, holderType, machineId.toString(), capacity);
+        return saveIfAllowed(inventory) ? Optional.of(inventory) : Optional.empty();
+    }
+
     public Optional<VirtualInventory> get(UUID inventoryId) {
         if (inventoryId == null) {
             return Optional.empty();
