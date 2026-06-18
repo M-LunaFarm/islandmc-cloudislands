@@ -68,4 +68,25 @@ class AddonStateBulkSaveRequestTest {
         assertEquals(1, request.tableCount());
         assertEquals(Map.of("table/resource_nodes/node/ore/0/0", "12000"), request.flattenedStateValues());
     }
+
+    @Test
+    void scopedTableValuesMergeIntoBulkTableValues() {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000702");
+        AddonStateBulkSaveRequest request = new AddonStateBulkSaveRequest(
+                "cloudislands-satis",
+                islandId,
+                "machines",
+                Map.of("machine/2", "active", "machine/1", "overridden"),
+                Map.of("machines", Map.of("machine/1", "idle"))
+        );
+
+        assertEquals(Map.of("machine/1", "overridden", "machine/2", "active"),
+                request.tablesWithScopedTable().get("machines"));
+        assertEquals(Map.of(
+                "table/machines/machine/1", "overridden",
+                "table/machines/machine/2", "active"
+        ), request.flattenedStateValues());
+        assertEquals(2, request.tableKeyCount());
+        assertEquals(1, request.tableCount());
+    }
 }
