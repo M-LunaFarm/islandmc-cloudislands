@@ -1633,7 +1633,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("lifecycle-event-storage-policy", "cloudislands-island-uuid-stable-state-remap-active-world");
         metadata.put("lifecycle-placement-source-policy", "record-core-payload-or-paper-allocator-on-activate-and-migrate");
         metadata.put("lifecycle-placement-source-state-key", "last-lifecycle-operation");
-        metadata.put("relocation-state-keys", "last-relocation-island,last-relocation-operation,last-relocation-source-node,last-relocation-target-node,last-relocation-previous-world,last-relocation-previous-center,last-relocation-target-world,last-relocation-target-center,last-relocation-delta,last-relocation-machine-delta,last-relocation-resource-node-delta,last-relocation-placement-changed,last-relocation-machines-remapped,last-relocation-resource-nodes-remapped,last-relocation-machine-remap-deferred,last-relocation-resource-node-remap-deferred,last-relocation-remap-source,last-relocation-policy,last-relocation-at");
+        metadata.put("relocation-state-keys", "last-relocation-island,last-relocation-operation,last-relocation-source-node,last-relocation-target-node,last-relocation-previous-world,last-relocation-previous-center,last-relocation-target-world,last-relocation-target-center,last-relocation-delta,last-relocation-machine-delta,last-relocation-resource-node-delta,last-relocation-placement-changed,last-relocation-machines-remapped,last-relocation-resource-nodes-remapped,last-relocation-machine-remap-deferred,last-relocation-resource-node-remap-deferred,last-relocation-remap-source,last-relocation-policy,last-relocation-state-authority,last-relocation-write-fence,last-relocation-duplicate-tick-policy,last-relocation-confirmed-state-policy,last-relocation-at");
         metadata.put("route-event-source", "CloudIslandsAddon.route-ticket-events");
         metadata.put("route-event-policy", "diagnostic-state-only-no-routing-authority");
         metadata.put("route-event-feature-gate", "features.route-events&&features.addon-state&&CloudIslandsApi");
@@ -3321,6 +3321,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("last-relocation-resource-node-remap-deferred", Boolean.toString(relocation.resourceNodeRemapDeferred()));
         state.put("last-relocation-remap-source", remapSource == null || remapSource.isBlank() ? "active-world-center" : remapSource);
         state.put("last-relocation-policy", "island-uuid-stable-remap-volatile-world-cell");
+        state.put("last-relocation-state-authority", databaseShared() ? "shared-core-api-or-database-by-island-uuid" : "node-local-cache-not-authoritative");
+        state.put("last-relocation-write-fence", "cloudislands-runtime-fencing-single-active-owner");
+        state.put("last-relocation-duplicate-tick-policy", "source-preflush-target-rehydrate-no-local-cache-replay");
+        state.put("last-relocation-confirmed-state-policy", "use-last-confirmed-shared-state-only-after-node-failure");
         state.put("last-relocation-at", Instant.now().toString());
         cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
             getLogger().warning("Failed to publish CloudIslands Satis relocation audit state: " + error.getMessage());
@@ -3343,6 +3347,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         islandState.put("relocation-machine-remap-deferred", Boolean.toString(relocation.machineRemapDeferred()));
         islandState.put("relocation-resource-node-remap-deferred", Boolean.toString(relocation.resourceNodeRemapDeferred()));
         islandState.put("relocation-policy", "island-uuid-stable-remap-volatile-world-cell");
+        islandState.put("relocation-state-authority", databaseShared() ? "shared-core-api-or-database-by-island-uuid" : "node-local-cache-not-authoritative");
+        islandState.put("relocation-write-fence", "cloudislands-runtime-fencing-single-active-owner");
+        islandState.put("relocation-duplicate-tick-policy", "source-preflush-target-rehydrate-no-local-cache-replay");
+        islandState.put("relocation-confirmed-state-policy", "use-last-confirmed-shared-state-only-after-node-failure");
         islandState.put("relocation-at", Instant.now().toString());
         cloudIslandsApi.addons().putIslandState(ADDON_ID, islandId, islandState).exceptionally(error -> {
             getLogger().warning("Failed to publish CloudIslands Satis island relocation audit state: " + error.getMessage());
