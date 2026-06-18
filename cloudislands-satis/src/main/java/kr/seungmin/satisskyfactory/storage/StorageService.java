@@ -84,10 +84,10 @@ public final class StorageService {
     }
 
     public boolean saveIfAllowed(VirtualInventory inventory) {
-        cache.put(inventory.inventoryId(), inventory);
         if (!writesEnabled(inventory)) {
             return false;
         }
+        cache.put(inventory.inventoryId(), inventory);
         if (dirtySaves != null) {
             dirtySaves.markInventory(inventory);
             return true;
@@ -97,10 +97,10 @@ public final class StorageService {
     }
 
     public void saveNow(VirtualInventory inventory) {
-        cache.put(inventory.inventoryId(), inventory);
         if (!writesEnabled(inventory)) {
             return;
         }
+        cache.put(inventory.inventoryId(), inventory);
         database.saveInventory(inventory);
     }
 
@@ -108,16 +108,17 @@ public final class StorageService {
         if (inventoryId == null) {
             return;
         }
+        VirtualInventory existing = cache.get(inventoryId);
+        if (!deleteWritesEnabled(existing)) {
+            return;
+        }
         VirtualInventory removed = cache.remove(inventoryId);
         if (dirtySaves != null) {
-            if (removed == null || !writesEnabled(removed)) {
+            if (removed == null) {
                 dirtySaves.forgetInventory(inventoryId);
             } else {
                 dirtySaves.deleteInventory(removed.islandUuid(), inventoryId);
             }
-        }
-        if (!deleteWritesEnabled(removed)) {
-            return;
         }
         database.deleteInventory(inventoryId);
     }
