@@ -49,6 +49,11 @@ subprojects {
             options.encoding = "UTF-8"
             options.compilerArgs.addAll(listOf("-Xlint:all", "-Xlint:-processing"))
         }
+
+        tasks.withType<Jar>().configureEach {
+            exclude(markdownDocPatterns)
+            exclude { element: FileTreeElement -> isMarkdownDocElement(element) }
+        }
     }
 }
 
