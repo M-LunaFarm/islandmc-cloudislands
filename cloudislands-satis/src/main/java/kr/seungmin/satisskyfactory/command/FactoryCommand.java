@@ -525,12 +525,14 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                     .map(inventory -> String.valueOf(inventory.used()))
                     .orElse("0")));
         }
-        var boost = boosts.boosts(island.islandUuid());
-        boolean contractBoostVisible = enabled("contracts") && enabled("storage");
-        if (enabled("machines") || contractBoostVisible) {
+        boolean levelValuesVisible = enabled("level-values");
+        boolean machineBoostVisible = levelValuesVisible && enabled("machines");
+        boolean contractBoostVisible = levelValuesVisible && enabled("contracts") && enabled("storage");
+        if (machineBoostVisible || contractBoostVisible) {
+            var boost = boosts.boosts(island.islandUuid());
             messages.send(player, "status-boosts", Map.of(
-                    "agriculture", enabled("machines") ? NumberFormatter.ratio(boost.agricultureBoost()) : "0",
-                    "machine", enabled("machines") ? String.valueOf(boost.factorySlotBonus()) : "0",
+                    "agriculture", machineBoostVisible ? NumberFormatter.ratio(boost.agricultureBoost()) : "0",
+                    "machine", machineBoostVisible ? String.valueOf(boost.factorySlotBonus()) : "0",
                     "contract", contractBoostVisible ? String.valueOf(boost.contractSlotBonus()) : "0"));
         }
     }
