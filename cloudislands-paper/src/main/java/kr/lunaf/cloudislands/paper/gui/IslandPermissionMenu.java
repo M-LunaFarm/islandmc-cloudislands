@@ -20,8 +20,8 @@ import org.bukkit.plugin.Plugin;
 public final class IslandPermissionMenu implements Listener {
     private static final String TITLE_KEY = "permission-menu-title";
     private static final String TITLE = "섬 권한 설정";
-    private static final List<String> ROLES = List.of("MEMBER", "TRUSTED", "VISITOR", "CUSTOM_1", "CUSTOM_2", "CUSTOM_3", "CUSTOM_4", "CUSTOM_5");
-    private static final List<String> PERMISSIONS = List.of("BUILD", "BREAK", "OPEN_CONTAINER", "USE_DOOR", "ATTACK_PLAYER");
+    private static final List<String> ROLES = List.of("CO_OWNER", "MODERATOR", "MEMBER", "TRUSTED", "VISITOR");
+    private static final List<String> PERMISSIONS = List.of("BUILD", "BREAK", "INTERACT", "OPEN_CONTAINER", "USE_DOOR", "USE_REDSTONE", "ATTACK_PLAYER", "ATTACK_MOB");
     private final MessageRenderer messages;
 
     public IslandPermissionMenu() {
@@ -93,7 +93,7 @@ public final class IslandPermissionMenu implements Listener {
                     inventory.setItem(slot++, ruleItem(role, permission, allowed(rules, role, permission), messages));
                 }
             }
-            inventory.setItem(45, item(Material.BOOK, message(messages, "permission-menu-all-names-name", "전체 권한 이름"), message(messages, "permission-menu-all-names-command", "/섬 권한목록"), message(messages, "permission-menu-matrix-policy", "표시 우선순위: BUILD/BREAK/CHEST/DOOR/PVP"), permissionSummary()));
+            inventory.setItem(45, item(Material.BOOK, message(messages, "permission-menu-all-names-name", "전체 권한 이름"), message(messages, "permission-menu-all-names-command", "/섬 권한목록"), message(messages, "permission-menu-matrix-policy", "표시 권한: BUILD/BREAK/INTERACT/CHEST/DOOR/REDSTONE/PVP/MOB"), permissionSummary()));
             inventory.setItem(46, item(Material.PAPER, message(messages, "permission-menu-list-name", "권한 목록"), message(messages, "permission-menu-list-command", "/섬 권한목록")));
             inventory.setItem(47, item(Material.CLOCK, message(messages, "permission-menu-refresh-name", "새로고침"), message(messages, "permission-menu-refresh-command", "/섬 권한")));
             inventory.setItem(48, item(Material.COMPARATOR, message(messages, "permission-menu-settings-name", "설정"), message(messages, "permission-menu-settings-command", "/섬 설정")));
@@ -116,7 +116,9 @@ public final class IslandPermissionMenu implements Listener {
         return switch (permission) {
             case "OPEN_CONTAINER" -> "CHEST";
             case "USE_DOOR" -> "DOOR";
+            case "USE_REDSTONE" -> "REDSTONE";
             case "ATTACK_PLAYER" -> "PVP";
+            case "ATTACK_MOB" -> "MOB";
             default -> permission;
         };
     }
