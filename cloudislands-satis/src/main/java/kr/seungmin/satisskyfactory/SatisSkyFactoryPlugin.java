@@ -353,12 +353,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                     () -> operationalFeatureEnabled("machines"),
                     this::storageDataEnabled,
                     () -> operationalFeatureEnabled("maintenance"),
-                    () -> operationalFeatureEnabled("resource-nodes")
+                    () -> operationalFeatureEnabled("resource-nodes"),
+                    this::satisRuntimeTickReadyForIsland
             );
             ticker.start(configLong("settings.tick-period-ticks", "settings.tick-interval", 20));
         }
         if (operationalFeatureEnabled("maintenance")) {
-            maintenanceTicker = new MaintenanceTickService(this, islands, skyblock, maintenance, () -> operationalFeatureEnabled("maintenance"));
+            maintenanceTicker = new MaintenanceTickService(this, islands, skyblock, maintenance, () -> operationalFeatureEnabled("maintenance"), this::satisRuntimeTickReadyForIsland);
             maintenanceTicker.start(configLong("settings.maintenance-check-period-ticks", "settings.maintenance-check-interval", 1200));
         }
         if (dataWritesEnabled()) {
@@ -368,6 +369,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private boolean dataWritesEnabled() {
         return storageWriteAuthorityReady() && runtimeWriteFeatureEnabled();
+    }
+
+    private boolean satisRuntimeTickReadyForIsland(UUID islandId) {
+        if (database == null || database.activeBackend() != DatabaseService.StorageBackend.CORE_API) {
+            return true;
+        }
+        if (islandId == null || coreApiState == null || !operationalFeatureEnabled("addon-state")) {
+            return false;
+        }
+        return coreHydratedIslandActivations.containsKey(islandId);
     }
 
     private boolean runtimeWriteFeatureEnabled() {
@@ -3384,6 +3395,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             }
             publishCoreHydrationState(islandId, operation, activationKey, "restored");
         } else {
+            coreHydratedIslandActivations.put(islandId, activationKey);
             publishCoreHydrationState(islandId, operation, activationKey, "empty");
         }
     }

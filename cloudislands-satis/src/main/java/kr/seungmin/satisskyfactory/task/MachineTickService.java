@@ -44,6 +44,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 
 public final class MachineTickService {
     private final JavaPlugin plugin;
@@ -73,6 +74,7 @@ public final class MachineTickService {
     private final BooleanSupplier storageWritesEnabled;
     private final BooleanSupplier maintenanceEnabled;
     private final BooleanSupplier resourceNodesEnabled;
+    private final Predicate<UUID> islandTickReady;
     private BukkitTask task;
     private int remainingActiveParticles;
     private long machineSnapshotRevision = Long.MIN_VALUE;
@@ -89,7 +91,7 @@ public final class MachineTickService {
                               double lockedRecoveryEfficiency, int lockedMaxOperatingTier, double breakWear,
                               int activeParticleLimit, BooleanSupplier active,
                               BooleanSupplier storageWritesEnabled, BooleanSupplier maintenanceEnabled,
-                              BooleanSupplier resourceNodesEnabled) {
+                              BooleanSupplier resourceNodesEnabled, Predicate<UUID> islandTickReady) {
         this.plugin = plugin;
         this.machines = machines;
         this.definitions = definitions;
@@ -117,6 +119,7 @@ public final class MachineTickService {
         this.storageWritesEnabled = storageWritesEnabled == null ? () -> true : storageWritesEnabled;
         this.maintenanceEnabled = maintenanceEnabled;
         this.resourceNodesEnabled = resourceNodesEnabled;
+        this.islandTickReady = islandTickReady == null ? _island -> true : islandTickReady;
     }
 
     public void start(long intervalTicks) {
@@ -163,6 +166,10 @@ public final class MachineTickService {
             queuedMachines.remove(machineId);
             MachineInstance machine = machines.find(machineId).orElse(null);
             if (machine == null) {
+                continue;
+            }
+            if (!islandTickReady(machine.islandUuid())) {
+                enqueue(machine.machineId());
                 continue;
             }
             definitions.get(machine.typeId()).ifPresent(definition -> {
@@ -942,6 +949,14 @@ public final class MachineTickService {
     private boolean resourceNodesEnabled() {
         try {
             return resourceNodesEnabled.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private boolean islandTickReady(UUID islandId) {
+        try {
+            return islandTickReady.test(islandId);
         } catch (RuntimeException ignored) {
             return false;
         }
