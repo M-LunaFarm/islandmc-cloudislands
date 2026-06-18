@@ -1452,6 +1452,7 @@ public final class AdminFactoryCommand {
                         "runtime-machine-create-storage-save-policy",
                         "runtime-admin-machine-helper-policy",
                         "runtime-machine-remove-write-policy",
+                        "runtime-machine-remove-storage-save-policy",
                         "runtime-machine-break-storage-gate",
                         "runtime-machine-break-policy",
                         "runtime-admin-virtual-item-storage-gate",

@@ -178,7 +178,9 @@ public final class MachineService {
             return false;
         }
         if (!flushInventories(machine)) {
-            clearInventories(machine);
+            if (!clearInventories(machine)) {
+                return false;
+            }
         }
         delete(machine);
         return true;
@@ -230,19 +232,31 @@ public final class MachineService {
                 islandStorage.add(entry.getKey(), entry.getValue());
             }
         }
+        if (!storage.saveIfAllowed(islandStorage)) {
+            for (VirtualInventory buffer : buffers) {
+                for (Map.Entry<String, Long> entry : buffer.items().entrySet()) {
+                    islandStorage.remove(entry.getKey(), entry.getValue());
+                }
+            }
+            return false;
+        }
         for (VirtualInventory buffer : buffers) {
             new ArrayList<>(buffer.items().keySet()).forEach(itemId -> buffer.set(itemId, 0));
-            storage.save(buffer);
+            if (!storage.saveIfAllowed(buffer)) {
+                return false;
+            }
         }
-        storage.saveNow(islandStorage);
         return true;
     }
 
-    private void clearInventories(MachineInstance machine) {
+    private boolean clearInventories(MachineInstance machine) {
         for (VirtualInventory buffer : machineInventories(machine)) {
             new ArrayList<>(buffer.items().keySet()).forEach(itemId -> buffer.set(itemId, 0));
-            storage.save(buffer);
+            if (!storage.saveIfAllowed(buffer)) {
+                return false;
+            }
         }
+        return true;
     }
 
     private List<VirtualInventory> machineInventories(MachineInstance machine) {
