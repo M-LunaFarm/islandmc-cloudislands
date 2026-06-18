@@ -76,6 +76,10 @@ tasks.named("build") {
     dependsOn(tasks.named("verifyNoMarkdownDocs"))
 }
 
+tasks.named("check") {
+    dependsOn(tasks.named("verifyNoMarkdownDocs"))
+}
+
 tasks.register<Copy>("distPlugins") {
     group = "distribution"
     description = "Collects required CloudIslands plugin jars."

@@ -250,4 +250,15 @@ class RuntimeDependencyPolicyTest {
         assertTrue(rootBuild.contains("into(\"addon-descriptors\")"));
         assertTrue(rootBuild.contains("dependsOn(tasks.named(\"distAddonDescriptors\"))"));
     }
+
+    @Test
+    void rootBuildCheckRejectsMarkdownDocuments() throws IOException {
+        Path repoRoot = Path.of("").toAbsolutePath().normalize().getParent();
+        String rootBuild = Files.readString(repoRoot.resolve("build.gradle.kts"));
+
+        assertTrue(rootBuild.contains("tasks.register(\"verifyNoMarkdownDocs\")"));
+        assertTrue(rootBuild.contains("Markdown documents are not allowed in result/"));
+        assertTrue(rootBuild.contains("tasks.named(\"build\") {\n    dependsOn(tasks.named(\"verifyNoMarkdownDocs\"))\n}"));
+        assertTrue(rootBuild.contains("tasks.named(\"check\") {\n    dependsOn(tasks.named(\"verifyNoMarkdownDocs\"))\n}"));
+    }
 }
