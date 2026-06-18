@@ -308,7 +308,10 @@ public final class ContractService {
             return false;
         }
         ContractTemplate template = active.template();
-        VirtualInventory inventory = storage.islandStorage(island.islandUuid());
+        VirtualInventory inventory = storage.islandStorageIfAllowed(island.islandUuid()).orElse(null);
+        if (inventory == null) {
+            return false;
+        }
         if (!template.required().entrySet().stream().allMatch(entry -> inventory.amount(entry.getKey()) >= entry.getValue())) {
             return false;
         }

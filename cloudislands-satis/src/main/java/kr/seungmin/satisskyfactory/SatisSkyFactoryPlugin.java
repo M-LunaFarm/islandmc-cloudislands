@@ -625,6 +625,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-player-command-storage-create-policy", "player-storage-commands-use-optional-island-storage-create-path-instead-of-throwing");
         state.put("runtime-gui-storage-create-policy", "gui-storage-actions-use-optional-island-storage-create-path-instead-of-throwing");
         state.put("runtime-market-storage-create-policy", "market-sell-uses-optional-island-storage-create-path-instead-of-throwing");
+        state.put("runtime-contract-storage-create-policy", "contract-completion-uses-optional-island-storage-create-path-instead-of-throwing");
         state.put("runtime-dirty-save-last-flush-status", dirtySaves == null ? "not-configured" : dirtySaves.lastFlushStatus());
         state.put("runtime-dirty-save-last-flush-at", dirtySaves == null ? "" : dirtySaves.lastFlushAt());
         state.put("runtime-dirty-save-last-flush-writes", dirtySaves == null ? "0" : Integer.toString(dirtySaves.lastFlushWrites()));
