@@ -39,21 +39,43 @@ class RuntimeDependencyPolicyTest {
 
     @Test
     void pluginMetadataDoesNotDependOnLegacySkyblockPlugins() throws IOException {
-        String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
-        List<String> dependencyLines = plugin.lines()
-                .map(String::trim)
-                .filter(line -> line.startsWith("depend:")
-                        || line.startsWith("softdepend:")
-                        || line.startsWith("loadbefore:"))
-                .toList();
+        Path repoRoot = Path.of("").toAbsolutePath().normalize().getParent();
+        List<Path> descriptorFiles = List.of(
+                Path.of("src/main/resources/plugin.yml"),
+                repoRoot.resolve("cloudislands-paper/src/main/resources/plugin.yml"),
+                repoRoot.resolve("cloudislands-satis/src/main/resources/cloudislands-addon.yml")
+        );
+        List<String> dependencyKeys = List.of(
+                "depend:",
+                "softdepend:",
+                "loadbefore:",
+                "required-plugins:",
+                "plugin-dependencies:",
+                "runtime-dependencies:"
+        );
+        List<String> forbiddenProviders = List.of(
+                "superiorskyblock",
+                "bentobox",
+                "askyblock",
+                "uskyblock",
+                "iridiumskyblock"
+        );
 
-        for (String line : dependencyLines) {
-            String lower = line.toLowerCase();
-            assertFalse(lower.contains("superiorskyblock"), "plugin.yml declares SuperiorSkyblock runtime dependency: " + line);
-            assertFalse(lower.contains("bentobox"), "plugin.yml declares BentoBox runtime dependency: " + line);
-            assertFalse(lower.contains("askyblock"), "plugin.yml declares ASkyBlock runtime dependency: " + line);
-            assertFalse(lower.contains("uskyblock"), "plugin.yml declares uSkyBlock runtime dependency: " + line);
-            assertFalse(lower.contains("iridiumskyblock"), "plugin.yml declares IridiumSkyblock runtime dependency: " + line);
+        for (Path descriptorFile : descriptorFiles) {
+            List<String> dependencyLines = Files.readString(descriptorFile).lines()
+                    .map(String::trim)
+                    .filter(line -> dependencyKeys.stream().anyMatch(line::startsWith))
+                    .toList();
+
+            for (String line : dependencyLines) {
+                String lower = line.toLowerCase();
+                for (String forbiddenProvider : forbiddenProviders) {
+                    assertFalse(
+                            lower.contains(forbiddenProvider),
+                            descriptorFile + " declares legacy skyblock runtime dependency " + forbiddenProvider + ": " + line
+                    );
+                }
+            }
         }
     }
 
