@@ -259,7 +259,7 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return matches(List.of("list", "목록"), args[1]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("command") && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
-            return matches(List.of("1", "2", "3", "4", "5"), args[2]);
+            return matches(commandListPageSuggestions(), args[2]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("cache")) {
             return matches(CACHE_COMMANDS, args[1]);
@@ -367,6 +367,15 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             return matches(onlinePlayerNames(), args[2]);
         }
         return List.of();
+    }
+
+    private List<String> commandListPageSuggestions() {
+        int maxPage = CommandListPolicy.pages(HELP_COMMANDS.size());
+        List<String> pages = new ArrayList<>();
+        for (int page = 1; page <= maxPage; page++) {
+            pages.add(String.valueOf(page));
+        }
+        return pages;
     }
 
     private boolean handleAddons(CommandSender sender, String[] args) {
