@@ -340,6 +340,14 @@ public interface IslandAddonService {
         return tableKeyValueBulkLoadState(request);
     }
 
+    default CompletableFuture<Map<String, String>> tableLoadState(String id, String table) {
+        return tableKeyValueBulkLoadState(id, table);
+    }
+
+    default CompletableFuture<Map<String, String>> tableLoadState(AddonStateBulkLoadRequest request) {
+        return tableKeyValueBulkLoadState(request);
+    }
+
     default CompletableFuture<Map<String, String>> tableKeyValueBulkSaveState(String id, String table, Map<String, String> values) {
         return tableKeyValueBulkSaveState(id, Map.of(), table == null ? Map.of() : Map.of(table, values == null ? Map.of() : values));
     }
@@ -524,6 +532,14 @@ public interface IslandAddonService {
     }
 
     default CompletableFuture<Map<String, String>> bulkLoadTableKeyValueIslandState(AddonStateBulkLoadRequest request) {
+        return tableKeyValueBulkLoadIslandState(request);
+    }
+
+    default CompletableFuture<Map<String, String>> tableLoadIslandState(String id, UUID islandId, String table) {
+        return tableKeyValueBulkLoadIslandState(id, islandId, table);
+    }
+
+    default CompletableFuture<Map<String, String>> tableLoadIslandState(AddonStateBulkLoadRequest request) {
         return tableKeyValueBulkLoadIslandState(request);
     }
 

@@ -1781,7 +1781,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-core-api-bulk-request-models", "AddonStateBulkSaveRequest,AddonStateBulkLoadRequest");
         metadata.put("addon-state-table-key-value-bulk-load-global-endpoint", AddonStateBulkLoadRequest.GLOBAL_ENDPOINT);
         metadata.put("addon-state-table-key-value-bulk-load-island-endpoint", AddonStateBulkLoadRequest.ISLAND_ENDPOINT);
-        metadata.put("addon-state-table-key-value-bulk-load-methods", "IslandAddonService.tableKeyValueBulkLoadState,IslandAddonService.tableKeyValueBulkLoadIslandState,CoreApiClient.tableKeyValueBulkLoadAddonState,CoreApiClient.tableKeyValueBulkLoadAddonIslandState");
+        metadata.put("addon-state-table-key-value-bulk-load-methods", "IslandAddonService.tableKeyValueBulkLoadState,IslandAddonService.tableKeyValueBulkLoadIslandState,IslandAddonService.tableLoadState,IslandAddonService.tableLoadIslandState,CoreApiClient.tableKeyValueBulkLoadAddonState,CoreApiClient.tableKeyValueBulkLoadAddonIslandState,CoreApiClient.tableLoadAddonState,CoreApiClient.tableLoadAddonIslandState");
         metadata.put("database-core-api-bulk-load-policy", "typed-request-core-api-first-local-cache-fallback");
         metadata.put("database-core-api-local-cache", databaseCoreApiLocalCachePolicy());
         metadata.put("database-core-api-fallback-target", databaseCoreApiFallbackTarget());
