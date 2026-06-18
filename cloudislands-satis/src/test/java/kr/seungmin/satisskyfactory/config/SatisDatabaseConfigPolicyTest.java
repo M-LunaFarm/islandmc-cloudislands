@@ -30,10 +30,17 @@ class SatisDatabaseConfigPolicyTest {
         assertTrue(SatisDatabaseConfigPolicy.pathPriority().contains("addons.cloudislands-satis.database.shared-directory"));
         assertTrue(SatisDatabaseConfigPolicy.pathPriority().contains("addons.cloudislands-satis.database.sqlite-file"));
         assertTrue(SatisDatabaseConfigPolicy.commonJdbcAliases().contains("addons.cloudislands-satis.database.jdbc.url"));
+        assertTrue(SatisDatabaseConfigPolicy.backendJdbcAliases().contains("CLOUDISLANDS_SATIS_POSTGRESQL_JDBC_URL"));
+        assertTrue(SatisDatabaseConfigPolicy.backendJdbcAliases().contains("CLOUDISLANDS_SATIS_MYSQL_JDBC_URL"));
+        assertTrue(SatisDatabaseConfigPolicy.backendJdbcAliases().contains("CLOUDISLANDS_SATIS_MARIADB_JDBC_URL"));
+        assertTrue(SatisDatabaseConfigPolicy.backendJdbcAliases().contains("addons.cloudislands-satis.database.mysql.jdbc-url"));
         assertTrue(SatisDatabaseConfigPolicy.credentialAliases().contains("addons.cloudislands-satis.database.jdbc.username"));
         assertTrue(SatisDatabaseConfigPolicy.credentialAliases().contains("addons.cloudislands-satis.database.jdbc.password"));
+        assertTrue(SatisDatabaseConfigPolicy.backendCredentialAliases().contains("CLOUDISLANDS_SATIS_POSTGRESQL_USERNAME"));
+        assertTrue(SatisDatabaseConfigPolicy.backendCredentialAliases().contains("CLOUDISLANDS_SATIS_MYSQL_PASSWORD"));
+        assertTrue(SatisDatabaseConfigPolicy.backendCredentialAliases().contains("addons.cloudislands-satis.database.mariadb.password"));
         assertEquals(
-                "setup.database.jdbc.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,addons.cloudislands-satis.database.jdbc.url,database.jdbc.url,database.<backend>.url",
+                "CLOUDISLANDS_SATIS_JDBC_URL,CLOUDISLANDS_SATIS_POSTGRESQL_JDBC_URL,CLOUDISLANDS_SATIS_MYSQL_JDBC_URL,CLOUDISLANDS_SATIS_MARIADB_JDBC_URL,setup.database.jdbc-url,setup.database.jdbc.url,setup.database.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,addons.cloudislands-satis.database.jdbc-url,addons.cloudislands-satis.database.jdbc.url,addons.cloudislands-satis.database.url,addons.cloudislands-satis.database.<backend>.jdbc-url,addons.cloudislands-satis.database.<backend>.url,database.jdbc-url,database.jdbc.url,database.url,database.<backend>.url",
                 SatisDatabaseConfigPolicy.commonJdbcAliasMetadata()
         );
     }
@@ -87,7 +94,9 @@ class SatisDatabaseConfigPolicyTest {
         assertThrows(UnsupportedOperationException.class, () -> SatisDatabaseConfigPolicy.typePriority().add("legacy"));
         assertThrows(UnsupportedOperationException.class, () -> SatisDatabaseConfigPolicy.pathPriority().add("legacy"));
         assertThrows(UnsupportedOperationException.class, () -> SatisDatabaseConfigPolicy.commonJdbcAliases().add("legacy"));
+        assertThrows(UnsupportedOperationException.class, () -> SatisDatabaseConfigPolicy.backendJdbcAliases().add("legacy"));
         assertThrows(UnsupportedOperationException.class, () -> SatisDatabaseConfigPolicy.credentialAliases().add("legacy"));
+        assertThrows(UnsupportedOperationException.class, () -> SatisDatabaseConfigPolicy.backendCredentialAliases().add("legacy"));
         assertThrows(UnsupportedOperationException.class, () -> SatisDatabaseConfigPolicy.sharedBackends().add("legacy"));
         assertThrows(UnsupportedOperationException.class, () -> SatisDatabaseConfigPolicy.localBackends().add("legacy"));
     }

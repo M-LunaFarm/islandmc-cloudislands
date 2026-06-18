@@ -68,6 +68,27 @@ public final class SatisDatabaseConfigPolicy {
             "database.url"
     );
 
+    private static final List<String> BACKEND_JDBC_ALIASES = List.of(
+            "CLOUDISLANDS_SATIS_POSTGRESQL_JDBC_URL",
+            "CLOUDISLANDS_SATIS_MYSQL_JDBC_URL",
+            "CLOUDISLANDS_SATIS_MARIADB_JDBC_URL",
+            "setup.database.postgresql.jdbc-url",
+            "setup.database.postgresql.url",
+            "setup.database.mysql.jdbc-url",
+            "setup.database.mysql.url",
+            "setup.database.mariadb.jdbc-url",
+            "setup.database.mariadb.url",
+            "addons.cloudislands-satis.database.postgresql.jdbc-url",
+            "addons.cloudislands-satis.database.postgresql.url",
+            "addons.cloudislands-satis.database.mysql.jdbc-url",
+            "addons.cloudislands-satis.database.mysql.url",
+            "addons.cloudislands-satis.database.mariadb.jdbc-url",
+            "addons.cloudislands-satis.database.mariadb.url",
+            "database.postgresql.url",
+            "database.mysql.url",
+            "database.mariadb.url"
+    );
+
     private static final List<String> CREDENTIAL_ALIASES = List.of(
             ENV_USERNAME,
             ENV_PASSWORD,
@@ -77,6 +98,27 @@ public final class SatisDatabaseConfigPolicy {
             "addons.cloudislands-satis.database.jdbc.password",
             "database.jdbc.username",
             "database.jdbc.password"
+    );
+
+    private static final List<String> BACKEND_CREDENTIAL_ALIASES = List.of(
+            "CLOUDISLANDS_SATIS_POSTGRESQL_USERNAME",
+            "CLOUDISLANDS_SATIS_POSTGRESQL_PASSWORD",
+            "CLOUDISLANDS_SATIS_MYSQL_USERNAME",
+            "CLOUDISLANDS_SATIS_MYSQL_PASSWORD",
+            "CLOUDISLANDS_SATIS_MARIADB_USERNAME",
+            "CLOUDISLANDS_SATIS_MARIADB_PASSWORD",
+            "setup.database.postgresql.username",
+            "setup.database.postgresql.password",
+            "setup.database.mysql.username",
+            "setup.database.mysql.password",
+            "setup.database.mariadb.username",
+            "setup.database.mariadb.password",
+            "addons.cloudislands-satis.database.postgresql.username",
+            "addons.cloudislands-satis.database.postgresql.password",
+            "addons.cloudislands-satis.database.mysql.username",
+            "addons.cloudislands-satis.database.mysql.password",
+            "addons.cloudislands-satis.database.mariadb.username",
+            "addons.cloudislands-satis.database.mariadb.password"
     );
 
     private static final List<String> SHARED_BACKENDS = List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API");
@@ -97,12 +139,20 @@ public final class SatisDatabaseConfigPolicy {
         return COMMON_JDBC_ALIASES;
     }
 
+    public static List<String> backendJdbcAliases() {
+        return BACKEND_JDBC_ALIASES;
+    }
+
     public static List<String> credentialAliases() {
         return CREDENTIAL_ALIASES;
     }
 
+    public static List<String> backendCredentialAliases() {
+        return BACKEND_CREDENTIAL_ALIASES;
+    }
+
     public static String commonJdbcAliasMetadata() {
-        return "setup.database.jdbc-url,setup.database.jdbc.url,setup.database.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,addons.cloudislands-satis.database.jdbc-url,addons.cloudislands-satis.database.jdbc.url,addons.cloudislands-satis.database.url,database.jdbc-url,database.jdbc.url,database.url,database.<backend>.url";
+        return "CLOUDISLANDS_SATIS_JDBC_URL,CLOUDISLANDS_SATIS_POSTGRESQL_JDBC_URL,CLOUDISLANDS_SATIS_MYSQL_JDBC_URL,CLOUDISLANDS_SATIS_MARIADB_JDBC_URL,setup.database.jdbc-url,setup.database.jdbc.url,setup.database.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,addons.cloudislands-satis.database.jdbc-url,addons.cloudislands-satis.database.jdbc.url,addons.cloudislands-satis.database.url,addons.cloudislands-satis.database.<backend>.jdbc-url,addons.cloudislands-satis.database.<backend>.url,database.jdbc-url,database.jdbc.url,database.url,database.<backend>.url";
     }
 
     public static List<String> sharedBackends() {
