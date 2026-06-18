@@ -47,6 +47,8 @@ class SatisSkyFactoryPluginTest {
         assertEquals("external-plugin,built-in-feature-pack,built-in-compatible", metadata.get("addon-supported-packaging"));
         assertEquals("same-cloudislands-addon-spi-for-external-plugin-and-built-in-feature-pack", metadata.get("addon-spi-policy"));
         assertEquals("true", metadata.get("addon-removal-safe"));
+        assertEquals("missing-disabled-or-removed-addon-must-not-block-core-island-create-route-save-restore", metadata.get("addon-removal-policy"));
+        assertEquals("reinstalled-addon-reconnects-preserved-addon-state-by-addon-id-and-island-uuid", metadata.get("addon-reconnect-policy"));
         assertEquals("preserve-addon-state-by-island-uuid", metadata.get("addon-data-retention"));
         assertEquals("false", metadata.get("addon-runtime-owns-islands"));
         assertEquals("CORE_API", metadata.get("addon-default-database-mode"));

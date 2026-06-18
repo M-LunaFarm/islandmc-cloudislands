@@ -3068,6 +3068,8 @@ public final class CloudIslandsCoreApplication {
             + "\"addonApiWriteAuthority\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.WRITE_AUTHORITY) + "\","
             + "\"addonApiSyncEventPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.SYNC_EVENT_POLICY) + "\","
             + "\"addonApiStoragePolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.ADDON_STORAGE_POLICY) + "\","
+            + "\"addonApiRemovalPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.ADDON_REMOVAL_POLICY) + "\","
+            + "\"addonApiReconnectPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.ADDON_RECONNECT_POLICY) + "\","
             + "\"addonJavaPluginApiPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.JAVA_PLUGIN_API_POLICY) + "\","
             + "\"addonInternalApiPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.INTERNAL_API_POLICY) + "\","
             + "\"addonEventApiPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.EVENT_API_POLICY) + "\","

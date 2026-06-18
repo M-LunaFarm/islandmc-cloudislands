@@ -430,6 +430,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-addon-policy", "disabled-addon-registers-no-active-components-preserves-satis-data-and-cloudislands-core");
         state.put("runtime-addon-removal-safe", "true");
         state.put("runtime-addon-removal-policy", SatisAddonIntegrationPolicy.REMOVAL_POLICY);
+        state.put("runtime-addon-api-removal-policy", CloudIslandsApiContract.ADDON_REMOVAL_POLICY);
+        state.put("runtime-addon-api-reconnect-policy", CloudIslandsApiContract.ADDON_RECONNECT_POLICY);
         state.put("runtime-addon-removal-core-impact", "none");
         state.put("runtime-addon-removal-action", "unregister-satis-runtime-only");
         state.put("runtime-addon-removal-data-retention", SatisAddonIntegrationPolicy.DATA_RETENTION_POLICY);
@@ -1932,6 +1934,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("extension-model", "superiorskyblock-style-addon"),
                 Map.entry("removable-addon", "true"),
                 Map.entry("addon-removal-safe", "true"),
+                Map.entry("addon-removal-policy", CloudIslandsApiContract.ADDON_REMOVAL_POLICY),
+                Map.entry("addon-reconnect-policy", CloudIslandsApiContract.ADDON_RECONNECT_POLICY),
                 Map.entry("addon-removal-core-impact", "none"),
                 Map.entry("addon-removal-runtime-action", "unregister-satis-runtime-only"),
                 Map.entry("cloudislands-lifecycle-depends-on-satis", "false"),
@@ -2334,6 +2338,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-state-writers-attached", "false");
         state.put("addon-removal-core-impact", "none");
         state.put("addon-removal-policy", SatisAddonIntegrationPolicy.REMOVAL_POLICY);
+        state.put("addon-api-removal-policy", CloudIslandsApiContract.ADDON_REMOVAL_POLICY);
+        state.put("addon-api-reconnect-policy", CloudIslandsApiContract.ADDON_RECONNECT_POLICY);
         state.put("addon-removal-data-retention", SatisAddonIntegrationPolicy.DATA_RETENTION_POLICY);
         state.put("addon-reenable-policy", SatisAddonIntegrationPolicy.REENABLE_POLICY);
         state.put("addon-disable-preflush-policy", SatisStatePortabilityPolicy.ADDON_DISABLE_POLICY);
