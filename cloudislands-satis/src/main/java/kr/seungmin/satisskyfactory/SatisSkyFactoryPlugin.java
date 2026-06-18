@@ -443,6 +443,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-addon-owns-islands", "false");
         state.put("runtime-standalone-island-management", SatisAddonIntegrationPolicy.STANDALONE_ISLAND_MANAGEMENT);
         state.put("runtime-skyblock-provider-policy", "cloudislands-api-only-ignore-legacy-provider-config");
+        state.put("runtime-topology-privacy-policy", SatisAddonIntegrationPolicy.TOPOLOGY_PRIVACY_POLICY);
+        state.put("runtime-player-visible-topology-policy", SatisAddonIntegrationPolicy.PLAYER_VISIBLE_TOPOLOGY_POLICY);
+        state.put("runtime-internal-topology-fields", SatisAddonIntegrationPolicy.INTERNAL_TOPOLOGY_FIELDS);
         state.put("runtime-superior-migration-input-only", "true");
         state.put("runtime-superior-runtime-dependency", "false");
         state.put("runtime-superior-runtime-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
@@ -480,6 +483,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-placeholder-exposure-policy", PlaceholderFeaturePolicy.exposurePolicy());
         state.put("runtime-placeholder-exposed-keys", placeholderHook != null ? placeholderHook.exposedKeys() : PlaceholderFeaturePolicy.exposedKeys());
         state.put("runtime-placeholder-denied-internal-fields", PlaceholderFeaturePolicy.deniedInternalFields());
+        state.put("runtime-placeholder-topology-privacy-policy", SatisAddonIntegrationPolicy.TOPOLOGY_PRIVACY_POLICY);
         state.put("runtime-placeholder-internal-placement-exposure", "false");
         state.put("runtime-migration-gate", "addonRuntimeEnabled&&features.migration");
         state.put("runtime-migration-status", operationalFeatureEnabled("migration") ? "enabled" : migrationBlockReason());
@@ -1766,6 +1770,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("addon-removal-core-impact", "none");
         metadata.put("addon-removal-runtime-action", "unregister-satis-commands-listeners-tickers-placeholders-and-state-writers-only");
         metadata.put("cloudislands-lifecycle-depends-on-satis", "false");
+        metadata.put("topology-privacy-policy", SatisAddonIntegrationPolicy.TOPOLOGY_PRIVACY_POLICY);
+        metadata.put("player-visible-topology-policy", SatisAddonIntegrationPolicy.PLAYER_VISIBLE_TOPOLOGY_POLICY);
+        metadata.put("internal-topology-fields", SatisAddonIntegrationPolicy.INTERNAL_TOPOLOGY_FIELDS);
         metadata.put("placeholder-exposure-policy", PlaceholderFeaturePolicy.exposurePolicy());
         metadata.put("placeholder-exposed-keys", PlaceholderFeaturePolicy.exposedKeys());
         metadata.put("placeholder-denied-internal-fields", PlaceholderFeaturePolicy.deniedInternalFields());

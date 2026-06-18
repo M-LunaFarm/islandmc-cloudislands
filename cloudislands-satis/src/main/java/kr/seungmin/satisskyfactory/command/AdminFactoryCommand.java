@@ -650,6 +650,7 @@ public final class AdminFactoryCommand {
                 "runtime-placeholder-exposure-policy",
                 "runtime-placeholder-exposed-keys",
                 "runtime-placeholder-denied-internal-fields",
+                "runtime-placeholder-topology-privacy-policy",
                 "runtime-placeholder-internal-placement-exposure"
         ).forEach(key -> {
             String value = details.get(key);
@@ -1386,11 +1387,15 @@ public final class AdminFactoryCommand {
                         "runtime-placeholder-exposure-policy",
                         "runtime-placeholder-exposed-keys",
                         "runtime-placeholder-denied-internal-fields",
+                        "runtime-placeholder-topology-privacy-policy",
                         "runtime-placeholder-internal-placement-exposure",
                         "placeholder-exposure-policy",
                         "placeholder-exposed-keys",
                         "placeholder-denied-internal-fields",
                         "placeholder-internal-placement-exposure",
+                        "runtime-topology-privacy-policy",
+                        "runtime-player-visible-topology-policy",
+                        "runtime-internal-topology-fields",
                         "runtime-migration-gate",
                         "runtime-migration-status",
                         "runtime-migration-policy",

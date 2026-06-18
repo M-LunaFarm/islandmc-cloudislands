@@ -31,6 +31,9 @@ public final class SatisAddonIntegrationPolicy {
     public static final String PERSISTENT_ID_AUTHORITY = "cloudislands-island-uuid";
     public static final String FORBIDDEN_PERSISTENT_OWNER_KEYS = "server-name,world-name,player-uuid";
     public static final String VOLATILE_PLACEMENT_POLICY = "active-node-world-center-are-remap-targets-not-state-owners";
+    public static final String TOPOLOGY_PRIVACY_POLICY = "player-facing-satis-output-hides-physical-node-server-world-cell-and-route-identifiers";
+    public static final String PLAYER_VISIBLE_TOPOLOGY_POLICY = "show-logical-island-only-never-island-node-or-shard-placement";
+    public static final String INTERNAL_TOPOLOGY_FIELDS = "active-node,source-node,target-node,server-name,world-name,cell,route-ticket,backend-storage-key";
 
     private static final List<String> SUPPORTED_MODES = List.of(
             RECOMMENDED_MODE,
