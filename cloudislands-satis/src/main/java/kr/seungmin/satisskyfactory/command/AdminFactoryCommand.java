@@ -1583,6 +1583,7 @@ public final class AdminFactoryCommand {
                         "runtime-inventory-delete-gate-policy",
                         "runtime-inventory-save-now-policy",
                         "runtime-inventory-save-api-policy",
+                        "runtime-island-storage-create-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",

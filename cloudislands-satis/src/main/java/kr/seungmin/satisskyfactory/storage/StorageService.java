@@ -37,7 +37,9 @@ public final class StorageService {
             return existing.get();
         }
         VirtualInventory inventory = new VirtualInventory(UUID.randomUUID(), islandUuid, "ISLAND", islandUuid.toString(), defaultCapacity);
-        saveNow(inventory);
+        if (!saveNow(inventory)) {
+            throw new IllegalStateException("Island storage writes are not available");
+        }
         return inventory;
     }
 
