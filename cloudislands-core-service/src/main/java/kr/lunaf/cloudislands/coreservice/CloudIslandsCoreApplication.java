@@ -3091,6 +3091,7 @@ public final class CloudIslandsCoreApplication {
             + "\"satisRecommendedModeReasons\":\"" + escape(kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.recommendedModeReasonSummary()) + "\","
             + "\"satisComponentBoundaries\":\"" + escape(kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.componentBoundarySummary()) + "\","
             + "\"satisFeatureOffRuntimeBlocks\":\"" + escape(kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.featureOffRuntimeBlockSummary()) + "\","
+            + "\"satisStateStorageConfig\":\"" + escape(kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.stateStorageConfigSummary()) + "\","
             + "\"satisNodeMoveRemapFlow\":\"" + escape(kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.nodeMoveRemapStepSummary()) + "\","
             + "\"satisFailureRecoveryFlow\":\"" + escape(kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.failureRecoveryStepSummary()) + "\","
             + "\"satisAddonReconnectFlow\":\"" + escape(kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.addonReconnectStepSummary()) + "\","

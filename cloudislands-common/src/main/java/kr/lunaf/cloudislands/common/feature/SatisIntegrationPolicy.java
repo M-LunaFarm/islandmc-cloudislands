@@ -45,6 +45,13 @@ public final class SatisIntegrationPolicy {
         Map.entry("storage", "satis-state-write-paths")
     );
 
+    private static final Map<String, String> STATE_STORAGE_CONFIG = Map.of(
+        "core-api-table-key-value", "recommended-portable-addon-state-authority-for-multi-node-island-moves",
+        "shared-directory", "allowed-only-when-mounted-identically-on-every-island-node",
+        "sqlite-file", "single-node-or-shared-directory-mode-only-not-node-local-for-a-b-moves",
+        "external-database", "allowed-when-addon-owns-schema-and-keeps-island-uuid-as-primary-scope"
+    );
+
     private static final List<String> NODE_MOVE_REMAP_STEPS = List.of(
         "source-node-save-addon-state-by-island-uuid",
         "cloudislands-deactivate-and-store-portable-island-bundle",
@@ -116,6 +123,14 @@ public final class SatisIntegrationPolicy {
 
     public static String featureOffRuntimeBlockSummary() {
         return summary(FEATURE_OFF_RUNTIME_BLOCKS);
+    }
+
+    public static Map<String, String> stateStorageConfig() {
+        return STATE_STORAGE_CONFIG;
+    }
+
+    public static String stateStorageConfigSummary() {
+        return summary(STATE_STORAGE_CONFIG);
     }
 
     public static List<String> nodeMoveRemapSteps() {
