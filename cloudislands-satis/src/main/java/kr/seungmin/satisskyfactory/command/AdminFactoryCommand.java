@@ -1426,6 +1426,7 @@ public final class AdminFactoryCommand {
                         "runtime-machines-status",
                         "runtime-machines-policy",
                         "runtime-machine-gui-service-policy",
+                        "runtime-machine-gui-storage-action-policy",
                         "runtime-machine-break-storage-gate",
                         "runtime-machine-break-policy",
                         "runtime-admin-virtual-item-storage-gate",

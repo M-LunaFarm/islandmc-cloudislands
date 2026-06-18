@@ -44,7 +44,8 @@ public final class FactoryGuiFeaturePolicy {
     private static Optional<String> secondaryFeature(String actionType) {
         return switch (actionType) {
             case "market_page", "main_market", "sell_market_item",
-                    "main_contracts", "contracts_back", "contract_detail", "complete_contract", "complete_emergency" -> Optional.of("storage");
+                    "main_contracts", "contracts_back", "contract_detail", "complete_contract", "complete_emergency",
+                    "deposit_machine_input", "withdraw_machine_input", "withdraw_machine_output", "reclaim_machine" -> Optional.of("storage");
             default -> Optional.empty();
         };
     }
