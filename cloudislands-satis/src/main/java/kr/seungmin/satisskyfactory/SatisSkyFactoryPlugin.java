@@ -2717,6 +2717,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         boolean guiEnabled = operational.getOrDefault("gui", true);
         boolean lifecycleEnabled = operational.getOrDefault("lifecycle", true);
         operational.computeIfPresent("resource-nodes", (_key, enabled) -> enabled && machinesEnabled);
+        operational.computeIfPresent("gui", (_key, enabled) -> enabled && machinesEnabled);
+        operational.computeIfPresent("placeholders", (_key, enabled) -> enabled && machinesEnabled);
         operational.computeIfPresent("market", (_key, enabled) -> enabled && storageEnabled);
         operational.computeIfPresent("contracts", (_key, enabled) -> enabled && storageEnabled);
         operational.computeIfPresent("generators", (_key, enabled) -> enabled && factoriesEnabled);
