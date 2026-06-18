@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -87,6 +88,45 @@ class SatisDatabaseConfigPolicyTest {
         );
         assertEquals("POSTGRESQL", SatisDatabaseConfigPolicy.firstSharedFallback(List.of("sqlite", "postgres")));
         assertEquals(0, SatisDatabaseConfigPolicy.localFallbackPosition(List.of("sqlite", "postgres")));
+    }
+
+    @Test
+    void filtersReadyFallbackChainWithoutPromotingLocalSqlite() {
+        String configuredOrder = "POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE";
+
+        assertEquals(
+                "MYSQL,CORE_API,SQLITE",
+                SatisDatabaseConfigPolicy.fallbackReadyChain(configuredOrder, "mysql,core-api,sqlite")
+        );
+        assertEquals(
+                SatisDatabaseConfigPolicy.FALLBACK_RISK_SHARED_BEFORE_LOCAL,
+                SatisDatabaseConfigPolicy.fallbackReadyChainRisk(configuredOrder, "mysql,core-api,sqlite")
+        );
+        assertTrue(SatisDatabaseConfigPolicy.fallbackReadyChainProductionSafe(configuredOrder, "mysql,core-api,sqlite"));
+        assertEquals(
+                "POSTGRESQL,MARIADB",
+                SatisDatabaseConfigPolicy.fallbackNotReadyBackends(configuredOrder, "mysql,core-api,sqlite")
+        );
+        assertEquals(
+                "ready=MYSQL,CORE_API,SQLITE;not-ready=POSTGRESQL,MARIADB",
+                SatisDatabaseConfigPolicy.fallbackReadinessSummary(configuredOrder, "mysql,core-api,sqlite")
+        );
+    }
+
+    @Test
+    void marksSqliteOnlyReadyFallbackAsUnsafeForIslandNodePools() {
+        String configuredOrder = "POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE";
+
+        assertEquals("SQLITE", SatisDatabaseConfigPolicy.fallbackReadyChain(configuredOrder, "sqlite"));
+        assertEquals(
+                SatisDatabaseConfigPolicy.FALLBACK_RISK_LOCAL_ONLY,
+                SatisDatabaseConfigPolicy.fallbackReadyChainRisk(configuredOrder, "sqlite")
+        );
+        assertEquals(
+                SatisDatabaseConfigPolicy.FALLBACK_RISK_NO_READY_BACKEND,
+                SatisDatabaseConfigPolicy.fallbackReadyChainRisk(configuredOrder, "")
+        );
+        assertFalse(SatisDatabaseConfigPolicy.fallbackReadyChainProductionSafe(configuredOrder, "sqlite"));
     }
 
     @Test
