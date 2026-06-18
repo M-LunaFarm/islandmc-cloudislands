@@ -105,6 +105,7 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
     @Override
     public IslandRuntimeSnapshot setState(UUID islandId, IslandState state) {
         IslandRuntimeSnapshot current = find(islandId).orElse(defaultRuntime(islandId));
+        rejectIllegalTransition(islandId, current.state(), state);
         return put(new IslandRuntimeSnapshot(islandId, state, current.activeNode(), current.activeWorld(), current.cellX(), current.cellZ(), current.leaseOwner(), current.fencingToken(), current.activatedAt(), Instant.now()));
     }
 
@@ -155,6 +156,13 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
         }
         throw new IllegalStateException("split-brain activation rejected for island " + current.islandId()
             + ": activeNode=" + activeNode + ", targetNode=" + targetNode + ", state=" + current.state());
+    }
+
+    private void rejectIllegalTransition(UUID islandId, IslandState from, IslandState to) {
+        if (IslandRuntimeStatePolicy.transitionAllowed(from, to)) {
+            return;
+        }
+        throw new IllegalStateException("illegal island runtime transition for island " + islandId + ": " + from + " -> " + to);
     }
 
     private boolean listedByNode(IslandRuntimeSnapshot runtime) {

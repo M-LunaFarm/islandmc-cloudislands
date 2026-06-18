@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class InMemoryIslandRuntimeRepositoryTest {
     private static final UUID ISLAND = UUID.fromString("00000000-0000-0000-0000-000000000901");
@@ -74,5 +75,45 @@ class InMemoryIslandRuntimeRepositoryTest {
         assertEquals(IslandState.ACTIVE, current.state());
         assertEquals("island-4", current.activeNode());
         assertEquals(20L, current.fencingToken());
+    }
+
+    @Test
+    void genericStateSetterRejectsLifecycleBypass() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+
+        assertThrows(IllegalStateException.class,
+                () -> runtimes.setState(ISLAND, IslandState.ACTIVE));
+
+        assertTrue(runtimes.find(ISLAND).isEmpty());
+    }
+
+    @Test
+    void genericStateSetterAcceptsPinnedRestoreAndDeleteFlows() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+
+        runtimes.setState(ISLAND, IslandState.RESTORING);
+        runtimes.setState(ISLAND, IslandState.ACTIVATING);
+        runtimes.setState(ISLAND, IslandState.ACTIVE);
+        runtimes.setState(ISLAND, IslandState.DELETE_REQUESTED);
+        runtimes.setState(ISLAND, IslandState.DEACTIVATING);
+        runtimes.setState(ISLAND, IslandState.BACKUP_BEFORE_DELETE);
+        runtimes.setState(ISLAND, IslandState.DELETING);
+        IslandRuntimeSnapshot deleted = runtimes.setState(ISLAND, IslandState.DELETED);
+
+        assertEquals(IslandState.DELETED, deleted.state());
+    }
+
+    @Test
+    void terminalDeletedRuntimeCannotMoveBackIntoRecovery() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        runtimes.setState(ISLAND, IslandState.DELETE_REQUESTED);
+        runtimes.setState(ISLAND, IslandState.DEACTIVATING);
+        runtimes.setState(ISLAND, IslandState.BACKUP_BEFORE_DELETE);
+        runtimes.setState(ISLAND, IslandState.DELETING);
+        runtimes.setState(ISLAND, IslandState.DELETED);
+
+        assertThrows(IllegalStateException.class,
+                () -> runtimes.setState(ISLAND, IslandState.RECOVERY_REQUIRED));
+        assertEquals(IslandState.DELETED, runtimes.find(ISLAND).orElseThrow().state());
     }
 }

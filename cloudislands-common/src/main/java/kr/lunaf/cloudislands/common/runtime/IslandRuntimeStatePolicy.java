@@ -62,17 +62,26 @@ public final class IslandRuntimeStatePolicy {
         if (from == to) {
             return true;
         }
+        if (from == IslandState.DELETED) {
+            return false;
+        }
         if (failureState(to)) {
             return true;
         }
         return adjacentTransition(CREATE_ACTIVATE_SAVE_FLOW, from, to)
             || adjacentTransition(DELETE_FLOW, from, to)
             || from == IslandState.INACTIVE_READY && to == IslandState.RESTORING
+            || from == IslandState.INACTIVE_READY && to == IslandState.DELETE_REQUESTED
+            || from == IslandState.INACTIVE_READY && to == IslandState.DEACTIVATING
+            || from == IslandState.ACTIVE && to == IslandState.RESTORING
+            || from == IslandState.RESTORING && to == IslandState.ACTIVATING
             || from == IslandState.RESTORING && to == IslandState.ACTIVE
             || from == IslandState.ACTIVE && to == IslandState.DELETE_REQUESTED
             || from == IslandState.SAVING && to == IslandState.DELETE_REQUESTED
             || from == IslandState.QUARANTINED && to == IslandState.RESTORING
+            || from == IslandState.QUARANTINED && to == IslandState.INACTIVE_READY
             || from == IslandState.RECOVERY_REQUIRED && to == IslandState.RESTORING
+            || from == IslandState.RECOVERY_REQUIRED && to == IslandState.INACTIVE_READY
             || from == IslandState.RECOVERY_REQUIRED && to == IslandState.QUARANTINED;
     }
 

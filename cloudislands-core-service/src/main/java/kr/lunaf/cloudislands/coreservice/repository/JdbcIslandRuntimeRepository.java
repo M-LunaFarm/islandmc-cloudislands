@@ -173,6 +173,7 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
     @Override
     public IslandRuntimeSnapshot setState(UUID islandId, IslandState state) {
         IslandRuntimeSnapshot current = find(islandId).orElse(defaultRuntime(islandId));
+        rejectIllegalTransition(islandId, current.state(), state);
         return update(islandId, state, current.activeNode(), current.activeWorld(), current.cellX(), current.cellZ(), current.leaseOwner(), current.fencingToken(), current.activatedAt());
     }
 
@@ -228,6 +229,13 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
         }
         throw new IllegalStateException("split-brain activation rejected for island " + current.islandId()
             + ": activeNode=" + activeNode + ", targetNode=" + targetNode + ", state=" + current.state());
+    }
+
+    private void rejectIllegalTransition(UUID islandId, IslandState from, IslandState to) {
+        if (IslandRuntimeStatePolicy.transitionAllowed(from, to)) {
+            return;
+        }
+        throw new IllegalStateException("illegal island runtime transition for island " + islandId + ": " + from + " -> " + to);
     }
 
     private boolean runningOnNode(IslandRuntimeSnapshot runtime) {
