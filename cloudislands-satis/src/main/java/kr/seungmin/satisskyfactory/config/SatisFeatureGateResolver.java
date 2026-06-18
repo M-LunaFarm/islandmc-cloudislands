@@ -148,16 +148,7 @@ public final class SatisFeatureGateResolver {
     }
 
     public static String integrationMode(ConfigurationSection config, String fallback) {
-        String raw = fallback == null || fallback.isBlank() ? "EXTERNAL_ADDON" : fallback;
-        if (config != null) {
-            for (String path : INTEGRATION_MODE_PATHS) {
-                String configured = config.getString(path, "");
-                if (configured != null && !configured.isBlank()) {
-                    raw = configured;
-                    break;
-                }
-            }
-        }
+        String raw = integrationModeConfiguredValue(config, fallback);
         String normalized = raw.trim().replace('-', '_').toUpperCase(Locale.ROOT);
         return switch (normalized) {
             case "DISABLE", "DISABLED", "OFF" -> "DISABLED";
@@ -165,6 +156,32 @@ public final class SatisFeatureGateResolver {
             case "EXTERNAL", "EXTERNAL_PLUGIN", "PLUGIN", "ADDON", "EXTERNAL_ADDON" -> "EXTERNAL_ADDON";
             default -> "EXTERNAL_ADDON";
         };
+    }
+
+    public static String integrationModeConfiguredValue(ConfigurationSection config, String fallback) {
+        String raw = fallback == null || fallback.isBlank() ? "EXTERNAL_ADDON" : fallback;
+        if (config != null) {
+            for (String path : INTEGRATION_MODE_PATHS) {
+                String configured = config.getString(path, "");
+                if (configured != null && !configured.isBlank()) {
+                    return configured;
+                }
+            }
+        }
+        return raw;
+    }
+
+    public static String integrationModeSource(ConfigurationSection config) {
+        if (config == null) {
+            return "default";
+        }
+        for (String path : INTEGRATION_MODE_PATHS) {
+            String configured = config.getString(path, "");
+            if (configured != null && !configured.isBlank()) {
+                return path;
+            }
+        }
+        return "default";
     }
 
     public static boolean featureEnabled(ConfigurationSection config, String feature) {

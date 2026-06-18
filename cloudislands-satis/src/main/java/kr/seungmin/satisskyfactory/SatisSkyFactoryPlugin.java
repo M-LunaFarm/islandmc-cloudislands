@@ -1650,7 +1650,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String integrationMode = configuredIntegrationMode();
         metadata.put("mode", integrationMode);
         metadata.put("integration-mode", integrationMode);
-        metadata.put("integration-mode-configured", configs.main().getString("integration.mode", "ADDON"));
+        metadata.put("integration-mode-configured", SatisFeatureGateResolver.integrationModeConfiguredValue(configs == null ? null : configs.main(), "ADDON"));
+        metadata.put("integration-mode-source", SatisFeatureGateResolver.integrationModeSource(configs == null ? null : configs.main()));
+        metadata.put("integration-mode-config-paths", String.join(",", SatisFeatureGateResolver.integrationModePaths()));
         metadata.put("integration-mode-supported", "EXTERNAL_ADDON,BUILT_IN_COMPATIBLE,DISABLED");
         metadata.put("integration-mode-effective", "DISABLED".equals(integrationMode) ? "disabled-no-runtime-components" : "cloudislands-addon-registry");
         metadata.put("integration-mode-policy", "external-addon-and-built-in-compatible-modes-share-the-same-cloudislands-addon-feature-gates");
@@ -1959,7 +1961,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("missing-cloudislands-behavior", SatisAddonIntegrationPolicy.MISSING_API_BEHAVIOR),
                 Map.entry("feature-gate-scope", "global-and-per-feature"),
                 Map.entry("config-gated", "true"),
-                Map.entry("parent-config-aliases", "satis")
+                Map.entry("parent-config-aliases", "satis"),
+                Map.entry("integration-mode-config-paths", String.join(",", SatisFeatureGateResolver.integrationModePaths()))
         );
     }
 

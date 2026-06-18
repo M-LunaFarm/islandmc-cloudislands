@@ -41,9 +41,12 @@ class SatisFeatureGateResolverTest {
         addonBuiltIn.set("addons.cloudislands-satis.integration.mode", "built-in-compatible");
 
         assertEquals("DISABLED", SatisFeatureGateResolver.integrationMode(setupDisabled, "EXTERNAL_ADDON"));
+        assertEquals("disabled", SatisFeatureGateResolver.integrationModeConfiguredValue(setupDisabled, "EXTERNAL_ADDON"));
+        assertEquals("setup.satis.mode", SatisFeatureGateResolver.integrationModeSource(setupDisabled));
         assertFalse(SatisFeatureGateResolver.rootEnabled(setupDisabled));
         assertEquals("integration-mode-disabled", SatisFeatureGateResolver.rootBlockReason(setupDisabled));
         assertEquals("BUILT_IN_COMPATIBLE", SatisFeatureGateResolver.integrationMode(addonBuiltIn, "EXTERNAL_ADDON"));
+        assertEquals("addons.cloudislands-satis.integration.mode", SatisFeatureGateResolver.integrationModeSource(addonBuiltIn));
         assertTrue(SatisFeatureGateResolver.rootEnabled(addonBuiltIn));
     }
 
