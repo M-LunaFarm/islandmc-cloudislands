@@ -16,6 +16,7 @@ import kr.seungmin.satisskyfactory.model.FactoryIsland;
 import kr.seungmin.satisskyfactory.model.MachineDefinition;
 import kr.seungmin.satisskyfactory.model.MachineInstance;
 import kr.seungmin.satisskyfactory.model.MachineStatus;
+import kr.seungmin.satisskyfactory.model.MaintenanceStatus;
 import kr.seungmin.satisskyfactory.node.ResourceNodeService;
 import kr.seungmin.satisskyfactory.power.PowerNetworkService;
 import kr.seungmin.satisskyfactory.research.ResearchService;
@@ -190,19 +191,33 @@ public final class AdminFactoryCommand {
                 if (!requireFeature(sender, "research")) {
                     return;
                 }
+                long previousResearch = island.researchPoints();
                 if (research.addResearch(island, parseLong(args, 3, 0))) {
-                    islands.save(island);
+                    if (!islands.save(island)) {
+                        island.researchPoints(previousResearch);
+                        messages.send(sender, "feature-disabled", Map.of("feature", "research"));
+                        return;
+                    }
+                    messages.send(sender, "admin-research-updated");
                 }
-                messages.send(sender, "admin-research-updated");
             });
             case "setdebt" -> withPlayerContext(sender, args, 2, (target, island) -> {
                 if (!requireFeature(sender, "maintenance")) {
                     return;
                 }
+                long previousDebt = island.maintenanceDebt();
+                MaintenanceStatus previousStatus = island.maintenanceStatus();
+                long previousScore = island.factoryScore();
                 if (maintenance.setDebt(island, parseLong(args, 3, 0))) {
-                    islands.save(island);
+                    if (!islands.save(island)) {
+                        island.maintenanceDebt(previousDebt);
+                        island.maintenanceStatus(previousStatus);
+                        island.factoryScore(previousScore);
+                        messages.send(sender, "feature-disabled", Map.of("feature", "maintenance"));
+                        return;
+                    }
+                    messages.send(sender, "admin-debt-updated");
                 }
-                messages.send(sender, "admin-debt-updated");
             });
             case "charge" -> withPlayerContext(sender, args, 2, (target, island) -> {
                 if (!requireFeature(sender, "maintenance")) {
@@ -1506,6 +1521,7 @@ public final class AdminFactoryCommand {
                         "runtime-machine-tick-logistics-save-policy",
                         "runtime-power-battery-save-policy",
                         "runtime-island-save-result-policy",
+                        "runtime-admin-island-save-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",
