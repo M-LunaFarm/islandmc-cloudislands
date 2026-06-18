@@ -2210,11 +2210,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private void reloadSatisRuntimeFromCore(String reason) {
         if (cloudIslandsApi != null) {
             cloudIslandsApi.addons().refresh(ADDON_ID)
-                    .thenAccept(snapshot -> {
-                        if (snapshot.isEmpty()) {
-                            applySatisRuntimeFallback(reason);
-                        }
-                    })
+                    .thenAccept(snapshot -> applySatisRuntimeFallback(reason))
                     .exceptionally(error -> {
                         getLogger().warning("Failed to refresh CloudIslands Satis addon after " + reason + ": " + error.getMessage());
                         applySatisRuntimeFallback(reason);
