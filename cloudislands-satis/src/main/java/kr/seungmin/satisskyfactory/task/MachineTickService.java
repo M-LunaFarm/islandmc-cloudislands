@@ -703,9 +703,24 @@ public final class MachineTickService {
             if (hasInput && canAddAll(output, produced)) {
                 recipe.input().forEach(input::remove);
                 produced.forEach(output::add);
-                recipeNode.ifPresent(node -> consumeRecipeNode(machine, definition, node));
-                storage.save(input);
-                storage.save(output);
+                if (!storage.saveIfAllowed(input)) {
+                    recipe.input().forEach(input::add);
+                    produced.forEach(output::remove);
+                    return false;
+                }
+                if (!storage.saveIfAllowed(output)) {
+                    produced.forEach(output::remove);
+                    recipe.input().forEach(input::add);
+                    storage.saveIfAllowed(input);
+                    return false;
+                }
+                if (recipeNode.isPresent() && !consumeRecipeNode(machine, definition, recipeNode.get())) {
+                    produced.forEach(output::remove);
+                    recipe.input().forEach(input::add);
+                    storage.saveIfAllowed(input);
+                    storage.saveIfAllowed(output);
+                    return false;
+                }
                 setStatus(machine, MachineStatus.ACTIVE);
                 return true;
             }
@@ -728,14 +743,19 @@ public final class MachineTickService {
         return node.filter(candidate -> candidate.remaining() >= required && candidate.requiredMachineTier() <= definition.tier());
     }
 
-    private void consumeRecipeNode(MachineInstance machine, MachineDefinition definition, ResourceNode node) {
+    private boolean consumeRecipeNode(MachineInstance machine, MachineDefinition definition, ResourceNode node) {
         machine.linkedResourceNodeId(node.nodeId());
         long required = Math.max(0, definition.recipeNodeUse());
         if (required <= 0) {
-            return;
+            return true;
         }
+        long previousRemaining = node.remaining();
         node.remaining(Math.max(0, node.remaining() - required));
-        nodes.save(node);
+        if (!nodes.save(node)) {
+            node.remaining(previousRemaining);
+            return false;
+        }
+        return true;
     }
 
     private boolean canAddAll(VirtualInventory inventory, Map<String, Long> items) {
