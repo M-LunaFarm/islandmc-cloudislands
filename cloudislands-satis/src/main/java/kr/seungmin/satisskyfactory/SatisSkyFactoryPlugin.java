@@ -249,6 +249,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         loadDefinitions();
         refreshIslandCache();
         refreshMachineCache();
+        hydrateCachedSatisIslandsFromCore("startup");
         logFeatureWarnings();
         if (operationalFeatureEnabled("machines")) {
             rebuildNetworks();
@@ -303,6 +304,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         loadDefinitions();
         refreshIslandCache();
         refreshMachineCache();
+        hydrateCachedSatisIslandsFromCore("reload");
         logFeatureWarnings();
         if (operationalFeatureEnabled("machines")) {
             rebuildNetworks();
@@ -929,6 +931,38 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (dirtySaves != null) {
             dirtySaves.forgetIslands();
         }
+    }
+
+    private void hydrateCachedSatisIslandsFromCore(String reason) {
+        if (database == null || database.activeBackend() != DatabaseService.StorageBackend.CORE_API || coreApiState == null || islands == null || !operationalFeatureEnabled("addon-state")) {
+            return;
+        }
+        String safeReason = reason == null || reason.isBlank() ? "startup" : reason;
+        List<UUID> islandIds = islands.cached().stream()
+                .map(FactoryIsland::islandUuid)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+        islandIds.forEach(islandId -> hydrateSatisIslandFromCore(islandId, safeReason + "-core-hydrate"));
+        publishStartupHydrationState(safeReason, islandIds.size());
+    }
+
+    private void publishStartupHydrationState(String reason, int islandCount) {
+        if (cloudIslandsApi == null || !addonStateReportingWasEnabled || !operationalFeatureEnabled("addon-state")) {
+            return;
+        }
+        String safeReason = reason == null || reason.isBlank() ? "startup" : reason;
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("last-startup-hydrate-reason", safeReason);
+        state.put("last-startup-hydrate-islands", Integer.toString(Math.max(0, islandCount)));
+        state.put("last-startup-hydrate-backend", database == null ? "unknown" : database.activeBackend().name());
+        state.put("last-startup-hydrate-policy", SatisStatePortabilityPolicy.TARGET_TICK_START_POLICY);
+        state.put("last-startup-hydrate-state-owner-policy", SatisStatePortabilityPolicy.STATE_OWNER_POLICY);
+        state.put("last-startup-hydrate-at", Instant.now().toString());
+        cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
+            getLogger().warning("Failed to publish CloudIslands Satis startup hydration state: " + error.getMessage());
+            return Map.of();
+        });
     }
 
     private void registerCommands() {
@@ -3780,6 +3814,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         refreshIslandCache();
         refreshMachineCache();
         configureCoreApiStateWriters();
+        hydrateCachedSatisIslandsFromCore("runtime-apply");
         if (operationalFeatureEnabled("machines")) {
             rebuildNetworks();
         }
