@@ -468,6 +468,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             effective.putIfAbsent("addon-event-delivery", "typed-cloud-event-callbacks-through-cloudislands-api");
             effective.putIfAbsent("addon-event-failure-policy", "addon-callback-exceptions-are-logged-and-isolated");
             effective.putIfAbsent("addon-event-feature-gating-policy", "disabled-addon-features-do-not-receive-matching-runtime-events");
+            effective.putIfAbsent("addon-route-event-feature-gate", "route-events&&addon-state");
             effective.putIfAbsent("addon-lifecycle-events", "island-pre-create,island-created,island-pre-activate,island-activation-requested,island-activated,island-deactivation-requested,island-deactivated,island-migration-requested,island-migrated,island-delete-requested,island-deleted,island-delete-backup-failed,island-restore-requested,island-restored,island-reset,island-recovery-required,island-repaired,island-runtime-changed,island-pre-visit,island-visited,island-invite-changed,island-member-joined,island-member-left,island-member-changed,island-renamed,island-access-changed,island-visitor-ban-changed,island-visitor-kicked,island-flag-changed,island-permission-checked,island-permission-changed,island-role-changed,island-role-catalog-changed,island-ownership-changed,island-chat-sent,island-blocks-changed,island-block-value-changed,island-mission-progress,island-mission-completed,island-level-recalculate,island-worth-changed,island-upgrade-changed,island-limit-changed,island-biome-changed,island-home-changed,island-warp-created,island-warp-deleted,island-warp-changed,island-bank-changed,island-snapshot-requested,island-snapshot-created,island-template-changed,node-state-changed,route-ticket-created,route-session-published,route-ticket-consumed,route-ticket-failed,route-ticket-cleared,addon-state-changed,core-cache-cleared,core-reloaded");
             effective.put("addon-default-enabled", Boolean.toString(addonDefaultEnabled));
             effective.put("parent-enabled", Boolean.toString(parentEnabled));
@@ -1693,22 +1694,26 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 return false;
             }
             String eventName = event.getClass().getSimpleName();
-            String feature = eventFeatureGate(eventName);
-            return feature.isBlank() || snapshot.acceptsRuntimeFeature(feature, true);
+            for (String feature : eventFeatureGates(eventName)) {
+                if (!snapshot.acceptsRuntimeFeature(feature, true)) {
+                    return false;
+                }
+            }
+            return true;
         }
 
-        private String eventFeatureGate(String eventName) {
+        private List<String> eventFeatureGates(String eventName) {
             if (eventName == null || eventName.isBlank()) {
-                return "";
+                return List.of();
             }
             if (eventName.startsWith("RouteTicket") || eventName.startsWith("RouteSession")) {
-                return "route-events";
+                return List.of("route-events", "addon-state");
             }
             if (eventName.equals("AddonStateChangeEvent")) {
-                return "addon-state";
+                return List.of("addon-state");
             }
             if (eventName.equals("NodeStateChangedEvent") || eventName.startsWith("Core")) {
-                return "maintenance";
+                return List.of("maintenance");
             }
             if (eventName.equals("IslandPreCreateEvent")
                 || eventName.equals("IslandCreatedEvent")
@@ -1720,51 +1725,51 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 || eventName.equals("IslandDeleteRequestEvent")
                 || eventName.equals("IslandDeletedEvent")
                 || eventName.equals("IslandRuntimeChangeEvent")) {
-                return "lifecycle";
+                return List.of("lifecycle");
             }
             if (eventName.startsWith("IslandMember")
                 || eventName.equals("IslandInviteChangeEvent")
                 || eventName.equals("IslandOwnershipChangeEvent")) {
-                return "members";
+                return List.of("members");
             }
             if (eventName.startsWith("IslandPermission")
                 || eventName.startsWith("IslandRole")
                 || eventName.equals("IslandAccessChangeEvent")
                 || eventName.startsWith("IslandVisitor")
                 || eventName.equals("IslandFlagChangeEvent")) {
-                return "permissions";
+                return List.of("permissions");
             }
             if (eventName.startsWith("IslandMission")) {
-                return "missions";
+                return List.of("missions");
             }
             if (eventName.startsWith("IslandUpgrade") || eventName.equals("IslandLimitChangeEvent")) {
-                return "upgrades";
+                return List.of("upgrades");
             }
             if (eventName.equals("IslandLevelRecalculateEvent")
                 || eventName.equals("IslandWorthChangeEvent")
                 || eventName.equals("IslandBlocksChangeEvent")
                 || eventName.equals("IslandBlockValueChangeEvent")) {
-                return "level-values";
+                return List.of("level-values");
             }
             if (eventName.equals("IslandBankChangeEvent")) {
-                return "storage";
+                return List.of("storage");
             }
             if (eventName.startsWith("IslandWarp") || eventName.equals("IslandHomeChangeEvent")) {
-                return "warps";
+                return List.of("warps");
             }
             if (eventName.equals("IslandBiomeChangeEvent")) {
-                return "biomes";
+                return List.of("biomes");
             }
             if (eventName.equals("IslandChatSentEvent")) {
-                return "chat";
+                return List.of("chat");
             }
             if (eventName.equals("IslandTemplateChangeEvent")) {
-                return "templates";
+                return List.of("templates");
             }
             if (eventName.startsWith("Island")) {
-                return "lifecycle";
+                return List.of("lifecycle");
             }
-            return "";
+            return List.of();
         }
 
         private void notifyRegistered(CloudIslandsAddon addon, CloudIslandsAddonSnapshot snapshot) {
