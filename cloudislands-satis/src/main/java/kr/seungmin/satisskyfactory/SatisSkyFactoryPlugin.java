@@ -1477,6 +1477,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-setup-selected-backend", databaseSetupSelectedBackendMetadata());
         metadata.put("database-setup-selected-source", databaseConfigSource());
         metadata.put("database-setup-warning", databaseSetupWarningMetadata());
+        metadata.put("database-setup-safety", databaseSetupSafetyMetadata());
+        metadata.put("database-setup-action", databaseSetupActionMetadata());
         metadata.put("database-setup-jdbc-aliases", SatisDatabaseConfigPolicy.commonJdbcAliasMetadata());
         metadata.put("database-setup-selection-policy", SatisStatePortabilityPolicy.SETUP_SELECTION_POLICY);
         metadata.put("database-setup-backend-priority", SatisStatePortabilityPolicy.SETUP_BACKEND_PRIORITY);
@@ -4672,6 +4674,57 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return "none";
         }
         return "ambiguous:" + String.join(",", configured) + ":set-setup.database.type";
+    }
+
+    private String databaseSetupSafetyMetadata() {
+        String warning = databaseSetupWarningMetadata();
+        if (!warning.equals("none")) {
+            return "review-" + warning;
+        }
+        DatabaseService.StorageBackend backend = DatabaseService.StorageBackend.parse(
+                configuredDatabaseType(), DatabaseService.StorageBackend.SQLITE);
+        if (backend == DatabaseService.StorageBackend.CORE_API && !coreApiAddonStateAvailable()) {
+            if (databaseCoreApiFallbackTargetReady()) {
+                return "degraded-core-api-unavailable-ready-fallback-" + databaseCoreApiFallbackTarget();
+            }
+            if (coreApiLocalCacheWritesEnabled()) {
+                return "unsafe-core-api-unavailable-local-cache-writes-enabled";
+            }
+            return "blocked-core-api-unavailable-no-ready-shared-fallback";
+        }
+        if (!databaseShared()) {
+            return "unsafe-local-database-for-multi-node";
+        }
+        if (!databaseFallbackProductionSafe()) {
+            return "review-fallback-" + databaseFallbackRisk();
+        }
+        return "production-safe";
+    }
+
+    private String databaseSetupActionMetadata() {
+        String safety = databaseSetupSafetyMetadata();
+        if (safety.equals("production-safe")) {
+            return "none";
+        }
+        if (safety.startsWith("review-unknown-jdbc-url") || safety.startsWith("review-ambiguous") || safety.startsWith("review-invalid-setup.database.type")) {
+            return "set-setup.database.type-to-POSTGRESQL-MYSQL-MARIADB-or-CORE_API";
+        }
+        if (safety.startsWith("blocked-core-api-unavailable")) {
+            return "enable-cloudislands-addon-state-or-configure-ready-shared-fallback-before-sqlite";
+        }
+        if (safety.startsWith("degraded-core-api-unavailable")) {
+            return "restore-cloudislands-addon-state-authority-or-monitor-ready-shared-fallback";
+        }
+        if (safety.startsWith("unsafe-core-api-unavailable-local-cache")) {
+            return "disable-core-api-local-cache-writes-or-restore-cloudislands-addon-state";
+        }
+        if (safety.startsWith("unsafe-local-database")) {
+            return "use-postgresql-mysql-mariadb-core-api-or-shared-sqlite-path";
+        }
+        if (safety.startsWith("review-fallback")) {
+            return "put-POSTGRESQL-MYSQL-MARIADB-or-CORE_API-before-SQLITE-in-fallback-order";
+        }
+        return "review-database-setup";
     }
 
     private String configuredCommonJdbcUrl() {
