@@ -136,6 +136,68 @@ addons:
       biomes: true
       chat: true
       templates: true
+setup:
+  database:
+    # Highest-priority config shape for new CloudIslands installs.
+    # SQLITE, POSTGRESQL, MYSQL, MARIADB, CORE_API.
+    # CORE_API uses CloudIslands addon-state as the authority and keeps a local SQLite read cache.
+    type: CORE_API
+    core-api:
+      local-cache-writes:
+        # Keep false on multi-node networks. If Core API is unavailable, use fallback instead of split local writes.
+        enabled: false
+      flattened-fallback:
+        # If table/key-value bulk save is not available on the Core API, retry as flattened addon-state keys.
+        enabled: true
+    fallback:
+      enabled: true
+      # Shared backends are attempted before SQLITE so Island-1/Island-2 do not split Satis state.
+      order:
+        - POSTGRESQL
+        - MYSQL
+        - MARIADB
+        - CORE_API
+        - SQLITE
+    jdbc:
+      # Optional shortcut. If set, it wins over host/database fields for JDBC backends.
+      url: ""
+      username: ""
+      password: ""
+      max-pool-size: 8
+      connection-timeout-ms: 5000
+    postgresql:
+      jdbc-url: ""
+      url: ""
+      host: "127.0.0.1"
+      port: 5432
+      database: "cloudislands_satis"
+      options: "sslmode=disable"
+      username: ""
+      password: ""
+      max-pool-size: 0
+      connection-timeout-ms: 0
+    mysql:
+      jdbc-url: ""
+      url: ""
+      host: "127.0.0.1"
+      port: 3306
+      database: "cloudislands_satis"
+      options: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+      username: ""
+      password: ""
+      max-pool-size: 0
+      connection-timeout-ms: 0
+    mariadb:
+      jdbc-url: ""
+      url: ""
+      host: "127.0.0.1"
+      port: 3306
+      database: "cloudislands_satis"
+      options: "useSSL=false&serverTimezone=UTC"
+      username: ""
+      password: ""
+      max-pool-size: 0
+      connection-timeout-ms: 0
 integration:
   # EXTERNAL_ADDON: normal removable plugin/addon mode.
   # BUILT_IN_COMPATIBLE: use the same CloudIslands addon API gates for builds that package Satis together.
