@@ -176,12 +176,18 @@ public final class MarketService {
         }
         Optional<SellResult> result = payout(island, owner, itemId, amount);
         if (result.isEmpty()) {
-            inventory.add(itemId, amount);
-            storage.saveIfAllowed(inventory);
+            if (!restoreSoldInventory(inventory, itemId, amount)) {
+                inventory.remove(itemId, amount);
+            }
             return Optional.empty();
         }
         database.addLedger(island.islandUuid(), "MARKET_SELL", result.get().gross(), itemId + " x" + amount);
         return result;
+    }
+
+    private boolean restoreSoldInventory(VirtualInventory inventory, String itemId, long amount) {
+        inventory.add(itemId, amount);
+        return storage.saveIfAllowed(inventory);
     }
 
     public Optional<SellResult> sellDirect(FactoryIsland island, OfflinePlayer owner, String itemId, long amount) {
