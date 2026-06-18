@@ -108,4 +108,17 @@ class SatisSkyFactoryPluginTest {
         assertTrue(source.contains("disabled-feature-unregisters-factory-and-sfactory-commands-and-registers-no-active-satis-command"));
         assertTrue(source.contains("commands-feature-disabled-unregisters-command-list-entrypoints"));
     }
+
+    @Test
+    void placeholderFeatureGateUnregistersExpansionWhenDisabled() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java"));
+
+        assertTrue(source.contains("private void registerPlaceholders()"));
+        assertTrue(source.contains("if (!placeholderRuntimeEnabled())"));
+        assertTrue(source.contains("placeholderHook.unregister();"));
+        assertTrue(source.contains("placeholderHook = null;"));
+        assertTrue(source.contains("private boolean placeholderRuntimeEnabled()"));
+        assertTrue(source.contains("return operationalFeatureEnabled(\"placeholders\")\n                && operationalFeatureEnabled(\"machines\")\n                && getServer().getPluginManager().isPluginEnabled(\"PlaceholderAPI\");"));
+        assertTrue(source.contains("runtime-placeholder-policy\", \"disabled-feature-or-missing-placeholderapi-registers-no-expansion"));
+    }
 }
