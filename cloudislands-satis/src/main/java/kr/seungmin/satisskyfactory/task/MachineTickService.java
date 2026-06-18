@@ -669,16 +669,21 @@ public final class MachineTickService {
         }
         long previousRemaining = node.get().remaining();
         node.get().remaining(previousRemaining - amount);
+        UUID previousLinkedResourceNodeId = machine.linkedResourceNodeId();
         machine.linkedResourceNodeId(node.get().nodeId());
         if (!storage.saveIfAllowed(output)) {
             output.remove(node.get().resourceId(), amount);
             node.get().remaining(previousRemaining);
+            machine.linkedResourceNodeId(previousLinkedResourceNodeId);
             return false;
         }
         if (!nodes.save(node.get())) {
             output.remove(node.get().resourceId(), amount);
-            storage.saveIfAllowed(output);
+            if (!storage.saveIfAllowed(output)) {
+                output.add(node.get().resourceId(), amount);
+            }
             node.get().remaining(previousRemaining);
+            machine.linkedResourceNodeId(previousLinkedResourceNodeId);
             return false;
         }
         setStatus(machine, MachineStatus.ACTIVE);
